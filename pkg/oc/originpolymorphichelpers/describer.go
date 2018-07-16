@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/lib/describe"
 )
 
 func NewDescriberFn(delegate kcmdutil.DescriberFunc) kcmdutil.DescriberFunc {

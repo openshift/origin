@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/admin/policy"
+	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"

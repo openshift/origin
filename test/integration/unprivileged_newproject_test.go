@@ -12,8 +12,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	oc "github.com/openshift/origin/pkg/oc/cli/cmd"
-	"github.com/openshift/origin/pkg/oc/util/tokencmd"
+	"github.com/openshift/origin/pkg/oc/cli/requestproject"
+	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -86,7 +86,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 		t.Fatalf("expected %v, got %v", metav1.StatusSuccess, allowed.Status)
 	}
 
-	requestProject := oc.RequestProjectOptions{
+	requestProject := requestproject.RequestProjectOptions{
 		ProjectName: "new-project",
 		DisplayName: "display name here",
 		Description: "the special description",
@@ -170,7 +170,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	requestProject := oc.RequestProjectOptions{
+	requestProject := requestproject.RequestProjectOptions{
 		ProjectName: "new-project",
 		DisplayName: "display name here",
 		Description: "the special description",

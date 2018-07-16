@@ -10,8 +10,8 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
-	"github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/oc/cli/login"
+	"github.com/openshift/origin/pkg/oc/lib/kubeconfig"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
@@ -50,7 +50,7 @@ func Login(username, password, server, configDir string, clientConfig kclientcmd
 			break
 		}
 	}
-	newConfig, err := config.MergeConfig(clientConfig, *adminConfig)
+	newConfig, err := kubeconfig.MergeConfig(clientConfig, *adminConfig)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func Login(username, password, server, configDir string, clientConfig kclientcmd
 		Password:           password,
 		IOStreams:          newStreams,
 		StartingKubeConfig: newConfig,
-		PathOptions:        config.NewPathOptions(c),
+		PathOptions:        kubeconfig.NewPathOptions(c),
 	}
 	return o.Run()
 }

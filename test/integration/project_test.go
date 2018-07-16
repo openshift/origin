@@ -25,7 +25,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/oc/admin/policy"
+	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectinternalversion "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"

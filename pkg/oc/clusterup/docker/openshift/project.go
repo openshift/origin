@@ -8,8 +8,9 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	"github.com/openshift/origin/pkg/oc/cli/cmd"
-	"github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/oc/cli/project"
+	"github.com/openshift/origin/pkg/oc/cli/requestproject"
+	"github.com/openshift/origin/pkg/oc/lib/kubeconfig"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 )
 
@@ -23,8 +24,8 @@ func CreateProject(f genericclioptions.RESTClientGetter, name, display, desc, ba
 	if err != nil {
 		return err
 	}
-	pathOptions := config.NewPathOptionsWithConfig("")
-	opt := &cmd.RequestProjectOptions{
+	pathOptions := kubeconfig.NewPathOptionsWithConfig("")
+	opt := &requestproject.RequestProjectOptions{
 		ProjectName: name,
 		DisplayName: display,
 		Description: desc,
@@ -33,7 +34,7 @@ func CreateProject(f genericclioptions.RESTClientGetter, name, display, desc, ba
 
 		Client: projectClient.Project(),
 
-		ProjectOptions: &cmd.ProjectOptions{PathOptions: pathOptions},
+		ProjectOptions: &project.ProjectOptions{PathOptions: pathOptions},
 		IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
 	}
 	err = opt.ProjectOptions.Complete(f, []string{})
@@ -51,8 +52,8 @@ func CreateProject(f genericclioptions.RESTClientGetter, name, display, desc, ba
 }
 
 func setCurrentProject(f genericclioptions.RESTClientGetter, name string, out io.Writer) error {
-	pathOptions := config.NewPathOptionsWithConfig("")
-	opt := &cmd.ProjectOptions{PathOptions: pathOptions, IOStreams: genericclioptions.IOStreams{Out: out, ErrOut: ioutil.Discard}}
+	pathOptions := kubeconfig.NewPathOptionsWithConfig("")
+	opt := &project.ProjectOptions{PathOptions: pathOptions, IOStreams: genericclioptions.IOStreams{Out: out, ErrOut: ioutil.Discard}}
 	opt.Complete(f, []string{name})
 	return opt.RunProject()
 }

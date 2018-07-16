@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
-	"github.com/openshift/origin/pkg/oc/errors"
+	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
 
 const (

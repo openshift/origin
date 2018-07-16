@@ -81,7 +81,15 @@
       "github.com/openshift/origin/pkg/cmd/server/handlers",
       "github.com/openshift/origin/pkg/oauth/util",
       "github.com/openshift/origin/pkg/oc/admin",
-      "github.com/openshift/origin/pkg/oc/admin/groups/sync",
+      "github.com/openshift/origin/pkg/oc/cli/admin/createerrortemplate",
+      "github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate",
+      "github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate",
+      "github.com/openshift/origin/pkg/oc/cli/admin/groups/sync",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/ad",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/rfc2307",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror",
       "github.com/openshift/origin/pkg/user"
     ],
     "forbiddenImportPackageRoots": [

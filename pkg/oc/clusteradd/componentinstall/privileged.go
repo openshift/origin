@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 
-	"github.com/openshift/origin/pkg/oc/errors"
+	"github.com/openshift/origin/pkg/oc/lib/errors"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 

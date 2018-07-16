@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
-	"github.com/openshift/origin/pkg/oc/errors"
+	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/openshift/origin/pkg/oc/util/prefixwriter"
+	"github.com/openshift/origin/pkg/oc/clusterup/prefixwriter"
 )
 
 type hasCause interface {

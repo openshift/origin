@@ -24,26 +24,52 @@ import (
 	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/term"
-	"github.com/openshift/origin/pkg/oc/admin"
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics"
-	sync "github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
-	"github.com/openshift/origin/pkg/oc/cli/cmd"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/cluster"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/image"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/importer"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/observe"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/registry"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/rollout"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/rsync"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/set"
+	"github.com/openshift/origin/pkg/oc/cli/admin"
+	"github.com/openshift/origin/pkg/oc/cli/admin/buildchain"
+	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics"
+	sync "github.com/openshift/origin/pkg/oc/cli/admin/groups/sync"
+	exipfailover "github.com/openshift/origin/pkg/oc/cli/admin/ipfailover"
+	"github.com/openshift/origin/pkg/oc/cli/buildlogs"
+	"github.com/openshift/origin/pkg/oc/cli/cancelbuild"
+	"github.com/openshift/origin/pkg/oc/cli/cluster"
+	"github.com/openshift/origin/pkg/oc/cli/debug"
+	"github.com/openshift/origin/pkg/oc/cli/deploy"
+	configcmd "github.com/openshift/origin/pkg/oc/cli/experimental/config"
+	"github.com/openshift/origin/pkg/oc/cli/experimental/dockergc"
+	"github.com/openshift/origin/pkg/oc/cli/export"
+	"github.com/openshift/origin/pkg/oc/cli/expose"
+	"github.com/openshift/origin/pkg/oc/cli/extract"
+	"github.com/openshift/origin/pkg/oc/cli/idle"
+	"github.com/openshift/origin/pkg/oc/cli/image"
+	"github.com/openshift/origin/pkg/oc/cli/importer"
+	"github.com/openshift/origin/pkg/oc/cli/importimage"
+	"github.com/openshift/origin/pkg/oc/cli/kubectlwrappers"
+	"github.com/openshift/origin/pkg/oc/cli/login"
+	"github.com/openshift/origin/pkg/oc/cli/logout"
+	"github.com/openshift/origin/pkg/oc/cli/logs"
+	"github.com/openshift/origin/pkg/oc/cli/newapp"
+	"github.com/openshift/origin/pkg/oc/cli/newbuild"
+	"github.com/openshift/origin/pkg/oc/cli/observe"
+	"github.com/openshift/origin/pkg/oc/cli/options"
 	"github.com/openshift/origin/pkg/oc/cli/policy"
-	"github.com/openshift/origin/pkg/oc/cli/sa"
+	"github.com/openshift/origin/pkg/oc/cli/process"
+	"github.com/openshift/origin/pkg/oc/cli/project"
+	"github.com/openshift/origin/pkg/oc/cli/projects"
+	"github.com/openshift/origin/pkg/oc/cli/registry"
+	"github.com/openshift/origin/pkg/oc/cli/requestproject"
+	"github.com/openshift/origin/pkg/oc/cli/rollback"
+	"github.com/openshift/origin/pkg/oc/cli/rollout"
+	"github.com/openshift/origin/pkg/oc/cli/rsh"
+	"github.com/openshift/origin/pkg/oc/cli/rsync"
 	"github.com/openshift/origin/pkg/oc/cli/secrets"
-	"github.com/openshift/origin/pkg/oc/experimental/buildchain"
-	configcmd "github.com/openshift/origin/pkg/oc/experimental/config"
-	"github.com/openshift/origin/pkg/oc/experimental/dockergc"
-	exipfailover "github.com/openshift/origin/pkg/oc/experimental/ipfailover"
+	"github.com/openshift/origin/pkg/oc/cli/serviceaccounts"
+	"github.com/openshift/origin/pkg/oc/cli/set"
+	"github.com/openshift/origin/pkg/oc/cli/startbuild"
+	"github.com/openshift/origin/pkg/oc/cli/status"
+	"github.com/openshift/origin/pkg/oc/cli/tag"
+	"github.com/openshift/origin/pkg/oc/cli/types"
+	"github.com/openshift/origin/pkg/oc/cli/version"
+	"github.com/openshift/origin/pkg/oc/cli/whoami"
 )
 
 const productName = `OpenShift`
@@ -112,14 +138,14 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdTypes(fullName, f, ioStreams),
+				types.NewCmdTypes(fullName, f, ioStreams),
 				loginCmd,
-				cmd.NewCmdRequestProject(cmd.RequestProjectRecommendedCommandName, fullName, f, ioStreams),
-				cmd.NewCmdNewApplication(cmd.NewAppRecommendedCommandName, fullName, f, ioStreams),
-				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName, fullName+" "+cmd.StatusRecommendedName, f, ioStreams),
-				cmd.NewCmdProject(fullName+" project", f, ioStreams),
-				cmd.NewCmdProjects(fullName, f, ioStreams),
-				cmd.NewCmdExplain(fullName, f, ioStreams),
+				requestproject.NewCmdRequestProject(requestproject.RequestProjectRecommendedCommandName, fullName, f, ioStreams),
+				newapp.NewCmdNewApplication(newapp.NewAppRecommendedCommandName, fullName, f, ioStreams),
+				status.NewCmdStatus(status.StatusRecommendedName, fullName, fullName+" "+status.StatusRecommendedName, f, ioStreams),
+				project.NewCmdProject(fullName+" project", f, ioStreams),
+				projects.NewCmdProjects(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdExplain(fullName, f, ioStreams),
 				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, ioStreams),
 			},
 		},
@@ -127,77 +153,77 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Message: "Build and Deploy Commands:",
 			Commands: []*cobra.Command{
 				rollout.NewCmdRollout(fullName, f, ioStreams),
-				cmd.NewCmdRollback(fullName, f, ioStreams),
-				cmd.NewCmdNewBuild(cmd.NewBuildRecommendedCommandName, fullName, f, ioStreams),
-				cmd.NewCmdStartBuild(fullName, f, ioStreams),
-				cmd.NewCmdCancelBuild(cmd.CancelBuildRecommendedCommandName, fullName, f, ioStreams),
-				cmd.NewCmdImportImage(fullName, f, ioStreams),
-				cmd.NewCmdTag(fullName, f, ioStreams),
+				rollback.NewCmdRollback(fullName, f, ioStreams),
+				newbuild.NewCmdNewBuild(newbuild.NewBuildRecommendedCommandName, fullName, f, ioStreams),
+				startbuild.NewCmdStartBuild(fullName, f, ioStreams),
+				cancelbuild.NewCmdCancelBuild(cancelbuild.CancelBuildRecommendedCommandName, fullName, f, ioStreams),
+				importimage.NewCmdImportImage(fullName, f, ioStreams),
+				tag.NewCmdTag(fullName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Application Management Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdGet(fullName, f, ioStreams),
-				cmd.NewCmdDescribe(fullName, f, ioStreams),
-				cmd.NewCmdEdit(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdGet(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdDescribe(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdEdit(fullName, f, ioStreams),
 				set.NewCmdSet(fullName, f, ioStreams),
-				cmd.NewCmdLabel(fullName, f, ioStreams),
-				cmd.NewCmdAnnotate(fullName, f, ioStreams),
-				cmd.NewCmdExpose(fullName, f, ioStreams),
-				cmd.NewCmdDelete(fullName, f, ioStreams),
-				cmd.NewCmdScale(fullName, f, ioStreams),
-				cmd.NewCmdAutoscale(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdLabel(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdAnnotate(fullName, f, ioStreams),
+				expose.NewCmdExpose(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdDelete(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdScale(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdAutoscale(fullName, f, ioStreams),
 				secretcmds,
-				sa.NewCmdServiceAccounts(sa.ServiceAccountsRecommendedName, fullName+" "+sa.ServiceAccountsRecommendedName, f, ioStreams),
+				serviceaccounts.NewCmdServiceAccounts(serviceaccounts.ServiceAccountsRecommendedName, fullName+" "+serviceaccounts.ServiceAccountsRecommendedName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Troubleshooting and Debugging Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdLogs(cmd.LogsRecommendedCommandName, fullName, f, ioStreams),
-				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, ioStreams),
+				logs.NewCmdLogs(logs.LogsRecommendedCommandName, fullName, f, ioStreams),
+				rsh.NewCmdRsh(rsh.RshRecommendedName, fullName, f, ioStreams),
 				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, ioStreams),
-				cmd.NewCmdPortForward(fullName, f, ioStreams),
-				cmd.NewCmdDebug(fullName, f, ioStreams),
-				cmd.NewCmdExec(fullName, f, ioStreams),
-				cmd.NewCmdProxy(fullName, f, ioStreams),
-				cmd.NewCmdAttach(fullName, f, ioStreams),
-				cmd.NewCmdRun(fullName, f, ioStreams),
-				cmd.NewCmdCp(fullName, f, ioStreams),
-				cmd.NewCmdWait(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdPortForward(fullName, f, ioStreams),
+				debug.NewCmdDebug(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdExec(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdProxy(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdAttach(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdRun(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdCp(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdWait(fullName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
 				admin.NewCommandAdmin("adm", fullName+" "+"adm", f, ioStreams),
-				cmd.NewCmdCreate(fullName, f, ioStreams),
-				cmd.NewCmdReplace(fullName, f, ioStreams),
-				cmd.NewCmdApply(fullName, f, ioStreams),
-				cmd.NewCmdPatch(fullName, f, ioStreams),
-				cmd.NewCmdProcess(fullName, f, ioStreams),
-				cmd.NewCmdExport(fullName, f, ioStreams),
-				cmd.NewCmdExtract(fullName, f, ioStreams),
-				cmd.NewCmdIdle(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdCreate(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdReplace(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdApply(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdPatch(fullName, f, ioStreams),
+				process.NewCmdProcess(fullName, f, ioStreams),
+				export.NewCmdExport(fullName, f, ioStreams),
+				extract.NewCmdExtract(fullName, f, ioStreams),
+				idle.NewCmdIdle(fullName, f, ioStreams),
 				observe.NewCmdObserve(fullName, f, ioStreams),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, ioStreams),
-				cmd.NewCmdAuth(fullName, f, ioStreams),
-				cmd.NewCmdConvert(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdAuth(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdConvert(fullName, f, ioStreams),
 				importer.NewCmdImport(fullName, f, ioStreams),
 				image.NewCmdImage(fullName, f, ioStreams),
 				registry.NewCmd(fullName, f, ioStreams),
-				cmd.NewCmdApiVersions(fullName, f, ioStreams),
-				cmd.NewCmdApiResources(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdApiVersions(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdApiResources(fullName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Settings Commands:",
 			Commands: []*cobra.Command{
-				login.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, ioStreams),
-				cmd.NewCmdConfig(fullName, "config", f, ioStreams),
-				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, ioStreams),
-				cmd.NewCmdCompletion(fullName, ioStreams),
+				logout.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, ioStreams),
+				kubectlwrappers.NewCmdConfig(fullName, "config", f, ioStreams),
+				whoami.NewCmdWhoAmI(whoami.WhoAmIRecommendedCommandName, fullName+" "+whoami.WhoAmIRecommendedCommandName, f, ioStreams),
+				kubectlwrappers.NewCmdCompletion(fullName, ioStreams),
 			},
 		},
 	}
@@ -211,7 +237,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		"options",
 		"deploy",
 		// These commands are deprecated and should not appear in help
-		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, ioStreams)),
+		moved(fullName, "logs", cmds, buildlogs.NewCmdBuildLogs(fullName, f, ioStreams)),
 		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f, ioStreams)),
 		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSecret(secrets.NewSecretRecommendedCommandName, fullName, f, ioStreams)),
 		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateDockerConfigSecret(secrets.CreateDockerConfigSecretRecommendedName, fullName, f, ioStreams, ocSecretsNewFullName, ocEditFullName)),
@@ -225,12 +251,12 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 
 	cmds.AddCommand(newExperimentalCommand("ex", name+"ex", f, ioStreams))
 
-	cmds.AddCommand(cmd.NewCmdPlugin(fullName, f, ioStreams))
+	cmds.AddCommand(kubectlwrappers.NewCmdPlugin(fullName, f, ioStreams))
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, cmd.NewVersionOptions(true, ioStreams)))
+		cmds.AddCommand(version.NewCmdVersion(fullName, f, version.NewVersionOptions(true, ioStreams)))
 	}
-	cmds.AddCommand(cmd.NewCmdOptions(ioStreams))
-	cmds.AddCommand(cmd.NewCmdDeploy(fullName, f, ioStreams))
+	cmds.AddCommand(options.NewCmdOptions(ioStreams))
+	cmds.AddCommand(deploy.NewCmdDeploy(fullName, f, ioStreams))
 
 	if cmds.Flag("namespace") != nil {
 		if cmds.Flag("namespace").Annotations == nil {
@@ -298,7 +324,7 @@ func newExperimentalCommand(name, fullName string, f kcmdutil.Factory, ioStreams
 	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, f, ioStreams)
 	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oc adm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
 	experimental.AddCommand(deprecatedDiag)
-	experimental.AddCommand(cmd.NewCmdOptions(ioStreams))
+	experimental.AddCommand(options.NewCmdOptions(ioStreams))
 
 	// these groups also live under `oc adm groups {sync,prune}` and are here only for backwards compatibility
 	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, ioStreams))
