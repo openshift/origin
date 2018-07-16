@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 222b7786792bd9f69d7e18611d1c56f5ab26b42b
+%global commit 80517fc3f438498112a8d12c42900818b99d120c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.33 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=33 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=b30e5f7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.34 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=34 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=2ad165c OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.34
+Version:        3.9.35
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,10 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Jul 16 2018 Tim Bielawa <tbielawa@redhat.com> 3.9.35-1
+- Update system container image to mount flexvolume plugins
+  (hekumar@redhat.com)
+
 * Fri Jul 13 2018 Tim Bielawa <tbielawa@redhat.com> 3.9.34-1
 - UPSTREAM: 65549: Fix flexvolumes in containerized envs (hekumar@redhat.com)
 - UPSTREAM: 65226: Put all the node address cloud provider retrival complex
