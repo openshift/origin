@@ -73,7 +73,7 @@ func generateTCPMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
 	if len(cfg.Host) > 0 && len(cfg.Path) == 0 && (cfg.Termination == routeapi.TLSTerminationPassthrough || cfg.Termination == routeapi.TLSTerminationReencrypt) {
 		return &HAProxyMapEntry{
 			Key:   templateutil.GenerateRouteRegexp(cfg.Host, "", cfg.IsWildcard),
-			Value: cfg.Name,
+			Value: fmt.Sprintf("%s:%s", templateutil.GenerateBackendNamePrefix(cfg.Termination), cfg.Name),
 		}
 	}
 

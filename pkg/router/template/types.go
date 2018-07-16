@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	"strings"
+	"time"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
@@ -15,6 +16,9 @@ type ServiceUnit struct {
 	// EndpointTable are endpoints that back the service, this translates into a final backend
 	// implementation for routers.
 	EndpointTable []Endpoint
+	// ServiceAliasAssociations indicates what service aliases are
+	// associated with this service unit.
+	ServiceAliasAssociations map[string]bool
 }
 
 // ServiceAliasConfig is a route for a service.  Uniquely identified by host + path.
@@ -135,6 +139,98 @@ type certificateWriter interface {
 	WriteCertificate(directory string, id string, cert []byte) error
 	DeleteCertificate(directory, id string) error
 }
+
+// ConfigManagerOptions is the options passed to a template router's
+// configuration manager.
+type ConfigManagerOptions struct {
+	// ConnectionInfo specifies how to connect to the underlying router.
+	ConnectionInfo string
+
+	// CommitInterval specifies how often to commit changes made to the
+	// underlying router via the configuration manager.
+	CommitInterval time.Duration
+
+	// BlueprintRoutes are a list of routes blueprints pre-allocated by
+	// the config manager to dynamically manage route additions.
+	BlueprintRoutes []*routeapi.Route
+
+	// BlueprintRoutePoolSize is the size of the pre-allocated pool for
+	// each route blueprint. This can be overriden on an individual
+	// route basis with a route annotation:
+	//    router.openshift.io/pool-size
+	BlueprintRoutePoolSize int
+
+	// MaxDynamicServers is the maximum number of dynamic servers we
+	// will allocate on a per-route basis.
+	MaxDynamicServers int
+
+	// WildcardRoutesAllowed indicates if wildcard routes are allowed.
+	WildcardRoutesAllowed bool
+}
+
+// ConfigManager is used by the router to make configuration changes using
+// the template router's dynamic configuration API (if any).
+// Please note that the code calling the ConfigManager interface methods
+// needs to ensure that a lock is acquired and released in order to
+// guarantee Config Manager consistency.
+// The haproxy specific implementation of the ConfigManager itself does
+// guarantee consistency with internal locks but it is not a hard
+// requirement for a ConfigManager "provider".
+type ConfigManager interface {
+	// Initialize initializes the config manager.
+	Initialize(router RouterInterface, certPath string)
+
+	// AddBlueprint adds a new (or replaces an existing) route blueprint.
+	AddBlueprint(route *routeapi.Route)
+
+	// RemoveBlueprint removes a route blueprint.
+	RemoveBlueprint(route *routeapi.Route)
+
+	// Register registers an id to be associated with a route.
+	Register(id string, route *routeapi.Route)
+
+	// AddRoute adds a new route or updates an existing route.
+	AddRoute(id string, route *routeapi.Route) error
+
+	// RemoveRoute removes a route.
+	RemoveRoute(id string, route *routeapi.Route) error
+
+	// ReplaceRouteEndpoints replaces a subset (the ones associated with
+	// a single service unit) of a route endpoints.
+	ReplaceRouteEndpoints(id string, oldEndpoints, newEndpoints []Endpoint, weight int32) error
+
+	// RemoveRouteEndpoints removes a set of endpoints from a route.
+	RemoveRouteEndpoints(id string, endpoints []Endpoint) error
+
+	// Notify notifies a configuration manager of a router event.
+	// Currently the only ones that are received are on reload* events,
+	// which indicates whether or not the configuration manager should
+	// reset all the dynamically applied changes it is keeping track of.
+	Notify(event RouterEventType)
+
+	// ServerTemplateName returns the dynamic server template name.
+	ServerTemplateName(id string) string
+
+	// ServerTemplateSize returns the dynamic server template size.
+	ServerTemplateSize(id string) string
+
+	// GenerateDynamicServerNames generates the dynamic server names.
+	GenerateDynamicServerNames(id string) []string
+}
+
+// RouterEventType indicates the type of event fired by the router.
+type RouterEventType string
+
+const (
+	// RouterEventReloadStart indicates start of a template router reload.
+	RouterEventReloadStart = "reload-start"
+
+	// RouterEventReloadEnd indicates end of a template router reload.
+	RouterEventReloadEnd = "reload-end"
+
+	// RouterEventReloadError indicates error on a template router reload.
+	RouterEventReloadError = "reload-error"
+)
 
 //TemplateSafeName provides a name that can be used in the template that does not contain restricted
 //characters like / which is used to concat namespace and name in the service unit key

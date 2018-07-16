@@ -212,37 +212,42 @@ func TestGenCertificateHostName(t *testing.T) {
 }
 
 func TestGenerateBackendNamePrefix(t *testing.T) {
-	tests := []struct {
-		name        string
-		termination routeapi.TLSTerminationType
-		expected    string
+	testPrefixes := []struct {
+		name           string
+		termination    routeapi.TLSTerminationType
+		expectedPrefix string
 	}{
 		{
-			name:        "empty termination",
-			termination: routeapi.TLSTerminationType(""),
-			expected:    "be_http",
+			name:           "http route",
+			termination:    routeapi.TLSTerminationType(""),
+			expectedPrefix: "be_http",
 		},
 		{
-			name:        "edge termination",
-			termination: routeapi.TLSTerminationEdge,
-			expected:    "be_edge_http",
+			name:           "edge secured route",
+			termination:    routeapi.TLSTerminationEdge,
+			expectedPrefix: "be_edge_http",
 		},
 		{
-			name:        "reencrypt termination",
-			termination: routeapi.TLSTerminationReencrypt,
-			expected:    "be_secure",
+			name:           "reencrypt route",
+			termination:    routeapi.TLSTerminationReencrypt,
+			expectedPrefix: "be_secure",
 		},
 		{
-			name:        "passthru termination",
-			termination: routeapi.TLSTerminationPassthrough,
-			expected:    "be_tcp",
+			name:           "passthrough route",
+			termination:    routeapi.TLSTerminationPassthrough,
+			expectedPrefix: "be_tcp",
+		},
+		{
+			name:           "unknown route",
+			termination:    routeapi.TLSTerminationType("foo"),
+			expectedPrefix: "be_http",
 		},
 	}
 
-	for _, tc := range tests {
+	for _, tc := range testPrefixes {
 		prefix := GenerateBackendNamePrefix(tc.termination)
-		if prefix != tc.expected {
-			t.Errorf("%s: expected %s to match %s, but didn't", tc.name, tc.expected, prefix)
+		if prefix != tc.expectedPrefix {
+			t.Errorf("TestGenerateBackendNamePrefix: expected %s to get %s, but got %s", tc.name, tc.expectedPrefix, prefix)
 		}
 	}
 }

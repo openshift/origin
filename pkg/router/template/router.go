@@ -101,6 +101,12 @@ type templateRouter struct {
 	metricReload prometheus.Summary
 	// metricWriteConfig tracks writing config
 	metricWriteConfig prometheus.Summary
+	// dynamicConfigManager configures route changes dynamically on the
+	// underlying router.
+	dynamicConfigManager ConfigManager
+	// dynamicallyConfigured indicates whether all the [state] changes
+	// were also successfully applied via the dynamic config manager.
+	dynamicallyConfigured bool
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -121,6 +127,7 @@ type templateRouterCfg struct {
 	peerEndpointsKey         string
 	includeUDP               bool
 	bindPortsAfterSync       bool
+	dynamicConfigManager     ConfigManager
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -146,6 +153,8 @@ type templateData struct {
 	StatsPort int
 	// whether the router should bind the default ports
 	BindPorts bool
+	// The dynamic configuration manager if "configured".
+	DynamicConfigManager ConfigManager
 }
 
 func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
@@ -200,6 +209,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		peerEndpointsKey:         cfg.peerEndpointsKey,
 		peerEndpoints:            []Endpoint{},
 		bindPortsAfterSync:       cfg.bindPortsAfterSync,
+		dynamicConfigManager:     cfg.dynamicConfigManager,
 
 		metricReload:      metricsReload,
 		metricWriteConfig: metricWriteConfig,
@@ -215,6 +225,10 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 	glog.V(4).Infof("Reading persisted state")
 	if err := router.readState(); err != nil {
 		return nil, err
+	}
+	if router.dynamicConfigManager != nil {
+		glog.Infof("Initializing dynamic config manager ... ")
+		router.dynamicConfigManager.Initialize(router, router.defaultCertificatePath)
 	}
 	glog.V(4).Infof("Committing state")
 	// Bypass the rate limiter to ensure the first sync will be
@@ -313,9 +327,10 @@ func (r *templateRouter) Commit() {
 		glog.V(4).Infof("Router state synchronized for the first time")
 		r.synced = true
 		r.stateChanged = true
+		r.dynamicallyConfigured = false
 	}
 
-	needsCommit := r.stateChanged
+	needsCommit := r.stateChanged && !r.dynamicallyConfigured
 	r.lock.Unlock()
 
 	if needsCommit {
@@ -336,6 +351,10 @@ func (r *templateRouter) commitAndReload() error {
 		}
 
 		r.stateChanged = false
+		r.dynamicallyConfigured = true
+		if r.dynamicConfigManager != nil {
+			r.dynamicConfigManager.Notify(RouterEventReloadStart)
+		}
 
 		glog.V(4).Infof("Writing the router config")
 		reloadStart := time.Now()
@@ -356,7 +375,14 @@ func (r *templateRouter) commitAndReload() error {
 	err := r.reloadRouter()
 	r.metricReload.Observe(float64(time.Now().Sub(reloadStart)) / float64(time.Second))
 	if err != nil {
+		if r.dynamicConfigManager != nil {
+			r.dynamicConfigManager.Notify(RouterEventReloadError)
+		}
 		return err
+	}
+
+	if r.dynamicConfigManager != nil {
+		r.dynamicConfigManager.Notify(RouterEventReloadEnd)
 	}
 
 	return nil
@@ -424,6 +450,7 @@ func (r *templateRouter) writeConfig() error {
 			StatsPassword:        r.statsPassword,
 			StatsPort:            r.statsPort,
 			BindPorts:            !r.bindPortsAfterSync || r.synced,
+			DynamicConfigManager: r.dynamicConfigManager,
 		}
 		if err := template.Execute(file, data); err != nil {
 			file.Close()
@@ -501,6 +528,8 @@ func (r *templateRouter) createServiceUnitInternal(id string) {
 		Name:          id,
 		Hostname:      fmt.Sprintf("%s.%s.svc", name, namespace),
 		EndpointTable: []Endpoint{},
+
+		ServiceAliasAssociations: make(map[string]bool),
 	}
 
 	r.serviceUnits[id] = service
@@ -536,15 +565,166 @@ func (r *templateRouter) DeleteServiceUnit(id string) {
 	r.stateChanged = true
 }
 
+// addServiceAliasAssociation adds a reference to the backend in the ServiceUnit config.
+func (r *templateRouter) addServiceAliasAssociation(id, alias string) {
+	if serviceUnit, ok := r.findMatchingServiceUnit(id); ok {
+		glog.V(4).Infof("associated service unit %s -> service alias %s", id, alias)
+		serviceUnit.ServiceAliasAssociations[alias] = true
+	}
+}
+
+// removeServiceAliasAssociation removes the reference to the backend in the ServiceUnit config.
+func (r *templateRouter) removeServiceAliasAssociation(id, alias string) {
+	if serviceUnit, ok := r.findMatchingServiceUnit(id); ok {
+		glog.V(4).Infof("removed association for service unit %s -> service alias %s", id, alias)
+		delete(serviceUnit.ServiceAliasAssociations, alias)
+	}
+}
+
+// dynamicallyAddRoute attempts to dynamically add a route.
+// Note: The config should have been synced at least once initially and
+//       the caller needs to acquire a lock [and release it].
+func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.Route, backend *ServiceAliasConfig) bool {
+	if r.dynamicConfigManager == nil {
+		return false
+	}
+
+	glog.V(4).Infof("Dynamically adding route backend %s", backendKey)
+	r.dynamicConfigManager.Register(backendKey, route)
+
+	// If no initial sync was done, don't try to dynamically add the
+	// route as we will need a reload anyway.
+	if !r.synced {
+		return false
+	}
+
+	err := r.dynamicConfigManager.AddRoute(backendKey, route)
+	if err != nil {
+		glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically add route for backend %s: %v", backendKey, err)
+		return false
+	}
+
+	// For each referenced service unit replace the route endpoints.
+	oldEndpoints := []Endpoint{}
+
+	// As the endpoints have changed, recalculate the weights.
+	newWeights := r.calculateServiceWeights(backend.ServiceUnits)
+	for key := range backend.ServiceUnits {
+		if service, ok := r.findMatchingServiceUnit(key); ok {
+			newEndpoints := service.EndpointTable
+			glog.V(4).Infof("For new route backend %s, replacing endpoints for service %s: %+v", backendKey, key, service.EndpointTable)
+
+			weight, ok := newWeights[key]
+			if !ok {
+				weight = 0
+			}
+			if err := r.dynamicConfigManager.ReplaceRouteEndpoints(backendKey, oldEndpoints, newEndpoints, weight); err != nil {
+				glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically replace endpoints for route backend %s, service %s: %v",
+					backendKey, key, err)
+				return false
+			}
+		}
+	}
+
+	glog.V(4).Infof("Dynamically added route backend %s", backendKey)
+	return true
+}
+
+// dynamicallyRemoveRoute attempts to dynamically remove a route.
+// Note: The config should have been synced at least once initially and
+//       the caller needs to acquire a lock [and release it].
+func (r *templateRouter) dynamicallyRemoveRoute(backendKey string, route *routeapi.Route) bool {
+	if r.dynamicConfigManager == nil || !r.synced {
+		return false
+	}
+
+	glog.V(4).Infof("Dynamically removing route backend %s", backendKey)
+
+	if err := r.dynamicConfigManager.RemoveRoute(backendKey, route); err != nil {
+		glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically remove route backend %s: %v", backendKey, err)
+		return false
+	}
+
+	return true
+}
+
+// dynamicallyReplaceEndpoints attempts to dynamically replace endpoints
+// on all the routes associated with a given service.
+// Note: The config should have been synced at least once initially and
+//       the caller needs to acquire a lock [and release it].
+func (r *templateRouter) dynamicallyReplaceEndpoints(id string, service ServiceUnit, oldEndpoints []Endpoint) bool {
+	if r.dynamicConfigManager == nil || !r.synced {
+		return false
+	}
+
+	glog.V(4).Infof("Replacing endpoints dynamically for service %s", id)
+	newEndpoints := service.EndpointTable
+
+	// Update each of the routes that reference this service unit.
+	for backendKey := range service.ServiceAliasAssociations {
+		cfg, ok := r.state[backendKey]
+		if !ok {
+			glog.V(4).Infof("Associated service alias %s not found in state, ignoring ...", backendKey)
+			continue
+		}
+
+		// As the endpoints have changed, recalculate the weights.
+		newWeights := r.calculateServiceWeights(cfg.ServiceUnits)
+
+		// Get the weight for this service unit.
+		weight, ok := newWeights[id]
+		if !ok {
+			weight = 0
+		}
+
+		glog.V(4).Infof("Dynamically replacing endpoints for associated backend %s", backendKey)
+		if err := r.dynamicConfigManager.ReplaceRouteEndpoints(backendKey, oldEndpoints, newEndpoints, weight); err != nil {
+			// Error dynamically modifying the config, so return false to cause a reload to happen.
+			glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically replace endpoints for service id %s (backend=%s, weight=%v): %v", id, backendKey, weight, err)
+			return false
+		}
+	}
+
+	return true
+}
+
+// dynamicallyRemoveEndpoints attempts to dynamically remove endpoints on
+// all the routes associated with a given service.
+// Note: The config should have been synced at least once initially and
+//       the caller needs to acquire a lock [and release it].
+func (r *templateRouter) dynamicallyRemoveEndpoints(service ServiceUnit, endpoints []Endpoint) bool {
+	if r.dynamicConfigManager == nil || !r.synced {
+		return false
+	}
+
+	glog.V(4).Infof("Dynamically removing endpoints for service unit %s", service.Name)
+
+	for backendKey := range service.ServiceAliasAssociations {
+		if _, ok := r.state[backendKey]; !ok {
+			continue
+		}
+
+		glog.V(4).Infof("Dynamically removing endpoints for associated backend %s", backendKey)
+		if err := r.dynamicConfigManager.RemoveRouteEndpoints(backendKey, endpoints); err != nil {
+			// Error dynamically modifying the config, so return false to cause a reload to happen.
+			glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically remove endpoints for backend %s: %v", backendKey, err)
+			return false
+		}
+	}
+
+	return true
+}
+
 // DeleteEndpoints deletes the endpoints for the service with the given id.
 func (r *templateRouter) DeleteEndpoints(id string) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-
 	service, ok := r.findMatchingServiceUnit(id)
 	if !ok {
 		return
 	}
+
+	configChanged := r.dynamicallyRemoveEndpoints(service, service.EndpointTable)
 
 	service.EndpointTable = []Endpoint{}
 
@@ -558,6 +738,7 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 	}
 
 	r.stateChanged = true
+	r.dynamicallyConfigured = r.dynamicallyConfigured && configChanged
 }
 
 // routeKey generates route key. This allows templates to use this key without having to create a separate method
@@ -701,10 +882,14 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 			glog.V(4).Infof("Creating new frontend for key: %v", key)
 			r.createServiceUnitInternal(key)
 		}
+		r.addServiceAliasAssociation(key, backendKey)
 	}
+
+	configChanged := r.dynamicallyAddRoute(backendKey, route, newConfig)
 
 	r.state[backendKey] = *newConfig
 	r.stateChanged = true
+	r.dynamicallyConfigured = r.dynamicallyConfigured && configChanged
 }
 
 // RemoveRoute removes the given route
@@ -724,9 +909,16 @@ func (r *templateRouter) removeRouteInternal(route *routeapi.Route) {
 		return
 	}
 
+	configChanged := r.dynamicallyRemoveRoute(backendKey, route)
+
+	for key := range serviceAliasConfig.ServiceUnits {
+		r.removeServiceAliasAssociation(key, backendKey)
+	}
+
 	r.cleanUpServiceAliasConfig(&serviceAliasConfig)
 	delete(r.state, backendKey)
 	r.stateChanged = true
+	r.dynamicallyConfigured = r.dynamicallyConfigured && configChanged
 }
 
 // numberOfEndpoints returns the number of endpoints
@@ -752,8 +944,12 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 		return
 	}
 
+	oldEndpoints := frontend.EndpointTable
+
 	frontend.EndpointTable = endpoints
 	r.serviceUnits[id] = frontend
+
+	configChanged := r.dynamicallyReplaceEndpoints(id, frontend, oldEndpoints)
 
 	if id == r.peerEndpointsKey {
 		r.peerEndpoints = frontend.EndpointTable
@@ -761,6 +957,7 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	}
 
 	r.stateChanged = true
+	r.dynamicallyConfigured = r.dynamicallyConfigured && configChanged
 }
 
 // cleanUpServiceAliasConfig performs any necessary steps to clean up a service alias config before deleting it from

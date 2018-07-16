@@ -259,9 +259,10 @@ var helperFunctions = template.FuncMap{
 	"isInteger":    isInteger,    //determines if a given variable is an integer
 	"matchValues":  matchValues,  //compares a given string to a list of allowed strings
 
-	"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp, //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
-	"generateRouteRegexp":        generateRouteRegexp,        //generates a regular expression matching the route hosts (and paths)
-	"genCertificateHostName":     genCertificateHostName,     //generates host name to use for serving/matching certificates
+	"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp,             //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
+	"generateRouteRegexp":        generateRouteRegexp,                    //generates a regular expression matching the route hosts (and paths)
+	"genCertificateHostName":     genCertificateHostName,                 //generates host name to use for serving/matching certificates
+	"genBackendNamePrefix":       templateutil.GenerateBackendNamePrefix, //generates the prefix for the backend name
 
 	"isTrue":     isTrue,     //determines if a given variable is a true value
 	"firstMatch": firstMatch, //anchors provided regular expression and evaluates against given strings, returns the first matched string or ""

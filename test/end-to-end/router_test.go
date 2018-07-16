@@ -1322,6 +1322,7 @@ func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, maste
 		fmt.Sprintf("DEFAULT_CERTIFICATE=%s\n%s", defaultCert, defaultKey),
 		fmt.Sprintf("ROUTER_BIND_PORTS_AFTER_SYNC=%s", strconv.FormatBool(bindPortsAfterSync)),
 		fmt.Sprintf("NAMESPACE_LABELS=%s", namespaceLabels),
+		fmt.Sprintf("ROUTER_HAPROXY_CONFIG_MANAGER=true"),
 	}
 
 	reloadIntVar := fmt.Sprintf("RELOAD_INTERVAL=%ds", reloadInterval)

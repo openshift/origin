@@ -363,6 +363,8 @@ func TestAddRoute(t *testing.T) {
 			Name:          suName,
 			Hostname:      "TestService.foo.svc",
 			EndpointTable: []Endpoint{},
+
+			ServiceAliasAssociations: map[string]bool{"foo:bar": true},
 		},
 	}
 

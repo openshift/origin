@@ -1,5 +1,5 @@
-hash: 8bd538d5b1bc5b1103529ae4af431ae78ae68173ef3ac7db06dc7c00bea05fc4
-updated: 2018-07-13T03:38:19.086677269-04:00
+hash: 424aaf9eb0319384574a012df2886bbf6cd77b479e7065462bc48a61e99a9b3f
+updated: 2018-07-12T22:59:32.292828018-07:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -85,6 +85,10 @@ imports:
   - autorest/date
   - autorest/to
   - autorest/validation
+- name: github.com/bcicen/go-haproxy
+  version: ff5824fe38bede761b873cab6e247a530e89236a
+  subpackages:
+  - kvcodec
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
@@ -429,6 +433,8 @@ imports:
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/go-openapi/validate
   version: d509235108fcf6ab4913d2dcb3a2260c0db2108e
+- name: github.com/gocarina/gocsv
+  version: a5c9099e2484f1551abb9433885e158610a25f4b
 - name: github.com/godbus/dbus
   version: c7fdd8b5cd55e87b4e1f4e372cdb1db61dd6c66f
 - name: github.com/gogo/protobuf
@@ -813,7 +819,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: f8215ce525d43bfcc42aeacf0c53c519fd3d41ef
+  version: 12a230f9f9225237f1a35b86171848da610900bb
   subpackages:
   - apps/v1
   - authorization
@@ -1832,7 +1838,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 9a9fb880ba176e6375b5ee47ebc289fb90f974c6
+  version: cbf5b4279a751d7d4dc876149e8b2a4c3bb732c3
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
