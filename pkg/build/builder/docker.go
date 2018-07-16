@@ -414,6 +414,7 @@ func replaceLastFrom(node *parser.Node, image string) error {
 			if child.Next == nil {
 				child.Next = &parser.Node{}
 			}
+			glog.Infof("Replaced Dockerfile FROM image %s", child.Next.Value)
 			child.Next.Value = image
 			return nil
 		}

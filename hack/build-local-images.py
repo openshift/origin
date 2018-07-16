@@ -102,7 +102,7 @@ image_config = {
         "tag": "latest",
         "directory": "recycler",
         "binaries": {
-            "openshift": "/usr/bin/openshift"
+            "oc": "/usr/bin/oc"
         },
         "files": {}
     },
@@ -110,7 +110,7 @@ image_config = {
         "tag": "latest",
         "directory": "builder/docker/docker-builder",
         "binaries": {
-            "openshift": "/usr/bin/openshift"
+            "oc": "/usr/bin/oc"
         },
         "files": {}
     },
@@ -118,7 +118,7 @@ image_config = {
         "tag": "latest",
         "directory": "router/f5",
         "binaries": {
-            "openshift": "/usr/bin/openshift"
+            "oc": "/usr/bin/oc"
         },
         "files": {}
     },
