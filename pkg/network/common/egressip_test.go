@@ -947,3 +947,57 @@ func TestEgressCIDRAllocation(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestEgressNodeRenumbering(t *testing.T) {
+	eit, w := setupEgressIPTracker(t)
+
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		Host:      "alpha",
+		HostIP:    "172.17.0.3",
+		EgressIPs: []string{"172.17.0.100"},
+	})
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		Host:      "beta",
+		HostIP:    "172.17.0.4",
+		EgressIPs: []string{"172.17.0.101"},
+	})
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		Host:      "gamma",
+		HostIP:    "172.17.0.5",
+		EgressIPs: []string{"172.17.0.102"},
+	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     42,
+		EgressIPs: []string{"172.17.0.100"},
+	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     43,
+		EgressIPs: []string{"172.17.0.101"},
+	})
+
+	err := w.assertChanges(
+		"claim 172.17.0.100 on 172.17.0.3 for namespace 42",
+		"namespace 42 via 172.17.0.100 on 172.17.0.3",
+		"claim 172.17.0.101 on 172.17.0.4 for namespace 43",
+		"namespace 43 via 172.17.0.101 on 172.17.0.4",
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Renumber one of the hosts
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		Host:      "beta",
+		HostIP:    "172.17.0.6",
+		EgressIPs: []string{"172.17.0.101"},
+	})
+	err = w.assertChanges(
+		"release 172.17.0.101 on 172.17.0.4",
+		"namespace 43 dropped",
+		"claim 172.17.0.101 on 172.17.0.6 for namespace 43",
+		"namespace 43 via 172.17.0.101 on 172.17.0.6",
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}

@@ -722,3 +722,62 @@ func TestMarkForVNID(t *testing.T) {
 		}
 	}
 }
+
+func TestEgressNodeRenumbering(t *testing.T) {
+	eip, flows := setupEgressIPWatcher(t)
+
+	eip.tracker.UpdateHostSubnetEgress(&networkapi.HostSubnet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "alpha",
+			UID:  ktypes.UID("alpha"),
+		},
+		Host:      "alpha",
+		HostIP:    "172.17.0.3",
+		EgressIPs: []string{"172.17.0.100"},
+	})
+	eip.tracker.UpdateHostSubnetEgress(&networkapi.HostSubnet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "beta",
+			UID:  ktypes.UID("beta"),
+		},
+		Host:      "beta",
+		HostIP:    "172.17.0.4",
+		EgressIPs: []string{"172.17.0.101"},
+	})
+	eip.tracker.UpdateHostSubnetEgress(&networkapi.HostSubnet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "gamma",
+			UID:  ktypes.UID("gamma"),
+		},
+		Host:      "gamma",
+		HostIP:    "172.17.0.5",
+		EgressIPs: []string{"172.17.0.102"},
+	})
+	updateNamespaceEgress(eip, 42, []string{"172.17.0.100"})
+	updateNamespaceEgress(eip, 43, []string{"172.17.0.101"})
+
+	err := assertOVSChanges(eip, &flows,
+		egressOVSChange{vnid: 42, egress: Remote, remote: "172.17.0.3"},
+		egressOVSChange{vnid: 43, egress: Local},
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Renumber one of the hosts
+	eip.tracker.UpdateHostSubnetEgress(&networkapi.HostSubnet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "beta",
+			UID:  ktypes.UID("beta"),
+		},
+		Host:      "beta",
+		HostIP:    "172.17.0.6",
+		EgressIPs: []string{"172.17.0.101"},
+	})
+	err = assertOVSChanges(eip, &flows,
+		egressOVSChange{vnid: 43, egress: Remote, remote: "172.17.0.6"},
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}
