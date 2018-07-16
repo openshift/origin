@@ -106,6 +106,22 @@ os::cmd::expect_failure 'oc get dc/mysql'
 os::cmd::expect_failure 'oc get dc/php'
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-without-app-label.json -o yaml' 'app: ruby-helloworld-sample'
 
+# check reuse imagestreams
+os::cmd::expect_success "oc new-build -D $'FROM node:8\nRUN echo \"Test\"' --name=node8"
+os::cmd::try_until_success 'oc get imagestreamtags node:8'
+os::cmd::expect_success "oc new-build -D $'FROM node:10\nRUN echo \"Test\"' --name=node10"
+os::cmd::try_until_success 'oc get imagestreamtags node:10'
+os::cmd::expect_success 'oc delete is node'
+os::cmd::expect_success 'oc delete is node8'
+os::cmd::expect_success 'oc delete is node10'
+os::cmd::expect_success 'oc delete all -l build=node8'
+os::cmd::expect_success 'oc delete all -l build=node10'
+
+# don't create extra imagestream
+os::cmd::expect_success 'oc new-app https://github.com/openshift/nodejs-ex'
+os::cmd::expect_failure_and_text 'oc get is nodejs:10' 'not found'
+os::cmd::expect_success 'oc delete all -l app=nodejs-ex'
+
 # check object namespace handling
 # hardcoded values should be stripped
 os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"stripped\")].metadata.namespace}"' 'STRIPPED'
