@@ -720,7 +720,7 @@ var (
 		config). When you login the first time, a new config file is created, and subsequent project changes with the
 		'project' command will set the current context. These subcommands allow you to manage the config directly.
 
-		Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md`)
+		Reference: https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/`)
 
 	configExample = templates.Examples(`
 		# Change the config context to use

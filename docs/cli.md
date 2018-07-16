@@ -708,7 +708,7 @@ This destroys the session token, preventing further access until next login (wit
 
 ### oc config
 
-This manages the OpenShift [kubeconfig files](https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md).
+This manages the OpenShift [kubeconfig files](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/).
 The general form is:
 
 ```bash
