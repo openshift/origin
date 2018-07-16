@@ -150,10 +150,15 @@ func (o *sccReviewOptions) Run(args []string) error {
 		if err != nil {
 			return err
 		}
+		gvks, _, err := legacyscheme.Scheme.ObjectKinds(info.Object)
+		if err != nil {
+			return err
+		}
+		kind := gvks[0].Kind
 		objectName := info.Name
 		podTemplateSpec, err := GetPodTemplateForObject(info.Object)
 		if err != nil {
-			return fmt.Errorf(" %q cannot create pod: %v", objectName, err)
+			return fmt.Errorf("\"%s/%s\" cannot create pod: %v", kind, objectName, err)
 		}
 		err = CheckStatefulSetWithWolumeClaimTemplates(info.Object)
 		if err != nil {
@@ -167,7 +172,7 @@ func (o *sccReviewOptions) Run(args []string) error {
 		}
 		unversionedObj, err := o.client.PodSecurityPolicyReviews(o.namespace).Create(review)
 		if err != nil {
-			return fmt.Errorf("unable to compute Pod Security Policy Review for %q: %v", objectName, err)
+			return fmt.Errorf("unable to compute Pod Security Policy Review for \"%s/%s\": %v", kind, objectName, err)
 		}
 		if err = o.printer.print(info, unversionedObj, o.out); err != nil {
 			allErrs = append(allErrs, err)

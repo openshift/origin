@@ -156,11 +156,16 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 		if err != nil {
 			return err
 		}
+		gvks, _, err := legacyscheme.Scheme.ObjectKinds(info.Object)
+		if err != nil {
+			return err
+		}
+		kind := gvks[0].Kind
 		var response runtime.Object
 		objectName := info.Name
 		podTemplateSpec, err := GetPodTemplateForObject(info.Object)
 		if err != nil {
-			return fmt.Errorf(" %q cannot create pod: %v", objectName, err)
+			return fmt.Errorf("\"%s/%s\" cannot create pod: %v", kind, objectName, err)
 		}
 		err = CheckStatefulSetWithWolumeClaimTemplates(info.Object)
 		if err != nil {
@@ -169,7 +174,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 		if len(userOrSA) > 0 || len(o.Groups) > 0 {
 			unversionedObj, err := o.pspSubjectReview(userOrSA, podTemplateSpec)
 			if err != nil {
-				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
+				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for \"%s/%s\": %v", kind, objectName, err)
 			}
 			versionedObj := &securityapiv1.PodSecurityPolicySubjectReview{}
 			if err := legacyscheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
@@ -179,7 +184,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 		} else {
 			unversionedObj, err := o.pspSelfSubjectReview(podTemplateSpec)
 			if err != nil {
-				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
+				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for \"%s/%s\": %v", kind, objectName, err)
 			}
 			versionedObj := &securityapiv1.PodSecurityPolicySelfSubjectReview{}
 			if err := legacyscheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
