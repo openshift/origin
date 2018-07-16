@@ -1,7 +1,6 @@
 package templateprocessing
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -27,24 +26,6 @@ func makeParameter(name, value, generate string, required bool) templateapi.Para
 		Value:    value,
 		Generate: generate,
 		Required: required,
-	}
-}
-
-func TestAddParameter(t *testing.T) {
-	var template templateapi.Template
-
-	jsonData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook.json")
-	json.Unmarshal(jsonData, &template)
-
-	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", "", false))
-	AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", "", false))
-
-	if p := GetParameterByName(&template, "CUSTOM_PARAM"); p == nil {
-		t.Errorf("Unable to add a custom parameter to the template")
-	} else {
-		if p.Value != "2" {
-			t.Errorf("Unable to replace the custom parameter value in template")
-		}
 	}
 }
 
@@ -214,14 +195,14 @@ func TestProcessValue(t *testing.T) {
 	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
-	AddParameter(&template, makeParameter("VALUE", "1", "", false))
-	AddParameter(&template, makeParameter("STRING_1", "string1", "", false))
-	AddParameter(&template, makeParameter("STRING_2", "string2", "", false))
-	AddParameter(&template, makeParameter("INT_1", "1", "", false))
-	AddParameter(&template, makeParameter("VALID_JSON_MAP", "{\"key\":\"value\"}", "", false))
-	AddParameter(&template, makeParameter("INVALID_JSON_MAP", "{\"key\":\"value\"", "", false))
-	AddParameter(&template, makeParameter("VALID_JSON_ARRAY", "[\"key\",\"value\"]", "", false))
-	AddParameter(&template, makeParameter("INVALID_JSON_ARRAY", "[\"key\":\"value\"", "", false))
+	addParameter(&template, makeParameter("VALUE", "1", "", false))
+	addParameter(&template, makeParameter("STRING_1", "string1", "", false))
+	addParameter(&template, makeParameter("STRING_2", "string2", "", false))
+	addParameter(&template, makeParameter("INT_1", "1", "", false))
+	addParameter(&template, makeParameter("VALID_JSON_MAP", "{\"key\":\"value\"}", "", false))
+	addParameter(&template, makeParameter("INVALID_JSON_MAP", "{\"key\":\"value\"", "", false))
+	addParameter(&template, makeParameter("VALID_JSON_ARRAY", "[\"key\",\"value\"]", "", false))
+	addParameter(&template, makeParameter("INVALID_JSON_ARRAY", "[\"key\":\"value\"", "", false))
 
 	// Transform the template config into the result config
 	errs := processor.Process(&template)
@@ -436,7 +417,7 @@ func TestProcessTemplateParameters(t *testing.T) {
 	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
-	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", "", false))
+	addParameter(&template, makeParameter("CUSTOM_PARAM1", "1", "", false))
 
 	// Transform the template config into the result config
 	errs := processor.Process(&template)
@@ -451,5 +432,15 @@ func TestProcessTemplateParameters(t *testing.T) {
 
 	if string(result) != string(exp) {
 		t.Errorf("unexpected output: %s", diff.StringDiff(string(exp), string(result)))
+	}
+}
+
+// addParameter adds new custom parameter to the Template. It overrides
+// the existing parameter, if already defined.
+func addParameter(t *templateapi.Template, param templateapi.Parameter) {
+	if existing := DeprecatedGetParameterByNameInternal(t, param.Name); existing != nil {
+		*existing = param
+	} else {
+		t.Parameters = append(t.Parameters, param)
 	}
 }

@@ -10,8 +10,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -28,13 +26,15 @@ import (
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	"github.com/openshift/origin/pkg/client/templateprocessing"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 const readinessTimeout = time.Hour
@@ -386,36 +386,29 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 
 	glog.V(4).Infof("TemplateInstance controller: creating TemplateConfig for %s/%s", templateInstance.Namespace, templateInstance.Name)
 
-	tc := templateinternalclient.NewTemplateProcessorClient(c.templateClient.Template().RESTClient(), templateInstance.Namespace)
-	template, err := tc.Process(template)
+	v1Template, err := legacyscheme.Scheme.ConvertToVersion(template, templatev1.GroupVersion)
+	if err != nil {
+		return err
+	}
+	processedObjects, err := templateprocessing.NewDynamicTemplateProcessor(c.dynamicClient).ProcessToList(v1Template.(*templatev1.Template))
 	if err != nil {
 		return err
 	}
 
-	errs := runtime.DecodeList(template.Objects, unstructured.UnstructuredJSONScheme)
-	if len(errs) > 0 {
-		return kerrs.NewAggregate(errs)
-	}
-
-	for _, obj := range template.Objects {
-		meta, err := meta.Accessor(obj)
-		if err != nil {
-			return err
-		}
-		labels := meta.GetLabels()
+	for _, obj := range processedObjects.Items {
+		labels := obj.GetLabels()
 		if labels == nil {
 			labels = make(map[string]string)
 		}
 		labels[templateapi.TemplateInstanceOwner] = string(templateInstance.UID)
-		meta.SetLabels(labels)
+		obj.SetLabels(labels)
 	}
 
 	// First, do all the SARs to ensure the requester actually has permissions
 	// to create.
 	glog.V(4).Infof("TemplateInstance controller: running SARs for %s/%s", templateInstance.Namespace, templateInstance.Name)
 	allErrors := []error{}
-	for _, currObjUncast := range template.Objects {
-		currObj := currObjUncast.(*unstructured.Unstructured)
+	for _, currObj := range processedObjects.Items {
 		restMapping, mappingErr := c.dynamicRestMapper.RESTMapping(currObj.GroupVersionKind().GroupKind(), currObj.GroupVersionKind().Version)
 		if mappingErr != nil {
 			allErrors = append(allErrors, mappingErr)
@@ -451,8 +444,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	glog.V(4).Infof("TemplateInstance controller: creating objects for %s/%s", templateInstance.Namespace, templateInstance.Name)
 	templateInstance.Status.Objects = nil
 	allErrors = []error{}
-	for _, currObjUncast := range template.Objects {
-		currObj := currObjUncast.(*unstructured.Unstructured)
+	for _, currObj := range processedObjects.Items {
 		restMapping, mappingErr := c.dynamicRestMapper.RESTMapping(currObj.GroupVersionKind().GroupKind(), currObj.GroupVersionKind().Version)
 		if mappingErr != nil {
 			allErrors = append(allErrors, mappingErr)
@@ -468,7 +460,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 			continue
 		}
 
-		createObj, createErr := c.dynamicClient.Resource(restMapping.Resource).Namespace(namespace).Create(currObj)
+		createObj, createErr := c.dynamicClient.Resource(restMapping.Resource).Namespace(namespace).Create(&currObj)
 		if kerrors.IsAlreadyExists(createErr) {
 			freshGottenObj, getErr := c.dynamicClient.Resource(restMapping.Resource).Namespace(namespace).Get(currObj.GetName(), metav1.GetOptions{})
 			if getErr != nil {

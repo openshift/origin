@@ -4,21 +4,21 @@ import (
 	"testing"
 	"time"
 
-	kapiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
 func TestProjectRequestError(t *testing.T) {
@@ -52,18 +52,24 @@ func TestProjectRequestError(t *testing.T) {
 	template := delegated.DefaultTemplate()
 	template.Name = templateName
 
-	additionalObjects := []runtime.Object{
-		// Append an object that will succeed
-		&kapi.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "configmapname"}},
-		// Append a custom object that will fail validation
-		&kapi.ConfigMap{},
-		// Append another object that should never be created, since we short circuit
-		&kapi.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "configmapname2"}},
-	}
-	if err := templateapi.AddObjectsToTemplate(template, additionalObjects, kapiv1.SchemeGroupVersion); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := templateclient.NewForConfigOrDie(clusterAdminClientConfig).Template().Templates(templateNamespace).Create(template); err != nil {
+	corev1Scheme := runtime.NewScheme()
+	utilruntime.Must(corev1.AddToScheme(corev1Scheme))
+	corev1Codec := serializer.NewCodecFactory(corev1Scheme).LegacyCodec(corev1.SchemeGroupVersion)
+
+	// Append an object that will succeed
+	template.Objects = append(template.Objects, runtime.RawExtension{
+		Raw: []byte(runtime.EncodeOrDie(corev1Codec, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "configmapname"}})),
+	})
+	// Append a custom object that will fail validation
+	template.Objects = append(template.Objects, runtime.RawExtension{
+		Raw: []byte(runtime.EncodeOrDie(corev1Codec, &corev1.ConfigMap{})),
+	})
+	// Append another object that should never be created, since we short circuit
+	template.Objects = append(template.Objects, runtime.RawExtension{
+		Raw: []byte(runtime.EncodeOrDie(corev1Codec, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "configmapname2"}})),
+	})
+
+	if _, err := templatev1client.NewForConfigOrDie(clusterAdminClientConfig).TemplateV1().Templates(templateNamespace).Create(template); err != nil {
 		t.Fatal(err)
 	}
 

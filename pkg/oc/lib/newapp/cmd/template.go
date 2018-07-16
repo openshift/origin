@@ -21,7 +21,7 @@ import (
 func TransformTemplate(tpl *templateapi.Template, templateProcessor templateinternalclient.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templateapi.Template, error) {
 	// only set values that match what's expected by the template.
 	for k, value := range parameters {
-		v := templateprocessing.GetParameterByName(tpl, k)
+		v := templateprocessing.DeprecatedGetParameterByNameInternal(tpl, k)
 		if v != nil {
 			v.Value = value
 			v.Generate = ""

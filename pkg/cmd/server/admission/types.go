@@ -17,7 +17,6 @@ import (
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
 type WantsOpenshiftInternalAuthorizationClient interface {
@@ -48,13 +47,6 @@ type WantsOpenshiftInternalUserClient interface {
 // an Openshift internal image client
 type WantsOpenshiftInternalImageClient interface {
 	SetOpenshiftInternalImageClient(imageclient.Interface)
-	admission.InitializationValidator
-}
-
-// WantsOpenshiftInternalTemplateClient should be implemented by admission plugins that need
-// an Openshift internal template client
-type WantsOpenshiftInternalTemplateClient interface {
-	SetOpenshiftInternalTemplateClient(templateclient.Interface)
 	admission.InitializationValidator
 }
 

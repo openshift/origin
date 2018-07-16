@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/api/legacygroupification"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	. "github.com/openshift/origin/pkg/template/generator"
@@ -131,19 +132,20 @@ func stripNamespace(obj runtime.Object) {
 	}
 }
 
-// AddParameter adds new custom parameter to the Template. It overrides
-// the existing parameter, if already defined.
-func AddParameter(t *templateapi.Template, param templateapi.Parameter) {
-	if existing := GetParameterByName(t, param.Name); existing != nil {
-		*existing = param
-	} else {
-		t.Parameters = append(t.Parameters, param)
+// DeprecatedGetParameterByNameInternal searches for a Parameter in the Template
+// based on its name.
+func DeprecatedGetParameterByNameInternal(t *templateapi.Template, name string) *templateapi.Parameter {
+	for i, param := range t.Parameters {
+		if param.Name == name {
+			return &(t.Parameters[i])
+		}
 	}
+	return nil
 }
 
 // GetParameterByName searches for a Parameter in the Template
 // based on its name.
-func GetParameterByName(t *templateapi.Template, name string) *templateapi.Parameter {
+func GetParameterByName(t *templatev1.Template, name string) *templatev1.Parameter {
 	for i, param := range t.Parameters {
 		if param.Name == name {
 			return &(t.Parameters[i])

@@ -341,7 +341,7 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 func injectUserVars(values app.Environment, t *templateapi.Template, ignoreUnknownParameters bool) []error {
 	var errors []error
 	for param, val := range values {
-		v := templateprocessing.GetParameterByName(t, param)
+		v := templateprocessing.DeprecatedGetParameterByNameInternal(t, param)
 		if v != nil {
 			v.Value = val
 			v.Generate = ""

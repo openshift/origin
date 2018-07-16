@@ -13,9 +13,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	templatefake "github.com/openshift/client-go/template/clientset/versioned/fake"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
 
 func TestAdmission(t *testing.T) {
