@@ -53,7 +53,7 @@ func (ung *uniqueNameGenerator) ensureValidName(name string) (string, error) {
 
 	// Ensure that name meets length requirements
 	if len(name) < 2 {
-		return "", fmt.Errorf("invalid name: %s", name)
+		return "", fmt.Errorf("invalid name: %s. Must be 2 or more characters", name)
 	}
 
 	if !IsParameterizableValue(name) {
