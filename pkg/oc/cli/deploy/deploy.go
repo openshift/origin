@@ -257,7 +257,7 @@ func (o DeployOptions) deploy(config *appsapi.DeploymentConfig) error {
 	// Clients should be acting either on spec or on annotations and status updates should be a
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
-	deploymentName := appsutil.LatestDeploymentNameForConfig(config)
+	deploymentName := appsutil.LatestDeploymentNameForConfig(config.Name, config.Status.LatestVersion)
 	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	if err == nil && !appsutil.IsTerminatedDeployment(deployment) {
 		// Reject attempts to start a concurrent deployment.
@@ -310,7 +310,7 @@ func (o DeployOptions) retry(config *appsapi.DeploymentConfig) error {
 	// Clients should be acting either on spec or on annotations and status updates should be a
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
-	deploymentName := appsutil.LatestDeploymentNameForConfig(config)
+	deploymentName := appsutil.LatestDeploymentNameForConfig(config.Name, config.Status.LatestVersion)
 	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {

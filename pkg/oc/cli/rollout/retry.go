@@ -167,7 +167,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		latestDeploymentName := appsutil.LatestDeploymentNameForConfigV1(config)
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(config.Name, config.Status.LatestVersion)
 		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {

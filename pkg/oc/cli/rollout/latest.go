@@ -171,7 +171,7 @@ func (o *RolloutLatestOptions) RunRolloutLatest() error {
 		return fmt.Errorf("cannot deploy a paused deployment config")
 	}
 
-	deploymentName := appsutil.LatestDeploymentNameForConfig(config)
+	deploymentName := appsutil.LatestDeploymentNameForConfig(config.Name, config.Status.LatestVersion)
 	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	switch {
 	case err == nil:

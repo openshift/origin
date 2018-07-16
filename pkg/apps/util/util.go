@@ -121,13 +121,8 @@ func filterOutCondition(conditions []appsapi.DeploymentCondition, condType appsa
 }
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
-func LatestDeploymentNameForConfig(config *appsapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s-%d", config.Name, config.Status.LatestVersion)
-}
-
-// LatestDeploymentNameForConfigV1 returns a stable identifier for config based on its version.
-func LatestDeploymentNameForConfigV1(config *appsapiv1.DeploymentConfig) string {
-	return fmt.Sprintf("%s-%d", config.Name, config.Status.LatestVersion)
+func LatestDeploymentNameForConfig(configName string, latestVersion int64) string {
+	return fmt.Sprintf("%s-%d", configName, latestVersion)
 }
 
 // LatestDeploymentInfo returns info about the latest deployment for a config,
@@ -409,7 +404,7 @@ func MakeDeploymentV1(config *appsapi.DeploymentConfig) (*v1.ReplicationControll
 		return nil, err
 	}
 
-	deploymentName := LatestDeploymentNameForConfig(config)
+	deploymentName := LatestDeploymentNameForConfig(config.Name, config.Status.LatestVersion)
 
 	podSpec := v1.PodSpec{}
 	if err := legacyscheme.Scheme.Convert(&config.Spec.Template.Spec, &podSpec, nil); err != nil {
