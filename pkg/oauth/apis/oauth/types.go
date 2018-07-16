@@ -36,7 +36,7 @@ type OAuthAccessToken struct {
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string
 
-	IdentityName string
+	IdentityReference string //hash
 
 	IdentityProviderGroups map[string][]string
 
@@ -81,10 +81,6 @@ type OAuthAuthorizeToken struct {
 
 	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
 	CodeChallengeMethod string
-
-	IdentityName string
-
-	IdentityProviderGroups map[string][]string
 }
 
 // +genclient
@@ -231,4 +227,21 @@ type RedirectReference struct {
 	Group string
 	Kind  string
 	Name  string
+}
+
+type TransientRequestAuthentication struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta //metadata.name is UUID stored in cookie
+
+	ExpiresIn int64
+
+	UserName string
+
+	UserUID string
+
+	IdentityProviderName string
+
+	IdentityProviderGroups []string
+
+	IdentityProviderExtras map[string][]string
 }

@@ -54,27 +54,7 @@ type Grant struct {
 type DefaultUserIdentityInfo struct {
 	ProviderName     string
 	ProviderUserName string
-	ProviderGroups   []string
 	Extra            map[string]string
-}
-
-type TransientRequestAuthentication struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta //metadata.name is UUID stored in cookie
-
-	Name string //hash of groups, user, IDP
-
-	ExpiresIn int64
-
-	UserName string
-
-	UserUID string
-
-	IdentityProviderName string
-
-	IdentityProviderGroups []string
-
-	IdentityProviderExtras map[string][]string
 }
 
 // NewDefaultUserIdentityInfo returns a DefaultUserIdentityInfo with a non-nil Extra component
