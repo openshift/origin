@@ -16,6 +16,7 @@ import (
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
 	oapps "github.com/openshift/api/apps"
+	"github.com/openshift/api/build"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	fakebuild "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
@@ -37,7 +38,7 @@ func TestCheckReadiness(t *testing.T) {
 	}{
 		// Build
 		{
-			groupKind: buildapi.Kind("Build"),
+			groupKind: build.Kind("Build"),
 			object: &buildapi.Build{
 				Status: buildapi.BuildStatus{
 					Phase: buildapi.BuildPhaseNew,
@@ -45,7 +46,7 @@ func TestCheckReadiness(t *testing.T) {
 			},
 		},
 		{
-			groupKind: buildapi.Kind("Build"),
+			groupKind: build.Kind("Build"),
 			object: &buildapi.Build{
 				Status: buildapi.BuildStatus{
 					Phase: buildapi.BuildPhaseComplete,
@@ -54,7 +55,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: buildapi.Kind("Build"),
+			groupKind: build.Kind("Build"),
 			object: &buildapi.Build{
 				Status: buildapi.BuildStatus{
 					Phase: buildapi.BuildPhaseError,
@@ -65,11 +66,11 @@ func TestCheckReadiness(t *testing.T) {
 
 		// BuildConfig
 		{
-			groupKind: buildapi.Kind("BuildConfig"),
+			groupKind: build.Kind("BuildConfig"),
 			object:    &buildapi.BuildConfig{},
 		},
 		{
-			groupKind: buildapi.Kind("BuildConfig"),
+			groupKind: build.Kind("BuildConfig"),
 			object: &buildapi.BuildConfig{
 				Status: buildapi.BuildConfigStatus{
 					LastVersion: 1,
@@ -91,7 +92,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: buildapi.Kind("BuildConfig"),
+			groupKind: build.Kind("BuildConfig"),
 			object: &buildapi.BuildConfig{
 				Status: buildapi.BuildConfigStatus{
 					LastVersion: 1,

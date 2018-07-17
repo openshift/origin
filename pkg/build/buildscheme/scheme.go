@@ -6,6 +6,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 )
@@ -28,24 +29,16 @@ var (
 
 func init() {
 	annotationDecodingScheme := runtime.NewScheme()
-	utilruntime.Must(buildv1.Install(annotationDecodingScheme))
-	utilruntime.Must(buildv1helpers.AddToScheme(annotationDecodingScheme))
-	utilruntime.Must(buildv1.DeprecatedInstallWithoutGroup(annotationDecodingScheme))
-	utilruntime.Must(buildv1helpers.AddToSchemeInCoreGroup(annotationDecodingScheme))
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
-	utilruntime.Must(buildapi.AddToScheme(annotationDecodingScheme))
-	utilruntime.Must(buildapi.AddToSchemeInCoreGroup(annotationDecodingScheme))
+	legacy.InstallLegacyBuild(annotationDecodingScheme)
+	utilruntime.Must(buildv1helpers.Install(annotationDecodingScheme))
 	annotationDecoderCodecFactory := serializer.NewCodecFactory(annotationDecodingScheme)
 	Decoder = annotationDecoderCodecFactory.UniversalDecoder(buildapi.SchemeGroupVersion)
 
-	utilruntime.Must(buildv1.Install(EncoderScheme))
 	// TODO eventually we shouldn't deal in internal versions, but for now encode from one.
-	utilruntime.Must(buildv1helpers.AddToScheme(EncoderScheme))
-	utilruntime.Must(buildapi.AddToScheme(EncoderScheme))
+	utilruntime.Must(buildv1helpers.Install(EncoderScheme))
 	annotationEncoderCodecFactory := serializer.NewCodecFactory(EncoderScheme)
 	Encoder = annotationEncoderCodecFactory.LegacyCodec(buildv1.SchemeGroupVersion)
 
-	utilruntime.Must(buildv1.Install(InternalExternalScheme))
-	utilruntime.Must(buildv1helpers.AddToScheme(InternalExternalScheme))
-	utilruntime.Must(buildapi.AddToScheme(InternalExternalScheme))
+	utilruntime.Must(buildv1helpers.Install(InternalExternalScheme))
 }

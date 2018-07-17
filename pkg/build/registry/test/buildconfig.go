@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
+	"github.com/openshift/api/build"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
@@ -32,7 +33,7 @@ func (r *BuildConfigRegistry) GetBuildConfig(ctx context.Context, id string, opt
 	if r.BuildConfig != nil && r.BuildConfig.Name == id {
 		return r.BuildConfig, r.Err
 	}
-	return nil, kapierrors.NewNotFound(buildapi.Resource("buildconfig"), id)
+	return nil, kapierrors.NewNotFound(build.Resource("buildconfig"), id)
 }
 
 func (r *BuildConfigRegistry) CreateBuildConfig(ctx context.Context, config *buildapi.BuildConfig) error {

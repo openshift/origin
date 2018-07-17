@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/openshift/api/build"
+	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,10 +52,10 @@ func NewBuildByStrategy() admission.Interface {
 func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	gr := attr.GetResource().GroupResource()
 	switch gr {
-	case buildapi.Resource("buildconfigs"),
-		buildapi.LegacyResource("buildconfigs"):
-	case buildapi.Resource("builds"),
-		buildapi.LegacyResource("builds"):
+	case build.Resource("buildconfigs"),
+		legacy.Resource("buildconfigs"):
+	case build.Resource("builds"),
+		legacy.Resource("builds"):
 		// Explicitly exclude the builds/details subresource because it's only
 		// updating commit info and cannot change build type.
 		if attr.GetSubresource() == "details" {
@@ -103,15 +105,15 @@ func (a *buildByStrategy) ValidateInitialization() error {
 func resourceForStrategyType(strategy buildapi.BuildStrategy) (schema.GroupResource, error) {
 	switch {
 	case strategy.DockerStrategy != nil && strategy.DockerStrategy.ImageOptimizationPolicy != nil && *strategy.DockerStrategy.ImageOptimizationPolicy != buildapi.ImageOptimizationNone:
-		return buildapi.Resource(bootstrappolicy.OptimizedDockerBuildResource), nil
+		return build.Resource(bootstrappolicy.OptimizedDockerBuildResource), nil
 	case strategy.DockerStrategy != nil:
-		return buildapi.Resource(bootstrappolicy.DockerBuildResource), nil
+		return build.Resource(bootstrappolicy.DockerBuildResource), nil
 	case strategy.CustomStrategy != nil:
-		return buildapi.Resource(bootstrappolicy.CustomBuildResource), nil
+		return build.Resource(bootstrappolicy.CustomBuildResource), nil
 	case strategy.SourceStrategy != nil:
-		return buildapi.Resource(bootstrappolicy.SourceBuildResource), nil
+		return build.Resource(bootstrappolicy.SourceBuildResource), nil
 	case strategy.JenkinsPipelineStrategy != nil:
-		return buildapi.Resource(bootstrappolicy.JenkinsPipelineBuildResource), nil
+		return build.Resource(bootstrappolicy.JenkinsPipelineBuildResource), nil
 	default:
 		return schema.GroupResource{}, fmt.Errorf("unrecognized build strategy: %#v", strategy)
 	}
@@ -183,8 +185,8 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
 	gr := attr.GetResource().GroupResource()
 	switch gr {
-	case buildapi.Resource("builds"),
-		buildapi.LegacyResource("builds"):
+	case build.Resource("builds"),
+		legacy.Resource("builds"):
 		build, err := a.buildClient.BuildV1().Builds(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)
@@ -195,8 +197,8 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 		}
 		return a.checkBuildAuthorization(internalBuild, attr)
 
-	case buildapi.Resource("buildconfigs"),
-		buildapi.LegacyResource("buildconfigs"):
+	case build.Resource("buildconfigs"),
+		legacy.Resource("buildconfigs"):
 		buildConfig, err := a.buildClient.BuildV1().BuildConfigs(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)

@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
+	"github.com/openshift/api/build"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildinternal "github.com/openshift/origin/pkg/build/client/internalversion"
@@ -148,13 +149,13 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 	}
 
 	for _, item := range args {
-		resource, name, err := cmdutil.ResolveResource(buildapi.Resource("builds"), item, o.Mapper)
+		resource, name, err := cmdutil.ResolveResource(build.Resource("builds"), item, o.Mapper)
 		if err != nil {
 			return err
 		}
 
 		switch resource {
-		case buildapi.Resource("buildconfigs"):
+		case build.Resource("buildconfigs"):
 			list, err := buildutil.BuildConfigBuilds(o.BuildLister, o.Namespace, name, nil)
 			if err != nil {
 				return err
@@ -162,7 +163,7 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 			for _, b := range list {
 				o.BuildNames = append(o.BuildNames, b.Name)
 			}
-		case buildapi.Resource("builds"):
+		case build.Resource("builds"):
 			o.BuildNames = append(o.BuildNames, strings.TrimSpace(name))
 		default:
 			return fmt.Errorf("invalid resource provided: %v", resource)

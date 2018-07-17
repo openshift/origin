@@ -5,6 +5,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 )
@@ -16,6 +17,6 @@ func init() {
 // Install registers the API group and adds types to a scheme
 func Install(scheme *runtime.Scheme) {
 	utilruntime.Must(buildapi.AddToScheme(scheme))
-	utilruntime.Must(buildapiv1.AddToScheme(scheme))
-	utilruntime.Must(scheme.SetVersionPriority(buildapiv1.SchemeGroupVersion))
+	utilruntime.Must(buildapiv1.Install(scheme))
+	utilruntime.Must(scheme.SetVersionPriority(buildv1.GroupVersion))
 }

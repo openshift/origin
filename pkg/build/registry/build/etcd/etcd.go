@@ -11,8 +11,9 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/build"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/registry/build"
+	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -34,13 +35,13 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &buildapi.Build{} },
 		NewListFunc:              func() runtime.Object { return &buildapi.BuildList{} },
-		DefaultQualifiedResource: buildapi.Resource("builds"),
+		DefaultQualifiedResource: build.Resource("builds"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 
-		CreateStrategy: build.Strategy,
-		UpdateStrategy: build.Strategy,
-		DeleteStrategy: build.Strategy,
+		CreateStrategy: buildregistry.Strategy,
+		UpdateStrategy: buildregistry.Strategy,
+		DeleteStrategy: buildregistry.Strategy,
 	}
 
 	options := &generic.StoreOptions{
@@ -52,7 +53,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 	}
 
 	detailsStore := *store
-	detailsStore.UpdateStrategy = build.DetailsStrategy
+	detailsStore.UpdateStrategy = buildregistry.DetailsStrategy
 
 	return &REST{store}, &DetailsREST{&detailsStore}, nil
 }

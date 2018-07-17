@@ -144,7 +144,7 @@ func TestDefaults(t *testing.T) {
 }
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	data, err := runtime.Encode(codecs.LegacyCodec(LegacySchemeGroupVersion), obj)
+	data, err := runtime.Encode(codecs.LegacyCodec(v1.GroupVersion), obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil

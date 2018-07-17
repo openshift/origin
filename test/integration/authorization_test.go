@@ -30,6 +30,7 @@ import (
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	oapps "github.com/openshift/api/apps"
+	"github.com/openshift/api/build"
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -175,13 +176,13 @@ func TestClusterReaderCoverage(t *testing.T) {
 
 	// remove resources without read APIs
 	nonreadingResources := []schema.GroupResource{
-		buildapi.Resource("buildconfigs/instantiatebinary"),
-		buildapi.Resource("buildconfigs/instantiate"),
-		buildapi.Resource("builds/clone"),
 		oapps.Resource("deploymentconfigrollbacks"),
 		oapps.Resource("generatedeploymentconfigs"),
 		oapps.Resource("deploymentconfigs/rollback"),
 		oapps.Resource("deploymentconfigs/instantiate"),
+		build.Resource("buildconfigs/instantiatebinary"),
+		build.Resource("buildconfigs/instantiate"),
+		build.Resource("builds/clone"),
 		imageapi.Resource("imagestreamimports"),
 		imageapi.Resource("imagestreammappings"),
 		extensionsapi.Resource("deployments/rollback"),

@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 
+	"github.com/openshift/api/build"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -585,7 +586,7 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	return buildapi.Kind("BuildConfig") == gk || imageapi.Kind("ImageStream") == gk
+	return build.Kind("BuildConfig") == gk || imageapi.Kind("ImageStream") == gk
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects

@@ -14,6 +14,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -25,13 +26,9 @@ var (
 )
 
 func init() {
-	utilruntime.Must(buildv1.Install(customBuildEncodingScheme))
-	utilruntime.Must(buildv1helpers.AddToScheme(customBuildEncodingScheme))
-	utilruntime.Must(buildv1.DeprecatedInstallWithoutGroup(customBuildEncodingScheme))
-	utilruntime.Must(buildv1helpers.AddToSchemeInCoreGroup(customBuildEncodingScheme))
+	legacy.InstallLegacyBuild(customBuildEncodingScheme)
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
-	utilruntime.Must(buildapi.AddToScheme(customBuildEncodingScheme))
-	utilruntime.Must(buildapi.AddToSchemeInCoreGroup(customBuildEncodingScheme))
+	utilruntime.Must(buildv1helpers.Install(customBuildEncodingScheme))
 	customBuildEncodingCodecFactory = serializer.NewCodecFactory(customBuildEncodingScheme)
 }
 

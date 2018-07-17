@@ -28,6 +28,7 @@ import (
 
 	oapps "github.com/openshift/api/apps"
 	authorization "github.com/openshift/api/authorization"
+	"github.com/openshift/api/build"
 	oapi "github.com/openshift/origin/pkg/api"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -107,9 +108,9 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	}
 
 	m := map[schema.GroupKind]kprinters.Describer{
-		buildapi.Kind("Build"):                         &BuildDescriber{buildClient, kclient},
-		buildapi.Kind("BuildConfig"):                   &BuildConfigDescriber{buildClient, kclient, host},
 		oapps.Kind("DeploymentConfig"):                 &DeploymentConfigDescriber{appsClient, kclient, nil},
+		build.Kind("Build"):                            &BuildDescriber{buildClient, kclient},
+		build.Kind("BuildConfig"):                      &BuildConfigDescriber{buildClient, kclient, host},
 		imageapi.Kind("Image"):                         &ImageDescriber{imageClient},
 		imageapi.Kind("ImageStream"):                   &ImageStreamDescriber{imageClient},
 		imageapi.Kind("ImageStreamTag"):                &ImageStreamTagDescriber{imageClient},
