@@ -5,72 +5,49 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"time"
+	"strings"
 
 	"github.com/golang/glog"
 
-	kwait "k8s.io/apimachinery/pkg/util/wait"
-	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
-	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-	kubeletremote "k8s.io/kubernetes/pkg/kubelet/remote"
 	kexec "k8s.io/utils/exec"
 )
 
 const (
 	crioRuntimeName         = "crio"
+	crioRuntimeType         = "cri-o"
 	dockerRuntimeName       = "docker"
+	dockerRuntimeType       = "docker"
 	defaultCRIOShimSocket   = "unix:///var/run/crio/crio.sock"
 	defaultDockerShimSocket = "unix:///var/run/dockershim.sock"
-
-	// 2 minutes is the current default value used in kubelet
-	defaultRuntimeRequestTimeout = 2 * time.Minute
 )
 
 type Runtime struct {
-	Name    string
-	Service kubeletapi.RuntimeService
+	Name     string
+	Type     string
+	Endpoint string
 }
 
 func GetRuntime() (*Runtime, error) {
-	runtimeName, runtimeEndpoint, err := getDefaultRuntimeEndpoint()
+	runtimeName, runtimeType, runtimeEndpoint, err := getDefaultRuntimeEndpoint()
 	if err != nil {
 		return nil, err
-	}
-
-	runtimeService, err := kubeletremote.NewRemoteRuntimeService(runtimeEndpoint, defaultRuntimeRequestTimeout)
-	if err != nil {
-		return nil, err
-	}
-
-	// Timeout ~30 seconds
-	err = kwait.ExponentialBackoff(
-		kwait.Backoff{
-			Duration: 100 * time.Millisecond,
-			Factor:   1.2,
-			Steps:    24,
-		},
-		func() (bool, error) {
-			// Ensure the runtime is actually alive; gRPC may create the client but
-			// it may not be responding to requests yet
-			if _, err := runtimeService.ListPodSandbox(&kruntimeapi.PodSandboxFilter{}); err != nil {
-				// Wait longer
-				return false, nil
-			}
-			return true, nil
-		})
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch runtime service: %v", err)
 	}
 
 	return &Runtime{
-		Name:    runtimeName,
-		Service: runtimeService,
+		Name:     runtimeName,
+		Type:     runtimeType,
+		Endpoint: runtimeEndpoint,
 	}, nil
 }
 
-func (r *Runtime) GetContainerPid(containerID string) (string, error) {
+func (r *Runtime) GetContainerPid(data string) (string, error) {
 	var pid string
 	kexecer := kexec.New()
+
+	containerID, err := r.GetContainerID(data)
+	if err != nil {
+		return pid, err
+	}
 
 	switch r.Name {
 	case crioRuntimeName:
@@ -98,28 +75,67 @@ func (r *Runtime) GetContainerPid(containerID string) (string, error) {
 	return pid, nil
 }
 
-func getDefaultRuntimeEndpoint() (string, string, error) {
+func (r *Runtime) GetContainerID(data string) (string, error) {
+	// Trim the quotes and split the type and ID.
+	parts := strings.Split(strings.Trim(data, "\""), "://")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid container ID: %q", data)
+	}
+	containerType, containerID := parts[0], parts[1]
+
+	if r.Type != containerType {
+		return "", fmt.Errorf("expected runtime type %q but found %q", r.Type, containerType)
+	}
+
+	return containerID, nil
+}
+
+func (r *Runtime) GetRuntimeVersion() (string, error) {
+	var versionInfo string
+	kexecer := kexec.New()
+
+	switch r.Name {
+	case crioRuntimeName:
+		output, err := kexecer.Command("crictl", "version").CombinedOutput()
+		if err != nil {
+			return "", err
+		}
+		versionInfo = string(output)
+	case dockerRuntimeName:
+		output, err := kexecer.Command("docker", "version").CombinedOutput()
+		if err != nil {
+			return "", err
+		}
+		versionInfo = string(output)
+	default:
+		return "", fmt.Errorf("invalid runtime name %s", r.Name)
+	}
+
+	return versionInfo, nil
+}
+
+func getDefaultRuntimeEndpoint() (string, string, string, error) {
 	isCRIO, err := filePathExists(defaultCRIOShimSocket)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	isDocker, err := filePathExists(defaultDockerShimSocket)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	// TODO: Instead of trying to detect the runtime make this as config option
 	if isDocker && isCRIO {
 		glog.Warningf("Found both crio and docker socket files, defaulting to crio")
-		return crioRuntimeName, defaultCRIOShimSocket, nil
+		return crioRuntimeName, crioRuntimeType, defaultCRIOShimSocket, nil
 	} else if isCRIO {
-		return crioRuntimeName, defaultCRIOShimSocket, nil
+		return crioRuntimeName, crioRuntimeType, defaultCRIOShimSocket, nil
 	} else if isDocker {
-		return dockerRuntimeName, defaultDockerShimSocket, nil
+		return dockerRuntimeName, dockerRuntimeType, defaultDockerShimSocket, nil
 	}
 
-	return "", "", fmt.Errorf("supported runtime socket files not found")
+	return "", "", "", fmt.Errorf("supported runtime socket files not found")
 }
 
 func filePathExists(endpoint string) (bool, error) {

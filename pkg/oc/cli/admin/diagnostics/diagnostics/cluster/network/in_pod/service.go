@@ -8,7 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/utils/exec"
 
 	"github.com/openshift/origin/pkg/network"
@@ -176,8 +175,7 @@ func (d CheckServiceNetwork) checkPodToServiceConnection(fromPod *kapi.Pod, toSe
 
 	success := util.ExpectedConnectionStatus(fromPod.Namespace, toService.Namespace, d.vnidMap)
 
-	containerID := kcontainer.ParseContainerID(fromPod.Status.ContainerStatuses[0].ContainerID).ID
-	pid, err := d.Runtime.GetContainerPid(containerID)
+	pid, err := d.Runtime.GetContainerPid(fromPod.Status.ContainerStatuses[0].ContainerID)
 	if err != nil {
 		d.res.Error("DSvcNet1009", err, err.Error())
 		return

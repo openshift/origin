@@ -9,8 +9,6 @@ import (
 	"strings"
 
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
 )
@@ -135,25 +133,14 @@ func (l *LogInterface) Run(cmd, outfile string) {
 	}
 }
 
-// The api version of kubelet runtime api
-// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/kuberuntime_manager.go
-const kubeRuntimeAPIVersion = "0.1.0"
-
 func (l *LogInterface) logRuntime(runtime *Runtime) {
 	// Log runtime version
-	version, err := runtime.Service.Version(kubeRuntimeAPIVersion)
+	version, err := runtime.GetRuntimeVersion()
 	if err != nil {
 		l.Result.Error("DLogNet1006", err, fmt.Sprintf("Fetching runtime version failed: %v", err))
 		return
 	}
 	l.Run(fmt.Sprintf("echo '\n%v'", version), "version")
-
-	containers, err := runtime.Service.ListContainers(&kruntimeapi.ContainerFilter{})
-	if err != nil {
-		l.Result.Error("DLogNet1007", err, fmt.Sprintf("Fetching containers list failed: %v", err))
-		return
-	}
-	l.Run(fmt.Sprintf("echo '%v'", containers), "containers-list")
 
 	l.Run(fmt.Sprintf("systemctl cat %s.service", runtime.Name), fmt.Sprintf("%s-unit-file", runtime.Name))
 	l.logRuntimeNetworkFile(runtime.Name)
@@ -196,8 +183,7 @@ func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface, runtime *Runt
 			continue
 		}
 
-		containerID := kcontainer.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
-		pid, err := runtime.GetContainerPid(containerID)
+		pid, err := runtime.GetContainerPid(pod.Status.ContainerStatuses[0].ContainerID)
 		if err != nil {
 			l.Result.Error("DLogNet1008", err, err.Error())
 			continue

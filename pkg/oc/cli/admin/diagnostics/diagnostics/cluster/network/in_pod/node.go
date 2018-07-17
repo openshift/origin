@@ -7,7 +7,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/utils/exec"
 
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
@@ -75,8 +74,7 @@ func (d CheckNodeNetwork) checkNodeConnection(pod *kapi.Pod, nodeIP string, r ty
 		return
 	}
 
-	containerID := kcontainer.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
-	pid, err := d.Runtime.GetContainerPid(containerID)
+	pid, err := d.Runtime.GetContainerPid(pod.Status.ContainerStatuses[0].ContainerID)
 	if err != nil {
 		r.Error("DNodeNet1004", err, err.Error())
 		return
