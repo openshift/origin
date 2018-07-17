@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	"github.com/openshift/api/apps"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -195,7 +196,7 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		dc := appstest.OkDeploymentConfig(2)
-		return true, nil, kerrors.NewNotFound(appsapi.Resource("deploymentConfig"), dc.Name)
+		return true, nil, kerrors.NewNotFound(apps.Resource("deploymentConfig"), dc.Name)
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {

@@ -1,29 +1,22 @@
 package v1
 
 import (
-	"github.com/openshift/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-)
+	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
+	extensionsv1beta1conversions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
-const (
-	LegacyGroupName = ""
-	GroupName       = "apps.openshift.io"
+	"github.com/openshift/api/apps/v1"
+	"github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 var (
-	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
-
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.DeprecatedInstallWithoutGroup, addConversionFuncs, RegisterDefaults, RegisterConversions)
-	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
-
-	SchemeBuilder = runtime.NewSchemeBuilder(v1.Install, addConversionFuncs, RegisterDefaults)
-	AddToScheme   = SchemeBuilder.AddToScheme
-
-	localSchemeBuilder = &SchemeBuilder
+	localSchemeBuilder = runtime.NewSchemeBuilder(
+		apps.Install,
+		v1.Install,
+		corev1conversions.AddToScheme,
+		extensionsv1beta1conversions.AddToScheme,
+		AddConversionFuncs,
+		RegisterDefaults,
+	)
+	Install = localSchemeBuilder.AddToScheme
 )
-
-func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}

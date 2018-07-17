@@ -19,6 +19,8 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
+	"github.com/openshift/api/apps"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -295,9 +297,9 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc appsapi.DeploymentCon
 	// FIXME: The CrossVersionObjectReference should specify the Group
 	printAutoscalingInfo(
 		[]schema.GroupResource{
-			appsapi.Resource("DeploymentConfig"),
+			apps.Resource("DeploymentConfig"),
 			// this needs to remain as long as HPA supports putting in the "wrong" DC scheme
-			appsapi.LegacyResource("DeploymentConfig"),
+			legacy.Resource("DeploymentConfig"),
 		},
 		dc.Namespace, dc.Name, kc, w)
 

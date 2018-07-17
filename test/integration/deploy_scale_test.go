@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/scale"
 
+	"github.com/openshift/api/apps"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
@@ -119,7 +120,7 @@ func TestDeployScale(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scale, err := scaleClient.Scales(namespace).Get(appsapi.Resource("deploymentconfigs"), config.Name)
+	scale, err := scaleClient.Scales(namespace).Get(apps.Resource("deploymentconfigs"), config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get DeploymentConfig scale: %v", err)
 	}
@@ -129,7 +130,7 @@ func TestDeployScale(t *testing.T) {
 
 	scaleUpdate := scale.DeepCopy()
 	scaleUpdate.Spec.Replicas = 3
-	updatedScale, err := scaleClient.Scales(namespace).Update(appsapi.Resource("deploymentconfigs"), scaleUpdate)
+	updatedScale, err := scaleClient.Scales(namespace).Update(apps.Resource("deploymentconfigs"), scaleUpdate)
 	if err != nil {
 		// If this complains about "Scale" not being registered in "v1", check the kind overrides in the API registration in SubresourceGroupVersionKind
 		t.Fatalf("Couldn't update DeploymentConfig scale to %#v: %v", scaleUpdate, err)
@@ -138,7 +139,7 @@ func TestDeployScale(t *testing.T) {
 		t.Fatalf("Expected scale.spec.replicas=3, got %#v", scale)
 	}
 
-	persistedScale, err := scaleClient.Scales(namespace).Get(appsapi.Resource("deploymentconfigs"), config.Name)
+	persistedScale, err := scaleClient.Scales(namespace).Get(apps.Resource("deploymentconfigs"), config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get DeploymentConfig scale: %v", err)
 	}

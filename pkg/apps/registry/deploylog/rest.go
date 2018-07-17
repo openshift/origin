@@ -25,6 +25,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
+	"github.com/openshift/api/apps"
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
@@ -96,14 +97,14 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 		return nil, apierrors.NewBadRequest("did not get an expected options.")
 	}
 	if errs := validation.ValidateDeploymentLogOptions(deployLogOpts); len(errs) > 0 {
-		return nil, apierrors.NewInvalid(appsapi.Kind("DeploymentLogOptions"), "", errs)
+		return nil, apierrors.NewInvalid(apps.Kind("DeploymentLogOptions"), "", errs)
 	}
 
 	// Fetch deploymentConfig and check latest version; if 0, there are no deployments
 	// for this config
 	config, err := r.dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, apierrors.NewNotFound(appsapi.Resource("deploymentconfig"), name)
+		return nil, apierrors.NewNotFound(apps.Resource("deploymentconfig"), name)
 	}
 	desiredVersion := config.Status.LatestVersion
 	if desiredVersion == 0 {

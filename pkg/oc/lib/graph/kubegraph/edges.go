@@ -14,6 +14,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
+	oapps "github.com/openshift/api/apps"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
@@ -255,9 +257,9 @@ func AddHPAScaleRefEdges(g osgraph.Graph, restMapper meta.RESTMapper) {
 		switch r {
 		case kapi.Resource("replicationcontrollers"):
 			syntheticNode = kubegraph.FindOrCreateSyntheticReplicationControllerNode(g, &kapi.ReplicationController{ObjectMeta: syntheticMeta})
-		case appsapi.Resource("deploymentconfigs"),
+		case oapps.Resource("deploymentconfigs"),
 			// we need the legacy resource until we stop supporting HPA having old refs
-			appsapi.LegacyResource("deploymentconfigs"):
+			legacy.Resource("deploymentconfigs"):
 			syntheticNode = appsgraph.FindOrCreateSyntheticDeploymentConfigNode(g, &appsapi.DeploymentConfig{ObjectMeta: syntheticMeta})
 		case extensions.Resource("deployments"):
 			syntheticNode = kubegraph.FindOrCreateSyntheticDeploymentNode(g, &extensions.Deployment{ObjectMeta: syntheticMeta})

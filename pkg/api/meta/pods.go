@@ -17,6 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
+	oapps "github.com/openshift/api/apps"
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	securityapiv1 "github.com/openshift/api/security/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -66,7 +67,7 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	{Group: "", Resource: "podsecuritypolicyselfsubjectreviews"}: {Group: "", Kind: "PodSecurityPolicySelfSubjectReview"},
 	{Group: "", Resource: "podsecuritypolicyreviews"}:            {Group: "", Kind: "PodSecurityPolicyReview"},
 
-	appsapi.Resource("deploymentconfigs"):                       appsapi.Kind("DeploymentConfig"),
+	oapps.Resource("deploymentconfigs"):                         oapps.Kind("DeploymentConfig"),
 	securityapi.Resource("podsecuritypolicysubjectreviews"):     securityapi.Kind("PodSecurityPolicySubjectReview"),
 	securityapi.Resource("podsecuritypolicyselfsubjectreviews"): securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
 	securityapi.Resource("podsecuritypolicyreviews"):            securityapi.Kind("PodSecurityPolicyReview"),

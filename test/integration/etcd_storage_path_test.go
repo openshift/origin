@@ -864,7 +864,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("", "v1", "deploymentconfigrollbacks"),                  // triggers rolleback dc, not stored in etcd
 	gvr("apps.openshift.io", "v1", "deploymentconfigrollbacks"), // triggers rolleback dc, not stored in etcd
 
-	gvr("", "v1", "scales"),                  // not stored in etcd, part of kapiv1.ReplicationController
 	gvr("apps.openshift.io", "v1", "scales"), // not stored in etcd, part of kapiv1.ReplicationController
 	// --
 
