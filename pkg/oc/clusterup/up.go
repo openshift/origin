@@ -213,6 +213,7 @@ var (
 		"sample-templates",
 		"persistent-volumes",
 		"automation-service-broker",
+		"openshift-logging",
 		"service-catalog",
 		"template-service-broker",
 		"web-console",
@@ -220,6 +221,7 @@ var (
 
 	componentsDisabledByDefault = sets.NewString(
 		"automation-service-broker",
+		"openshift-logging",
 		"service-catalog",
 		"template-service-broker")
 )

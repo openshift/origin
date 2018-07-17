@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/automation-service-broker"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/default-imagestreams"
+	"github.com/openshift/origin/pkg/oc/clusteradd/components/openshift-logging"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/registry"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/router"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/sample-templates"
@@ -50,6 +51,9 @@ var (
 var availableComponents = map[string]func(ctx componentinstall.Context) componentinstall.Component{
 	"automation-service-broker": func(ctx componentinstall.Context) componentinstall.Component {
 		return &automation_service_broker.AutomationServiceBrokerComponentOptions{InstallContext: ctx}
+	},
+	"openshift-logging": func(ctx componentinstall.Context) componentinstall.Component {
+		return &openshift_logging.OpenshiftLoggingComponentOptions{InstallContext: ctx}
 	},
 	"centos-imagestreams": func(ctx componentinstall.Context) componentinstall.Component {
 		return &default_imagestreams.CentosImageStreamsComponentOptions{InstallContext: ctx}
