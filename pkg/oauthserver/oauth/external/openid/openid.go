@@ -24,6 +24,7 @@ const (
 	PreferredUsernameClaim = "preferred_username"
 	EmailClaim             = "email"
 	NameClaim              = "name"
+	GroupsClaim            = "groups"
 )
 
 type TokenValidator func(map[string]interface{}) error
@@ -44,6 +45,7 @@ type Config struct {
 	PreferredUsernameClaims []string
 	EmailClaims             []string
 	NameClaims              []string
+	GroupsClaims            []string
 
 	IDTokenValidator TokenValidator
 }
@@ -78,7 +80,10 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 		return nil, errors.New("Authorize URL is invalid")
 	} else if u.Scheme != "https" {
 		return nil, errors.New("Authorize URL must use https scheme")
-	}
+	} //might need to do something different here for google?
+	// Google sometimes returns "accounts.google.com" as the issuer claim instead of
+	// the required "https://accounts.google.com". Detect this case and allow it only
+	// for Google.
 
 	if len(config.TokenURL) == 0 {
 		return nil, errors.New("Token URL is required")
@@ -155,6 +160,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 
 	// TODO: validate JWT
 	// http://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
+	// separate verify function?
 
 	// id_token MUST contain a sub claim as the subject identifier
 	// http://openid.net/specs/openid-connect-core-1_0.html#IDToken
@@ -213,11 +219,16 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 		identity.Extra[authapi.IdentityDisplayNameKey] = name
 	}
 
+	if group, _ := getClaimValue(claims, p.GroupsClaims); len(groups) != 0 {
+		identity.Extra[authapi.IdentityGroupsKey] = name
+	}
+
 	glog.V(4).Infof("identity=%v", identity)
 
 	return identity, true, nil
 }
 
+// TODO: add distributed claims support
 func getClaimValue(data map[string]interface{}, claims []string) (string, error) {
 	for _, claim := range claims {
 		value, ok := data[claim]
