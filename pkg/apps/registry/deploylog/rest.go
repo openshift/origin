@@ -28,9 +28,9 @@ import (
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/apps/registry"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 const (
@@ -128,24 +128,25 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 	}
 
 	// Get desired deployment
-	targetName := appsutil.DeploymentNameForConfigVersion(config.Name, desiredVersion)
+	targetName := appsinternalutil.DeploymentNameForConfigVersion(config.Name, desiredVersion)
 	target, err := r.waitForExistingDeployment(namespace, targetName)
 	if err != nil {
 		return nil, err
 	}
-	podName := appsutil.DeployerPodNameForDeployment(target.Name)
+	podName := appsinternalutil.DeployerPodNameForDeployment(target.Name)
+	labelForDeployment := fmt.Sprintf("%s/%s", target.Namespace, target.Name)
 
 	// Check for deployment status; if it is new or pending, we will wait for it. If it is complete,
 	// the deployment completed successfully and the deployer pod will be deleted so we will return a
 	// success message. If it is running or failed, retrieve the log from the deployer pod.
-	status := appsutil.DeploymentStatusFor(target)
+	status := appsinternalutil.DeploymentStatusFor(target)
 	switch status {
 	case appsapi.DeploymentStatusNew, appsapi.DeploymentStatusPending:
 		if deployLogOpts.NoWait {
-			glog.V(4).Infof("Deployment %s is in %s state. No logs to retrieve yet.", appsutil.LabelForDeployment(target), status)
+			glog.V(4).Infof("Deployment %s is in %s state. No logs to retrieve yet.", labelForDeployment, status)
 			return &genericrest.LocationStreamer{}, nil
 		}
-		glog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", appsutil.LabelForDeployment(target), status)
+		glog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", labelForDeployment, status)
 
 		if err := WaitForRunningDeployerPod(r.podClient, target, r.timeout); err != nil {
 			return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to run deployer pod %s: %v", podName, err))
@@ -153,12 +154,12 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 
 		latest, ok, err := registry.WaitForRunningDeployment(r.rcClient, target, r.timeout)
 		if err != nil {
-			return nil, apierrors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", appsutil.LabelForDeployment(target), err))
+			return nil, apierrors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", labelForDeployment, err))
 		}
 		if !ok {
 			return nil, apierrors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
 		}
-		if appsutil.IsCompleteDeployment(latest) {
+		if appsinternalutil.IsCompleteDeployment(latest) {
 			podName, err = r.returnApplicationPodName(target)
 			if err != nil {
 				return nil, err
@@ -271,7 +272,7 @@ func GetFirstPod(client corev1client.PodsGetter, namespace string, selector stri
 // WaitForRunningDeployerPod waits a given period of time until the deployer pod
 // for given replication controller is not running.
 func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *kapi.ReplicationController, timeout time.Duration) error {
-	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
+	podName := appsinternalutil.DeployerPodNameForDeployment(rc.Name)
 	canGetLogs := func(p *corev1.Pod) bool {
 		return corev1.PodSucceeded == p.Status.Phase || corev1.PodFailed == p.Status.Phase || corev1.PodRunning == p.Status.Phase
 	}

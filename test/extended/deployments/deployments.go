@@ -20,7 +20,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -223,7 +223,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 				secondDeploymentExists := false
 				for _, rc := range rcs {
-					if rc.Name == appsutil.DeploymentNameForConfigVersion(dcName, 2) {
+					if rc.Name == appsinternalutil.DeploymentNameForConfigVersion(dcName, 2) {
 						secondDeploymentExists = true
 						break
 					}
@@ -245,7 +245,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 					return false, nil
 				}
 
-				firstDeploymentName := appsutil.DeploymentNameForConfigVersion(dcName, 1)
+				firstDeploymentName := appsinternalutil.DeploymentNameForConfigVersion(dcName, 1)
 				firstDeployerRemoved := true
 				for _, deployer := range deploymentNamesToDeployers[firstDeploymentName] {
 					if deployer.Status.Phase != kapiv1.PodFailed && deployer.Status.Phase != kapiv1.PodSucceeded {
@@ -253,7 +253,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 					}
 				}
 
-				secondDeploymentName := appsutil.DeploymentNameForConfigVersion(dcName, 2)
+				secondDeploymentName := appsinternalutil.DeploymentNameForConfigVersion(dcName, 2)
 				secondDeployerRemoved := true
 				for _, deployer := range deploymentNamesToDeployers[secondDeploymentName] {
 					if deployer.Status.Phase != kapiv1.PodFailed && deployer.Status.Phase != kapiv1.PodSucceeded {
@@ -982,7 +982,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 				// we need to filter out any deployments that we don't care about,
 				// namely the active deployment and any newer deployments
-				oldDeployments := appsutil.DeploymentsForCleanup(deploymentConfig, deployments)
+				oldDeployments := appsinternalutil.DeploymentsForCleanup(deploymentConfig, deployments)
 
 				// we should not have more deployments than acceptable
 				if len(oldDeployments) != revisionHistoryLimit {
@@ -992,7 +992,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 				// the deployments we continue to keep should be the latest ones
 				for _, deployment := range oldDeployments {
-					o.Expect(appsutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", iterations-revisionHistoryLimit))
+					o.Expect(appsinternalutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", iterations-revisionHistoryLimit))
 				}
 				return true, nil
 			})
@@ -1049,7 +1049,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			e2e.Logf("All replicas are ready.")
 
 			g.By("verifying that the deployment is still running")
-			if appsutil.IsTerminatedDeployment(rc1) {
+			if appsinternalutil.IsTerminatedDeployment(rc1) {
 				o.Expect(fmt.Errorf("expected deployment %q not to have terminated", rc1.Name)).NotTo(o.HaveOccurred())
 			}
 
@@ -1061,7 +1061,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 						return true, nil
 					}
 
-					if appsutil.DeploymentStatusFor(rc) == appsapi.DeploymentStatusComplete {
+					if appsinternalutil.DeploymentStatusFor(rc) == appsapi.DeploymentStatusComplete {
 						e2e.Logf("Failed RC: %#v", rc)
 						return false, errors.New("deployment shouldn't be completed before ReadyReplicas become AvailableReplicas")
 					}
@@ -1074,11 +1074,11 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				"Deployment shall not finish before MinReadySeconds elapse.")
 			o.Expect(rc1.Status.AvailableReplicas).To(o.Equal(dc.Spec.Replicas))
 			// Deployment status can't be updated yet but should be right after
-			o.Expect(appsutil.DeploymentStatusFor(rc1)).To(o.Equal(appsapi.DeploymentStatusRunning))
+			o.Expect(appsinternalutil.DeploymentStatusFor(rc1)).To(o.Equal(appsapi.DeploymentStatusRunning))
 			// It should finish right after
 			rc1, err = waitForRCModification(oc, namespace, rc1.Name, deploymentChangeTimeout,
 				rc1.GetResourceVersion(), func(rc *kapiv1.ReplicationController) (bool, error) {
-					return appsutil.DeploymentStatusFor(rc) == appsapi.DeploymentStatusComplete, nil
+					return appsinternalutil.DeploymentStatusFor(rc) == appsapi.DeploymentStatusComplete, nil
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -1121,7 +1121,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 					return false, nil
 				}
 				conditions = dc.Status.Conditions
-				cond := appsutil.GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
+				cond := appsinternalutil.GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
 				return cond != nil && cond.Reason == appsapi.NewReplicationControllerReason, nil
 			})
 			if err == wait.ErrWaitTimeout {
@@ -1258,7 +1258,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("waiting for RC to be created")
 			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
 				dc.GetResourceVersion(), func(config *appsapi.DeploymentConfig) (bool, error) {
-					cond := appsutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
+					cond := appsinternalutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
 					if cond != nil && cond.Reason == appsapi.NewReplicationControllerReason {
 						return true, nil
 					}
@@ -1268,9 +1268,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
 
 			g.By("waiting for deployer pod to be running")
-			rc, err := waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+			rc, err := waitForRCModification(oc, namespace, appsinternalutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
 				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
+					if appsinternalutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
 						return true, nil
 					}
 					return false, nil
@@ -1278,13 +1278,13 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 			g.By("canceling the deployment")
 			rc, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Patch(
-				appsutil.LatestDeploymentNameForConfig(dc), types.StrategicMergePatchType,
+				appsinternalutil.LatestDeploymentNameForConfig(dc), types.StrategicMergePatchType,
 				[]byte(fmt.Sprintf(`{"metadata":{"annotations":{%q: %q, %q: %q}}}`,
 					appsapi.DeploymentCancelledAnnotation, appsapi.DeploymentCancelledAnnotationValue,
 					appsapi.DeploymentStatusReasonAnnotation, appsapi.DeploymentCancelledByUser,
 				)))
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(appsutil.DeploymentVersionFor(rc)).To(o.Equal(dc.Status.LatestVersion))
+			o.Expect(appsinternalutil.DeploymentVersionFor(rc)).To(o.Equal(dc.Status.LatestVersion))
 
 			g.By("redeploying immediately by config change")
 			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
@@ -1301,9 +1301,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Wait for deployment pod to be running
-			rc, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+			rc, err = waitForRCModification(oc, namespace, appsinternalutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
 				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
+					if appsinternalutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
 						return true, nil
 					}
 					return false, nil
@@ -1328,7 +1328,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("waiting for RC to be created")
 			dc, err = waitForDCModification(oc, namespace, dc.Name, deploymentRunTimeout,
 				dc.GetResourceVersion(), func(config *appsapi.DeploymentConfig) (bool, error) {
-					cond := appsutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
+					cond := appsinternalutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
 					if cond != nil && cond.Reason == appsapi.NewReplicationControllerReason {
 						return true, nil
 					}
@@ -1338,9 +1338,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
 
 			g.By("waiting for deployer pod to be running")
-			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+			_, err = waitForRCModification(oc, namespace, appsinternalutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
 				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
+					if appsinternalutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
 						return true, nil
 					}
 					return false, nil
@@ -1361,9 +1361,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Wait for deployment pod to be running
-			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+			_, err = waitForRCModification(oc, namespace, appsinternalutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
 				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
+					if appsinternalutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
 						return true, nil
 					}
 					return false, nil
@@ -1388,7 +1388,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("waiting for RC to be created")
 			dc, err = waitForDCModification(oc, namespace, dc.Name, deploymentRunTimeout,
 				dc.GetResourceVersion(), func(config *appsapi.DeploymentConfig) (bool, error) {
-					cond := appsutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
+					cond := appsinternalutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
 					if cond != nil && cond.Reason == appsapi.NewReplicationControllerReason {
 						return true, nil
 					}
@@ -1397,11 +1397,11 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
 
-			rcName := appsutil.LatestDeploymentNameForConfig(dc)
+			rcName := appsinternalutil.LatestDeploymentNameForConfig(dc)
 
 			g.By("waiting for deployer to be completed")
 			_, err = waitForPodModification(oc, namespace,
-				appsutil.DeployerPodNameForDeployment(rcName),
+				appsinternalutil.DeployerPodNameForDeployment(rcName),
 				deploymentRunTimeout, "",
 				func(pod *kapiv1.Pod) (bool, error) {
 					switch pod.Status.Phase {
@@ -1423,7 +1423,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 					appsapi.DeploymentStatusReasonAnnotation, appsapi.DeploymentCancelledByUser,
 				)))
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(appsutil.DeploymentVersionFor(rc)).To(o.BeEquivalentTo(1))
+			o.Expect(appsinternalutil.DeploymentVersionFor(rc)).To(o.BeEquivalentTo(1))
 
 			g.By("redeploying immediately by config change")
 			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
@@ -1440,9 +1440,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Wait for deployment pod to be running
-			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+			_, err = waitForRCModification(oc, namespace, appsinternalutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
 				rc.ResourceVersion, func(currentRC *kapiv1.ReplicationController) (bool, error) {
-					switch appsutil.DeploymentStatusFor(currentRC) {
+					switch appsinternalutil.DeploymentStatusFor(currentRC) {
 					case appsapi.DeploymentStatusRunning, appsapi.DeploymentStatusComplete:
 						return true, nil
 					case appsapi.DeploymentStatusFailed:
@@ -1485,7 +1485,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("waiting for deployment #1 to complete")
 			_, err = waitForRCModification(oc, namespace, rcName(1), deploymentRunTimeout,
 				rcList.ResourceVersion, func(currentRC *kapiv1.ReplicationController) (bool, error) {
-					switch appsutil.DeploymentStatusFor(currentRC) {
+					switch appsinternalutil.DeploymentStatusFor(currentRC) {
 					case appsapi.DeploymentStatusComplete:
 						return true, nil
 					case appsapi.DeploymentStatusFailed:
@@ -1525,7 +1525,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			dc = dcTmp
 
 			rcs, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{
-				LabelSelector: appsutil.ConfigSelector(dc.Name).String(),
+				LabelSelector: appsinternalutil.ConfigSelector(dc.Name).String(),
 			})
 			o.Expect(rcs.Items).To(o.HaveLen(1))
 			o.Expect(strings.TrimSpace(rcs.Items[0].Spec.Template.Spec.Containers[0].Image)).NotTo(o.BeEmpty())

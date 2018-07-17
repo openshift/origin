@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -33,7 +33,7 @@ func TestPodName(t *testing.T) {
 
 func TestMakeDeploymentOk(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
-	deployment, err := appsinternalutil.MakeDeploymentV1(config)
+	deployment, err := makeInternalDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 
 	if err != nil {
 		t.Fatalf("unexpected error: %#v", err)
@@ -63,21 +63,12 @@ func TestMakeDeploymentOk(t *testing.T) {
 		}
 	}
 
-	if len(deployment.Annotations[appsapi.DeploymentEncodedConfigAnnotation]) == 0 {
+	if len(EncodedDeploymentConfigFor(deployment)) == 0 {
 		t.Fatalf("expected deployment with DeploymentEncodedConfigAnnotation annotation")
 	}
 
-	if decodedConfig, err := appsinternalutil.DecodeDeploymentConfig(deployment); err != nil {
-		t.Fatalf("invalid encoded config on deployment: %v", err)
-	} else {
-		if e, a := config.Name, decodedConfig.Name; e != a {
-			t.Fatalf("encoded config name doesn't match source config")
-		}
-		// TODO: more assertions
-	}
-
-	if *deployment.Spec.Replicas != 0 {
-		t.Fatalf("expected deployment replicas to be 0 but has %d", *deployment.Spec.Replicas)
+	if deployment.Spec.Replicas != 0 {
+		t.Fatalf("expected deployment replicas to be 0")
 	}
 
 	if l, e, a := appsapi.DeploymentConfigAnnotation, config.Name, deployment.Labels[appsapi.DeploymentConfigAnnotation]; e != a {
@@ -102,17 +93,17 @@ func TestMakeDeploymentOk(t *testing.T) {
 }
 
 func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
-	mkdeployment := func(version int64) *v1.ReplicationController {
-		deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(version))
+	mkdeployment := func(version int64) *kapi.ReplicationController {
+		deployment, _ := makeInternalDeployment(appstest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 		return deployment
 	}
-	deployments := []*v1.ReplicationController{
+	deployments := []*kapi.ReplicationController{
 		mkdeployment(4),
 		mkdeployment(1),
 		mkdeployment(2),
 		mkdeployment(3),
 	}
-	sort.Sort(ByLatestVersionAsc(deployments))
+	sort.Sort(byLatestVersionAsc(deployments))
 	for i := int64(0); i < 4; i++ {
 		if e, a := i+1, DeploymentVersionFor(deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
@@ -144,7 +135,7 @@ func TestSort(t *testing.T) {
 			},
 		},
 	}
-	sort.Sort(appsinternalutil.ByMostRecent(controllers))
+	sort.Sort(ByMostRecent(controllers))
 	if controllers[0].Name != "present" {
 		t.Errorf("Unexpected sort order")
 	}
@@ -312,7 +303,7 @@ func TestCanTransitionPhase(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := appsinternalutil.CanTransitionPhase(test.current, test.next)
+		got := CanTransitionPhase(test.current, test.next)
 		if got != test.expected {
 			t.Errorf("%s: expected %t, got %t", test.name, test.expected, got)
 		}
@@ -401,7 +392,7 @@ func TestGetCondition(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		cond := appsinternalutil.GetDeploymentCondition(test.status, test.condType)
+		cond := GetDeploymentCondition(test.status, test.condType)
 		exists := cond != nil
 		if exists != test.expected {
 			t.Errorf("%s: expected condition to exist: %t, got: %t", test.name, test.expected, exists)
@@ -497,7 +488,7 @@ func TestSetCondition(t *testing.T) {
 
 	for _, test := range tests {
 		t.Logf("running test %q", test.name)
-		appsinternalutil.SetDeploymentCondition(test.status, test.cond)
+		SetDeploymentCondition(test.status, test.cond)
 		if !reflect.DeepEqual(test.status, test.expectedStatus) {
 			t.Errorf("expected status: %v, got: %v", test.expectedStatus, test.status)
 		}
@@ -546,7 +537,7 @@ func TestRemoveCondition(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		appsinternalutil.RemoveDeploymentCondition(test.status, test.condType)
+		RemoveDeploymentCondition(test.status, test.condType)
 		if !reflect.DeepEqual(test.status, test.expectedStatus) {
 			t.Errorf("%s: expected status: %v, got: %v", test.name, test.expectedStatus, test.status)
 		}
@@ -645,12 +636,12 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 
 	for _, tc := range tests {
 		config := tc.config
-		deployment, err := appsinternalutil.MakeDeploymentV1(config)
+		deployment, err := MakeDeploymentV1(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		deployment.ObjectMeta.CreationTimestamp = metav1.Time{Time: tc.deploymentCreationTime}
-		gotTimeout := appsinternalutil.RolloutExceededTimeoutSeconds(config, deployment)
+		gotTimeout := RolloutExceededTimeoutSeconds(config, deployment)
 		if tc.expectTimeout && !gotTimeout {
 			t.Errorf("[%s]: expected timeout, but got no timeout", tc.name)
 		}

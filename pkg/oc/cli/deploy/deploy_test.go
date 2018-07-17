@@ -15,8 +15,8 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -25,7 +25,7 @@ import (
 )
 
 func deploymentFor(config *appsapi.DeploymentConfig, status appsapi.DeploymentStatus) *kapi.ReplicationController {
-	d, err := appsutil.MakeTestOnlyInternalDeployment(config)
+	d, err := appsinternalutil.MakeTestOnlyInternalDeployment(config)
 	if err != nil {
 		panic(err)
 	}
@@ -163,11 +163,11 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		t.Fatalf("expected updated config")
 	}
 
-	if appsutil.IsDeploymentCancelled(updatedDeployment) {
+	if appsinternalutil.IsDeploymentCancelled(updatedDeployment) {
 		t.Fatalf("deployment should not have the cancelled flag set anymore")
 	}
 
-	if appsutil.DeploymentStatusReasonFor(updatedDeployment) != "" {
+	if appsinternalutil.DeploymentStatusReasonFor(updatedDeployment) != "" {
 		t.Fatalf("deployment status reason should be empty")
 	}
 
@@ -177,7 +177,7 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		t.Fatalf("Not all deployer pods for the failed deployment were deleted.\nEXPECTED: %v\nACTUAL: %v", e, a)
 	}
 
-	if e, a := appsapi.DeploymentStatusNew, appsutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := appsapi.DeploymentStatusNew, appsinternalutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 }
@@ -242,7 +242,7 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 		config := appstest.OkDeploymentConfig(scenario.version)
 		existingDeployments := &kapi.ReplicationControllerList{}
 		for _, e := range scenario.existing {
-			d, _ := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(e.version))
+			d, _ := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(e.version))
 			d.Annotations[appsapi.DeploymentStatusAnnotation] = string(e.status)
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}
@@ -272,7 +272,7 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 			}
 		}
 		for _, d := range updatedDeployments {
-			actualCancellations = append(actualCancellations, appsutil.DeploymentVersionFor(&d))
+			actualCancellations = append(actualCancellations, appsinternalutil.DeploymentVersionFor(&d))
 		}
 
 		sort.Sort(Int64Slice(actualCancellations))

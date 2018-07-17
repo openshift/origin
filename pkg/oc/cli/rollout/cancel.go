@@ -25,7 +25,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	"github.com/openshift/origin/pkg/oc/cli/set"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
@@ -167,7 +167,7 @@ func (o CancelOptions) Run() error {
 				return false
 			}
 
-			if appsutil.IsDeploymentCancelled(rc) {
+			if appsinternalutil.IsDeploymentCancelled(rc) {
 				printer.PrintObj(info.Object, o.Out)
 				return false
 			}
@@ -213,13 +213,13 @@ func (o CancelOptions) Run() error {
 		if !cancelled {
 			latest := deployments[0]
 			maybeCancelling := ""
-			if appsutil.IsDeploymentCancelled(latest) && !appsutil.IsTerminatedDeployment(latest) {
+			if appsinternalutil.IsDeploymentCancelled(latest) && !appsinternalutil.IsTerminatedDeployment(latest) {
 				maybeCancelling = " (cancelling)"
 			}
 			timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
 			fmt.Fprintf(o.Out, "No rollout is in progress (latest rollout #%d %s%s %s ago)\n",
-				appsutil.DeploymentVersionFor(latest),
-				strings.ToLower(string(appsutil.DeploymentStatusFor(latest))),
+				appsinternalutil.DeploymentVersionFor(latest),
+				strings.ToLower(string(appsinternalutil.DeploymentStatusFor(latest))),
 				maybeCancelling,
 				timeAt)
 		}
@@ -229,7 +229,7 @@ func (o CancelOptions) Run() error {
 }
 
 func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]*kapi.ReplicationController, bool, error) {
-	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(name).String()})
+	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsinternalutil.ConfigSelector(name).String()})
 	if err != nil {
 		return nil, false, err
 	}
@@ -240,12 +240,12 @@ func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateF
 	for i := range deploymentList.Items {
 		deployments = append(deployments, &deploymentList.Items[i])
 	}
-	sort.Sort(appsutil.ByLatestVersionDesc(deployments))
+	sort.Sort(appsinternalutil.ByLatestVersionDesc(deployments))
 	allErrs := []error{}
 	cancelled := false
 
 	for _, deployment := range deployments {
-		status := appsutil.DeploymentStatusFor(deployment)
+		status := appsinternalutil.DeploymentStatusFor(deployment)
 		switch status {
 		case appsapi.DeploymentStatusNew,
 			appsapi.DeploymentStatusPending,

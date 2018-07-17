@@ -20,8 +20,8 @@ import (
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
@@ -81,7 +81,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 		)
 
 		if d.config == nil {
-			if rcs, err := d.kubeClient.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(deploymentConfig.Name).String()}); err == nil {
+			if rcs, err := d.kubeClient.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsinternalutil.ConfigSelector(deploymentConfig.Name).String()}); err == nil {
 				deploymentsHistory = make([]*kapi.ReplicationController, 0, len(rcs.Items))
 				for i := range rcs.Items {
 					deploymentsHistory = append(deploymentsHistory, &rcs.Items[i])
@@ -98,8 +98,8 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 		printDeploymentConfigSpec(d.kubeClient, *deploymentConfig, out)
 		fmt.Fprintln(out)
 
-		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(deploymentConfig)
-		if activeDeployment := appsutil.ActiveDeployment(deploymentsHistory); activeDeployment != nil {
+		latestDeploymentName := appsinternalutil.LatestDeploymentNameForConfig(deploymentConfig)
+		if activeDeployment := appsinternalutil.ActiveDeployment(deploymentsHistory); activeDeployment != nil {
 			activeDeploymentName = activeDeployment.Name
 		}
 
@@ -117,7 +117,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 		if isNotDeployed {
 			formatString(out, "Latest Deployment", "<none>")
 		} else {
-			header := fmt.Sprintf("Deployment #%d (latest)", appsutil.DeploymentVersionFor(deployment))
+			header := fmt.Sprintf("Deployment #%d (latest)", appsinternalutil.DeploymentVersionFor(deployment))
 			// Show details if the current deployment is the active one or it is the
 			// initial deployment.
 			printDeploymentRc(deployment, d.kubeClient, out, header, (deployment.Name == activeDeploymentName) || len(deploymentsHistory) == 1)
@@ -133,8 +133,8 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 			sort.Sort(sort.Reverse(OverlappingControllers(sorted)))
 			counter := 1
 			for _, item := range sorted {
-				if item.Name != latestDeploymentName && deploymentConfig.Name == appsutil.DeploymentConfigNameFor(item) {
-					header := fmt.Sprintf("Deployment #%d", appsutil.DeploymentVersionFor(item))
+				if item.Name != latestDeploymentName && deploymentConfig.Name == appsinternalutil.DeploymentConfigNameFor(item) {
+					header := fmt.Sprintf("Deployment #%d", appsinternalutil.DeploymentVersionFor(item))
 					printDeploymentRc(item, d.kubeClient, out, header, item.Name == activeDeploymentName)
 					counter++
 				}
@@ -396,7 +396,7 @@ func printDeploymentRc(deployment *kapi.ReplicationController, kubeClient kclien
 	}
 	timeAt := strings.ToLower(formatRelativeTime(deployment.CreationTimestamp.Time))
 	fmt.Fprintf(w, "\tCreated:\t%s ago\n", timeAt)
-	fmt.Fprintf(w, "\tStatus:\t%s\n", appsutil.DeploymentStatusFor(deployment))
+	fmt.Fprintf(w, "\tStatus:\t%s\n", appsinternalutil.DeploymentStatusFor(deployment))
 	fmt.Fprintf(w, "\tReplicas:\t%d current / %d desired\n", deployment.Status.Replicas, deployment.Spec.Replicas)
 
 	if verbose {
@@ -458,13 +458,13 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 
 	var deployments []kapi.ReplicationController
 	if d.count == -1 || d.count > 1 {
-		list, err := d.kubeClient.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(name).String()})
+		list, err := d.kubeClient.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsinternalutil.ConfigSelector(name).String()})
 		if err != nil && !kerrors.IsNotFound(err) {
 			return "", err
 		}
 		deployments = list.Items
 	} else {
-		deploymentName := appsutil.LatestDeploymentNameForConfig(config)
+		deploymentName := appsinternalutil.LatestDeploymentNameForConfig(config)
 		deployment, err := d.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 		if err != nil && !kerrors.IsNotFound(err) {
 			return "", err

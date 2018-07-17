@@ -23,7 +23,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -280,7 +280,7 @@ func canTrigger(
 	}
 
 	canTriggerByConfigChange := false
-	if appsutil.HasChangeTrigger(config) && // Our deployment config has a config change trigger
+	if appsinternalutil.HasChangeTrigger(config) && // Our deployment config has a config change trigger
 		len(causes) == 0 && // and no other trigger has triggered.
 		(config.Status.LatestVersion == 0 || // Either it's the initial deployment
 			!kapihelper.Semantic.DeepEqual(config.Spec.Template, decoded.Spec.Template)) /* or a config change happened so we need to trigger */ {
@@ -300,7 +300,7 @@ func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient
 		return config, nil
 	}
 
-	latestDeploymentName := appsutil.LatestDeploymentNameForConfig(config)
+	latestDeploymentName := appsinternalutil.LatestDeploymentNameForConfig(config)
 	deployment, err := rn.ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		// If there's no deployment for the latest config, we have no basis of
@@ -308,7 +308,7 @@ func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient
 		// to make the deployment for the config, so return early.
 		return nil, err
 	}
-	decoded, err := appsutil.DecodeDeploymentConfig(deployment)
+	decoded, err := appsinternalutil.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}

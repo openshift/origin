@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang/glog"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/controller/util"
 )
 
 var (

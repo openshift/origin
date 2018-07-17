@@ -6,33 +6,35 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapiref "k8s.io/kubernetes/pkg/api/ref"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/reference"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // RecordConfigEvent records an event for the deployment config referenced by the
 // deployment.
-func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.ReplicationController, eventType, reason, msg string) {
+func RecordConfigEvent(client corev1client.EventsGetter, deployment *corev1.ReplicationController, eventType, reason,
+	msg string) {
 	t := metav1.Time{Time: time.Now()}
 	var obj runtime.Object = deployment
-	if config, err := appsutil.DecodeDeploymentConfig(deployment); err == nil {
+	if config, err := appsinternalutil.DecodeDeploymentConfig(deployment); err == nil {
 		obj = config
 	} else {
 		glog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
 	}
-	ref, err := kapiref.GetReference(legacyscheme.Scheme, obj)
+	ref, err := reference.GetReference(legacyscheme.Scheme, obj)
 	if err != nil {
 		glog.Errorf("Unable to get reference for %#v: %v", obj, err)
 		return
 	}
-	event := &kapi.Event{
+	event := &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v.%x", ref.Name, t.UnixNano()),
 			Namespace: ref.Namespace,
@@ -40,7 +42,7 @@ func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.Replica
 		InvolvedObject: *ref,
 		Reason:         reason,
 		Message:        msg,
-		Source: kapi.EventSource{
+		Source: corev1.EventSource{
 			Component: appsutil.DeployerPodNameFor(deployment),
 		},
 		FirstTimestamp: t,
@@ -55,7 +57,7 @@ func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.Replica
 
 // RecordConfigWarnings records all warning events from the replication controller to the
 // associated deployment config.
-func RecordConfigWarnings(client kcoreclient.EventsGetter, rc *kapi.ReplicationController, out io.Writer) {
+func RecordConfigWarnings(client corev1client.EventsGetter, rc *corev1.ReplicationController, out io.Writer) {
 	if rc == nil {
 		return
 	}
@@ -66,7 +68,7 @@ func RecordConfigWarnings(client kcoreclient.EventsGetter, rc *kapi.ReplicationC
 	}
 	// TODO: Do we need to sort the events?
 	for _, e := range events.Items {
-		if e.Type == kapi.EventTypeWarning {
+		if e.Type == corev1.EventTypeWarning {
 			fmt.Fprintf(out, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
 			RecordConfigEvent(client, rc, e.Type, e.Reason, e.Message)
 		}

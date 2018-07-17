@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -36,7 +36,7 @@ func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRev
 
 	if latestRevision == 0 {
 		switch {
-		case appsutil.HasImageChangeTrigger(config):
+		case appsinternalutil.HasImageChangeTrigger(config):
 			return fmt.Sprintf("Deployment config %q waiting on image update\n", name), false, nil
 
 		case len(config.Spec.Triggers) == 0:
@@ -48,7 +48,7 @@ func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRev
 		return "", false, fmt.Errorf("desired revision (%d) is different from the running revision (%d)", desiredRevision, latestRevision)
 	}
 
-	cond := appsutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
+	cond := appsinternalutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
 
 	if config.Generation <= config.Status.ObservedGeneration {
 		switch {

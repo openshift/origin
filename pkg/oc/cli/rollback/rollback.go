@@ -20,9 +20,9 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
@@ -218,7 +218,7 @@ func (o *RollbackOptions) Run() error {
 	var target *kapi.ReplicationController
 	switch r := obj.(type) {
 	case *kapi.ReplicationController:
-		dcName := appsutil.DeploymentConfigNameFor(r)
+		dcName := appsinternalutil.DeploymentConfigNameFor(r)
 		dc, err := o.appsClient.DeploymentConfigs(r.Namespace).Get(dcName, metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -229,7 +229,7 @@ func (o *RollbackOptions) Run() error {
 
 		// A specific deployment was used.
 		target = r
-		configName = appsutil.DeploymentConfigNameFor(obj)
+		configName = appsinternalutil.DeploymentConfigNameFor(obj)
 	case *appsapi.DeploymentConfig:
 		if r.Spec.Paused {
 			return fmt.Errorf("cannot rollback a paused deployment config")
@@ -361,7 +361,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, *meta
 // version will be returned.
 func (o *RollbackOptions) findTargetDeployment(config *appsapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
-	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(config.Name).String()})
+	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: appsinternalutil.ConfigSelector(config.Name).String()})
 	if err != nil {
 		return nil, err
 	}
@@ -369,21 +369,21 @@ func (o *RollbackOptions) findTargetDeployment(config *appsapi.DeploymentConfig,
 	for i := range deploymentList.Items {
 		deployments = append(deployments, &deploymentList.Items[i])
 	}
-	sort.Sort(appsutil.ByLatestVersionDesc(deployments))
+	sort.Sort(appsinternalutil.ByLatestVersionDesc(deployments))
 
 	// Find the target deployment for rollback. If a version was specified,
 	// use the version for a search. Otherwise, use the last completed
 	// deployment.
 	var target *kapi.ReplicationController
 	for _, deployment := range deployments {
-		version := appsutil.DeploymentVersionFor(deployment)
+		version := appsinternalutil.DeploymentVersionFor(deployment)
 		if desiredVersion > 0 {
 			if version == desiredVersion {
 				target = deployment
 				break
 			}
 		} else {
-			if version < config.Status.LatestVersion && appsutil.IsCompleteDeployment(deployment) {
+			if version < config.Status.LatestVersion && appsinternalutil.IsCompleteDeployment(deployment) {
 				target = deployment
 				break
 			}

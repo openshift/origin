@@ -11,19 +11,20 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -40,11 +41,11 @@ func newTestClient(config *appsapi.DeploymentConfig) *fake.Clientset {
 	client.AddReactor("get", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		action := a.(clientgotesting.GetAction)
 		if strings.HasPrefix(action.GetName(), config.Name) && strings.HasSuffix(action.GetName(), "-deploy") {
-			return true, &kapi.Pod{
+			return true, &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "deployer",
 				},
-				Status: kapi.PodStatus{
+				Status: corev1.PodStatus{
 					StartTime: nowFunc(),
 				},
 			}, nil
@@ -62,7 +63,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 		},
 	}
 	dc := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(dc)
+	deployment, _ := appsinternalutil.MakeDeploymentV1(dc)
 	client := newTestClient(dc)
 	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.New("could not create the pod")
@@ -85,18 +86,18 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
 	client := newTestClient(config)
 	podCreated := make(chan struct{})
 
-	var createdPod *kapi.Pod
+	var createdPod *corev1.Pod
 	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		defer close(podCreated)
 		action := a.(clientgotesting.CreateAction)
 		object := action.GetObject()
-		createdPod = object.(*kapi.Pod)
+		createdPod = object.(*corev1.Pod)
 		return true, createdPod, nil
 	})
 	podsWatch := watch.NewFake()
@@ -108,14 +109,14 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 		<-podCreated
 		podsWatch.Add(createdPod)
 		updatedPod := createdPod.DeepCopy()
-		updatedPod.Status.Phase = kapi.PodSucceeded
+		updatedPod.Status.Phase = corev1.PodSucceeded
 		podsWatch.Modify(updatedPod)
 	}()
 
 	executor := &hookExecutor{
 		pods: client.Core(),
 		out:  podLogs,
-		getPodLogs: func(*kapi.Pod) (io.ReadCloser, error) {
+		getPodLogs: func(*corev1.Pod) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
 	}
@@ -152,17 +153,17 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
 
 	client := newTestClient(config)
 	podCreated := make(chan struct{})
 
-	var createdPod *kapi.Pod
+	var createdPod *corev1.Pod
 	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		defer close(podCreated)
 		action := a.(clientgotesting.CreateAction)
 		object := action.GetObject()
-		createdPod = object.(*kapi.Pod)
+		createdPod = object.(*corev1.Pod)
 		return true, createdPod, nil
 	})
 	podsWatch := watch.NewFake()
@@ -172,14 +173,14 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 		<-podCreated
 		podsWatch.Add(createdPod)
 		updatedPod := createdPod.DeepCopy()
-		updatedPod.Status.Phase = kapi.PodFailed
+		updatedPod.Status.Phase = corev1.PodFailed
 		podsWatch.Modify(updatedPod)
 	}()
 
 	executor := &hookExecutor{
 		pods: client.Core(),
 		out:  ioutil.Discard,
-		getPodLogs: func(*kapi.Pod) (io.ReadCloser, error) {
+		getPodLogs: func(*corev1.Pod) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
 	}
@@ -200,9 +201,9 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
 
-	_, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
+	_, err := createHookPodManifest(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err == nil {
 		t.Fatalf("expected an error")
 	}
@@ -217,7 +218,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	tests := []struct {
 		name                string
 		hook                *appsapi.LifecycleHook
-		expected            *kapi.Pod
+		expected            *corev1.Pod
 		strategyLabels      map[string]string
 		strategyAnnotations map[string]string
 	}{
@@ -241,9 +242,10 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					Volumes: []string{"volume-2"},
 				},
 			},
-			expected: &kapi.Pod{
+			expected: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: apihelpers.GetPodName(deploymentName, "hook"),
+					Name:      apihelpers.GetPodName(deploymentName, "hook"),
+					Namespace: "test",
 					Labels: map[string]string{
 						appsapi.DeploymentPodTypeLabel:        "hook",
 						appsapi.DeployerPodForDeploymentLabel: deploymentName,
@@ -252,23 +254,21 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 						appsapi.DeploymentAnnotation: deploymentName,
 					},
 				},
-				Spec: kapi.PodSpec{
-					RestartPolicy: kapi.RestartPolicyNever,
-					Volumes: []kapi.Volume{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Volumes: []corev1.Volume{
 						{
-							Name: "volume-2",
-							VolumeSource: kapi.VolumeSource{
-								EmptyDir: &kapi.EmptyDirVolumeSource{},
-							},
+							Name:         "volume-2",
+							VolumeSource: corev1.VolumeSource{},
 						},
 					},
 					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
-					Containers: []kapi.Container{
+					Containers: []corev1.Container{
 						{
 							Name:    "lifecycle",
 							Image:   "registry:8080/repo1:ref1",
 							Command: []string{"overridden"},
-							Env: []kapi.EnvVar{
+							Env: []corev1.EnvVar{
 								{
 									Name:  "name",
 									Value: "value",
@@ -286,14 +286,14 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
-							ImagePullPolicy: kapi.PullIfNotPresent,
-							Resources: kapi.ResourceRequirements{
-								Limits: kapi.ResourceList{
-									kapi.ResourceCPU:    resource.MustParse("10"),
-									kapi.ResourceMemory: resource.MustParse("10M"),
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("10"),
+									corev1.ResourceMemory: resource.MustParse("10M"),
 								},
 							},
-							VolumeMounts: []kapi.VolumeMount{
+							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "volume-2",
 									ReadOnly:  true,
@@ -303,12 +303,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 						},
 					},
 					TerminationGracePeriodSeconds: &gracePeriod,
-					ImagePullSecrets: []kapi.LocalObjectReference{
+					ImagePullSecrets: []corev1.LocalObjectReference{
 						{
 							Name: "secret-1",
 						},
 					},
-					SecurityContext: &kapi.PodSecurityContext{},
 				},
 			},
 		},
@@ -320,9 +319,10 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					ContainerName: "container1",
 				},
 			},
-			expected: &kapi.Pod{
+			expected: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: apihelpers.GetPodName(deploymentName, "hook"),
+					Name:      apihelpers.GetPodName(deploymentName, "hook"),
+					Namespace: "test",
 					Labels: map[string]string{
 						appsapi.DeploymentPodTypeLabel:        "hook",
 						appsapi.DeployerPodForDeploymentLabel: deploymentName,
@@ -331,14 +331,15 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 						appsapi.DeploymentAnnotation: deploymentName,
 					},
 				},
-				Spec: kapi.PodSpec{
-					RestartPolicy:         kapi.RestartPolicyNever,
+				Spec: corev1.PodSpec{
+					RestartPolicy:         corev1.RestartPolicyNever,
 					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
-					Containers: []kapi.Container{
+					Volumes:               []corev1.Volume{},
+					Containers: []corev1.Container{
 						{
 							Name:  "lifecycle",
 							Image: "registry:8080/repo1:ref1",
-							Env: []kapi.EnvVar{
+							Env: []corev1.EnvVar{
 								{
 									Name:  "ENV1",
 									Value: "VAL1",
@@ -352,22 +353,22 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
-							ImagePullPolicy: kapi.PullIfNotPresent,
-							Resources: kapi.ResourceRequirements{
-								Limits: kapi.ResourceList{
-									kapi.ResourceCPU:    resource.MustParse("10"),
-									kapi.ResourceMemory: resource.MustParse("10M"),
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							VolumeMounts:    []corev1.VolumeMount{},
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("10"),
+									corev1.ResourceMemory: resource.MustParse("10M"),
 								},
 							},
 						},
 					},
 					TerminationGracePeriodSeconds: &gracePeriod,
-					ImagePullSecrets: []kapi.LocalObjectReference{
+					ImagePullSecrets: []corev1.LocalObjectReference{
 						{
 							Name: "secret-1",
 						},
 					},
-					SecurityContext: &kapi.PodSecurityContext{},
 				},
 			},
 		},
@@ -379,9 +380,10 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					ContainerName: "container1",
 				},
 			},
-			expected: &kapi.Pod{
+			expected: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: apihelpers.GetPodName(deploymentName, "hook"),
+					Name:      apihelpers.GetPodName(deploymentName, "hook"),
+					Namespace: "test",
 					Labels: map[string]string{
 						appsapi.DeploymentPodTypeLabel:        "hook",
 						appsapi.DeployerPodForDeploymentLabel: deploymentName,
@@ -392,14 +394,15 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 						"annotation2":                "value2",
 					},
 				},
-				Spec: kapi.PodSpec{
-					RestartPolicy:         kapi.RestartPolicyNever,
+				Spec: corev1.PodSpec{
+					RestartPolicy:         corev1.RestartPolicyNever,
 					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
-					Containers: []kapi.Container{
+					Volumes:               []corev1.Volume{},
+					Containers: []corev1.Container{
 						{
 							Name:  "lifecycle",
 							Image: "registry:8080/repo1:ref1",
-							Env: []kapi.EnvVar{
+							Env: []corev1.EnvVar{
 								{
 									Name:  "ENV1",
 									Value: "VAL1",
@@ -413,22 +416,22 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
-							ImagePullPolicy: kapi.PullIfNotPresent,
-							Resources: kapi.ResourceRequirements{
-								Limits: kapi.ResourceList{
-									kapi.ResourceCPU:    resource.MustParse("10"),
-									kapi.ResourceMemory: resource.MustParse("10M"),
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							VolumeMounts:    []corev1.VolumeMount{},
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("10"),
+									corev1.ResourceMemory: resource.MustParse("10M"),
 								},
 							},
 						},
 					},
 					TerminationGracePeriodSeconds: &gracePeriod,
-					ImagePullSecrets: []kapi.LocalObjectReference{
+					ImagePullSecrets: []corev1.LocalObjectReference{
 						{
 							Name: "secret-1",
 						},
 					},
-					SecurityContext: &kapi.PodSecurityContext{},
 				},
 			},
 			strategyLabels: map[string]string{
@@ -445,9 +448,10 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					ContainerName: "container2",
 				},
 			},
-			expected: &kapi.Pod{
+			expected: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: apihelpers.GetPodName(deploymentName, "hook"),
+					Name:      apihelpers.GetPodName(deploymentName, "hook"),
+					Namespace: "test",
 					Labels: map[string]string{
 						appsapi.DeploymentPodTypeLabel:        "hook",
 						appsapi.DeployerPodForDeploymentLabel: deploymentName,
@@ -456,14 +460,15 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 						appsapi.DeploymentAnnotation: deploymentName,
 					},
 				},
-				Spec: kapi.PodSpec{
-					RestartPolicy:         kapi.RestartPolicyNever,
+				Spec: corev1.PodSpec{
+					RestartPolicy:         corev1.RestartPolicyNever,
 					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
-					Containers: []kapi.Container{
+					Volumes:               []corev1.Volume{},
+					Containers: []corev1.Container{
 						{
 							Name:  "lifecycle",
 							Image: "registry:8080/repo1:ref2",
-							Env: []kapi.EnvVar{
+							Env: []corev1.EnvVar{
 								{
 									Name:  "OPENSHIFT_DEPLOYMENT_NAME",
 									Value: deploymentName,
@@ -473,16 +478,16 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
-							ImagePullPolicy: kapi.PullAlways,
+							ImagePullPolicy: corev1.PullAlways,
+							VolumeMounts:    []corev1.VolumeMount{},
 						},
 					},
 					TerminationGracePeriodSeconds: &gracePeriod,
-					ImagePullSecrets: []kapi.LocalObjectReference{
+					ImagePullSecrets: []corev1.LocalObjectReference{
 						{
 							Name: "secret-1",
 						},
 					},
-					SecurityContext: &kapi.PodSecurityContext{},
 				},
 			},
 		},
@@ -491,7 +496,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
 		config, deployment := deployment("deployment", "test", test.strategyLabels, test.strategyAnnotations)
-		pod, err := makeHookPod(test.hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
+		pod, err := createHookPodManifest(test.hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -522,19 +527,20 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
 
-	pod, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
+	pod, err := createHookPodManifest(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	if e, a := kapi.RestartPolicyOnFailure, pod.Spec.RestartPolicy; e != a {
+	if e, a := corev1.RestartPolicyOnFailure, pod.Spec.RestartPolicy; string(e) != string(a) {
 		t.Errorf("expected pod restart policy %s, got %s", e, a)
 	}
 }
 
-func deployment(name, namespace string, strategyLabels, strategyAnnotations map[string]string) (*appsapi.DeploymentConfig, *kapi.ReplicationController) {
+func deployment(name, namespace string, strategyLabels, strategyAnnotations map[string]string) (*appsapi.DeploymentConfig,
+	*corev1.ReplicationController) {
 	config := &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -612,12 +618,12 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 			},
 		},
 	}
-	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
 	deployment.Namespace = namespace
 	return config, deployment
 }
 
-type envByNameAsc []kapi.EnvVar
+type envByNameAsc []corev1.EnvVar
 
 func (a envByNameAsc) Len() int {
 	return len(a)

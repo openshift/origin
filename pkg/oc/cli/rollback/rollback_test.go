@@ -8,7 +8,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 )
 
 func TestRollbackOptions_findTargetDeployment(t *testing.T) {
@@ -77,7 +77,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 		existingControllers := &kapi.ReplicationControllerList{}
 		for _, existing := range test.existing {
 			config := appstest.OkDeploymentConfig(existing.version)
-			deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+			deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(config)
 			deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(existing.status)
 			existingControllers.Items = append(existingControllers.Items, *deployment)
 		}
@@ -103,7 +103,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 		if target == nil {
 			t.Fatalf("expected a target deployment")
 		}
-		if e, a := test.expectedVersion, appsutil.DeploymentVersionFor(target); e != a {
+		if e, a := test.expectedVersion, appsinternalutil.DeploymentVersionFor(target); e != a {
 			t.Errorf("expected target version %d, got %d", e, a)
 		}
 	}

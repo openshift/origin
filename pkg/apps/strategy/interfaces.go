@@ -4,13 +4,13 @@ import (
 	"strconv"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // DeploymentStrategy knows how to make a deployment active.
 type DeploymentStrategy interface {
 	// Deploy transitions an old deployment to a new one.
-	Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error
+	Deploy(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int) error
 }
 
 // UpdateAcceptor is given a chance to accept or reject the new controller
@@ -24,7 +24,7 @@ type DeploymentStrategy interface {
 // strategy, but we still need this around to support Recreate.
 type UpdateAcceptor interface {
 	// Accept returns nil if the controller is okay, otherwise returns an error.
-	Accept(*kapi.ReplicationController) error
+	Accept(*corev1.ReplicationController) error
 }
 
 type errConditionReached struct {

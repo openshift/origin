@@ -37,8 +37,8 @@ import (
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appstypeclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildtypedclientset "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/git"
@@ -891,7 +891,7 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 		return err
 	}
 
-	requirement, err := labels.NewRequirement(appsapi.DeploymentLabel, selection.Equals, []string{appsutil.LatestDeploymentNameForConfig(dc)})
+	requirement, err := labels.NewRequirement(appsapi.DeploymentLabel, selection.Equals, []string{appsinternalutil.LatestDeploymentNameForConfig(dc)})
 	if err != nil {
 		return err
 	}
