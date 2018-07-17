@@ -361,6 +361,12 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.ResolveImages) == 0 {
 				obj.ResolveImages = imagepolicyapi.Attempt
 			}
+			for i := range obj.ResolutionRules {
+				if len(obj.ResolutionRules[i].Policy) == 0 {
+					obj.ResolutionRules[i].Policy = obj.ResolveImages
+				}
+			}
+
 		},
 		func(obj *configapi.GrantConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
