@@ -5,8 +5,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -40,9 +38,9 @@ func Kind(kind string) schema.GroupKind {
 	return schema.GroupKind{Group: GroupName, Kind: kind}
 }
 
-func InstallLegacyApps(scheme *runtime.Scheme) {
-	utilruntime.Must(appsapi.AddToSchemeInCoreGroup(scheme))
-	utilruntime.Must(appsapiv1.AddToSchemeInCoreGroup(scheme))
+// DEPRECATED
+func Resource(resource string) schema.GroupResource {
+	return schema.GroupResource{Group: GroupName, Resource: resource}
 }
 
 func InstallLegacyBuild(scheme *runtime.Scheme) {

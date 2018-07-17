@@ -20,6 +20,7 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/labels"
 
+	"github.com/openshift/api/apps"
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -54,7 +55,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, err
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &appsapi.DeploymentConfig{} },
 		NewListFunc:              func() runtime.Object { return &appsapi.DeploymentConfigList{} },
-		DefaultQualifiedResource: appsapi.Resource("deploymentconfigs"),
+		DefaultQualifiedResource: apps.Resource("deploymentconfigs"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

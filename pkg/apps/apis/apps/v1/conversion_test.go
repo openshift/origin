@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/openshift/api/apps/v1"
 	newer "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -19,12 +19,7 @@ var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 
 func init() {
-	kapi.AddToScheme(scheme)
-	kapiv1.AddToScheme(scheme)
-	LegacySchemeBuilder.AddToScheme(scheme)
-	newer.LegacySchemeBuilder.AddToScheme(scheme)
-	SchemeBuilder.AddToScheme(scheme)
-	newer.SchemeBuilder.AddToScheme(scheme)
+	utilruntime.Must(Install(scheme))
 }
 
 func TestTriggerRoundTrip(t *testing.T) {

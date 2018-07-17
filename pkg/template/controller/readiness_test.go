@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
+	oapps "github.com/openshift/api/apps"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	fakebuild "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
@@ -153,11 +154,11 @@ func TestCheckReadiness(t *testing.T) {
 
 		// DeploymentConfig
 		{
-			groupKind: appsapi.Kind("DeploymentConfig"),
+			groupKind: oapps.Kind("DeploymentConfig"),
 			object:    &appsapi.DeploymentConfig{},
 		},
 		{
-			groupKind: appsapi.Kind("DeploymentConfig"),
+			groupKind: oapps.Kind("DeploymentConfig"),
 			object: &appsapi.DeploymentConfig{
 				Status: appsapi.DeploymentConfigStatus{
 					Conditions: []appsapi.DeploymentCondition{
@@ -176,7 +177,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: appsapi.Kind("DeploymentConfig"),
+			groupKind: oapps.Kind("DeploymentConfig"),
 			object: &appsapi.DeploymentConfig{
 				Status: appsapi.DeploymentConfigStatus{
 					Conditions: []appsapi.DeploymentCondition{
