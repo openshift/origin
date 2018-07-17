@@ -300,7 +300,7 @@ func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient
 		return config, nil
 	}
 
-	latestDeploymentName := appsutil.LatestDeploymentNameForConfig(config)
+	latestDeploymentName := appsutil.LatestDeploymentNameForConfig(config.Name, config.Status.LatestVersion)
 	deployment, err := rn.ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		// If there's no deployment for the latest config, we have no basis of

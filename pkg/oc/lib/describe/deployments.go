@@ -98,7 +98,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 		printDeploymentConfigSpec(d.kubeClient, *deploymentConfig, out)
 		fmt.Fprintln(out)
 
-		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(deploymentConfig)
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(deploymentConfig.Name, deploymentConfig.Status.LatestVersion)
 		if activeDeployment := appsutil.ActiveDeployment(deploymentsHistory); activeDeployment != nil {
 			activeDeploymentName = activeDeployment.Name
 		}
@@ -464,7 +464,7 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 		}
 		deployments = list.Items
 	} else {
-		deploymentName := appsutil.LatestDeploymentNameForConfig(config)
+		deploymentName := appsutil.LatestDeploymentNameForConfig(config.Name, config.Status.LatestVersion)
 		deployment, err := d.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 		if err != nil && !kerrors.IsNotFound(err) {
 			return "", err

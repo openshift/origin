@@ -891,7 +891,7 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 		return err
 	}
 
-	requirement, err := labels.NewRequirement(appsapi.DeploymentLabel, selection.Equals, []string{appsutil.LatestDeploymentNameForConfig(dc)})
+	requirement, err := labels.NewRequirement(appsapi.DeploymentLabel, selection.Equals, []string{appsutil.LatestDeploymentNameForConfig(dc.Name, dc.Status.LatestVersion)})
 	if err != nil {
 		return err
 	}

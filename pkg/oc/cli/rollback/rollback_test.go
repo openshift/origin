@@ -3,8 +3,8 @@ package rollback
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/fake"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -74,10 +74,11 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
 
-		existingControllers := &kapi.ReplicationControllerList{}
+		existingControllers := &corev1.ReplicationControllerList{}
 		for _, existing := range test.existing {
 			config := appstest.OkDeploymentConfig(existing.version)
-			deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+			//deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+			deployment, _ := appsutil.MakeDeploymentV1(config)
 			deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(existing.status)
 			existingControllers.Items = append(existingControllers.Items, *deployment)
 		}
@@ -87,7 +88,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			kc: fakekc,
 		}
 
-		config := appstest.OkDeploymentConfig(test.configVersion)
+		config := appstest.OkDeploymentConfigV1(test.configVersion)
 		target, err := opts.findTargetDeployment(config, test.desiredVersion)
 		if err != nil {
 			if !test.errorExpected {

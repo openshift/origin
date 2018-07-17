@@ -233,7 +233,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		return podForResource(f, fmt.Sprintf("rc/%s", appsutil.LatestDeploymentNameForConfig(dc)), timeout)
+		return podForResource(f, fmt.Sprintf("rc/%s", appsutil.LatestDeploymentNameForConfig(dc.Name, dc.Status.LatestVersion)), timeout)
 	case extensions.Resource("daemonsets"):
 		kc, err := f.ClientSet()
 		if err != nil {

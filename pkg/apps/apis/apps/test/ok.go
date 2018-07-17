@@ -3,6 +3,7 @@ package test
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -32,6 +33,30 @@ func OkDeploymentConfig(version int64) *appsapi.DeploymentConfig {
 	}
 }
 
+func OkDeploymentConfigV1(version int64) *appsv1.DeploymentConfig {
+	return &appsv1.DeploymentConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "config",
+			Namespace: kapi.NamespaceDefault,
+		},
+		Spec:   OkDeploymentConfigSpecV1(),
+		Status: OkDeploymentConfigStatusV1(version),
+	}
+}
+
+func OkDeploymentConfigSpecV1() appsv1.DeploymentConfigSpec {
+	return appsv1.DeploymentConfigSpec{
+		Replicas: 1,
+		Selector: OkSelector(),
+		Strategy: OkStrategyV1(),
+		Template: OkPodTemplateV1(),
+		Triggers: []appsv1.DeploymentTriggerPolicy{
+			OkImageChangeTriggerV1(),
+			OkConfigChangeTriggerV1(),
+		},
+	}
+}
+
 func OkDeploymentConfigSpec() appsapi.DeploymentConfigSpec {
 	return appsapi.DeploymentConfigSpec{
 		Replicas: 1,
@@ -47,6 +72,12 @@ func OkDeploymentConfigSpec() appsapi.DeploymentConfigSpec {
 
 func OkDeploymentConfigStatus(version int64) appsapi.DeploymentConfigStatus {
 	return appsapi.DeploymentConfigStatus{
+		LatestVersion: version,
+	}
+}
+
+func OkDeploymentConfigStatusV1(version int64) appsv1.DeploymentConfigStatus {
+	return appsv1.DeploymentConfigStatus{
 		LatestVersion: version,
 	}
 }
@@ -79,6 +110,22 @@ func OkStrategy() appsapi.DeploymentStrategy {
 			},
 		},
 		RecreateParams: &appsapi.RecreateDeploymentStrategyParams{
+			TimeoutSeconds: mkintp(20),
+		},
+		ActiveDeadlineSeconds: mkintp(int(appsapi.MaxDeploymentDurationSeconds)),
+	}
+}
+
+func OkStrategyV1() appsv1.DeploymentStrategy {
+	return appsv1.DeploymentStrategy{
+		Type: appsv1.DeploymentStrategyTypeRecreate,
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+				corev1.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+			},
+		},
+		RecreateParams: &appsv1.RecreateDeploymentStrategyParams{
 			TimeoutSeconds: mkintp(20),
 		},
 		ActiveDeadlineSeconds: mkintp(int(appsapi.MaxDeploymentDurationSeconds)),
@@ -175,6 +222,44 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 	}
 }
 
+func OkPodTemplateV1() *corev1.PodTemplateSpec {
+	one := int64(1)
+	return &corev1.PodTemplateSpec{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "container1",
+					Image: "registry:8080/repo1:ref1",
+					Env: []corev1.EnvVar{
+						{
+							Name:  "ENV1",
+							Value: "VAL1",
+						},
+					},
+					ImagePullPolicy:          corev1.PullIfNotPresent,
+					TerminationMessagePath:   "/dev/termination-log",
+					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+				},
+				{
+					Name:                     "container2",
+					Image:                    "registry:8080/repo1:ref2",
+					ImagePullPolicy:          corev1.PullIfNotPresent,
+					TerminationMessagePath:   "/dev/termination-log",
+					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+				},
+			},
+			RestartPolicy:                 corev1.RestartPolicyAlways,
+			DNSPolicy:                     corev1.DNSClusterFirst,
+			TerminationGracePeriodSeconds: &one,
+			SchedulerName:                 corev1.DefaultSchedulerName,
+			SecurityContext:               &corev1.PodSecurityContext{},
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: OkSelector(),
+		},
+	}
+}
+
 func OkPodTemplateChanged() *kapi.PodTemplateSpec {
 	template := OkPodTemplate()
 	template.Spec.Containers[0].Image = DockerImageReference
@@ -199,6 +284,12 @@ func OkConfigChangeTrigger() appsapi.DeploymentTriggerPolicy {
 	}
 }
 
+func OkConfigChangeTriggerV1() appsv1.DeploymentTriggerPolicy {
+	return appsv1.DeploymentTriggerPolicy{
+		Type: appsv1.DeploymentTriggerOnConfigChange,
+	}
+}
+
 func OkImageChangeTrigger() appsapi.DeploymentTriggerPolicy {
 	return appsapi.DeploymentTriggerPolicy{
 		Type: appsapi.DeploymentTriggerOnImageChange,
@@ -208,6 +299,22 @@ func OkImageChangeTrigger() appsapi.DeploymentTriggerPolicy {
 				"container1",
 			},
 			From: kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
+			},
+		},
+	}
+}
+
+func OkImageChangeTriggerV1() appsv1.DeploymentTriggerPolicy {
+	return appsv1.DeploymentTriggerPolicy{
+		Type: appsv1.DeploymentTriggerOnImageChange,
+		ImageChangeParams: &appsv1.DeploymentTriggerImageChangeParams{
+			Automatic: true,
+			ContainerNames: []string{
+				"container1",
+			},
+			From: corev1.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
 			},

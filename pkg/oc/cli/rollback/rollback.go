@@ -7,23 +7,25 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/client-go/kubernetes"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
-	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapiv1 "github.com/openshift/api/apps/v1"
+	appsclientv1 "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
@@ -65,9 +67,48 @@ var (
 	  %[1]s rollback frontend -o json`)
 )
 
+// RollbackOptions contains all the necessary state to perform a rollback.
+type RollbackOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Namespace              string
+	TargetName             string
+	DesiredVersion         int64
+	Format                 string
+	Template               string
+	DryRun                 bool
+	IncludeTriggers        bool
+	IncludeStrategy        bool
+	IncludeScalingSettings bool
+
+	// appsClient is an Openshift apps client.
+	appsClient appsclientv1.AppsV1Interface
+	// TODO: remove this once we have external describers
+	appsClientInternal appsinternalversion.AppsInterface
+	// kc is a kube client.
+	kc kubernetes.Interface
+	// TODO: remove this once we have external describers
+	internalKc kclientset.Interface
+	// builder returns a new builder each time it is called. A
+	// resource.Builder is stateful and isn't safe to reuse (e.g. across
+	// resource types).
+	builder func() *resource.Builder
+
+	ToPrinter func(string) (printers.ResourcePrinter, error)
+
+	genericclioptions.IOStreams
+}
+
+func NewRollbackOptions(streams genericclioptions.IOStreams) *RollbackOptions {
+	return &RollbackOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("rolled back").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
+}
+
 // NewCmdRollback creates a CLI rollback command.
 func NewCmdRollback(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	opts := &RollbackOptions{}
+	opts := NewRollbackOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "rollback (DEPLOYMENTCONFIG | DEPLOYMENT)",
 		Short:   "Revert part of an application back to a previous deployment",
@@ -88,42 +129,17 @@ func NewCmdRollback(fullName string, f kcmdutil.Factory, streams genericclioptio
 		},
 	}
 
+	opts.PrintFlags.AddFlags(cmd)
+
 	cmd.Flags().BoolVar(&opts.IncludeTriggers, "change-triggers", false, "If true, include the previous deployment's triggers in the rollback")
 	cmd.Flags().BoolVar(&opts.IncludeStrategy, "change-strategy", false, "If true, include the previous deployment's strategy in the rollback")
 	cmd.Flags().BoolVar(&opts.IncludeScalingSettings, "change-scaling-settings", false, "If true, include the previous deployment's replicationController replica count and selector in the rollback")
 	cmd.Flags().BoolVarP(&opts.DryRun, "dry-run", "d", false, "Instead of performing the rollback, describe what the rollback will look like in human-readable form")
 	cmd.MarkFlagFilename("template")
 
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().Int64Var(&opts.DesiredVersion, "to-version", 0, "A config version to rollback to. Specifying version 0 is the same as omitting a version (the version will be auto-detected). This option is ignored when specifying a deployment.")
+	cmd.Flags().Int64Var(&opts.DesiredVersion, "to-version", opts.DesiredVersion, "A config version to rollback to. Specifying version 0 is the same as omitting a version (the version will be auto-detected). This option is ignored when specifying a deployment.")
 
 	return cmd
-}
-
-// RollbackOptions contains all the necessary state to perform a rollback.
-type RollbackOptions struct {
-	Namespace              string
-	TargetName             string
-	DesiredVersion         int64
-	Format                 string
-	Template               string
-	DryRun                 bool
-	IncludeTriggers        bool
-	IncludeStrategy        bool
-	IncludeScalingSettings bool
-
-	// out is a place to write user-facing output.
-	out io.Writer
-	// appsClient is an Openshift apps client.
-	appsClient appsinternalversion.AppsInterface
-	// kc is a kube client.
-	kc kclientset.Interface
-	// getBuilder returns a new builder each time it is called. A
-	// resource.Builder is stateful and isn't safe to reuse (e.g. across
-	// resource types).
-	getBuilder func() *resource.Builder
-	// print an object using a printer for a given mapping
-	printObj func(runtime.Object, *meta.RESTMapping, io.Writer) error
 }
 
 // Complete turns a partially defined RollbackActions into a solvent structure
@@ -140,36 +156,45 @@ func (o *RollbackOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 	o.Namespace = namespace
 
 	// Set up client based support.
-	o.getBuilder = func() *resource.Builder {
-		return f.NewBuilder()
-	}
+	o.builder = f.NewBuilder
 
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	kClient, err := kclientset.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-	appsClient, err := appsclientinternal.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-	o.appsClient = appsClient.Apps()
-	o.kc = kClient
 
-	o.out = out
+	o.kc, err = kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	// TODO: remove once we have external describers
+	o.internalKc, err = kclientset.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	o.appsClient, err = appsclientv1.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	// TODO: remove once we have external describers
+	appsClientInternal, err := appsclientinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	o.appsClientInternal = appsClientInternal.Apps()
 
 	o.Format = kcmdutil.GetFlagString(cmd, "output")
 
-	o.printObj = func(obj runtime.Object, mapping *meta.RESTMapping, out io.Writer) error {
-		printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
-		if err != nil {
-			return err
+	o.ToPrinter = func(message string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = message
+		if o.DryRun {
+			o.PrintFlags.Complete("%s (dry run)")
 		}
 
-		return printer.PrintObj(obj, out)
+		return o.PrintFlags.ToPrinter()
 	}
 
 	return nil
@@ -184,7 +209,7 @@ func (o *RollbackOptions) Validate() error {
 	if o.DesiredVersion < 0 {
 		return fmt.Errorf("the to version must be >= 0")
 	}
-	if o.out == nil {
+	if o.Out == nil {
 		return fmt.Errorf("out must not be nil")
 	}
 	if o.appsClient == nil {
@@ -193,13 +218,8 @@ func (o *RollbackOptions) Validate() error {
 	if o.kc == nil {
 		return fmt.Errorf("kc must not be nil")
 	}
-	if o.getBuilder == nil {
-		return fmt.Errorf("getBuilder must not be nil")
-	} else {
-		b := o.getBuilder()
-		if b == nil {
-			return fmt.Errorf("getBuilder must return a resource.Builder")
-		}
+	if o.builder == nil {
+		return fmt.Errorf("builder must not be nil")
 	}
 	return nil
 }
@@ -207,7 +227,7 @@ func (o *RollbackOptions) Validate() error {
 // Run performs a rollback.
 func (o *RollbackOptions) Run() error {
 	// Get the resource referenced in the command args.
-	obj, mapping, err := o.findResource(o.TargetName)
+	obj, _, err := o.findResource(o.TargetName)
 	if err != nil {
 		return err
 	}
@@ -215,9 +235,9 @@ func (o *RollbackOptions) Run() error {
 	configName := ""
 
 	// Interpret the resource to resolve a target for rollback.
-	var target *kapi.ReplicationController
+	var target *corev1.ReplicationController
 	switch r := obj.(type) {
-	case *kapi.ReplicationController:
+	case *corev1.ReplicationController:
 		dcName := appsutil.DeploymentConfigNameFor(r)
 		dc, err := o.appsClient.DeploymentConfigs(r.Namespace).Get(dcName, metav1.GetOptions{})
 		if err != nil {
@@ -230,7 +250,7 @@ func (o *RollbackOptions) Run() error {
 		// A specific deployment was used.
 		target = r
 		configName = appsutil.DeploymentConfigNameFor(obj)
-	case *appsapi.DeploymentConfig:
+	case *appsapiv1.DeploymentConfig:
 		if r.Spec.Paused {
 			return fmt.Errorf("cannot rollback a paused deployment config")
 		}
@@ -249,10 +269,10 @@ func (o *RollbackOptions) Run() error {
 	}
 
 	// Set up the rollback and generate a new rolled back config.
-	rollback := &appsapi.DeploymentConfigRollback{
+	rollback := &appsapiv1.DeploymentConfigRollback{
 		Name: configName,
-		Spec: appsapi.DeploymentConfigRollbackSpec{
-			From: kapi.ObjectReference{
+		Spec: appsapiv1.DeploymentConfigRollbackSpec{
+			From: corev1.ObjectReference{
 				Name: target.Name,
 			},
 			Revision:               int64(o.DesiredVersion),
@@ -267,22 +287,13 @@ func (o *RollbackOptions) Run() error {
 		return err
 	}
 
-	// If this is a dry run, print and exit.
-	if o.DryRun {
-		describer := describe.NewDeploymentConfigDescriber(o.appsClient, o.kc, newConfig)
-		description, err := describer.Describe(newConfig.Namespace, newConfig.Name, kprinters.DescriberSettings{})
+	// If an output format is specified or this is a DryRun, print and exit.
+	if len(o.Format) > 0 || o.DryRun {
+		printer, err := o.ToPrinter(fmt.Sprintf("rolled back to %s", rollback.Spec.From.Name))
 		if err != nil {
 			return err
 		}
-		o.out.Write([]byte(description))
-		fmt.Fprintf(o.out, "%s\n", "(dry run)")
-		return nil
-	}
-
-	// If an output format is specified, print and exit.
-	if len(o.Format) > 0 {
-		o.printObj(newConfig, mapping, o.out)
-		return nil
+		return printer.PrintObj(newConfig, o.Out)
 	}
 
 	// Perform a real rollback.
@@ -292,19 +303,24 @@ func (o *RollbackOptions) Run() error {
 	}
 
 	// Print warnings about any image triggers disabled during the rollback.
-	fmt.Fprintf(o.out, "#%d rolled back to %s\n", rolledback.Status.LatestVersion, rollback.Spec.From.Name)
+	successMessage := fmt.Sprintf("deployment #%d rolled back to %s", rolledback.Status.LatestVersion, rollback.Spec.From.Name)
 	for _, trigger := range rolledback.Spec.Triggers {
 		disabled := []string{}
-		if trigger.Type == appsapi.DeploymentTriggerOnImageChange && !trigger.ImageChangeParams.Automatic {
+		if trigger.Type == appsapiv1.DeploymentTriggerOnImageChange && !trigger.ImageChangeParams.Automatic {
 			disabled = append(disabled, trigger.ImageChangeParams.From.Name)
 		}
 		if len(disabled) > 0 {
 			reenable := fmt.Sprintf("oc set triggers dc/%s --auto", rolledback.Name)
-			fmt.Fprintf(o.out, "Warning: the following images triggers were disabled: %s\n  You can re-enable them with: %s\n", strings.Join(disabled, ","), reenable)
+			successMessage = fmt.Sprintf("%s\nWarning: the following images triggers were disabled: %s\n  You can re-enable them with: %s", successMessage, strings.Join(disabled, ","), reenable)
 		}
 	}
 
-	return nil
+	printer, err := o.ToPrinter(successMessage)
+	if err != nil {
+		return err
+	}
+
+	return printer.PrintObj(rolledback, o.Out)
 }
 
 // findResource tries to find a deployment or deploymentconfig named
@@ -321,8 +337,8 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, *meta
 	var obj runtime.Object
 	var m *meta.RESTMapping
 	for _, name := range candidates {
-		r := o.getBuilder().
-			WithScheme(ocscheme.ReadingInternalScheme).
+		r := o.builder().
+			WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
 			NamespaceParam(o.Namespace).
 			ResourceTypeOrNameArgs(false, name).
 			SingleResourceType().
@@ -359,22 +375,22 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, *meta
 // the deployment matching desiredVersion will be returned. If desiredVersion
 // is <=0, the last completed deployment which is older than the config's
 // version will be returned.
-func (o *RollbackOptions) findTargetDeployment(config *appsapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
+func (o *RollbackOptions) findTargetDeployment(config *appsapiv1.DeploymentConfig, desiredVersion int64) (*corev1.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
 	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(config.Name).String()})
 	if err != nil {
 		return nil, err
 	}
-	deployments := make([]*kapi.ReplicationController, 0, len(deploymentList.Items))
+	deployments := make([]*corev1.ReplicationController, 0, len(deploymentList.Items))
 	for i := range deploymentList.Items {
 		deployments = append(deployments, &deploymentList.Items[i])
 	}
-	sort.Sort(appsutil.ByLatestVersionDesc(deployments))
+	sort.Sort(appsutil.ByLatestVersionDescV1(deployments))
 
 	// Find the target deployment for rollback. If a version was specified,
 	// use the version for a search. Otherwise, use the last completed
 	// deployment.
-	var target *kapi.ReplicationController
+	var target *corev1.ReplicationController
 	for _, deployment := range deployments {
 		version := appsutil.DeploymentVersionFor(deployment)
 		if desiredVersion > 0 {
