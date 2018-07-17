@@ -19,9 +19,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -176,6 +178,50 @@ func (p *versionedPrintObj) PrintObj(obj runtime.Object, out io.Writer) error {
 	return printFn(obj)
 }
 
+func nonEmpty(str string, def string) string {
+	if str == "" {
+		return def
+	}
+	return str
+}
+
+func checkResources(discoveryClient discovery.DiscoveryInterface, items []runtime.Object) error {
+	resources, err := discoveryClient.ServerResources()
+	if err != nil {
+		return fmt.Errorf("Unable to to get list of available resources: %v", err)
+	}
+
+	resourceMap := make(map[schema.GroupVersionKind]bool)
+	for _, resourceList := range resources {
+		for _, resource := range resourceList.APIResources {
+			listGv, _ := schema.ParseGroupVersion(resourceList.GroupVersion)
+			gvk := schema.GroupVersionKind{
+				Group:   nonEmpty(resource.Group, listGv.Group),
+				Version: nonEmpty(resource.Version, listGv.Version),
+				Kind:    resource.Kind,
+			}
+			resourceMap[gvk] = true
+		}
+	}
+
+	declaredResources := make(map[schema.GroupVersionKind]bool)
+	for _, item := range items {
+		versioned := kcmdutil.AsDefaultVersionedOrOriginal(item, nil)
+		declaredResources[versioned.GetObjectKind().GroupVersionKind()] = true
+	}
+	missingResources := make([]string, 0)
+	for r := range declaredResources {
+		if present := resourceMap[r]; !present {
+			missingResources = append(missingResources, r.String())
+		}
+	}
+
+	if len(missingResources) > 0 {
+		return fmt.Errorf("API server is missing declared resources: %v", strings.Join(missingResources, `, `))
+	}
+	return nil
+}
+
 //Complete sets all common default options for commands (new-app and new-build)
 func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
@@ -210,6 +256,11 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 		return err
 	}
 
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
+	if err != nil {
+		return fmt.Errorf("Unable to validate if required resources are available: %v", err)
+	}
+	o.Config.DiscoveryClient = discoveryClient
 	o.Action.Bulk.Scheme = legacyscheme.Scheme
 	o.Action.Bulk.Op = bulk.Creator{Client: dynamicClient, RESTMapper: mapper}.Create
 	// Retry is used to support previous versions of the API server that will
@@ -347,6 +398,9 @@ func (o *AppOptions) RunNewApp() error {
 
 	result, err := config.Run()
 	if err := HandleError(err, o.BaseName, o.CommandName, o.CommandPath, config, TransformRunError); err != nil {
+		return err
+	}
+	if err := checkResources(config.DiscoveryClient, result.List.Items); err != nil {
 		return err
 	}
 
