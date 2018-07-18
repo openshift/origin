@@ -10,31 +10,31 @@ import:
   version: 8a9b82f00b3a86eac24681da3f9fe6c34c01cea2
 - package: k8s.io/code-generator
   repo:    https://github.com/openshift/kubernetes-code-generator.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/apimachinery
   repo:    https://github.com/openshift/kubernetes-apimachinery.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/api
   repo:    https://github.com/openshift/kubernetes-api.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/client-go
   repo:    https://github.com/openshift/kubernetes-client-go.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/metrics
   repo:    https://github.com/openshift/kubernetes-metrics.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/apiserver
   repo:    https://github.com/openshift/kubernetes-apiserver.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/kube-aggregator
   repo:    https://github.com/openshift/kube-aggregator.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/apiextensions-apiserver
   repo:    https://github.com/openshift/kubernetes-apiextensions-apiserver.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/kubernetes
   repo:    https://github.com/openshift/kubernetes.git
-  version: origin-3.11-kubernetes-1.11.0
+  version: origin-3.11-kubernetes-1.11.1
 
 # openshift second
 - package: github.com/openshift/api
