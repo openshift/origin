@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-etcd"
-	tsbcmd "github.com/openshift/origin/pkg/templateservicebroker/cmd/server"
 )
 
 // NewCommandStart provides a CLI handler for 'start' command
@@ -17,7 +16,7 @@ func NewCommandStart(basename string, out, errout io.Writer, stopCh <-chan struc
 
 	cmds := &cobra.Command{
 		Use:   "start",
-		Short: "Launch all-in-one server",
+		Short: "Launch OpenShift components",
 		Long: templates.LongDesc(`
 			Start components of OpenShift
 		
@@ -30,11 +29,9 @@ func NewCommandStart(basename string, out, errout io.Writer, stopCh <-chan struc
 	startMaster, _ := NewCommandStartMaster(basename, out, errout)
 	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
 	startEtcdServer, _ := openshift_etcd.NewCommandStartEtcdServer(openshift_etcd.RecommendedStartEtcdServerName, basename, out, errout)
-	startTSBServer := tsbcmd.NewCommandStartTemplateServiceBrokerServer(out, errout, stopCh)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNodeNetwork)
 	cmds.AddCommand(startEtcdServer)
-	cmds.AddCommand(startTSBServer)
 
 	return cmds
 }

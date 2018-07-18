@@ -474,11 +474,7 @@ function os::start::internal::start_node() {
 
 	os::log::debug "Starting OpenShift node"
 	local openshift_env=( "OPENSHIFT_ON_PANIC=crash" )
-	$(os::start::internal::openshift_executable) openshift start node \
-		--config="${NODE_CONFIG_DIR}/node-config.yaml" \
-		--loglevel=4 --logspec='*importer=5' \
-		--latest-images="${use_latest_images}" \
-	&>"${LOG_DIR}/node.log" &
+	$(which hyperkube) kubelet $(openshift-node-config --config="${NODE_CONFIG_DIR}/node-config.yaml" --loglevel=4) &>"${LOG_DIR}/node.log" &
 	export NODE_PID=$!
 
 	os::log::debug "OpenShift node start at: $( date )"

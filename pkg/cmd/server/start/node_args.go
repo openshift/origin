@@ -42,7 +42,8 @@ type NodeArgs struct {
 	// NodeName is the hostname to identify this node with the master.
 	NodeName string
 
-	ConfigDir flag.StringFlag
+	MasterCertDir string
+	ConfigDir     flag.StringFlag
 
 	DefaultKubernetesURL *url.URL
 	ClusterDomain        string
@@ -82,6 +83,8 @@ func NewDefaultNetworkArgs() *NodeArgs {
 		NodeName: hostname,
 
 		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "cluster.local"),
+
+		MasterCertDir: "openshift.local.config/master",
 
 		NetworkPluginName: "",
 

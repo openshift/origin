@@ -69,7 +69,7 @@ os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-1.log' 'Starting nod
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-1.log' 'Started Kubernetes Proxy on'
 
 # proxy only
-sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start node --enable=proxy \
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start network --enable=proxy \
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-node-1.log" &
@@ -90,43 +90,23 @@ pgrep -P "${OS_PID}" | xargs -r sudo kill
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-2.log' 'Starting node networking'
 os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-network-2.log' 'Started Kubernetes Proxy on'
 
-# plugins only
-sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start node --enable=plugins \
- --config=${NODE_CONFIG_DIR}/node-config.yaml \
- --loglevel=4 \
-&>"${LOG_DIR}/os-node-2.log" &
-OS_PID=$!
-os::cmd::try_until_text 'cat ${LOG_DIR}/os-node-2.log' 'Connecting to API server'
-pgrep -P "${OS_PID}" | xargs -r sudo kill
-os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-2.log' 'Starting node networking'
-os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-2.log' 'Started Kubernetes Proxy on'
-
-# kubelet only
-sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start node --enable=kubelet \
- --config=${NODE_CONFIG_DIR}/node-config.yaml \
- --loglevel=4 \
-&>"${LOG_DIR}/os-node-3.log" &
-OS_PID=$!
-os::cmd::try_until_text 'cat ${LOG_DIR}/os-node-3.log' 'Started kubelet'
-pgrep -P "${OS_PID}" | xargs -r sudo kill
-os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-3.log' 'Starting node'
-os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-3.log' 'Starting node networking'
-os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-3.log' 'Started Kubernetes Proxy on'
-
-
 os::log::info "Starting controllers"
 sudo env "PATH=${PATH}"  OPENSHIFT_ON_PANIC=crash openshift start master controllers \
  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-controllers.log" &
 
-os::log::info "Starting node"
-sudo env "PATH=${PATH}"  OPENSHIFT_ON_PANIC=crash openshift start node \
- --enable=kubelet,plugins,proxy,dns \
- --config=${NODE_CONFIG_DIR}/node-config.yaml \
- --loglevel=4 \
+os::log::info "Starting kubelet"
+sudo env "PATH=${PATH}"  hyperkube kubelet \
+ $( openshift-node-config --config=${NODE_CONFIG_DIR}/node-config.yaml --loglevel=4 ) \
 &>"${LOG_DIR}/os-node.log" &
 export OS_PID=$!
+
+os::log::info "Starting network"
+sudo env "PATH=${PATH}"  OPENSHIFT_ON_PANIC=crash openshift start network \
+ --config=${NODE_CONFIG_DIR}/node-config.yaml \
+ --loglevel=4 \
+&>"${LOG_DIR}/os-network.log" &
 
 os::log::info "OpenShift server start at: "
 date
