@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	utilerrors "github.com/openshift/origin/pkg/util/errors"
+	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,15 +19,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	clientset "k8s.io/client-go/kubernetes"
 	kextensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
@@ -34,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
+	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 var (
@@ -54,23 +56,26 @@ var (
 )
 
 type IdleOptions struct {
-	dryRun bool
-
+	dryRun        bool
 	filename      string
 	all           bool
 	selector      string
 	allNamespaces bool
-	resources     string
+	resources     []string
 
 	cmdFullName string
 
 	ClientForMappingFn func(*meta.RESTMapping) (resource.RESTClient, error)
 	ClientConfig       *rest.Config
-	ClientSet          kinternalclientset.Interface
+	ClientSet          clientset.Interface
 	Mapper             meta.RESTMapper
 
-	nowTime    time.Time
-	svcBuilder *resource.Builder
+	// TODO(juanvallejo): remove this once we switch unidling helpers to use external versions
+	InternalClientset kinternalclientset.Interface
+
+	Builder   func() *resource.Builder
+	Namespace string
+	nowTime   time.Time
 
 	genericclioptions.IOStreams
 }
@@ -110,7 +115,8 @@ func NewCmdIdle(fullName string, f kcmdutil.Factory, streams genericclioptions.I
 }
 
 func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	var err error
+	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -127,7 +133,7 @@ func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 		return err
 	}
 
-	o.ClientSet, err = f.ClientSet()
+	o.ClientSet, err = clientset.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
@@ -137,33 +143,15 @@ func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 		return err
 	}
 
-	o.ClientForMappingFn = f.ClientForMapping
-
-	o.svcBuilder = f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
-		ContinueOnError().
-		NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
-		Flatten().
-		SingleResourceType()
-
-	if len(o.filename) > 0 {
-		targetServiceNames, err := scanLinesFromFile(o.filename)
-		if err != nil {
-			return err
-		}
-		o.svcBuilder.ResourceNames("endpoints", targetServiceNames...)
-	} else {
-		// NB: this is a bit weird because the resource builder will complain if we use ResourceTypes and ResourceNames when len(args) > 0
-		if o.selector != "" {
-			o.svcBuilder.LabelSelectorParam(o.selector).ResourceTypes("endpoints")
-		}
-
-		o.svcBuilder.ResourceNames("endpoints", args...)
-
-		if o.all {
-			o.svcBuilder.ResourceTypes("endpoints").SelectAllParam(o.all)
-		}
+	o.InternalClientset, err = f.ClientSet()
+	if err != nil {
+		return err
 	}
+
+	o.ClientForMappingFn = f.ClientForMapping
+	o.Builder = f.NewBuilder
+
+	o.resources = args
 
 	return nil
 }
@@ -206,7 +194,7 @@ func scanLinesFromFile(filename string) ([]string, error) {
 // idleUpdateInfo contains the required info to annotate an endpoints object
 // with the scalable resources that it should unidle
 type idleUpdateInfo struct {
-	obj       *kapi.Endpoints
+	obj       *corev1.Endpoints
 	scaleRefs map[unidlingapi.CrossGroupObjectReference]struct{}
 }
 
@@ -224,9 +212,9 @@ type controllerRef struct {
 // Using the list of services, it figures out the associated scalable objects, and returns a map from the endpoints object for the services to
 // the list of scalable resources associated with that endpoints object, as well as a map from CrossGroupObjectReferences to scale to 0 to the
 // name of the associated service.
-func (o *IdleOptions) calculateIdlableAnnotationsByService() (map[types.NamespacedName]idleUpdateInfo, map[namespacedCrossGroupObjectReference]types.NamespacedName, error) {
-	podsLoaded := make(map[kapi.ObjectReference]*kapi.Pod)
-	getPod := func(ref kapi.ObjectReference) (*kapi.Pod, error) {
+func (o *IdleOptions) calculateIdlableAnnotationsByService(infoVisitor func(resource.VisitorFunc) error) (map[types.NamespacedName]idleUpdateInfo, map[namespacedCrossGroupObjectReference]types.NamespacedName, error) {
+	podsLoaded := make(map[corev1.ObjectReference]*corev1.Pod)
+	getPod := func(ref corev1.ObjectReference) (*corev1.Pod, error) {
 		if pod, ok := podsLoaded[ref]; ok {
 			return pod, nil
 		}
@@ -287,12 +275,12 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService() (map[types.Namespac
 	targetScaleRefs := make(map[namespacedCrossGroupObjectReference]types.NamespacedName)
 	endpointsInfo := make(map[types.NamespacedName]idleUpdateInfo)
 
-	err := o.svcBuilder.Do().Visit(func(info *resource.Info, err error) error {
+	err := infoVisitor(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
 		}
 
-		endpoints, isEndpoints := info.Object.(*kapi.Endpoints)
+		endpoints, isEndpoints := info.Object.(*corev1.Endpoints)
 		if !isEndpoints {
 			return fmt.Errorf("you must specify endpoints, not %v (view available endpoints with \"%s get endpoints\").", info.Mapping.Resource, o.cmdFullName)
 		}
@@ -372,9 +360,9 @@ func normalizedNSOwnerRef(namespace string, ownerRef *metav1.OwnerReference) nam
 // scalable objects by checking each address in each subset to see if it has a pod
 // reference, and the following that pod reference to find the owning controller,
 // and returning the unique set of controllers found this way.
-func findScalableResourcesForEndpoints(endpoints *kapi.Endpoints, getPod func(kapi.ObjectReference) (*kapi.Pod, error), getController func(namespacedOwnerReference) (metav1.Object, error)) (map[namespacedCrossGroupObjectReference]struct{}, error) {
+func findScalableResourcesForEndpoints(endpoints *corev1.Endpoints, getPod func(corev1.ObjectReference) (*corev1.Pod, error), getController func(namespacedOwnerReference) (metav1.Object, error)) (map[namespacedCrossGroupObjectReference]struct{}, error) {
 	// To find all RCs and DCs for an endpoint, we first figure out which pods are pointed to by that endpoint...
-	podRefs := map[kapi.ObjectReference]*kapi.Pod{}
+	podRefs := map[corev1.ObjectReference]*corev1.Pod{}
 	for _, subset := range endpoints.Subsets {
 		for _, addr := range subset.Addresses {
 			if addr.TargetRef != nil && addr.TargetRef.Kind == "Pod" {
@@ -547,6 +535,32 @@ type scaleInfo struct {
 // scalable resources to zero, and annotating the associated endpoints objects with the scalable resources to unidle
 // when they receive traffic.
 func (o *IdleOptions) RunIdle() error {
+	b := o.Builder().
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		ContinueOnError().
+		NamespaceParam(o.Namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
+		Flatten().
+		SingleResourceType()
+
+	if len(o.filename) > 0 {
+		targetServiceNames, err := scanLinesFromFile(o.filename)
+		if err != nil {
+			return err
+		}
+		b.ResourceNames("endpoints", targetServiceNames...)
+	} else {
+		// NB: this is a bit weird because the resource builder will complain if we use ResourceTypes and ResourceNames when len(args) > 0
+		if o.selector != "" {
+			b.LabelSelectorParam(o.selector).ResourceTypes("endpoints")
+		}
+
+		b.ResourceNames("endpoints", o.resources...)
+
+		if o.all {
+			b.ResourceTypes("endpoints").SelectAllParam(o.all)
+		}
+	}
+
 	hadError := false
 	nowTime := time.Now().UTC()
 
@@ -556,7 +570,7 @@ func (o *IdleOptions) RunIdle() error {
 	}
 
 	// figure out which endpoints and resources we need to idle
-	byService, byScalable, err := o.calculateIdlableAnnotationsByService()
+	byService, byScalable, err := o.calculateIdlableAnnotationsByService(b.Do().Visit)
 
 	if err != nil {
 		if len(byService) == 0 || len(byScalable) == 0 {
@@ -576,7 +590,7 @@ func (o *IdleOptions) RunIdle() error {
 
 	externalKubeExtensionClient := kextensionsclient.New(o.ClientSet.Extensions().RESTClient())
 	delegScaleGetter := appsmanualclient.NewDelegatingScaleNamespacer(appsV1Client, externalKubeExtensionClient)
-	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), o.ClientSet.Core(), func(currentReplicas int32, annotations map[string]string) {
+	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), o.InternalClientset.Core(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
 		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)
 	})
@@ -679,7 +693,7 @@ func (o *IdleOptions) RunIdle() error {
 	for scaleRef, info := range toScale {
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			scaleUpdater := utilunidling.NewScaleUpdater(kcmdutil.InternalVersionJSONEncoder(), info.namespace, appClient.Apps(), o.ClientSet.Core())
+			scaleUpdater := utilunidling.NewScaleUpdater(kcmdutil.InternalVersionJSONEncoder(), info.namespace, appClient.Apps(), o.InternalClientset.Core())
 			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef.CrossGroupObjectReference, info.obj, info.scale); err != nil {
 				fmt.Fprintf(o.ErrOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true

@@ -3,7 +3,7 @@ package util
 import (
 	"github.com/golang/glog"
 
-	kapiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kextapi "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -11,13 +11,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kextensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 )
 
 // TODO: remove the below functions once we get a way to mark/unmark an object as idled
@@ -107,7 +107,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 			return err
 		}
 
-		patchBytes, err = strategicpatch.CreateTwoWayMergePatch(originalObj, newObj, &kapiv1.ReplicationController{})
+		patchBytes, err = strategicpatch.CreateTwoWayMergePatch(originalObj, newObj, &corev1.ReplicationController{})
 		if err != nil {
 			return err
 		}
