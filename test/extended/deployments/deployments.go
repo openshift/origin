@@ -1076,8 +1076,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			// Deployment status can't be updated yet but should be right after
 			o.Expect(appsinternalutil.DeploymentStatusFor(rc1)).To(o.Equal(appsapi.DeploymentStatusRunning))
 			// It should finish right after
-			rc1, err = waitForRCModification(oc, namespace, rc1.Name, deploymentChangeTimeout,
+			rc1, err = waitForRCModification(oc, namespace, rc1.Name, deploymentRunTimeout,
 				rc1.GetResourceVersion(), func(rc *kapiv1.ReplicationController) (bool, error) {
+					e2e.Logf("Deployment status for RC: %#v", appsinternalutil.DeploymentStatusFor(rc))
 					return appsinternalutil.DeploymentStatusFor(rc) == appsapi.DeploymentStatusComplete, nil
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
