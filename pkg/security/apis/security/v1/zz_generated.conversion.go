@@ -523,6 +523,8 @@ func autoConvert_v1_SecurityContextConstraints_To_security_SecurityContextConstr
 	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	out.SeccompProfiles = *(*[]string)(unsafe.Pointer(&in.SeccompProfiles))
+	out.AllowedUnsafeSysctls = *(*[]string)(unsafe.Pointer(&in.AllowedUnsafeSysctls))
+	out.ForbiddenSysctls = *(*[]string)(unsafe.Pointer(&in.ForbiddenSysctls))
 	return nil
 }
 
@@ -557,6 +559,8 @@ func autoConvert_security_SecurityContextConstraints_To_v1_SecurityContextConstr
 	out.SeccompProfiles = *(*[]string)(unsafe.Pointer(&in.SeccompProfiles))
 	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	out.AllowedUnsafeSysctls = *(*[]string)(unsafe.Pointer(&in.AllowedUnsafeSysctls))
+	out.ForbiddenSysctls = *(*[]string)(unsafe.Pointer(&in.ForbiddenSysctls))
 	return nil
 }
 

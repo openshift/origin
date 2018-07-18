@@ -461,6 +461,16 @@ func (in *SecurityContextConstraints) DeepCopyInto(out *SecurityContextConstrain
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.AllowedUnsafeSysctls != nil {
+		in, out := &in.AllowedUnsafeSysctls, &out.AllowedUnsafeSysctls
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ForbiddenSysctls != nil {
+		in, out := &in.ForbiddenSysctls, &out.ForbiddenSysctls
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
