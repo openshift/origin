@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -21,31 +22,6 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 )
-
-const (
-	// DeploymentStatusAnnotation is an annotation name used to retrieve the DeploymentPhase of
-	// a deployment.
-	// TODO: This is used by CLI, should be moved to library-go
-	DeploymentStatusAnnotation = "openshift.io/deployment.phase"
-
-	DeploymentVersionAnnotation = "openshift.io/deployment-config.latest-version"
-	// DeploymentConfigAnnotation is an annotation name used to correlate a deployment with the
-	DeploymentConfigAnnotation = "openshift.io/deployment-config.name"
-
-	// DesiredReplicasAnnotation represents the desired number of replicas for a
-	DesiredReplicasAnnotation = "kubectl.kubernetes.io/desired-replicas"
-	// DeployerPodForDeploymentLabel is a label which groups pods related to a
-	DeployerPodForDeploymentLabel = "openshift.io/deployer-pod-for.name"
-
-	// DeploymentPodAnnotation is an annotation on a deployment (a ReplicationController). The
-	DeploymentPodAnnotation = "openshift.io/deployer-pod.name"
-
-	// deployerPodSuffix is the suffix added to pods created from a deployment
-	deployerPodSuffix = "deploy"
-)
-
-// DeploymentStatus describes the possible states a deployment can be in.
-type DeploymentStatus string
 
 // rcMapper pins preferred version to v1 and scale kind to autoscaling/v1 Scale
 // this avoids putting complete server discovery (including extension APIs) in the critical path for deployments
@@ -93,7 +69,7 @@ func NewReplicationControllerScaleClient(client kubernetes.Interface) scaleclien
 
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment string) string {
-	return apihelpers.GetPodName(deployment, deployerPodSuffix)
+	return apihelpers.GetPodName(deployment, "deploy")
 }
 
 // LabelForDeployment builds a string identifier for a Deployment.
@@ -103,7 +79,7 @@ func LabelForDeployment(deployment *v1.ReplicationController) string {
 
 // DeploymentDesiredReplicas returns number of desired replica for the given replication controller
 func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
-	return int32AnnotationFor(obj, DesiredReplicasAnnotation)
+	return int32AnnotationFor(obj, desiredReplicasAnnotation)
 }
 
 // LatestDeploymentNameForConfigV1 returns a stable identifier for config based on its version.
@@ -112,11 +88,11 @@ func LatestDeploymentNameForConfigV1(config *appsv1.DeploymentConfig) string {
 }
 
 func DeployerPodNameFor(obj runtime.Object) string {
-	return AnnotationFor(obj, DeploymentPodAnnotation)
+	return AnnotationFor(obj, deploymentPodAnnotation)
 }
 
 func DeploymentConfigNameFor(obj runtime.Object) string {
-	return AnnotationFor(obj, DeploymentConfigAnnotation)
+	return AnnotationFor(obj, deploymentConfigAnnotation)
 }
 
 // HasSynced checks if the provided deployment config has been noticed by the deployment
@@ -207,7 +183,7 @@ func ActiveDeployment(input []*v1.ReplicationController) *v1.ReplicationControll
 // TODO: Using the annotation constant for now since the value is correct
 // but we could consider adding a new constant to the public types.
 func ConfigSelector(name string) labels.Selector {
-	return labels.SelectorFromValidatedSet(labels.Set{DeploymentConfigAnnotation: name})
+	return labels.SelectorFromValidatedSet(labels.Set{deploymentConfigAnnotation: name})
 }
 
 // IsCompleteDeployment returns true if the passed deployment is in state complete.
@@ -222,7 +198,7 @@ func DeployerPodSelector(name string) labels.Selector {
 }
 
 func DeploymentVersionFor(obj runtime.Object) int64 {
-	v, err := strconv.ParseInt(AnnotationFor(obj, DeploymentVersionAnnotation), 10, 64)
+	v, err := strconv.ParseInt(AnnotationFor(obj, deploymentVersionAnnotation), 10, 64)
 	if err != nil {
 		return -1
 	}

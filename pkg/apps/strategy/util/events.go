@@ -14,7 +14,6 @@ import (
 	"k8s.io/client-go/tools/reference"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -24,7 +23,7 @@ func RecordConfigEvent(client corev1client.EventsGetter, deployment *corev1.Repl
 	msg string) {
 	t := metav1.Time{Time: time.Now()}
 	var obj runtime.Object = deployment
-	if config, err := appsinternalutil.DecodeDeploymentConfig(deployment); err == nil {
+	if config, err := appsutil.DecodeDeploymentConfig(deployment); err == nil {
 		obj = config
 	} else {
 		glog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)

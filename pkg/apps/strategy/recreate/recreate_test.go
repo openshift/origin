@@ -14,6 +14,7 @@ import (
 	scalefake "k8s.io/client-go/scale/fake"
 	clientgotesting "k8s.io/client-go/testing"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
@@ -122,10 +123,10 @@ func (c *fakePodClient) Pods(ns string) kcoreclient.PodInterface {
 }
 
 type hookExecutorImpl struct {
-	executeFunc func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error
+	executeFunc func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error
 }
 
-func (h *hookExecutorImpl) Execute(hook *appsapi.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
+func (h *hookExecutorImpl) Execute(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
 	return h.executeFunc(hook, rc, suffix, label)
 }
 
@@ -172,7 +173,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
 				hookExecuted = true
 				return nil
 			},
@@ -203,7 +204,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
 				return fmt.Errorf("hook execution failure")
 			},
 		},
@@ -234,7 +235,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
 				return fmt.Errorf("hook execution failure")
 			},
 		},
@@ -266,7 +267,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
 				hookExecuted = true
 				return nil
 			},
@@ -298,7 +299,7 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
 				hookExecuted = true
 				return fmt.Errorf("post hook failure")
 			},

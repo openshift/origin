@@ -18,25 +18,30 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	imageapi "github.com/openshift/api/image/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
+	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	appsinternal "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/util"
 )
 
-// hookContainerName is the name used for the container that runs inside hook pods.
-const hookContainerName = "lifecycle"
+const (
+	// hookContainerName is the name used for the container that runs inside hook pods.
+	hookContainerName = "lifecycle"
+	// deploymentPodTypeLabel is a label with which contains a type of deployment pod.
+	deploymentPodTypeLabel = "openshift.io/deployer-pod.type"
+	// deploymentAnnotation is an annotation on a deployer Pod. The annotation value is the name
+	// of the deployment (a ReplicationController) on which the deployer Pod acts.
+	deploymentAnnotation = "openshift.io/deployment.name"
+)
 
 // HookExecutor knows how to execute a deployment lifecycle hook.
 type HookExecutor interface {
-	Execute(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error
+	Execute(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error
 }
 
 // hookExecutor implements the HookExecutor interface.
@@ -77,7 +82,7 @@ func NewHookExecutor(kubeClient kubernetes.Interface, imageClient imageclienttyp
 
 // Execute executes hook in the context of deployment. The suffix is used to
 // distinguish the kind of hook (e.g. pre, post).
-func (e *hookExecutor) Execute(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
+func (e *hookExecutor) Execute(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
 	var err error
 	switch {
 	case len(hook.TagImages) > 0:
@@ -105,11 +110,11 @@ func (e *hookExecutor) Execute(hook *appsinternal.LifecycleHook, rc *corev1.Repl
 
 	// Retry failures are treated the same as Abort.
 	switch hook.FailurePolicy {
-	case appsinternal.LifecycleHookFailurePolicyAbort, appsinternal.LifecycleHookFailurePolicyRetry:
+	case appsv1.LifecycleHookFailurePolicyAbort, appsv1.LifecycleHookFailurePolicyRetry:
 		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeWarning, "Failed",
 			fmt.Sprintf("The %s-hook failed: %v, aborting rollout of %s/%s", label, err, rc.Namespace, rc.Name))
 		return fmt.Errorf("the %s hook failed: %v, aborting rollout of %s/%s", label, err, rc.Namespace, rc.Name)
-	case appsinternal.LifecycleHookFailurePolicyIgnore:
+	case appsv1.LifecycleHookFailurePolicyIgnore:
 		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeWarning, "Failed",
 			fmt.Sprintf("The %s-hook failed: %v (ignore), rollout of %s/%s will continue", label, err, rc.Namespace, rc.Name))
 		return nil
@@ -133,7 +138,7 @@ func findContainerImage(rc *corev1.ReplicationController, containerName string) 
 
 // tagImages tags images as part of the lifecycle of a rc. It uses an ImageStreamTag client
 // which will provision an ImageStream if it doesn't already exist.
-func (e *hookExecutor) tagImages(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
+func (e *hookExecutor) tagImages(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
 	var errs []error
 	for _, action := range hook.TagImages {
 		value, ok := findContainerImage(rc, action.ContainerName)
@@ -145,12 +150,12 @@ func (e *hookExecutor) tagImages(hook *appsinternal.LifecycleHook, rc *corev1.Re
 		if len(namespace) == 0 {
 			namespace = rc.Namespace
 		}
-		if _, err := e.tags.ImageStreamTags(namespace).Update(&imageapi.ImageStreamTag{
+		if _, err := e.tags.ImageStreamTags(namespace).Update(&imageapiv1.ImageStreamTag{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      action.To.Name,
 				Namespace: namespace,
 			},
-			Tag: &imageapi.TagReference{
+			Tag: &imageapiv1.TagReference{
 				From: &corev1.ObjectReference{
 					Kind: "DockerImage",
 					Name: value,
@@ -175,10 +180,8 @@ func (e *hookExecutor) tagImages(hook *appsinternal.LifecycleHook, rc *corev1.Re
 //   * Environment (hook keys take precedence)
 //   * Working directory
 //   * Resources
-func (e *hookExecutor) executeExecNewPod(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
-	// TODO: This should move to external helper once we are sure there are no replication controller with internal deployment config
-	//       serialized.
-	config, err := appsinternalutil.DecodeDeploymentConfig(rc)
+func (e *hookExecutor) executeExecNewPod(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
+	config, err := appsutil.DecodeDeploymentConfig(rc)
 	if err != nil {
 		return err
 	}
@@ -303,7 +306,7 @@ func (e *hookExecutor) readPodLogs(pod *corev1.Pod, wg *sync.WaitGroup) {
 	}
 }
 
-func createHookPodManifest(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, strategy *appsinternal.DeploymentStrategy,
+func createHookPodManifest(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, strategy *appsv1.DeploymentStrategy,
 	hookType string,
 	startTime time.Time) (*corev1.Pod, error) {
 
@@ -328,13 +331,8 @@ func createHookPodManifest(hook *appsinternal.LifecycleHook, rc *corev1.Replicat
 	for _, env := range baseContainer.Env {
 		envMap[env.Name] = env
 	}
-
 	for _, env := range exec.Env {
-		newEnv := corev1.EnvVar{}
-		if err := legacyscheme.Scheme.Convert(&env, &newEnv, nil); err != nil {
-			return nil, err
-		}
-		envMap[env.Name] = newEnv
+		envMap[env.Name] = env
 	}
 	for k, v := range envMap {
 		mergedEnv = append(mergedEnv, corev1.EnvVar{Name: k, Value: v.Value, ValueFrom: v.ValueFrom})
@@ -343,7 +341,7 @@ func createHookPodManifest(hook *appsinternal.LifecycleHook, rc *corev1.Replicat
 	mergedEnv = append(mergedEnv, corev1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: rc.Namespace})
 
 	// Assigning to a variable since its address is required
-	defaultActiveDeadline := appsinternal.MaxDeploymentDurationSeconds
+	defaultActiveDeadline := appsutil.MaxDeploymentDurationSeconds
 	if strategy.ActiveDeadlineSeconds != nil {
 		defaultActiveDeadline = *(strategy.ActiveDeadlineSeconds)
 	}
@@ -351,7 +349,7 @@ func createHookPodManifest(hook *appsinternal.LifecycleHook, rc *corev1.Replicat
 
 	// Let the kubelet manage retries if requested
 	restartPolicy := corev1.RestartPolicyNever
-	if hook.FailurePolicy == appsinternal.LifecycleHookFailurePolicyRetry {
+	if hook.FailurePolicy == appsv1.LifecycleHookFailurePolicyRetry {
 		restartPolicy = corev1.RestartPolicyOnFailure
 	}
 
@@ -394,11 +392,11 @@ func createHookPodManifest(hook *appsinternal.LifecycleHook, rc *corev1.Replicat
 			Name:      apihelpers.GetPodName(rc.Name, hookType),
 			Namespace: rc.Namespace,
 			Annotations: map[string]string{
-				appsinternal.DeploymentAnnotation: rc.Name,
+				deploymentAnnotation: rc.Name,
 			},
 			Labels: map[string]string{
-				appsinternal.DeploymentPodTypeLabel:        hookType,
-				appsinternal.DeployerPodForDeploymentLabel: rc.Name,
+				appsutil.DeployerPodForDeploymentLabel: rc.Name,
+				deploymentPodTypeLabel:                 hookType,
 			},
 		},
 		Spec: corev1.PodSpec{

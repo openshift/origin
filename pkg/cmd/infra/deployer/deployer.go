@@ -19,9 +19,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	"github.com/openshift/origin/pkg/apps/strategy/recreate"
 	"github.com/openshift/origin/pkg/apps/strategy/rolling"
@@ -134,12 +133,12 @@ func NewDeployer(kubeClient kubernetes.Interface, images imageclientv1.Interface
 				String()})
 		},
 		scaler: appsutil.NewReplicationControllerScaler(kubeClient),
-		strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
+		strategyFor: func(config *appsv1.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
-			case appsapi.DeploymentStrategyTypeRecreate:
+			case appsv1.DeploymentStrategyTypeRecreate:
 				return recreate.NewRecreateDeploymentStrategy(kubeClient, images.ImageV1(),
 					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until), nil
-			case appsapi.DeploymentStrategyTypeRolling:
+			case appsv1.DeploymentStrategyTypeRolling:
 				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(kubeClient, images.ImageV1(),
 					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until)
 				return rolling.NewRollingDeploymentStrategy(config.Namespace, kubeClient, images.ImageV1(),
@@ -165,7 +164,7 @@ type Deployer struct {
 	// until is a condition to run until
 	until string
 	// strategyFor returns a DeploymentStrategy for config.
-	strategyFor func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error)
+	strategyFor func(config *appsv1.DeploymentConfig) (strategy.DeploymentStrategy, error)
 	// getDeployment finds the named deployment.
 	getDeployment func(namespace, name string) (*corev1.ReplicationController, error)
 	// getDeployments finds all deployments associated with a config.
@@ -184,7 +183,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 
 	// Decode the config from the deployment.
 	// TODO: Remove this once we are sure there are no internal versions of configs serialized in DC
-	config, err := appsinternalutil.DecodeDeploymentConfig(to)
+	config, err := appsutil.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode deployment config from deployment %s: %v", to.Name, err)
 	}

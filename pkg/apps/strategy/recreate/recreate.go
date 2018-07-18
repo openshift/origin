@@ -22,8 +22,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	appsinternal "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
@@ -101,13 +99,12 @@ func (s *RecreateDeploymentStrategy) Deploy(from *corev1.ReplicationController, 
 // for initial deployments.
 func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int,
 	updateAcceptor strat.UpdateAcceptor) error {
-	// TODO: This should move to external version once we are sure there are no replication controller with internal DeploymentConfig serialized.
-	config, err := appsinternalutil.DecodeDeploymentConfig(to)
+	config, err := appsutil.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
 
-	recreateTimeout := time.Duration(appsinternal.DefaultRecreateTimeoutSeconds) * time.Second
+	recreateTimeout := time.Duration(appsutil.DefaultRecreateTimeoutSeconds) * time.Second
 	params := config.Spec.Strategy.RecreateParams
 	rollingParams := config.Spec.Strategy.RollingParams
 
@@ -127,7 +124,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *corev1.Replication
 
 	// Execute any pre-hook.
 	if params != nil && params.Pre != nil {
-		if err := s.hookExecutor.Execute(params.Pre, to, appsinternal.PreHookPodSuffix, "pre"); err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, appsutil.PreHookPodSuffix, "pre"); err != nil {
 			return fmt.Errorf("pre hook failed: %s", err)
 		}
 	}
@@ -156,7 +153,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *corev1.Replication
 	}
 
 	if params != nil && params.Mid != nil {
-		if err := s.hookExecutor.Execute(params.Mid, to, appsinternal.MidHookPodSuffix, "mid"); err != nil {
+		if err := s.hookExecutor.Execute(params.Mid, to, appsutil.MidHookPodSuffix, "mid"); err != nil {
 			return fmt.Errorf("mid hook failed: %s", err)
 		}
 	}
@@ -212,7 +209,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *corev1.Replication
 
 	// Execute any post-hook.
 	if params != nil && params.Post != nil {
-		if err := s.hookExecutor.Execute(params.Post, to, appsinternal.PostHookPodSuffix, "post"); err != nil {
+		if err := s.hookExecutor.Execute(params.Post, to, appsutil.PostHookPodSuffix, "post"); err != nil {
 			return fmt.Errorf("post hook failed: %s", err)
 		}
 	}
