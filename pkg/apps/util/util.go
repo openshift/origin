@@ -65,6 +65,24 @@ func (rcMapper) ScaleForResource(gvr schema.GroupVersionResource) (schema.GroupV
 	return schema.GroupVersionKind{}, fmt.Errorf("unknown replication controller resource: %#v", gvr)
 }
 
+// DecodeDeploymentConfig decodes a DeploymentConfig from controller using annotation codec.
+// An error is returned if the controller doesn't contain an encoded config or decoding fail.
+func DecodeDeploymentConfig(controller metav1.ObjectMetaAccessor) (*appsv1.DeploymentConfig, error) {
+	encodedConfig, exists := controller.GetObjectMeta().GetAnnotations()[deploymentEncodedConfigAnnotation]
+	if !exists {
+		return nil, fmt.Errorf("object %s does not have encoded deployment config annotation", controller.GetObjectMeta().GetName())
+	}
+	config, err := runtime.Decode(annotationDecoder, []byte(encodedConfig))
+	if err != nil {
+		return nil, err
+	}
+	externalConfig, ok := config.(*appsv1.DeploymentConfig)
+	if !ok {
+		return nil, fmt.Errorf("object %+v is not v1.DeploymentConfig", config)
+	}
+	return externalConfig, nil
+}
+
 func NewReplicationControllerScaler(client kubernetes.Interface) kubectl.Scaler {
 	return kubectl.NewScaler(NewReplicationControllerScaleClient(client))
 }
