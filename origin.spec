@@ -359,6 +359,10 @@ sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-templa
 sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.14* docker*1.15* docker*1.16* docker*1.17* docker*1.18* docker*1.19* docker*1.20*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 
+# Give the excluders a consistent timestamp between multi-arch builds
+touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
+touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
+
 %files
 %doc README.md
 %license LICENSE
