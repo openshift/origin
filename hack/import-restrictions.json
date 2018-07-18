@@ -80,7 +80,7 @@
       "github.com/openshift/origin/pkg/cmd/server/apis/config/validation",
       "github.com/openshift/origin/pkg/cmd/server/handlers",
       "github.com/openshift/origin/pkg/oauth/util",
-      "github.com/openshift/origin/pkg/oc/admin",
+      "github.com/openshift/origin/pkg/oc/cli/admin",
       "github.com/openshift/origin/pkg/oc/cli/admin/createerrortemplate",
       "github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate",
       "github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate",
@@ -398,7 +398,7 @@
       "github.com/openshift/origin/pkg/oc"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/oc/admin/groups/examples"
+      "github.com/openshift/origin/pkg/oc/cli/admin/groups/examples"
     ],
     "allowedImportPackageRoots": [
       "vendor/github.com/aws/aws-sdk-go",

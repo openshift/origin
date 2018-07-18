@@ -20,7 +20,6 @@ var (
 )
 
 // reconcileProtectAnnotation is the name of an annotation which prevents reconciliation if set to "true"
-// can't use this const in pkg/oc/admin/policy because of import cycle
 const reconcileProtectAnnotation = "openshift.io/reconcile-protect"
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
