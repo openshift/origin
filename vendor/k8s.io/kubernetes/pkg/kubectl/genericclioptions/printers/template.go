@@ -61,10 +61,6 @@ func (p *TemplatePrinter) AfterPrint(w io.Writer, res string) error {
 
 // PrintObj formats the obj with the Go Template.
 func (p *TemplatePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
-	if InternalObjectPreventer.IsForbidden(reflect.Indirect(reflect.ValueOf(obj)).Type().PkgPath()) {
-		return fmt.Errorf(InternalObjectPrinterErr)
-	}
-
 	var data []byte
 	var err error
 	data, err = json.Marshal(obj)
