@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -99,8 +98,10 @@ type ProcessOptions struct {
 	explicitNamespace   bool
 	paramValuesProvided bool
 
-	builderFn    func() *resource.Builder
-	restConfigFn func() (*rest.Config, error)
+	templateClient    templateclient.TemplateInterface
+	templateProcessor func(*templateapi.Template) (*templateapi.Template, error)
+
+	builderFn func() *resource.Builder
 
 	mapper meta.RESTMapper
 
@@ -108,8 +109,12 @@ type ProcessOptions struct {
 }
 
 func NewProcessOptions(streams genericclioptions.IOStreams) *ProcessOptions {
+	printFlags := genericclioptions.NewPrintFlags("processed").WithTypeSetter(ocscheme.PrintingInternalScheme).WithDefaultOutput("json")
+	// disable binding the --template flag so that we can bind our own --template flag with a shorthand (until the shorthand is deprecated)
+	printFlags.TemplatePrinterFlags.TemplateArgument = nil
+
 	return &ProcessOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("processed").WithTypeSetter(ocscheme.PrintingInternalScheme).WithDefaultOutput("json"),
+		PrintFlags: printFlags,
 		IOStreams:  streams,
 	}
 }
@@ -131,6 +136,17 @@ func NewCmdProcess(fullName string, f kcmdutil.Factory, streams genericclioption
 	}
 
 	o.PrintFlags.AddFlags(cmd)
+	// edit --output flag description to mention "describe" as an acceptable output format
+	// TODO: add custom PrintFlags printer that does this ^
+	if f := cmd.Flag("output"); f != nil {
+		f.Usage = "Output format. One of: json|yaml|name|describe|go-template-file|templatefile|template|go-template|jsonpath|jsonpath-file."
+	}
+
+	// point to the original memory address shared between the jsonpath and go-template printer's TemplateArgument field
+	o.PrintFlags.TemplatePrinterFlags.TemplateArgument = o.PrintFlags.TemplatePrinterFlags.JSONPathPrintFlags.TemplateArgument
+	cmd.Flags().StringVarP(o.PrintFlags.TemplatePrinterFlags.TemplateArgument, "template", "t", *o.PrintFlags.TemplatePrinterFlags.TemplateArgument, "Template string or path to template file to use when -o=go-template, -o=go-template-file. The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview].")
+	cmd.MarkFlagFilename("template")
+	cmd.Flags().MarkShorthandDeprecated("template", "-t is no longer supported and will be removed in the future. Use --template instead.")
 
 	cmd.Flags().StringVarP(&o.filename, "filename", "f", o.filename, "Filename or URL to file to read a template")
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
@@ -227,7 +243,48 @@ func (o *ProcessOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 	}
 
 	o.builderFn = f.NewBuilder
-	o.restConfigFn = f.ToRESTConfig
+
+	o.templateProcessor = processTemplateLocally
+	if !o.local {
+		clientConfig, err := f.ToRESTConfig()
+		if err != nil {
+			return err
+		}
+
+		// TODO: switch to using external templates client
+		templateClientset, err := templateclientinternal.NewForConfig(clientConfig)
+		if err != nil {
+			return err
+		}
+		o.templateClient = templateClientset.Template()
+
+		// TODO: switch to using external templates client
+		templateProcessorClient := templateinternalclient.NewTemplateProcessorClient(o.templateClient.RESTClient(), o.namespace)
+
+		o.templateProcessor = func(template *templateapi.Template) (*templateapi.Template, error) {
+			t, err := templateProcessorClient.Process(template)
+			if err != nil {
+				if err, ok := err.(*errors.StatusError); ok && err.ErrStatus.Details != nil {
+					errstr := "unable to process template\n"
+					for _, cause := range err.ErrStatus.Details.Causes {
+						errstr += fmt.Sprintf("  %s\n", cause.Message)
+					}
+
+					// if no error causes found, fallback to returning original
+					// error message received from the server
+					if len(err.ErrStatus.Details.Causes) == 0 {
+						errstr += fmt.Sprintf("  %v\n", err)
+					}
+
+					return nil, fmt.Errorf(errstr)
+				}
+
+				return nil, fmt.Errorf("unable to process template: %v\n", err)
+			}
+
+			return t, nil
+		}
+	}
 
 	return nil
 }
@@ -267,29 +324,15 @@ func (o *ProcessOptions) RunProcess() error {
 		return o.usageErrorFn("Must pass a filename or name of stored template")
 	}
 
-	var (
-		infos []*resource.Info
-
-		client templateclient.TemplateInterface
-	)
-
-	if !o.local {
-		clientConfig, err := o.restConfigFn()
-		if err != nil {
-			return err
-		}
-
-		// TODO: switch to using external templates client
-		templateClient, err := templateclientinternal.NewForConfig(clientConfig)
-		if err != nil {
-			return err
-		}
-		client = templateClient.Template()
-	}
+	var infos []*resource.Info
 
 	// When templateName is not empty, then we fetch the template from the
 	// server, otherwise we require to set the `-f` parameter.
-	if len(o.templateName) > 0 {
+	if len(o.templateName) > 0 && !o.local {
+		if o.templateClient == nil {
+			return fmt.Errorf("attempt to fetch template from server with nil template client")
+		}
+
 		var (
 			storedTemplate, rs string
 			sourceNamespace    string
@@ -306,7 +349,7 @@ func (o *ProcessOptions) RunProcess() error {
 			return fmt.Errorf("invalid value syntax %q", o.templateName)
 		}
 
-		templateObj, err := client.Templates(sourceNamespace).Get(storedTemplate, metav1.GetOptions{})
+		templateObj, err := o.templateClient.Templates(sourceNamespace).Get(storedTemplate, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return fmt.Errorf("template %q could not be found", storedTemplate)
@@ -374,32 +417,9 @@ func (o *ProcessOptions) RunProcess() error {
 	}
 
 	resultObj := obj
-	if o.local {
-		if err := processTemplateLocally(obj); err != nil {
-			return err
-		}
-	} else {
-		var err error
-		processor := templateinternalclient.NewTemplateProcessorClient(client.RESTClient(), o.namespace)
-		resultObj, err = processor.Process(obj)
-		if err != nil {
-			if err, ok := err.(*errors.StatusError); ok && err.ErrStatus.Details != nil {
-				errstr := "unable to process template\n"
-				for _, cause := range err.ErrStatus.Details.Causes {
-					errstr += fmt.Sprintf("  %s\n", cause.Message)
-				}
-
-				// if no error causes found, fallback to returning original
-				// error message received from the server
-				if len(err.ErrStatus.Details.Causes) == 0 {
-					errstr += fmt.Sprintf("  %v\n", err)
-				}
-
-				return fmt.Errorf(errstr)
-			}
-
-			return fmt.Errorf("unable to process template: %v\n", err)
-		}
+	resultObj, err := o.templateProcessor(obj)
+	if err != nil {
+		return err
 	}
 
 	if o.outputFormat == "describe" {
@@ -412,6 +432,8 @@ func (o *ProcessOptions) RunProcess() error {
 		return fmt.Errorf("unable to convert template to external template object: %v", err)
 	}
 
+	// the name printer does not accept object lists, so re-use
+	// the print loop used for --raw printing instead.
 	if o.outputFormat == "name" || o.raw {
 		for _, obj := range externalResultObj.Objects {
 			objToPrint := obj.Object
@@ -456,17 +478,17 @@ func injectUserVars(values app.Environment, t *templateapi.Template, ignoreUnkno
 
 // processTemplateLocally applies the same logic that a remote call would make but makes no
 // connection to the server.
-func processTemplateLocally(tpl *templateapi.Template) error {
+func processTemplateLocally(tpl *templateapi.Template) (*templateapi.Template, error) {
 	if errs := templatevalidation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
-		return errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
 	}
 	processor := templateprocessing.NewProcessor(map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	})
 	if errs := processor.Process(tpl); len(errs) > 0 {
-		return errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
 	}
-	return nil
+	return tpl, nil
 }
 
 // parseNamespaceResourceName parses the value and returns namespace, resource and the
