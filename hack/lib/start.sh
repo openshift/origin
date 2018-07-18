@@ -539,7 +539,7 @@ function os::start::internal::determine_hostnames() {
 	local hostnames
 	hostnames="${PUBLIC_MASTER_HOST},"
 	hostnames+="localhost,172.30.0.1,"
-	for address in $(openshift start --print-ip); do
+	for address in $(openshift start master --print-ip); do
 		hostnames+="${address},"
 	done
 	hostnames+="kubernetes.default.svc.cluster.local,"
