@@ -53,6 +53,7 @@ type Config struct {
 type provider struct {
 	providerName string
 	transport    http.RoundTripper
+	UseGroups    bool
 	Config
 }
 
@@ -60,7 +61,7 @@ type provider struct {
 // See http://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
 // ID Token decryption is not supported
 // UserInfo decryption is not supported
-func NewProvider(providerName string, transport http.RoundTripper, config Config) (external.Provider, error) {
+func NewProvider(providerName string, transport http.RoundTripper, UseGroups bool, config Config) (external.Provider, error) {
 	// TODO: Add support for discovery documents
 	// see http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
 	// e.g. https://accounts.google.com/.well-known/openid-configuration
@@ -108,9 +109,11 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 	if len(config.IDClaims) == 0 {
 		return nil, errors.New("IDClaims must specify at least one claim")
 	}
-
-	if len(config.GroupsClaims) == 0 {
-		return nil, errors.New("IDClaims must specify at least one claim")
+	if UseGroups == true {
+		//TODO: validate if IDP supports groups
+		if len(config.GroupsClaims) == 0 {
+			return nil, errors.New("IDClaims must specify at least one claim")
+		}
 	}
 
 	return provider{providerName, transport, config}, nil
