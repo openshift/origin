@@ -29,15 +29,16 @@ import (
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 
 	projectapiv1 "github.com/openshift/api/project/v1"
+	templatev1 "github.com/openshift/api/template/v1"
+	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	"github.com/openshift/origin/pkg/api/legacy"
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/origin/pkg/client/templateprocessing"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
 type REST struct {
@@ -155,21 +156,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		}
 	}
 
-	versionedTemplate, err := legacyscheme.Scheme.ConvertToVersion(template, schema.GroupVersion{Group: "template.openshift.io", Version: "v1"})
-	if err != nil {
-		return nil, err
-	}
-	unstructuredTemplate, err := runtime.DefaultUnstructuredConverter.ToUnstructured(versionedTemplate)
-	if err != nil {
-		return nil, err
-	}
-	processedTemplate, err := r.client.Resource(schema.GroupVersionResource{Group: "template.openshift.io", Version: "v1", Resource: "processedtemplates"}).
-		Namespace("default").Create(&unstructured.Unstructured{Object: unstructuredTemplate})
-	// convert the template into something we iterate over as a list
-	if err := unstructured.SetNestedField(processedTemplate.Object, processedTemplate.Object["objects"], "items"); err != nil {
-		return nil, err
-	}
-	processedList, err := processedTemplate.ToList()
+	processedList, err := templateprocessing.NewDynamicTemplateProcessor(r.client).ProcessToList(template)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +272,7 @@ func (r *REST) waitForRoleBinding(namespace, name string) {
 	}
 }
 
-func (r *REST) getTemplate() (*templateapi.Template, error) {
+func (r *REST) getTemplate() (*templatev1.Template, error) {
 	if len(r.templateNamespace) == 0 || len(r.templateName) == 0 {
 		return DefaultTemplate(), nil
 	}

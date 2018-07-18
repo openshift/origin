@@ -4,19 +4,18 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/template/templateprocessing"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	templatev1 "github.com/openshift/api/template/v1"
+	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	"github.com/openshift/origin/pkg/client/templateprocessing"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateinternal "github.com/openshift/origin/pkg/template/client/internalversion"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	templatelib "github.com/openshift/origin/pkg/template/templateprocessing"
 )
 
 // PipelineTemplate stores the configuration of the
@@ -26,14 +25,16 @@ type PipelineTemplate struct {
 	Config         serverapi.JenkinsPipelineConfig
 	Namespace      string
 	templateClient templateclient.Interface
+	dynamicClient  dynamic.Interface
 }
 
 // NewPipelineTemplate returns a new PipelineTemplate.
-func NewPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, templateClient templateclient.Interface) *PipelineTemplate {
+func NewPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, templateClient templateclient.Interface, dynamicClient dynamic.Interface) *PipelineTemplate {
 	return &PipelineTemplate{
 		Config:         conf,
 		Namespace:      ns,
 		templateClient: templateClient,
+		dynamicClient:  dynamicClient,
 	}
 }
 
@@ -50,33 +51,16 @@ func (t *PipelineTemplate) Process() (*unstructured.UnstructuredList, []error) {
 		return nil, errors
 	}
 	errors = append(errors, substituteTemplateParameters(t.Config.Parameters, jenkinsTemplate)...)
-	processorClient := templateinternal.NewTemplateProcessorClient(t.templateClient.Template().RESTClient(), t.Namespace)
-	pTemplate, err := processorClient.Process(jenkinsTemplate)
+
+	templateProcessor := templateprocessing.NewDynamicTemplateProcessor(t.dynamicClient)
+	processedList, err := templateProcessor.ProcessToList(jenkinsTemplate)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("processing Jenkins template %s/%s failed: %v", t.Config.TemplateNamespace, t.Config.TemplateName, err))
 		return nil, errors
 	}
 
-	objectsToCreate := &kapi.List{}
-	for i := range pTemplate.Objects {
-		// use .Objects[i] in append to avoid range memory address reuse
-		objectsToCreate.Items = append(objectsToCreate.Items, pTemplate.Objects[i])
-	}
-
-	// TODO, stop doing this crazy thing, but for now it's a very simple way to get the unstructured objects we need
-	jsonBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...), objectsToCreate)
-	if err != nil {
-		errors = append(errors, err)
-		return nil, errors
-	}
-	uncastList, err := runtime.Decode(unstructured.UnstructuredJSONScheme, jsonBytes)
-	if err != nil {
-		errors = append(errors, err)
-		return nil, errors
-	}
-
-	glog.V(4).Infof("Processed Jenkins pipeline jenkinsTemplate %s/%s", pTemplate.Namespace, pTemplate.Namespace)
-	return uncastList.(*unstructured.UnstructuredList), errors
+	glog.V(4).Infof("Processed Jenkins pipeline jenkinsTemplate %s/%s", jenkinsTemplate.Namespace, jenkinsTemplate.Name)
+	return processedList, errors
 }
 
 // HasJenkinsService searches the template items and return true if the expected
@@ -93,14 +77,14 @@ func (t *PipelineTemplate) HasJenkinsService(items *unstructured.UnstructuredLis
 }
 
 // substituteTemplateParameters injects user specified parameter values into the Template
-func substituteTemplateParameters(params map[string]string, t *templateapi.Template) []error {
+func substituteTemplateParameters(params map[string]string, t *templatev1.Template) []error {
 	var errors []error
 	for name, value := range params {
 		if len(name) == 0 {
 			errors = append(errors, fmt.Errorf("template parameter name cannot be empty (%q)", value))
 			continue
 		}
-		if v := templateprocessing.GetParameterByName(t, name); v != nil {
+		if v := templatelib.GetParameterByName(t, name); v != nil {
 			v.Value = value
 			v.Generate = ""
 		} else {

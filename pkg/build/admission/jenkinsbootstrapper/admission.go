@@ -17,12 +17,12 @@ import (
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
+	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	jenkinscontroller "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper/jenkins"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	authenticationclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -38,6 +38,7 @@ type jenkinsBootstrapper struct {
 	privilegedRESTClientConfig restclient.Config
 	serviceClient              coreclient.ServicesGetter
 	templateClient             templateclient.Interface
+	dynamicClient              dynamic.Interface
 	restMapper                 meta.RESTMapper
 
 	jenkinsConfig configapi.JenkinsPipelineConfig
@@ -45,7 +46,6 @@ type jenkinsBootstrapper struct {
 
 var _ = oadmission.WantsJenkinsPipelineConfig(&jenkinsBootstrapper{})
 var _ = oadmission.WantsRESTClientConfig(&jenkinsBootstrapper{})
-var _ = oadmission.WantsOpenshiftInternalTemplateClient(&jenkinsBootstrapper{})
 var _ = kadmission.WantsInternalKubeClientSet(&jenkinsBootstrapper{})
 var _ = kadmission.WantsRESTMapper(&jenkinsBootstrapper{})
 
@@ -90,7 +90,7 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 	}
 
 	glog.V(3).Infof("Adding new jenkins service %q to the project %q", svcName, namespace)
-	jenkinsTemplate := jenkinscontroller.NewPipelineTemplate(namespace, a.jenkinsConfig, a.templateClient)
+	jenkinsTemplate := jenkinscontroller.NewPipelineTemplate(namespace, a.jenkinsConfig, a.templateClient, a.dynamicClient)
 	objects, errs := jenkinsTemplate.Process()
 	if len(errs) > 0 {
 		return kutilerrors.NewAggregate(errs)
@@ -149,15 +149,21 @@ func (q *jenkinsBootstrapper) SetInternalKubeClientSet(c kclientset.Interface) {
 	q.serviceClient = c.Core()
 }
 
-func (a *jenkinsBootstrapper) SetOpenshiftInternalTemplateClient(c templateclient.Interface) {
-	a.templateClient = c
-}
-
 func (a *jenkinsBootstrapper) SetRESTMapper(restMapper meta.RESTMapper) {
 	a.restMapper = restMapper
 }
 
 func (a *jenkinsBootstrapper) ValidateInitialization() error {
+	var err error
+	a.templateClient, err = templateclient.NewForConfig(&a.privilegedRESTClientConfig)
+	if err != nil {
+		return err
+	}
+	a.dynamicClient, err = dynamic.NewForConfig(&a.privilegedRESTClientConfig)
+	if err != nil {
+		return err
+	}
+
 	if a.serviceClient == nil {
 		return fmt.Errorf("missing serviceClient")
 	}

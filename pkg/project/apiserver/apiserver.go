@@ -18,13 +18,13 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	projectapiv1 "github.com/openshift/api/project/v1"
+	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
 type ExtraConfig struct {

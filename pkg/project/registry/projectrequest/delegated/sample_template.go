@@ -1,15 +1,16 @@
 package delegated
 
 import (
-	"k8s.io/api/rbac/v1beta1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	projectapiv1 "github.com/openshift/api/project/v1"
+	templateapi "github.com/openshift/api/template/v1"
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const (
@@ -39,24 +40,28 @@ func DefaultTemplate() *templateapi.Template {
 		oapi.OpenShiftDisplayName:   "${" + ProjectDisplayNameParam + "}",
 		projectapi.ProjectRequester: "${" + ProjectRequesterParam + "}",
 	}
-	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{project}, projectapiv1.SchemeGroupVersion); err != nil {
+	objBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(projectapiv1.GroupVersion), project)
+	if err != nil {
 		panic(err)
 	}
+	ret.Objects = append(ret.Objects, runtime.RawExtension{Raw: objBytes})
 
 	// TODO this should be removed in 3.11.  We need to keep it for new server, old controller cases in 3.10.
 	serviceAccountRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns)
 	for i := range serviceAccountRoleBindings {
-		if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&serviceAccountRoleBindings[i]}, v1beta1.SchemeGroupVersion); err != nil {
+		objBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion), &serviceAccountRoleBindings[i])
+		if err != nil {
 			panic(err)
 		}
+		ret.Objects = append(ret.Objects, runtime.RawExtension{Raw: objBytes})
 	}
 
 	binding := rbac.NewRoleBindingForClusterRole(bootstrappolicy.AdminRoleName, ns).Users("${" + ProjectAdminUserParam + "}").BindingOrDie()
-
-	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&binding}, v1beta1.SchemeGroupVersion); err != nil {
-		// this should never happen because we're tightly controlling what goes in.
+	objBytes, err = runtime.Encode(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion), &binding)
+	if err != nil {
 		panic(err)
 	}
+	ret.Objects = append(ret.Objects, runtime.RawExtension{Raw: objBytes})
 
 	for _, parameterName := range parameters {
 		parameter := templateapi.Parameter{}

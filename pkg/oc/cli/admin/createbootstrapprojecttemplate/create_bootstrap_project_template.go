@@ -8,8 +8,8 @@ import (
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const CreateBootstrapProjectTemplateCommand = "create-bootstrap-project-template"
@@ -63,7 +63,7 @@ func (o CreateBootstrapProjectTemplateOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o CreateBootstrapProjectTemplateOptions) CreateBootstrapProjectTemplate() (*templateapi.Template, error) {
+func (o CreateBootstrapProjectTemplateOptions) CreateBootstrapProjectTemplate() (*templatev1.Template, error) {
 	template := delegated.DefaultTemplate()
 	template.Name = o.Name
 	return template, nil

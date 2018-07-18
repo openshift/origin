@@ -22,7 +22,6 @@ import (
 	"github.com/openshift/origin/pkg/quota/image"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -82,10 +81,6 @@ func NewPluginInitializer(
 		return nil, err
 	}
 	quotaClient, err := quotaclient.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, err
-	}
-	templateClient, err := templateclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +162,6 @@ func NewPluginInitializer(
 		OpenshiftInternalBuildClient:         buildClient,
 		OpenshiftInternalImageClient:         imageClient,
 		OpenshiftInternalQuotaClient:         quotaClient,
-		OpenshiftInternalTemplateClient:      templateClient,
 		OpenshiftInternalUserClient:          userClient,
 		ProjectCache:                         projectCache,
 		OriginQuotaRegistry:                  quotaRegistry,
