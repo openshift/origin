@@ -109,6 +109,10 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 		return nil, errors.New("IDClaims must specify at least one claim")
 	}
 
+	if len(config.GroupsClaims) == 0 {
+		return nil, errors.New("IDClaims must specify at least one claim")
+	}
+
 	return provider{providerName, transport, config}, nil
 }
 
@@ -160,7 +164,6 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 
 	// TODO: validate JWT
 	// http://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
-	// separate verify function?
 
 	// id_token MUST contain a sub claim as the subject identifier
 	// http://openid.net/specs/openid-connect-core-1_0.html#IDToken
