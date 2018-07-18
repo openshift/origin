@@ -222,7 +222,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 		identity.Extra[authapi.IdentityDisplayNameKey] = name
 	}
 
-	if group, _ := getClaimValue(claims, p.GroupsClaims); len(groups) != 0 {
+	if groups, _ := getClaimValue(claims, p.GroupsClaims); len(groups) != 0 {
 		identity.Extra[authapi.IdentityGroupsKey] = name
 	}
 
