@@ -82,6 +82,7 @@ var (
 		lifecycle.PluginName,
 		"OriginPodNodeEnvironment",
 		"PodNodeSelector",
+		"Priority",
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		"LimitRanger",
@@ -115,7 +116,6 @@ var (
 		"PodPreset", // default to off while PodPreset is alpha
 		"EventRateLimit",
 		"PodSecurityPolicy",
-		"Priority",
 		"Initializers",
 		"ValidatingAdmissionWebhook",
 		"MutatingAdmissionWebhook",
