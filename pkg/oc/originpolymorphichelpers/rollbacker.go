@@ -6,14 +6,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	oapps "github.com/openshift/api/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	deploymentcmd "github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
 )
 
 func NewRollbackerFn(delegate polymorphichelpers.RollbackerFunc) polymorphichelpers.RollbackerFunc {
 	return func(restClientGetter genericclioptions.RESTClientGetter, mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
-		if appsapi.Kind("DeploymentConfig") == mapping.GroupVersionKind.GroupKind() {
+		if oapps.Kind("DeploymentConfig") == mapping.GroupVersionKind.GroupKind() {
 			config, err := restClientGetter.ToRESTConfig()
 			if err != nil {
 				return nil, err

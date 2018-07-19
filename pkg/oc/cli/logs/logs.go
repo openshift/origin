@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	"github.com/openshift/api/apps"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -171,8 +172,7 @@ func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 		}
 		o.Options = bopts
 
-	case appsapi.Resource("deploymentconfig"),
-		appsapi.Resource("deploymentconfigs"):
+	case apps.Resource("deploymentconfigs"):
 		dopts := &appsapi.DeploymentLogOptions{
 			Container:    podLogOptions.Container,
 			Follow:       podLogOptions.Follow,

@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
+	oapps "github.com/openshift/api/apps"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -151,7 +152,7 @@ var readinessCheckers = map[schema.GroupKind]func(runtime.Object) (bool, bool, e
 	buildapi.Kind("Build"):                checkBuildReadiness,
 	apps.Kind("Deployment"):               checkDeploymentReadiness,
 	extensions.Kind("Deployment"):         checkDeploymentReadiness,
-	appsapi.Kind("DeploymentConfig"):      checkDeploymentConfigReadiness,
+	oapps.Kind("DeploymentConfig"):        checkDeploymentConfigReadiness,
 	batch.Kind("Job"):                     checkJobReadiness,
 	apps.Kind("StatefulSet"):              checkStatefulSetReadiness,
 	routeapi.Kind("Route"):                checkRouteReadiness,

@@ -22,7 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	oapps "github.com/openshift/api/apps"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -224,7 +224,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 			return "", err
 		}
 		return pod.Name, nil
-	case appsapi.Resource("deploymentconfigs"):
+	case oapps.Resource("deploymentconfigs"):
 		appsClient, err := appsclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err

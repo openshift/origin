@@ -1766,7 +1766,7 @@ Content-Type: application/json'
 
 {
   "kind": "Scale",
-  "apiVersion": "v1",
+  "apiVersion": "apps.openshift.io/v1",
   ...
 }
 
@@ -1783,7 +1783,7 @@ $ curl -k \
     https://$ENDPOINT/apis/extensions/v1beta1/namespaces/$NAMESPACE/replicationcontrollers/$NAME/scale <<'EOF'
 {
   "kind": "Scale",
-  "apiVersion": "v1",
+  "apiVersion": "apps.openshift.io/v1",
   ...
 }
 EOF

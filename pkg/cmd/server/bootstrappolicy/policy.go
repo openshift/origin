@@ -74,25 +74,25 @@ var (
 	kAuthnGroup         = kauthenticationapi.GroupName
 	legacyAuthzGroup    = legacy.GroupName
 	buildGroup          = buildapi.GroupName
-	legacyBuildGroup    = buildapi.LegacyGroupName
+	legacyBuildGroup    = legacy.GroupName
 	deployGroup         = appsapi.GroupName
-	legacyDeployGroup   = appsapi.LegacyGroupName
+	legacyDeployGroup   = legacy.GroupName
 	imageGroup          = imageapi.GroupName
-	legacyImageGroup    = imageapi.LegacyGroupName
+	legacyImageGroup    = legacy.GroupName
 	projectGroup        = projectapi.GroupName
-	legacyProjectGroup  = projectapi.LegacyGroupName
+	legacyProjectGroup  = legacy.GroupName
 	quotaGroup          = quotaapi.GroupName
-	legacyQuotaGroup    = quotaapi.LegacyGroupName
+	legacyQuotaGroup    = legacy.GroupName
 	routeGroup          = routeapi.GroupName
-	legacyRouteGroup    = routeapi.LegacyGroupName
+	legacyRouteGroup    = legacy.GroupName
 	templateGroup       = templateapi.GroupName
-	legacyTemplateGroup = templateapi.LegacyGroupName
+	legacyTemplateGroup = legacy.GroupName
 	userGroup           = userapi.GroupName
-	legacyUserGroup     = userapi.LegacyGroupName
+	legacyUserGroup     = legacy.GroupName
 	oauthGroup          = oauthapi.GroupName
-	legacyOauthGroup    = oauthapi.LegacyGroupName
+	legacyOauthGroup    = legacy.GroupName
 	networkGroup        = networkapi.GroupName
-	legacyNetworkGroup  = networkapi.LegacyGroupName
+	legacyNetworkGroup  = legacy.GroupName
 )
 
 func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
