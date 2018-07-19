@@ -1440,7 +1440,7 @@ func TestLegacyLocalRoleBindingEndpoint(t *testing.T) {
 	testBindingName := "testrole"
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	// create rolebinding
 	roleBindingToCreate := &authorizationapi.RoleBinding{
@@ -1609,7 +1609,7 @@ func TestLegacyClusterRoleBindingEndpoint(t *testing.T) {
 	clusterAdmin := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	clusterRoleBindingsPath := "/oapi/v1/clusterrolebindings"
 	testBindingName := "testbinding"
@@ -1747,7 +1747,7 @@ func TestLegacyClusterRoleEndpoint(t *testing.T) {
 	clusterAdmin := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	clusterRolesPath := "/oapi/v1/clusterroles"
 	testRole := "testrole"
@@ -1868,7 +1868,7 @@ func TestLegacyLocalRoleEndpoint(t *testing.T) {
 	}
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	rolesPath := "/oapi/v1/namespaces/" + namespace + "/roles"
 	testRole := "testrole"
@@ -1995,7 +1995,7 @@ func TestOldLocalAccessReviewEndpoints(t *testing.T) {
 	}
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 	codecFactory := serializer.NewCodecFactory(authorizationclientscheme.Scheme)
 
 	sar := &authorizationapi.SubjectAccessReview{

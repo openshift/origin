@@ -1,4 +1,4 @@
-package v1
+package legacy
 
 import (
 	"reflect"
@@ -10,14 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	v1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
 	internal "github.com/openshift/origin/pkg/image/apis/image"
 )
 
-func TestRoundTripVersionedObject(t *testing.T) {
+func TestImageRoundTripVersionedObject(t *testing.T) {
 	scheme := runtime.NewScheme()
-	Install(scheme)
+	InstallInternalLegacyImage(scheme)
 	codecs := serializer.NewCodecFactory(scheme)
 
 	d := &internal.DockerImage{
@@ -33,7 +32,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 		DockerImageReference: "foo/bar/baz",
 	}
 
-	data, err := runtime.Encode(codecs.LegacyCodec(v1.GroupVersion), i)
+	data, err := runtime.Encode(codecs.LegacyCodec(GroupVersion), i)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -52,12 +51,17 @@ func TestRoundTripVersionedObject(t *testing.T) {
 	}
 }
 
-func TestFieldSelectors(t *testing.T) {
+func TestImageFieldSelectors(t *testing.T) {
+	install := func(scheme *runtime.Scheme) error {
+		InstallInternalLegacyImage(scheme)
+		return nil
+	}
+
 	apitesting.FieldKeyCheck{
-		SchemeBuilder: []func(*runtime.Scheme) error{Install},
-		Kind:          v1.GroupVersion.WithKind("ImageStream"),
+		SchemeBuilder: []func(*runtime.Scheme) error{install},
+		Kind:          GroupVersion.WithKind("ImageStream"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		AllowedExternalFieldKeys: []string{"spec.dockerImageRepository", "status.dockerImageRepository"},
+		AllowedExternalFieldKeys: []string{"name", "spec.dockerImageRepository", "status.dockerImageRepository"},
 		FieldKeyEvaluatorFn:      internal.ImageStreamSelector,
 	}.Check(t)
 }
@@ -65,7 +69,7 @@ func TestFieldSelectors(t *testing.T) {
 func TestImageImportSpecDefaulting(t *testing.T) {
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
-	Install(scheme)
+	InstallInternalLegacyImage(scheme)
 
 	i := &internal.ImageStreamImport{
 		Spec: internal.ImageStreamImportSpec{
@@ -74,7 +78,7 @@ func TestImageImportSpecDefaulting(t *testing.T) {
 			},
 		},
 	}
-	data, err := runtime.Encode(codecs.LegacyCodec(v1.GroupVersion), i)
+	data, err := runtime.Encode(codecs.LegacyCodec(GroupVersion), i)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,7 +14,7 @@ import (
 
 // InstallLegacyBuild this looks like a lot of duplication, but the code in the individual versions is living and may
 // change. The code here should never change and needs to allow the other code to move independently.
-func InstallLegacyBuild(scheme *runtime.Scheme) {
+func InstallInternalLegacyBuild(scheme *runtime.Scheme) {
 	InstallExternalLegacyBuild(scheme)
 
 	schemeBuilder := runtime.NewSchemeBuilder(

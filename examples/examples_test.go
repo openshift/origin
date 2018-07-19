@@ -33,7 +33,7 @@ import (
 )
 
 func init() {
-	legacy.LegacyInstallAll(legacyscheme.Scheme)
+	legacy.InstallLegacyInternalAll(legacyscheme.Scheme)
 }
 
 func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error {

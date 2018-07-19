@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	legacy.InstallLegacyBuild(customBuildEncodingScheme)
+	legacy.InstallInternalLegacyBuild(customBuildEncodingScheme)
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
 	utilruntime.Must(buildv1helpers.Install(customBuildEncodingScheme))
 	customBuildEncodingCodecFactory = serializer.NewCodecFactory(customBuildEncodingScheme)

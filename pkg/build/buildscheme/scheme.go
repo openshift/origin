@@ -30,7 +30,7 @@ var (
 func init() {
 	annotationDecodingScheme := runtime.NewScheme()
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
-	legacy.InstallLegacyBuild(annotationDecodingScheme)
+	legacy.InstallInternalLegacyBuild(annotationDecodingScheme)
 	utilruntime.Must(buildv1helpers.Install(annotationDecodingScheme))
 	annotationDecoderCodecFactory := serializer.NewCodecFactory(annotationDecodingScheme)
 	Decoder = annotationDecoderCodecFactory.UniversalDecoder(buildapi.SchemeGroupVersion)

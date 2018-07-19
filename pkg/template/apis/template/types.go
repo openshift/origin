@@ -3,7 +3,7 @@ package template
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +genclient
@@ -102,7 +102,7 @@ type TemplateInstanceSpec struct {
 
 	// Secret is a reference to a Secret object containing the necessary
 	// template parameters.
-	Secret *kapi.LocalObjectReference
+	Secret *core.LocalObjectReference
 
 	// Requester holds the identity of the agent requesting the template
 	// instantiation.
@@ -146,7 +146,7 @@ type TemplateInstanceCondition struct {
 	// Type of the condition, currently Ready or InstantiateFailure.
 	Type TemplateInstanceConditionType
 	// Status of the condition, one of True, False or Unknown.
-	Status kapi.ConditionStatus
+	Status core.ConditionStatus
 	// LastTransitionTime is the last time a condition status transitioned from
 	// one state to another.
 	LastTransitionTime metav1.Time
@@ -174,7 +174,7 @@ const (
 // TemplateInstanceObject references an object created by a TemplateInstance.
 type TemplateInstanceObject struct {
 	// ref is a reference to the created object.
-	Ref kapi.ObjectReference
+	Ref core.ObjectReference
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -206,11 +206,11 @@ type BrokerTemplateInstance struct {
 type BrokerTemplateInstanceSpec struct {
 	// TemplateInstance is a reference to a TemplateInstance object residing
 	// in a namespace.
-	TemplateInstance kapi.ObjectReference
+	TemplateInstance core.ObjectReference
 
 	// Secret is a reference to a Secret object residing in a namespace,
 	// containing the necessary template parameters.
-	Secret kapi.ObjectReference
+	Secret core.ObjectReference
 
 	// BindingIDs is a list of 'binding_id's provided during successive bind
 	// calls to the template service broker.

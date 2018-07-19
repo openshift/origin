@@ -9,9 +9,9 @@ import (
 	internal "github.com/openshift/origin/pkg/build/apis/build"
 )
 
-func TestFieldSelectorConversions(t *testing.T) {
+func TestBuildFieldSelectorConversions(t *testing.T) {
 	install := func(scheme *runtime.Scheme) error {
-		InstallLegacyBuild(scheme)
+		InstallInternalLegacyBuild(scheme)
 		return nil
 	}
 

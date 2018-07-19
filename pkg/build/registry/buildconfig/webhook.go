@@ -35,7 +35,7 @@ var (
 
 func init() {
 	// webhooks need to return legacy build serialization when hit via oapi
-	legacy.InstallLegacyBuild(webhookEncodingScheme)
+	legacy.InstallInternalLegacyBuild(webhookEncodingScheme)
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
 	utilruntime.Must(buildv1helpers.Install(webhookEncodingScheme))
 	webhookEncodingCodecFactory = serializer.NewCodecFactory(webhookEncodingScheme)

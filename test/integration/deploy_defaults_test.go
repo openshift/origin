@@ -120,7 +120,7 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 		t.Fatalf("Failed to create appsClient: %v", err)
 	}
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyApps(appsclientscheme.Scheme)
+	legacy.InstallInternalLegacyApps(appsclientscheme.Scheme)
 
 	ttLegacy := []struct {
 		obj    *appsapi.DeploymentConfig

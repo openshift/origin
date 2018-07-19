@@ -261,7 +261,7 @@ var escalatingScopeResources = []schema.GroupResource{
 	{Group: kapi.GroupName, Resource: "secrets"},
 
 	{Group: imageapi.GroupName, Resource: "imagestreams/secrets"},
-	{Group: imageapi.LegacyGroupName, Resource: "imagestreams/secrets"},
+	{Group: legacy.GroupName, Resource: "imagestreams/secrets"},
 
 	{Group: oauthapi.GroupName, Resource: "oauthauthorizetokens"},
 	{Group: legacy.GroupName, Resource: "oauthauthorizetokens"},

@@ -7,16 +7,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
+	"github.com/davecgh/go-spew/spew"
 	v1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/route/apis/route"
 )
 
 var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 
 func init() {
-	SchemeBuilder.AddToScheme(scheme)
-	route.SchemeBuilder.AddToScheme(scheme)
+	Install(scheme)
 }
 
 func TestDefaults(t *testing.T) {
@@ -38,7 +37,7 @@ func TestDefaults(t *testing.T) {
 	}
 
 	if out.Spec.TLS.Termination != v1.TLSTerminationEdge {
-		t.Errorf("did not default termination: %#v", out)
+		t.Errorf("did not default termination: %#v", spew.Sdump(out.Spec.TLS))
 	}
 	if out.Spec.WildcardPolicy != v1.WildcardPolicyNone {
 		t.Errorf("did not default wildcard policy: %#v", out)
@@ -52,7 +51,7 @@ func TestDefaults(t *testing.T) {
 }
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	data, err := runtime.Encode(codecs.LegacyCodec(SchemeGroupVersion), obj)
+	data, err := runtime.Encode(codecs.LegacyCodec(v1.GroupVersion), obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil

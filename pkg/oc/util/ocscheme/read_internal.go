@@ -34,7 +34,7 @@ var ReadingInternalScheme = runtime.NewScheme()
 
 func init() {
 	install.InstallAll(ReadingInternalScheme)
-	legacy.LegacyInstallAll(ReadingInternalScheme)
+	legacy.InstallLegacyInternalAll(ReadingInternalScheme)
 
 	kadmissioninstall.Install(ReadingInternalScheme)
 	kadmissionregistrationinstall.Install(ReadingInternalScheme)

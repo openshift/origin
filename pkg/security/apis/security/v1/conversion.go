@@ -8,7 +8,7 @@ import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
-func addConversionFuncs(scheme *runtime.Scheme) error {
+func AddConversionFuncs(scheme *runtime.Scheme) error {
 	err := scheme.AddConversionFuncs(
 		Convert_v1_SecurityContextConstraints_To_security_SecurityContextConstraints,
 		Convert_security_SecurityContextConstraints_To_v1_SecurityContextConstraints,

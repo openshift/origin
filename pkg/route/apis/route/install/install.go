@@ -5,7 +5,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 )
 
@@ -15,7 +15,6 @@ func init() {
 
 // Install registers the API group and adds types to a scheme
 func Install(scheme *runtime.Scheme) {
-	utilruntime.Must(routeapi.AddToScheme(scheme))
-	utilruntime.Must(routeapiv1.AddToScheme(scheme))
-	utilruntime.Must(scheme.SetVersionPriority(routeapiv1.SchemeGroupVersion))
+	utilruntime.Must(routeapiv1.Install(scheme))
+	utilruntime.Must(scheme.SetVersionPriority(routev1.GroupVersion))
 }

@@ -8,7 +8,7 @@ import (
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 )
 
-func addDefaultingFuncs(scheme *runtime.Scheme) error {
+func AddDefaultingFuncs(scheme *runtime.Scheme) error {
 	RegisterDefaults(scheme)
 	scheme.AddTypeDefaultingFunc(&v1.SecurityContextConstraints{}, func(obj interface{}) { SetDefaults_SCC(obj.(*v1.SecurityContextConstraints)) })
 	return nil
