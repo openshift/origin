@@ -85,6 +85,7 @@ func AddKubeHandlers(h printers.PrintHandler) {
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 		{Name: "IP", Type: "string", Priority: 1, Description: apiv1.PodStatus{}.SwaggerDoc()["podIP"]},
 		{Name: "Node", Type: "string", Priority: 1, Description: apiv1.PodSpec{}.SwaggerDoc()["nodeName"]},
+		{Name: "Nominated Node", Type: "string", Priority: 1, Description: apiv1.PodStatus{}.SwaggerDoc()["nominatedNodeName"]},
 	}
 	h.TableHandler(podColumnDefinitions, printPodList)
 	h.TableHandler(podColumnDefinitions, printPod)
@@ -615,6 +616,7 @@ func printPod(pod *api.Pod, options printers.PrintOptions) ([]metav1beta1.TableR
 
 	if options.Wide {
 		nodeName := pod.Spec.NodeName
+		nominatedNodeName := pod.Status.NominatedNodeName
 		podIP := pod.Status.PodIP
 		if podIP == "" {
 			podIP = "<none>"
@@ -622,10 +624,10 @@ func printPod(pod *api.Pod, options printers.PrintOptions) ([]metav1beta1.TableR
 		if nodeName == "" {
 			nodeName = "<none>"
 		}
-		row.Cells = append(row.Cells, podIP, nodeName)
-		if len(pod.Status.NominatedNodeName) > 0 {
-			row.Cells = append(row.Cells, pod.Status.NominatedNodeName)
+		if nominatedNodeName == "" {
+			nominatedNodeName = "<none>"
 		}
+		row.Cells = append(row.Cells, podIP, nodeName, nominatedNodeName)
 	}
 
 	return []metav1beta1.TableRow{row}, nil
