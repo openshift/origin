@@ -25,10 +25,12 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/version"
 )
 
 func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, clientConfig *rest.Config) error {
+	util.InitLogrus()
 	kubeExternal, err := kclientsetexternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
