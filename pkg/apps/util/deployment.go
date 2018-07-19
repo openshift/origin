@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -10,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 var (
@@ -43,11 +41,7 @@ func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController,
 	}
 
 	deploymentName := LatestDeploymentNameForConfig(config)
-
-	podSpec := v1.PodSpec{}
-	if err := legacyscheme.Scheme.Convert(&config.Spec.Template.Spec, &podSpec, nil); err != nil {
-		return nil, fmt.Errorf("couldn't clone podSpec: %v", err)
-	}
+	podSpec := config.Spec.Template.Spec.DeepCopy()
 
 	// Fix trailing and leading whitespace in the image field
 	// This is needed to sanitize old deployment configs where spaces were permitted but
@@ -118,7 +112,7 @@ func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController,
 					Labels:      podLabels,
 					Annotations: podAnnotations,
 				},
-				Spec: podSpec,
+				Spec: *podSpec,
 			},
 		},
 	}

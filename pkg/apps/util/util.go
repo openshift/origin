@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -82,9 +83,14 @@ func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
 	return int32AnnotationFor(obj, desiredReplicasAnnotation)
 }
 
-// LatestDeploymentNameForConfigV1 returns a stable identifier for config based on its version.
-func LatestDeploymentNameForConfigV1(config *appsv1.DeploymentConfig) string {
-	return fmt.Sprintf("%s-%d", config.Name, config.Status.LatestVersion)
+// LatestDeploymentNameForConfig returns a stable identifier for deployment config
+func LatestDeploymentNameForConfig(config *appsv1.DeploymentConfig) string {
+	return LatestDeploymentNameForConfigAndVersion(config.Name, config.Status.LatestVersion)
+}
+
+// LatestDeploymentNameForConfigAndVersion returns a stable identifier for config based on its version.
+func LatestDeploymentNameForConfigAndVersion(name string, version int64) string {
+	return fmt.Sprintf("%s-%d", name, version)
 }
 
 func DeployerPodNameFor(obj runtime.Object) string {
@@ -93,6 +99,20 @@ func DeployerPodNameFor(obj runtime.Object) string {
 
 func DeploymentConfigNameFor(obj runtime.Object) string {
 	return AnnotationFor(obj, deploymentConfigAnnotation)
+}
+
+func DeploymentStatusReasonFor(obj runtime.Object) string {
+	return AnnotationFor(obj, deploymentStatusReasonAnnotation)
+}
+
+func DeleteStatusReasons(rc *v1.ReplicationController) {
+	delete(rc.Annotations, deploymentStatusReasonAnnotation)
+	delete(rc.Annotations, deploymentCancelledAnnotation)
+}
+
+func SetCancellationReasons(rc *v1.ReplicationController) {
+	rc.Annotations[deploymentCancelledAnnotation] = "true"
+	rc.Annotations[deploymentStatusReasonAnnotation] = deploymentCancelledByUser
 }
 
 // HasSynced checks if the provided deployment config has been noticed by the deployment
@@ -188,7 +208,23 @@ func ConfigSelector(name string) labels.Selector {
 
 // IsCompleteDeployment returns true if the passed deployment is in state complete.
 func IsCompleteDeployment(deployment runtime.Object) bool {
-	return AnnotationFor(deployment, DeploymentStatusAnnotation) == "Complete"
+	return DeploymentStatusFor(deployment) == DeploymentStatusComplete
+}
+
+// IsFailedDeployment returns true if the passed deployment failed.
+func IsFailedDeployment(deployment runtime.Object) bool {
+	return DeploymentStatusFor(deployment) == DeploymentStatusFailed
+}
+
+// IsTerminatedDeployment returns true if the passed deployment has terminated (either
+// complete or failed).
+func IsTerminatedDeployment(deployment runtime.Object) bool {
+	return IsCompleteDeployment(deployment) || IsFailedDeployment(deployment)
+}
+
+func IsDeploymentCancelled(deployment runtime.Object) bool {
+	value := AnnotationFor(deployment, deploymentCancelledAnnotation)
+	return strings.EqualFold(value, "true")
 }
 
 // DeployerPodSelector returns a label Selector which can be used to find all
@@ -197,12 +233,38 @@ func DeployerPodSelector(name string) labels.Selector {
 	return labels.SelectorFromValidatedSet(labels.Set{DeployerPodForDeploymentLabel: name})
 }
 
+func DeploymentStatusFor(deployment runtime.Object) DeploymentStatus {
+	return DeploymentStatus(AnnotationFor(deployment, DeploymentStatusAnnotation))
+}
+
 func DeploymentVersionFor(obj runtime.Object) int64 {
 	v, err := strconv.ParseInt(AnnotationFor(obj, deploymentVersionAnnotation), 10, 64)
 	if err != nil {
 		return -1
 	}
 	return v
+}
+
+// GetDeploymentCondition returns the condition with the provided type.
+func GetDeploymentCondition(status appsv1.DeploymentConfigStatus, condType appsv1.DeploymentConditionType) *appsv1.DeploymentCondition {
+	for i := range status.Conditions {
+		c := status.Conditions[i]
+		if c.Type == condType {
+			return &c
+		}
+	}
+	return nil
+}
+
+// HasImageChangeTrigger returns whether the provided deployment configuration has
+// an image change trigger or not.
+func HasImageChangeTrigger(config *appsv1.DeploymentConfig) bool {
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == appsv1.DeploymentTriggerOnImageChange {
+			return true
+		}
+	}
+	return false
 }
 
 func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
