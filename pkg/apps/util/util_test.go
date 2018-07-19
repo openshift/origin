@@ -67,7 +67,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 		t.Fatalf("expected deployment with DeploymentEncodedConfigAnnotation annotation")
 	}
 
-	if decodedConfig, err := appsinternalutil.DecodeDeploymentConfig(deployment); err != nil {
+	if decodedConfig, err := DecodeDeploymentConfig(deployment); err != nil {
 		t.Fatalf("invalid encoded config on deployment: %v", err)
 	} else {
 		if e, a := config.Name, decodedConfig.Name; e != a {

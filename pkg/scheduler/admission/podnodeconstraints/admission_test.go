@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	oapps "github.com/openshift/api/apps"
 	_ "github.com/openshift/origin/pkg/api/install"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -225,8 +226,8 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 		},
 		{
 			resource:      deploymentConfig,
-			kind:          appsapi.Kind("DeploymentConfig"),
-			groupresource: appsapi.Resource("deploymentconfigs"),
+			kind:          oapps.Kind("DeploymentConfig"),
+			groupresource: oapps.Resource("deploymentconfigs"),
 			prefix:        "DeploymentConfig",
 		},
 		{

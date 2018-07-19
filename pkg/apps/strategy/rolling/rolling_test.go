@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
@@ -144,10 +145,10 @@ func TestRolling_deployRolling(t *testing.T) {
 }
 
 type hookExecutorImpl struct {
-	executeFunc func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error
+	executeFunc func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error
 }
 
-func (h *hookExecutorImpl) Execute(hook *appsapi.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
+func (h *hookExecutorImpl) Execute(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
 	return h.executeFunc(hook, rc, suffix, label)
 }
 
@@ -183,7 +184,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
 				return hookError
 			},
 		},
@@ -244,7 +245,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
 				return hookError
 			},
 		},

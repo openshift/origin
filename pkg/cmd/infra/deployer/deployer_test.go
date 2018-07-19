@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/kubectl"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
@@ -20,7 +21,7 @@ import (
 
 func TestDeployer_getDeploymentFail(t *testing.T) {
 	deployer := &Deployer{
-		strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
+		strategyFor: func(config *appsv1.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			t.Fatal("unexpected call")
 			return nil, nil
 		},
@@ -150,7 +151,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 		deployer := &Deployer{
 			out:    &bytes.Buffer{},
 			errOut: &bytes.Buffer{},
-			strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
+			strategyFor: func(config *appsv1.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 				return &testStrategy{
 					deployFunc: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int) error {
 						actualFrom = from

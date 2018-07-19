@@ -2128,7 +2128,7 @@ Content-Type: application/json'
 
 {
   "kind": "Scale",
-  "apiVersion": "v1",
+  "apiVersion": "apps.openshift.io/v1",
   ...
 }
 
@@ -2145,7 +2145,7 @@ $ curl -k \
     https://$ENDPOINT/oapi/v1/namespaces/$NAMESPACE/deploymentconfigs/$NAME/scale <<'EOF'
 {
   "kind": "Scale",
-  "apiVersion": "v1",
+  "apiVersion": "apps.openshift.io/v1",
   ...
 }
 EOF

@@ -29,8 +29,8 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
+	oapps "github.com/openshift/api/apps"
 	"github.com/openshift/origin/pkg/api/legacy"
-	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -178,10 +178,10 @@ func TestClusterReaderCoverage(t *testing.T) {
 		buildapi.Resource("buildconfigs/instantiatebinary"),
 		buildapi.Resource("buildconfigs/instantiate"),
 		buildapi.Resource("builds/clone"),
-		oappsapi.Resource("deploymentconfigrollbacks"),
-		oappsapi.Resource("generatedeploymentconfigs"),
-		oappsapi.Resource("deploymentconfigs/rollback"),
-		oappsapi.Resource("deploymentconfigs/instantiate"),
+		oapps.Resource("deploymentconfigrollbacks"),
+		oapps.Resource("generatedeploymentconfigs"),
+		oapps.Resource("deploymentconfigs/rollback"),
+		oapps.Resource("deploymentconfigs/instantiate"),
 		imageapi.Resource("imagestreamimports"),
 		imageapi.Resource("imagestreammappings"),
 		extensionsapi.Resource("deployments/rollback"),

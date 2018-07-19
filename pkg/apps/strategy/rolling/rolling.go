@@ -16,8 +16,6 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
@@ -109,7 +107,7 @@ func NewRollingDeploymentStrategy(namespace string, kubeClient kubernetes.Interf
 
 func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int) error {
 	// TODO: This should move to external once we are sure there are no replication controller left with internal version
-	config, err := appsinternalutil.DecodeDeploymentConfig(to)
+	config, err := appsutil.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", appsutil.LabelForDeployment(to), err)
 	}
@@ -125,7 +123,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, t
 	if from == nil {
 		// Execute any pre-hook.
 		if params.Pre != nil {
-			if err := s.hookExecutor.Execute(params.Pre, to, appsapi.PreHookPodSuffix, "pre"); err != nil {
+			if err := s.hookExecutor.Execute(params.Pre, to, appsutil.PreHookPodSuffix, "pre"); err != nil {
 				return fmt.Errorf("pre hook failed: %s", err)
 			}
 		}
@@ -138,7 +136,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, t
 
 		// Execute any post-hook. Errors are logged and ignored.
 		if params.Post != nil {
-			if err := s.hookExecutor.Execute(params.Post, to, appsapi.PostHookPodSuffix, "post"); err != nil {
+			if err := s.hookExecutor.Execute(params.Post, to, appsutil.PostHookPodSuffix, "post"); err != nil {
 				return fmt.Errorf("post hook failed: %s", err)
 			}
 		}
@@ -154,7 +152,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, t
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
 	if params.Pre != nil {
-		if err := s.hookExecutor.Execute(params.Pre, to, appsapi.PreHookPodSuffix, "pre"); err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, appsutil.PreHookPodSuffix, "pre"); err != nil {
 			return fmt.Errorf("pre hook failed: %s", err)
 		}
 	}
@@ -225,8 +223,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, t
 		Timeout:         time.Duration(*params.TimeoutSeconds) * time.Second,
 		MinReadySeconds: config.Spec.MinReadySeconds,
 		CleanupPolicy:   PreserveRollingUpdateCleanupPolicy,
-		MaxSurge:        params.MaxSurge,
-		MaxUnavailable:  params.MaxUnavailable,
+		MaxUnavailable:  *params.MaxUnavailable,
 		OnProgress: func(oldRc, newRc *corev1.ReplicationController, percentage int) error {
 			if expect, ok := strat.Percentage(s.until); ok && percentage >= expect {
 				return strat.NewConditionReachedErr(fmt.Sprintf("Reached %s (currently %d%%)", s.until, percentage))
@@ -234,13 +231,19 @@ func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, t
 			return nil
 		},
 	}
+	if params.MaxSurge != nil {
+		rollingConfig.MaxSurge = *params.MaxSurge
+	}
+	if params.MaxUnavailable != nil {
+		rollingConfig.MaxUnavailable = *params.MaxUnavailable
+	}
 	if err := s.rollingUpdate(rollingConfig); err != nil {
 		return err
 	}
 
 	// Execute any post-hook.
 	if params.Post != nil {
-		if err := s.hookExecutor.Execute(params.Post, to, appsapi.PostHookPodSuffix, "post"); err != nil {
+		if err := s.hookExecutor.Execute(params.Post, to, appsutil.PostHookPodSuffix, "post"); err != nil {
 			return fmt.Errorf("post hook failed: %s", err)
 		}
 	}

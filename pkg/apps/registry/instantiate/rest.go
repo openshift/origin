@@ -21,6 +21,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	"github.com/openshift/api/apps"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
@@ -65,7 +66,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		old := config
 
 		if errs := validation.ValidateRequestForDeploymentConfig(req, config); len(errs) > 0 {
-			return errors.NewInvalid(appsapi.Kind("DeploymentRequest"), req.Name, errs)
+			return errors.NewInvalid(apps.Kind("DeploymentRequest"), req.Name, errs)
 		}
 
 		// We need to process the deployment config before we can determine if it is possible to trigger
@@ -103,7 +104,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		config.Status.LatestVersion++
 
 		userInfo, _ := apirequest.UserFrom(ctx)
-		attrs := admission.NewAttributesRecord(config, old, appsapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, appsapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
+		attrs := admission.NewAttributesRecord(config, old, apps.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, apps.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
 		if err := s.admit.(admission.MutationInterface).Admit(attrs); err != nil {
 			return err
 		}

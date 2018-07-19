@@ -114,6 +114,8 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
+      "vendor/k8s.io/kubernetes/pkg/apis/extensions",
+      "vendor/k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
       "github.com/openshift/origin/pkg/image/apis/image"
     ]
   },
@@ -133,6 +135,7 @@
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
       "vendor/k8s.io/kubernetes/pkg/apis/rbac",
+      "vendor/k8s.io/kubernetes/pkg/apis/rbac/v1",
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "github.com/openshift/origin/pkg/authorization/apis/authorization/internal/serviceaccount"
     ]

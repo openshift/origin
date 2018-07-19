@@ -14,8 +14,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -418,11 +418,11 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	// can tag to a stream that exists
 	exec := stratsupport.NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
 	err = exec.Execute(
-		&appsapi.LifecycleHook{
-			TagImages: []appsapi.TagImageHook{
+		&appsv1.LifecycleHook{
+			TagImages: []appsv1.TagImageHook{
 				{
 					ContainerName: "test",
-					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: stream.Name + ":test"},
+					To:            corev1.ObjectReference{Kind: "ImageStreamTag", Name: stream.Name + ":test"},
 				},
 			},
 		},
@@ -456,11 +456,11 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	// can execute a second time the same tag and it should work
 	exec = stratsupport.NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
 	err = exec.Execute(
-		&appsapi.LifecycleHook{
-			TagImages: []appsapi.TagImageHook{
+		&appsv1.LifecycleHook{
+			TagImages: []appsv1.TagImageHook{
 				{
 					ContainerName: "test",
-					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: stream.Name + ":test"},
+					To:            corev1.ObjectReference{Kind: "ImageStreamTag", Name: stream.Name + ":test"},
 				},
 			},
 		},
@@ -488,11 +488,11 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	// can lifecycle tag a new image stream
 	exec = stratsupport.NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
 	err = exec.Execute(
-		&appsapi.LifecycleHook{
-			TagImages: []appsapi.TagImageHook{
+		&appsv1.LifecycleHook{
+			TagImages: []appsv1.TagImageHook{
 				{
 					ContainerName: "test",
-					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test2:test"},
+					To:            corev1.ObjectReference{Kind: "ImageStreamTag", Name: "test2:test"},
 				},
 			},
 		},

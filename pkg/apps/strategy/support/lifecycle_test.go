@@ -19,9 +19,11 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
@@ -56,9 +58,9 @@ func newTestClient(config *appsapi.DeploymentConfig) *fake.Clientset {
 }
 
 func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
-	hook := &appsapi.LifecycleHook{
-		FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &appsapi.ExecNewPodHook{
+	hook := &appsv1.LifecycleHook{
+		FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+		ExecNewPod: &appsv1.ExecNewPodHook{
 			ContainerName: "container1",
 		},
 	}
@@ -78,9 +80,9 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 }
 
 func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
-	hook := &appsapi.LifecycleHook{
-		FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &appsapi.ExecNewPodHook{
+	hook := &appsv1.LifecycleHook{
+		FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+		ExecNewPod: &appsv1.ExecNewPodHook{
 			ContainerName: "container1",
 		},
 	}
@@ -145,9 +147,9 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 }
 
 func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
-	hook := &appsapi.LifecycleHook{
-		FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &appsapi.ExecNewPodHook{
+	hook := &appsv1.LifecycleHook{
+		FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+		ExecNewPod: &appsv1.ExecNewPodHook{
 			ContainerName: "container1",
 		},
 	}
@@ -193,17 +195,21 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 }
 
 func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
-	hook := &appsapi.LifecycleHook{
-		FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &appsapi.ExecNewPodHook{
+	hook := &appsv1.LifecycleHook{
+		FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+		ExecNewPod: &appsv1.ExecNewPodHook{
 			ContainerName: "undefined",
 		},
 	}
 
 	config := appstest.OkDeploymentConfig(1)
+	strategy := appsv1.DeploymentStrategy{
+		Type:           appsv1.DeploymentStrategyTypeRecreate,
+		RecreateParams: &appsv1.RecreateDeploymentStrategyParams{},
+	}
 	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
 
-	_, err := createHookPodManifest(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
+	_, err := createHookPodManifest(hook, deployment, &strategy, "hook", nowFunc().Time)
 	if err == nil {
 		t.Fatalf("expected an error")
 	}
@@ -217,19 +223,19 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 
 	tests := []struct {
 		name                string
-		hook                *appsapi.LifecycleHook
+		hook                *appsv1.LifecycleHook
 		expected            *corev1.Pod
 		strategyLabels      map[string]string
 		strategyAnnotations map[string]string
 	}{
 		{
 			name: "overrides",
-			hook: &appsapi.LifecycleHook{
-				FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-				ExecNewPod: &appsapi.ExecNewPodHook{
+			hook: &appsv1.LifecycleHook{
+				FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &appsv1.ExecNewPodHook{
 					ContainerName: "container1",
 					Command:       []string{"overridden"},
-					Env: []kapi.EnvVar{
+					Env: []corev1.EnvVar{
 						{
 							Name:  "name",
 							Value: "value",
@@ -313,9 +319,9 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 		},
 		{
 			name: "no overrides",
-			hook: &appsapi.LifecycleHook{
-				FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-				ExecNewPod: &appsapi.ExecNewPodHook{
+			hook: &appsv1.LifecycleHook{
+				FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &appsv1.ExecNewPodHook{
 					ContainerName: "container1",
 				},
 			},
@@ -374,9 +380,9 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 		},
 		{
 			name: "labels and annotations",
-			hook: &appsapi.LifecycleHook{
-				FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-				ExecNewPod: &appsapi.ExecNewPodHook{
+			hook: &appsv1.LifecycleHook{
+				FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &appsv1.ExecNewPodHook{
 					ContainerName: "container1",
 				},
 			},
@@ -442,9 +448,9 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 		},
 		{
 			name: "allways pull image",
-			hook: &appsapi.LifecycleHook{
-				FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-				ExecNewPod: &appsapi.ExecNewPodHook{
+			hook: &appsv1.LifecycleHook{
+				FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &appsv1.ExecNewPodHook{
 					ContainerName: "container2",
 				},
 			},
@@ -496,7 +502,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
 		config, deployment := deployment("deployment", "test", test.strategyLabels, test.strategyAnnotations)
-		pod, err := createHookPodManifest(test.hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
+		newStrategy := appsv1.DeploymentStrategy{}
+		if err := legacyscheme.Scheme.Convert(&config.Spec.Strategy, &newStrategy, nil); err != nil {
+			t.Fatalf("conversion error: %v", err)
+		}
+		pod, err := createHookPodManifest(test.hook, deployment, &newStrategy, "hook", nowFunc().Time)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -519,17 +529,20 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 }
 
 func TestHookExecutor_makeHookPodRestart(t *testing.T) {
-	hook := &appsapi.LifecycleHook{
-		FailurePolicy: appsapi.LifecycleHookFailurePolicyRetry,
-		ExecNewPod: &appsapi.ExecNewPodHook{
+	hook := &appsv1.LifecycleHook{
+		FailurePolicy: appsv1.LifecycleHookFailurePolicyRetry,
+		ExecNewPod: &appsv1.ExecNewPodHook{
 			ContainerName: "container1",
 		},
 	}
 
 	config := appstest.OkDeploymentConfig(1)
 	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
-
-	pod, err := createHookPodManifest(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
+	newStrategy := appsv1.DeploymentStrategy{}
+	if err := legacyscheme.Scheme.Convert(&config.Spec.Strategy, &newStrategy, nil); err != nil {
+		t.Fatalf("conversion error: %v", err)
+	}
+	pod, err := createHookPodManifest(hook, deployment, &newStrategy, "hook", nowFunc().Time)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}

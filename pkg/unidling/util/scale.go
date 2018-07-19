@@ -14,6 +14,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
@@ -124,7 +125,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 	var scale *kextapi.Scale
 
 	switch {
-	case ref.Kind == "DeploymentConfig" && (ref.Group == appsapi.GroupName || ref.Group == appsapi.LegacyGroupName):
+	case ref.Kind == "DeploymentConfig" && (ref.Group == appsapi.GroupName || ref.Group == legacy.GroupName):
 		var dc *appsapi.DeploymentConfig
 		dc, err = c.dcs.DeploymentConfigs(namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
