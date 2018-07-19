@@ -6,17 +6,18 @@ import (
 	"sort"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
-	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -24,8 +25,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
-func deploymentFor(config *appsapi.DeploymentConfig, status appsapi.DeploymentStatus) *kapi.ReplicationController {
-	d, err := appsinternalutil.MakeTestOnlyInternalDeployment(config)
+func deploymentFor(config *appsv1.DeploymentConfig, status appsutil.DeploymentStatus) *corev1.ReplicationController {
+	d, err := appsutil.MakeDeployment(config)
 	if err != nil {
 		panic(err)
 	}
@@ -36,9 +37,9 @@ func deploymentFor(config *appsapi.DeploymentConfig, status appsapi.DeploymentSt
 // TestCmdDeploy_latestOk ensures that attempts to start a new deployment
 // succeeds given an existing deployment in a terminal state.
 func TestCmdDeploy_latestOk(t *testing.T) {
-	validStatusList := []appsapi.DeploymentStatus{
-		appsapi.DeploymentStatusComplete,
-		appsapi.DeploymentStatusFailed,
+	validStatusList := []appsutil.DeploymentStatus{
+		appsutil.DeploymentStatusComplete,
+		appsutil.DeploymentStatusFailed,
 	}
 	for _, status := range validStatusList {
 		config := appstest.OkDeploymentConfig(1)
@@ -56,7 +57,7 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 			return true, updatedConfig, nil
 		})
 
-		kubeClient := fake.NewSimpleClientset()
+		kubeClient := kubefake.NewSimpleClientset()
 		kubeClient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, deploymentFor(config, status), nil
 		})
@@ -76,16 +77,16 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 // TestCmdDeploy_latestConcurrentRejection ensures that attempts to start a
 // deployment concurrent with a running deployment are rejected.
 func TestCmdDeploy_latestConcurrentRejection(t *testing.T) {
-	invalidStatusList := []appsapi.DeploymentStatus{
-		appsapi.DeploymentStatusNew,
-		appsapi.DeploymentStatusPending,
-		appsapi.DeploymentStatusRunning,
+	invalidStatusList := []appsutil.DeploymentStatus{
+		appsutil.DeploymentStatusNew,
+		appsutil.DeploymentStatusPending,
+		appsutil.DeploymentStatusRunning,
 	}
 
 	for _, status := range invalidStatusList {
 		config := appstest.OkDeploymentConfig(1)
 		existingDeployment := deploymentFor(config, status)
-		kubeClient := fake.NewSimpleClientset(existingDeployment)
+		kubeClient := kubefake.NewSimpleClientset(existingDeployment)
 		o := &DeployOptions{kubeClient: kubeClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 
 		err := o.deploy(config)
@@ -98,7 +99,7 @@ func TestCmdDeploy_latestConcurrentRejection(t *testing.T) {
 // TestCmdDeploy_latestLookupError ensures that an error is thrown when
 // existing deployments can't be looked up due to some fatal server error.
 func TestCmdDeploy_latestLookupError(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
+	kubeClient := kubefake.NewSimpleClientset()
 	kubeClient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kerrors.NewInternalError(fmt.Errorf("internal error"))
 	})
@@ -117,35 +118,35 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 	deletedPods := []string{}
 	config := appstest.OkDeploymentConfig(1)
 
-	var updatedDeployment *kapi.ReplicationController
-	existingDeployment := deploymentFor(config, appsapi.DeploymentStatusFailed)
+	var updatedDeployment *corev1.ReplicationController
+	existingDeployment := deploymentFor(config, appsutil.DeploymentStatusFailed)
 	existingDeployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
 	existingDeployment.Annotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentCancelledByUser
 
-	mkpod := func(name string) kapi.Pod {
-		return kapi.Pod{
+	mkpod := func(name string) corev1.Pod {
+		return corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 				Labels: map[string]string{
-					appsapi.DeployerPodForDeploymentLabel: existingDeployment.Name,
+					appsutil.DeployerPodForDeploymentLabel: existingDeployment.Name,
 				},
 			},
 		}
 	}
-	existingDeployerPods := []kapi.Pod{
+	existingDeployerPods := []corev1.Pod{
 		mkpod("hook-pre"), mkpod("hook-post"), mkpod("deployerpod"),
 	}
 
-	kubeClient := fake.NewSimpleClientset()
+	kubeClient := kubefake.NewSimpleClientset()
 	kubeClient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, existingDeployment, nil
 	})
 	kubeClient.PrependReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		updatedDeployment = action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		updatedDeployment = action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		return true, updatedDeployment, nil
 	})
 	kubeClient.PrependReactor("list", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.PodList{Items: existingDeployerPods}, nil
+		return true, &corev1.PodList{Items: existingDeployerPods}, nil
 	})
 	kubeClient.PrependReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		deletedPods = append(deletedPods, action.(clientgotesting.DeleteAction).GetName())
@@ -163,11 +164,11 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		t.Fatalf("expected updated config")
 	}
 
-	if appsinternalutil.IsDeploymentCancelled(updatedDeployment) {
+	if appsutil.IsDeploymentCancelled(updatedDeployment) {
 		t.Fatalf("deployment should not have the cancelled flag set anymore")
 	}
 
-	if appsinternalutil.DeploymentStatusReasonFor(updatedDeployment) != "" {
+	if appsutil.DeploymentStatusReasonFor(updatedDeployment) != "" {
 		t.Fatalf("deployment status reason should be empty")
 	}
 
@@ -177,7 +178,7 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		t.Fatalf("Not all deployer pods for the failed deployment were deleted.\nEXPECTED: %v\nACTUAL: %v", e, a)
 	}
 
-	if e, a := appsapi.DeploymentStatusNew, appsinternalutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := appsutil.DeploymentStatusNew, appsutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 }
@@ -185,17 +186,17 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 // TestCmdDeploy_retryRejectNonFailed ensures that attempts to retry a non-
 // failed deployment are rejected.
 func TestCmdDeploy_retryRejectNonFailed(t *testing.T) {
-	invalidStatusList := []appsapi.DeploymentStatus{
-		appsapi.DeploymentStatusNew,
-		appsapi.DeploymentStatusPending,
-		appsapi.DeploymentStatusRunning,
-		appsapi.DeploymentStatusComplete,
+	invalidStatusList := []appsutil.DeploymentStatus{
+		appsutil.DeploymentStatusNew,
+		appsutil.DeploymentStatusPending,
+		appsutil.DeploymentStatusRunning,
+		appsutil.DeploymentStatusComplete,
 	}
 
 	for _, status := range invalidStatusList {
 		config := appstest.OkDeploymentConfig(1)
 		existingDeployment := deploymentFor(config, status)
-		kubeClient := fake.NewSimpleClientset(existingDeployment)
+		kubeClient := kubefake.NewSimpleClientset(existingDeployment)
 		o := &DeployOptions{kubeClient: kubeClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 		err := o.retry(config)
 		if err == nil {
@@ -238,18 +239,18 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 	}
 
 	for _, scenario := range scenarios {
-		updatedDeployments := []kapi.ReplicationController{}
+		updatedDeployments := []corev1.ReplicationController{}
 		config := appstest.OkDeploymentConfig(scenario.version)
-		existingDeployments := &kapi.ReplicationControllerList{}
+		existingDeployments := &corev1.ReplicationControllerList{}
 		for _, e := range scenario.existing {
-			d, _ := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(e.version))
+			d, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(e.version))
 			d.Annotations[appsapi.DeploymentStatusAnnotation] = string(e.status)
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}
 
-		kubeClient := fake.NewSimpleClientset()
+		kubeClient := kubefake.NewSimpleClientset()
 		kubeClient.PrependReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			updated := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+			updated := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 			updatedDeployments = append(updatedDeployments, *updated)
 			return true, updated, nil
 		})
@@ -272,7 +273,7 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 			}
 		}
 		for _, d := range updatedDeployments {
-			actualCancellations = append(actualCancellations, appsinternalutil.DeploymentVersionFor(&d))
+			actualCancellations = append(actualCancellations, appsutil.DeploymentVersionFor(&d))
 		}
 
 		sort.Sort(Int64Slice(actualCancellations))
@@ -290,22 +291,22 @@ func (p Int64Slice) Less(i, j int) bool { return p[i] < p[j] }
 func (p Int64Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func TestDeploy_reenableTriggers(t *testing.T) {
-	mktrigger := func() appsapi.DeploymentTriggerPolicy {
+	mktrigger := func() appsv1.DeploymentTriggerPolicy {
 		t := appstest.OkImageChangeTrigger()
 		t.ImageChangeParams.Automatic = false
 		return t
 	}
 
-	var updated *appsapi.DeploymentConfig
+	var updated *appsv1.DeploymentConfig
 
 	osClient := &appsfake.Clientset{}
 	osClient.AddReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		updated = action.(clientgotesting.UpdateAction).GetObject().(*appsapi.DeploymentConfig)
+		updated = action.(clientgotesting.UpdateAction).GetObject().(*appsv1.DeploymentConfig)
 		return true, updated, nil
 	})
 
 	config := appstest.OkDeploymentConfig(1)
-	config.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{}
 	count := 3
 	for i := 0; i < count; i++ {
 		config.Spec.Triggers = append(config.Spec.Triggers, mktrigger())

@@ -750,7 +750,7 @@ func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*
 	case *appsv1.DeploymentConfig:
 		fallback := t.Spec.Template
 
-		latestDeploymentName := appsutil.LatestDeploymentNameForConfigV1(t)
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(t)
 		deployment, err := o.CoreV1Client.ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			return fallback, err

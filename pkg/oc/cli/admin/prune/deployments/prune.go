@@ -10,7 +10,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 type Pruner interface {
@@ -112,8 +112,8 @@ func NewDeploymentDeleter(deployments kcoreclient.ReplicationControllersGetter, 
 func (p *deploymentDeleter) DeleteDeployment(deployment *kapi.ReplicationController) error {
 	glog.V(4).Infof("Deleting deployment %q", deployment.Name)
 	// If the deployment is failed we need to remove its deployer pods, too.
-	if appsinternalutil.IsFailedDeployment(deployment) {
-		dpSelector := appsinternalutil.DeployerPodSelector(deployment.Name)
+	if appsutil.IsFailedDeployment(deployment) {
+		dpSelector := appsutil.DeployerPodSelector(deployment.Name)
 		deployers, err := p.pods.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: dpSelector.String()})
 		if err != nil {
 			glog.Warningf("Cannot list deployer pods for %q: %v\n", deployment.Name, err)

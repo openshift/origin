@@ -33,7 +33,7 @@ func TestPodName(t *testing.T) {
 
 func TestMakeDeploymentOk(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
-	deployment, err := appsinternalutil.MakeDeploymentV1(config)
+	deployment, err := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %#v", err)
@@ -103,7 +103,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 
 func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 	mkdeployment := func(version int64) *v1.ReplicationController {
-		deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(version))
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(version))
 		return deployment
 	}
 	deployments := []*v1.ReplicationController{
@@ -123,33 +123,6 @@ func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 		if e, a := 4-i, DeploymentVersionFor(deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}
-	}
-}
-
-// TestSort verifies that builds are sorted by most recently created
-func TestSort(t *testing.T) {
-	present := metav1.Now()
-	past := metav1.NewTime(present.Time.Add(-1 * time.Minute))
-	controllers := []*kapi.ReplicationController{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "past",
-				CreationTimestamp: past,
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "present",
-				CreationTimestamp: present,
-			},
-		},
-	}
-	sort.Sort(appsinternalutil.ByMostRecent(controllers))
-	if controllers[0].Name != "present" {
-		t.Errorf("Unexpected sort order")
-	}
-	if controllers[1].Name != "past" {
-		t.Errorf("Unexpected sort order")
 	}
 }
 
@@ -645,7 +618,7 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 
 	for _, tc := range tests {
 		config := tc.config
-		deployment, err := appsinternalutil.MakeDeploymentV1(config)
+		deployment, err := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

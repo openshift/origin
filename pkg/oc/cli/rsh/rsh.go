@@ -23,8 +23,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	oapps "github.com/openshift/api/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -225,15 +225,15 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		}
 		return pod.Name, nil
 	case oapps.Resource("deploymentconfigs"):
-		appsClient, err := appsclientinternal.NewForConfig(clientConfig)
+		appsClient, err := appstypedclient.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
-		dc, err := appsClient.Apps().DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		dc, err := appsClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
-		return podForResource(f, fmt.Sprintf("rc/%s", appsinternalutil.LatestDeploymentNameForConfig(dc)), timeout)
+		return podForResource(f, fmt.Sprintf("rc/%s", appsutil.LatestDeploymentNameForConfig(dc)), timeout)
 	case extensions.Resource("daemonsets"):
 		kc, err := f.ClientSet()
 		if err != nil {

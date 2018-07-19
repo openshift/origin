@@ -4,46 +4,48 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kfake "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsapitest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
-	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsapitest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 func TestDeploymentConfigDescriber(t *testing.T) {
 	config := appsapitest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(config)
-	podList := &kapi.PodList{}
+	deployment, _ := appsutil.MakeDeployment(config)
+	podList := &corev1.PodList{}
 
 	fake := &appsfake.Clientset{}
 	fake.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, config, nil
 	})
 	kFake := kfake.NewSimpleClientset()
-	kFake.PrependReactor("list", "horizontalpodautoscalers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &autoscaling.HorizontalPodAutoscalerList{
-			Items: []autoscaling.HorizontalPodAutoscaler{
-				*appsapitest.OkHPAForDeploymentConfig(config, 1, 3),
-			}}, nil
-	})
+	// TODO: re-enable when we switch describer to external client
+	/*
+		kFake.PrependReactor("list", "horizontalpodautoscalers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			return true, &autoscaling.HorizontalPodAutoscalerList{
+				Items: []autoscaling.HorizontalPodAutoscaler{
+					*appsapitest.OkHPAForDeploymentConfig(config, 1, 3),
+				}}, nil
+		})
+	*/
 	kFake.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deployment, nil
 	})
 	kFake.PrependReactor("list", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.ReplicationControllerList{}, nil
+		return true, &corev1.ReplicationControllerList{}, nil
 	})
 	kFake.PrependReactor("list", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, podList, nil
 	})
 	kFake.PrependReactor("list", "events", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.EventList{}, nil
+		return true, &corev1.EventList{}, nil
 	})
 
 	d := &DeploymentConfigDescriber{
@@ -61,7 +63,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 		return output
 	}
 
-	podList.Items = []kapi.Pod{*mkPod(kapi.PodRunning, 0)}
+	podList.Items = []corev1.Pod{*mkV1Pod(corev1.PodRunning, 0)}
 	out := describe()
 	substr := "Autoscaling:\tbetween 1 and 3 replicas"
 	if !strings.Contains(out, substr) {
@@ -74,17 +76,17 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	config.Spec.Strategy = appsapitest.OkCustomStrategy()
 	describe()
 
-	config.Spec.Triggers[0].ImageChangeParams.From = kapi.ObjectReference{Name: "imagestream"}
+	config.Spec.Triggers[0].ImageChangeParams.From = corev1.ObjectReference{Name: "imagestream"}
 	describe()
 
 	config.Spec.Strategy = appsapitest.OkStrategy()
-	config.Spec.Strategy.RecreateParams = &appsapi.RecreateDeploymentStrategyParams{
-		Pre: &appsapi.LifecycleHook{
-			FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
-			ExecNewPod: &appsapi.ExecNewPodHook{
+	config.Spec.Strategy.RecreateParams = &appsv1.RecreateDeploymentStrategyParams{
+		Pre: &appsv1.LifecycleHook{
+			FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,
+			ExecNewPod: &appsv1.ExecNewPodHook{
 				ContainerName: "container",
 				Command:       []string{"/command1", "args"},
-				Env: []kapi.EnvVar{
+				Env: []corev1.EnvVar{
 					{
 						Name:  "KEY1",
 						Value: "value1",
@@ -92,12 +94,12 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 				},
 			},
 		},
-		Post: &appsapi.LifecycleHook{
-			FailurePolicy: appsapi.LifecycleHookFailurePolicyIgnore,
-			ExecNewPod: &appsapi.ExecNewPodHook{
+		Post: &appsv1.LifecycleHook{
+			FailurePolicy: appsv1.LifecycleHookFailurePolicyIgnore,
+			ExecNewPod: &appsv1.ExecNewPodHook{
 				ContainerName: "container",
 				Command:       []string{"/command2", "args"},
-				Env: []kapi.EnvVar{
+				Env: []corev1.EnvVar{
 					{
 						Name:  "KEY2",
 						Value: "value2",

@@ -11,7 +11,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 )
 
 type mockResolver struct {
@@ -151,8 +150,8 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 					failedDeployments = append(failedDeployments, deployment)
 				}
 			}
-			sort.Sort(appsinternalutil.ByMostRecent(completedDeployments))
-			sort.Sort(appsinternalutil.ByMostRecent(failedDeployments))
+			sort.Sort(ByMostRecent(completedDeployments))
+			sort.Sort(ByMostRecent(failedDeployments))
 			purgeCompleted := []*kapi.ReplicationController{}
 			purgeFailed := []*kapi.ReplicationController{}
 			if keep >= 0 && keep < len(completedDeployments) {

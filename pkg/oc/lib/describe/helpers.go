@@ -12,6 +12,7 @@ import (
 
 	units "github.com/docker/go-units"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -54,7 +55,16 @@ func bold(v interface{}) string {
 	return "\033[1m" + toString(v) + "\033[0m"
 }
 
-func convertEnv(env []api.EnvVar) map[string]string {
+// DEPRECATED:
+func convertEnvInternal(env []api.EnvVar) map[string]string {
+	result := make(map[string]string, len(env))
+	for _, e := range env {
+		result[e.Name] = toString(e.Value)
+	}
+	return result
+}
+
+func convertEnv(env []corev1.EnvVar) map[string]string {
 	result := make(map[string]string, len(env))
 	for _, e := range env {
 		result[e.Name] = toString(e.Value)

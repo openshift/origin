@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // DeploymentByDeploymentConfigIndexFunc indexes Deployment items by their associated DeploymentConfig, if none, index with key "orphan"
@@ -18,7 +18,7 @@ func DeploymentByDeploymentConfigIndexFunc(obj interface{}) ([]string, error) {
 	if !ok {
 		return nil, fmt.Errorf("not a replication controller: %v", obj)
 	}
-	name := appsinternalutil.DeploymentConfigNameFor(controller)
+	name := appsutil.DeploymentConfigNameFor(controller)
 	if len(name) == 0 {
 		return []string{"orphan"}, nil
 	}
@@ -64,7 +64,7 @@ func NewFilterBeforePredicate(d time.Duration) FilterPredicate {
 
 // FilterDeploymentsPredicate is a function that returns true if the replication controller is associated with a DeploymentConfig
 func FilterDeploymentsPredicate(item *kapi.ReplicationController) bool {
-	return len(appsinternalutil.DeploymentConfigNameFor(item)) > 0
+	return len(appsutil.DeploymentConfigNameFor(item)) > 0
 }
 
 // FilterZeroReplicaSize is a function that returns true if the replication controller size is 0
@@ -107,7 +107,7 @@ func NewDataSet(deploymentConfigs []*appsapi.DeploymentConfig, deployments []*ka
 
 // GetDeploymentConfig gets the configuration for the given deployment
 func (d *dataSet) GetDeploymentConfig(controller *kapi.ReplicationController) (*appsapi.DeploymentConfig, bool, error) {
-	name := appsinternalutil.DeploymentConfigNameFor(controller)
+	name := appsutil.DeploymentConfigNameFor(controller)
 	if len(name) == 0 {
 		return nil, false, nil
 	}

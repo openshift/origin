@@ -216,7 +216,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 }
 
 func mkdeployment(version int64, status appsapi.DeploymentStatus) *corev1.ReplicationController {
-	deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(version))
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(version))
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
 	return deployment
 }

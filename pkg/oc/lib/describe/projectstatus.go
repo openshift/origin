@@ -26,8 +26,8 @@ import (
 	deployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -1348,7 +1348,7 @@ func describeDeploymentConfigDeployments(f formatter, dcNode *appsgraph.Deployme
 		out = append(out, describeDeploymentConfigDeploymentStatus(deployment.ReplicationController, i == 0, dcNode.DeploymentConfig.Spec.Test, restartCount))
 		switch {
 		case count == -1:
-			if appsinternalutil.IsCompleteDeployment(deployment.ReplicationController) {
+			if appsutil.IsCompleteDeployment(deployment.ReplicationController) {
 				return out
 			}
 		default:
@@ -1362,28 +1362,28 @@ func describeDeploymentConfigDeployments(f formatter, dcNode *appsgraph.Deployme
 
 func describeDeploymentConfigDeploymentStatus(rc *kapi.ReplicationController, first, test bool, restartCount int32) string {
 	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
-	status := appsinternalutil.DeploymentStatusFor(rc)
-	version := appsinternalutil.DeploymentVersionFor(rc)
+	status := appsutil.DeploymentStatusFor(rc)
+	version := appsutil.DeploymentVersionFor(rc)
 	maybeCancelling := ""
-	if appsinternalutil.IsDeploymentCancelled(rc) && !appsinternalutil.IsTerminatedDeployment(rc) {
+	if appsutil.IsDeploymentCancelled(rc) && !appsutil.IsTerminatedDeployment(rc) {
 		maybeCancelling = " (cancelling)"
 	}
 
 	switch status {
-	case appsapi.DeploymentStatusFailed:
-		reason := appsinternalutil.DeploymentStatusReasonFor(rc)
+	case appsutil.DeploymentStatusFailed:
+		reason := appsutil.DeploymentStatusReasonFor(rc)
 		if len(reason) > 0 {
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
 		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
-	case appsapi.DeploymentStatusComplete:
+	case appsutil.DeploymentStatusComplete:
 		// TODO: pod status output
 		if test {
 			return fmt.Sprintf("test deployment #%d deployed %s ago", version, timeAt)
 		}
 		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, first, restartCount))
-	case appsapi.DeploymentStatusRunning:
+	case appsutil.DeploymentStatusRunning:
 		format := "deployment #%d running%s for %s%s"
 		if test {
 			format = "test deployment #%d running%s for %s%s"

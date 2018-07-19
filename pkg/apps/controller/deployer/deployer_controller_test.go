@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
 	"k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,15 +21,17 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
+	appsinternaltest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 var (
@@ -182,9 +182,9 @@ func TestHandle_createPodOk(t *testing.T) {
 	})
 
 	// Verify new -> pending
-	config := appstest.OkDeploymentConfig(1)
-	config.Spec.Strategy = appstest.OkCustomStrategy()
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.OkDeploymentConfig(1)
+	config.Spec.Strategy = appsinternaltest.OkCustomStrategy()
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 	deployment.CreationTimestamp = metav1.Now()
@@ -216,11 +216,11 @@ func TestHandle_createPodOk(t *testing.T) {
 		t.Fatalf("expected deployment pod annotation %s, got %s", e, a)
 	}
 
-	if e := appsinternalutil.DeploymentNameFor(createdPod); len(e) == 0 {
+	if e := appsutil.DeploymentNameFor(createdPod); len(e) == 0 {
 		t.Fatalf("missing deployment annotation")
 	}
 
-	if e, a := updatedDeployment.Name, appsinternalutil.DeploymentNameFor(createdPod); e != a {
+	if e, a := updatedDeployment.Name, appsutil.DeploymentNameFor(createdPod); e != a {
 		t.Fatalf("expected pod deployment annotation %s, got %s", e, a)
 	}
 
@@ -275,8 +275,8 @@ func TestHandle_createPodFail(t *testing.T) {
 		return true, rc, nil
 	})
 
-	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.OkDeploymentConfig(1)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.CreationTimestamp = metav1.Now()
 
@@ -331,8 +331,8 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 	for _, test := range tests {
 		var updatedDeployment *v1.ReplicationController
 
-		config := appstest.OkDeploymentConfig(1)
-		deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+		config := appsinternaltest.OkDeploymentConfig(1)
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 		deployment.CreationTimestamp = metav1.Now()
 		deployerPodName := appsutil.DeployerPodNameForDeployment(deployment.Name)
@@ -372,8 +372,8 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 	var updatedDeployment *v1.ReplicationController
 
-	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.OkDeploymentConfig(1)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 
@@ -413,8 +413,8 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
 	var updatedDeployment *v1.ReplicationController
 
-	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.TestDeploymentConfig(appsinternaltest.OkDeploymentConfig(1))
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
@@ -486,7 +486,7 @@ func TestHandle_noop(t *testing.T) {
 	for _, test := range tests {
 		client := fake.NewSimpleClientset()
 
-		deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 		deployment.CreationTimestamp = metav1.Now()
 
@@ -530,8 +530,8 @@ func TestHandle_failedTest(t *testing.T) {
 	})
 
 	// Verify successful cleanup
-	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.TestDeploymentConfig(appsinternaltest.OkDeploymentConfig(1))
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
@@ -573,8 +573,8 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 	})
 
 	// Verify successful cleanup
-	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.OkDeploymentConfig(1)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
 	deployment.CreationTimestamp = metav1.Now()
 
@@ -618,8 +618,8 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 	})
 
 	// Verify successful cleanup
-	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.TestDeploymentConfig(appsinternaltest.OkDeploymentConfig(1))
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
@@ -663,8 +663,8 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 	})
 
 	// Verify no-op
-	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.OkDeploymentConfig(1)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
 
@@ -695,8 +695,8 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 	})
 
 	// Verify error
-	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	config := appsinternaltest.OkDeploymentConfig(1)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
 
@@ -727,7 +727,7 @@ func TestHandle_cancelNew(t *testing.T) {
 		return true, rc, nil
 	})
 
-	deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
@@ -749,7 +749,7 @@ func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 	var updatedDeployment *v1.ReplicationController
 	deletedDeployer := false
 
-	deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
@@ -844,7 +844,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			return true, nil, nil
 		})
 
-		deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
 		deployment.CreationTimestamp = metav1.Now()
 		deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
@@ -903,7 +903,7 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 			return true, nil, nil
 		})
 
-		deployment, err := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
+		deployment, err := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
@@ -1042,7 +1042,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 			return true, nil, nil
 		})
 
-		deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 		deployment.CreationTimestamp = metav1.Now()
 
@@ -1086,19 +1086,19 @@ func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
 		annotations  map[string]string
 		verifyLabels bool
 	}{
-		{name: "labels and annotations", strategy: appstest.OkStrategy(), labels: map[string]string{"label1": "value1"}, annotations: map[string]string{"annotation1": "value1"}, verifyLabels: true},
-		{name: "custom strategy, no annotations", strategy: appstest.OkCustomStrategy(), labels: map[string]string{"label2": "value2", "label3": "value3"}, verifyLabels: true},
-		{name: "custom strategy, no labels", strategy: appstest.OkCustomStrategy(), annotations: map[string]string{"annotation3": "value3"}, verifyLabels: true},
-		{name: "no overrride", strategy: appstest.OkStrategy(), labels: map[string]string{appsapi.DeployerPodForDeploymentLabel: "ignored"}, verifyLabels: false},
+		{name: "labels and annotations", strategy: appsinternaltest.OkStrategy(), labels: map[string]string{"label1": "value1"}, annotations: map[string]string{"annotation1": "value1"}, verifyLabels: true},
+		{name: "custom strategy, no annotations", strategy: appsinternaltest.OkCustomStrategy(), labels: map[string]string{"label2": "value2", "label3": "value3"}, verifyLabels: true},
+		{name: "custom strategy, no labels", strategy: appsinternaltest.OkCustomStrategy(), annotations: map[string]string{"annotation3": "value3"}, verifyLabels: true},
+		{name: "no overrride", strategy: appsinternaltest.OkStrategy(), labels: map[string]string{appsapi.DeployerPodForDeploymentLabel: "ignored"}, verifyLabels: false},
 	}
 
 	for _, test := range testCases {
 		t.Logf("evaluating test case %s", test.name)
-		config := appstest.OkDeploymentConfig(1)
+		config := appsinternaltest.OkDeploymentConfig(1)
 		config.Spec.Strategy = test.strategy
 		config.Spec.Strategy.Labels = test.labels
 		config.Spec.Strategy.Annotations = test.annotations
-		deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 
 		client := &fake.Clientset{}
 		client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -1129,9 +1129,9 @@ func TestMakeDeployerPod(t *testing.T) {
 	client := &fake.Clientset{}
 	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsutil.MakeDeployment(config)
 	container := controller.makeDeployerContainer(&config.Spec.Strategy)
-	container.Resources = appsinternalutil.CopyApiResourcesToV1Resources(&config.Spec.Strategy.Resources)
+	container.Resources = config.Spec.Strategy.Resources
 	defaultGracePeriod := int64(10)
 	defaultShareProcessNamespace := false
 	maxDeploymentDurationSeconds := appsapi.MaxDeploymentDurationSeconds
