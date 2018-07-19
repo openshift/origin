@@ -144,7 +144,7 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 			continue
 		}
 		if p.Paused {
-			glog.V(5).Infof("Skipping paused build on bc: %s/%s for trigger: %s", bc.Namespace, bc.Name, t)
+			glog.V(5).Infof("Skipping paused build on bc: %s/%s for trigger: %+v", bc.Namespace, bc.Name, t)
 			continue
 		}
 		var from *kapi.ObjectReference

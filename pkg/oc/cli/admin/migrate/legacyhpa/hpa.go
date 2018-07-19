@@ -22,15 +22,15 @@ import (
 var (
 	defaultMigrations = map[metav1.TypeMeta]metav1.TypeMeta{
 		// legacy oapi group
-		{"DeploymentConfig", "v1"}: {"DeploymentConfig", "apps.openshift.io/v1"},
+		{Kind: "DeploymentConfig", APIVersion: "v1"}: {Kind: "DeploymentConfig", APIVersion: "apps.openshift.io/v1"},
 		// legacy oapi group, for the lazy
-		{"DeploymentConfig", ""}: {"DeploymentConfig", "apps.openshift.io/v1"},
+		{Kind: "DeploymentConfig"}: {Kind: "DeploymentConfig", APIVersion: "apps.openshift.io/v1"},
 
 		// webconsole shenaniganry
-		{"DeploymentConfig", "extensions/v1beta1"}:      {"DeploymentConfig", "apps.openshift.io/v1"},
-		{"Deployment", "extensions/v1beta1"}:            {"Deployment", "apps/v1"},
-		{"ReplicaSet", "extensions/v1beta1"}:            {"ReplicaSet", "apps/v1"},
-		{"ReplicationController", "extensions/v1beta1"}: {"ReplicationController", "v1"},
+		{Kind: "DeploymentConfig", APIVersion: "extensions/v1beta1"}:      {Kind: "DeploymentConfig", APIVersion: "apps.openshift.io/v1"},
+		{Kind: "Deployment", APIVersion: "extensions/v1beta1"}:            {Kind: "Deployment", APIVersion: "apps/v1"},
+		{Kind: "ReplicaSet", APIVersion: "extensions/v1beta1"}:            {Kind: "ReplicaSet", APIVersion: "apps/v1"},
+		{Kind: "ReplicationController", APIVersion: "extensions/v1beta1"}: {Kind: "ReplicationController", APIVersion: "v1"},
 	}
 
 	internalMigrateLegacyHPALong = templates.LongDesc(fmt.Sprintf(`

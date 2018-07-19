@@ -362,7 +362,7 @@ func (t *tokenLimiter) getDuration(n int) time.Duration {
 	reservation := t.rateLimiter.ReserveN(now, n)
 	if !reservation.OK() {
 		// this should never happen but we do not want to hang a worker forever
-		glog.Errorf("unable to get rate limited reservation, burst=%d n=%d limiter=%#v", t.burst, n, *t.rateLimiter)
+		glog.Errorf("unable to get rate limited reservation, burst=%d n=%d", t.burst, n)
 		return time.Minute
 	}
 	return reservation.DelayFrom(now)

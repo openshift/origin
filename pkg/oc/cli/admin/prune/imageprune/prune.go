@@ -890,7 +890,7 @@ func (p *pruner) handleImageEvent(event watch.Event) {
 			return
 		}
 		if imgNode != nil {
-			glog.V(4).Infof("Ignoring added Image %s that is already present in the graph", img)
+			glog.V(4).Infof("Ignoring added Image %s that is already present in the graph", img.Name)
 			return
 		}
 		glog.V(4).Infof("Adding new Image %s to the graph", img.Name)
