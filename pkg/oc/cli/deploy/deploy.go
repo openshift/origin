@@ -22,10 +22,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsclient "github.com/openshift/origin/pkg/apps/client/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
@@ -447,7 +447,7 @@ func (o DeployOptions) getLogs(config *appsapi.DeploymentConfig) error {
 	opts := appsapi.DeploymentLogOptions{
 		Follow: true,
 	}
-	logClient := appsinternalclient.NewRolloutLogClient(o.appsClient.RESTClient(), config.Namespace)
+	logClient := appsclient.NewRolloutLogClient(o.appsClient.RESTClient(), config.Namespace)
 	readCloser, err := logClient.Logs(config.Name, opts).Stream()
 	if err != nil {
 		return err
