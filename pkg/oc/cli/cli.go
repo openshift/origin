@@ -249,7 +249,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	templates.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
-	cmds.AddCommand(newExperimentalCommand("ex", name+"ex", f, ioStreams))
+	cmds.AddCommand(newExperimentalCommand("ex", name+" ex", f, ioStreams))
 
 	cmds.AddCommand(kubectlwrappers.NewCmdPlugin(fullName, f, ioStreams))
 	if name == fullName {
