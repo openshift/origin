@@ -1,4 +1,4 @@
-package operator
+package resourcemerge
 
 import (
 	"reflect"
@@ -13,7 +13,7 @@ func TestMergeConfig(t *testing.T) {
 		name         string
 		curr         map[string]interface{}
 		additional   map[string]interface{}
-		specialCases map[string]mergeFunc
+		specialCases map[string]MergeFunc
 
 		expected    map[string]interface{}
 		expectedErr string

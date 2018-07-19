@@ -24,3 +24,27 @@ func ReadClusterRoleBindingV1OrDie(objBytes []byte) *rbacv1.ClusterRoleBinding {
 	}
 	return requiredObj.(*rbacv1.ClusterRoleBinding)
 }
+
+func ReadClusterRoleV1OrDie(objBytes []byte) *rbacv1.ClusterRole{
+	requiredObj, err := runtime.Decode(rbacCodecs.UniversalDecoder(rbacv1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		panic(err)
+	}
+	return requiredObj.(*rbacv1.ClusterRole)
+}
+
+func ReadRoleBindingV1OrDie(objBytes []byte) *rbacv1.RoleBinding {
+	requiredObj, err := runtime.Decode(rbacCodecs.UniversalDecoder(rbacv1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		panic(err)
+	}
+	return requiredObj.(*rbacv1.RoleBinding)
+}
+
+func ReadRoleV1OrDie(objBytes []byte) *rbacv1.Role{
+	requiredObj, err := runtime.Decode(rbacCodecs.UniversalDecoder(rbacv1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		panic(err)
+	}
+	return requiredObj.(*rbacv1.Role)
+}

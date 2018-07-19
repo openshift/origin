@@ -31,6 +31,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		scsClient.ServicecertsignerV1alpha1(),
 		kubeClient.AppsV1(),
 		kubeClient.CoreV1(),
+		kubeClient.RbacV1(),
 	)
 
 	operatorInformers.Start(stopCh)

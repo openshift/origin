@@ -1,5 +1,5 @@
 hash: 7a825a3fb9315325701b51170aad4bedabbaaa546168698d201dea4edb448483
-updated: 2018-07-05T10:07:25.138991608-04:00
+updated: 2018-07-17T08:42:40.351628601-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -74,13 +74,13 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: aaea23fe8f58729c8196c8e7f4f40d12bd0e2135
+  version: 12a230f9f9225237f1a35b86171848da610900bb
   subpackages:
   - config/v1
   - operator/v1alpha1
   - servicecertsigner/v1alpha1
 - name: github.com/openshift/client-go
-  version: 4688ad28de2e88110c0ea30179c51b9b205f99be
+  version: b22949ca0eae046da7611d0d20c8089dcec212d6
   subpackages:
   - servicecertsigner/clientset/versioned
   - servicecertsigner/clientset/versioned/scheme
@@ -91,7 +91,7 @@ imports:
   - servicecertsigner/informers/externalversions/servicecertsigner/v1alpha1
   - servicecertsigner/listers/servicecertsigner/v1alpha1
 - name: github.com/openshift/library-go
-  version: 4bdffb3d6ca083fad9ee9f51d3273d328d349dbc
+  version: d366b6f2e76695de0e702cb9d06767bd517753b0
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -131,7 +131,7 @@ imports:
   subpackages:
   - xfs
 - name: github.com/sirupsen/logrus
-  version: e54a77765aca7bbdd8e56c1c54f60579968b2dc9
+  version: 92052687f8ec598ff0da626d2909478cfd1e3a3c
 - name: github.com/spf13/cobra
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/pflag

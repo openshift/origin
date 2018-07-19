@@ -61,7 +61,7 @@ func (fi bindataFileInfo) Sys() interface{} {
 	return nil
 }
 
-var _v3100ApiserviceCabundleControllerClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1beta1
+var _v3100ApiserviceCabundleControllerClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: system:openshift:controller:apiservice-cabundle-injector
@@ -336,7 +336,7 @@ func v3100ApiserviceCabundleControllerSvcYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3100ServiceServingCertSignerControllerClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1beta1
+var _v3100ServiceServingCertSignerControllerClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: system:openshift:controller:service-serving-cert-signer
