@@ -16190,6 +16190,10 @@ objects:
     - servicebindings/status
     - servicebindings/finalizers
     - serviceinstances/reference
+    # the below resources are for namespaced brokers
+    - servicebrokers/status
+    - serviceclasses/status
+    - serviceplans/status
     verbs:
     - update
   - apiGroups:
@@ -16198,6 +16202,8 @@ objects:
     - clusterservicebrokers
     - serviceinstances
     - servicebindings
+    # for namespaced brokers
+    - servicebrokers
     verbs:
     - list
     - get
@@ -16214,6 +16220,9 @@ objects:
     resources:
     - clusterserviceclasses
     - clusterserviceplans
+    # for namespaced brokers
+    - serviceclasses
+    - serviceplans
     verbs:
     - create
     - delete
