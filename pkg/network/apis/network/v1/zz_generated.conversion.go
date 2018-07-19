@@ -264,6 +264,7 @@ func autoConvert_v1_HostSubnet_To_network_HostSubnet(in *v1.HostSubnet, out *net
 	out.HostIP = in.HostIP
 	out.Subnet = in.Subnet
 	out.EgressIPs = *(*[]string)(unsafe.Pointer(&in.EgressIPs))
+	out.EgressCIDRs = *(*[]string)(unsafe.Pointer(&in.EgressCIDRs))
 	return nil
 }
 
@@ -278,6 +279,7 @@ func autoConvert_network_HostSubnet_To_v1_HostSubnet(in *network.HostSubnet, out
 	out.HostIP = in.HostIP
 	out.Subnet = in.Subnet
 	out.EgressIPs = *(*[]string)(unsafe.Pointer(&in.EgressIPs))
+	out.EgressCIDRs = *(*[]string)(unsafe.Pointer(&in.EgressCIDRs))
 	return nil
 }
 

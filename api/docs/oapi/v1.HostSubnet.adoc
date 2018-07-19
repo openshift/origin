@@ -19,7 +19,9 @@ Expand or mouse-over a field for more information about it.
 ++++
 <pre>
 <div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
-</div><details><summary><span title="(array) EgressIPs is the list of automatic egress IP addresses currently hosted by this node">egressIPs</span>:
+</div><details><summary><span title="(array) EgressCIDRs is the list of CIDR ranges available for automatically assigning egress IPs to this node from. If this field is set then EgressIPs should be treated as read-only.">egressCIDRs</span>:
+</summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
+</div></details><details><summary><span title="(array) EgressIPs is the list of automatic egress IP addresses currently hosted by this node. If EgressCIDRs is empty, this can be set by hand; if EgressCIDRs is set then the master will overwrite the value here with its own allocation of egress IPs.">egressIPs</span>:
 </summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
 </div></details><div style="margin-left:13px;"><span title="(string) Host is the name of the node. (This is the same as the object&#39;s name, but both fields must be set.)">host</span>:
 </div><div style="margin-left:13px;"><span title="(string) HostIP is the IP address to be used as a VTEP by other nodes in the overlay network">hostIP</span>:
