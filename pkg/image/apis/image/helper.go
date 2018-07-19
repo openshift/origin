@@ -16,6 +16,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/golang/glog"
 
+	"github.com/openshift/api/image"
 	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
@@ -606,9 +607,9 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 			Image:                event.Image,
 		}, nil
 	case 0:
-		return nil, kerrors.NewNotFound(Resource("imagestreamimage"), imageID)
+		return nil, kerrors.NewNotFound(image.Resource("imagestreamimage"), imageID)
 	default:
-		return nil, kerrors.NewConflict(Resource("imagestreamimage"), imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+		return nil, kerrors.NewConflict(image.Resource("imagestreamimage"), imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
 	}
 }
 

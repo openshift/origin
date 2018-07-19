@@ -20,12 +20,12 @@ import (
 
 	projectapiv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -98,7 +98,7 @@ func TestFrontProxy(t *testing.T) {
 		&authorizationapi.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{Name: listProjectsRoleName},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("list").Groups(projectapi.LegacyGroupName).Resources("projects").RuleOrDie(),
+				authorizationapi.NewRule("list").Groups(legacy.GroupName).Resources("projects").RuleOrDie(),
 			},
 		},
 	); err != nil {

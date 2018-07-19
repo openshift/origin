@@ -7,7 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	"github.com/openshift/api/template"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/db"
 	testutil "github.com/openshift/origin/test/util"
@@ -72,7 +72,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 		// up prior to the AfterEach processing, to guaranteed deletion order
 		defer cleanup()
 
-		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
+		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", template.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)

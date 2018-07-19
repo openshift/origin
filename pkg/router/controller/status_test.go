@@ -102,7 +102,7 @@ func (l routeNamespaceLister) Get(name string) (*routeapi.Route, error) {
 			return item, nil
 		}
 	}
-	return nil, errors.NewNotFound(routeapi.Resource("route"), name)
+	return nil, errors.NewNotFound(route.Resource("route"), name)
 }
 
 type recorded struct {

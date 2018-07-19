@@ -16,6 +16,8 @@ import (
 
 	oapps "github.com/openshift/api/apps"
 	"github.com/openshift/api/build"
+	"github.com/openshift/api/route"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -150,16 +152,16 @@ func checkRouteReadiness(obj runtime.Object) (bool, bool, error) {
 // readinessCheckers maps GroupKinds to the appropriate function.  Note that in
 // some cases more than one GK maps to the same function.
 var readinessCheckers = map[schema.GroupKind]func(runtime.Object) (bool, bool, error){
-	build.Kind("Build"):                   checkBuildReadiness,
-	apps.Kind("Deployment"):               checkDeploymentReadiness,
-	extensions.Kind("Deployment"):         checkDeploymentReadiness,
-	oapps.Kind("DeploymentConfig"):        checkDeploymentConfigReadiness,
-	batch.Kind("Job"):                     checkJobReadiness,
-	apps.Kind("StatefulSet"):              checkStatefulSetReadiness,
-	routeapi.Kind("Route"):                checkRouteReadiness,
-	{Group: "", Kind: "Build"}:            checkBuildReadiness,
-	{Group: "", Kind: "DeploymentConfig"}: checkDeploymentConfigReadiness,
-	{Group: "", Kind: "Route"}:            checkRouteReadiness,
+	build.Kind("Build"):             checkBuildReadiness,
+	apps.Kind("Deployment"):         checkDeploymentReadiness,
+	extensions.Kind("Deployment"):   checkDeploymentReadiness,
+	oapps.Kind("DeploymentConfig"):  checkDeploymentConfigReadiness,
+	batch.Kind("Job"):               checkJobReadiness,
+	apps.Kind("StatefulSet"):        checkStatefulSetReadiness,
+	route.Kind("Route"):             checkRouteReadiness,
+	legacy.Kind("Build"):            checkBuildReadiness,
+	legacy.Kind("DeploymentConfig"): checkDeploymentConfigReadiness,
+	legacy.Kind("Route"):            checkRouteReadiness,
 }
 
 // CanCheckReadiness indicates whether a readiness check exists for a GK.

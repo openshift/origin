@@ -21,6 +21,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
+	"github.com/openshift/api/image"
 	oauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/image/admission"
 	admfake "github.com/openshift/origin/pkg/image/admission/fake"
@@ -398,7 +399,7 @@ func TestLimitVerifier(t *testing.T) {
 
 		err := fmt.Errorf("exceeded %s", strings.Join(exceededStrings, ","))
 
-		return kapierrors.NewForbidden(imageapi.Resource("ImageStream"), isName, err)
+		return kapierrors.NewForbidden(image.Resource("ImageStream"), isName, err)
 	}
 
 	makeISEvaluator := func(maxImages, maxImageTags int64) func(string, *imageapi.ImageStream) error {

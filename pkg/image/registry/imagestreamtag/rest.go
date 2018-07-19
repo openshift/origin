@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	imagegroup "github.com/openshift/api/image"
 	oapi "github.com/openshift/origin/pkg/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
@@ -175,7 +176,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		// The user wants to symlink a tag.
 		_, exists := target.Spec.Tags[imageTag]
 		if exists {
-			return nil, kapierrors.NewAlreadyExists(imageapi.Resource("imagestreamtag"), istag.Name)
+			return nil, kapierrors.NewAlreadyExists(imagegroup.Resource("imagestreamtag"), istag.Name)
 		}
 		if istag.Tag != nil {
 			target.Spec.Tags[imageTag] = *istag.Tag
@@ -199,7 +200,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	}
 	// We tried to update resource, but we kept conflicting. Inform the client that we couldn't complete
 	// the operation but that they may try again.
-	return nil, kapierrors.NewServerTimeout(imageapi.Resource("imagestreamtags"), "create", 2)
+	return nil, kapierrors.NewServerTimeout(imagegroup.Resource("imagestreamtags"), "create", 2)
 }
 
 func (r *REST) Update(ctx context.Context, tagName string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
@@ -251,10 +252,10 @@ func (r *REST) Update(ctx context.Context, tagName string, objInfo rest.UpdatedO
 		istag.ResourceVersion = imageStream.ResourceVersion
 	case len(imageStream.ResourceVersion) == 0:
 		// image stream did not exist, cannot update
-		return nil, false, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), tagName)
+		return nil, false, kapierrors.NewNotFound(imagegroup.Resource("imagestreamtags"), tagName)
 	case imageStream.ResourceVersion != istag.ResourceVersion:
 		// conflicting input and output
-		return nil, false, kapierrors.NewConflict(imageapi.Resource("imagestreamtags"), istag.Name, fmt.Errorf("another caller has updated the resource version to %s", imageStream.ResourceVersion))
+		return nil, false, kapierrors.NewConflict(imagegroup.Resource("imagestreamtags"), istag.Name, fmt.Errorf("another caller has updated the resource version to %s", imageStream.ResourceVersion))
 	}
 
 	// When we began returning image stream labels in 3.6, old clients that didn't need to send labels would be
@@ -336,7 +337,7 @@ func (r *REST) Delete(ctx context.Context, id string, options *metav1.DeleteOpti
 		if options != nil {
 			if pre := options.Preconditions; pre != nil {
 				if pre.UID != nil && *pre.UID != stream.UID {
-					return nil, false, kapierrors.NewConflict(imageapi.Resource("imagestreamtags"), id, fmt.Errorf("the UID precondition was not met"))
+					return nil, false, kapierrors.NewConflict(imagegroup.Resource("imagestreamtags"), id, fmt.Errorf("the UID precondition was not met"))
 				}
 			}
 		}
@@ -356,7 +357,7 @@ func (r *REST) Delete(ctx context.Context, id string, options *metav1.DeleteOpti
 		}
 
 		if notFound {
-			return nil, false, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), id)
+			return nil, false, kapierrors.NewNotFound(imagegroup.Resource("imagestreamtags"), id)
 		}
 
 		_, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream)
@@ -370,14 +371,14 @@ func (r *REST) Delete(ctx context.Context, id string, options *metav1.DeleteOpti
 	}
 	// We tried to update resource, but we kept conflicting. Inform the client that we couldn't complete
 	// the operation but that they may try again.
-	return nil, false, kapierrors.NewServerTimeout(imageapi.Resource("imagestreamtags"), "delete", 2)
+	return nil, false, kapierrors.NewServerTimeout(imagegroup.Resource("imagestreamtags"), "delete", 2)
 }
 
 // imageFor retrieves the most recent image for a tag in a given imageStreem.
 func (r *REST) imageFor(ctx context.Context, tag string, imageStream *imageapi.ImageStream) (*imageapi.Image, error) {
 	event := imageapi.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
-		return nil, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), imageapi.JoinImageStreamTag(imageStream.Name, tag))
+		return nil, kapierrors.NewNotFound(imagegroup.Resource("imagestreamtags"), imageapi.JoinImageStreamTag(imageStream.Name, tag))
 	}
 
 	return r.imageRegistry.GetImage(ctx, event.Image, &metav1.GetOptions{})
@@ -392,7 +393,7 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 	if event == nil || len(event.Image) == 0 {
 		if !allowEmptyEvent {
 			glog.V(4).Infof("did not find tag %s in image stream status tags: %#v", tag, imageStream.Status.Tags)
-			return nil, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), istagName)
+			return nil, kapierrors.NewNotFound(imagegroup.Resource("imagestreamtags"), istagName)
 		}
 		event = &imageapi.TagEvent{
 			Created: imageStream.CreationTimestamp,

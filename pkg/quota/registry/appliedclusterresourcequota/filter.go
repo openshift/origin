@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/quota"
 	oapi "github.com/openshift/origin/pkg/api"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -61,7 +62,7 @@ func (r *AppliedClusterResourceQuotaREST) Get(ctx context.Context, name string, 
 	quotaNames, _ := r.quotaMapper.GetClusterQuotasFor(namespace)
 	quotaNamesSet := sets.NewString(quotaNames...)
 	if !quotaNamesSet.Has(name) {
-		return nil, kapierrors.NewNotFound(quotaapi.Resource("appliedclusterresourcequota"), name)
+		return nil, kapierrors.NewNotFound(quota.Resource("appliedclusterresourcequota"), name)
 	}
 
 	clusterQuota, err := r.quotaLister.Get(name)

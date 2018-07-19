@@ -11,6 +11,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	"github.com/openshift/api/image"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -238,7 +239,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 		fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if test.notFound {
 				name := action.(clientgotesting.GetAction).GetName()
-				return true, nil, errors.NewNotFound(imageapi.Resource("ImageStream"), name)
+				return true, nil, errors.NewNotFound(image.Resource("ImageStream"), name)
 			}
 			stream := fakeStream(appstest.ImageStreamName, imageapi.DefaultImageTag, appstest.DockerImageReference, appstest.ImageID)
 			return true, stream, nil

@@ -8,8 +8,9 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/registry/image"
+	imageregistry "github.com/openshift/origin/pkg/image/registry/image"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -26,13 +27,13 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &imageapi.Image{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageList{} },
-		DefaultQualifiedResource: imageapi.Resource("images"),
+		DefaultQualifiedResource: image.Resource("images"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 
-		CreateStrategy: image.Strategy,
-		UpdateStrategy: image.Strategy,
-		DeleteStrategy: image.Strategy,
+		CreateStrategy: imageregistry.Strategy,
+		UpdateStrategy: imageregistry.Strategy,
+		DeleteStrategy: imageregistry.Strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter}

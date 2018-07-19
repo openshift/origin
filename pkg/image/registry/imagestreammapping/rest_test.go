@@ -25,6 +25,7 @@ import (
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imagegroup "github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
 	admfake "github.com/openshift/origin/pkg/image/admission/fake"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -648,7 +649,7 @@ func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 				// image stream whose tags haven't changed.
 				if firstUpdate {
 					firstUpdate = false
-					return nil, errors.NewConflict(imageapi.Resource("imagestreams"), repo.Name, fmt.Errorf("resource modified"))
+					return nil, errors.NewConflict(imagegroup.Resource("imagestreams"), repo.Name, fmt.Errorf("resource modified"))
 				}
 				return repo, nil
 			},
@@ -703,7 +704,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 				// get/compare is retried.
 				if firstUpdate {
 					firstUpdate = false
-					return nil, errors.NewConflict(imageapi.Resource("imagestreams"), repo.Name, fmt.Errorf("resource modified"))
+					return nil, errors.NewConflict(imagegroup.Resource("imagestreams"), repo.Name, fmt.Errorf("resource modified"))
 				}
 				return repo, nil
 			},

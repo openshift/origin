@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	"github.com/openshift/api/security"
 	allocator "github.com/openshift/origin/pkg/security"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
@@ -57,7 +58,7 @@ func authorizedForSCC(constraint *securityapi.SecurityContextConstraints, info u
 		Verb:            "use",
 		Namespace:       namespace,
 		Name:            constraint.Name,
-		APIGroup:        securityapi.GroupName,
+		APIGroup:        security.GroupName,
 		Resource:        "securitycontextconstraints",
 		ResourceRequest: true,
 	}

@@ -5,6 +5,7 @@ import (
 	kerrutil "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/api/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -35,7 +36,7 @@ func (v *limitVerifier) VerifyLimits(namespace string, is *imageapi.ImageStream)
 
 	usage := GetImageStreamUsage(is)
 	if err := verifyImageStreamUsage(usage, limits); err != nil {
-		return kapierrors.NewForbidden(imageapi.Resource("ImageStream"), is.Name, err)
+		return kapierrors.NewForbidden(image.Resource("ImageStream"), is.Name, err)
 	}
 	return nil
 }

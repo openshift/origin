@@ -19,7 +19,9 @@ import (
 
 	oapps "github.com/openshift/api/apps"
 	appsapiv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/api/security"
 	securityapiv1 "github.com/openshift/api/security/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -62,15 +64,15 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),
 	apps.Resource("statefulsets"):      apps.Kind("StatefulSet"),
 
-	{Group: "", Resource: "deploymentconfigs"}:                   {Group: "", Kind: "DeploymentConfig"},
-	{Group: "", Resource: "podsecuritypolicysubjectreviews"}:     {Group: "", Kind: "PodSecurityPolicySubjectReview"},
-	{Group: "", Resource: "podsecuritypolicyselfsubjectreviews"}: {Group: "", Kind: "PodSecurityPolicySelfSubjectReview"},
-	{Group: "", Resource: "podsecuritypolicyreviews"}:            {Group: "", Kind: "PodSecurityPolicyReview"},
+	legacy.Resource("deploymentconfigs"):                   legacy.Kind("DeploymentConfig"),
+	legacy.Resource("podsecuritypolicysubjectreviews"):     legacy.Kind("PodSecurityPolicySubjectReview"),
+	legacy.Resource("podsecuritypolicyselfsubjectreviews"): legacy.Kind("PodSecurityPolicySelfSubjectReview"),
+	legacy.Resource("podsecuritypolicyreviews"):            legacy.Kind("PodSecurityPolicyReview"),
 
-	oapps.Resource("deploymentconfigs"):                         oapps.Kind("DeploymentConfig"),
-	securityapi.Resource("podsecuritypolicysubjectreviews"):     securityapi.Kind("PodSecurityPolicySubjectReview"),
-	securityapi.Resource("podsecuritypolicyselfsubjectreviews"): securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
-	securityapi.Resource("podsecuritypolicyreviews"):            securityapi.Kind("PodSecurityPolicyReview"),
+	oapps.Resource("deploymentconfigs"):                      oapps.Kind("DeploymentConfig"),
+	security.Resource("podsecuritypolicysubjectreviews"):     security.Kind("PodSecurityPolicySubjectReview"),
+	security.Resource("podsecuritypolicyselfsubjectreviews"): security.Kind("PodSecurityPolicySelfSubjectReview"),
+	security.Resource("podsecuritypolicyreviews"):            security.Kind("PodSecurityPolicyReview"),
 }
 
 // HasPodSpec returns true if the resource is known to have a pod spec.

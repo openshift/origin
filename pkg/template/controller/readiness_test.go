@@ -22,6 +22,7 @@ import (
 	fakebuild "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 
+	"github.com/openshift/api/route"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	_ "github.com/openshift/origin/pkg/route/apis/route/install"
 )
@@ -239,7 +240,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: routeapi.Kind("Route"),
+			groupKind: route.Kind("Route"),
 			object: &routeapi.Route{
 				Spec: routeapi.RouteSpec{
 					Host: "",
@@ -248,7 +249,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: false,
 		},
 		{
-			groupKind: routeapi.Kind("Route"),
+			groupKind: route.Kind("Route"),
 			object: &routeapi.Route{
 				Spec: routeapi.RouteSpec{
 					Host: "app.example.com",
@@ -257,7 +258,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: schema.GroupKind{Group: "route.openshift.io", Kind: "Route"},
+			groupKind: route.Kind("Route"),
 			object: &routeapi.Route{
 				Spec: routeapi.RouteSpec{
 					Host: "",
@@ -266,7 +267,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: false,
 		},
 		{
-			groupKind: schema.GroupKind{Group: "route.openshift.io", Kind: "Route"},
+			groupKind: route.Kind("Route"),
 			object: &routeapi.Route{
 				Spec: routeapi.RouteSpec{
 					Host: "app.example.com",

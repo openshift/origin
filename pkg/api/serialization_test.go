@@ -544,7 +544,7 @@ func TestSpecificKind(t *testing.T) {
 }
 
 var dockerImageTypes = map[schema.GroupVersionKind]bool{
-	image.SchemeGroupVersion.WithKind("DockerImage"): true,
+	image.GroupVersion.WithKind("DockerImage"): true,
 }
 
 // TestRoundTripTypes applies the round-trip test to all round-trippable Kinds

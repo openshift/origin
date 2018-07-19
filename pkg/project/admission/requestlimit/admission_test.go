@@ -14,6 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	"github.com/openshift/api/project"
 	userapi "github.com/openshift/api/user/v1"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -285,10 +286,10 @@ func TestAdmit(t *testing.T) {
 		err = reqLimit.(admission.MutationInterface).Admit(admission.NewAttributesRecord(
 			&projectapi.ProjectRequest{},
 			nil,
-			projectapi.Kind("ProjectRequest").WithVersion("version"),
+			project.Kind("ProjectRequest").WithVersion("version"),
 			"foo",
 			"name",
-			projectapi.Resource("projectrequests").WithVersion("version"),
+			project.Resource("projectrequests").WithVersion("version"),
 			"",
 			"CREATE",
 			&user.DefaultInfo{Name: tc.user}))

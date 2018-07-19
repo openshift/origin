@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/template"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/registry/templateinstance"
@@ -32,7 +33,7 @@ func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationint
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &templateapi.TemplateInstance{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.TemplateInstanceList{} },
-		DefaultQualifiedResource: templateapi.Resource("templateinstances"),
+		DefaultQualifiedResource: template.Resource("templateinstances"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

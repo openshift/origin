@@ -198,7 +198,7 @@ func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.Cluster
 	case UserInfo:
 		return []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("get").
-				Groups(userapi.GroupName, userapi.LegacyGroupName).
+				Groups(userapi.GroupName, legacy.GroupName).
 				Resources("users").
 				Names("~").
 				RuleOrDie(),
@@ -217,14 +217,14 @@ func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.Cluster
 	case UserListScopedProjects:
 		return []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("list", "watch").
-				Groups(projectapi.GroupName, projectapi.LegacyGroupName).
+				Groups(projectapi.GroupName, legacy.GroupName).
 				Resources("projects").
 				RuleOrDie(),
 		}, nil
 	case UserListAllProjects:
 		return []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("list", "watch").
-				Groups(projectapi.GroupName, projectapi.LegacyGroupName).
+				Groups(projectapi.GroupName, legacy.GroupName).
 				Resources("projects").
 				RuleOrDie(),
 			rbacv1helpers.NewRule("get").

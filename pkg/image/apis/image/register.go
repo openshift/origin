@@ -12,6 +12,7 @@ const (
 )
 
 var (
+	GroupVersion             = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
 
@@ -22,22 +23,9 @@ var (
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
-// Kind takes an unqualified kind and returns back a Group qualified GroupKind
-func Kind(kind string) schema.GroupKind {
-	return SchemeGroupVersion.WithKind(kind).GroupKind()
-}
-
-func LegacyKind(kind string) schema.GroupKind {
-	return LegacySchemeGroupVersion.WithKind(kind).GroupKind()
-}
-
 // Resource takes an unqualified resource and returns back a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}
-
-func LegacyResource(resource string) schema.GroupResource {
-	return LegacySchemeGroupVersion.WithResource(resource).GroupResource()
+	return GroupVersion.WithResource(resource).GroupResource()
 }
 
 // Adds the list of known types to api.Scheme.
@@ -61,7 +49,7 @@ func addLegacyKnownTypes(scheme *runtime.Scheme) error {
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&Image{},
 		&ImageList{},
 		&DockerImage{},

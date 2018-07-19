@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/quota"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
@@ -34,7 +35,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
 		NewListFunc:              func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
-		DefaultQualifiedResource: quotaapi.Resource("clusterresourcequotas"),
+		DefaultQualifiedResource: quota.Resource("clusterresourcequotas"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/security"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -22,7 +23,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &securityapi.RangeAllocation{} },
 		NewListFunc:              func() runtime.Object { return &securityapi.RangeAllocationList{} },
-		DefaultQualifiedResource: securityapi.Resource("rangeallocations"),
+		DefaultQualifiedResource: security.Resource("rangeallocations"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

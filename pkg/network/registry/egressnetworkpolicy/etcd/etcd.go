@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/registry/egressnetworkpolicy"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
@@ -26,7 +27,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &networkapi.EgressNetworkPolicy{} },
 		NewListFunc:              func() runtime.Object { return &networkapi.EgressNetworkPolicyList{} },
-		DefaultQualifiedResource: networkapi.Resource("egressnetworkpolicies"),
+		DefaultQualifiedResource: network.Resource("egressnetworkpolicies"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

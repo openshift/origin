@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
+	"github.com/openshift/api/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	"github.com/openshift/origin/pkg/template/generator"
@@ -50,7 +51,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		return nil, errors.NewBadRequest("not a template")
 	}
 	if errs := templatevalidation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
-		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+		return nil, errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
 	}
 
 	generators := map[string]generator.Generator{
@@ -59,7 +60,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	processor := templateprocessing.NewProcessor(generators)
 	if errs := processor.Process(tpl); len(errs) > 0 {
 		glog.V(1).Infof(errs.ToAggregate().Error())
-		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+		return nil, errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
 	}
 
 	// we know that we get back runtime.Unstructured objects from the Process call.  We need to encode those

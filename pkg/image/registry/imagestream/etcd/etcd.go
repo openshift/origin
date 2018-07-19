@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/image"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
@@ -53,7 +54,7 @@ func NewREST(
 	store := registry.Store{
 		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageStreamList{} },
-		DefaultQualifiedResource: imageapi.Resource("imagestreams"),
+		DefaultQualifiedResource: image.Resource("imagestreams"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}

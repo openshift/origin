@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/oauth"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -29,7 +30,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthAuthorizeToken{} },
 		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthAuthorizeTokenList{} },
-		DefaultQualifiedResource: oauthapi.Resource("oauthauthorizetokens"),
+		DefaultQualifiedResource: oauth.Resource("oauthauthorizetokens"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

@@ -19,6 +19,7 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
 
+	"github.com/openshift/api/project"
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -86,7 +87,7 @@ func (s *REST) NamespaceScoped() bool {
 func (s *REST) List(ctx context.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
-		return nil, kerrors.NewForbidden(projectapi.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
+		return nil, kerrors.NewForbidden(project.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
 	namespaceList, err := s.lister.List(user)
 	if err != nil {
@@ -142,20 +143,20 @@ var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
 func (s *REST) Create(ctx context.Context, obj runtime.Object, creationValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
-	project, ok := obj.(*projectapi.Project)
+	projectObj, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
-	rest.FillObjectMetaSystemFields(&project.ObjectMeta)
+	rest.FillObjectMetaSystemFields(&projectObj.ObjectMeta)
 	s.createStrategy.PrepareForCreate(ctx, obj)
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
-		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
+		return nil, kerrors.NewInvalid(project.Kind("Project"), projectObj.Name, errs)
 	}
-	if err := creationValidation(project.DeepCopyObject()); err != nil {
+	if err := creationValidation(projectObj.DeepCopyObject()); err != nil {
 		return nil, err
 	}
 
-	namespace, err := s.client.Create(projectutil.ConvertProject(project))
+	namespace, err := s.client.Create(projectutil.ConvertProject(projectObj))
 	if err != nil {
 		return nil, err
 	}
@@ -175,20 +176,20 @@ func (s *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObje
 		return nil, false, err
 	}
 
-	project, ok := obj.(*projectapi.Project)
+	projectObj, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, false, fmt.Errorf("not a project: %#v", obj)
 	}
 
 	s.updateStrategy.PrepareForUpdate(ctx, obj, oldObj)
 	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
-		return nil, false, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
+		return nil, false, kerrors.NewInvalid(project.Kind("Project"), projectObj.Name, errs)
 	}
 	if err := updateValidation(obj.DeepCopyObject(), oldObj.DeepCopyObject()); err != nil {
 		return nil, false, err
 	}
 
-	namespace, err := s.client.Update(projectutil.ConvertProject(project))
+	namespace, err := s.client.Update(projectutil.ConvertProject(projectObj))
 	if err != nil {
 		return nil, false, err
 	}

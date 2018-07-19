@@ -13,6 +13,7 @@ import (
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
+	"github.com/openshift/api/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
@@ -45,7 +46,7 @@ func (i *imageStreamTagEvaluator) Constraints(required []kapi.ResourceName, obje
 }
 
 func (i *imageStreamTagEvaluator) GroupResource() schema.GroupResource {
-	return imageapi.Resource("imagestreamtags")
+	return image.Resource("imagestreamtags")
 }
 
 func (i *imageStreamTagEvaluator) Handles(a kadmission.Attributes) bool {

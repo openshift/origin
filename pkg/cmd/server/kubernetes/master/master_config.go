@@ -84,10 +84,10 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/version"
 
 	// TODO fix this install, it is required for TestPreferredGroupVersions to pass
+	"github.com/openshift/api/security"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 )
 
@@ -249,7 +249,7 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 	storageFactory.AddCohabitatingResources(apps.Resource("daemonsets"), extensions.Resource("daemonsets"))
 	storageFactory.AddCohabitatingResources(apps.Resource("replicasets"), extensions.Resource("replicasets"))
 	storageFactory.AddCohabitatingResources(networking.Resource("networkpolicies"), extensions.Resource("networkpolicies"))
-	storageFactory.AddCohabitatingResources(securityapi.Resource("securitycontextconstraints"), kapi.Resource("securitycontextconstraints"))
+	storageFactory.AddCohabitatingResources(security.Resource("securitycontextconstraints"), kapi.Resource("securitycontextconstraints"))
 	// TODO: switch to prefer policy API group in 3.11
 	storageFactory.AddCohabitatingResources(extensions.Resource("podsecuritypolicies"), policy.Resource("podsecuritypolicies"))
 

@@ -28,6 +28,7 @@ import (
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 
+	"github.com/openshift/api/project"
 	projectapiv1 "github.com/openshift/api/project/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
@@ -115,17 +116,17 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	projectRequest := obj.(*projectapi.ProjectRequest)
 	for _, s := range ForbiddenNames {
 		if projectRequest.Name == s {
-			return nil, kapierror.NewForbidden(projectapi.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project with the name %q", s))
+			return nil, kapierror.NewForbidden(project.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project with the name %q", s))
 		}
 	}
 	for _, s := range ForbiddenPrefixes {
 		if strings.HasPrefix(projectRequest.Name, s) {
-			return nil, kapierror.NewForbidden(projectapi.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project starting with %q", s))
+			return nil, kapierror.NewForbidden(project.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project starting with %q", s))
 		}
 	}
 
 	if _, err := r.projectGetter.Projects().Get(projectRequest.Name, metav1.GetOptions{}); err == nil {
-		return nil, kapierror.NewAlreadyExists(projectapi.Resource("project"), projectRequest.Name)
+		return nil, kapierror.NewAlreadyExists(project.Resource("project"), projectRequest.Name)
 	}
 
 	projectName := projectRequest.Name
@@ -307,7 +308,7 @@ func (r *REST) List(ctx context.Context, options *metainternal.ListOptions) (run
 		return &metav1.Status{Status: metav1.StatusSuccess}, nil
 	}
 
-	forbiddenError := kapierror.NewForbidden(projectapi.Resource("projectrequest"), "", errors.New("you may not request a new project via this API."))
+	forbiddenError := kapierror.NewForbidden(project.Resource("projectrequest"), "", errors.New("you may not request a new project via this API."))
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
 		forbiddenError.ErrStatus.Details = &metav1.StatusDetails{

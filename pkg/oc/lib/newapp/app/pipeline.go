@@ -18,6 +18,8 @@ import (
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/api/build"
+	"github.com/openshift/api/image"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -487,7 +489,7 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	if !(imageapi.Kind("ImageStream") == gk || imageapi.LegacyKind("ImageStream") == gk) {
+	if !(image.Kind("ImageStream") == gk || legacy.Kind("ImageStream") == gk) {
 		return true
 	}
 	is, ok := from.(*imageapi.ImageStream)
@@ -532,7 +534,7 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	if !(imageapi.Kind("ImageStreamTag") == gk || imageapi.LegacyKind("ImageStreamTag") == gk) {
+	if !(image.Kind("ImageStreamTag") == gk || legacy.Kind("ImageStreamTag") == gk) {
 		return true
 	}
 	ist, ok := from.(*imageapi.ImageStreamTag)
@@ -586,7 +588,7 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	return build.Kind("BuildConfig") == gk || imageapi.Kind("ImageStream") == gk
+	return build.Kind("BuildConfig") == gk || image.Kind("ImageStream") == gk
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects

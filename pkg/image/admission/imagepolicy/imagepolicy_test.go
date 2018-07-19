@@ -20,6 +20,7 @@ import (
 	kapiextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	"github.com/openshift/api/image"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
@@ -106,7 +107,7 @@ func TestDefaultPolicy(t *testing.T) {
 		case badImage.Name:
 			return true, badImage, nil
 		default:
-			return true, nil, kerrors.NewNotFound(imageapi.Resource("images"), name)
+			return true, nil, kerrors.NewNotFound(image.Resource("images"), name)
 		}
 	})
 	client.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -117,7 +118,7 @@ func TestDefaultPolicy(t *testing.T) {
 		case badTag.Name:
 			return true, badTag, nil
 		default:
-			return true, nil, kerrors.NewNotFound(imageapi.Resource("imagestreamtags"), name)
+			return true, nil, kerrors.NewNotFound(image.Resource("imagestreamtags"), name)
 		}
 	})
 

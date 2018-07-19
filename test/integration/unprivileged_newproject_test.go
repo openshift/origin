@@ -22,6 +22,7 @@ import (
 
 	// make sure all generated clients compile
 	// these are only here because it's the spot I chose to use a generated clientset for a test
+	"github.com/openshift/api/project"
 	_ "github.com/openshift/client-go/apps/clientset/versioned"
 	_ "github.com/openshift/client-go/authorization/clientset/versioned"
 	_ "github.com/openshift/client-go/build/clientset/versioned"
@@ -237,7 +238,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	valerieProjectClient := projectclient.NewForConfigOrDie(valerieClientConfig)
 	valerieKubeClient := kclientset.NewForConfigOrDie(valerieClientConfig)
 
-	if err := testutil.WaitForClusterPolicyUpdate(valerieKubeClient.Authorization(), "create", projectapi.Resource("projectrequests"), false); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(valerieKubeClient.Authorization(), "create", project.Resource("projectrequests"), false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
