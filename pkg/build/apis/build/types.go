@@ -514,6 +514,9 @@ const (
 	// range of build failures.
 	StatusReasonGenericBuildFailed StatusReason = "GenericBuildFailed"
 
+	// StatusReasonOutOfMemoryKilled indicates that the build pod was killed for its memory consumption
+	StatusReasonOutOfMemoryKilled StatusReason = "OutOfMemoryKilled"
+
 	// StatusCannotRetrieveServiceAccount is the reason associated with a failure
 	// to look up the service account associated with the BuildConfig.
 	StatusReasonCannotRetrieveServiceAccount StatusReason = "CannotRetrieveServiceAccount"
@@ -540,6 +543,7 @@ const (
 	StatusMessageNoBuildContainerStatus          = "The pod for this build has no container statuses indicating success or failure."
 	StatusMessageFailedContainer                 = "The pod for this build has at least one container with a non-zero exit status."
 	StatusMessageGenericBuildFailed              = "Generic Build failure - check logs for details."
+	StatusMessageOutOfMemoryKilled               = "The build pod was killed due to an out of memory condition."
 	StatusMessageUnresolvableEnvironmentVariable = "Unable to resolve build environment variable reference."
 	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account secrets for this build."
 )
