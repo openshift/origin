@@ -456,7 +456,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig) (str
 	if masterConfig.EtcdConfig != nil && len(masterConfig.EtcdConfig.StorageDir) > 0 {
 		os.RemoveAll(masterConfig.EtcdConfig.StorageDir)
 	}
-	if err := start.NewMaster(masterConfig, true /* always needed for cluster role aggregation */, true).Start(); err != nil {
+	if err := start.NewMaster(masterConfig, true /* always needed for cluster role aggregation */, true, true).Start(); err != nil {
 		return "", err
 	}
 	adminKubeConfigFile := util.KubeConfigPath()
