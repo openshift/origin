@@ -94,7 +94,8 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
 				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 			},
-			SeccompProfiles: []string{"*"},
+			SeccompProfiles:      []string{"*"},
+			AllowedUnsafeSysctls: []string{"*"},
 		},
 		// SecurityContextConstraintNonRoot does not allow host access, allocates SELinux labels
 		// and allows the user to request a specific UID or provide the default in the dockerfile.
