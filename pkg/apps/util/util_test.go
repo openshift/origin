@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"

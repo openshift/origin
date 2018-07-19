@@ -29,7 +29,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
