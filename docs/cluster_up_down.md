@@ -31,7 +31,7 @@ OpenShift officially supports the following versions of Docker:
 
 | OpenShift Version | Docker Version |
 | ----------------- | -------------- |
-| 3.9 | 1.13 |
+| 3.9 | >=1.22 |
 | 3.6-3.7 | 1.12 |
 | 1.4-1.5 | 1.12 |
 | 1.3 | 1.10 |
