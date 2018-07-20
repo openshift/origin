@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -707,7 +708,31 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 		}
 	}
 
+	stopProgress := progress(out)
+	defer stopProgress()
 	return client.InstantiateBinary(options.Name, options, r)
+}
+
+func progress(out io.Writer) func() {
+	stop := make(chan bool)
+	done := make(chan bool)
+	go func() {
+		tick := time.Tick(5 * time.Second)
+		for {
+			select {
+			case <-tick:
+				fmt.Fprintf(out, ".")
+			case <-stop:
+				fmt.Fprintf(out, "\nUploading finished\n")
+				done <- true
+				return
+			}
+		}
+	}()
+	return func() {
+		stop <- true
+		<-done
+	}
 }
 
 func isArchive(r *bufio.Reader) bool {
