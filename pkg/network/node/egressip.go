@@ -5,8 +5,10 @@ package node
 import (
 	"fmt"
 	"net"
+	"os/exec"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -154,6 +156,17 @@ func (eip *egressIPWatcher) assignEgressIP(egressIP, mark string) error {
 			return fmt.Errorf("could not add egress IP %q to %s: %v", egressIPNet, eip.localEgressLink.Attrs().Name, err)
 		}
 	}
+	// Use arping to try to update other hosts ARP caches, in case this IP was
+	// previously active on another node. (Based on code from "ifup".)
+	go func() {
+		out, err := exec.Command("/sbin/arping", "-q", "-A", "-c", "1", "-I", eip.localEgressLink.Attrs().Name, egressIP).CombinedOutput()
+		if err != nil {
+			glog.Warning("Failed to send ARP claim for egress IP %q: %v (%s)", egressIP, err, string(out))
+			return
+		}
+		time.Sleep(2 * time.Second)
+		_ = exec.Command("/sbin/arping", "-q", "-U", "-c", "1", "-I", eip.localEgressLink.Attrs().Name, egressIP).Run()
+	}()
 
 	if err := eip.iptables.AddEgressIPRules(egressIP, mark); err != nil {
 		return fmt.Errorf("could not add egress IP iptables rule: %v", err)
