@@ -406,6 +406,39 @@ func TestValidateHostSubnet(t *testing.T) {
 			expectedErrors: 2,
 		},
 		{
+			name: "Good one with EgressCIDRs",
+			hs: &networkapi.HostSubnet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc.def.com",
+				},
+				Host:   "abc.def.com",
+				HostIP: "10.20.30.40",
+				Subnet: "8.8.8.0/24",
+				EgressCIDRs: []string{
+					"192.168.1.99/32",
+					"192.168.2.0/24",
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Malformed EgressCIDRs",
+			hs: &networkapi.HostSubnet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc.def.com",
+				},
+				Host:   "abc.def.com",
+				HostIP: "10.20.30.40",
+				Subnet: "8.8.8.0/24",
+				EgressCIDRs: []string{
+					"192.168.1.99",
+					"bob/32",
+					"1234::5678/64",
+				},
+			},
+			expectedErrors: 3,
+		},
+		{
 			name: "IPv6 subnet",
 			hs: &networkapi.HostSubnet{
 				ObjectMeta: metav1.ObjectMeta{

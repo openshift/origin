@@ -8641,7 +8641,21 @@ func schema_openshift_api_network_v1_HostSubnet(ref common.ReferenceCallback) co
 					},
 					"egressIPs": {
 						SchemaProps: spec.SchemaProps{
-							Description: "EgressIPs is the list of automatic egress IP addresses currently hosted by this node",
+							Description: "EgressIPs is the list of automatic egress IP addresses currently hosted by this node. If EgressCIDRs is empty, this can be set by hand; if EgressCIDRs is set then the master will overwrite the value here with its own allocation of egress IPs.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"egressCIDRs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EgressCIDRs is the list of CIDR ranges available for automatically assigning egress IPs to this node from. If this field is set then EgressIPs should be treated as read-only.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

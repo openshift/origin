@@ -174,6 +174,12 @@ func ValidateHostSubnet(hs *networkapi.HostSubnet) field.ErrorList {
 		}
 	}
 
+	for i, egressCIDR := range hs.EgressCIDRs {
+		if _, err := validateCIDRv4(egressCIDR); err != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("egressCIDRs").Index(i), egressCIDR, err.Error()))
+		}
+	}
+
 	return allErrs
 }
 

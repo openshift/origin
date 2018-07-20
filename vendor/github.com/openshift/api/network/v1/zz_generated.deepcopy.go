@@ -212,6 +212,11 @@ func (in *HostSubnet) DeepCopyInto(out *HostSubnet) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.EgressCIDRs != nil {
+		in, out := &in.EgressCIDRs, &out.EgressCIDRs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

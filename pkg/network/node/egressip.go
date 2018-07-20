@@ -105,6 +105,9 @@ func (eip *egressIPWatcher) ReleaseEgressIP(egressIP, nodeIP string) {
 	}
 }
 
+func (eip *egressIPWatcher) UpdateEgressCIDRs() {
+}
+
 func (eip *egressIPWatcher) SetNamespaceEgressNormal(vnid uint32) {
 	if err := eip.oc.SetNamespaceEgressNormal(vnid); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules for VNID %d: %v", vnid, err))

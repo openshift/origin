@@ -95,12 +95,13 @@ func (EgressNetworkPolicySpec) SwaggerDoc() map[string]string {
 }
 
 var map_HostSubnet = map[string]string{
-	"":          "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
-	"metadata":  "Standard object's metadata.",
-	"host":      "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
-	"hostIP":    "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
-	"subnet":    "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
-	"egressIPs": "EgressIPs is the list of automatic egress IP addresses currently hosted by this node",
+	"":            "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
+	"metadata":    "Standard object's metadata.",
+	"host":        "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
+	"hostIP":      "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
+	"subnet":      "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
+	"egressIPs":   "EgressIPs is the list of automatic egress IP addresses currently hosted by this node. If EgressCIDRs is empty, this can be set by hand; if EgressCIDRs is set then the master will overwrite the value here with its own allocation of egress IPs.",
+	"egressCIDRs": "EgressCIDRs is the list of CIDR ranges available for automatically assigning egress IPs to this node from. If this field is set then EgressIPs should be treated as read-only.",
 }
 
 func (HostSubnet) SwaggerDoc() map[string]string {

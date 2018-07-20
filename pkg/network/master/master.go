@@ -193,6 +193,9 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 			glog.Fatalf("failed to start VNID master: %v", err)
 		}
 	}
+
+	eim := newEgressIPManager()
+	eim.Start(master.networkClient, master.hostSubnetInformer, master.netNamespaceInformer)
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
