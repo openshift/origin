@@ -20,9 +20,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -94,7 +94,7 @@ type BackendsOptions struct {
 
 func NewBackendsOptions(streams genericclioptions.IOStreams) *BackendsOptions {
 	return &BackendsOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("backends updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("backends updated").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }
@@ -185,7 +185,7 @@ func (o *BackendsOptions) Validate() error {
 // Run executes the BackendOptions or returns an error.
 func (o *BackendsOptions) Run() error {
 	b := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(o.Namespace).DefaultNamespace().

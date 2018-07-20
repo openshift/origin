@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -22,12 +21,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	"github.com/openshift/origin/pkg/oc/cli/set"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 type CancelOptions struct {
@@ -37,7 +36,6 @@ type CancelOptions struct {
 	Namespace         string
 	NamespaceExplicit bool
 	Mapper            meta.RESTMapper
-	Typer             runtime.ObjectTyper
 	Encoder           runtime.Encoder
 	Resources         []string
 	Clientset         kclientset.Interface
@@ -98,7 +96,6 @@ func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 	}
 
 	var err error
-	o.Typer = legacyscheme.Scheme
 	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
@@ -127,7 +124,7 @@ func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 
 func (o CancelOptions) Run() error {
 	r := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		FilenameParam(o.NamespaceExplicit, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, o.Resources...).

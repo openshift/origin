@@ -17,11 +17,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -92,7 +92,7 @@ type DeploymentHookOptions struct {
 
 func NewDeploymentHookOptions(streams genericclioptions.IOStreams) *DeploymentHookOptions {
 	return &DeploymentHookOptions{
-		PrintFlags:       genericclioptions.NewPrintFlags("hooks updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags:       genericclioptions.NewPrintFlags("hooks updated").WithTypeSetter(scheme.Scheme),
 		IOStreams:        streams,
 		FailurePolicyStr: "ignore",
 	}
@@ -230,7 +230,7 @@ func (o *DeploymentHookOptions) Validate() error {
 
 func (o *DeploymentHookOptions) Run() error {
 	b := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(o.Namespace).DefaultNamespace().

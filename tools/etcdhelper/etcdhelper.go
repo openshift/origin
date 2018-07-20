@@ -17,18 +17,14 @@ import (
 	"github.com/coreos/etcd/pkg/transport"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	apiinstall "github.com/openshift/origin/pkg/api/install"
-	apilegacy "github.com/openshift/origin/pkg/api/legacy"
-	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
-	apiregistration "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
+	install "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/legacy"
 )
 
 func init() {
-	apiregistration.Install(scheme.Scheme)
-	apiinstall.InstallAll(scheme.Scheme)
-	apilegacy.InstallLegacyInternalAll(scheme.Scheme)
+	install.InstallInternalOpenShift(scheme.Scheme)
+	install.InstallInternalKube(scheme.Scheme)
+	legacy.InstallInternalLegacyAll(scheme.Scheme)
 }
 
 func main() {

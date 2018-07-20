@@ -16,10 +16,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	ometa "github.com/openshift/origin/pkg/api/meta"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -104,7 +104,7 @@ type ImageLookupOptions struct {
 
 func NewImageLookupOptions(streams genericclioptions.IOStreams) *ImageLookupOptions {
 	return &ImageLookupOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("image lookup updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("image lookup updated").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 		Enabled:    true,
 	}
@@ -187,7 +187,7 @@ func (o *ImageLookupOptions) Validate() error {
 // Run executes the ImageLookupOptions or returns an error.
 func (o *ImageLookupOptions) Run() error {
 	b := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(o.Namespace).DefaultNamespace().

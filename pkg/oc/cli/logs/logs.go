@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api/apps"
 	"github.com/openshift/api/build"
@@ -21,7 +22,6 @@ import (
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 // LogsRecommendedCommandName is the recommended command name
@@ -143,7 +143,7 @@ func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 
 	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
 	infos, err := f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		ResourceNames("pods", args...).
 		SingleResourceType().RequireObject(false).

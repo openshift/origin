@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/user/apis/user"
 )
 
+// deprecated
 func IsOAPI(gvk schema.GroupVersionKind) bool {
 	if len(gvk.Group) > 0 {
 		return false
@@ -40,6 +41,7 @@ func IsOAPI(gvk schema.GroupVersionKind) bool {
 	return ok
 }
 
+// deprecated
 func OAPIToGroupifiedGVK(gvk *schema.GroupVersionKind) {
 	if len(gvk.Group) > 0 {
 		return
@@ -52,6 +54,7 @@ func OAPIToGroupifiedGVK(gvk *schema.GroupVersionKind) {
 	gvk.Group = newGroup
 }
 
+// deprecated
 func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 	if len(gvk.Group) > 0 {
 		return

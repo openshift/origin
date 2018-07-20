@@ -35,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
@@ -49,7 +50,6 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 type DebugOptions struct {
@@ -141,7 +141,7 @@ var (
 
 func NewDebugOptions(streams genericclioptions.IOStreams) *DebugOptions {
 	return &DebugOptions{
-		PrintFlags:         genericclioptions.NewPrintFlags("").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags:         genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme),
 		IOStreams:          streams,
 		Timeout:            15 * time.Minute,
 		KeepInitContainers: true,
@@ -327,7 +327,7 @@ func (o DebugOptions) Validate() error {
 // Debug creates and runs a debugging pod.
 func (o *DebugOptions) RunDebug() error {
 	b := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		SingleResourceType().
 		ResourceNames("pods", o.Resources...).

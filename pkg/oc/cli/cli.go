@@ -8,10 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes/scheme"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -343,10 +341,6 @@ func CommandFor(basename string) *cobra.Command {
 	if runtime.GOOS == "windows" {
 		basename = strings.ToLower(basename)
 		basename = strings.TrimSuffix(basename, ".exe")
-	}
-
-	if err := ocscheme.AddOpenShiftExternalToScheme(scheme.Scheme); err != nil {
-		glog.Fatal(err)
 	}
 
 	switch basename {

@@ -29,7 +29,7 @@ func main() {
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
-	legacy.InstallLegacyInternalAll(legacyscheme.Scheme)
+	legacy.InstallInternalLegacyAll(legacyscheme.Scheme)
 
 	rand.Seed(time.Now().UTC().UnixNano())
 	if len(os.Getenv("GOMAXPROCS")) == 0 {

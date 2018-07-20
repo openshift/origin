@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 var (
@@ -78,7 +78,7 @@ type BuildHookOptions struct {
 
 func NewBuildHookOptions(streams genericclioptions.IOStreams) *BuildHookOptions {
 	return &BuildHookOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("hooks updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("hooks updated").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }
@@ -184,7 +184,7 @@ func (o *BuildHookOptions) Validate() error {
 
 func (o *BuildHookOptions) Run() error {
 	b := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(o.Namespace).DefaultNamespace().

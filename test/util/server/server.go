@@ -451,7 +451,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig) (str
 	guardMaster()
 
 	// openshift apiserver needs its own scheme, but this installs it for now.  oc needs it off, openshift apiserver needs it on. awesome.
-	legacy.InstallLegacyInternalAll(legacyscheme.Scheme)
+	legacy.InstallInternalLegacyAll(legacyscheme.Scheme)
 
 	if masterConfig.EtcdConfig != nil && len(masterConfig.EtcdConfig.StorageDir) > 0 {
 		os.RemoveAll(masterConfig.EtcdConfig.StorageDir)
