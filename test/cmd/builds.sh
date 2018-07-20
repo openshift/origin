@@ -99,7 +99,7 @@ os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sam
 os::cmd::expect_failure 'oc start-build --list-webhooks=blah'
 hook=$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)
 hook=${hook/<secret>/secret101}
-os::cmd::expect_success_and_text "oc start-build --from-webhook=${hook}" "build.build.openshift.io \"ruby-sample-build-[0-9]\" started"
+os::cmd::expect_success_and_text "oc start-build --from-webhook=${hook}" "build.build.openshift.io/ruby-sample-build-[0-9] started"
 os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}/foo" "error: server rejected our request"
 os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"from\":{\"name\":\"asdf:7\"}}}}}'"
 os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}" "Error resolving ImageStreamTag asdf:7"
