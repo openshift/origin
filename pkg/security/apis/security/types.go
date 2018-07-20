@@ -2,13 +2,13 @@ package security
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // AllowAllCapabilities can be used as a value for the
 // SecurityContextConstraints.AllowAllCapabilities field and means that any
 // capabilities are allowed to be requested.
-var AllowAllCapabilities kapi.Capability = "*"
+var AllowAllCapabilities core.Capability = "*"
 
 // +genclient
 // +genclient:nonNamespaced
@@ -33,15 +33,15 @@ type SecurityContextConstraints struct {
 	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
 	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
 	// DefaultAddCapabilities and RequiredDropCapabilities.
-	DefaultAddCapabilities []kapi.Capability
+	DefaultAddCapabilities []core.Capability
 	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
 	// are required to be dropped and cannot be added.
-	RequiredDropCapabilities []kapi.Capability
+	RequiredDropCapabilities []core.Capability
 	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
 	// Capabilities in this field maybe added at the pod author's discretion.
 	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
 	// To allow all capabilities you may use '*'.
-	AllowedCapabilities []kapi.Capability
+	AllowedCapabilities []core.Capability
 	// Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
 	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use "*".
 	// To allow no volumes, set to ["none"].
@@ -140,7 +140,7 @@ type SELinuxContextStrategyOptions struct {
 	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
 	Type SELinuxContextStrategyType
 	// seLinuxOptions required to run as; required for MustRunAs
-	SELinuxOptions *kapi.SELinuxOptions
+	SELinuxOptions *core.SELinuxOptions
 }
 
 // RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
@@ -254,7 +254,7 @@ type PodSecurityPolicySubjectReview struct {
 type PodSecurityPolicySubjectReviewSpec struct {
 	// Template is the PodTemplateSpec to check. If PodTemplateSpec.Spec.ServiceAccountName is empty it will not be defaulted.
 	// If its non-empty, it will be checked.
-	Template kapi.PodTemplateSpec
+	Template core.PodTemplateSpec
 
 	// User is the user you're testing for.
 	// If you specify "User" but not "Group", then is it interpreted as "What if User were not a member of any groups.
@@ -270,7 +270,7 @@ type PodSecurityPolicySubjectReviewStatus struct {
 	// AllowedBy is a reference to the rule that allows the PodTemplateSpec.
 	// A rule can be a SecurityContextConstraint or a PodSecurityPolicy
 	// A `nil`, indicates that it was denied.
-	AllowedBy *kapi.ObjectReference
+	AllowedBy *core.ObjectReference
 
 	// A machine-readable description of why this operation is in the
 	// "Failure" status. If this value is empty there
@@ -278,7 +278,7 @@ type PodSecurityPolicySubjectReviewStatus struct {
 	Reason string
 
 	// Template is the PodTemplateSpec after the defaulting is applied.
-	Template kapi.PodTemplateSpec
+	Template core.PodTemplateSpec
 }
 
 // +genclient
@@ -299,7 +299,7 @@ type PodSecurityPolicySelfSubjectReview struct {
 // PodSecurityPolicySelfSubjectReviewSpec contains specification for PodSecurityPolicySelfSubjectReview.
 type PodSecurityPolicySelfSubjectReviewSpec struct {
 	// Template is the PodTemplateSpec to check.
-	Template kapi.PodTemplateSpec
+	Template core.PodTemplateSpec
 }
 
 // +genclient
@@ -323,7 +323,7 @@ type PodSecurityPolicyReviewSpec struct {
 	// if ServiceAccountNames is empty, unless the PodTemplateSpec.Spec.ServiceAccountName is empty,
 	// in which case "default" is used.
 	// If ServiceAccountNames is specified, PodTemplateSpec.Spec.ServiceAccountName is ignored.
-	Template kapi.PodTemplateSpec
+	Template core.PodTemplateSpec
 
 	// ServiceAccountNames is an optional set of ServiceAccounts to run the check with.
 	// If ServiceAccountNames is empty, the PodTemplateSpec.Spec.ServiceAccountName is used,

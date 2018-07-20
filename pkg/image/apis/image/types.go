@@ -2,7 +2,7 @@ package image
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
@@ -61,23 +61,23 @@ const (
 	DefaultImageTag = "latest"
 
 	// ResourceImageStreams represents a number of image streams in a project.
-	ResourceImageStreams kapi.ResourceName = "openshift.io/imagestreams"
+	ResourceImageStreams core.ResourceName = "openshift.io/imagestreams"
 
 	// ResourceImageStreamImages represents a number of unique references to images in all image stream
 	// statuses of a project.
-	ResourceImageStreamImages kapi.ResourceName = "openshift.io/images"
+	ResourceImageStreamImages core.ResourceName = "openshift.io/images"
 
 	// ResourceImageStreamTags represents a number of unique references to images in all image stream specs
 	// of a project.
-	ResourceImageStreamTags kapi.ResourceName = "openshift.io/image-tags"
+	ResourceImageStreamTags core.ResourceName = "openshift.io/image-tags"
 
 	// Limit that applies to images. Used with a max["storage"] LimitRangeItem to set
 	// the maximum size of an image.
-	LimitTypeImage kapi.LimitType = "openshift.io/Image"
+	LimitTypeImage core.LimitType = "openshift.io/Image"
 
 	// Limit that applies to image streams. Used with a max[resource] LimitRangeItem to set the maximum number
 	// of resource. Where the resource is one of "openshift.io/images" and "openshift.io/image-tags".
-	LimitTypeImageStream kapi.LimitType = "openshift.io/ImageStream"
+	LimitTypeImageStream core.LimitType = "openshift.io/ImageStream"
 )
 
 // +genclient
@@ -185,7 +185,7 @@ type SignatureCondition struct {
 	// Type of signature condition, Complete or Failed.
 	Type SignatureConditionType
 	// Status of the condition, one of True, False, Unknown.
-	Status kapi.ConditionStatus
+	Status core.ConditionStatus
 	// Last time the condition was checked.
 	LastProbeTime metav1.Time
 	// Last time the condition transit from one status to another.
@@ -278,7 +278,7 @@ type TagReference struct {
 	Annotations map[string]string
 	// Optional; if specified, a reference to another image that this tag should point to. Valid values
 	// are ImageStreamTag, ImageStreamImage, and DockerImage.
-	From *kapi.ObjectReference
+	From *core.ObjectReference
 	// Reference states if the tag will be imported. Default value is false, which means the tag will
 	// be imported.
 	Reference bool
@@ -378,7 +378,7 @@ type TagEventCondition struct {
 	// Type of tag event condition, currently only ImportSuccess
 	Type TagEventConditionType
 	// Status of the condition, one of True, False, Unknown.
-	Status kapi.ConditionStatus
+	Status core.ConditionStatus
 	// LastTransitionTIme is the time the condition transitioned from one status to another.
 	LastTransitionTime metav1.Time
 	// Reason is a brief machine readable explanation for the condition's last transition.
@@ -549,7 +549,7 @@ type ImageStreamImportStatus struct {
 // RepositoryImportSpec indicates to load a set of tags from a given Docker image repository
 type RepositoryImportSpec struct {
 	// The source of the import, only kind DockerImage is supported
-	From kapi.ObjectReference
+	From core.ObjectReference
 
 	ImportPolicy    TagImportPolicy
 	ReferencePolicy TagReferencePolicy
@@ -569,8 +569,8 @@ type RepositoryImportStatus struct {
 
 // ImageImportSpec defines how an image is imported.
 type ImageImportSpec struct {
-	From kapi.ObjectReference
-	To   *kapi.LocalObjectReference
+	From core.ObjectReference
+	To   *core.LocalObjectReference
 
 	ImportPolicy    TagImportPolicy
 	ReferencePolicy TagReferencePolicy

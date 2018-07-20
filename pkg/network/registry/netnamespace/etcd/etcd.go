@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/registry/netnamespace"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
@@ -26,7 +27,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &networkapi.NetNamespace{} },
 		NewListFunc:              func() runtime.Object { return &networkapi.NetNamespaceList{} },
-		DefaultQualifiedResource: networkapi.Resource("netnamespaces"),
+		DefaultQualifiedResource: network.Resource("netnamespaces"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

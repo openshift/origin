@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/api/image/dockerpre012"
 	"github.com/openshift/api/image/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
 	newer "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -24,12 +23,7 @@ var (
 func init() {
 	docker10.AddToSchemeInCoreGroup(dockerImageScheme)
 	dockerpre012.AddToSchemeInCoreGroup(dockerImageScheme)
-	newer.AddToSchemeInCoreGroup(dockerImageScheme)
-	AddToSchemeInCoreGroup(dockerImageScheme)
-	docker10.AddToScheme(dockerImageScheme)
-	dockerpre012.AddToScheme(dockerImageScheme)
-	newer.AddToScheme(dockerImageScheme)
-	AddToScheme(dockerImageScheme)
+	Install(dockerImageScheme)
 }
 
 // The docker metadata must be cast to a version
@@ -278,7 +272,7 @@ func Convert_image_TagReferenceMap_to_v1_TagReferenceArray(in *map[string]newer.
 	return nil
 }
 
-func addConversionFuncs(scheme *runtime.Scheme) error {
+func AddConversionFuncs(scheme *runtime.Scheme) error {
 	err := scheme.AddConversionFuncs(
 		Convert_v1_NamedTagEventListArray_to_api_TagEventListArray,
 		Convert_image_TagEventListArray_to_v1_NamedTagEventListArray,
@@ -302,15 +296,8 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func addLegacyFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(LegacySchemeGroupVersion.String(), "ImageStream", legacyImageStreamFieldSelectorKeyConversionFunc); err != nil {
-		return err
-	}
-	return nil
-}
-
 func addFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "ImageStream", imageStreamFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.String(), "ImageStream", imageStreamFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil
@@ -318,16 +305,6 @@ func addFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
 
 // because field selectors can vary in support by version they are exposed under, we have one function for each
 // groupVersion we're registering for
-
-func legacyImageStreamFieldSelectorKeyConversionFunc(label, value string) (internalLabel, internalValue string, err error) {
-	switch label {
-	case "spec.dockerImageRepository",
-		"status.dockerImageRepository":
-		return label, value, nil
-	default:
-		return apihelpers.LegacyMetaV1FieldSelectorConversionWithName(label, value)
-	}
-}
 
 func imageStreamFieldSelectorKeyConversionFunc(label, value string) (internalLabel, internalValue string, err error) {
 	switch label {

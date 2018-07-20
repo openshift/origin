@@ -23,20 +23,23 @@ import (
 	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
+	oapps "github.com/openshift/api/apps"
+	"github.com/openshift/api/authorization"
+	"github.com/openshift/api/build"
+	"github.com/openshift/api/image"
+	"github.com/openshift/api/network"
+	"github.com/openshift/api/oauth"
+	"github.com/openshift/api/project"
+	"github.com/openshift/api/quota"
+	"github.com/openshift/api/route"
+	"github.com/openshift/api/security"
+	"github.com/openshift/api/template"
+	"github.com/openshift/api/user"
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/legacy"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 const (
@@ -63,36 +66,36 @@ var (
 	networkingGroup            = "networking.k8s.io"
 	policyGroup                = policy.GroupName
 	rbacGroup                  = rbac.GroupName
-	securityGroup              = securityapi.GroupName
-	legacySecurityGroup        = securityapi.LegacyGroupName
 	storageGroup               = storage.GroupName
 	settingsGroup              = settings.GroupName
 	schedulingGroup            = "scheduling.k8s.io"
+	kAuthzGroup                = kauthorizationapi.GroupName
+	kAuthnGroup                = kauthenticationapi.GroupName
 
-	authzGroup          = authorizationapi.GroupName
-	kAuthzGroup         = kauthorizationapi.GroupName
-	kAuthnGroup         = kauthenticationapi.GroupName
+	deployGroup         = oapps.GroupName
+	authzGroup          = authorization.GroupName
+	buildGroup          = build.GroupName
+	imageGroup          = image.GroupName
+	networkGroup        = network.GroupName
+	oauthGroup          = oauth.GroupName
+	projectGroup        = project.GroupName
+	quotaGroup          = quota.GroupName
+	routeGroup          = route.GroupName
+	securityGroup       = security.GroupName
+	templateGroup       = template.GroupName
+	userGroup           = user.GroupName
 	legacyAuthzGroup    = legacy.GroupName
-	buildGroup          = buildapi.GroupName
 	legacyBuildGroup    = legacy.GroupName
-	deployGroup         = appsapi.GroupName
 	legacyDeployGroup   = legacy.GroupName
-	imageGroup          = imageapi.GroupName
 	legacyImageGroup    = legacy.GroupName
-	projectGroup        = projectapi.GroupName
 	legacyProjectGroup  = legacy.GroupName
-	quotaGroup          = quotaapi.GroupName
 	legacyQuotaGroup    = legacy.GroupName
-	routeGroup          = routeapi.GroupName
 	legacyRouteGroup    = legacy.GroupName
-	templateGroup       = templateapi.GroupName
 	legacyTemplateGroup = legacy.GroupName
-	userGroup           = userapi.GroupName
 	legacyUserGroup     = legacy.GroupName
-	oauthGroup          = oauthapi.GroupName
 	legacyOauthGroup    = legacy.GroupName
-	networkGroup        = networkapi.GroupName
 	legacyNetworkGroup  = legacy.GroupName
+	legacySecurityGroup = legacy.GroupName
 )
 
 func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {

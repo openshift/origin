@@ -2,7 +2,7 @@ package project
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -16,18 +16,18 @@ type ProjectList struct {
 
 const (
 	// These are internal finalizer values to Origin
-	FinalizerOrigin kapi.FinalizerName = "openshift.io/origin"
+	FinalizerOrigin core.FinalizerName = "openshift.io/origin"
 )
 
 // ProjectSpec describes the attributes on a Project
 type ProjectSpec struct {
 	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage
-	Finalizers []kapi.FinalizerName
+	Finalizers []core.FinalizerName
 }
 
 // ProjectStatus is information about the current status of a Project
 type ProjectStatus struct {
-	Phase kapi.NamespacePhase
+	Phase core.NamespacePhase
 }
 
 // +genclient

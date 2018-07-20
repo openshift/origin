@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/api/apps"
+	"github.com/openshift/api/build"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -156,8 +157,8 @@ func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 
 	// TODO: podLogOptions should be included in our own logOptions objects.
 	switch gr := infos[0].Mapping.Resource.GroupResource(); gr {
-	case buildapi.Resource("builds"),
-		buildapi.Resource("buildconfigs"):
+	case build.Resource("builds"),
+		build.Resource("buildconfigs"):
 		bopts := &buildapi.BuildLogOptions{
 			Follow:       podLogOptions.Follow,
 			Previous:     podLogOptions.Previous,

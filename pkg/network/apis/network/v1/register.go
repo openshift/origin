@@ -1,30 +1,17 @@
 package v1
 
 import (
-	"github.com/openshift/api/network/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/openshift/api/network/v1"
+	"github.com/openshift/origin/pkg/network/apis/network"
 )
 
-const (
-	GroupName       = "network.openshift.io"
-	LegacyGroupName = ""
-)
-
-// SchemeGroupVersion is group version used to register these objects
 var (
-	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
-
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.DeprecatedInstallWithoutGroup, RegisterDefaults, RegisterConversions)
-	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
-
-	SchemeBuilder = runtime.NewSchemeBuilder(v1.Install)
-	AddToScheme   = SchemeBuilder.AddToScheme
-
-	localSchemeBuilder = &SchemeBuilder
+	localSchemeBuilder = runtime.NewSchemeBuilder(
+		network.Install,
+		v1.Install,
+		RegisterDefaults,
+	)
+	Install = localSchemeBuilder.AddToScheme
 )
-
-func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}

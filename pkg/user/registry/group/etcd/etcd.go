@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/user"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/group"
@@ -23,7 +24,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &userapi.Group{} },
 		NewListFunc:              func() runtime.Object { return &userapi.GroupList{} },
-		DefaultQualifiedResource: userapi.Resource("groups"),
+		DefaultQualifiedResource: user.Resource("groups"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

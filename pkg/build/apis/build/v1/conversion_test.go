@@ -3,16 +3,16 @@ package v1
 import (
 	"testing"
 
-	kolder "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion/queryparams"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	knewer "k8s.io/kubernetes/pkg/apis/core"
+	kinternal "k8s.io/kubernetes/pkg/apis/core"
 
-	v1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
-	newer "github.com/openshift/origin/pkg/build/apis/build"
+	internal "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 var scheme = runtime.NewScheme()
@@ -20,45 +20,27 @@ var Convert = scheme.Convert
 var codecs = serializer.NewCodecFactory(scheme)
 
 func init() {
-	LegacySchemeBuilder.AddToScheme(scheme)
-	newer.LegacySchemeBuilder.AddToScheme(scheme)
-	SchemeBuilder.AddToScheme(scheme)
-	newer.SchemeBuilder.AddToScheme(scheme)
+	Install(scheme)
 }
 
 func TestFieldSelectorConversions(t *testing.T) {
-	apitesting.FieldKeyCheck{
-		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
-		Kind:          LegacySchemeGroupVersion.WithKind("Build"),
-		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		AllowedExternalFieldKeys: []string{"name", "status", "podName"},
-		FieldKeyEvaluatorFn:      newer.BuildFieldSelector,
-	}.Check(t)
 
 	apitesting.FieldKeyCheck{
-		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
-		Kind:          LegacySchemeGroupVersion.WithKind("BuildConfig"),
-		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		AllowedExternalFieldKeys: []string{"name"},
-	}.Check(t)
-
-	apitesting.FieldKeyCheck{
-		SchemeBuilder: []func(*runtime.Scheme) error{SchemeBuilder.AddToScheme, newer.SchemeBuilder.AddToScheme},
-		Kind:          SchemeGroupVersion.WithKind("Build"),
+		SchemeBuilder: []func(*runtime.Scheme) error{Install},
+		Kind:          v1.GroupVersion.WithKind("Build"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		AllowedExternalFieldKeys: []string{"status", "podName"},
-		FieldKeyEvaluatorFn:      newer.BuildFieldSelector,
+		FieldKeyEvaluatorFn:      internal.BuildFieldSelector,
 	}.Check(t)
 
 }
 
 func TestBinaryBuildRequestOptions(t *testing.T) {
-
-	r := &newer.BinaryBuildRequestOptions{
+	r := &internal.BinaryBuildRequestOptions{
 		AsFile: "Dockerfile",
 		Commit: "abcdef",
 	}
-	versioned, err := scheme.ConvertToVersion(r, kolder.SchemeGroupVersion)
+	versioned, err := scheme.ConvertToVersion(r, v1.GroupVersion)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,14 +73,14 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 					Strategy: v1.BuildStrategy{
 						Type: v1.DockerBuildStrategyType,
 						DockerStrategy: &v1.DockerBuildStrategy{
-							From: &kolder.ObjectReference{
+							From: &corev1.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
 						},
 					},
 					Output: v1.BuildOutput{
-						To: &kolder.ObjectReference{
+						To: &corev1.ObjectReference{
 							Kind: "ImageStream",
 							Name: "outputstream",
 						},
@@ -131,14 +113,14 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 					Strategy: v1.BuildStrategy{
 						Type: v1.SourceBuildStrategyType,
 						SourceStrategy: &v1.SourceBuildStrategy{
-							From: kolder.ObjectReference{
+							From: corev1.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
 						},
 					},
 					Output: v1.BuildOutput{
-						To: &kolder.ObjectReference{
+						To: &corev1.ObjectReference{
 							Kind: "ImageStream",
 							Name: "outputstream",
 						},
@@ -171,14 +153,14 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 					Strategy: v1.BuildStrategy{
 						Type: v1.CustomBuildStrategyType,
 						CustomStrategy: &v1.CustomBuildStrategy{
-							From: kolder.ObjectReference{
+							From: corev1.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
 						},
 					},
 					Output: v1.BuildOutput{
-						To: &kolder.ObjectReference{
+						To: &corev1.ObjectReference{
 							Kind: "ImageStream",
 							Name: "outputstream",
 						},
@@ -201,7 +183,7 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 
 	for c, bc := range buildConfigs {
 
-		var internalbuild newer.BuildConfig
+		var internalbuild internal.BuildConfig
 
 		Convert(bc, &internalbuild, nil)
 		switch bc.Spec.Strategy.Type {
@@ -224,13 +206,13 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 		var foundImageChange, foundGitHub, foundGeneric bool
 		for _, trigger := range internalbuild.Spec.Triggers {
 			switch trigger.Type {
-			case newer.ImageChangeBuildTriggerType:
+			case internal.ImageChangeBuildTriggerType:
 				foundImageChange = true
 
-			case newer.GenericWebHookBuildTriggerType:
+			case internal.GenericWebHookBuildTriggerType:
 				foundGeneric = true
 
-			case newer.GitHubWebHookBuildTriggerType:
+			case internal.GitHubWebHookBuildTriggerType:
 				foundGitHub = true
 			}
 		}
@@ -247,15 +229,15 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 }
 
 func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
-	buildConfigs := []*newer.BuildConfig{
+	buildConfigs := []*internal.BuildConfig{
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-			Spec: newer.BuildConfigSpec{
-				CommonSpec: newer.CommonSpec{
-					Source: newer.BuildSource{},
-					Strategy: newer.BuildStrategy{
-						DockerStrategy: &newer.DockerBuildStrategy{
-							From: &knewer.ObjectReference{
+			Spec: internal.BuildConfigSpec{
+				CommonSpec: internal.CommonSpec{
+					Source: internal.BuildSource{},
+					Strategy: internal.BuildStrategy{
+						DockerStrategy: &internal.DockerBuildStrategy{
+							From: &kinternal.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
@@ -266,12 +248,12 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-			Spec: newer.BuildConfigSpec{
-				CommonSpec: newer.CommonSpec{
-					Source: newer.BuildSource{},
-					Strategy: newer.BuildStrategy{
-						SourceStrategy: &newer.SourceBuildStrategy{
-							From: knewer.ObjectReference{
+			Spec: internal.BuildConfigSpec{
+				CommonSpec: internal.CommonSpec{
+					Source: internal.BuildSource{},
+					Strategy: internal.BuildStrategy{
+						SourceStrategy: &internal.SourceBuildStrategy{
+							From: kinternal.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
@@ -282,12 +264,12 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-			Spec: newer.BuildConfigSpec{
-				CommonSpec: newer.CommonSpec{
-					Source: newer.BuildSource{},
-					Strategy: newer.BuildStrategy{
-						CustomStrategy: &newer.CustomBuildStrategy{
-							From: knewer.ObjectReference{
+			Spec: internal.BuildConfigSpec{
+				CommonSpec: internal.CommonSpec{
+					Source: internal.BuildSource{},
+					Strategy: internal.BuildStrategy{
+						CustomStrategy: &internal.CustomBuildStrategy{
+							From: kinternal.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
@@ -317,7 +299,7 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 				Strategy: v1.BuildStrategy{
 					Type: v1.DockerBuildStrategyType,
 					DockerStrategy: &v1.DockerBuildStrategy{
-						From: &kolder.ObjectReference{
+						From: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "fromimage",
 						},
@@ -332,7 +314,7 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 				{
 					Type: v1.ImageChangeBuildTriggerType,
 					ImageChange: &v1.ImageChangeTrigger{
-						From: &kolder.ObjectReference{
+						From: &corev1.ObjectReference{
 							Kind: "ImageStreamTag",
 							Name: "imagestream",
 						},
@@ -342,7 +324,7 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 		},
 	}
 
-	var internalBC newer.BuildConfig
+	var internalBC internal.BuildConfig
 
 	Convert(&buildConfig, &internalBC, nil)
 	if len(internalBC.Spec.Triggers) != 1 {
@@ -373,7 +355,7 @@ func TestImageChangeTriggerNilImageChangePointer(t *testing.T) {
 		},
 	}
 
-	var internalBC newer.BuildConfig
+	var internalBC internal.BuildConfig
 
 	Convert(&buildConfig, &internalBC, nil)
 	for _, ic := range internalBC.Spec.Triggers {

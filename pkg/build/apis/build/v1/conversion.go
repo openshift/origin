@@ -5,7 +5,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
 	newer "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -150,7 +149,7 @@ func Convert_build_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, ou
 	return nil
 }
 
-func addConversionFuncs(scheme *runtime.Scheme) error {
+func AddConversionFuncs(scheme *runtime.Scheme) error {
 	return scheme.AddConversionFuncs(
 		Convert_v1_BuildConfig_To_build_BuildConfig,
 		Convert_build_BuildConfig_To_v1_BuildConfig,
@@ -173,31 +172,8 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	)
 }
 
-func addLegacyFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(LegacySchemeGroupVersion.String(), "Build", legacyBuildFieldSelectorKeyConversionFunc); err != nil {
-		return err
-	}
-	if err := scheme.AddFieldLabelConversionFunc(LegacySchemeGroupVersion.String(), "BuildConfig", apihelpers.LegacyMetaV1FieldSelectorConversionWithName); err != nil {
-		return err
-	}
-	return nil
-}
-
-func addFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	return scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Build", buildFieldSelectorKeyConversionFunc)
-}
-
-// because field selectors can vary in support by version they are exposed under, we have one function for each
-// groupVersion we're registering for
-
-func legacyBuildFieldSelectorKeyConversionFunc(label, value string) (internalLabel, internalValue string, err error) {
-	switch label {
-	case "status",
-		"podName":
-		return label, value, nil
-	default:
-		return apihelpers.LegacyMetaV1FieldSelectorConversionWithName(label, value)
-	}
+func AddFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
+	return scheme.AddFieldLabelConversionFunc(v1.GroupVersion.String(), "Build", buildFieldSelectorKeyConversionFunc)
 }
 
 func buildFieldSelectorKeyConversionFunc(label, value string) (internalLabel, internalValue string, err error) {

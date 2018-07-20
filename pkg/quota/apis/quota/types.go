@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +genclient
@@ -36,7 +36,7 @@ type ClusterResourceQuotaSpec struct {
 	Selector ClusterResourceQuotaSelector
 
 	// Quota defines the desired quota
-	Quota kapi.ResourceQuotaSpec
+	Quota core.ResourceQuotaSpec
 }
 
 // ClusterResourceQuotaSelector is used to select projects.  At least one of LabelSelector or AnnotationSelector
@@ -53,7 +53,7 @@ type ClusterResourceQuotaSelector struct {
 // ClusterResourceQuotaStatus defines the actual enforced quota and its current usage
 type ClusterResourceQuotaStatus struct {
 	// Total defines the actual enforced quota and its current usage across all projects
-	Total kapi.ResourceQuotaStatus
+	Total core.ResourceQuotaStatus
 
 	// Namespaces slices the usage by project.  This division allows for quick resolution of
 	// deletion reconciliation inside of a single project without requiring a recalculation
@@ -109,16 +109,16 @@ type ResourceQuotasStatusByNamespace struct {
 	orderedMap orderedMap
 }
 
-func (o *ResourceQuotasStatusByNamespace) Insert(key string, value kapi.ResourceQuotaStatus) {
+func (o *ResourceQuotasStatusByNamespace) Insert(key string, value core.ResourceQuotaStatus) {
 	o.orderedMap.Insert(key, value)
 }
 
-func (o *ResourceQuotasStatusByNamespace) Get(key string) (kapi.ResourceQuotaStatus, bool) {
+func (o *ResourceQuotasStatusByNamespace) Get(key string) (core.ResourceQuotaStatus, bool) {
 	ret, ok := o.orderedMap.Get(key)
 	if !ok {
-		return kapi.ResourceQuotaStatus{}, ok
+		return core.ResourceQuotaStatus{}, ok
 	}
-	return ret.(kapi.ResourceQuotaStatus), ok
+	return ret.(core.ResourceQuotaStatus), ok
 }
 
 func (o *ResourceQuotasStatusByNamespace) Remove(key string) {

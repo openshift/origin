@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	"github.com/openshift/api/security"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/registry/securitycontextconstraints"
@@ -35,7 +36,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 			return obj.(*securityapi.SecurityContextConstraints).Name, nil
 		},
 		PredicateFunc:            securitycontextconstraints.Matcher,
-		DefaultQualifiedResource: securityapi.Resource("securitycontextconstraints"),
+		DefaultQualifiedResource: security.Resource("securitycontextconstraints"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

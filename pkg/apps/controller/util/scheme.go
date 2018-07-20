@@ -22,7 +22,7 @@ var (
 )
 
 func init() {
-	legacy.InstallLegacyApps(annotationDecodingScheme)
+	legacy.InstallInternalLegacyApps(annotationDecodingScheme)
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
 	utilruntime.Must(appsv1helpers.Install(annotationDecodingScheme))
 	annotationDecoderCodecFactory := serializer.NewCodecFactory(annotationDecodingScheme)

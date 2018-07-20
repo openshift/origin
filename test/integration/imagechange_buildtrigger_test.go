@@ -11,6 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	"github.com/openshift/api/build"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -91,7 +92,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 	}
 	options.AddRole()
 
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), testutil.Namespace(), "create", build.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -122,7 +123,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 	}
 	options.AddRole()
 
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), testutil.Namespace(), "create", build.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
 		t.Fatal(err)
 	}
 

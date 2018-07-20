@@ -268,7 +268,7 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 			return nil, nil, err
 		}
 		legacyscheme.Scheme.Default(external)
-		internal, err := legacyscheme.Scheme.ConvertToVersion(external, imageapi.SchemeGroupVersion)
+		internal, err := legacyscheme.Scheme.ConvertToVersion(external, imageapi.GroupVersion)
 		if err != nil {
 			return nil, nil, err
 		}

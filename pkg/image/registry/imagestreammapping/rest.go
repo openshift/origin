@@ -14,6 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	imagegroup "github.com/openshift/api/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -169,9 +170,9 @@ func (s *REST) findStreamForMapping(ctx context.Context, mapping *imageapi.Image
 				return &list.Items[i], nil
 			}
 		}
-		return nil, errors.NewInvalid(imageapi.Kind("ImageStreamMapping"), "", field.ErrorList{
+		return nil, errors.NewInvalid(imagegroup.Kind("ImageStreamMapping"), "", field.ErrorList{
 			field.NotFound(field.NewPath("dockerImageStream"), mapping.DockerImageRepository),
 		})
 	}
-	return nil, errors.NewNotFound(imageapi.Resource("imagestream"), "")
+	return nil, errors.NewNotFound(imagegroup.Resource("imagestream"), "")
 }

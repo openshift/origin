@@ -15,6 +15,8 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
+	"github.com/openshift/api/image"
+	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/util"
 )
@@ -106,7 +108,7 @@ func (a *imageLimitRangerPlugin) SupportsAttributes(attr admission.Attributes) b
 		return false
 	}
 	gk := attr.GetKind().GroupKind()
-	return imageapi.Kind("ImageStreamMapping") == gk || imageapi.LegacyKind("ImageStreamMapping") == gk
+	return image.Kind("ImageStreamMapping") == gk || legacy.Kind("ImageStreamMapping") == gk
 }
 
 // SupportsLimit provides a check to see if the limitRange is applicable to image objects.

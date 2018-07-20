@@ -3,7 +3,7 @@ package route
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +genclient
@@ -108,7 +108,7 @@ type RouteIngressCondition struct {
 	Type RouteIngressConditionType
 	// Status is the status of the condition.
 	// Can be True, False, Unknown.
-	Status kapi.ConditionStatus
+	Status core.ConditionStatus
 	// (brief) reason for the condition's last transition, and is usually a machine and human
 	// readable constant
 	Reason string

@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	"github.com/openshift/api/image"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
@@ -120,13 +121,13 @@ func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	if err != nil {
 		return err
 	}
-	resource, o.name, err = osutil.ResolveResource(imageapi.Resource("imagestreamtags"), args[0], mapper)
+	resource, o.name, err = osutil.ResolveResource(image.Resource("imagestreamtags"), args[0], mapper)
 	if err != nil {
 		return err
 	}
 
 	switch resource {
-	case imageapi.Resource("imagestreamtags"):
+	case image.Resource("imagestreamtags"):
 		o.name = imageapi.NormalizeImageStreamTag(o.name)
 		glog.V(4).Infof("Using %q as the image stream tag to look dependencies for", o.name)
 	default:

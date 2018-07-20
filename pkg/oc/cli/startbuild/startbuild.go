@@ -35,6 +35,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	"github.com/openshift/api/build"
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclientinternalmanual "github.com/openshift/origin/pkg/build/client/internalversion"
@@ -253,7 +254,7 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 
 	var (
 		name     = buildName
-		resource = buildapi.Resource("builds")
+		resource = build.Resource("builds")
 	)
 
 	if len(name) == 0 && len(args) > 0 && len(args[0]) > 0 {
@@ -261,14 +262,14 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 		if err != nil {
 			return err
 		}
-		resource, name, err = cmdutil.ResolveResource(buildapi.Resource("buildconfigs"), args[0], mapper)
+		resource, name, err = cmdutil.ResolveResource(build.Resource("buildconfigs"), args[0], mapper)
 		if err != nil {
 			return err
 		}
 		switch resource {
-		case buildapi.Resource("buildconfigs"):
+		case build.Resource("buildconfigs"):
 			// no special handling required
-		case buildapi.Resource("builds"):
+		case build.Resource("builds"):
 			if len(o.ListWebhooks) == 0 {
 				return fmt.Errorf("use --from-build to rerun your builds")
 			}
@@ -278,7 +279,7 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 	}
 
 	// when listing webhooks, allow --from-build to lookup a build config
-	if buildapi.Resource("builds") == resource && len(o.ListWebhooks) > 0 {
+	if build.Resource("builds") == resource && len(o.ListWebhooks) > 0 {
 		build, err := o.BuildClient.Builds(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err

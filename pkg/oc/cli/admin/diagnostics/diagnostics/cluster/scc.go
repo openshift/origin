@@ -9,11 +9,11 @@ import (
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	"github.com/openshift/api/security"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/util"
 	policycmd "github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
@@ -44,7 +44,7 @@ func (d *SCC) CanRun() (bool, error) {
 
 	return util.UserCan(d.SARClient, &authorization.ResourceAttributes{
 		Verb:     "list",
-		Group:    securityapi.GroupName,
+		Group:    security.GroupName,
 		Resource: "securitycontextconstraints",
 	})
 }

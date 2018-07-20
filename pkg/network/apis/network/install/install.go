@@ -5,7 +5,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	sdnapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkv1 "github.com/openshift/api/network/v1"
 	sdnapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
 )
 
@@ -15,7 +15,6 @@ func init() {
 
 // Install registers the API group and adds types to a scheme
 func Install(scheme *runtime.Scheme) {
-	utilruntime.Must(sdnapi.AddToScheme(scheme))
-	utilruntime.Must(sdnapiv1.AddToScheme(scheme))
-	utilruntime.Must(scheme.SetVersionPriority(sdnapiv1.SchemeGroupVersion))
+	utilruntime.Must(sdnapiv1.Install(scheme))
+	utilruntime.Must(scheme.SetVersionPriority(networkv1.GroupVersion))
 }

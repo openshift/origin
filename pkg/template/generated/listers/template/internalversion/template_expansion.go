@@ -1,6 +1,7 @@
 package internalversion
 
 import (
+	"github.com/openshift/api/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -21,7 +22,7 @@ func (s templateLister) GetByUID(uid string) (*templateapi.Template, error) {
 		return nil, err
 	}
 	if len(templates) == 0 {
-		return nil, errors.NewNotFound(templateapi.Resource("template"), uid)
+		return nil, errors.NewNotFound(template.Resource("template"), uid)
 	}
 	return templates[0].(*templateapi.Template), nil
 }

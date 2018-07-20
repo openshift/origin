@@ -8,13 +8,14 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
+	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 var legacyObjectCountAliases = map[schema.GroupVersionResource]kapi.ResourceName{
-	imageapi.SchemeGroupVersion.WithResource("imagestreams"): imageapi.ResourceImageStreams,
+	imageapi.GroupVersion.WithResource("imagestreams"): imageapi.ResourceImageStreams,
 }
 
 // NewEvaluators returns the list of static evaluators that manage more than counts
@@ -43,11 +44,11 @@ func NewReplenishmentEvaluatorsForAdmission(isInformer imageinternalversion.Imag
 		NewImageStreamImportEvaluator(isInformer.Lister()),
 		&evaluatorForLegacyResource{
 			Evaluator:           NewImageStreamTagEvaluator(isInformer.Lister(), imageClient),
-			LegacyGroupResource: imageapi.LegacyResource("imagestreamtags"),
+			LegacyGroupResource: legacy.Resource("imagestreamtags"),
 		},
 		&evaluatorForLegacyResource{
 			Evaluator:           NewImageStreamImportEvaluator(isInformer.Lister()),
-			LegacyGroupResource: imageapi.LegacyResource("imagestreamimports"),
+			LegacyGroupResource: legacy.Resource("imagestreamimports"),
 		},
 	}
 	// these evaluators require an alias for backwards compatibility
@@ -59,8 +60,8 @@ func NewReplenishmentEvaluatorsForAdmission(isInformer imageinternalversion.Imag
 	result = append(result,
 		generic.NewObjectCountEvaluator(
 			false,
-			imageapi.LegacyResource("imagestreams"),
-			generic.ListResourceUsingListerFunc(nil, imageapi.SchemeGroupVersion.WithResource("imagestreams")),
+			legacy.Resource("imagestreams"),
+			generic.ListResourceUsingListerFunc(nil, imageapi.GroupVersion.WithResource("imagestreams")),
 			imageapi.ResourceImageStreams))
 
 	return result

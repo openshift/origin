@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	routegroup "github.com/openshift/api/route"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -39,7 +40,7 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &routeapi.Route{} },
 		NewListFunc:              func() runtime.Object { return &routeapi.RouteList{} },
-		DefaultQualifiedResource: routeapi.Resource("routes"),
+		DefaultQualifiedResource: routegroup.Resource("routes"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

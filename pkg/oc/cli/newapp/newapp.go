@@ -37,10 +37,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
+	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/bulk"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/print"
@@ -825,7 +825,7 @@ func retryBuildConfig(obj *unstructured.Unstructured, err error) *unstructured.U
 		buildv1.GitLabWebHookBuildTriggerType:    {},
 		buildv1.BitbucketWebHookBuildTriggerType: {},
 	}
-	if buildapi.Kind("BuildConfig") == obj.GroupVersionKind().GroupKind() && isInvalidTriggerError(err) {
+	if build.Kind("BuildConfig") == obj.GroupVersionKind().GroupKind() && isInvalidTriggerError(err) {
 		var bc *buildv1.BuildConfig
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, bc)
 		if err != nil {

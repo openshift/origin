@@ -30,6 +30,9 @@ import (
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	oapps "github.com/openshift/api/apps"
+	"github.com/openshift/api/build"
+	"github.com/openshift/api/image"
+	"github.com/openshift/api/oauth"
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -39,8 +42,6 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
@@ -136,20 +137,20 @@ func TestClusterReaderCoverage(t *testing.T) {
 	}
 
 	escalatingResources := map[schema.GroupResource]bool{
-		oauthapi.Resource("oauthauthorizetokens"):     true,
-		oauthapi.Resource("oauthaccesstokens"):        true,
-		oauthapi.Resource("oauthclients"):             true,
-		imageapi.Resource("imagestreams/secrets"):     true,
-		kapi.Resource("secrets"):                      true,
-		kapi.Resource("pods/exec"):                    true,
-		kapi.Resource("pods/proxy"):                   true,
-		kapi.Resource("pods/portforward"):             true,
-		kapi.Resource("nodes/proxy"):                  true,
-		kapi.Resource("services/proxy"):               true,
-		{Group: "", Resource: "oauthauthorizetokens"}: true,
-		{Group: "", Resource: "oauthaccesstokens"}:    true,
-		{Group: "", Resource: "oauthclients"}:         true,
-		{Group: "", Resource: "imagestreams/secrets"}: true,
+		oauth.Resource("oauthauthorizetokens"):  true,
+		oauth.Resource("oauthaccesstokens"):     true,
+		oauth.Resource("oauthclients"):          true,
+		image.Resource("imagestreams/secrets"):  true,
+		kapi.Resource("secrets"):                true,
+		kapi.Resource("pods/exec"):              true,
+		kapi.Resource("pods/proxy"):             true,
+		kapi.Resource("pods/portforward"):       true,
+		kapi.Resource("nodes/proxy"):            true,
+		kapi.Resource("services/proxy"):         true,
+		legacy.Resource("oauthauthorizetokens"): true,
+		legacy.Resource("oauthaccesstokens"):    true,
+		legacy.Resource("oauthclients"):         true,
+		legacy.Resource("imagestreams/secrets"): true,
 	}
 
 	readerRole, err := rbacclient.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
@@ -175,15 +176,15 @@ func TestClusterReaderCoverage(t *testing.T) {
 
 	// remove resources without read APIs
 	nonreadingResources := []schema.GroupResource{
-		buildapi.Resource("buildconfigs/instantiatebinary"),
-		buildapi.Resource("buildconfigs/instantiate"),
-		buildapi.Resource("builds/clone"),
 		oapps.Resource("deploymentconfigrollbacks"),
 		oapps.Resource("generatedeploymentconfigs"),
 		oapps.Resource("deploymentconfigs/rollback"),
 		oapps.Resource("deploymentconfigs/instantiate"),
-		imageapi.Resource("imagestreamimports"),
-		imageapi.Resource("imagestreammappings"),
+		build.Resource("buildconfigs/instantiatebinary"),
+		build.Resource("buildconfigs/instantiate"),
+		build.Resource("builds/clone"),
+		image.Resource("imagestreamimports"),
+		image.Resource("imagestreammappings"),
 		extensionsapi.Resource("deployments/rollback"),
 		appsapi.Resource("deployments/rollback"),
 		kapi.Resource("pods/attach"),
@@ -1439,7 +1440,7 @@ func TestLegacyLocalRoleBindingEndpoint(t *testing.T) {
 	testBindingName := "testrole"
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	// create rolebinding
 	roleBindingToCreate := &authorizationapi.RoleBinding{
@@ -1608,7 +1609,7 @@ func TestLegacyClusterRoleBindingEndpoint(t *testing.T) {
 	clusterAdmin := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	clusterRoleBindingsPath := "/oapi/v1/clusterrolebindings"
 	testBindingName := "testbinding"
@@ -1746,7 +1747,7 @@ func TestLegacyClusterRoleEndpoint(t *testing.T) {
 	clusterAdmin := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	clusterRolesPath := "/oapi/v1/clusterroles"
 	testRole := "testrole"
@@ -1867,7 +1868,7 @@ func TestLegacyLocalRoleEndpoint(t *testing.T) {
 	}
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	rolesPath := "/oapi/v1/namespaces/" + namespace + "/roles"
 	testRole := "testrole"
@@ -1994,7 +1995,7 @@ func TestOldLocalAccessReviewEndpoints(t *testing.T) {
 	}
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
+	legacy.InstallInternalLegacyAuthorization(authorizationclientscheme.Scheme)
 	codecFactory := serializer.NewCodecFactory(authorizationclientscheme.Scheme)
 
 	sar := &authorizationapi.SubjectAccessReview{

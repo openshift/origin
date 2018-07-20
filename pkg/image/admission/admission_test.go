@@ -15,6 +15,8 @@ import (
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
+	"github.com/openshift/api/image"
+	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -60,10 +62,10 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 		informerFactory.Start(wait.NeverStop)
 
 		attrs := kadmission.NewAttributesRecord(v.imageStreamMapping, nil,
-			imageapi.Kind("ImageStreamMapping").WithVersion("version"),
+			image.Kind("ImageStreamMapping").WithVersion("version"),
 			v.imageStreamMapping.Namespace,
 			v.imageStreamMapping.Name,
-			imageapi.Resource("imagestreammappings").WithVersion("version"),
+			image.Resource("imagestreammappings").WithVersion("version"),
 			"",
 			v.operation,
 			nil)
@@ -218,7 +220,7 @@ func TestSupports(t *testing.T) {
 	}
 	ilr := plugin.(*imageLimitRangerPlugin)
 	for _, r := range resources {
-		attr := kadmission.NewAttributesRecord(nil, nil, imageapi.LegacyKind("ImageStreamMapping").WithVersion(""), "ns", "name", imageapi.LegacyResource(r).WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, legacy.Kind("ImageStreamMapping").WithVersion(""), "ns", "name", legacy.Resource(r).WithVersion("version"), "", kadmission.Create, nil)
 		if !ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is expected to support %#v", r)
 		}
@@ -226,7 +228,7 @@ func TestSupports(t *testing.T) {
 
 	badKinds := []string{"ImageStream", "Image", "Pod", "foo"}
 	for _, k := range badKinds {
-		attr := kadmission.NewAttributesRecord(nil, nil, imageapi.LegacyKind(k).WithVersion(""), "ns", "name", imageapi.Resource("bar").WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, legacy.Kind(k).WithVersion(""), "ns", "name", image.Resource("bar").WithVersion("version"), "", kadmission.Create, nil)
 		if ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is not expected to support %s", k)
 		}

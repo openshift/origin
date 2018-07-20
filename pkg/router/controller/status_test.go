@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/api/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
@@ -102,7 +103,7 @@ func (l routeNamespaceLister) Get(name string) (*routeapi.Route, error) {
 			return item, nil
 		}
 	}
-	return nil, errors.NewNotFound(routeapi.Resource("route"), name)
+	return nil, errors.NewNotFound(route.Resource("route"), name)
 }
 
 type recorded struct {

@@ -2,31 +2,25 @@ package v1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/api/image/dockerpre012"
 	"github.com/openshift/api/image/v1"
-)
-
-const (
-	GroupName       = "image.openshift.io"
-	LegacyGroupName = ""
+	"github.com/openshift/origin/pkg/image/apis/image"
 )
 
 var (
-	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	localSchemeBuilder = runtime.NewSchemeBuilder(
+		image.Install,
+		v1.Install,
+		corev1conversions.AddToScheme,
+		docker10.AddToScheme,
+		dockerpre012.AddToScheme,
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.DeprecatedInstallWithoutGroup, addConversionFuncs, addLegacyFieldSelectorKeyConversions, RegisterDefaults, RegisterConversions, docker10.AddToSchemeInCoreGroup, dockerpre012.AddToSchemeInCoreGroup)
-	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
-
-	SchemeBuilder = runtime.NewSchemeBuilder(v1.Install, addConversionFuncs, addFieldSelectorKeyConversions, RegisterDefaults, docker10.AddToScheme, dockerpre012.AddToScheme)
-	AddToScheme   = SchemeBuilder.AddToScheme
-
-	localSchemeBuilder = &SchemeBuilder
+		addFieldSelectorKeyConversions,
+		AddConversionFuncs,
+		RegisterDefaults,
+	)
+	Install = localSchemeBuilder.AddToScheme
 )
-
-func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}

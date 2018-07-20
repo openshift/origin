@@ -6,7 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/apis/core"
+	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacv1conversions "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -15,13 +17,15 @@ import (
 
 // InstallLegacyAuthorization this looks like a lot of duplication, but the code in the individual versions is living and may
 // change. The code here should never change and needs to allow the other code to move independently.
-func InstallLegacyAuthorization(scheme *runtime.Scheme) {
+func InstallInternalLegacyAuthorization(scheme *runtime.Scheme) {
 	InstallExternalLegacyAuthorization(scheme)
 
 	schemeBuilder := runtime.NewSchemeBuilder(
 		addUngroupifiedInternalAuthorizationTypes,
 		core.AddToScheme,
 		rbac.AddToScheme,
+		corev1conversions.AddToScheme,
+		rbacv1conversions.AddToScheme,
 
 		authorizationv1helpers.AddConversionFuncs,
 		authorizationv1helpers.AddFieldSelectorKeyConversions,

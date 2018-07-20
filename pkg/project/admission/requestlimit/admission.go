@@ -12,8 +12,10 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/api/project"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	requestlimitapi "github.com/openshift/origin/pkg/project/admission/apis/requestlimit"
@@ -78,7 +80,7 @@ func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 	switch a.GetResource().GroupResource() {
-	case projectapi.Resource("projectrequests"), projectapi.LegacyResource("projectrequests"):
+	case project.Resource("projectrequests"), legacy.Resource("projectrequests"):
 	default:
 		return nil
 	}

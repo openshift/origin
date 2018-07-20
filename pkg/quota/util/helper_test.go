@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/api/image"
 )
 
 // TestIsErrorQuotaExceeded verifies that if a resource exceedes allowed usage, the admission will return
@@ -37,21 +37,21 @@ func TestIsErrorQuotaExceeded(t *testing.T) {
 		},
 		{
 			name: "unrelated invalid error",
-			err: kerrors.NewInvalid(imageapi.Kind("imageStreams"), "is",
+			err: kerrors.NewInvalid(image.Kind("imageStreams"), "is",
 				field.ErrorList{
 					field.Required(field.NewPath("imageStream").Child("Spec"), "detail"),
 				}),
 		},
 		{
 			name: "quota error not recognized with invalid reason",
-			err: kerrors.NewInvalid(imageapi.Kind("imageStreams"), "is",
+			err: kerrors.NewInvalid(image.Kind("imageStreams"), "is",
 				field.ErrorList{
 					field.Forbidden(field.NewPath("imageStreams"), errQuotaMessageString),
 				}),
 		},
 		{
 			name: "quota unknown error not recognized with invalid reason",
-			err: kerrors.NewInvalid(imageapi.Kind("imageStreams"), "is",
+			err: kerrors.NewInvalid(image.Kind("imageStreams"), "is",
 				field.ErrorList{
 					field.Forbidden(field.NewPath("imageStreams"), errQuotaUnknownMessageString),
 				}),
@@ -68,12 +68,12 @@ func TestIsErrorQuotaExceeded(t *testing.T) {
 		},
 		{
 			name:        "limits exceeded error with forbidden reason",
-			err:         kerrors.NewForbidden(imageapi.Resource("imageStream"), "is", errors.New(errLimitsMessageString)),
+			err:         kerrors.NewForbidden(image.Resource("imageStream"), "is", errors.New(errLimitsMessageString)),
 			shouldMatch: true,
 		},
 		{
 			name: "limits exceeded error with invalid reason",
-			err: kerrors.NewInvalid(imageapi.Kind("imageStreams"), "is",
+			err: kerrors.NewInvalid(image.Kind("imageStreams"), "is",
 				field.ErrorList{
 					field.Forbidden(field.NewPath("imageStream"), errLimitsMessageString),
 				}),
@@ -116,21 +116,21 @@ func TestIsErrorLimitExceeded(t *testing.T) {
 		},
 		{
 			name: "unrelated invalid error",
-			err: kerrors.NewInvalid(imageapi.Kind("imageStreams"), "is",
+			err: kerrors.NewInvalid(image.Kind("imageStreams"), "is",
 				field.ErrorList{
 					field.Required(field.NewPath("imageStream").Child("Spec"), "detail"),
 				}),
 		},
 		{
 			name: "quota error not recognized with invalid reason",
-			err: kerrors.NewInvalid(imageapi.Kind("imageStreams"), "is",
+			err: kerrors.NewInvalid(image.Kind("imageStreams"), "is",
 				field.ErrorList{
 					field.Forbidden(field.NewPath("imageStreams"), errQuotaMessageString),
 				}),
 		},
 		{
 			name: "quota unknown error not recognized with invalid reason",
-			err: kerrors.NewInvalid(imageapi.Kind("imageStreams"), "is",
+			err: kerrors.NewInvalid(image.Kind("imageStreams"), "is",
 				field.ErrorList{
 					field.Forbidden(field.NewPath("imageStreams"), errQuotaUnknownMessageString),
 				}),
@@ -145,12 +145,12 @@ func TestIsErrorLimitExceeded(t *testing.T) {
 		},
 		{
 			name:        "limits exceeded error with forbidden reason",
-			err:         kerrors.NewForbidden(imageapi.Resource("imageStream"), "is", errors.New(errLimitsMessageString)),
+			err:         kerrors.NewForbidden(image.Resource("imageStream"), "is", errors.New(errLimitsMessageString)),
 			shouldMatch: true,
 		},
 		{
 			name: "limits exceeded error with invalid reason",
-			err: kerrors.NewInvalid(imageapi.Kind("imageStreams"), "is",
+			err: kerrors.NewInvalid(image.Kind("imageStreams"), "is",
 				field.ErrorList{
 					field.Forbidden(field.NewPath("imageStream"), errLimitsMessageString),
 				}),

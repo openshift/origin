@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	"github.com/openshift/api/template"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
@@ -356,13 +357,13 @@ func injectUserVars(values app.Environment, t *templateapi.Template, ignoreUnkno
 // connection to the server.
 func processTemplateLocally(tpl *templateapi.Template) error {
 	if errs := templatevalidation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
-		return errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+		return errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
 	}
 	processor := templateprocessing.NewProcessor(map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	})
 	if errs := processor.Process(tpl); len(errs) > 0 {
-		return errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+		return errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
 	}
 	return nil
 }

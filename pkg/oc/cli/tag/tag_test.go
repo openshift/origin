@@ -12,6 +12,7 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	"github.com/openshift/api/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
@@ -167,10 +168,10 @@ func TestTag(t *testing.T) {
 	for name, test := range testCases {
 		client := imagefake.NewSimpleClientset(test.data...)
 		client.PrependReactor("create", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "create")
+			return true, nil, kapierrors.NewMethodNotSupported(image.Resource("imagestreamtags"), "create")
 		})
 		client.PrependReactor("update", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "update")
+			return true, nil, kapierrors.NewMethodNotSupported(image.Resource("imagestreamtags"), "update")
 		})
 
 		test.opts.IOStreams = genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr}
@@ -207,7 +208,7 @@ func TestRunTag_DeleteOld(t *testing.T) {
 	streams := testData()
 	client := imagefake.NewSimpleClientset(streams[1])
 	client.PrependReactor("delete", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, nil, kapierrors.NewForbidden(imageapi.Resource("imagestreamtags"), "rails:tip", fmt.Errorf("dne"))
+		return true, nil, kapierrors.NewForbidden(image.Resource("imagestreamtags"), "rails:tip", fmt.Errorf("dne"))
 	})
 	client.PrependReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, testData()[1], nil
@@ -306,7 +307,7 @@ func TestRunTag_AddRestricted(t *testing.T) {
 		return true, action.(clientgotesting.CreateAction).GetObject(), nil
 	})
 	client.PrependReactor("update", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, nil, kapierrors.NewForbidden(imageapi.Resource("imagestreamtags"), "rails:tip", fmt.Errorf("dne"))
+		return true, nil, kapierrors.NewForbidden(image.Resource("imagestreamtags"), "rails:tip", fmt.Errorf("dne"))
 	})
 
 	test := struct {

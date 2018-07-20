@@ -14,6 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/api/user"
 	userapi "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	userinternal "github.com/openshift/origin/pkg/user/apis/user"
@@ -132,7 +133,7 @@ func (s *REST) createOrUpdate(ctx context.Context, obj runtime.Object, forceCrea
 	if kerrs.IsNotFound(identityErr) {
 		errs := field.ErrorList{field.Invalid(field.NewPath("identity", "name"), mapping.Identity.Name, "referenced identity does not exist")}
 		// TODO update to openshift/api
-		return nil, false, kerrs.NewInvalid(userinternal.Kind("UserIdentityMapping"), mapping.Name, errs)
+		return nil, false, kerrs.NewInvalid(user.Kind("UserIdentityMapping"), mapping.Name, errs)
 	}
 
 	// GetIdentities new user
@@ -140,7 +141,7 @@ func (s *REST) createOrUpdate(ctx context.Context, obj runtime.Object, forceCrea
 	if kerrs.IsNotFound(err) {
 		errs := field.ErrorList{field.Invalid(field.NewPath("user", "name"), mapping.User.Name, "referenced user does not exist")}
 		// TODO update to openshift/api
-		return nil, false, kerrs.NewInvalid(userinternal.Kind("UserIdentityMapping"), mapping.Name, errs)
+		return nil, false, kerrs.NewInvalid(user.Kind("UserIdentityMapping"), mapping.Name, errs)
 	}
 	if err != nil {
 		return nil, false, err

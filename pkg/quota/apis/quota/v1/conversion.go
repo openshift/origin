@@ -43,7 +43,7 @@ func Convert_quota_ResourceQuotasStatusByNamespace_To_v1_ResourceQuotasStatusByN
 	return nil
 }
 
-func addConversionFuncs(scheme *runtime.Scheme) error {
+func AddConversionFuncs(scheme *runtime.Scheme) error {
 	return scheme.AddConversionFuncs(
 		Convert_quota_ResourceQuotasStatusByNamespace_To_v1_ResourceQuotasStatusByNamespace,
 		Convert_v1_ResourceQuotasStatusByNamespace_To_quota_ResourceQuotasStatusByNamespace,

@@ -17,6 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	"github.com/openshift/api/image"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	mocks "github.com/openshift/origin/pkg/build/generator/test"
@@ -610,7 +611,7 @@ func TestInstantiateWithMissingImageStream(t *testing.T) {
 	g := mockBuildGenerator(nil, nil, nil, nil, nil, nil, nil)
 	c := g.Client.(TestingClient)
 	c.GetImageStreamFunc = func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
-		return nil, errors.NewNotFound(imageapi.Resource("imagestreams"), "testRepo")
+		return nil, errors.NewNotFound(image.Resource("imagestreams"), "testRepo")
 	}
 	g.Client = c
 

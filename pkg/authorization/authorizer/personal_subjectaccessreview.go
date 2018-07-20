@@ -125,6 +125,6 @@ var (
 )
 
 func init() {
-	legacy.InstallLegacyAuthorization(sarScheme)
+	legacy.InstallInternalLegacyAuthorization(sarScheme)
 	utilruntime.Must(authorizationv1helpers.Install(sarScheme))
 }

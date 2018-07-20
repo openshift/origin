@@ -6,7 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/apis/core"
+	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	extensionsv1beta1conversions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/apps/apis/apps"
@@ -15,13 +17,15 @@ import (
 
 // InstallLegacyApps this looks like a lot of duplication, but the code in the individual versions is living and may
 // change. The code here should never change and needs to allow the other code to move independently.
-func InstallLegacyApps(scheme *runtime.Scheme) {
+func InstallInternalLegacyApps(scheme *runtime.Scheme) {
 	InstallExternalLegacyApps(scheme)
 
 	schemeBuilder := runtime.NewSchemeBuilder(
 		addUngroupifiedInternalAppsTypes,
 		core.AddToScheme,
 		extensions.AddToScheme,
+		corev1conversions.AddToScheme,
+		extensionsv1beta1conversions.AddToScheme,
 
 		appsv1helpers.AddConversionFuncs,
 		appsv1helpers.RegisterDefaults,

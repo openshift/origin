@@ -19,6 +19,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	buildgroup "github.com/openshift/api/build"
 	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -443,7 +444,7 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildapi.BuildReque
 // createBuild is responsible for validating build object and saving it and returning newly created object
 func (g *BuildGenerator) createBuild(ctx context.Context, build *buildapi.Build) (*buildapi.Build, error) {
 	if !rest.ValidNamespace(ctx, &build.ObjectMeta) {
-		return nil, errors.NewConflict(buildapi.Resource("build"), build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
+		return nil, errors.NewConflict(buildgroup.Resource("build"), build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
 	}
 	rest.FillObjectMetaSystemFields(&build.ObjectMeta)
 	err := g.Client.CreateBuild(ctx, build)

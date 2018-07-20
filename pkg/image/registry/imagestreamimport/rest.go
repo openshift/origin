@@ -24,6 +24,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	"github.com/openshift/api/image"
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
@@ -148,7 +149,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	if !isCreateImage.Status.Allowed && !isCreateImageStreamMapping.Status.Allowed {
 		if errs := r.strategy.ValidateAllowedRegistries(isi); len(errs) != 0 {
-			return nil, kapierrors.NewInvalid(imageapi.Kind("ImageStreamImport"), isi.Name, errs)
+			return nil, kapierrors.NewInvalid(image.Kind("ImageStreamImport"), isi.Name, errs)
 		}
 	}
 
@@ -184,11 +185,11 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	} else {
 		if len(inputMeta.ResourceVersion) > 0 && inputMeta.ResourceVersion != stream.ResourceVersion {
 			glog.V(4).Infof("DEBUG: mismatch between requested ResourceVersion %s and located ResourceVersion %s", inputMeta.ResourceVersion, stream.ResourceVersion)
-			return nil, kapierrors.NewConflict(imageapi.Resource("imagestream"), inputMeta.Name, fmt.Errorf("the image stream was updated from %q to %q", inputMeta.ResourceVersion, stream.ResourceVersion))
+			return nil, kapierrors.NewConflict(image.Resource("imagestream"), inputMeta.Name, fmt.Errorf("the image stream was updated from %q to %q", inputMeta.ResourceVersion, stream.ResourceVersion))
 		}
 		if len(inputMeta.UID) > 0 && inputMeta.UID != stream.UID {
 			glog.V(4).Infof("DEBUG: mismatch between requested UID %s and located UID %s", inputMeta.UID, stream.UID)
-			return nil, kapierrors.NewNotFound(imageapi.Resource("imagestream"), inputMeta.Name)
+			return nil, kapierrors.NewNotFound(image.Resource("imagestream"), inputMeta.Name)
 		}
 	}
 
@@ -342,7 +343,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		return nil, err
 	}
 	legacyscheme.Scheme.Default(external)
-	internal, err := legacyscheme.Scheme.ConvertToVersion(external, imageapi.SchemeGroupVersion)
+	internal, err := legacyscheme.Scheme.ConvertToVersion(external, imageapi.GroupVersion)
 	if err != nil {
 		return nil, err
 	}

@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	imagegroup "github.com/openshift/api/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -79,7 +80,7 @@ func (r *REST) Get(ctx context.Context, id string, options *metav1.GetOptions) (
 	}
 
 	if repo.Status.Tags == nil {
-		return nil, errors.NewNotFound(imageapi.Resource("imagestreamimage"), id)
+		return nil, errors.NewNotFound(imagegroup.Resource("imagestreamimage"), id)
 	}
 
 	event, err := imageapi.ResolveImageID(repo, imageID)

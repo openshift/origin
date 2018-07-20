@@ -18,13 +18,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/util/jsonpath"
 	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/api/route"
+	"github.com/openshift/origin/pkg/api/legacy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/util"
@@ -195,8 +195,8 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 		case kapi.Kind("ConfigMap"),
 			kapi.Kind("Secret"),
 			kapi.Kind("Service"),
-			routeapi.Kind("Route"),
-			schema.GroupKind{Group: "", Kind: "Route"}:
+			route.Kind("Route"),
+			legacy.Kind("Route"):
 		default:
 			continue
 		}

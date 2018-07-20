@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	usergroup "github.com/openshift/api/user"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -38,7 +39,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &userapi.User{} },
 		NewListFunc:              func() runtime.Object { return &userapi.UserList{} },
-		DefaultQualifiedResource: userapi.Resource("users"),
+		DefaultQualifiedResource: usergroup.Resource("users"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 
@@ -61,7 +62,7 @@ func (r *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 	if name == "~" {
 		user, ok := apirequest.UserFrom(ctx)
 		if !ok || user.GetName() == "" {
-			return nil, kerrs.NewForbidden(userapi.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
+			return nil, kerrs.NewForbidden(usergroup.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
 		}
 		name = user.GetName()
 

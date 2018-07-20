@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
+	imagegroup "github.com/openshift/api/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
@@ -62,7 +63,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	// ensure that given signature already doesn't exist - either by its name or type:content
 	if byName, byContent := imageapi.IndexOfImageSignatureByName(image.Signatures, signature.Name), imageapi.IndexOfImageSignature(image.Signatures, signature.Type, signature.Content); byName >= 0 || byContent >= 0 {
-		return nil, kapierrors.NewAlreadyExists(imageapi.Resource("imageSignatures"), signature.Name)
+		return nil, kapierrors.NewAlreadyExists(imagegroup.Resource("imageSignatures"), signature.Name)
 	}
 
 	image.Signatures = append(image.Signatures, *signature)
@@ -93,7 +94,7 @@ func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOp
 
 	index := imageapi.IndexOfImageSignatureByName(image.Signatures, name)
 	if index < 0 {
-		return nil, false, kapierrors.NewNotFound(imageapi.Resource("imageSignatures"), name)
+		return nil, false, kapierrors.NewNotFound(imagegroup.Resource("imageSignatures"), name)
 	}
 
 	size := len(image.Signatures)

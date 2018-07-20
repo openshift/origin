@@ -19,7 +19,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/api/build"
+	"github.com/openshift/origin/pkg/api/legacy"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/build/client"
@@ -34,12 +35,9 @@ var (
 
 func init() {
 	// webhooks need to return legacy build serialization when hit via oapi
-	utilruntime.Must(buildv1.AddToScheme(webhookEncodingScheme))
-	utilruntime.Must(buildv1helpers.AddToScheme(webhookEncodingScheme))
-	utilruntime.Must(buildv1.DeprecatedInstallWithoutGroup(webhookEncodingScheme))
-	utilruntime.Must(buildv1helpers.AddToSchemeInCoreGroup(webhookEncodingScheme))
-	utilruntime.Must(buildapi.AddToScheme(webhookEncodingScheme))
-	utilruntime.Must(buildapi.AddToSchemeInCoreGroup(webhookEncodingScheme))
+	legacy.InstallInternalLegacyBuild(webhookEncodingScheme)
+	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
+	utilruntime.Must(buildv1helpers.Install(webhookEncodingScheme))
 	webhookEncodingCodecFactory = serializer.NewCodecFactory(webhookEncodingScheme)
 }
 
@@ -129,7 +127,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 
 	plugin, ok := w.plugins[hookType]
 	if !ok {
-		return errors.NewNotFound(buildapi.Resource("buildconfighook"), hookType)
+		return errors.NewNotFound(build.Resource("buildconfighook"), hookType)
 	}
 
 	config, err := w.buildConfigClient.BuildConfigs(apirequest.NamespaceValue(ctx)).Get(name, metav1.GetOptions{})
@@ -156,7 +154,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 		case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
 			return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 		case webhook.MethodNotSupported:
-			return errors.NewMethodNotSupported(buildapi.Resource("buildconfighook"), req.Method)
+			return errors.NewMethodNotSupported(build.Resource("buildconfighook"), req.Method)
 		}
 		if _, ok := err.(*errors.StatusError); !ok && err != nil {
 			return errors.NewInternalError(fmt.Errorf("hook failed: %v", err))

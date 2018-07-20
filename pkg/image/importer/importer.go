@@ -24,6 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/util/flowcontrol"
 
+	"github.com/openshift/api/image"
+	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/util"
@@ -335,7 +337,7 @@ func applyErrorToRepository(repository *importRepository, err error) {
 func formatRepositoryError(ref imageapi.DockerImageReference, err error) error {
 	switch {
 	case isDockerError(err, v2.ErrorCodeManifestUnknown):
-		err = kapierrors.NewNotFound(imageapi.Resource("dockerimage"), ref.Exact())
+		err = kapierrors.NewNotFound(image.Resource("dockerimage"), ref.Exact())
 	case isDockerError(err, errcode.ErrorCodeUnauthorized):
 		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", ref.Exact()))
 	case strings.HasSuffix(err.Error(), "no basic auth credentials"):
@@ -466,7 +468,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		case err == reference.ErrReferenceInvalidFormat:
 			err = field.Invalid(field.NewPath("from", "name"), repository.Name, "the provided repository name is not valid")
 		case isDockerError(err, v2.ErrorCodeNameUnknown):
-			err = kapierrors.NewNotFound(imageapi.Resource("dockerimage"), repository.Ref.Exact())
+			err = kapierrors.NewNotFound(image.Resource("dockerimage"), repository.Ref.Exact())
 		case isDockerError(err, errcode.ErrorCodeUnauthorized):
 			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
 		case strings.Contains(err.Error(), "tls: oversized record received with length") && !repository.Insecure:
@@ -487,7 +489,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		glog.V(5).Infof("unable to access manifests for repository %#v: %#v", repository, err)
 		switch {
 		case isDockerError(err, v2.ErrorCodeNameUnknown):
-			err = kapierrors.NewNotFound(imageapi.Resource("dockerimage"), repository.Ref.Exact())
+			err = kapierrors.NewNotFound(image.Resource("dockerimage"), repository.Ref.Exact())
 		case isDockerError(err, errcode.ErrorCodeUnauthorized):
 			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
 		case strings.HasSuffix(err.Error(), "no basic auth credentials"):
@@ -507,7 +509,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 			glog.V(5).Infof("unable to access tags for repository %#v: %#v", repository, err)
 			switch {
 			case isDockerError(err, v2.ErrorCodeNameUnknown):
-				err = kapierrors.NewNotFound(imageapi.Resource("dockerimage"), repository.Ref.Exact())
+				err = kapierrors.NewNotFound(image.Resource("dockerimage"), repository.Ref.Exact())
 			case isDockerError(err, errcode.ErrorCodeUnauthorized):
 				err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
 			}
@@ -590,14 +592,14 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepository, limiter flowcontrol.RateLimiter) {
 	value := ctx.Value(ContextKeyV1RegistryClient)
 	if value == nil {
-		err := kapierrors.NewForbidden(imageapi.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host))
+		err := kapierrors.NewForbidden(image.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host))
 		err.ErrStatus.Reason = "NotV2Registry"
 		applyErrorToRepository(repository, err)
 		return
 	}
 	client, ok := value.(dockerv1client.Client)
 	if !ok {
-		err := kapierrors.NewForbidden(imageapi.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host))
+		err := kapierrors.NewForbidden(image.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host))
 		err.ErrStatus.Reason = "NotV2Registry"
 		return
 	}
@@ -732,7 +734,7 @@ func imageImportStatus(err error, kind, position string) metav1.Status {
 	case kapierrors.APIStatus:
 		return t.Status()
 	case *field.Error:
-		return kapierrors.NewInvalid(imageapi.Kind(kind), position, field.ErrorList{t}).ErrStatus
+		return kapierrors.NewInvalid(image.Kind(kind), position, field.ErrorList{t}).ErrStatus
 	default:
 		return kapierrors.NewInternalError(err).ErrStatus
 	}
@@ -744,5 +746,5 @@ func setImageImportStatus(images *imageapi.ImageStreamImport, i int, tag string,
 }
 
 func invalidStatus(position string, errs ...*field.Error) metav1.Status {
-	return kapierrors.NewInvalid(imageapi.LegacyKind(""), position, errs).ErrStatus
+	return kapierrors.NewInvalid(legacy.Kind(""), position, errs).ErrStatus
 }

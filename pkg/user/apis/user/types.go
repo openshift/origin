@@ -2,7 +2,7 @@ package user
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // Auth system gets identity name and provider
@@ -47,7 +47,7 @@ type Identity struct {
 
 	// User is a reference to the user this identity is associated with
 	// Both Name and UID must be set
-	User kapi.ObjectReference
+	User core.ObjectReference
 
 	Extra map[string]string
 }
@@ -69,8 +69,8 @@ type UserIdentityMapping struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
-	Identity kapi.ObjectReference
-	User     kapi.ObjectReference
+	Identity core.ObjectReference
+	User     core.ObjectReference
 }
 
 // +genclient

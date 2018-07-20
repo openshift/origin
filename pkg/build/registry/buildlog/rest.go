@@ -18,6 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	"github.com/openshift/api/build"
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
@@ -61,7 +62,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 		return nil, errors.NewBadRequest("did not get an expected options.")
 	}
 	if errs := validation.ValidateBuildLogOptions(buildLogOpts); len(errs) > 0 {
-		return nil, errors.NewInvalid(buildapi.Kind("BuildLogOptions"), "", errs)
+		return nil, errors.NewInvalid(build.Kind("BuildLogOptions"), "", errs)
 	}
 	build, err := r.BuildClient.Builds(apirequest.NamespaceValue(ctx)).Get(name, metav1.GetOptions{})
 	if err != nil {
