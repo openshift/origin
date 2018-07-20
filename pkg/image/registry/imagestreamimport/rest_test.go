@@ -29,9 +29,11 @@ func TestImportSuccessful(t *testing.T) {
 	two := int64(2)
 	now := metav1.Now()
 	tests := map[string]struct {
-		image    *imageapi.Image
-		stream   *imageapi.ImageStream
-		expected imageapi.TagEvent
+		image                       *imageapi.Image
+		stream                      *imageapi.ImageStream
+		importReferencePolicyType   imageapi.TagReferencePolicyType
+		expectedTagEvent            imageapi.TagEvent
+		expectedReferencePolicyType imageapi.TagReferencePolicyType
 	}{
 		"reference differs": {
 			image: &imageapi.Image{
@@ -65,11 +67,13 @@ func TestImportSuccessful(t *testing.T) {
 					},
 				},
 			},
-			expected: imageapi.TagEvent{
+			expectedTagEvent: imageapi.TagEvent{
 				DockerImageReference: "registry.com/namespace/image:mytag",
 				Image:                "image",
 				Generation:           two,
 			},
+			importReferencePolicyType:   imageapi.SourceTagReferencePolicy,
+			expectedReferencePolicyType: imageapi.SourceTagReferencePolicy,
 		},
 		"image differs": {
 			image: &imageapi.Image{
@@ -103,12 +107,14 @@ func TestImportSuccessful(t *testing.T) {
 					},
 				},
 			},
-			expected: imageapi.TagEvent{
+			expectedTagEvent: imageapi.TagEvent{
 				Created:              now,
 				DockerImageReference: "registry.com/namespace/image:mytag",
 				Image:                "image",
 				Generation:           two,
 			},
+			importReferencePolicyType:   imageapi.LocalTagReferencePolicy,
+			expectedReferencePolicyType: imageapi.LocalTagReferencePolicy,
 		},
 		"empty status": {
 			image: &imageapi.Image{
@@ -127,17 +133,22 @@ func TestImportSuccessful(t *testing.T) {
 								Name: "registry.com/namespace/image:mytag",
 							},
 							Generation: &one,
+							ReferencePolicy: imageapi.TagReferencePolicy{
+								Type: imageapi.SourceTagReferencePolicy,
+							},
 						},
 					},
 				},
 				Status: imageapi.ImageStreamStatus{},
 			},
-			expected: imageapi.TagEvent{
+			expectedTagEvent: imageapi.TagEvent{
 				Created:              now,
 				DockerImageReference: "registry.com/namespace/image:mytag",
 				Image:                "image",
 				Generation:           two,
 			},
+			importReferencePolicyType:   imageapi.LocalTagReferencePolicy,
+			expectedReferencePolicyType: imageapi.SourceTagReferencePolicy,
 		},
 		// https://github.com/openshift/origin/issues/10402:
 		"only generation differ": {
@@ -157,6 +168,9 @@ func TestImportSuccessful(t *testing.T) {
 								Name: "registry.com/namespace/image:mytag",
 							},
 							Generation: &two,
+							ReferencePolicy: imageapi.TagReferencePolicy{
+								Type: imageapi.LocalTagReferencePolicy,
+							},
 						},
 					},
 				},
@@ -172,11 +186,13 @@ func TestImportSuccessful(t *testing.T) {
 					},
 				},
 			},
-			expected: imageapi.TagEvent{
+			expectedTagEvent: imageapi.TagEvent{
 				DockerImageReference: "registry.com/namespace/image:mytag",
 				Image:                "image",
 				Generation:           two,
 			},
+			importReferencePolicyType:   imageapi.SourceTagReferencePolicy,
+			expectedReferencePolicyType: imageapi.LocalTagReferencePolicy,
 		},
 	}
 
@@ -188,7 +204,7 @@ func TestImportSuccessful(t *testing.T) {
 		}
 
 		importPolicy := imageapi.TagImportPolicy{}
-		referencePolicy := imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy}
+		referencePolicy := imageapi.TagReferencePolicy{Type: test.importReferencePolicyType}
 		importedImages := make(map[string]error)
 		updatedImages := make(map[string]*imageapi.Image)
 		storage := REST{images: fakeImageCreater{}}
@@ -198,8 +214,13 @@ func TestImportSuccessful(t *testing.T) {
 			t.Errorf("%s: expected success, didn't get one", name)
 		}
 		actual := test.stream.Status.Tags[ref.Tag].Items[0]
-		if !kapihelper.Semantic.DeepEqual(actual, test.expected) {
-			t.Errorf("%s: expected %#v, got %#v", name, test.expected, actual)
+		if !kapihelper.Semantic.DeepEqual(actual, test.expectedTagEvent) {
+			t.Errorf("%s: expected %#v, got %#v", name, test.expectedTagEvent, actual)
+		}
+
+		actualRefType := test.stream.Spec.Tags["mytag"].ReferencePolicy.Type
+		if actualRefType != test.expectedReferencePolicyType {
+			t.Errorf("%s: expected %#v, got %#v", name, test.expectedReferencePolicyType, actualRefType)
 		}
 	}
 }
