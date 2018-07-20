@@ -2,8 +2,6 @@ package genericclioptions
 
 import "fmt"
 
-var UseOpenShiftKubeConfigValues = false
-
 // OpenShiftKubeConfigFlagName exists only so that we can track down all non-standard offenders
 const OpenShiftKubeConfigFlagName = "config"
 

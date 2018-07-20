@@ -25,6 +25,7 @@ import (
 	"text/template"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/openshiftpatch"
 )
 
 // TemplatePrinter is an implementation of ResourcePrinter which formats data with a Go Template.
@@ -63,6 +64,9 @@ func (p *TemplatePrinter) AfterPrint(w io.Writer, res string) error {
 func (p *TemplatePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	if InternalObjectPreventer.IsForbidden(reflect.Indirect(reflect.ValueOf(obj)).Type().PkgPath()) {
 		return fmt.Errorf(InternalObjectPrinterErr)
+	}
+	if openshiftpatch.IsOAPI(obj.GetObjectKind().GroupVersionKind()) {
+		return fmt.Errorf("attempt to print an ungroupified object: %v", obj.GetObjectKind().GroupVersionKind())
 	}
 
 	var data []byte
@@ -154,6 +158,9 @@ func (p *GoTemplatePrinter) AllowMissingKeys(allow bool) {
 func (p *GoTemplatePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	if InternalObjectPreventer.IsForbidden(reflect.Indirect(reflect.ValueOf(obj)).Type().PkgPath()) {
 		return fmt.Errorf(InternalObjectPrinterErr)
+	}
+	if openshiftpatch.IsOAPI(obj.GetObjectKind().GroupVersionKind()) {
+		return fmt.Errorf("attempt to print an ungroupified object: %v", obj.GetObjectKind().GroupVersionKind())
 	}
 
 	var data []byte
