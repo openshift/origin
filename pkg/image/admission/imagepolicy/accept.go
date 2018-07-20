@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/api/imagereferencemutators"
 	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -27,7 +27,7 @@ type policyDecision struct {
 	resolutionErr error
 }
 
-func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imageResolver, m meta.ImageReferenceMutator, annotations meta.AnnotationAccessor, attr admission.Attributes, excludedRules sets.String) error {
+func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imageResolver, m imagereferencemutators.ImageReferenceMutator, annotations imagereferencemutators.AnnotationAccessor, attr admission.Attributes, excludedRules sets.String) error {
 	decisions := policyDecisions{}
 
 	gr := attr.GetResource().GroupResource()

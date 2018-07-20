@@ -14,10 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/storage"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -217,7 +217,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 			}
 
 			targetVersions := []schema.GroupVersion{storagev1.SchemeGroupVersion}
-			targetVersions = append(targetVersions, latest.Versions...)
+			targetVersions = append(targetVersions, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 			for _, test := range tests {
 				g.By(test.by)

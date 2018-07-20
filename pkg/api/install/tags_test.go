@@ -10,17 +10,20 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 )
 
 func TestDescriptions(t *testing.T) {
-	for _, version := range legacyscheme.Scheme.PrioritizedVersionsAllGroups() {
+	scheme := runtime.NewScheme()
+	InstallInternalOpenShift(scheme)
+	InstallInternalKube(scheme)
+
+	for _, version := range scheme.PrioritizedVersionsAllGroups() {
 		seen := map[reflect.Type]bool{}
 
-		for _, apiType := range legacyscheme.Scheme.KnownTypes(version) {
+		for _, apiType := range scheme.KnownTypes(version) {
 			checkDescriptions(apiType, &seen, t)
 		}
 	}
@@ -60,17 +63,21 @@ func checkDescriptions(objType reflect.Type, seen *map[reflect.Type]bool, t *tes
 }
 
 func TestInternalJsonTags(t *testing.T) {
+	scheme := runtime.NewScheme()
+	InstallInternalOpenShift(scheme)
+	InstallInternalKube(scheme)
+
 	seen := map[reflect.Type]bool{}
 	seenGroups := sets.String{}
 
-	for _, version := range legacyscheme.Scheme.PrioritizedVersionsAllGroups() {
+	for _, version := range scheme.PrioritizedVersionsAllGroups() {
 		if seenGroups.Has(version.Group) {
 			continue
 		}
 		seenGroups.Insert(version.Group)
 
 		internalVersion := schema.GroupVersion{Group: version.Group, Version: runtime.APIVersionInternal}
-		for _, apiType := range legacyscheme.Scheme.KnownTypes(internalVersion) {
+		for _, apiType := range scheme.KnownTypes(internalVersion) {
 			checkInternalJsonTags(apiType, &seen, t)
 		}
 	}
@@ -120,10 +127,14 @@ func checkInternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t 
 }
 
 func TestExternalJsonTags(t *testing.T) {
+	scheme := runtime.NewScheme()
+	InstallInternalOpenShift(scheme)
+	InstallInternalKube(scheme)
+
 	seen := map[reflect.Type]bool{}
 
-	for _, version := range legacyscheme.Scheme.PrioritizedVersionsAllGroups() {
-		for _, apiType := range legacyscheme.Scheme.KnownTypes(version) {
+	for _, version := range scheme.PrioritizedVersionsAllGroups() {
+		for _, apiType := range scheme.KnownTypes(version) {
 			checkExternalJsonTags(apiType, &seen, t)
 		}
 	}

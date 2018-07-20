@@ -18,7 +18,7 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/quota"
-	oapi "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
@@ -85,7 +85,7 @@ func (r *AppliedClusterResourceQuotaREST) List(ctx context.Context, options *met
 
 	// TODO max resource version?  watch?
 	list := &quotaapi.AppliedClusterResourceQuotaList{}
-	matcher := matcher(oapi.InternalListOptionsToSelectors(options))
+	matcher := matcher(apihelpers.InternalListOptionsToSelectors(options))
 	quotaNames, _ := r.quotaMapper.GetClusterQuotasFor(namespace)
 
 	for _, name := range quotaNames {

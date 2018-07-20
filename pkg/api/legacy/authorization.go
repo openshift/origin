@@ -74,7 +74,7 @@ func addUngroupifiedAuthorizationTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalAuthorizationTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&authorization.Role{},
 		&authorization.RoleBinding{},
 		&authorization.RoleBindingList{},

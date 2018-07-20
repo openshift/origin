@@ -13,11 +13,16 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/kubernetes/pkg/apis/apps"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 
-	"github.com/openshift/origin/pkg/api/meta"
+	oapps "github.com/openshift/api/apps"
+	"github.com/openshift/api/security"
+	"github.com/openshift/origin/pkg/api/imagereferencemutators"
+	"github.com/openshift/origin/pkg/api/legacy"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
@@ -69,7 +74,7 @@ type podNodeConstraints struct {
 }
 
 func shouldCheckResource(resource schema.GroupResource, kind schema.GroupKind) (bool, error) {
-	expectedKind, shouldCheck := meta.HasPodSpec(resource)
+	expectedKind, shouldCheck := resourcesToCheck[resource]
 	if !shouldCheck {
 		return false, nil
 	}
@@ -82,6 +87,30 @@ func shouldCheckResource(resource schema.GroupResource, kind schema.GroupKind) (
 		return false, fmt.Errorf("Unexpected resource kind %v for resource %v", &kind, &resource)
 	}
 	return true, nil
+}
+
+// resourcesToCheck is a map of resources and corresponding kinds of things that we want handled in this plugin
+var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
+	kapi.Resource("pods"):                   kapi.Kind("Pod"),
+	kapi.Resource("podtemplates"):           kapi.Kind("PodTemplate"),
+	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
+	batch.Resource("jobs"):                  batch.Kind("Job"),
+	batch.Resource("jobtemplates"):          batch.Kind("JobTemplate"),
+
+	batch.Resource("cronjobs"):         batch.Kind("CronJob"),
+	extensions.Resource("deployments"): extensions.Kind("Deployment"),
+	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),
+	apps.Resource("statefulsets"):      apps.Kind("StatefulSet"),
+
+	legacy.Resource("deploymentconfigs"):                   legacy.Kind("DeploymentConfig"),
+	legacy.Resource("podsecuritypolicysubjectreviews"):     legacy.Kind("PodSecurityPolicySubjectReview"),
+	legacy.Resource("podsecuritypolicyselfsubjectreviews"): legacy.Kind("PodSecurityPolicySelfSubjectReview"),
+	legacy.Resource("podsecuritypolicyreviews"):            legacy.Kind("PodSecurityPolicyReview"),
+
+	oapps.Resource("deploymentconfigs"):                      oapps.Kind("DeploymentConfig"),
+	security.Resource("podsecuritypolicysubjectreviews"):     security.Kind("PodSecurityPolicySubjectReview"),
+	security.Resource("podsecuritypolicyselfsubjectreviews"): security.Kind("PodSecurityPolicySelfSubjectReview"),
+	security.Resource("podsecuritypolicyreviews"):            security.Kind("PodSecurityPolicyReview"),
 }
 
 var _ = initializer.WantsAuthorizer(&podNodeConstraints{})
@@ -131,7 +160,7 @@ func (o *podNodeConstraints) Admit(attr admission.Attributes) error {
 
 // extract the PodSpec from the pod templates for each object we care about
 func (o *podNodeConstraints) getPodSpec(attr admission.Attributes) (kapi.PodSpec, error) {
-	spec, _, err := meta.GetPodSpec(attr.GetObject())
+	spec, _, err := imagereferencemutators.GetPodSpec(attr.GetObject())
 	if err != nil {
 		return kapi.PodSpec{}, kapierrors.NewInternalError(err)
 	}

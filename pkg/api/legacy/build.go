@@ -53,7 +53,7 @@ func addUngroupifiedBuildTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalBuildTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&build.Build{},
 		&build.BuildList{},
 		&build.BuildConfig{},

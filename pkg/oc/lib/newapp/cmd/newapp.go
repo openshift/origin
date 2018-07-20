@@ -24,7 +24,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	ometa "github.com/openshift/origin/pkg/api/meta"
+	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"

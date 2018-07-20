@@ -42,7 +42,7 @@ func addUngroupifiedQuotaTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalQuotaTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&quota.ClusterResourceQuota{},
 		&quota.ClusterResourceQuotaList{},
 		&quota.AppliedClusterResourceQuota{},

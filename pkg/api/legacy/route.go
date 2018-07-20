@@ -47,7 +47,7 @@ func addUngroupifiedRouteTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalRouteTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&route.Route{},
 		&route.RouteList{},
 	)

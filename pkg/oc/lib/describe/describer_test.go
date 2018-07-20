@@ -15,7 +15,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	api "github.com/openshift/origin/pkg/api"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -27,6 +26,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/legacy"
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -89,7 +89,7 @@ var MissingDescriberCoverageExceptions = []reflect.Type{
 func TestDescriberCoverage(t *testing.T) {
 
 main:
-	for _, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {
+	for _, apiType := range legacyscheme.Scheme.KnownTypes(legacy.InternalGroupVersion) {
 		if !strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin") || strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}
@@ -110,7 +110,7 @@ main:
 			}
 		}
 
-		gk := api.SchemeGroupVersion.WithKind(apiType.Name()).GroupKind()
+		gk := legacy.InternalGroupVersion.WithKind(apiType.Name()).GroupKind()
 		_, ok := DescriberFor(gk, &rest.Config{}, kfake.NewSimpleClientset(), "")
 		if !ok {
 			t.Errorf("missing describer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)

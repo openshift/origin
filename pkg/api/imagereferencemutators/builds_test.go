@@ -1,4 +1,4 @@
-package meta
+package imagereferencemutators
 
 import (
 	"reflect"

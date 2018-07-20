@@ -48,7 +48,7 @@ func addUngroupifiedOAuthTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalOAuthTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&oauth.OAuthAccessToken{},
 		&oauth.OAuthAccessTokenList{},
 		&oauth.OAuthAuthorizeToken{},

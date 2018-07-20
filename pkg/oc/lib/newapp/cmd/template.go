@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
@@ -39,7 +39,7 @@ func TransformTemplate(tpl *templateapi.Template, templateProcessor templateinte
 	}
 
 	// ensure the template objects are decoded
-	if errs := runtime.DecodeList(result.Objects, legacyscheme.Codecs.LegacyCodec(latest.Version)); len(errs) > 0 {
+	if errs := runtime.DecodeList(result.Objects, legacyscheme.Codecs.LegacyCodec(legacy.GroupVersion)); len(errs) > 0 {
 		err = errors.NewAggregate(errs)
 		return nil, fmt.Errorf("error processing template %q: %v", name, err)
 	}

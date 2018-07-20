@@ -74,7 +74,7 @@ import (
 	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/legacy"
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -95,7 +95,7 @@ import (
 // and not subjected to the default server timeout.
 const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|imagestreamimports)$"
 
-var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix)
+var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, legacy.RESTPrefix)
 
 // TODO I'm honestly not sure this is worth it. We're not likely to ever be able to launch from flags, so this just
 // adds a layer of complexity that is driving me crazy.

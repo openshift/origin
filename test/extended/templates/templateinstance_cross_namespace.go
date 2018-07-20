@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -81,7 +80,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 					Namespace: "${NAMESPACE}",
 				},
 			},
-		}, latest.Versions...)
+		}, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("creating the templateinstance")

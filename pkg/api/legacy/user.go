@@ -52,7 +52,7 @@ func addUngroupifiedUserTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalUserTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&user.User{},
 		&user.UserList{},
 		&user.Identity{},

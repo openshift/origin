@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	testtypes "github.com/openshift/origin/pkg/build/controller/build/pluginconfig/testing"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -12,11 +11,12 @@ import (
 
 	// install server api
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/legacy"
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 )
 
 func TestGetPluginConfig(t *testing.T) {
-	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &testtypes.TestConfig{})
+	configapi.Scheme.AddKnownTypes(legacy.InternalGroupVersion, &testtypes.TestConfig{})
 	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &testtypes.TestConfigV1{})
 
 	testConfig := &testtypes.TestConfig{
