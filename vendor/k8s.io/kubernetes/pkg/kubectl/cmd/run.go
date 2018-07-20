@@ -39,6 +39,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/openshiftpatch"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
@@ -141,7 +142,7 @@ func NewRunOptions(streams genericclioptions.IOStreams) *RunOptions {
 
 func NewCmdRun(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewRunOptions(streams)
-	if UseOpenShiftGenerator {
+	if openshiftpatch.IsOC {
 		o.DefaultRestartAlwaysGenerator = "deploymentconfig/v1"
 	}
 
@@ -659,7 +660,7 @@ func (o *RunOptions) createGeneratedObject(f cmdutil.Factory, cmd *cobra.Command
 	if err != nil {
 		return nil, err
 	}
-	FixOAPIGroupifiedGVK(&mapping.GroupVersionKind)
+	openshiftpatch.FixOAPIGroupifiedGVK(&mapping.GroupVersionKind)
 
 	if len(overrides) > 0 {
 		codec := runtime.NewCodec(scheme.DefaultJSONEncoder(), scheme.Codecs.UniversalDecoder(scheme.Scheme.PrioritizedVersionsAllGroups()...))
