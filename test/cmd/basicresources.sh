@@ -235,7 +235,7 @@ project=$(oc project -q)
 os::cmd::expect_success 'oc policy add-role-to-user view view-user'
 os::cmd::expect_success 'oc login -u view-user -p anything'
 os::cmd::try_until_success 'oc project ${project}'
-os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" "cannot get secrets in project"
+os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" "cannot get secrets in the namespace"
 oc login -u system:admin
 # clean up
 os::cmd::expect_success "oc delete dc/test-deployment-config"

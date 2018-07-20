@@ -12,16 +12,14 @@ import (
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
-	openshiftauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/browsersafe"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
 func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) authorizer.Authorizer {
-	messageMaker := openshiftauthorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
 	rbacInformers := informers.GetKubernetesInformers().Rbac().V1()
 
-	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister(), messageMaker)
+	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister())
 
 	kubeAuthorizer := rbacauthorizer.New(
 		&rbacauthorizer.RoleGetter{Lister: rbacInformers.Roles().Lister()},
@@ -48,7 +46,7 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup),
 		nodeAuthorizer,
 		// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-		browsersafe.NewBrowserSafeAuthorizer(openshiftauthorizer.NewAuthorizer(kubeAuthorizer, messageMaker), user.AllAuthenticated),
+		browsersafe.NewBrowserSafeAuthorizer(kubeAuthorizer, user.AllAuthenticated),
 	)
 
 	return openshiftAuthorizer
