@@ -180,7 +180,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 
 	// No deployments are running and the latest deployment doesn't exist, so
 	// create the new deployment.
-	deployment, err := appsinternalutil.MakeDeploymentV1(config)
+	deployment, err := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	if err != nil {
 		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) deployment config %s: %v", appsinternalutil.LabelForDeploymentConfig(config), err))
 	}
@@ -402,11 +402,11 @@ func calculateStatus(config *appsapi.DeploymentConfig, rcs []*v1.ReplicationCont
 	if !latestExists {
 		latestRC = nil
 	} else {
-		latestReplicas = appsinternalutil.GetStatusReplicaCountForDeployments([]*v1.ReplicationController{latestRC})
+		latestReplicas = appsutil.GetStatusReplicaCountForDeployments([]*v1.ReplicationController{latestRC})
 	}
 
-	available := appsinternalutil.GetAvailableReplicaCountForReplicationControllers(rcs)
-	total := appsinternalutil.GetReplicaCountForDeployments(rcs)
+	available := appsutil.GetAvailableReplicaCountForReplicationControllers(rcs)
+	total := appsutil.GetReplicaCountForDeployments(rcs)
 	unavailableReplicas := total - available
 	if unavailableReplicas < 0 {
 		unavailableReplicas = 0
@@ -421,10 +421,10 @@ func calculateStatus(config *appsapi.DeploymentConfig, rcs []*v1.ReplicationCont
 		LatestVersion:       config.Status.LatestVersion,
 		Details:             config.Status.Details,
 		ObservedGeneration:  generation,
-		Replicas:            appsinternalutil.GetStatusReplicaCountForDeployments(rcs),
+		Replicas:            appsutil.GetStatusReplicaCountForDeployments(rcs),
 		UpdatedReplicas:     latestReplicas,
 		AvailableReplicas:   available,
-		ReadyReplicas:       appsinternalutil.GetReadyReplicaCountForReplicationControllers(rcs),
+		ReadyReplicas:       appsutil.GetReadyReplicaCountForReplicationControllers(rcs),
 		UnavailableReplicas: unavailableReplicas,
 		Conditions:          config.Status.Conditions,
 	}

@@ -26,6 +26,7 @@ import (
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 func alwaysReady() bool { return true }
@@ -51,7 +52,7 @@ func TestHandleScenarios(t *testing.T) {
 			config = appstest.TestDeploymentConfig(config)
 		}
 		config.Namespace = "test"
-		deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(d.status)
 		if d.cancelled {
 			deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
@@ -411,8 +412,8 @@ func TestHandleScenarios(t *testing.T) {
 		for _, deployment := range deployments {
 			actualDeployments = append(actualDeployments, deployment)
 		}
-		sort.Sort(appsinternalutil.ByLatestVersionDescV1(expectedDeployments))
-		sort.Sort(appsinternalutil.ByLatestVersionDescV1(actualDeployments))
+		sort.Sort(appsutil.ByLatestVersionDesc(expectedDeployments))
+		sort.Sort(appsutil.ByLatestVersionDesc(actualDeployments))
 
 		if updatedConfig != nil {
 			config = updatedConfig

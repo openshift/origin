@@ -22,8 +22,10 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/util"
 )
 
@@ -190,7 +192,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			// to ensure that changes to 'unrelated' pods don't result in updates to
 			// the deployment. So, the image check will have to be done in other areas
 			// of the code as well.
-			if appsinternalutil.DeploymentNameFor(deployer) != deployment.Name {
+			if appsutil.DeploymentNameFor(deployer) != deployment.Name {
 				nextStatus = appsapi.DeploymentStatusFailed
 				updatedAnnotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentFailedUnrelatedDeploymentExists
 				c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod since another pod with the same name (%q) exists", deployer.Name))
@@ -354,7 +356,7 @@ func nextStatusComp(fromDeployer, fromPath appsapi.DeploymentStatus) appsapi.Dep
 // makeDeployerPod creates a pod which implements deployment behavior. The pod is correlated to
 // the deployment with an annotation.
 func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationController) (*v1.Pod, error) {
-	deploymentConfig, err := appsinternalutil.DecodeDeploymentConfig(deployment)
+	deploymentConfig, err := appsutil.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +385,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 			Name: appsinternalutil.DeployerPodNameForDeployment(deployment.Name),
 			Annotations: map[string]string{
 				appsapi.DeploymentAnnotation:       deployment.Name,
-				appsapi.DeploymentConfigAnnotation: appsinternalutil.DeploymentConfigNameFor(deployment),
+				appsapi.DeploymentConfigAnnotation: appsutil.DeploymentConfigNameFor(deployment),
 			},
 			Labels: map[string]string{
 				appsapi.DeployerPodForDeploymentLabel: deployment.Name,
@@ -406,7 +408,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 					Args:      container.Args,
 					Image:     container.Image,
 					Env:       envVars,
-					Resources: appsinternalutil.CopyApiResourcesToV1Resources(&deploymentConfig.Spec.Strategy.Resources),
+					Resources: deploymentConfig.Spec.Strategy.Resources,
 				},
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
@@ -442,7 +444,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 //      of the factory's Environment and the strategy's environment as the
 //      container environment.
 //
-func (c *DeploymentController) makeDeployerContainer(strategy *appsapi.DeploymentStrategy) *v1.Container {
+func (c *DeploymentController) makeDeployerContainer(strategy *appsv1.DeploymentStrategy) *v1.Container {
 	image := c.deployerImage
 	var environment []v1.EnvVar
 	var command []string
@@ -456,7 +458,7 @@ func (c *DeploymentController) makeDeployerContainer(strategy *appsapi.Deploymen
 		if len(p.Command) > 0 {
 			command = p.Command
 		}
-		for _, env := range appsinternalutil.CopyApiEnvVarToV1EnvVar(strategy.CustomParams.Environment) {
+		for _, env := range strategy.CustomParams.Environment {
 			set.Insert(env.Name)
 			environment = append(environment, env)
 		}
@@ -484,7 +486,7 @@ func (c *DeploymentController) makeDeployerContainer(strategy *appsapi.Deploymen
 }
 
 func (c *DeploymentController) getDeployerPods(deployment *v1.ReplicationController) ([]*v1.Pod, error) {
-	return c.podLister.Pods(deployment.Namespace).List(appsinternalutil.DeployerPodSelector(deployment.Name))
+	return c.podLister.Pods(deployment.Namespace).List(appsutil.DeployerPodSelector(deployment.Name))
 }
 
 func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *v1.ReplicationController) error {

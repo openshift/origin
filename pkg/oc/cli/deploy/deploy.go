@@ -207,7 +207,7 @@ func (o DeployOptions) Validate() error {
 
 func (o DeployOptions) RunDeploy() error {
 	r := o.builder.
-		WithScheme(ocscheme.ReadingInternalScheme).
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.namespace).
 		ResourceNames("deploymentconfigs", o.deploymentConfigName).
 		SingleResourceType().

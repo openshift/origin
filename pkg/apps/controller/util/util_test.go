@@ -519,7 +519,7 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 
 	for _, tc := range tests {
 		config := tc.config
-		deployment, err := MakeDeploymentV1(config)
+		deployment, err := MakeDeploymentV1FromInternalConfig(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

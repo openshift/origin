@@ -141,7 +141,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", "")
-	deployment, _ = appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ = appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 
 	controllerClient := newFakeControllerClient(deployment)
 	strategy.rcClient = controllerClient
@@ -161,7 +161,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, appsapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -193,7 +193,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, appsapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy := &RecreateDeploymentStrategy{
@@ -224,7 +224,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", appsapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy := &RecreateDeploymentStrategy{
@@ -255,7 +255,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", appsapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -287,7 +287,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPostHookFail(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", appsapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -332,8 +332,8 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
-	deployment, _ = appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(2))
+	oldDeployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(1))
+	deployment, _ = appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(2))
 	controllerClient := newFakeControllerClient(deployment)
 	strategy.rcClient = controllerClient
 	strategy.scaleClient = controllerClient.fakeScaleClient()
@@ -376,8 +376,8 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
-	deployment, _ = appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(2))
+	oldDeployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(1))
+	deployment, _ = appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(2))
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy.rcClient = controllerClient
@@ -419,8 +419,8 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
-	deployment, _ = appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(2))
+	oldDeployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(1))
+	deployment, _ = appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(2))
 	rcClient := newFakeControllerClient(deployment)
 	strategy.rcClient = rcClient
 	strategy.scaleClient = rcClient.fakeScaleClient()

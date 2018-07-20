@@ -186,18 +186,6 @@ func (o *RollbackOptions) Validate() error {
 	if o.DesiredVersion < 0 {
 		return fmt.Errorf("the to version must be >= 0")
 	}
-	if o.Out == nil {
-		return fmt.Errorf("out must not be nil")
-	}
-	if o.appsClient == nil {
-		return fmt.Errorf("oc must not be nil")
-	}
-	if o.kubeClient == nil {
-		return fmt.Errorf("kubeInternalClient must not be nil")
-	}
-	if o.builder == nil {
-		return fmt.Errorf("builder must not be nil")
-	}
 	return nil
 }
 
@@ -315,7 +303,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, *meta
 	var m *meta.RESTMapping
 	for _, name := range candidates {
 		r := o.builder().
-			WithScheme(ocscheme.ReadingInternalScheme).
+			WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
 			NamespaceParam(o.Namespace).
 			ResourceTypeOrNameArgs(false, name).
 			SingleResourceType().

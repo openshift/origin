@@ -65,7 +65,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 		},
 	}
 	dc := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(dc)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(dc)
 	client := newTestClient(dc)
 	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.New("could not create the pod")
@@ -88,7 +88,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
 	client := newTestClient(config)
@@ -155,7 +155,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 
 	client := newTestClient(config)
 	podCreated := make(chan struct{})
@@ -207,7 +207,7 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 		Type:           appsv1.DeploymentStrategyTypeRecreate,
 		RecreateParams: &appsv1.RecreateDeploymentStrategyParams{},
 	}
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 
 	_, err := createHookPodManifest(hook, deployment, &strategy, "hook", nowFunc().Time)
 	if err == nil {
@@ -537,7 +537,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	newStrategy := appsv1.DeploymentStrategy{}
 	if err := legacyscheme.Scheme.Convert(&config.Spec.Strategy, &newStrategy, nil); err != nil {
 		t.Fatalf("conversion error: %v", err)
@@ -631,7 +631,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 			},
 		},
 	}
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	deployment.Namespace = namespace
 	return config, deployment
 }

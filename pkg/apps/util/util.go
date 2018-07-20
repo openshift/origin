@@ -245,6 +245,10 @@ func DeploymentVersionFor(obj runtime.Object) int64 {
 	return v
 }
 
+func DeploymentNameFor(obj runtime.Object) string {
+	return AnnotationFor(obj, deploymentAnnotation)
+}
+
 // GetDeploymentCondition returns the condition with the provided type.
 func GetDeploymentCondition(status appsv1.DeploymentConfigStatus, condType appsv1.DeploymentConditionType) *appsv1.DeploymentCondition {
 	for i := range status.Conditions {
@@ -254,6 +258,54 @@ func GetDeploymentCondition(status appsv1.DeploymentConfigStatus, condType appsv
 		}
 	}
 	return nil
+}
+
+// GetReplicaCountForDeployments returns the sum of all replicas for the
+// given deployments.
+func GetReplicaCountForDeployments(deployments []*v1.ReplicationController) int32 {
+	totalReplicaCount := int32(0)
+	for _, deployment := range deployments {
+		count := deployment.Spec.Replicas
+		if count == nil {
+			continue
+		}
+		totalReplicaCount += *count
+	}
+	return totalReplicaCount
+}
+
+// GetStatusReplicaCountForDeployments returns the sum of the replicas reported in the
+// status of the given deployments.
+func GetStatusReplicaCountForDeployments(deployments []*v1.ReplicationController) int32 {
+	totalReplicaCount := int32(0)
+	for _, deployment := range deployments {
+		totalReplicaCount += deployment.Status.Replicas
+	}
+	return totalReplicaCount
+}
+
+// GetReadyReplicaCountForReplicationControllers returns the number of ready pods corresponding to
+// the given replication controller.
+func GetReadyReplicaCountForReplicationControllers(replicationControllers []*v1.ReplicationController) int32 {
+	totalReadyReplicas := int32(0)
+	for _, rc := range replicationControllers {
+		if rc != nil {
+			totalReadyReplicas += rc.Status.ReadyReplicas
+		}
+	}
+	return totalReadyReplicas
+}
+
+// GetAvailableReplicaCountForReplicationControllers returns the number of available pods corresponding to
+// the given replication controller.
+func GetAvailableReplicaCountForReplicationControllers(replicationControllers []*v1.ReplicationController) int32 {
+	totalAvailableReplicas := int32(0)
+	for _, rc := range replicationControllers {
+		if rc != nil {
+			totalAvailableReplicas += rc.Status.AvailableReplicas
+		}
+	}
+	return totalAvailableReplicas
 }
 
 // HasImageChangeTrigger returns whether the provided deployment configuration has

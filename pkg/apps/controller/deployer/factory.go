@@ -19,6 +19,7 @@ import (
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // NewDeployerController creates a new DeploymentController.
@@ -153,7 +154,7 @@ func (c *DeploymentController) enqueueReplicationController(rc *v1.ReplicationCo
 }
 
 func (c *DeploymentController) rcForDeployerPod(pod *v1.Pod) (*v1.ReplicationController, error) {
-	rcName := appsinternalutil.DeploymentNameFor(pod)
+	rcName := appsutil.DeploymentNameFor(pod)
 	if len(rcName) == 0 {
 		// Not a deployer pod, so don't bother with it.
 		return nil, nil

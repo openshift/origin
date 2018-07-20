@@ -45,7 +45,7 @@ func TestRolling_deployInitial(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 	strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -59,10 +59,10 @@ func TestRolling_deployInitial(t *testing.T) {
 func TestRolling_deployRolling(t *testing.T) {
 	latestConfig := appstest.OkDeploymentConfig(1)
 	latestConfig.Spec.Strategy = appstest.OkRollingStrategy()
-	latest, _ := appsinternalutil.MakeDeploymentV1(latestConfig)
+	latest, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(latestConfig)
 	config := appstest.OkDeploymentConfig(2)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 
 	deployments := map[string]*corev1.ReplicationController{
 		latest.Name:     latest,
@@ -155,7 +155,7 @@ func (h *hookExecutorImpl) Execute(hook *appsv1.LifecycleHook, rc *corev1.Replic
 func TestRolling_deployRollingHooks(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	latest, _ := appsinternalutil.MakeDeploymentV1(config)
+	latest, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 
 	var hookError error
 
@@ -207,7 +207,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	for _, tc := range cases {
 		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 		deployments[deployment.Name] = deployment
 		hookError = nil
 		if tc.hookShouldFail {
@@ -268,7 +268,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	for i, tc := range cases {
 		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := appsinternalutil.MakeDeploymentV1(config)
+		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
 		hookError = nil
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")
