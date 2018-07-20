@@ -1,5 +1,5 @@
 hash: a2c79e128028aab55833eb434e44e9c3a61f438d0bbc35e0e01054c43cca58be
-updated: 2018-07-24T10:48:47.407904-04:00
+updated: 2018-07-26T22:16:26.706964018-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -819,7 +819,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: fc4c02c9169b85b9a80353f11ac15ce542a0944a
+  version: 4879e7baf41e5b94e8a187366f6a45ae6642fbe4
   subpackages:
   - apps
   - apps/v1
@@ -827,6 +827,7 @@ imports:
   - authorization/v1
   - build
   - build/v1
+  - config
   - config/v1
   - image
   - image/docker10
@@ -836,6 +837,7 @@ imports:
   - network/v1
   - oauth
   - oauth/v1
+  - operator
   - operator/v1alpha1
   - pkg/serialization
   - project
@@ -846,18 +848,22 @@ imports:
   - route/v1
   - security
   - security/v1
+  - servicecertsigner
   - servicecertsigner/v1alpha1
   - template
   - template/v1
   - user
   - user/v1
+  - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
   version: 5b198a036f098f34fbf0c42768382d80708cd2a9
   subpackages:
   - apps/clientset/versioned
+  - apps/clientset/versioned/fake
   - apps/clientset/versioned/scheme
   - apps/clientset/versioned/typed/apps/v1
+  - apps/clientset/versioned/typed/apps/v1/fake
   - apps/informers/externalversions
   - apps/informers/externalversions/apps
   - apps/informers/externalversions/apps/v1
@@ -1611,7 +1617,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 9e25d4013b3a482328ef72b1f8c24a7842d65dfd
+  version: 347d7b903b0d0754b047c66d6ab90ff59877a5fb
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1853,7 +1859,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 247ad078b18cc00ef0dd65daacf7ff84a280298a
+  version: d8c60b6ee690566052d6d19692c935c3aeffa159
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2187,6 +2193,7 @@ imports:
   - pkg/kubectl/cmd/wait
   - pkg/kubectl/explain
   - pkg/kubectl/genericclioptions
+  - pkg/kubectl/genericclioptions/openshiftpatch
   - pkg/kubectl/genericclioptions/printers
   - pkg/kubectl/genericclioptions/resource
   - pkg/kubectl/metricsutil
