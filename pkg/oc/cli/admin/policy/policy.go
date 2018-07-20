@@ -32,7 +32,7 @@ var policyLong = ktemplates.LongDesc(`
 	and 'scc'.`)
 
 // NewCmdPolicy implements the OpenShift cli policy command
-func NewCmdPolicy(name, fullName string, f cmdutil.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdPolicy(name, fullName string, f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
@@ -60,19 +60,19 @@ func NewCmdPolicy(name, fullName string, f cmdutil.Factory, out, errout io.Write
 		{
 			Message: "Assign roles to users and groups:",
 			Commands: []*cobra.Command{
-				NewCmdAddRoleToUser(AddRoleToUserRecommendedName, fullName+" "+AddRoleToUserRecommendedName, f, out),
-				NewCmdAddRoleToGroup(AddRoleToGroupRecommendedName, fullName+" "+AddRoleToGroupRecommendedName, f, out),
-				NewCmdRemoveRoleFromUser(RemoveRoleFromUserRecommendedName, fullName+" "+RemoveRoleFromUserRecommendedName, f, out),
-				NewCmdRemoveRoleFromGroup(RemoveRoleFromGroupRecommendedName, fullName+" "+RemoveRoleFromGroupRecommendedName, f, out),
+				NewCmdAddRoleToUser(AddRoleToUserRecommendedName, fullName+" "+AddRoleToUserRecommendedName, f, out, errOut),
+				NewCmdAddRoleToGroup(AddRoleToGroupRecommendedName, fullName+" "+AddRoleToGroupRecommendedName, f, out, errOut),
+				NewCmdRemoveRoleFromUser(RemoveRoleFromUserRecommendedName, fullName+" "+RemoveRoleFromUserRecommendedName, f, out, errOut),
+				NewCmdRemoveRoleFromGroup(RemoveRoleFromGroupRecommendedName, fullName+" "+RemoveRoleFromGroupRecommendedName, f, out, errOut),
 			},
 		},
 		{
 			Message: "Assign cluster roles to users and groups:",
 			Commands: []*cobra.Command{
-				NewCmdAddClusterRoleToUser(AddClusterRoleToUserRecommendedName, fullName+" "+AddClusterRoleToUserRecommendedName, f, out),
-				NewCmdAddClusterRoleToGroup(AddClusterRoleToGroupRecommendedName, fullName+" "+AddClusterRoleToGroupRecommendedName, f, out),
-				NewCmdRemoveClusterRoleFromUser(RemoveClusterRoleFromUserRecommendedName, fullName+" "+RemoveClusterRoleFromUserRecommendedName, f, out),
-				NewCmdRemoveClusterRoleFromGroup(RemoveClusterRoleFromGroupRecommendedName, fullName+" "+RemoveClusterRoleFromGroupRecommendedName, f, out),
+				NewCmdAddClusterRoleToUser(AddClusterRoleToUserRecommendedName, fullName+" "+AddClusterRoleToUserRecommendedName, f, out, errOut),
+				NewCmdAddClusterRoleToGroup(AddClusterRoleToGroupRecommendedName, fullName+" "+AddClusterRoleToGroupRecommendedName, f, out, errOut),
+				NewCmdRemoveClusterRoleFromUser(RemoveClusterRoleFromUserRecommendedName, fullName+" "+RemoveClusterRoleFromUserRecommendedName, f, out, errOut),
+				NewCmdRemoveClusterRoleFromGroup(RemoveClusterRoleFromGroupRecommendedName, fullName+" "+RemoveClusterRoleFromGroupRecommendedName, f, out, errOut),
 			},
 		},
 		{
@@ -87,8 +87,8 @@ func NewCmdPolicy(name, fullName string, f cmdutil.Factory, out, errout io.Write
 		{
 			Message: "Upgrade and repair system policy:",
 			Commands: []*cobra.Command{
-				NewCmdReconcileClusterRoles(ReconcileClusterRolesRecommendedName, fullName+" "+ReconcileClusterRolesRecommendedName, f, out, errout),
-				NewCmdReconcileClusterRoleBindings(ReconcileClusterRoleBindingsRecommendedName, fullName+" "+ReconcileClusterRoleBindingsRecommendedName, f, out, errout),
+				NewCmdReconcileClusterRoles(ReconcileClusterRolesRecommendedName, fullName+" "+ReconcileClusterRolesRecommendedName, f, out, errOut),
+				NewCmdReconcileClusterRoleBindings(ReconcileClusterRoleBindingsRecommendedName, fullName+" "+ReconcileClusterRoleBindingsRecommendedName, f, out, errOut),
 				NewCmdReconcileSCC(ReconcileSCCRecommendedName, fullName+" "+ReconcileSCCRecommendedName, f, out),
 			},
 		},
