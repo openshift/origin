@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -240,7 +241,7 @@ type RouterConfig struct {
 	StrictSNI bool
 
 	// Number of threads to start per process
-	Threads int32
+	Threads uint32
 
 	Local bool
 
@@ -348,7 +349,7 @@ func NewCmdRouter(f kcmdutil.Factory, parentName, name string, out, errout io.Wr
 	cmd.Flags().StringVar(&cfg.Ciphers, "ciphers", cfg.Ciphers, "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list. Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.StrictSNI, "strict-sni", cfg.StrictSNI, "Use strict-sni bind processing (do not use default cert). Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
-	cmd.Flags().Int32Var(&cfg.Threads, "threads", cfg.Threads, "Specifies the number of threads for the haproxy router.")
+	cmd.Flags().Uint32Var(&cfg.Threads, "threads", cfg.Threads, "Specifies the number of threads for the haproxy router.")
 
 	cmd.Flags().StringVar(&cfg.MutualTLSAuth, "mutual-tls-auth", cfg.MutualTLSAuth, "Controls access to the router using mutually agreed upon TLS configuration (example client certificates). You can choose one of 'required', 'optional', or 'none'. The default is none.")
 	cmd.Flags().StringVar(&cfg.MutualTLSAuthCA, "mutual-tls-auth-ca", cfg.MutualTLSAuthCA, "Optional path to a file containing one or more CA certificates used for mutual TLS authentication. The CA certificate[s] are used by the router to verify a client's certificate.")
@@ -780,7 +781,14 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		"STATS_PORT":                            strconv.Itoa(cfg.StatsPort),
 		"STATS_USERNAME":                        cfg.StatsUsername,
 		"STATS_PASSWORD":                        cfg.StatsPassword,
-		"ROUTER_THREADS":                        strconv.Itoa(int(cfg.Threads)),
+	}
+
+	// HAProxy defines the upper bound for nbthread as the number of bits in the C long type
+	if cfg.Threads != 0 {
+		if cfg.Threads > uint32(unsafe.Sizeof(uint(0)))*8 {
+			return fmt.Errorf("invalid value for threads must be between 1 and %d", unsafe.Sizeof(uint(0))*8)
+		}
+		env["ROUTER_THREADS"] = strconv.FormatUint(uint64(cfg.Threads), 10)
 	}
 
 	if len(cfg.MaxConnections) > 0 {
