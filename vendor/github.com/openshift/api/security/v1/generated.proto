@@ -281,6 +281,27 @@ message SecurityContextConstraints {
   // used to generate a value for a pod the first non-wildcard profile will be used as
   // the default.
   repeated string seccompProfiles = 20;
+
+  // AllowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none.
+  // Each entry is either a plain sysctl name or ends in "*" in which case it is considered
+  // as a prefix of allowed sysctls. Single * means all unsafe sysctls are allowed.
+  // Kubelet has to whitelist all allowed unsafe sysctls explicitly to avoid rejection.
+  // 
+  // Examples:
+  // e.g. "foo/*" allows "foo/bar", "foo/baz", etc.
+  // e.g. "foo.*" allows "foo.bar", "foo.baz", etc.
+  // +optional
+  repeated string allowedUnsafeSysctls = 24;
+
+  // ForbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
+  // Each entry is either a plain sysctl name or ends in "*" in which case it is considered
+  // as a prefix of forbidden sysctls. Single * means all sysctls are forbidden.
+  // 
+  // Examples:
+  // e.g. "foo/*" forbids "foo/bar", "foo/baz", etc.
+  // e.g. "foo.*" forbids "foo.bar", "foo.baz", etc.
+  // +optional
+  repeated string forbiddenSysctls = 25;
 }
 
 // SecurityContextConstraintsList is a list of SecurityContextConstraints objects
