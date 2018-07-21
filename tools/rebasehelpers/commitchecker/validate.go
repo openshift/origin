@@ -54,7 +54,7 @@ func ValidateUpstreamCommitsWithoutGodepsChanges(commits []util.Commit) error {
 		}
 	}
 	if len(problemCommits) > 0 {
-		label := "The following commits contain Godeps changes but aren't declared as UPSTREAM"
+		label := "The following commits contain vendor changes but aren't declared as UPSTREAM or bump(*) commits"
 		msg := renderGodepFilesError(label, problemCommits, RenderOnlyGodepsFiles)
 		return fmt.Errorf(msg)
 	}
@@ -117,7 +117,7 @@ func ValidateUpstreamCommitModifiesOnlyGodeps(commits []util.Commit) error {
 		}
 	}
 	if len(problemCommits) > 0 {
-		label := "The following UPSTREAM commits modify files outside Godeps"
+		label := "The following UPSTREAM commits modify files outside vendor"
 		msg := renderGodepFilesError(label, problemCommits, RenderAllFiles)
 		return fmt.Errorf(msg)
 	}
