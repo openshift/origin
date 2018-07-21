@@ -2,7 +2,6 @@ package securitycontextconstraints
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/openshift/origin/pkg/security/securitycontextconstraints/capabilities"
 	"github.com/openshift/origin/pkg/security/securitycontextconstraints/group"
@@ -77,15 +76,7 @@ func NewSimpleProvider(scc *securityapi.SecurityContextConstraints) (SecurityCon
 		return nil, err
 	}
 
-	var unsafeSysctls []string
-	if ann, found := scc.Annotations[SysctlsPodSecurityPolicyAnnotationKey]; found {
-		var err error
-		unsafeSysctls, err = SysctlsFromPodSecurityPolicyAnnotation(ann)
-		if err != nil {
-			return nil, err
-		}
-	}
-	sysctlsStrat, err := createSysctlsStrategy(sysctl.SafeSysctlWhitelist(), unsafeSysctls, []string{})
+	sysctlsStrat, err := createSysctlsStrategy(sysctl.SafeSysctlWhitelist(), scc.AllowedUnsafeSysctls, scc.ForbiddenSysctls)
 	if err != nil {
 		return nil, err
 	}
@@ -431,19 +422,7 @@ func createSeccompStrategy(allowedProfiles []string) (seccomp.SeccompStrategy, e
 	return seccomp.NewWithSeccompProfile(allowedProfiles)
 }
 
-// createSysctlsStrategy creates a new unsafe sysctls strategy.
+// createSysctlsStrategy creates a new sysctls strategy
 func createSysctlsStrategy(safeWhitelist, allowedUnsafeSysctls, forbiddenSysctls []string) (sysctl.SysctlsStrategy, error) {
 	return sysctl.NewMustMatchPatterns(safeWhitelist, allowedUnsafeSysctls, forbiddenSysctls), nil
-}
-
-// TODO promote like kube did
-const SysctlsPodSecurityPolicyAnnotationKey string = "security.alpha.kubernetes.io/sysctls"
-
-// TODO promote like kube did
-func SysctlsFromPodSecurityPolicyAnnotation(annotation string) ([]string, error) {
-	if len(annotation) == 0 {
-		return []string{}, nil
-	}
-
-	return strings.Split(annotation, ","), nil
 }

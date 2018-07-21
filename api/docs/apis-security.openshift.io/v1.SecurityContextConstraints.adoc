@@ -29,11 +29,19 @@ Expand or mouse-over a field for more information about it.
 </summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
 </div></details><details><summary><span title="(array) AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes is allowed in the &#34;Volumes&#34; field.">allowedFlexVolumes</span>:
 </summary><div style="margin-left:13px;">- <span title="(string) Driver is the name of the Flexvolume driver.">driver</span>:
+</div></details><details><summary><span title="(array) AllowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none. Each entry is either a plain sysctl name or ends in &#34;*&#34; in which case it is considered as a prefix of allowed sysctls. Single * means all unsafe sysctls are allowed. Kubelet has to whitelist all allowed unsafe sysctls explicitly to avoid rejection.
+
+Examples: e.g. &#34;foo/*&#34; allows &#34;foo/bar&#34;, &#34;foo/baz&#34;, etc. e.g. &#34;foo.*&#34; allows &#34;foo.bar&#34;, &#34;foo.baz&#34;, etc.">allowedUnsafeSysctls</span>:
+</summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
 </div></details><div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
 </div><details><summary><span title="(array) DefaultAddCapabilities is the default set of capabilities that will be added to the container unless the pod spec specifically drops the capability.  You may not list a capabiility in both DefaultAddCapabilities and RequiredDropCapabilities.">defaultAddCapabilities</span>:
 </summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
 </div></details><div style="margin-left:13px;"><span title="(boolean) DefaultAllowPrivilegeEscalation controls the default setting for whether a process can gain more privileges than its parent process.">defaultAllowPrivilegeEscalation</span>:
-</div><details><summary><span title="(v1.FSGroupStrategyOptions) FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.">fsGroup</span>:
+</div><details><summary><span title="(array) ForbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none. Each entry is either a plain sysctl name or ends in &#34;*&#34; in which case it is considered as a prefix of forbidden sysctls. Single * means all sysctls are forbidden.
+
+Examples: e.g. &#34;foo/*&#34; forbids &#34;foo/bar&#34;, &#34;foo/baz&#34;, etc. e.g. &#34;foo.*&#34; forbids &#34;foo.bar&#34;, &#34;foo.baz&#34;, etc.">forbiddenSysctls</span>:
+</summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
+</div></details><details><summary><span title="(v1.FSGroupStrategyOptions) FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.">fsGroup</span>:
 </summary><details><summary>  <span title="(array) Ranges are the allowed ranges of fs groups.  If you would like to force a single fs group then supply a single range with the same start and end.">ranges</span>:
 </summary><div style="margin-left:13px;">  - <span title="(integer) Max is the end of the range, inclusive.">max</span>:
 </div><div style="margin-left:13px;">    <span title="(integer) Min is the start of the range, inclusive.">min</span>:

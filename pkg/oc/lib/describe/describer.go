@@ -1896,6 +1896,8 @@ func describeSecurityContextConstraints(scc *securityapi.SecurityContextConstrai
 		fmt.Fprintf(out, "  Allowed Seccomp Profiles:\t%s\n", stringOrNone(strings.Join(scc.SeccompProfiles, ",")))
 		fmt.Fprintf(out, "  Allowed Volume Types:\t%s\n", fsTypeToString(scc.Volumes))
 		fmt.Fprintf(out, "  Allowed Flexvolumes:\t%s\n", flexVolumesToString(scc.AllowedFlexVolumes))
+		fmt.Fprintf(out, "  Allowed Unsafe Sysctls:\t%s\n", sysctlsToString(scc.AllowedUnsafeSysctls))
+		fmt.Fprintf(out, "  Forbidden Sysctls:\t%s\n", sysctlsToString(scc.ForbiddenSysctls))
 		fmt.Fprintf(out, "  Allow Host Network:\t%t\n", scc.AllowHostNetwork)
 		fmt.Fprintf(out, "  Allow Host Ports:\t%t\n", scc.AllowHostPorts)
 		fmt.Fprintf(out, "  Allow Host PID:\t%t\n", scc.AllowHostPID)
@@ -1969,6 +1971,10 @@ func flexVolumesToString(flexVolumes []securityapi.AllowedFlexVolume) string {
 		volumes = append(volumes, "driver="+flexVolume.Driver)
 	}
 	return stringOrDefaultValue(strings.Join(volumes, ","), "<all>")
+}
+
+func sysctlsToString(sysctls []string) string {
+	return stringOrNone(strings.Join(sysctls, ","))
 }
 
 func idRangeToString(ranges []securityapi.IDRange) string {

@@ -104,6 +104,26 @@ type SecurityContextConstraints struct {
 	// used to generate a value for a pod the first non-wildcard profile will be used as
 	// the default.
 	SeccompProfiles []string `json:"seccompProfiles,omitempty" protobuf:"bytes,20,opt,name=seccompProfiles"`
+
+	// AllowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none.
+	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
+	// as a prefix of allowed sysctls. Single * means all unsafe sysctls are allowed.
+	// Kubelet has to whitelist all allowed unsafe sysctls explicitly to avoid rejection.
+	//
+	// Examples:
+	// e.g. "foo/*" allows "foo/bar", "foo/baz", etc.
+	// e.g. "foo.*" allows "foo.bar", "foo.baz", etc.
+	// +optional
+	AllowedUnsafeSysctls []string `json:"allowedUnsafeSysctls,omitempty" protobuf:"bytes,24,rep,name=allowedUnsafeSysctls"`
+	// ForbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
+	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
+	// as a prefix of forbidden sysctls. Single * means all sysctls are forbidden.
+	//
+	// Examples:
+	// e.g. "foo/*" forbids "foo/bar", "foo/baz", etc.
+	// e.g. "foo.*" forbids "foo.bar", "foo.baz", etc.
+	// +optional
+	ForbiddenSysctls []string `json:"forbiddenSysctls,omitempty" protobuf:"bytes,25,rep,name=forbiddenSysctls"`
 }
 
 // FS Type gives strong typing to different file systems that are used by volumes.
