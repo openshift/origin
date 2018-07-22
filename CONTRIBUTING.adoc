@@ -66,7 +66,7 @@ $ brew install git
 ----
 
 Then, follow the instructions to install https://docs.docker.com/docker-for-mac/install/[`docker`].
-Search the https://docs.docker.com/docker-for-mac/release-notes/[Docker for Mac releases] to find a link:/docs/cluster_up_down.md#prerequisites[supported
+Search the https://docs.docker.com/docker-for-mac/release-notes/[Docker for Mac releases] to find a link:/docs/cluster_up_down.adoc#prerequisites[supported
 version] to download.
 You will need to build `linux/amd64` binaries for the OpenShift server; if you
 want to do the builds locally, you will need to follow the instructions to
@@ -77,7 +77,7 @@ Go `pkg` installers can be downloaded https://golang.org/dl/[here].
 
 Follow the installation steps to install https://git-for-windows.github.io/[`git` for Windows]
 and https://docs.docker.com/docker-for-windows/install/[`docker`].
-Search the https://docs.docker.com/docker-for-windows/release-notes/[Docker for Windows releases] to find a link:/docs/cluster_up_down.md#prerequisites[supported
+Search the https://docs.docker.com/docker-for-windows/release-notes/[Docker for Windows releases] to find a link:/docs/cluster_up_down.adoc#prerequisites[supported
 version] to download.
 You will need to build `linux/amd64` binaries for the OpenShift server; if you
 want to do the builds locally, you will need to follow the instructions to
@@ -159,7 +159,7 @@ See more information in https://github.com/openshift/origin/blob/master/HACKING.
 for a more in-depth approach to building releases and incremental artifacts.
 
 ==== Running the OpenShift Server
-Next, follow the set-up steps in https://github.com/openshift/origin/blob/master/docs/cluster_up_down.md[`cluster_up_down.md`]
+Next, follow the set-up steps in https://github.com/openshift/origin/blob/master/docs/cluster_up_down.adoc[`cluster_up_down.adoc`]
 to start a cluster with `oc cluster up`. When starting the cluster, you will
 need to use container images. Images built locally with the `make release` and
 `hack/build-images.sh` scripts are tagged with the `git` commit you're working
