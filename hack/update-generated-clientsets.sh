@@ -28,7 +28,7 @@ function generate_clientset_for() {
   grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${package}/..)
   client-gen --clientset-path="${grouppkg}/generated" \
              --input-base="${package}"                            \
-             --output-base="../../.."                           \
+             --output-base="${OS_ROOT}/_output/local/go/src"          \
              --clientset-name="${name}"                               \
              --go-header-file=hack/boilerplate.txt                    \
              "$@"
