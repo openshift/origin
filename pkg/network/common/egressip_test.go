@@ -73,6 +73,20 @@ func (w *testEIPWatcher) assertNoChanges() error {
 	return w.assertChanges()
 }
 
+func (w *testEIPWatcher) flushChanges() {
+	w.changes = []string{}
+}
+
+func (w *testEIPWatcher) assertUpdateEgressCIDRsNotification() error {
+	for _, change := range w.changes {
+		if change == "update egress CIDRs" {
+			w.flushChanges()
+			return nil
+		}
+	}
+	return fmt.Errorf("expected change \"update egress CIDRs\", got %#v", w.changes)
+}
+
 func setupEgressIPTracker(t *testing.T) (*EgressIPTracker, *testEIPWatcher) {
 	watcher := &testEIPWatcher{}
 	return NewEgressIPTracker(watcher), watcher
@@ -1027,4 +1041,99 @@ func TestEgressNodeRenumbering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+}
+
+func TestEgressCIDRAllocationOffline(t *testing.T) {
+	eit, w := setupEgressIPTracker(t)
+
+	// Create nodes...
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		HostIP:      "172.17.0.3",
+		EgressIPs:   []string{},
+		EgressCIDRs: []string{"172.17.0.0/24", "172.17.1.0/24"},
+	})
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		HostIP:      "172.17.0.4",
+		EgressIPs:   []string{},
+		EgressCIDRs: []string{"172.17.0.0/24"},
+	})
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		HostIP:      "172.17.0.5",
+		EgressIPs:   []string{},
+		EgressCIDRs: []string{"172.17.1.0/24"},
+	})
+
+	// Create namespaces
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     100,
+		EgressIPs: []string{"172.17.0.100"},
+	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     101,
+		EgressIPs: []string{"172.17.0.101"},
+	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     102,
+		EgressIPs: []string{"172.17.0.102"},
+	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     200,
+		EgressIPs: []string{"172.17.1.200"},
+	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     201,
+		EgressIPs: []string{"172.17.1.201"},
+	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     202,
+		EgressIPs: []string{"172.17.1.202"},
+	})
+
+	// In a perfect world, we'd get 2 IPs on each node, but depending on processing
+	// order, this isn't guaranteed. Eg, if the three 172.17.0.x IPs get processed
+	// first, we could get two of them on node-3 and one on node-4. Then the first two
+	// 172.17.1.x IPs get assigned to node-5, and the last one could go to either
+	// node-3 or node-5. Regardless of order, node-3 is guaranteed to get at least
+	// two IPs since there's no way either node-4 or node-5 could be assigned a
+	// third IP if node-3 still only had one.
+	allocation := eit.ReallocateEgressIPs()
+	node3ips := allocation["node-3"]
+	node4ips := allocation["node-4"]
+	node5ips := allocation["node-5"]
+	if len(node3ips) < 2 || len(node4ips) == 0 || len(node5ips) == 0 ||
+		len(node3ips)+len(node4ips)+len(node5ips) != 6 {
+		t.Fatalf("Bad IP allocation: %#v", allocation)
+	}
+	updateAllocations(eit, allocation)
+
+	w.flushChanges()
+
+	// Now take node-3 offline
+	eit.SetNodeOffline("172.17.0.3", true)
+	err := w.assertUpdateEgressCIDRsNotification()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// First reallocation should empty out node-3
+	allocation = eit.ReallocateEgressIPs()
+	if node3ips, ok := allocation["node-3"]; !ok || len(node3ips) != 0 {
+		t.Fatalf("Bad IP allocation: %#v", allocation)
+	}
+	updateAllocations(eit, allocation)
+
+	err = w.assertUpdateEgressCIDRsNotification()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Next reallocation should reassign egress IPs to node-4 and node-5
+	allocation = eit.ReallocateEgressIPs()
+	node3ips = allocation["node-3"]
+	node4ips = allocation["node-4"]
+	node5ips = allocation["node-5"]
+	if len(node3ips) != 0 || len(node4ips) != 3 || len(node5ips) != 3 {
+		t.Fatalf("Bad IP allocation: %#v", allocation)
+	}
+	updateAllocations(eit, allocation)
 }

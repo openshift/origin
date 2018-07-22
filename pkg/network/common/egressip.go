@@ -450,7 +450,22 @@ func (eit *EgressIPTracker) SetNodeOffline(nodeIP string, offline bool) {
 			eit.egressIPChanged(eg)
 		}
 	}
+
+	if node.requestedCIDRs.Len() != 0 {
+		eit.updateEgressCIDRs = true
+	}
+
 	eit.syncEgressIPs()
+}
+
+func (eit *EgressIPTracker) lookupNodeIP(ip string) string {
+	eit.Lock()
+	defer eit.Unlock()
+
+	if node := eit.nodesByNodeIP[ip]; node != nil {
+		return node.sdnIP
+	}
+	return ip
 }
 
 // Ping a node and return whether or not it is online. We do this by trying to open a TCP
@@ -459,13 +474,8 @@ func (eit *EgressIPTracker) SetNodeOffline(nodeIP string, offline bool) {
 // presumably will get a "connection refused" error; the code below assumes that anything
 // other than timing out indicates that the node is online.
 func (eit *EgressIPTracker) Ping(ip string, timeout time.Duration) bool {
-	eit.Lock()
-	defer eit.Unlock()
-
 	// If the caller used a public node IP, replace it with the SDN IP
-	if node := eit.nodesByNodeIP[ip]; node != nil {
-		ip = node.sdnIP
-	}
+	ip = eit.lookupNodeIP(ip)
 
 	conn, err := net.DialTimeout("tcp", ip+":9", timeout)
 	if conn != nil {
@@ -485,6 +495,9 @@ func (eit *EgressIPTracker) findEgressIPAllocation(ip net.IP, allocation map[str
 	otherNodes := false
 
 	for _, node := range eit.nodes {
+		if node.offline {
+			continue
+		}
 		egressIPs, exists := allocation[node.nodeName]
 		if !exists {
 			continue
@@ -532,7 +545,7 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 				break
 			}
 		}
-		if found {
+		if found && !node.offline {
 			allocation[node.nodeName] = append(allocation[node.nodeName], egressIP)
 		}
 		// (We set alreadyAllocated even if the egressIP will be removed from

@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -24,6 +26,15 @@ type egressIPManager struct {
 
 	updatePending bool
 	updatedAgain  bool
+
+	monitorNodes map[string]*egressNode
+	stop         chan struct{}
+}
+
+type egressNode struct {
+	ip      string
+	offline bool
+	retries int
 }
 
 func newEgressIPManager() *egressIPManager {
@@ -76,11 +87,18 @@ func (eim *egressIPManager) maybeDoUpdateEgressCIDRs() (bool, error) {
 	// we won't process that until this reallocation is complete.
 
 	allocation := eim.tracker.ReallocateEgressIPs()
+	monitorNodes := make(map[string]*egressNode, len(allocation))
 	for nodeName, egressIPs := range allocation {
 		resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 			hs, err := eim.hostSubnetInformer.Lister().Get(nodeName)
 			if err != nil {
 				return err
+			}
+
+			if node := eim.monitorNodes[hs.HostIP]; node != nil {
+				monitorNodes[hs.HostIP] = node
+			} else {
+				monitorNodes[hs.HostIP] = &egressNode{ip: hs.HostIP}
 			}
 
 			oldIPs := sets.NewString(hs.EgressIPs...)
@@ -96,7 +114,80 @@ func (eim *egressIPManager) maybeDoUpdateEgressCIDRs() (bool, error) {
 		}
 	}
 
+	eim.monitorNodes = monitorNodes
+	if len(monitorNodes) > 0 {
+		if eim.stop == nil {
+			eim.stop = make(chan struct{})
+			go eim.poll(eim.stop)
+		}
+	} else {
+		if eim.stop != nil {
+			close(eim.stop)
+			eim.stop = nil
+		}
+	}
+
 	return true, nil
+}
+
+const (
+	pollInterval   = 5 * time.Second
+	repollInterval = time.Second
+	maxRetries     = 2
+)
+
+func (eim *egressIPManager) poll(stop chan struct{}) {
+	retry := false
+	for {
+		select {
+		case <-stop:
+			return
+		default:
+		}
+
+		start := time.Now()
+		retry := eim.check(retry)
+		if !retry {
+			// If less than pollInterval has passed since start, then sleep until it has
+			time.Sleep(start.Add(pollInterval).Sub(time.Now()))
+		}
+	}
+}
+
+func (eim *egressIPManager) check(retrying bool) bool {
+	var timeout time.Duration
+	if retrying {
+		timeout = repollInterval
+	} else {
+		timeout = pollInterval
+	}
+
+	needRetry := false
+	for _, node := range eim.monitorNodes {
+		if retrying && node.retries == 0 {
+			continue
+		}
+
+		online := eim.tracker.Ping(node.ip, timeout)
+		if node.offline && online {
+			glog.Infof("Node %s is back online", node.ip)
+			node.offline = false
+			eim.tracker.SetNodeOffline(node.ip, false)
+		} else if !node.offline && !online {
+			node.retries++
+			if node.retries > maxRetries {
+				glog.Warningf("Node %s is offline", node.ip)
+				node.retries = 0
+				node.offline = true
+				eim.tracker.SetNodeOffline(node.ip, true)
+			} else {
+				glog.V(2).Infof("Node %s may be offline... retrying", node.ip)
+				needRetry = true
+			}
+		}
+	}
+
+	return needRetry
 }
 
 func (eim *egressIPManager) ClaimEgressIP(vnid uint32, egressIP, nodeIP string) {
