@@ -170,8 +170,8 @@ func (s *S2IBuilder) Build() error {
 	}
 	if scriptDownloadProxyConfig != nil {
 		glog.V(0).Infof("Using HTTP proxy %v and HTTPS proxy %v for script download",
-			buildutil.SafeForLoggingURL(scriptDownloadProxyConfig.HTTPProxy),
-			buildutil.SafeForLoggingURL(scriptDownloadProxyConfig.HTTPSProxy),
+			builderutil.SafeForLoggingURL(scriptDownloadProxyConfig.HTTPProxy),
+			builderutil.SafeForLoggingURL(scriptDownloadProxyConfig.HTTPSProxy),
 		)
 	}
 

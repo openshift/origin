@@ -234,7 +234,7 @@ func (g *BuildGenerator) instantiate(ctx context.Context, request *buildapi.Buil
 	if err != nil {
 		return nil, err
 	}
-	if buildutil.IsPaused(bc) {
+	if isPaused(bc) {
 		return nil, errors.NewBadRequest(fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name))
 	}
 
@@ -404,7 +404,7 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildapi.BuildReque
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
 		}
-		if buildutil.IsPaused(buildConfig) {
+		if isPaused(buildConfig) {
 			return nil, errors.NewInternalError(&GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)})
 		}
 	}
@@ -936,4 +936,9 @@ func mergeMaps(a, b map[string]string) map[string]string {
 	}
 
 	return res
+}
+
+// isPaused returns true if the provided BuildConfig is paused and cannot be used to create a new Build
+func isPaused(bc *buildapi.BuildConfig) bool {
+	return strings.ToLower(bc.Annotations[buildapi.BuildConfigPausedAnnotation]) == "true"
 }

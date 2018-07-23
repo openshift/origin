@@ -57,7 +57,7 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []e
 	if len(bcName) == 0 {
 		return []error{}
 	}
-	currentBuildNumber, err := buildutil.BuildNumber(build)
+	currentBuildNumber, err := buildNumber(build)
 	if err != nil {
 		return []error{NewNoBuildNumberAnnotationError(build)}
 	}
@@ -71,7 +71,7 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []e
 		// Prevent race-condition when there is a newer build than this and we don't
 		// want to cancel it. The HandleBuild() function that runs for that build
 		// will cancel this build.
-		buildNumber, _ := buildutil.BuildNumber(b)
+		buildNumber, _ := buildNumber(b)
 		return buildNumber < currentBuildNumber
 	})
 	if err != nil {

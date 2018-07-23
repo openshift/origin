@@ -18,6 +18,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	"strconv"
+
 	"github.com/openshift/api/build"
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -69,7 +71,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 		return nil, err
 	}
 	if buildLogOpts.Previous {
-		version := buildutil.VersionForBuild(build)
+		version := versionForBuild(build)
 		// Use the previous version
 		version--
 		previousBuildName := buildutil.BuildNameForConfigVersion(buildutil.ConfigNameForBuild(build), version)
@@ -353,4 +355,18 @@ func (r *REST) getSimpleLogs(podNamespace, podName string, logOpts *kapi.PodLogO
 		Flush:       logOpts.Follow,
 		ContentType: "text/plain",
 	}, nil
+}
+
+// versionForBuild returns the version from the provided build name.
+// If no version can be found, 0 is returned to indicate no version.
+func versionForBuild(build *buildapi.Build) int {
+	if build == nil {
+		return 0
+	}
+	versionString := build.Annotations[buildapi.BuildNumberAnnotation]
+	version, err := strconv.Atoi(versionString)
+	if err != nil {
+		return 0
+	}
+	return version
 }

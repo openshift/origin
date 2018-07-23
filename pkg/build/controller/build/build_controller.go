@@ -1281,7 +1281,7 @@ func (bc *BuildController) enqueueBuild(build *buildapi.Build) {
 // enqueueBuildForPod adds the build corresponding to the given pod to the controller
 // buildQueue. If a build is not found for the pod, then an error is logged.
 func (bc *BuildController) enqueueBuildForPod(pod *v1.Pod) {
-	bc.buildQueue.Add(resourceName(pod.Namespace, buildutil.GetBuildName(pod)))
+	bc.buildQueue.Add(resourceName(pod.Namespace, getBuildName(pod)))
 }
 
 // imageStreamAdded queues any builds that have registered themselves for this image stream.
@@ -1345,7 +1345,7 @@ func (bc *BuildController) handleBuildConfigError(err error, key interface{}) {
 
 // isBuildPod returns true if the given pod is a build pod
 func isBuildPod(pod *v1.Pod) bool {
-	return len(buildutil.GetBuildName(pod)) > 0
+	return len(getBuildName(pod)) > 0
 }
 
 // buildDesc is a utility to format the namespace/name and phase of a build
@@ -1454,4 +1454,12 @@ func hasError(err error, fns ...utilerrors.Matcher) bool {
 		}
 	}
 	return false
+}
+
+// getBuildName returns name of the build pod.
+func getBuildName(pod metav1.Object) string {
+	if pod == nil {
+		return ""
+	}
+	return pod.GetAnnotations()[buildapi.BuildAnnotation]
 }
