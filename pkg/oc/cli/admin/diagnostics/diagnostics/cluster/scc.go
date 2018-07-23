@@ -73,19 +73,15 @@ func (d *SCC) Check() types.DiagnosticResult {
 
 	// Including non-additive SCCs, but output messages with debug level.
 	reconcileOptions.Union = false
-	newSCCsUnion, changedSCCsUnion, err := reconcileOptions.ChangedSCCs()
+	_, changedSCCsUnion, err := reconcileOptions.ChangedSCCs()
 	if err != nil {
 		r.Error("CSD1000", err, fmt.Sprintf("Error inspecting SCCs: %v", err))
 		return r
 	}
 
-	defaultsErrMsgFmt := "scc/%s does not match defaults. Use the `oc adm policy reconcile-sccs --additive-only=false` command to check sccs."
-	for _, newSCC := range newSCCsUnion {
-		r.Debug("CSD1004", fmt.Sprintf(defaultsErrMsgFmt, newSCC.Name))
-	}
 	for _, changedSCC := range changedSCCsUnion {
 		if !changedSCCNames[changedSCC.Name] {
-			r.Debug("CSD1004", fmt.Sprintf(defaultsErrMsgFmt, changedSCC.Name))
+			r.Debug("CSD1004", fmt.Sprintf("scc/%s does not match defaults. Use the `oc adm policy reconcile-sccs --additive-only=false` command to check sccs.", changedSCC.Name))
 		}
 	}
 	return r
