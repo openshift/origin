@@ -14,7 +14,6 @@ import (
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 )
@@ -179,11 +178,11 @@ func SafeForLoggingS2IConfig(config *s2iapi.Config) *s2iapi.Config {
 		newProxy := *config.ScriptDownloadProxyConfig
 		newConfig.ScriptDownloadProxyConfig = &newProxy
 		if newConfig.ScriptDownloadProxyConfig.HTTPProxy != nil {
-			newConfig.ScriptDownloadProxyConfig.HTTPProxy = buildutil.SafeForLoggingURL(newConfig.ScriptDownloadProxyConfig.HTTPProxy)
+			newConfig.ScriptDownloadProxyConfig.HTTPProxy = builderutil.SafeForLoggingURL(newConfig.ScriptDownloadProxyConfig.HTTPProxy)
 		}
 
 		if newConfig.ScriptDownloadProxyConfig.HTTPProxy != nil {
-			newConfig.ScriptDownloadProxyConfig.HTTPSProxy = buildutil.SafeForLoggingURL(newConfig.ScriptDownloadProxyConfig.HTTPProxy)
+			newConfig.ScriptDownloadProxyConfig.HTTPSProxy = builderutil.SafeForLoggingURL(newConfig.ScriptDownloadProxyConfig.HTTPProxy)
 		}
 	}
 	newConfig.ScriptsURL, _ = s2iutil.SafeForLoggingURL(newConfig.ScriptsURL)

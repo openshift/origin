@@ -74,7 +74,7 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 		return nil, fmt.Errorf("build string %s is not a build: %#v", buildStr, obj)
 	}
 	if glog.V(4) {
-		redactedBuild := buildutil.SafeForLoggingBuild(cfg.build)
+		redactedBuild := builderutil.SafeForLoggingBuild(cfg.build)
 		bytes, err := runtime.Encode(buildEnvVarJSONCodec, redactedBuild)
 		if err != nil {
 			glog.V(4).Infof("unable to print debug line: %v", err)

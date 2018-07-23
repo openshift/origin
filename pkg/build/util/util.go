@@ -5,23 +5,17 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
 
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
-
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
-	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 )
@@ -44,14 +38,6 @@ var (
 	proxyRegex       = regexp.MustCompile("(?i)proxy")
 )
 
-// GetBuildName returns name of the build pod.
-func GetBuildName(pod metav1.Object) string {
-	if pod == nil {
-		return ""
-	}
-	return pod.GetAnnotations()[buildapi.BuildAnnotation]
-}
-
 // IsBuildComplete returns whether the provided build is complete or not
 func IsBuildComplete(build *buildapi.Build) bool {
 	return IsTerminalPhase(build.Status.Phase)
@@ -66,38 +52,6 @@ func IsTerminalPhase(phase buildapi.BuildPhase) bool {
 		return false
 	}
 	return true
-}
-
-// IsPaused returns true if the provided BuildConfig is paused and cannot be used to create a new Build
-func IsPaused(bc *buildapi.BuildConfig) bool {
-	return strings.ToLower(bc.Annotations[buildapi.BuildConfigPausedAnnotation]) == "true"
-}
-
-// BuildNumber returns the given build number.
-func BuildNumber(build *buildapi.Build) (int64, error) {
-	annotations := build.GetAnnotations()
-	if stringNumber, ok := annotations[buildapi.BuildNumberAnnotation]; ok {
-		return strconv.ParseInt(stringNumber, 10, 64)
-	}
-	return 0, fmt.Errorf("build %s/%s does not have %s annotation", build.Namespace, build.Name, buildapi.BuildNumberAnnotation)
-}
-
-// BuildRunPolicy returns the scheduling policy for the build based on the
-// "queued" label.
-func BuildRunPolicy(build *buildapi.Build) buildapi.BuildRunPolicy {
-	labels := build.GetLabels()
-	if value, found := labels[buildapi.BuildRunPolicyLabel]; found {
-		switch value {
-		case "Parallel":
-			return buildapi.BuildRunPolicyParallel
-		case "Serial":
-			return buildapi.BuildRunPolicySerial
-		case "SerialLatestOnly":
-			return buildapi.BuildRunPolicySerialLatestOnly
-		}
-	}
-	glog.V(5).Infof("Build %s/%s does not have start policy label set, using default (Serial)", build.Namespace, build.Name)
-	return buildapi.BuildRunPolicySerial
 }
 
 // BuildNameForConfigVersion returns the name of the version-th build
@@ -155,20 +109,6 @@ func ConfigNameForBuild(build *buildapi.Build) string {
 		return build.Labels[buildapi.BuildConfigLabel]
 	}
 	return build.Labels[buildapi.BuildConfigLabelDeprecated]
-}
-
-// VersionForBuild returns the version from the provided build name.
-// If no version can be found, 0 is returned to indicate no version.
-func VersionForBuild(build *buildapi.Build) int {
-	if build == nil {
-		return 0
-	}
-	versionString := build.Annotations[buildapi.BuildNumberAnnotation]
-	version, err := strconv.Atoi(versionString)
-	if err != nil {
-		return 0
-	}
-	return version
 }
 
 func CopyApiResourcesToV1Resources(in *kapi.ResourceRequirements) corev1.ResourceRequirements {
@@ -233,127 +173,6 @@ func MergeTrustedEnvWithoutDuplicates(source []corev1.EnvVar, output *[]corev1.E
 	*output = append(result, filteredSource...)
 }
 
-// SafeForLoggingURL removes the user:password section of
-// a url if present.  If not present the value is returned unchanged.
-func SafeForLoggingURL(u *url.URL) *url.URL {
-	if u == nil {
-		return nil
-	}
-	newURL, err := url.Parse(u.String())
-	if err != nil {
-		return nil
-	}
-	if newURL.User != nil {
-		if _, passwordSet := newURL.User.Password(); passwordSet {
-			newURL.User = url.User("redacted")
-		}
-	}
-	return newURL
-}
-
-// SafeForLoggingEnvVar returns a copy of an EnvVar array with
-// proxy credential values redacted.
-func SafeForLoggingEnvVar(env []corev1.EnvVar) []corev1.EnvVar {
-	newEnv := make([]corev1.EnvVar, len(env))
-	copy(newEnv, env)
-	for i, env := range newEnv {
-		if proxyRegex.MatchString(env.Name) {
-			newEnv[i].Value, _ = s2iutil.SafeForLoggingURL(env.Value)
-		}
-	}
-	return newEnv
-}
-
-// SafeForLoggingBuildCommonSpec returns a copy of a CommonSpec with
-// proxy credential env variable values redacted.
-func SafeForLoggingBuildCommonSpec(spec *buildapiv1.CommonSpec) *buildapiv1.CommonSpec {
-	newSpec := spec.DeepCopy()
-	if newSpec.Source.Git != nil {
-		if newSpec.Source.Git.HTTPProxy != nil {
-			s, _ := s2iutil.SafeForLoggingURL(*newSpec.Source.Git.HTTPProxy)
-			newSpec.Source.Git.HTTPProxy = &s
-		}
-
-		if newSpec.Source.Git.HTTPSProxy != nil {
-			s, _ := s2iutil.SafeForLoggingURL(*newSpec.Source.Git.HTTPSProxy)
-			newSpec.Source.Git.HTTPSProxy = &s
-		}
-	}
-
-	if newSpec.Strategy.SourceStrategy != nil {
-		newSpec.Strategy.SourceStrategy.Env = SafeForLoggingEnvVar(newSpec.Strategy.SourceStrategy.Env)
-	}
-	if newSpec.Strategy.DockerStrategy != nil {
-		newSpec.Strategy.DockerStrategy.Env = SafeForLoggingEnvVar(newSpec.Strategy.DockerStrategy.Env)
-	}
-	if newSpec.Strategy.CustomStrategy != nil {
-		newSpec.Strategy.CustomStrategy.Env = SafeForLoggingEnvVar(newSpec.Strategy.CustomStrategy.Env)
-	}
-	if newSpec.Strategy.JenkinsPipelineStrategy != nil {
-		newSpec.Strategy.JenkinsPipelineStrategy.Env = SafeForLoggingEnvVar(newSpec.Strategy.JenkinsPipelineStrategy.Env)
-	}
-	return newSpec
-}
-
-// SafeForLoggingBuild returns a copy of a Build with
-// proxy credentials redacted.
-func SafeForLoggingBuild(build *buildapiv1.Build) *buildapiv1.Build {
-	newBuild := *build
-	newSpec := SafeForLoggingBuildCommonSpec(&build.Spec.CommonSpec)
-	newBuild.Spec.CommonSpec = *newSpec
-	return &newBuild
-}
-
-// SafeForLoggingEnvironmentList returns a copy of an s2i EnvironmentList array with
-// proxy credential values redacted.
-func SafeForLoggingEnvironmentList(env s2iapi.EnvironmentList) s2iapi.EnvironmentList {
-	newEnv := make(s2iapi.EnvironmentList, len(env))
-	copy(newEnv, env)
-	proxyRegex := regexp.MustCompile("(?i)proxy")
-	for i, env := range newEnv {
-		if proxyRegex.MatchString(env.Name) {
-			newEnv[i].Value, _ = s2iutil.SafeForLoggingURL(env.Value)
-		}
-	}
-	return newEnv
-}
-
-// SafeForLoggingS2IConfig returns a copy of an s2i Config with
-// proxy credentials redacted.
-func SafeForLoggingS2IConfig(config *s2iapi.Config) *s2iapi.Config {
-	newConfig := *config
-	newConfig.Environment = SafeForLoggingEnvironmentList(config.Environment)
-	if config.ScriptDownloadProxyConfig != nil {
-		newProxy := *config.ScriptDownloadProxyConfig
-		newConfig.ScriptDownloadProxyConfig = &newProxy
-		if newConfig.ScriptDownloadProxyConfig.HTTPProxy != nil {
-			newConfig.ScriptDownloadProxyConfig.HTTPProxy = SafeForLoggingURL(newConfig.ScriptDownloadProxyConfig.HTTPProxy)
-		}
-
-		if newConfig.ScriptDownloadProxyConfig.HTTPProxy != nil {
-			newConfig.ScriptDownloadProxyConfig.HTTPSProxy = SafeForLoggingURL(newConfig.ScriptDownloadProxyConfig.HTTPProxy)
-		}
-	}
-	newConfig.ScriptsURL, _ = s2iutil.SafeForLoggingURL(newConfig.ScriptsURL)
-	return &newConfig
-}
-
-// GetBuildConfigEnv gets the buildconfig strategy environment
-func GetBuildConfigEnv(buildConfig *buildapi.BuildConfig) []kapi.EnvVar {
-	switch {
-	case buildConfig.Spec.Strategy.SourceStrategy != nil:
-		return buildConfig.Spec.Strategy.SourceStrategy.Env
-	case buildConfig.Spec.Strategy.DockerStrategy != nil:
-		return buildConfig.Spec.Strategy.DockerStrategy.Env
-	case buildConfig.Spec.Strategy.CustomStrategy != nil:
-		return buildConfig.Spec.Strategy.CustomStrategy.Env
-	case buildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil:
-		return buildConfig.Spec.Strategy.JenkinsPipelineStrategy.Env
-	default:
-		return nil
-	}
-}
-
 // GetBuildEnv gets the build strategy environment
 func GetBuildEnv(build *buildapi.Build) []kapi.EnvVar {
 	switch {
@@ -368,25 +187,6 @@ func GetBuildEnv(build *buildapi.Build) []kapi.EnvVar {
 	default:
 		return nil
 	}
-}
-
-// SetBuildConfigEnv replaces the current buildconfig environment
-func SetBuildConfigEnv(buildConfig *buildapi.BuildConfig, env []kapi.EnvVar) {
-	var oldEnv *[]kapi.EnvVar
-
-	switch {
-	case buildConfig.Spec.Strategy.SourceStrategy != nil:
-		oldEnv = &buildConfig.Spec.Strategy.SourceStrategy.Env
-	case buildConfig.Spec.Strategy.DockerStrategy != nil:
-		oldEnv = &buildConfig.Spec.Strategy.DockerStrategy.Env
-	case buildConfig.Spec.Strategy.CustomStrategy != nil:
-		oldEnv = &buildConfig.Spec.Strategy.CustomStrategy.Env
-	case buildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil:
-		oldEnv = &buildConfig.Spec.Strategy.JenkinsPipelineStrategy.Env
-	default:
-		return
-	}
-	*oldEnv = env
 }
 
 // SetBuildEnv replaces the current build environment

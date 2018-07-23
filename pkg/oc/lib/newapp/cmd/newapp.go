@@ -27,7 +27,6 @@ import (
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -545,9 +544,9 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameter
 			// to every pod template object
 			for _, obj := range result.Objects {
 				if bc, ok := obj.(*buildapi.BuildConfig); ok {
-					buildEnv := buildutil.GetBuildConfigEnv(bc)
+					buildEnv := getBuildConfigEnv(bc)
 					buildEnv = app.JoinEnvironment(buildEnv, buildEnvironment.List())
-					buildutil.SetBuildConfigEnv(bc, buildEnv)
+					setBuildConfigEnv(bc, buildEnv)
 				}
 				podSpec, _, err := ometa.GetPodSpec(obj)
 				if err == nil {
@@ -1299,4 +1298,39 @@ func (c *AppConfig) HasArguments() bool {
 		len(c.DockerImages) > 0 ||
 		len(c.Templates) > 0 ||
 		len(c.TemplateFiles) > 0
+}
+
+// getBuildConfigEnv gets the buildconfig strategy environment
+func getBuildConfigEnv(buildConfig *buildapi.BuildConfig) []kapi.EnvVar {
+	switch {
+	case buildConfig.Spec.Strategy.SourceStrategy != nil:
+		return buildConfig.Spec.Strategy.SourceStrategy.Env
+	case buildConfig.Spec.Strategy.DockerStrategy != nil:
+		return buildConfig.Spec.Strategy.DockerStrategy.Env
+	case buildConfig.Spec.Strategy.CustomStrategy != nil:
+		return buildConfig.Spec.Strategy.CustomStrategy.Env
+	case buildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		return buildConfig.Spec.Strategy.JenkinsPipelineStrategy.Env
+	default:
+		return nil
+	}
+}
+
+// setBuildConfigEnv replaces the current buildconfig environment
+func setBuildConfigEnv(buildConfig *buildapi.BuildConfig, env []kapi.EnvVar) {
+	var oldEnv *[]kapi.EnvVar
+
+	switch {
+	case buildConfig.Spec.Strategy.SourceStrategy != nil:
+		oldEnv = &buildConfig.Spec.Strategy.SourceStrategy.Env
+	case buildConfig.Spec.Strategy.DockerStrategy != nil:
+		oldEnv = &buildConfig.Spec.Strategy.DockerStrategy.Env
+	case buildConfig.Spec.Strategy.CustomStrategy != nil:
+		oldEnv = &buildConfig.Spec.Strategy.CustomStrategy.Env
+	case buildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		oldEnv = &buildConfig.Spec.Strategy.JenkinsPipelineStrategy.Env
+	default:
+		return
+	}
+	*oldEnv = env
 }
