@@ -234,7 +234,6 @@ func (o DeployOptions) RunDeploy() error {
 		if o.follow {
 			return o.getLogs(config)
 		}
-		// TODO: HERE
 		describer := describe.NewLatestDeploymentsDescriber(o.appsClient, o.kubeClient, -1)
 		desc, err := describer.Describe(config.Namespace, config.Name)
 		if err != nil {
@@ -343,7 +342,7 @@ func (o DeployOptions) retry(config *appsv1.DeploymentConfig) error {
 		}
 	}
 
-	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = "New"
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
 	// clear out the cancellation flag as well as any previous status-reason annotation
 	appsutil.DeleteStatusReasons(deployment)
 	_, err = o.kubeClient.CoreV1().ReplicationControllers(deployment.Namespace).Update(deployment)

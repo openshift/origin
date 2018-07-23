@@ -232,8 +232,7 @@ func (o CancelOptions) Run() error {
 }
 
 func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*corev1.ReplicationController) bool) ([]*corev1.ReplicationController, bool, error) {
-	deploymentList, err := o.KubeClient.CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(
-		name).String()})
+	deploymentList, err := o.KubeClient.CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(name).String()})
 	if err != nil {
 		return nil, false, err
 	}

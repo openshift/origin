@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -60,6 +61,42 @@ func DecodeDeploymentConfig(controller metav1.ObjectMetaAccessor) (*appsv1.Deplo
 	return externalConfig, nil
 }
 
+// RolloutExceededTimeoutSeconds returns true if the current deployment exceeded
+// the timeoutSeconds defined for its strategy.
+// Note that this is different than activeDeadlineSeconds which is the timeout
+// set for the deployer pod. In some cases, the deployer pod cannot be created
+// (like quota, etc...). In that case deployer controller use this function to
+// measure if the created deployment (RC) exceeded the timeout.
+func RolloutExceededTimeoutSeconds(config *appsv1.DeploymentConfig, latestRC *v1.ReplicationController) bool {
+	timeoutSeconds := GetTimeoutSecondsForStrategy(config)
+	// If user set the timeoutSeconds to 0, we assume there should be no timeout.
+	if timeoutSeconds <= 0 {
+		return false
+	}
+	return int64(time.Since(latestRC.CreationTimestamp.Time).Seconds()) > timeoutSeconds
+}
+
+// GetTimeoutSecondsForStrategy returns the timeout in seconds defined in the
+// deployment config strategy.
+func GetTimeoutSecondsForStrategy(config *appsv1.DeploymentConfig) int64 {
+	var timeoutSeconds int64
+	switch config.Spec.Strategy.Type {
+	case appsv1.DeploymentStrategyTypeRolling:
+		timeoutSeconds = DefaultRollingTimeoutSeconds
+		if t := config.Spec.Strategy.RollingParams.TimeoutSeconds; t != nil {
+			timeoutSeconds = *t
+		}
+	case appsv1.DeploymentStrategyTypeRecreate:
+		timeoutSeconds = DefaultRecreateTimeoutSeconds
+		if t := config.Spec.Strategy.RecreateParams.TimeoutSeconds; t != nil {
+			timeoutSeconds = *t
+		}
+	case appsv1.DeploymentStrategyTypeCustom:
+		timeoutSeconds = DefaultRecreateTimeoutSeconds
+	}
+	return timeoutSeconds
+}
+
 func NewReplicationControllerScaler(client kubernetes.Interface) kubectl.Scaler {
 	return kubectl.NewScaler(NewReplicationControllerScaleClient(client))
 }
@@ -80,7 +117,7 @@ func LabelForDeployment(deployment *v1.ReplicationController) string {
 
 // DeploymentDesiredReplicas returns number of desired replica for the given replication controller
 func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
-	return int32AnnotationFor(obj, desiredReplicasAnnotation)
+	return int32AnnotationFor(obj, DesiredReplicasAnnotation)
 }
 
 // LatestDeploymentNameForConfig returns a stable identifier for deployment config
@@ -94,25 +131,25 @@ func LatestDeploymentNameForConfigAndVersion(name string, version int64) string 
 }
 
 func DeployerPodNameFor(obj runtime.Object) string {
-	return AnnotationFor(obj, deploymentPodAnnotation)
+	return AnnotationFor(obj, DeploymentPodAnnotation)
 }
 
 func DeploymentConfigNameFor(obj runtime.Object) string {
-	return AnnotationFor(obj, deploymentConfigAnnotation)
+	return AnnotationFor(obj, DeploymentConfigAnnotation)
 }
 
 func DeploymentStatusReasonFor(obj runtime.Object) string {
-	return AnnotationFor(obj, deploymentStatusReasonAnnotation)
+	return AnnotationFor(obj, DeploymentStatusReasonAnnotation)
 }
 
 func DeleteStatusReasons(rc *v1.ReplicationController) {
-	delete(rc.Annotations, deploymentStatusReasonAnnotation)
+	delete(rc.Annotations, DeploymentStatusReasonAnnotation)
 	delete(rc.Annotations, deploymentCancelledAnnotation)
 }
 
 func SetCancellationReasons(rc *v1.ReplicationController) {
 	rc.Annotations[deploymentCancelledAnnotation] = "true"
-	rc.Annotations[deploymentStatusReasonAnnotation] = deploymentCancelledByUser
+	rc.Annotations[DeploymentStatusReasonAnnotation] = deploymentCancelledByUser
 }
 
 // HasSynced checks if the provided deployment config has been noticed by the deployment
@@ -203,7 +240,7 @@ func ActiveDeployment(input []*v1.ReplicationController) *v1.ReplicationControll
 // TODO: Using the annotation constant for now since the value is correct
 // but we could consider adding a new constant to the public types.
 func ConfigSelector(name string) labels.Selector {
-	return labels.SelectorFromValidatedSet(labels.Set{deploymentConfigAnnotation: name})
+	return labels.SelectorFromValidatedSet(labels.Set{DeploymentConfigAnnotation: name})
 }
 
 // IsCompleteDeployment returns true if the passed deployment is in state complete.
@@ -246,7 +283,7 @@ func DeploymentVersionFor(obj runtime.Object) int64 {
 }
 
 func DeploymentNameFor(obj runtime.Object) string {
-	return AnnotationFor(obj, deploymentAnnotation)
+	return AnnotationFor(obj, DeploymentAnnotation)
 }
 
 // GetDeploymentCondition returns the condition with the provided type.
@@ -313,6 +350,33 @@ func GetAvailableReplicaCountForReplicationControllers(replicationControllers []
 func HasImageChangeTrigger(config *appsv1.DeploymentConfig) bool {
 	for _, trigger := range config.Spec.Triggers {
 		if trigger.Type == appsv1.DeploymentTriggerOnImageChange {
+			return true
+		}
+	}
+	return false
+}
+
+// CanTransitionPhase returns whether it is allowed to go from the current to the next phase.
+func CanTransitionPhase(current, next DeploymentStatus) bool {
+	switch current {
+	case DeploymentStatusNew:
+		switch next {
+		case DeploymentStatusPending,
+			DeploymentStatusRunning,
+			DeploymentStatusFailed,
+			DeploymentStatusComplete:
+			return true
+		}
+	case DeploymentStatusPending:
+		switch next {
+		case DeploymentStatusRunning,
+			DeploymentStatusFailed,
+			DeploymentStatusComplete:
+			return true
+		}
+	case DeploymentStatusRunning:
+		switch next {
+		case DeploymentStatusFailed, DeploymentStatusComplete:
 			return true
 		}
 	}

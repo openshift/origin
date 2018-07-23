@@ -66,6 +66,7 @@ const (
 	// DefaultRecreateTimeoutSeconds is the default TimeoutSeconds for RecreateDeploymentStrategyParams.
 	// Used by strategies:
 	DefaultRecreateTimeoutSeconds int64 = 10 * 60
+	DefaultRollingTimeoutSeconds  int64 = 10 * 60
 
 	// PreHookPodSuffix is the suffix added to all pre hook pods
 	PreHookPodSuffix = "hook-pre"
@@ -76,18 +77,27 @@ const (
 
 	// Used only internally by utils:
 
-	// deploymentStatusReasonAnnotation represents the reason for deployment being in a given state
+	// DeploymentStatusReasonAnnotation represents the reason for deployment being in a given state
 	// Used for specifying the reason for cancellation or failure of a deployment
-	deploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
-	deploymentCancelledAnnotation    = "openshift.io/deployment.cancelled"
-	deploymentCancelledByUser        = "cancelled by the user"
+	DeploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
+	DeploymentIgnorePodAnnotation    = "deploy.openshift.io/deployer-pod.ignore"
+	DeploymentPodAnnotation          = "openshift.io/deployer-pod.name"
+	DeployerPodCreatedAtAnnotation   = "openshift.io/deployer-pod.created-at"
+	DeployerPodStartedAtAnnotation   = "openshift.io/deployer-pod.started-at"
+	DeployerPodCompletedAtAnnotation = "openshift.io/deployer-pod.completed-at"
+	DeploymentReplicasAnnotation     = "openshift.io/deployment.replicas"
+	DesiredReplicasAnnotation        = "kubectl.kubernetes.io/desired-replicas"
+	DeploymentAnnotation             = "openshift.io/deployment.name"
+	DeploymentConfigAnnotation       = "openshift.io/deployment-config.name"
 
-	deploymentIgnorePodAnnotation     = "deploy.openshift.io/deployer-pod.ignore"
+	DeploymentFailedUnrelatedDeploymentExists = "unrelated pod with the same name as this deployment is already running"
+	DeploymentFailedUnableToCreateDeployerPod = "unable to create deployer pod"
+	DeploymentFailedDeployerPodNoLongerExists = "deployer pod no longer exists"
+
+	deploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
+	deploymentCancelledByUser     = "cancelled by the user"
+
 	deploymentEncodedConfigAnnotation = "openshift.io/encoded-deployment-config"
-	deploymentPodAnnotation           = "openshift.io/deployer-pod.name"
-	deploymentAnnotation              = "openshift.io/deployment.name"
-	desiredReplicasAnnotation         = "kubectl.kubernetes.io/desired-replicas"
-	deploymentReplicasAnnotation      = "openshift.io/deployment.replicas"
-	deploymentConfigAnnotation        = "openshift.io/deployment-config.name"
-	deploymentVersionAnnotation       = "openshift.io/deployment-config.latest-version"
+
+	deploymentVersionAnnotation = "openshift.io/deployment-config.latest-version"
 )

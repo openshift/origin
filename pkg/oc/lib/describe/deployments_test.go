@@ -63,6 +63,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	}
 
 	podList.Items = []corev1.Pod{*mkV1Pod(corev1.PodRunning, 0)}
+	// TODO: re-enable when we switch describer to external client
 	/*
 		substr := "Autoscaling:\tbetween 1 and 3 replicas"
 		if !strings.Contains(out, substr) {
