@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -210,16 +212,20 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 	case kapi.Resource("pods"):
 		return name, nil
 	case kapi.Resource("replicationcontrollers"):
-		kc, err := f.ClientSet()
+		config, err := f.ToRESTConfig()
 		if err != nil {
 			return "", err
 		}
-		rc, err := kc.Core().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
+		kc, err := corev1client.NewForConfig(config)
+		if err != nil {
+			return "", err
+		}
+		rc, err := kc.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
 		selector := labels.SelectorFromSet(rc.Spec.Selector)
-		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		pod, _, err := polymorphichelpers.GetFirstPod(kc, namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -247,7 +253,16 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		config, err := f.ToRESTConfig()
+		if err != nil {
+			return "", err
+		}
+		coreclient, err := corev1client.NewForConfig(config)
+		if err != nil {
+			return "", err
+		}
+
+		pod, _, err := polymorphichelpers.GetFirstPod(coreclient, namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -265,7 +280,15 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		config, err := f.ToRESTConfig()
+		if err != nil {
+			return "", err
+		}
+		coreclient, err := corev1client.NewForConfig(config)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := polymorphichelpers.GetFirstPod(coreclient, namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -283,7 +306,15 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		config, err := f.ToRESTConfig()
+		if err != nil {
+			return "", err
+		}
+		coreclient, err := corev1client.NewForConfig(config)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := polymorphichelpers.GetFirstPod(coreclient, namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -301,7 +332,15 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		config, err := f.ToRESTConfig()
+		if err != nil {
+			return "", err
+		}
+		coreclient, err := corev1client.NewForConfig(config)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := polymorphichelpers.GetFirstPod(coreclient, namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -315,18 +354,28 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		return podNameForJob(job, kc, timeout, sortBy)
+		config, err := f.ToRESTConfig()
+		if err != nil {
+			return "", err
+		}
+		coreclient, err := corev1client.NewForConfig(config)
+		if err != nil {
+			return "", err
+		}
+
+		return podNameForJob(job, coreclient, timeout, sortBy)
 	default:
 		return "", fmt.Errorf("remote shell for %s is not supported", resourceType)
 	}
 }
 
-func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*v1.Pod) sort.Interface) (string, error) {
+func podNameForJob(job *batch.Job, kc corev1client.CoreV1Interface, timeout time.Duration, sortBy func(pods []*v1.Pod) sort.Interface) (string, error) {
 	selector, err := metav1.LabelSelectorAsSelector(job.Spec.Selector)
 	if err != nil {
 		return "", err
 	}
-	pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), job.Namespace, selector.String(), timeout, sortBy)
+
+	pod, _, err := polymorphichelpers.GetFirstPod(kc, job.Namespace, selector.String(), timeout, sortBy)
 	if err != nil {
 		return "", err
 	}

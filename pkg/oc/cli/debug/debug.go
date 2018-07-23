@@ -1,7 +1,6 @@
 package debug
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -26,7 +25,7 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -41,58 +40,15 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
-
-type DebugOptions struct {
-	PrintFlags *genericclioptions.PrintFlags
-
-	Attach kcmd.AttachOptions
-
-	CoreClient   coreclient.CoreInterface
-	CoreV1Client corev1client.CoreV1Interface
-	AppsClient   appsclient.DeploymentConfigsGetter
-	ImageClient  imageclient.ImageInterface
-
-	Printer       printers.ResourcePrinter
-	LogsForObject polymorphichelpers.LogsForObjectFunc
-
-	NoStdin    bool
-	ForceTTY   bool
-	DisableTTY bool
-	Timeout    time.Duration
-
-	Command            []string
-	Annotations        map[string]string
-	AsRoot             bool
-	AsNonRoot          bool
-	AsUser             int64
-	KeepLabels         bool // TODO: evaluate selecting the right labels automatically
-	KeepAnnotations    bool
-	KeepLiveness       bool
-	KeepReadiness      bool
-	KeepInitContainers bool
-	OneContainer       bool
-	NodeName           string
-	AddEnv             []kapi.EnvVar
-	RemoveEnv          []string
-	Resources          []string
-	Builder            func() *resource.Builder
-	Namespace          string
-	ExplicitNamespace  bool
-	DryRun             bool
-	FullCmdName        string
-
-	resource.FilenameOptions
-	genericclioptions.IOStreams
-}
 
 const (
 	debugPodLabelName = "debug.openshift.io/name"
@@ -137,6 +93,48 @@ var (
 	  # See the pod that would be created to debug
 	  %[1]s dc/test -o yaml`)
 )
+
+type DebugOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Attach kcmd.AttachOptions
+
+	CoreClient  corev1client.CoreV1Interface
+	AppsClient  appsv1client.AppsV1Interface
+	ImageClient imagev1client.ImageV1Interface
+
+	Printer       printers.ResourcePrinter
+	LogsForObject polymorphichelpers.LogsForObjectFunc
+
+	NoStdin    bool
+	ForceTTY   bool
+	DisableTTY bool
+	Timeout    time.Duration
+
+	Command            []string
+	Annotations        map[string]string
+	AsRoot             bool
+	AsNonRoot          bool
+	AsUser             int64
+	KeepLabels         bool // TODO: evaluate selecting the right labels automatically
+	KeepAnnotations    bool
+	KeepLiveness       bool
+	KeepReadiness      bool
+	KeepInitContainers bool
+	OneContainer       bool
+	NodeName           string
+	AddEnv             []corev1.EnvVar
+	RemoveEnv          []string
+	Resources          []string
+	Builder            func() *resource.Builder
+	Namespace          string
+	ExplicitNamespace  bool
+	DryRun             bool
+	FullCmdName        string
+
+	resource.FilenameOptions
+	genericclioptions.IOStreams
+}
 
 func NewDebugOptions(streams genericclioptions.IOStreams) *DebugOptions {
 	return &DebugOptions{
@@ -255,10 +253,22 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 
 	o.Builder = f.NewBuilder
 
-	o.AddEnv, o.RemoveEnv, err = utilenv.ParseEnv(envArgs, nil)
+	internalAddEnv, removeEnv, err := utilenv.ParseEnv(envArgs, nil)
 	if err != nil {
 		return err
 	}
+
+	// convert EnvVars that we should add, from internal to external
+	for _, internal := range internalAddEnv {
+		external := corev1.EnvVar{}
+		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(&internal, &external, nil); err != nil {
+			return err
+		}
+
+		o.AddEnv = append(o.AddEnv, external)
+	}
+
+	o.RemoveEnv = removeEnv
 
 	cmdParent := cmd.Parent()
 	if cmdParent != nil && len(cmdParent.CommandPath()) > 0 && kcmdutil.IsSiblingCommandExists(cmd, "describe") {
@@ -289,29 +299,20 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 	}
 	o.Attach.Config = config
 
-	kc, err := f.ClientSet()
-	if err != nil {
-		return err
-	}
-	o.Attach.PodClient = kc.Core()
-	o.CoreClient = kc.Core()
-
-	o.CoreV1Client, err = corev1client.NewForConfig(config)
+	o.CoreClient, err = corev1client.NewForConfig(config)
 	if err != nil {
 		return err
 	}
 
-	appsClient, err := appsclient.NewForConfig(config)
+	o.AppsClient, err = appsv1client.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	o.AppsClient = appsClient
 
-	imageClient, err := imageclientinternal.NewForConfig(config)
+	o.ImageClient, err = imagev1client.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	o.ImageClient = imageClient.Image()
 
 	return nil
 }
@@ -350,11 +351,11 @@ func (o *DebugOptions) RunDebug() error {
 	if err != nil {
 		glog.V(4).Infof("Unable to get exact template, but continuing with fallback: %v", err)
 	}
-	template := &kapi.PodTemplateSpec{}
+	template := &corev1.PodTemplateSpec{}
 	if err := legacyscheme.Scheme.Convert(templateV1, template, nil); err != nil {
 		return err
 	}
-	pod := &kapi.Pod{
+	pod := &corev1.Pod{
 		ObjectMeta: template.ObjectMeta,
 		Spec:       template.Spec,
 	}
@@ -396,7 +397,7 @@ func (o *DebugOptions) RunDebug() error {
 	}
 
 	if o.Printer != nil {
-		return o.Printer.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(pod, nil), o.Out)
+		return o.Printer.PrintObj(pod, o.Out)
 	}
 
 	glog.V(5).Infof("Creating pod: %#v", pod)
@@ -415,7 +416,7 @@ func (o *DebugOptions) RunDebug() error {
 				stderr = os.Stderr
 			}
 			fmt.Fprintf(stderr, "\nRemoving debug pod ...\n")
-			if err := o.Attach.PodClient.Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0)); err != nil {
+			if err := o.CoreClient.Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0)); err != nil {
 				if !kapierrors.IsNotFound(err) {
 					fmt.Fprintf(stderr, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
 				}
@@ -425,7 +426,7 @@ func (o *DebugOptions) RunDebug() error {
 
 	glog.V(5).Infof("Created attach arguments: %#v", o.Attach)
 	return o.Attach.InterruptParent.Run(func() error {
-		w, err := o.Attach.PodClient.Pods(pod.Namespace).Watch(metav1.SingleObject(pod.ObjectMeta))
+		w, err := o.CoreClient.Pods(pod.Namespace).Watch(metav1.SingleObject(pod.ObjectMeta))
 		if err != nil {
 			return err
 		}
@@ -470,7 +471,7 @@ func (o *DebugOptions) RunDebug() error {
 // (via the "openshift.io/deployment-config.name" annotation), then tries to
 // find the ImageStream from which the DeploymentConfig is deploying, then tries
 // to find a match for the Container's image in the ImageStream's Images.
-func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, container *kapi.Container) (*imageapi.Image, error) {
+func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *corev1.Pod, container *corev1.Container) (*imagev1.Image, error) {
 	ref, err := imageapi.ParseDockerImageReference(container.Image)
 	if err != nil {
 		return nil, err
@@ -522,15 +523,15 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, conta
 // set to false.  The request will not succeed if the backing repository
 // requires Insecure to be set to true, which cannot be hard-coded for security
 // reasons.
-func (o *DebugOptions) getContainerImageViaImageStreamImport(container *kapi.Container) (*imageapi.Image, error) {
-	isi := &imageapi.ImageStreamImport{
+func (o *DebugOptions) getContainerImageViaImageStreamImport(container *corev1.Container) (*imagev1.Image, error) {
+	isi := &imagev1.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "oc-debug",
 		},
-		Spec: imageapi.ImageStreamImportSpec{
-			Images: []imageapi.ImageImportSpec{
+		Spec: imagev1.ImageStreamImportSpec{
+			Images: []imagev1.ImageImportSpec{
 				{
-					From: kapi.ObjectReference{
+					From: corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: container.Image,
 					},
@@ -551,26 +552,32 @@ func (o *DebugOptions) getContainerImageViaImageStreamImport(container *kapi.Con
 	return nil, nil
 }
 
-func (o *DebugOptions) getContainerImageCommand(pod *kapi.Pod, container *kapi.Container) ([]string, error) {
+func (o *DebugOptions) getContainerImageCommand(pod *corev1.Pod, container *corev1.Container) ([]string, error) {
 	if len(container.Command) > 0 {
 		return container.Command, nil
 	}
+	image, err := o.getContainerImageViaDeploymentConfig(pod, container)
+	if err != nil {
+		image, err = o.getContainerImageViaImageStreamImport(container)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	image, _ := o.getContainerImageViaDeploymentConfig(pod, container)
 	if image == nil {
-		image, _ = o.getContainerImageViaImageStreamImport(container)
+		return nil, fmt.Errorf("error: no usable image found")
 	}
 
-	if image == nil || image.DockerImageMetadata.Config == nil {
-		return nil, errors.New("error: no usable image found")
+	dockerImage, err := imageutil.GetImageMetadata(image)
+	if err != nil {
+		return nil, err
 	}
 
-	config := image.DockerImageMetadata.Config
-	return append(config.Entrypoint, config.Cmd...), nil
+	return append(dockerImage.Config.Entrypoint, dockerImage.Config.Cmd...), nil
 }
 
 // transformPodForDebug alters the input pod to be debuggable
-func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kapi.Pod, []string) {
+func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*corev1.Pod, []string) {
 	pod := o.Attach.Pod
 
 	if !o.KeepInitContainers {
@@ -582,7 +589,9 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 
 	// identify the command to be run
 	originalCommand, _ := o.getContainerImageCommand(pod, container)
-	if len(originalCommand) > 0 {
+	//originalCommand := []string{"<image entrypoint>"}
+	if len(container.Command) > 0 {
+		originalCommand = container.Command
 		originalCommand = append(originalCommand, container.Args...)
 	}
 
@@ -599,7 +608,7 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 		container.LivenessProbe = nil
 	}
 
-	var newEnv []kapi.EnvVar
+	var newEnv []corev1.EnvVar
 	if len(o.RemoveEnv) > 0 {
 		for i := range container.Env {
 			skip := false
@@ -623,7 +632,7 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	container.Env = newEnv
 
 	if container.SecurityContext == nil {
-		container.SecurityContext = &kapi.SecurityContext{}
+		container.SecurityContext = &corev1.SecurityContext{}
 	}
 	switch {
 	case o.AsNonRoot:
@@ -639,7 +648,7 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	}
 
 	if o.OneContainer {
-		pod.Spec.Containers = []kapi.Container{*container}
+		pod.Spec.Containers = []corev1.Container{*container}
 	}
 
 	// reset the pod
@@ -660,9 +669,9 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	pod.Spec.NodeName = o.NodeName
 
 	pod.ResourceVersion = ""
-	pod.Spec.RestartPolicy = kapi.RestartPolicyNever
+	pod.Spec.RestartPolicy = corev1.RestartPolicyNever
 
-	pod.Status = kapi.PodStatus{}
+	pod.Status = corev1.PodStatus{}
 	pod.UID = ""
 	pod.CreationTimestamp = metav1.Time{}
 	pod.SelfLink = ""
@@ -675,17 +684,17 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 
 // createPod creates the debug pod, and will attempt to delete an existing debug
 // pod with the same name, but will return an error in any other case.
-func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
+func (o *DebugOptions) createPod(pod *corev1.Pod) (*corev1.Pod, error) {
 	namespace, name := pod.Namespace, pod.Name
 
 	// create the pod
-	created, err := o.Attach.PodClient.Pods(namespace).Create(pod)
+	created, err := o.CoreClient.Pods(namespace).Create(pod)
 	if err == nil || !kapierrors.IsAlreadyExists(err) {
 		return created, err
 	}
 
 	// only continue if the pod has the right annotations
-	existing, err := o.Attach.PodClient.Pods(namespace).Get(name, metav1.GetOptions{})
+	existing, err := o.CoreClient.Pods(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -694,13 +703,13 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	}
 
 	// delete the existing pod
-	if err := o.Attach.PodClient.Pods(namespace).Delete(name, metav1.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
+	if err := o.CoreClient.Pods(namespace).Delete(name, metav1.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("unable to delete existing debug pod %q: %v", name, err)
 	}
-	return o.Attach.PodClient.Pods(namespace).Create(pod)
+	return o.CoreClient.Pods(namespace).Create(pod)
 }
 
-func containerForName(pod *kapi.Pod, name string) *kapi.Container {
+func containerForName(pod *corev1.Pod, name string) *corev1.Container {
 	for i, c := range pod.Spec.Containers {
 		if c.Name == name {
 			return &pod.Spec.Containers[i]
@@ -714,7 +723,7 @@ func containerForName(pod *kapi.Pod, name string) *kapi.Container {
 	return nil
 }
 
-func containerNames(pod *kapi.Pod) []string {
+func containerNames(pod *corev1.Pod) []string {
 	var names []string
 	for _, c := range pod.Spec.Containers {
 		names = append(names, c.Name)
@@ -750,14 +759,14 @@ func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*
 		fallback := t.Spec.Template
 
 		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(t)
-		deployment, err := o.CoreV1Client.ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
+		deployment, err := o.CoreClient.ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			return fallback, err
 		}
 
 		fallback = deployment.Spec.Template
 
-		pods, err := o.CoreV1Client.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector).String()})
+		pods, err := o.CoreClient.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector).String()})
 		if err != nil {
 			return fallback, err
 		}
