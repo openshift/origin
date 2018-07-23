@@ -464,6 +464,20 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *v1.ServiceA
 		return nil, false, nil
 	}
 
+	err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		serviceAccount.Secrets = append(serviceAccount.Secrets, v1.ObjectReference{Name: tokenSecret.Name})
+		updatedSA, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		if err == nil {
+			e.serviceAccountCache.Mutation(updatedSA)
+		}
+		return err
+	})
+	if err != nil {
+		glog.V(2).Infof("Deleting secret %s/%s (err=%v)", tokenSecret.Namespace, tokenSecret.Name, err)
+		e.client.Core().Secrets(tokenSecret.Namespace).Delete(tokenSecret.Name, nil)
+		return nil, false, err
+	}
+
 	dockercfgSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Strategy.GenerateName(osautil.GetDockercfgSecretNamePrefixV1(serviceAccount)),
