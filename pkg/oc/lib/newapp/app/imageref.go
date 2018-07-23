@@ -175,7 +175,7 @@ func (r *ImageRef) ObjectReference() kapi.ObjectReference {
 		return kapi.ObjectReference{
 			Kind:      "ImageStreamTag",
 			Name:      imageapi.JoinImageStreamTag(r.Stream.Name, r.Reference.Tag),
-			Namespace: r.Stream.Namespace,
+			Namespace: r.SuggestNamespace(),
 		}
 	case r.AsImageStream:
 		name, _ := r.SuggestName()
@@ -237,6 +237,17 @@ func (r *ImageRef) SuggestName() (string, bool) {
 		return r.Reference.Name, true
 	}
 	return "", false
+}
+
+// SuggestNamespace suggests a namespace for an image reference
+func (r *ImageRef) SuggestNamespace() string {
+	if r == nil {
+		return ""
+	}
+	if r.Stream != nil {
+		return r.Stream.Namespace
+	}
+	return ""
 }
 
 // BuildOutput returns the BuildOutput of an image reference
@@ -336,6 +347,7 @@ func (r *ImageRef) ImageStreamTag() (*imageapi.ImageStreamTag, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        istname,
 			Annotations: map[string]string{"openshift.io/imported-from": r.Reference.Exact()},
+			Namespace:   r.SuggestNamespace(),
 		},
 		Tag: &imageapi.TagReference{
 			Name: r.InternalTag(),

@@ -197,6 +197,15 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 		}
 		if objectAccept.Accept(repo) {
 			objects = append(objects, repo)
+		} else {
+			// if the image stream exists, try creating the image stream tag
+			tag, err := p.InputImage.ImageStreamTag()
+			if err != nil {
+				return nil, err
+			}
+			if objectAccept.Accept(tag) && accept.Accept(tag) {
+				objects = append(objects, tag)
+			}
 		}
 	}
 	if p.Image != nil && p.Image.AsImageStream && accept.Accept(p.Image) {
@@ -207,7 +216,7 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 		if objectAccept.Accept(repo) {
 			objects = append(objects, repo)
 		} else {
-			// if the image stream exists, if possible create the imagestream tag referenced if that does not exist
+			// if the image stream exists, try creating the image stream tag
 			tag, err := p.Image.ImageStreamTag()
 			if err != nil {
 				return nil, err
@@ -497,17 +506,21 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 		glog.V(4).Infof("type cast to image stream %#v not right for an unanticipated reason", from)
 		return true
 	}
-	imgstrm, err := a.getter.ImageStreams(a.namespace).Get(is.Name, metav1.GetOptions{})
+	namespace := a.namespace
+	if len(is.Namespace) > 0 {
+		namespace = is.Namespace
+	}
+	imgstrm, err := a.getter.ImageStreams(namespace).Get(is.Name, metav1.GetOptions{})
 	if err == nil && imgstrm != nil {
-		glog.V(4).Infof("acceptor determined that imagestream %s in namespace %s exists so don't accept: %#v", is.Name, a.namespace, imgstrm)
+		glog.V(4).Infof("acceptor determined that imagestream %s in namespace %s exists so don't accept: %#v", is.Name, namespace, imgstrm)
 		return false
 	}
 	return true
 }
 
 // NewAcceptNonExistentImageStream creates an acceptor that accepts an object
-// if it is either a) not an ImageStream, or b) or an ImageStream which does not
-// yet exist in master
+// if it is either a) not an ImageStream, or b) an ImageStream which does not
+// yet exist in the api server
 func NewAcceptNonExistentImageStream(typer runtime.ObjectTyper, getter imageclient.ImageInterface, namespace string) Acceptor {
 	return &acceptNonExistentImageStream{
 		typer:     typer,
@@ -542,17 +555,21 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 		glog.V(4).Infof("type cast to imagestreamtag %#v not right for an unanticipated reason", from)
 		return true
 	}
-	tag, err := a.getter.ImageStreamTags(a.namespace).Get(ist.Name, metav1.GetOptions{})
+	namespace := a.namespace
+	if len(ist.Namespace) > 0 {
+		namespace = ist.Namespace
+	}
+	tag, err := a.getter.ImageStreamTags(namespace).Get(ist.Name, metav1.GetOptions{})
 	if err == nil && tag != nil {
-		glog.V(4).Infof("acceptor determined that imagestreamtag %s in namespace %s exists so don't accept", ist.Name, a.namespace)
+		glog.V(4).Infof("acceptor determined that imagestreamtag %s in namespace %s exists so don't accept: %#v", ist.Name, namespace, tag)
 		return false
 	}
 	return true
 }
 
 // NewAcceptNonExistentImageStreamTag creates an acceptor that accepts an object
-// if it is either a) not an ImageStreamTag, or b) or an ImageStreamTag which does not
-// yet exist in master
+// if it is either a) not an ImageStreamTag, or b) an ImageStreamTag which does not
+// yet exist in the api server
 func NewAcceptNonExistentImageStreamTag(typer runtime.ObjectTyper, getter imageclient.ImageInterface, namespace string) Acceptor {
 	return &acceptNonExistentImageStreamTag{
 		typer:     typer,
