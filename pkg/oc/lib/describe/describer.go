@@ -43,11 +43,13 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -185,7 +187,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapi.GetBuildPodName(build), metav1.GetOptions{}); err == nil {
+	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapihelpers.GetBuildPodName(build), metav1.GetOptions{}); err == nil {
 		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
@@ -219,7 +221,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		if build.Status.Config != nil {
 			formatString(out, "Build Config", build.Status.Config.Name)
 		}
-		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
+		formatString(out, "Build Pod", buildapihelpers.GetBuildPodName(build))
 
 		if build.Status.Output.To != nil && len(build.Status.Output.To.ImageDigest) > 0 {
 			formatString(out, "Image Digest", build.Status.Output.To.ImageDigest)
@@ -279,7 +281,7 @@ func nameAndNamespace(ns, name string) string {
 }
 
 func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
-	formatString(out, "\nStrategy", buildapi.StrategyType(p.Strategy))
+	formatString(out, "\nStrategy", buildapihelpers.StrategyType(p.Strategy))
 	noneType := true
 	if p.Source.Git != nil {
 		noneType = false
@@ -535,7 +537,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 	if err != nil {
 		return "", err
 	}
-	buildList.Items = buildapi.FilterBuilds(buildList.Items, buildapi.ByBuildConfigPredicate(name))
+	buildList.Items = ocbuildapihelpers.FilterBuilds(buildList.Items, ocbuildapihelpers.ByBuildConfigPredicate(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
@@ -552,7 +554,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 			fmt.Fprintf(out, "\nBuild\tStatus\tDuration\tCreation Time\n")
 
 			builds := buildList.Items
-			sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds)))
+			sort.Sort(sort.Reverse(buildapihelpers.BuildSliceByCreationTimestamp(builds)))
 
 			for i, build := range builds {
 				fmt.Fprintf(out, "%s \t%s \t%v \t%v\n",

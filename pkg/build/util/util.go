@@ -17,6 +17,7 @@ import (
 	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 )
 
@@ -63,13 +64,7 @@ func BuildNameForConfigVersion(name string, version int) string {
 // BuildConfigSelector returns a label Selector which can be used to find all
 // builds for a BuildConfig.
 func BuildConfigSelector(name string) labels.Selector {
-	return labels.Set{buildapi.BuildConfigLabel: buildapi.LabelValue(name)}.AsSelector()
-}
-
-// BuildConfigSelectorDeprecated returns a label Selector which can be used to find
-// all builds for a BuildConfig that use the deprecated labels.
-func BuildConfigSelectorDeprecated(name string) labels.Selector {
-	return labels.Set{buildapi.BuildConfigLabelDeprecated: name}.AsSelector()
+	return labels.Set{buildapi.BuildConfigLabel: buildapihelpers.LabelValue(name)}.AsSelector()
 }
 
 type buildFilter func(*buildapi.Build) bool

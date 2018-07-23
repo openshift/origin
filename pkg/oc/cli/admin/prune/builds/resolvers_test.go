@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
 
 type mockResolver struct {
@@ -153,8 +154,8 @@ func TestPerBuildConfigResolver(t *testing.T) {
 					failedBuilds = append(failedBuilds, build)
 				}
 			}
-			sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(completeBuilds)))
-			sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(failedBuilds)))
+			sort.Sort(sort.Reverse(buildapihelpers.BuildPtrSliceByCreationTimestamp(completeBuilds)))
+			sort.Sort(sort.Reverse(buildapihelpers.BuildPtrSliceByCreationTimestamp(failedBuilds)))
 			var purgeComplete, purgeFailed []*buildapi.Build
 			if keep >= 0 && keep < len(completeBuilds) {
 				purgeComplete = completeBuilds[keep:]

@@ -19,6 +19,7 @@ import (
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
 
 func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorphichelpers.LogsForObjectFunc {
@@ -66,7 +67,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigPredicate(t.Name))
+			builds.Items = ocbuildapihelpers.FilterBuilds(builds.Items, ocbuildapihelpers.ByBuildConfigPredicate(t.Name))
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
@@ -75,7 +76,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
 				return logClient.Logs(desired, *bopts), nil
 			}
-			sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds.Items)))
+			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestamp(builds.Items)))
 			return logClient.Logs(builds.Items[0].Name, *bopts), nil
 
 		default:

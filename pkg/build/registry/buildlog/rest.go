@@ -24,6 +24,7 @@ import (
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/build/registry"
@@ -113,7 +114,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s is in an error state. %s", build.Name, buildutil.NoBuildLogsMessage))
 	}
 	// The container should be the default build container, so setting it to blank
-	buildPodName := buildapi.GetBuildPodName(build)
+	buildPodName := buildapihelpers.GetBuildPodName(build)
 
 	// if we can't at least get the build pod, we're not going to get very far, so
 	// error out now.
@@ -125,7 +126,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 	// check for old style builds with a single container/no initcontainers
 	// and handle them w/ the old logging code.
 	if len(buildPod.Spec.InitContainers) == 0 {
-		logOpts := buildapi.BuildToPodLogOptions(buildLogOpts)
+		logOpts := buildapihelpers.BuildToPodLogOptions(buildLogOpts)
 		return r.getSimpleLogsFn(build.Namespace, buildPodName, logOpts)
 	}
 
@@ -216,7 +217,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 				}
 
 				// get the container logstream for this init container
-				containerLogOpts := buildapi.BuildToPodLogOptions(buildLogOpts)
+				containerLogOpts := buildapihelpers.BuildToPodLogOptions(buildLogOpts)
 				containerLogOpts.Container = status.Name
 				// never "follow" logs for terminated containers, it causes latency in streaming the result
 				// and there's no point since the log is complete already.
@@ -281,7 +282,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 				return
 			}
 
-			containerLogOpts := buildapi.BuildToPodLogOptions(buildLogOpts)
+			containerLogOpts := buildapihelpers.BuildToPodLogOptions(buildLogOpts)
 			containerLogOpts.Container = selectBuilderContainer(buildPod.Spec.Containers)
 			if containerLogOpts.Container == "" {
 				glog.Errorf("error: failed to select a container in build pod: %s/%s", build.Namespace, buildPodName)

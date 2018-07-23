@@ -20,6 +20,7 @@ import (
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -84,7 +85,7 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) field.ErrorList {
 	fromRefs := map[string]struct{}{}
 	specPath := field.NewPath("spec")
 	triggersPath := specPath.Child("triggers")
-	buildFrom := buildapi.GetInputReference(config.Spec.Strategy)
+	buildFrom := buildapihelpers.GetInputReference(config.Spec.Strategy)
 	for i, trg := range config.Spec.Triggers {
 		allErrs = append(allErrs, validateTrigger(&trg, buildFrom, triggersPath.Index(i))...)
 		if trg.Type != buildapi.ImageChangeBuildTriggerType || trg.ImageChange == nil {
@@ -664,7 +665,7 @@ func ValidateBuildLogOptions(opts *buildapi.BuildLogOptions) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// TODO: Replace by validating PodLogOptions via BuildLogOptions once it's bundled in
-	popts := buildapi.BuildToPodLogOptions(opts)
+	popts := buildapihelpers.BuildToPodLogOptions(opts)
 	if errs := validation.ValidatePodLogOptions(popts); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}

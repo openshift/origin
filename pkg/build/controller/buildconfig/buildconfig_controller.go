@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	clientv1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -103,7 +104,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildapi.BuildConfig) erro
 		utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", bc.Namespace, bc.Name, err))
 	}
 
-	hasChangeTrigger := buildapi.HasTriggerType(buildapi.ConfigChangeBuildTriggerType, bc)
+	hasChangeTrigger := buildapihelpers.HasTriggerType(buildapi.ConfigChangeBuildTriggerType, bc)
 
 	if !hasChangeTrigger {
 		return nil

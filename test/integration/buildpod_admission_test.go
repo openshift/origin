@@ -16,6 +16,7 @@ import (
 
 	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
 	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -242,7 +243,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 	watchOpt := metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(
 			"metadata.name",
-			buildapi.GetBuildPodName(build),
+			buildapihelpers.GetBuildPodName(build),
 		).String(),
 	}
 	podWatch, err := kclientset.Core().Pods(ns).Watch(watchOpt)
