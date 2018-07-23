@@ -119,8 +119,8 @@ func (c *TemplateInstanceController) sync(key string) error {
 		return err
 	}
 
-	if templateInstanceOriginal.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue) ||
-		templateInstanceOriginal.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+	if TemplateInstanceHasCondition(templateInstanceOriginal, templateapi.TemplateInstanceReady, kapi.ConditionTrue) ||
+		TemplateInstanceHasCondition(templateInstanceOriginal, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
 		return nil
 	}
 
@@ -133,7 +133,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 		if err != nil {
 			glog.V(4).Infof("TemplateInstance controller: instantiate %s returned %v", key, err)
 
-			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceInstantiateFailure,
 				Status:  kapi.ConditionTrue,
 				Reason:  "Failed",
@@ -143,20 +143,20 @@ func (c *TemplateInstanceController) sync(key string) error {
 		}
 	}
 
-	if !templateInstanceCopy.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+	if !TemplateInstanceHasCondition(templateInstanceCopy, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
 		ready, err := c.checkReadiness(templateInstanceCopy)
 		if err != nil && !kerrors.IsTimeout(err) {
 			// NB: kerrors.IsTimeout() is true in the case of an API server
 			// timeout, not the timeout caused by readinessTimeout expiring.
 			glog.V(4).Infof("TemplateInstance controller: checkReadiness %s returned %v", key, err)
 
-			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceInstantiateFailure,
 				Status:  kapi.ConditionTrue,
 				Reason:  "Failed",
 				Message: formatError(err),
 			})
-			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceReady,
 				Status:  kapi.ConditionFalse,
 				Reason:  "Failed",
@@ -165,7 +165,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceInstantiateFailure)).Inc()
 
 		} else if ready {
-			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
 				Type:   templateapi.TemplateInstanceReady,
 				Status: kapi.ConditionTrue,
 				Reason: "Created",
@@ -173,7 +173,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceReady)).Inc()
 
 		} else {
-			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceReady,
 				Status:  kapi.ConditionFalse,
 				Reason:  "Waiting",
@@ -188,8 +188,8 @@ func (c *TemplateInstanceController) sync(key string) error {
 		return err
 	}
 
-	if !templateInstanceCopy.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue) &&
-		!templateInstanceCopy.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+	if !TemplateInstanceHasCondition(templateInstanceCopy, templateapi.TemplateInstanceReady, kapi.ConditionTrue) &&
+		!TemplateInstanceHasCondition(templateInstanceCopy, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
 		c.enqueueAfter(templateInstanceCopy, c.readinessLimiter.When(key))
 	} else {
 		c.readinessLimiter.Forget(key)
@@ -527,4 +527,32 @@ func formatError(err error) string {
 	}
 
 	return err.Error()
+}
+
+func TemplateInstanceHasCondition(templateInstance *templateapi.TemplateInstance, typ templateapi.TemplateInstanceConditionType, status kapi.ConditionStatus) bool {
+	for _, c := range templateInstance.Status.Conditions {
+		if c.Type == typ && c.Status == status {
+			return true
+		}
+	}
+	return false
+}
+
+func templateInstanceSetCondition(templateInstance *templateapi.TemplateInstance, condition templateapi.TemplateInstanceCondition) {
+	condition.LastTransitionTime = metav1.Now()
+
+	for i, c := range templateInstance.Status.Conditions {
+		if c.Type == condition.Type {
+			if c.Message == condition.Message &&
+				c.Reason == condition.Reason &&
+				c.Status == condition.Status {
+				return
+			}
+
+			templateInstance.Status.Conditions[i] = condition
+			return
+		}
+	}
+
+	templateInstance.Status.Conditions = append(templateInstance.Status.Conditions, condition)
 }
