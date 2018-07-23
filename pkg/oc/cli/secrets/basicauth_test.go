@@ -3,79 +3,87 @@ package secrets
 import (
 	"testing"
 
-	api "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 func TestValidateBasicAuth(t *testing.T) {
 	tests := []struct {
 		testName string
-		args     []string
-		params   CreateBasicAuthSecretOptions
+		options  func(genericclioptions.IOStreams) *CreateBasicAuthSecretOptions
 		expErr   bool
 	}{
 		{
 			testName: "validArgs",
-			args:     []string{"testSecret"},
-			params: CreateBasicAuthSecretOptions{
-				Username: "testUser",
-				Password: "testPassword",
+			options: func(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
+				o := NewCreateBasicAuthSecretOptions(streams)
+				o.Username = "testUser"
+				o.Password = "testPassword"
+				o.SecretName = "testSecret"
+				return o
 			},
 			expErr: false,
 		},
 		{
 			testName: "validArgsWithCertificate",
-			args:     []string{"testSecret"},
-			params: CreateBasicAuthSecretOptions{
-				Username:        "testUser",
-				Password:        "testPassword",
-				CertificatePath: "./bsFixtures/valid/ca.crt",
+			options: func(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
+				o := NewCreateBasicAuthSecretOptions(streams)
+				o.Username = "testUser"
+				o.Password = "testPassword"
+				o.SecretName = "testSecret"
+				o.CertificatePath = "./bsFixtures/valid/ca.crt"
+				return o
 			},
 			expErr: false,
 		},
 		{
 			testName: "validArgsWithGitconfig",
-			args:     []string{"testSecret"},
-			params: CreateBasicAuthSecretOptions{
-				Username:      "testUser",
-				Password:      "testPassword",
-				GitConfigPath: "./bsFixtures/leadingdot/.gitconfig",
+			options: func(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
+				o := NewCreateBasicAuthSecretOptions(streams)
+				o.Username = "testUser"
+				o.Password = "testPassword"
+				o.SecretName = "testSecret"
+				o.GitConfigPath = "./bsFixtures/leadingdot/.gitconfig"
+				return o
 			},
 			expErr: false,
 		},
 		{
 			testName: "noName",
-			args:     []string{},
-			params: CreateBasicAuthSecretOptions{
-				Username: "testUser",
-				Password: "testPassword",
+			options: func(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
+				o := NewCreateBasicAuthSecretOptions(streams)
+				o.Username = "testUser"
+				o.Password = "testPassword"
+				return o
 			},
 			expErr: true, //"Must have exactly one argument: secret name"
 		},
 		{
 			testName: "noParams",
-			args:     []string{"testSecret"},
-			params:   CreateBasicAuthSecretOptions{},
-			expErr:   true, //"Must provide basic authentication credentials"
+			options: func(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
+				o := NewCreateBasicAuthSecretOptions(streams)
+				o.SecretName = "testSecret"
+				return o
+			},
+			expErr: true, //"Must provide basic authentication credentials"
 		},
 		{
 			testName: "passwordAndPrompt",
-			args:     []string{"testSecret"},
-			params: CreateBasicAuthSecretOptions{
-				Username:          "testUser",
-				Password:          "testPassword",
-				PromptForPassword: true,
+			options: func(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
+				o := NewCreateBasicAuthSecretOptions(streams)
+				o.Username = "testUser"
+				o.Password = "testPassword"
+				o.SecretName = "testSecret"
+				o.PromptForPassword = true
+				return o
 			},
 			expErr: true, //"Must provide either --prompt or --password flag"
 		},
 	}
 
 	for _, test := range tests {
-		options := test.params
-		err := options.Complete(nil, test.args)
-		if err == nil {
-			err = options.Validate()
-		}
-
+		options := test.options(genericclioptions.NewTestIOStreamsDiscard())
+		err := options.Validate()
 		if test.expErr {
 			if err == nil {
 				t.Errorf("%s: unexpected error: %v", test.testName, err)
@@ -85,13 +93,14 @@ func TestValidateBasicAuth(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
+			continue
 		}
 
 		secret, err := options.NewBasicAuthSecret()
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
 		}
-		if secret.Type != api.SecretTypeBasicAuth {
+		if secret.Type != corev1.SecretTypeBasicAuth {
 			t.Errorf("%s: unexpected secret.Type: %v", test.testName, secret.Type)
 		}
 	}

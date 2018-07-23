@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	coreapiv1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -43,9 +43,15 @@ type LinkSecretOptions struct {
 	typeFlags []string
 }
 
+func NewLinkSecretOptions(streams genericclioptions.IOStreams) *LinkSecretOptions {
+	return &LinkSecretOptions{
+		SecretOptions: SecretOptions{},
+	}
+}
+
 // NewCmdLinkSecret creates a command object for linking a secret reference to a service account
 func NewCmdLinkSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &LinkSecretOptions{SecretOptions{Out: streams.Out}, false, false, nil}
+	o := NewLinkSecretOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s serviceaccounts-name secret-name [another-secret-name]...", name),
@@ -131,7 +137,7 @@ func (o LinkSecretOptions) LinkSecrets() error {
 // TODO: when Secrets in kapi.ServiceAccount get changed to MountSecrets and represented by LocalObjectReferences, this can be
 // refactored to reuse the addition code better
 // linkSecretsToServiceAccount links secrets to the service account, either as pull secrets, mount secrets, or both.
-func (o LinkSecretOptions) linkSecretsToServiceAccount(serviceaccount *kapi.ServiceAccount) error {
+func (o LinkSecretOptions) linkSecretsToServiceAccount(serviceaccount *coreapiv1.ServiceAccount) error {
 	updated := false
 	newSecrets, hasNotFound, err := o.GetSecrets(false)
 	if err != nil {
@@ -143,7 +149,7 @@ func (o LinkSecretOptions) linkSecretsToServiceAccount(serviceaccount *kapi.Serv
 		currentSecrets := o.GetMountSecretNames(serviceaccount)
 		secretsToLink := newSecretNames.Difference(currentSecrets)
 		for _, secretName := range secretsToLink.List() {
-			serviceaccount.Secrets = append(serviceaccount.Secrets, kapi.ObjectReference{Name: secretName})
+			serviceaccount.Secrets = append(serviceaccount.Secrets, coreapiv1.ObjectReference{Name: secretName})
 			updated = true
 		}
 	}
@@ -151,12 +157,12 @@ func (o LinkSecretOptions) linkSecretsToServiceAccount(serviceaccount *kapi.Serv
 		currentSecrets := o.GetPullSecretNames(serviceaccount)
 		secretsToLink := newSecretNames.Difference(currentSecrets)
 		for _, secretName := range secretsToLink.List() {
-			serviceaccount.ImagePullSecrets = append(serviceaccount.ImagePullSecrets, kapi.LocalObjectReference{Name: secretName})
+			serviceaccount.ImagePullSecrets = append(serviceaccount.ImagePullSecrets, coreapiv1.LocalObjectReference{Name: secretName})
 			updated = true
 		}
 	}
 	if updated {
-		_, err = o.KubeCoreClient.ServiceAccounts(o.Namespace).Update(serviceaccount)
+		_, err = o.KubeClient.ServiceAccounts(o.Namespace).Update(serviceaccount)
 		return err
 	}
 

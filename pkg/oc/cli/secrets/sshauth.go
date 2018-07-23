@@ -3,16 +3,18 @@ package secrets
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 
-	api "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"github.com/spf13/cobra"
+
+	corev1 "k8s.io/api/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
-	"github.com/spf13/cobra"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 // CreateSSHAuthSecretRecommendedCommandName represents name of subcommand for `oc secrets` command
@@ -41,6 +43,10 @@ var (
 
 // CreateSSHAuthSecretOptions holds the credential needed to authenticate against SCM servers.
 type CreateSSHAuthSecretOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	SecretName      string
 	PrivateKeyPath  string
 	CertificatePath string
@@ -48,16 +54,21 @@ type CreateSSHAuthSecretOptions struct {
 
 	PromptForPassword bool
 
-	Out io.Writer
+	SecretsInterface corev1client.SecretInterface
 
-	SecretsInterface kcoreclient.SecretInterface
+	genericclioptions.IOStreams
+}
+
+func NewCreateSSHAuthSecretOptions(streams genericclioptions.IOStreams) *CreateSSHAuthSecretOptions {
+	return &CreateSSHAuthSecretOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
 }
 
 // NewCmdCreateSSHAuthSecret implements the OpenShift cli secrets new-sshauth subcommand
 func NewCmdCreateSSHAuthSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams, newSecretFullName, ocEditFullName string) *cobra.Command {
-	o := &CreateSSHAuthSecretOptions{
-		Out: streams.Out,
-	}
+	o := NewCreateSSHAuthSecretOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s SECRET --ssh-privatekey=FILENAME [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
@@ -67,25 +78,9 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f kcmdutil.Factory, stream
 		Deprecated: "use oc create secret",
 		Hidden:     true,
 		Run: func(c *cobra.Command, args []string) {
-			if err := o.Complete(f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if err := o.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if len(kcmdutil.GetFlagString(c, "output")) != 0 {
-				secret, err := o.NewSSHAuthSecret()
-				kcmdutil.CheckErr(err)
-
-				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, streams.Out))
-				return
-			}
-
-			if err := o.CreateSSHAuthSecret(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, args))
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
@@ -96,13 +91,12 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f kcmdutil.Factory, stream
 	cmd.Flags().StringVar(&o.GitConfigPath, "gitconfig", "", "Path to a .gitconfig file")
 	cmd.MarkFlagFilename("gitconfig")
 
-	kcmdutil.AddPrinterFlags(cmd)
-
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
 // CreateSSHAuthSecret saves created Secret structure and prints the secret name to the output on success.
-func (o *CreateSSHAuthSecretOptions) CreateSSHAuthSecret() error {
+func (o *CreateSSHAuthSecretOptions) Run() error {
 	secret, err := o.NewSSHAuthSecret()
 	if err != nil {
 		return err
@@ -112,16 +106,15 @@ func (o *CreateSSHAuthSecretOptions) CreateSSHAuthSecret() error {
 		return err
 	}
 
-	fmt.Fprintf(o.GetOut(), "secret/%s\n", secret.Name)
-	return nil
+	return o.Printer.PrintObj(secret, o.Out)
 }
 
 // NewSSHAuthSecret builds up the Secret structure containing secret name, type and data structure
 // containing desired credentials.
-func (o *CreateSSHAuthSecretOptions) NewSSHAuthSecret() (*api.Secret, error) {
-	secret := &api.Secret{}
+func (o *CreateSSHAuthSecretOptions) NewSSHAuthSecret() (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
 	secret.Name = o.SecretName
-	secret.Type = api.SecretTypeSSHAuth
+	secret.Type = corev1.SecretTypeSSHAuth
 	secret.Data = map[string][]byte{}
 
 	if len(o.PrivateKeyPath) != 0 {
@@ -154,32 +147,35 @@ func (o *CreateSSHAuthSecretOptions) NewSSHAuthSecret() (*api.Secret, error) {
 // Complete fills CreateSSHAuthSecretOptions fields with data and checks whether necessary
 // arguments were provided.
 func (o *CreateSSHAuthSecretOptions) Complete(f kcmdutil.Factory, args []string) error {
-	if len(args) != 1 {
-		return errors.New("must have exactly one argument: secret name")
-	}
 	o.SecretName = args[0]
 
-	if f != nil {
-		clientConfig, err := f.ToRESTConfig()
-		if err != nil {
-			return err
-		}
-		client, err := kcoreclient.NewForConfig(clientConfig)
-		if err != nil {
-			return err
-		}
-		namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
-		if err != nil {
-			return err
-		}
-		o.SecretsInterface = client.Secrets(namespace)
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	client, err := corev1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return err
+	}
+	o.SecretsInterface = client.Secrets(namespace)
+
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 // Validate check if all necessary fields from CreateSSHAuthSecretOptions are present.
-func (o CreateSSHAuthSecretOptions) Validate() error {
+func (o CreateSSHAuthSecretOptions) Validate(args []string) error {
+	if len(args) != 1 {
+		return errors.New("must have exactly one argument: secret name")
+	}
 	if len(o.SecretName) == 0 {
 		return errors.New("basic authentication secret name must be present")
 	}
@@ -189,14 +185,4 @@ func (o CreateSSHAuthSecretOptions) Validate() error {
 	}
 
 	return nil
-}
-
-// GetOut check if the CreateSSHAuthSecretOptions Out Writer is set. Returns it if the Writer
-// is present, if not returns Writer on which all Write calls succeed without doing anything.
-func (o CreateSSHAuthSecretOptions) GetOut() io.Writer {
-	if o.Out == nil {
-		return ioutil.Discard
-	}
-
-	return o.Out
 }

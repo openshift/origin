@@ -1,39 +1,51 @@
 package secrets
 
 import (
-	"bytes"
-	"io/ioutil"
 	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
 		testName string
-		args     []string
+		options  func(genericclioptions.IOStreams) *CreateSecretOptions
 		expErr   bool
 	}{
 		{
 			testName: "validArgs",
-			args:     []string{"testSecret", "./bsFixtures/www.google.com"},
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/www.google.com"}
+				return o
+			},
 		},
 		{
 			testName: "noName",
-			args:     []string{"./bsFixtures/www.google.com"},
-			expErr:   true, //"Secret name is required"
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Sources = []string{"./bsFixtures/www.google.com"}
+				return o
+			},
+			expErr: true, //"Secret name is required"
 		},
 		{
 			testName: "noFilesPassed",
-			args:     []string{"testSecret"},
-			expErr:   true, //"At least one source file or directory must be specified"
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				return o
+			},
+			expErr: true, //"At least one source file or directory must be specified"
 		},
 	}
 
 	for _, test := range tests {
-		options := NewCreateSecretOptions()
-		options.Complete(test.args, nil)
+		options := test.options(genericclioptions.NewTestIOStreamsDiscard())
 		err := options.Validate()
 		if err != nil && !test.expErr {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
@@ -47,91 +59,163 @@ func TestCreateSecret(t *testing.T) {
 
 	tests := []struct {
 		testName string
-		args     []string
+		options  func(genericclioptions.IOStreams) *CreateSecretOptions
 		expErr   bool
-		quiet    bool
 
 		errStreamContent string
 	}{
 		{
 			testName: "validSources",
-			args:     []string{"testSecret", "./bsFixtures/www.google.com", "./bsFixtures/dirNoSubdir"},
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/www.google.com", "./bsFixtures/dirNoSubdir"}
+				return o
+			},
 		},
 		{
 			testName: "allowsMixedCaseAndDash",
-			args:     []string{"testSecret", "./bsFixtures/invalid/invalid-DNS"},
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/invalid/invalid-DNS"}
+				return o
+			},
 		},
 		{
 			testName: "failsWithUnderscore",
-			args:     []string{"testSecret", "./bsFixtures/invalid/not\\valid"},
-			expErr:   true,
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/invalid/not\\valid"}
+				return o
+			},
+			expErr: true,
 		},
 		{
 			testName: "leadingDotsAllowed",
-			args:     []string{"testSecret", "./bsFixtures/leadingdot/.dockercfg"},
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/leadingdot/.dockercfg"}
+				return o
+			},
 		},
 		{
 			testName: "filesSameName",
-			args:     []string{"testSecret", "./bsFixtures/www.google.com", "./bsFixtures/multiple/www.google.com"},
-			expErr:   true, // "Multiple files with the same name (www.google.com) cannot be included a secret"
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/www.google.com", "./bsFixtures/multiple/www.google.com"}
+				return o
+			},
+			expErr: true, // "Multiple files with the same name (www.google.com) cannot be included a secret"
 		},
 		{
 			testName: "testQuietTrue",
-			args:     []string{"testSecret", "./bsFixtures/dir"},
-			quiet:    true,
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/dir"}
+				o.Quiet = true
+				return o
+			},
 		},
 		{
-			testName:         "testQuietFalse",
-			args:             []string{"testSecret", "./bsFixtures/dir"},
+			testName: "testQuietFalse",
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/dir"}
+				return o
+			},
 			errStreamContent: "Skipping resource bsFixtures/dir/symbolic\n",
 		},
 		{
 			testName: "testNamedKeys",
-			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com"},
-			expErr:   false,
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{".googlename=./bsFixtures/www.google.com"}
+				return o
+			},
+			expErr: false,
 		},
 		{
 			testName: "testNamedDir",
-			args:     []string{"testSecret", ".somename=./bsFixtures/dirNoSubdir"},
-			expErr:   true, // "Cannot give a key name for a directory path."
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{".somename=./bsFixtures/dirNoSubdir"}
+				return o
+			},
+			expErr: true, // "Cannot give a key name for a directory path."
 		},
 		{
 			testName: "testUnnamedDir",
-			args:     []string{"testSecret", "./bsFixtures/dirContainsMany"},
-			expErr:   false,
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"./bsFixtures/dirContainsMany"}
+				return o
+			},
+			expErr: false,
 		},
 		{
 			testName: "testMalformedName",
-			args:     []string{"testSecret", ".google=name=./bsFixtures/www.google.com"},
-			expErr:   true, // "Key names or file paths cannot contain '='."
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{".google=name=./bsFixtures/www.google.com"}
+				return o
+			},
+			expErr: true, // "Key names or file paths cannot contain '='."
 		},
 		{
 			testName: "testMissingName",
-			args:     []string{"testSecret", "=./bsFixtures/www.google.com"},
-			expErr:   true, // "Key name for file path ./bsFixtures/www.google.com missing."
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{"=./bsFixtures/www.google.com"}
+				return o
+			},
+			expErr: true, // "Key name for file path ./bsFixtures/www.google.com missing."
 		},
 		{
 			testName: "testMissingPath",
-			args:     []string{"testSecret", ".somename="},
-			expErr:   true, // "File path for key name some-name missing."
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{".somename="}
+				return o
+			},
+			expErr: true, // "File path for key name some-name missing."
 		},
 		{
 			testName: "testNamesAvoidCollision",
-			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com", ".othergooglename=./bsFixtures/multiple/www.google.com"},
-			expErr:   false,
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{".googlename=./bsFixtures/www.google.com", ".othergooglename=./bsFixtures/multiple/www.google.com"}
+				return o
+			},
+			expErr: false,
 		},
 		{
 			testName: "testNameCollision",
-			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com", ".googlename=./bsFixtures/multiple/www.google.com"},
-			expErr:   true, // "Cannot add key google-name from path ./bsFixtures/multiple/www.google.com, another key by that name already exists."
+			options: func(streams genericclioptions.IOStreams) *CreateSecretOptions {
+				o := NewCreateSecretOptions(streams)
+				o.Name = "testSecret"
+				o.Sources = []string{".googlename=./bsFixtures/www.google.com", ".googlename=./bsFixtures/multiple/www.google.com"}
+				return o
+			},
+			expErr: true, // "Cannot add key google-name from path ./bsFixtures/multiple/www.google.com, another key by that name already exists."
 		},
 	}
 	for _, test := range tests {
-		errStream := &bytes.Buffer{}
-		options := NewCreateSecretOptions()
-		options.Stderr = errStream
-		options.Complete(test.args, nil)
-		options.Quiet = test.quiet
+		streams, _, _, errStream := genericclioptions.NewTestIOStreams()
+
+		options := test.options(streams)
 
 		err := options.Validate()
 		if err != nil {
@@ -155,29 +239,29 @@ func TestSecretTypeSpecified(t *testing.T) {
 		Name:           "any",
 		SecretTypeName: string(kapi.SecretTypeDockercfg),
 		Sources:        []string{"./bsFixtures/www.google.com"},
-		Stderr:         ioutil.Discard,
+		IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
 	secret, err := options.BundleSecret()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if secret.Type != kapi.SecretTypeDockercfg {
+	if secret.Type != corev1.SecretTypeDockercfg {
 		t.Errorf("expected %v, got %v", kapi.SecretTypeDockercfg, secret.Type)
 	}
 }
 func TestSecretTypeDiscovered(t *testing.T) {
 	options := CreateSecretOptions{
-		Name:    "any",
-		Sources: []string{"./bsFixtures/leadingdot/.dockercfg"},
-		Stderr:  ioutil.Discard,
+		Name:      "any",
+		Sources:   []string{"./bsFixtures/leadingdot/.dockercfg"},
+		IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
 	secret, err := options.BundleSecret()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if secret.Type != kapi.SecretTypeDockercfg {
+	if secret.Type != corev1.SecretTypeDockercfg {
 		t.Errorf("expected %v, got %v", kapi.SecretTypeDockercfg, secret.Type)
 	}
 }
