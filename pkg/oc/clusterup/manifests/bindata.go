@@ -16412,6 +16412,8 @@ objects:
           - ${CORS_ALLOWED_ORIGIN}
           - --feature-gates
           - OriginatingIdentity=true
+          - --feature-gates
+          - NamespacedServiceBroker=true
           image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: apiserver
@@ -16512,6 +16514,8 @@ objects:
           - OriginatingIdentity=true
           - --feature-gates
           - AsyncBindingOperations=true
+          - --feature-gates
+          - NamespacedServiceBroker=true
           image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: controller-manager
