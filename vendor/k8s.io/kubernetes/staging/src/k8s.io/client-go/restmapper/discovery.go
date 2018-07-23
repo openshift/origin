@@ -115,13 +115,6 @@ func NewDiscoveryRESTMapper(groupResources []*APIGroupResources) meta.RESTMapper
 				versionMapper.AddSpecific(gv.WithKind(resource.Kind), plural, singular, scope)
 				// TODO this is producing unsafe guesses that don't actually work, but it matches previous behavior
 				versionMapper.Add(gv.WithKind(resource.Kind+"List"), scope)
-
-				if isOAPIResource(plural) {
-					oapiGV := schema.GroupVersion{Version: "v1"}
-					versionMapper.AddSpecific(oapiGV.WithKind(resource.Kind), plural, singular, scope)
-					// TODO this is producing unsafe guesses that don't actually work, but it matches previous behavior
-					versionMapper.Add(oapiGV.WithKind(resource.Kind+"List"), scope)
-				}
 			}
 			// TODO why is this type not in discovery (at least for "v1")
 			versionMapper.Add(gv.WithKind("List"), meta.RESTScopeRoot)
