@@ -9,8 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 // pathSpec represents a path (remote or local) given as a source or destination
@@ -96,7 +95,7 @@ func resolveResourceKindPath(f kcmdutil.Factory, path, namespace string) (string
 	}
 
 	r := f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(namespace).
 		SingleResourceType().
 		ResourceNames("pods", podName).
