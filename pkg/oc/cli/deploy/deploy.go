@@ -390,7 +390,7 @@ func (o DeployOptions) cancel(config *appsv1.DeploymentConfig) error {
 				continue
 			}
 
-			appsutil.SetCancellationReasons(deployment)
+			appsutil.SetCancelledByUserReason(deployment)
 			_, err := o.kubeClient.CoreV1().ReplicationControllers(deployment.Namespace).Update(deployment)
 			if err == nil {
 				fmt.Fprintf(o.Out, "Cancelled deployment #%d\n", config.Status.LatestVersion)

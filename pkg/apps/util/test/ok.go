@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 const (
@@ -80,7 +79,7 @@ func OkStrategy() appsv1.DeploymentStrategy {
 		RecreateParams: &appsv1.RecreateDeploymentStrategyParams{
 			TimeoutSeconds: mkintp(20),
 		},
-		ActiveDeadlineSeconds: mkintp(int(appsutil.MaxDeploymentDurationSeconds)),
+		ActiveDeadlineSeconds: mkintp(21600),
 	}
 }
 
