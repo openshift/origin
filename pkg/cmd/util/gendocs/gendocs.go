@@ -9,10 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/printers"
 )
@@ -38,26 +36,23 @@ func GenDocs(cmd *cobra.Command, filename string) error {
 		return err
 	}
 
+	output := &unstructured.UnstructuredList{}
+	output.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("List"))
+
 	examples := extractExamples(cmd)
-	items := []runtime.Object{}
-	for _, example := range examples {
-		items = append(items, example)
+	for i := range examples {
+		output.Items = append(output.Items, *examples[i])
 	}
 
 	printOpts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
 	printOpts.OutputFormatType = "template"
 	printOpts.OutputFormatArgument = string(template)
-
 	printer, err := printers.GetStandardPrinter(
 		nil, nil, nil, *printOpts)
 	if err != nil {
 		return err
 	}
-
-	err = printer.PrintObj(&kapi.List{
-		ListMeta: metav1.ListMeta{},
-		Items:    items,
-	}, out)
+	err = printer.PrintObj(output, out)
 	if err != nil {
 		return err
 	}
