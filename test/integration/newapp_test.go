@@ -1188,7 +1188,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{
 						"https://github.com/openshift/ruby-hello-world",
-						"https://github.com/openshift/django-ex",
+						"https://github.com/sclorg/django-ex",
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
@@ -1321,7 +1321,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{
-						"https://github.com/openshift/nodejs-ex",
+						"https://github.com/sclorg/nodejs-ex",
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
@@ -1344,7 +1344,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				}
 				if !reflect.DeepEqual(bc.Spec.Source, buildapi.BuildSource{
 					ContextDir: "openshift/pipeline",
-					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
+					Git:        &buildapi.GitBuildSource{URI: "https://github.com/sclorg/nodejs-ex"},
 					Secrets:    []buildapi.SecretBuildSource{},
 					ConfigMaps: []buildapi.ConfigMapBuildSource{},
 				}) {
@@ -1361,7 +1361,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					Components: []string{
-						"centos/nodejs-4-centos7~https://github.com/openshift/nodejs-ex",
+						"centos/nodejs-4-centos7~https://github.com/sclorg/nodejs-ex",
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
@@ -1385,7 +1385,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				}
 				if !reflect.DeepEqual(bc.Spec.Source, buildapi.BuildSource{
 					ContextDir: "openshift/pipeline",
-					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
+					Git:        &buildapi.GitBuildSource{URI: "https://github.com/sclorg/nodejs-ex"},
 					Secrets:    []buildapi.SecretBuildSource{},
 					ConfigMaps: []buildapi.ConfigMapBuildSource{},
 				}) {
@@ -1402,7 +1402,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{
-						"https://github.com/openshift/nodejs-ex",
+						"https://github.com/sclorg/nodejs-ex",
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
@@ -1419,7 +1419,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{
-						"https://github.com/openshift/nodejs-ex",
+						"https://github.com/sclorg/nodejs-ex",
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
@@ -1436,7 +1436,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{
-						"https://github.com/openshift/nodejs-ex",
+						"https://github.com/sclorg/nodejs-ex",
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{

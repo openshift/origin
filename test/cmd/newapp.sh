@@ -18,9 +18,9 @@ os::test::junit::declare_suite_start "cmd/newapp"
 os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
 os::cmd::expect_success_and_text 'oc new-app library/php mysql --dry-run' "Image \"library/php\" runs as the 'root' user which may not be permitted by your cluster administrator"
 os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
-os::cmd::expect_failure_and_text 'oc new-app docker.io/node~https://github.com/openshift/nodejs-ex' 'the image match \"docker.io/node\" for source repository \"https://github.com/openshift/nodejs-ex\" does not appear to be a source-to-image builder.'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/node~https://github.com/sclorg/nodejs-ex' 'the image match \"docker.io/node\" for source repository \"https://github.com/sclorg/nodejs-ex\" does not appear to be a source-to-image builder.'
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/rails-ex' 'the image match \"ruby\" for source repository \"https://github.com/sclorg/rails-ex\" does not appear to be a source-to-image builder.'
-os::cmd::expect_success 'oc new-app https://github.com/openshift/rails-ex --strategy=source --dry-run'
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/rails-ex --strategy=source --dry-run'
 # verify we can generate a Docker image based component "mongodb" directly
 os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'image:\s*mongo'
 # the local image repository takes precedence over the Docker Hub "mysql" image
@@ -59,7 +59,7 @@ os::cmd::expect_success 'oc new-app myruby~https://github.com/openshift/ruby-hel
 os::cmd::expect_success 'oc delete is myruby'
 
 # docker strategy with repo that has no dockerfile
-os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/nodejs-ex --strategy=docker' 'No Dockerfile was found'
+os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/nodejs-ex --strategy=docker' 'No Dockerfile was found'
 
 # repo related error message validation
 os::cmd::expect_success 'oc create -f examples/db-templates/mysql-persistent-template.json'
@@ -83,15 +83,15 @@ os::cmd::expect_failure_and_text 'oc new-build --name imagesourcetest python~htt
 os::cmd::expect_failure_and_text 'oc new-app ~java' 'you must specify a image name'
 
 # setting source secret via the --source-secret flag
-os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/cakephp-ex --source-secret=mysecret -o yaml' 'name: mysecret'
-os::cmd::expect_success_and_text 'oc new-build https://github.com/openshift/cakephp-ex --source-secret=mynewsecret -o yaml' 'name: mynewsecret'
-os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/cakephp-ex --source-secret=InvalidSecretName -o yaml' 'error: source secret name "InvalidSecretName" is invalid'
+os::cmd::expect_success_and_text 'oc new-app https://github.com/sclorg/cakephp-ex --source-secret=mysecret -o yaml' 'name: mysecret'
+os::cmd::expect_success_and_text 'oc new-build https://github.com/sclorg/cakephp-ex --source-secret=mynewsecret -o yaml' 'name: mynewsecret'
+os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/cakephp-ex --source-secret=InvalidSecretName -o yaml' 'error: source secret name "InvalidSecretName" is invalid'
 os::cmd::expect_success_and_text 'oc new-app -f examples/quickstarts/cakephp-mysql.json --source-secret=mysecret -o yaml' 'name: mysecret'
-os::cmd::expect_success 'oc new-app https://github.com/openshift/cakephp-ex --source-secret=mysecret'
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/cakephp-ex --source-secret=mysecret'
 os::cmd::expect_success 'oc delete all --selector="label=cakephp-ex"'
 # setting push secret via the --push-secret flag
-os::cmd::expect_success_and_text 'oc new-build https://github.com/openshift/cakephp-ex --push-secret=mynewsecret -o yaml' 'name: mynewsecret'
-os::cmd::expect_failure_and_text 'oc new-build https://github.com/openshift/cakephp-ex --push-secret=InvalidSecretName -o yaml' 'error: push secret name "InvalidSecretName" is invalid'
+os::cmd::expect_success_and_text 'oc new-build https://github.com/sclorg/cakephp-ex --push-secret=mynewsecret -o yaml' 'name: mynewsecret'
+os::cmd::expect_failure_and_text 'oc new-build https://github.com/sclorg/cakephp-ex --push-secret=InvalidSecretName -o yaml' 'error: push secret name "InvalidSecretName" is invalid'
 
 
 # check label creation
@@ -118,7 +118,7 @@ os::cmd::expect_success 'oc delete all -l build=node8'
 os::cmd::expect_success 'oc delete all -l build=node10'
 
 # don't create extra imagestream
-os::cmd::expect_success 'oc new-app https://github.com/openshift/nodejs-ex'
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/nodejs-ex'
 os::cmd::expect_failure_and_text 'oc get is nodejs:10' 'not found'
 os::cmd::expect_success 'oc delete all -l app=nodejs-ex'
 
@@ -266,7 +266,7 @@ os::cmd::expect_success_and_text "oc new-build ${OS_ROOT}/test/testdata/build-ar
 
 # check that we cannot set build args in a non-DockerStrategy build
 os::cmd::expect_failure_and_text "oc new-build https://github.com/openshift/ruby-hello-world --strategy=source --build-arg 'foo=bar'" "error: Cannot use '--build-arg' without a Docker build"
-os::cmd::expect_failure_and_text "oc new-build https://github.com/openshift/ruby-ex --build-arg 'foo=bar'" "error: Cannot use '--build-arg' without a Docker build"
+os::cmd::expect_failure_and_text "oc new-build https://github.com/sclorg/ruby-ex --build-arg 'foo=bar'" "error: Cannot use '--build-arg' without a Docker build"
 
 #
 # verify we can create from a template when some objects in the template declare an app label
@@ -411,9 +411,9 @@ os::cmd::expect_success "oc new-app mysql+ruby~https://github.com/sclorg/ruby-ex
 # but not with multiple components
 os::cmd::expect_failure_and_text "oc new-app mysql ruby~https://github.com/sclorg/ruby-ex --name foo -o yaml" "error: only one component or source repository can be used when specifying a name"
 # do not allow specifying output image when specifying multiple input repos
-os::cmd::expect_failure_and_text 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/sclorg/ruby-ex --to foo' 'error: only one component with source can be used when specifying an output image reference'
+os::cmd::expect_failure_and_text 'oc new-build https://github.com/sclorg/nodejs-ex https://github.com/sclorg/ruby-ex --to foo' 'error: only one component with source can be used when specifying an output image reference'
 # but succeed with multiple input repos and no output image specified
-os::cmd::expect_success 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/sclorg/ruby-ex -o yaml'
+os::cmd::expect_success 'oc new-build https://github.com/sclorg/nodejs-ex https://github.com/sclorg/ruby-ex -o yaml'
 # check that binary build with a builder image results in a source type build
 os::cmd::expect_success_and_text 'oc new-build --binary --image-stream=ruby -o yaml' 'type: Source'
 # check that binary build with a specific strategy uses that strategy regardless of the image type
@@ -430,9 +430,9 @@ os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.2'
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.3'
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.4'
-os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\":'
+os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\":'
 # when the tag is specified explicitly, the operation is successful
-os::cmd::expect_success 'oc new-app --image-stream ruby:2.5 https://github.com/openshift/rails-ex --dry-run'
+os::cmd::expect_success 'oc new-app --image-stream ruby:2.5 https://github.com/sclorg/rails-ex --dry-run'
 os::cmd::expect_success 'oc delete imagestreams --all'
 
 # newapp does not attempt to create an imagestream that already exists for a Docker image

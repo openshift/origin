@@ -546,7 +546,7 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
   strategy:
     type: Source
     sourceStrategy:
@@ -581,7 +581,7 @@ var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte
     "source": {
       "type": "Git",
       "git": {
-        "uri": "https://github.com/openshift/cakephp-ex.git"
+        "uri": "https://github.com/sclorg/cakephp-ex.git"
       }
     },
     "strategy": {
@@ -621,7 +621,7 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
       ref: master
   strategy:
     type: Source
@@ -754,7 +754,7 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
   strategy:
     type: Source
     sourceStrategy:
@@ -1949,7 +1949,7 @@ metadata:
 spec:
   source:
     git:
-      uri: "https://github.com/openshift/ruby-ex"
+      uri: "https://github.com/sclorg/ruby-ex"
   strategy:
     type: Source
     sourceStrategy:
@@ -3641,7 +3641,7 @@ items:
     source:
       type: Git
       git:
-        uri: https://github.com/openshift/nodejs-ex.git
+        uri: https://github.com/sclorg/nodejs-ex.git
     strategy:
       type: Source
       sourceStrategy:
@@ -8919,7 +8919,7 @@ var _testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "https://github.com/openshift/nodejs-ex.git"
+            "uri": "https://github.com/sclorg/nodejs-ex.git"
           }
         },
         "strategy": {

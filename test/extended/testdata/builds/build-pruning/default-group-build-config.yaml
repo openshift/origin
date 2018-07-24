@@ -6,7 +6,7 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
   strategy:
     type: Source
     sourceStrategy:

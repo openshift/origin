@@ -341,7 +341,7 @@ func TestProjectStatus(t *testing.T) {
 				"In project example on server https://example.com:8443\n",
 				"svc/ruby-deploy",
 				"deployment/ruby-deploy deploys istag/ruby-deploy:latest <-",
-				"bc/ruby-deploy source builds https://github.com/openshift/ruby-ex.git on istag/ruby-22-centos7:latest",
+				"bc/ruby-deploy source builds https://github.com/sclorg/ruby-ex.git on istag/ruby-22-centos7:latest",
 				"not built yet",
 			},
 			Time: mustParseTime("2015-04-07T04:12:25Z"),

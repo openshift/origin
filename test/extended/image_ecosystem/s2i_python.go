@@ -21,7 +21,7 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 
 	var (
 		oc               = exutil.NewCLI("s2i-python", exutil.KubeConfigPath())
-		djangoRepository = "https://github.com/openshift/django-ex.git"
+		djangoRepository = "https://github.com/sclorg/django-ex.git"
 		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
 		pageCountFn      = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
 		dcName           = "django-ex"

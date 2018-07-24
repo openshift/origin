@@ -42,7 +42,7 @@ var (
 	  %[1]s %[2]s . --docker-image=repo/langimage
 
 	  # Create a NodeJS build config based on the provided [image]~[source code] combination
-	  %[1]s %[2]s openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
+	  %[1]s %[2]s openshift/nodejs-010-centos7~https://github.com/sclorg/nodejs-ex.git
 
 	  # Create a build config from a remote repository using its beta2 branch
 	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world#beta2
@@ -70,13 +70,13 @@ var (
 To build from an existing image stream tag or Docker image, provide the name of the image and
 the source code location:
 
-  %[1]s %[2]s openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
+  %[1]s %[2]s openshift/nodejs-010-centos7~https://github.com/sclorg/nodejs-ex.git
 
 If you only specify the source repository location (local or remote), the command will look at
 the repo to determine the type, and then look for a matching image on your server or on the
 default Docker registry.
 
-  %[1]s %[2]s https://github.com/openshift/nodejs-ex.git
+  %[1]s %[2]s https://github.com/sclorg/nodejs-ex.git
 
 will look for an image called "nodejs" in your current project, the 'openshift' project, or
 on the Docker Hub.
