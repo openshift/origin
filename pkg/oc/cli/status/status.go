@@ -46,7 +46,7 @@ var (
 	  %[1]s -o dot | dot -T svg -o project.svg
 
 	  # See an overview of the current project including details for any identified issues.
-	  %[1]s -v`)
+	  %[1]s --sugest`)
 )
 
 // StatusOptions contains all the necessary options for the Openshift cli status command.
@@ -74,31 +74,25 @@ func NewStatusOptions(streams genericclioptions.IOStreams) *StatusOptions {
 // NewCmdStatus implements the OpenShift cli status command.
 // baseCLIName is the path from root cmd to the parent of this cmd.
 func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	opts := NewStatusOptions(streams)
-
+	o := NewStatusOptions(streams)
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s [-o dot | -s ]", StatusRecommendedName),
+		Use:     fmt.Sprintf("%s [-o dot | --sugest ]", StatusRecommendedName),
 		Short:   "Show an overview of the current project",
 		Long:    fmt.Sprintf(statusLong, baseCLIName),
 		Example: fmt.Sprintf(statusExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := opts.Complete(f, cmd, baseCLIName, args)
-			kcmdutil.CheckErr(err)
-
-			if err := opts.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			err = opts.RunStatus()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, baseCLIName, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.RunStatus())
 		},
 	}
-
-	cmd.Flags().StringVarP(&opts.outputFormat, "output", "o", opts.outputFormat, "Output format. One of: dot.")
-	cmd.Flags().BoolVar(&opts.suggest, "verbose", opts.suggest, "See details for resolving issues.")
+	cmd.Flags().StringVarP(&o.outputFormat, "output", "o", o.outputFormat, "Output format. One of: dot.")
+	// TODO: remove verbose in 3.12
+	cmd.Flags().BoolVarP(&o.suggest, "verbose", "v", o.suggest, "See details for resolving issues.")
+	cmd.Flags().MarkDeprecated("verbose", "Use --suggest instead.")
 	cmd.Flags().MarkHidden("verbose")
-	cmd.Flags().BoolVar(&opts.suggest, "suggest", opts.suggest, "See details for resolving issues.")
-	cmd.Flags().BoolVar(&opts.allNamespaces, "all-namespaces", false, "If true, display status for all namespaces (must have cluster admin)")
+	cmd.Flags().BoolVar(&o.suggest, "suggest", o.suggest, "See details for resolving issues.")
+	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "If true, display status for all namespaces (must have cluster admin)")
 
 	return cmd
 }

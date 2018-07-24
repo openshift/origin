@@ -122,9 +122,8 @@ func NewCmdDeploymentHook(fullName string, f kcmdutil.Factory, streams genericcl
 	cmd.Flags().BoolVar(&o.Mid, "mid", o.Mid, "Set or remove a mid deployment hook")
 	cmd.Flags().BoolVar(&o.Post, "post", o.Post, "Set or remove a post deployment hook")
 	cmd.Flags().StringArrayVarP(&o.Environment, "environment", "e", o.Environment, "Environment variable to use in the deployment hook pod")
-	// FIXME: https://github.com/openshift/origin/issues/20097
-	// cmd.Flags().StringSliceVarP(&o.Volumes, "volumes", "v", o.Volumes, "Volumes from the pod template to use in the deployment hook pod")
-	cmd.Flags().StringSliceVar(&o.Volumes, "volumes", o.Volumes, "Volumes from the pod template to use in the deployment hook pod")
+	// TODO: remove shorthand 'v' in 3.12
+	cmd.Flags().StringSliceVarP(&o.Volumes, "volumes", "v", o.Volumes, "Volumes from the pod template to use in the deployment hook pod")
 	cmd.Flags().MarkShorthandDeprecated("volumes", "Use --volumes instead.")
 	cmd.Flags().StringVar(&o.FailurePolicyStr, "failure-policy", o.FailurePolicyStr, "The failure policy for the deployment hook. Valid values are: abort,retry,ignore")
 	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set deployment hook will NOT contact api-server but run locally.")

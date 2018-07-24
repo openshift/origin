@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
+
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -68,6 +68,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/types"
 	"github.com/openshift/origin/pkg/oc/cli/version"
 	"github.com/openshift/origin/pkg/oc/cli/whoami"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 const productName = `OpenShift`
@@ -264,6 +265,11 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			cmds.Flag("namespace").Annotations[cobra.BashCompCustom],
 			"__oc_get_namespaces",
 		)
+	}
+
+	// TODO: in 3.12 allow "-v" to support global verbosity like kubectl, not just "--v"
+	if flag := cmds.PersistentFlags().Lookup("v"); flag != nil {
+		flag.Shorthand = ""
 	}
 
 	return cmds
