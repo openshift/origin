@@ -143,7 +143,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 	controllerContext := kctrlmgr.ControllerContext{
 		ClientBuilder: saClientBuilder,
 		InformerFactory: genericInformers{
-			SharedInformerFactory: informers.GetExternalKubeInformers(),
+			SharedInformerFactory: informers.GetKubernetesInformers(),
 			generic: []GenericResourceInformer{
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 					return informers.GetInternalOpenshiftImageInformers().ForResource(resource)
@@ -154,7 +154,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 					return informers.GetOpenshiftAppInformers().ForResource(resource)
 				}),
-				informers.GetExternalKubeInformers(),
+				informers.GetKubernetesInformers(),
 			},
 		},
 		ComponentConfig:    kubecontrollerconfig.Config{}.ComponentConfig,
@@ -170,7 +170,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		KubernetesInformers:       informers.GetExternalKubeInformers(),
+		KubernetesInformers:       informers.GetKubernetesInformers(),
 		AppsInformers:             informers.GetOpenshiftAppInformers(),
 		InternalBuildInformers:    informers.GetInternalOpenshiftBuildInformers(),
 		InternalImageInformers:    informers.GetInternalOpenshiftImageInformers(),

@@ -14,12 +14,9 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
-
-	_ "github.com/openshift/origin/pkg/api/install"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 func TestRolling_deployInitial(t *testing.T) {
@@ -45,7 +42,7 @@ func TestRolling_deployInitial(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	deployment, _ := appsutil.MakeDeployment(config)
 	strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -59,10 +56,10 @@ func TestRolling_deployInitial(t *testing.T) {
 func TestRolling_deployRolling(t *testing.T) {
 	latestConfig := appstest.OkDeploymentConfig(1)
 	latestConfig.Spec.Strategy = appstest.OkRollingStrategy()
-	latest, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(latestConfig)
+	latest, _ := appsutil.MakeDeployment(latestConfig)
 	config := appstest.OkDeploymentConfig(2)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	deployment, _ := appsutil.MakeDeployment(config)
 
 	deployments := map[string]*corev1.ReplicationController{
 		latest.Name:     latest,
@@ -155,7 +152,7 @@ func (h *hookExecutorImpl) Execute(hook *appsv1.LifecycleHook, rc *corev1.Replic
 func TestRolling_deployRollingHooks(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	latest, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	latest, _ := appsutil.MakeDeployment(config)
 
 	var hookError error
 
@@ -194,20 +191,20 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	}
 
 	cases := []struct {
-		params               *appsapi.RollingDeploymentStrategyParams
+		params               *appsv1.RollingDeploymentStrategyParams
 		hookShouldFail       bool
 		deploymentShouldFail bool
 	}{
-		{rollingParams(appsapi.LifecycleHookFailurePolicyAbort, ""), true, true},
-		{rollingParams(appsapi.LifecycleHookFailurePolicyAbort, ""), false, false},
-		{rollingParams("", appsapi.LifecycleHookFailurePolicyAbort), true, true},
-		{rollingParams("", appsapi.LifecycleHookFailurePolicyAbort), false, false},
+		{rollingParams(appsv1.LifecycleHookFailurePolicyAbort, ""), true, true},
+		{rollingParams(appsv1.LifecycleHookFailurePolicyAbort, ""), false, false},
+		{rollingParams("", appsv1.LifecycleHookFailurePolicyAbort), true, true},
+		{rollingParams("", appsv1.LifecycleHookFailurePolicyAbort), false, false},
 	}
 
 	for _, tc := range cases {
 		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+		deployment, _ := appsutil.MakeDeployment(config)
 		deployments[deployment.Name] = deployment
 		hookError = nil
 		if tc.hookShouldFail {
@@ -255,20 +252,20 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	}
 
 	cases := []struct {
-		params               *appsapi.RollingDeploymentStrategyParams
+		params               *appsv1.RollingDeploymentStrategyParams
 		hookShouldFail       bool
 		deploymentShouldFail bool
 	}{
-		{rollingParams(appsapi.LifecycleHookFailurePolicyAbort, ""), true, true},
-		{rollingParams(appsapi.LifecycleHookFailurePolicyAbort, ""), false, false},
-		{rollingParams("", appsapi.LifecycleHookFailurePolicyAbort), true, true},
-		{rollingParams("", appsapi.LifecycleHookFailurePolicyAbort), false, false},
+		{rollingParams(appsv1.LifecycleHookFailurePolicyAbort, ""), true, true},
+		{rollingParams(appsv1.LifecycleHookFailurePolicyAbort, ""), false, false},
+		{rollingParams("", appsv1.LifecycleHookFailurePolicyAbort), true, true},
+		{rollingParams("", appsv1.LifecycleHookFailurePolicyAbort), false, false},
 	}
 
 	for i, tc := range cases {
 		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+		deployment, _ := appsutil.MakeDeployment(config)
 		hookError = nil
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")
@@ -300,23 +297,23 @@ func mkintp(i int) *int64 {
 	return &v
 }
 
-func rollingParams(preFailurePolicy, postFailurePolicy appsapi.LifecycleHookFailurePolicy) *appsapi.RollingDeploymentStrategyParams {
-	var pre *appsapi.LifecycleHook
-	var post *appsapi.LifecycleHook
+func rollingParams(preFailurePolicy, postFailurePolicy appsv1.LifecycleHookFailurePolicy) *appsv1.RollingDeploymentStrategyParams {
+	var pre *appsv1.LifecycleHook
+	var post *appsv1.LifecycleHook
 
 	if len(preFailurePolicy) > 0 {
-		pre = &appsapi.LifecycleHook{
+		pre = &appsv1.LifecycleHook{
 			FailurePolicy: preFailurePolicy,
-			ExecNewPod:    &appsapi.ExecNewPodHook{},
+			ExecNewPod:    &appsv1.ExecNewPodHook{},
 		}
 	}
 	if len(postFailurePolicy) > 0 {
-		post = &appsapi.LifecycleHook{
+		post = &appsv1.LifecycleHook{
 			FailurePolicy: postFailurePolicy,
-			ExecNewPod:    &appsapi.ExecNewPodHook{},
+			ExecNewPod:    &appsv1.ExecNewPodHook{},
 		}
 	}
-	return &appsapi.RollingDeploymentStrategyParams{
+	return &appsv1.RollingDeploymentStrategyParams{
 		UpdatePeriodSeconds: mkintp(1),
 		IntervalSeconds:     mkintp(1),
 		TimeoutSeconds:      mkintp(20),

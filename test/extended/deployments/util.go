@@ -34,7 +34,6 @@ import (
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apiserver/registry/deploylog"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -171,27 +170,39 @@ func checkDeploymentInvariants(dc *appsapi.DeploymentConfig, rcs []*corev1.Repli
 	sawStatus := sets.NewString()
 	statuses := []string{}
 	for _, rc := range rcs {
-		status := appsinternalutil.DeploymentStatusFor(rc)
+		status := appsutil.DeploymentStatusFor(rc)
 		if sawStatus.Len() != 0 {
 			switch status {
-			case appsapi.DeploymentStatusComplete, appsapi.DeploymentStatusFailed:
+			case appsutil.DeploymentStatusComplete, appsutil.DeploymentStatusFailed:
 				if sawStatus.Difference(completedStatuses).Len() != 0 {
 					return fmt.Errorf("rc %s was %s, but earlier RCs were not completed: %v", rc.Name, status, statuses)
 				}
-			case appsapi.DeploymentStatusRunning, appsapi.DeploymentStatusPending:
+			case appsutil.DeploymentStatusRunning, appsutil.DeploymentStatusPending:
 				if sawStatus.Has(string(status)) {
 					return fmt.Errorf("rc %s was %s, but so was an earlier RC: %v", rc.Name, status, statuses)
 				}
 				if sawStatus.Difference(completedStatuses).Len() != 0 {
 					return fmt.Errorf("rc %s was %s, but earlier RCs were not completed: %v", rc.Name, status, statuses)
 				}
-			case appsapi.DeploymentStatusNew:
+			case appsutil.DeploymentStatusNew:
 			default:
 				return fmt.Errorf("rc %s has unexpected status %s: %v", rc.Name, status, statuses)
 			}
 		}
 		sawStatus.Insert(string(status))
 		statuses = append(statuses, string(status))
+	}
+	return nil
+}
+
+// GetDeploymentCondition returns the condition with the provided type.
+// DEPRECATED: Will be removed when extended tests move to external
+func GetDeploymentCondition(status appsapi.DeploymentConfigStatus, condType appsapi.DeploymentConditionType) *appsapi.DeploymentCondition {
+	for i := range status.Conditions {
+		c := status.Conditions[i]
+		if c.Type == condType {
+			return &c
+		}
 	}
 	return nil
 }
@@ -208,10 +219,10 @@ func deploymentReachedCompletion(dc *appsapi.DeploymentConfig, rcs []*corev1.Rep
 		return false, nil
 	}
 
-	if !appsinternalutil.IsCompleteDeployment(rc) {
+	if !appsutil.IsCompleteDeployment(rc) {
 		return false, nil
 	}
-	cond := appsinternalutil.GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
+	cond := GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
 	if cond == nil || cond.Reason != appsapi.NewRcAvailableReason {
 		return false, nil
 	}
@@ -241,10 +252,10 @@ func deploymentFailed(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCon
 	if version != dc.Status.LatestVersion {
 		return false, nil
 	}
-	if !appsinternalutil.IsFailedDeployment(rc) {
+	if !appsutil.IsFailedDeployment(rc) {
 		return false, nil
 	}
-	cond := appsinternalutil.GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
+	cond := GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
 	return cond != nil && cond.Reason == appsapi.TimedOutReason, nil
 }
 
@@ -264,7 +275,7 @@ func deploymentRunning(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCo
 	status := rc.Annotations[appsapi.DeploymentStatusAnnotation]
 	switch appsapi.DeploymentStatus(status) {
 	case appsapi.DeploymentStatusFailed:
-		if appsinternalutil.IsDeploymentCancelled(rc) {
+		if appsutil.IsDeploymentCancelled(rc) {
 			return true, nil
 		}
 		reason := appsutil.DeploymentStatusReasonFor(rc)
@@ -332,7 +343,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*appsapi.DeploymentConfig, []*
 	}
 
 	rcs, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).List(metav1.ListOptions{
-		LabelSelector: appsinternalutil.ConfigSelector(name).String(),
+		LabelSelector: appsutil.ConfigSelector(name).String(),
 	})
 	if err != nil {
 		return nil, nil, nil, err
@@ -377,7 +388,11 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 		if err != nil {
 			return false, err
 		}
-		return appsinternalutil.HasSynced(config, generation), nil
+		externalConfig := &appsapiv1.DeploymentConfig{}
+		if err := legacyscheme.Scheme.Convert(config, externalConfig, nil); err != nil {
+			return false, err
+		}
+		return appsutil.HasSynced(externalConfig, generation), nil
 	})
 }
 
@@ -405,7 +420,7 @@ func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duratio
 	}); err != nil {
 		return "", err
 	}
-	podName := appsinternalutil.DeployerPodNameForDeployment(rc.Name)
+	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
 	if err := deploylog.WaitForRunningDeployerPod(oc.KubeClient().CoreV1(), rc, timeout); err != nil {
 		return "", err
 	}
@@ -604,10 +619,11 @@ func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {
 // Return true is the controllerRef is valid, false otherwise
 func HasValidDCControllerRef(dc metav1.Object, controllee metav1.Object) bool {
 	ref := metav1.GetControllerOf(controllee)
+	deploymentConfigControllerRefKind := appsapiv1.GroupVersion.WithKind("DeploymentConfig")
 	return ref != nil &&
 		ref.UID == dc.GetUID() &&
-		ref.APIVersion == appsinternalutil.DeploymentConfigControllerRefKind.GroupVersion().String() &&
-		ref.Kind == appsinternalutil.DeploymentConfigControllerRefKind.Kind &&
+		ref.APIVersion == deploymentConfigControllerRefKind.GroupVersion().String() &&
+		ref.Kind == deploymentConfigControllerRefKind.Kind &&
 		ref.Name == dc.GetName()
 }
 
