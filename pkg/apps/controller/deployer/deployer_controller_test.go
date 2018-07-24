@@ -725,7 +725,7 @@ func TestHandle_cancelNew(t *testing.T) {
 	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
-	deployment.Annotations["openshift.io/deployment.cancelled"] = "true"
+	appsutil.SetCancelledByUserReason(deployment)
 
 	controller := okDeploymentController(client, deployment, nil, true, corev1.PodRunning)
 
@@ -747,7 +747,7 @@ func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
-	deployment.Annotations["openshift.io/deployment.cancelled"] = "true"
+	appsutil.SetCancelledByUserReason(deployment)
 
 	client := &fake.Clientset{}
 	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {

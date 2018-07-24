@@ -24,6 +24,7 @@ func OkDeploymentConfig(version int64) *appsv1.DeploymentConfig {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "config",
 			Namespace: corev1.NamespaceDefault,
+			SelfLink:  "/apis/apps.openshift.io/v1/deploymentConfig/config",
 		},
 		Spec:   OkDeploymentConfigSpec(),
 		Status: OkDeploymentConfigStatus(version),

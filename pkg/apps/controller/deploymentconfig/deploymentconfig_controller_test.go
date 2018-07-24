@@ -57,8 +57,7 @@ func TestHandleScenarios(t *testing.T) {
 		deployment, _ := appsutil.MakeDeployment(config)
 		deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(d.status)
 		if d.cancelled {
-			deployment.Annotations["openshift.io/deployment.cancelled"] = "true"
-			deployment.Annotations[appsutil.DeploymentStatusReasonAnnotation] = "newer deployment was found running"
+			appsutil.SetCancelledByNewerDeployment(deployment)
 		}
 		if d.desiredA != nil {
 			deployment.Annotations[appsutil.DesiredReplicasAnnotation] = strconv.Itoa(int(*d.desiredA))
@@ -488,10 +487,8 @@ var (
 )
 
 func newRC(version, desired, current, ready, available int32) *corev1.ReplicationController {
-	return &corev1.ReplicationController{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{"openshift.io/deployment-config.latest-version": strconv.Itoa(int(version))},
-		},
+	rc := &corev1.ReplicationController{
+		ObjectMeta: metav1.ObjectMeta{},
 		Spec: corev1.ReplicationControllerSpec{
 			Replicas: &desired,
 		},
@@ -501,6 +498,8 @@ func newRC(version, desired, current, ready, available int32) *corev1.Replicatio
 			AvailableReplicas: available,
 		},
 	}
+	appsutil.SetDeploymentLatestVersionAnnotation(rc, strconv.Itoa(int(version)))
+	return rc
 }
 
 func TestCalculateStatus(t *testing.T) {
