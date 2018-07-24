@@ -95,6 +95,7 @@ var (
 		"DefaultStorageClass",
 		"OwnerReferencesPermissionEnforcement",
 		"PodTolerationRestriction",
+		"Priority",
 		"ResourceQuota",
 		"openshift.io/ClusterResourceQuota",
 		"openshift.io/IngressAdmission",
