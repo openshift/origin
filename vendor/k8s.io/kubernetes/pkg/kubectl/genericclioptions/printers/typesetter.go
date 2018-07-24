@@ -21,7 +21,7 @@ import (
 	"io"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/openshiftpatch"
 )
 
 // TypeSetterPrinter is an implementation of ResourcePrinter wraps another printer with types set on the objects
@@ -42,13 +42,14 @@ func (p *TypeSetterPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	if obj == nil {
 		return p.Delegate.PrintObj(obj, w)
 	}
-	if !obj.GetObjectKind().GroupVersionKind().Empty() {
+	if !obj.GetObjectKind().GroupVersionKind().Empty() && !openshiftpatch.IsOAPI(obj.GetObjectKind().GroupVersionKind()) {
 		return p.Delegate.PrintObj(obj, w)
 	}
 
 	// we were empty coming in, make sure we're empty going out.  This makes the call thread-unsafe
+	existingGVK := obj.GetObjectKind().GroupVersionKind()
 	defer func() {
-		obj.GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{})
+		obj.GetObjectKind().SetGroupVersionKind(existingGVK)
 	}()
 
 	gvks, _, err := p.Typer.ObjectKinds(obj)
@@ -66,6 +67,13 @@ func (p *TypeSetterPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 		}
 		obj.GetObjectKind().SetGroupVersionKind(gvk)
 		break
+	}
+
+	if openshiftpatch.IsOAPI(obj.GetObjectKind().GroupVersionKind()) {
+		gvk := obj.GetObjectKind().GroupVersionKind()
+		openshiftpatch.FixOAPIGroupifiedGVK(&gvk)
+		obj.GetObjectKind().SetGroupVersionKind(gvk)
+		return p.Delegate.PrintObj(obj, w)
 	}
 
 	return p.Delegate.PrintObj(obj, w)

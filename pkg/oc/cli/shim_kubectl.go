@@ -2,12 +2,10 @@ package cli
 
 import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdset "k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/util/editor"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/openshiftpatch"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"github.com/openshift/origin/pkg/api/legacygroupification"
@@ -18,13 +16,12 @@ import (
 func shimKubectlForOc() {
 	// we only need this change for `oc`.  `kubectl` should behave as close to `kubectl` as we can
 	// if we call this factory construction method, we want the openshift style config loading
-	genericclioptions.UseOpenShiftKubeConfigValues = true
 	kclientcmd.ErrEmptyConfig = genericclioptions.NewErrConfigurationMissing()
 	kcmdset.ParseDockerImageReferenceToStringFunc = clientcmd.ParseDockerImageReferenceToStringFunc
-	editor.UseOpenShiftEditorEnvVars = true
-	resource.OAPIToGroupified = legacygroupification.OAPIToGroupified
-	kcmd.OAPIToGroupifiedGVK = legacygroupification.OAPIToGroupifiedGVK
-	kcmd.UseOpenShiftGenerator = true
+	openshiftpatch.OAPIToGroupified = legacygroupification.OAPIToGroupified
+	openshiftpatch.OAPIToGroupifiedGVK = legacygroupification.OAPIToGroupifiedGVK
+	openshiftpatch.IsOAPIFn = legacygroupification.IsOAPI
+	openshiftpatch.IsOC = true
 
 	// update polymorphic helpers
 	polymorphichelpers.AttachablePodForObjectFn = originpolymorphichelpers.NewAttachablePodForObjectFn(polymorphichelpers.AttachablePodForObjectFn)

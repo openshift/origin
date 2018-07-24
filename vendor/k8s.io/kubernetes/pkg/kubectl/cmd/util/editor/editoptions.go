@@ -47,6 +47,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util/editor/crlf"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/openshiftpatch"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
@@ -809,7 +810,7 @@ func hashOnLineBreak(s string) string {
 
 // editorEnvs returns an ordered list of env vars to check for editor preferences.
 func editorEnvs() []string {
-	if UseOpenShiftEditorEnvVars {
+	if openshiftpatch.IsOC {
 		return []string{"OC_EDITOR", "KUBE_EDITOR", "EDITOR"}
 	}
 
