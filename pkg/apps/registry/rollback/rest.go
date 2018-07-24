@@ -10,15 +10,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/api/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.
@@ -71,7 +73,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	case 0:
 		return nil, newInvalidError(rollback, "cannot rollback an undeployed config")
 	case 1:
-		return nil, newInvalidError(rollback, fmt.Sprintf("no previous deployment exists for %q", appsinternalutil.LabelForDeploymentConfig(from)))
+		return nil, newInvalidError(rollback, fmt.Sprintf("no previous deployment exists for %q", appsutil.LabelForDeploymentConfig(from)))
 	case rollback.Spec.Revision:
 		return nil, newInvalidError(rollback, fmt.Sprintf("version %d is already the latest", rollback.Spec.Revision))
 	}
@@ -82,13 +84,13 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	}
 
 	// Find the target deployment and decode its config.
-	name := appsinternalutil.DeploymentNameForConfigVersion(from.Name, revision)
+	name := appsutil.DeploymentNameForConfigVersion(from.Name, revision)
 	targetDeployment, err := r.rn.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, newInvalidError(rollback, err.Error())
 	}
 
-	to, err := appsinternalutil.DecodeDeploymentConfig(targetDeployment)
+	to, err := appsutil.DecodeDeploymentConfig(targetDeployment)
 	if err != nil {
 		return nil, newInvalidError(rollback, fmt.Sprintf("couldn't decode deployment config from deployment: %v", err))
 	}
@@ -100,7 +102,16 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		from.Annotations[key] = value
 	}
 
-	return r.generator.GenerateRollback(from, to, &rollback.Spec)
+	fromExternal := &appsv1.DeploymentConfig{}
+	if err := legacyscheme.Scheme.Convert(from, fromExternal, nil); err != nil {
+		return nil, kerrors.NewInternalError(err)
+	}
+	rollbackSpecExternal := &appsv1.DeploymentConfigRollbackSpec{}
+	if err := legacyscheme.Scheme.Convert(&rollback.Spec, rollbackSpecExternal, nil); err != nil {
+		return nil, kerrors.NewInternalError(err)
+	}
+
+	return r.generator.GenerateRollback(fromExternal, to, rollbackSpecExternal)
 }
 
 func newInvalidError(rollback *appsapi.DeploymentConfigRollback, reason string) error {

@@ -3,20 +3,22 @@ package rollback
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 func TestGeneration(t *testing.T) {
 	from := appstest.OkDeploymentConfig(2)
-	from.Spec.Strategy = appsapi.DeploymentStrategy{
-		Type: appsapi.DeploymentStrategyTypeCustom,
+	from.Spec.Strategy = appsv1.DeploymentStrategy{
+		Type: appsv1.DeploymentStrategyTypeCustom,
 	}
-	from.Spec.Triggers = append(from.Spec.Triggers, appsapi.DeploymentTriggerPolicy{Type: appsapi.DeploymentTriggerOnConfigChange})
+	from.Spec.Triggers = append(from.Spec.Triggers, appsv1.DeploymentTriggerPolicy{Type: appsv1.DeploymentTriggerOnConfigChange})
 	from.Spec.Triggers = append(from.Spec.Triggers, appstest.OkImageChangeTrigger())
 	from.Spec.Template.Spec.Containers[0].Name = "changed"
 	from.Spec.Replicas = 5
@@ -28,10 +30,10 @@ func TestGeneration(t *testing.T) {
 	to := appstest.OkDeploymentConfig(1)
 
 	// Generate a rollback for every combination of flag (using 1 bit per flag).
-	rollbackSpecs := []*appsapi.DeploymentConfigRollbackSpec{}
+	rollbackSpecs := []*appsv1.DeploymentConfigRollbackSpec{}
 	for i := 0; i < 15; i++ {
-		spec := &appsapi.DeploymentConfigRollbackSpec{
-			From: kapi.ObjectReference{
+		spec := &appsv1.DeploymentConfigRollbackSpec{
+			From: corev1.ObjectReference{
 				Name:      "deployment",
 				Namespace: metav1.NamespaceDefault,
 			},
@@ -77,11 +79,11 @@ func TestGeneration(t *testing.T) {
 	}
 }
 
-func hasStrategyDiff(a, b *appsapi.DeploymentConfig) bool {
-	return a.Spec.Strategy.Type != b.Spec.Strategy.Type
+func hasStrategyDiff(a *appsv1.DeploymentConfig, b *appsapi.DeploymentConfig) bool {
+	return string(a.Spec.Strategy.Type) != string(b.Spec.Strategy.Type)
 }
 
-func hasTriggerDiff(a, b *appsapi.DeploymentConfig) bool {
+func hasTriggerDiff(a *appsv1.DeploymentConfig, b *appsapi.DeploymentConfig) bool {
 	if len(a.Spec.Triggers) != len(b.Spec.Triggers) {
 		return true
 	}
@@ -89,7 +91,7 @@ func hasTriggerDiff(a, b *appsapi.DeploymentConfig) bool {
 	for _, triggerA := range a.Spec.Triggers {
 		bHasTrigger := false
 		for _, triggerB := range b.Spec.Triggers {
-			if triggerB.Type == triggerA.Type {
+			if string(triggerB.Type) == string(triggerA.Type) {
 				bHasTrigger = true
 				break
 			}
@@ -103,7 +105,7 @@ func hasTriggerDiff(a, b *appsapi.DeploymentConfig) bool {
 	return false
 }
 
-func hasReplicationMetaDiff(a, b *appsapi.DeploymentConfig) bool {
+func hasReplicationMetaDiff(a *appsv1.DeploymentConfig, b *appsapi.DeploymentConfig) bool {
 	if a.Spec.Replicas != b.Spec.Replicas {
 		return true
 	}
@@ -117,7 +119,9 @@ func hasReplicationMetaDiff(a, b *appsapi.DeploymentConfig) bool {
 	return false
 }
 
-func hasPodTemplateDiff(a, b *appsapi.DeploymentConfig) bool {
-	specA, specB := a.Spec.Template.Spec, b.Spec.Template.Spec
+func hasPodTemplateDiff(a *appsv1.DeploymentConfig, b *appsapi.DeploymentConfig) bool {
+	externalSpecB := &appsv1.DeploymentConfig{}
+	legacyscheme.Scheme.Convert(b, externalSpecB, nil)
+	specA, specB := a.Spec.Template.Spec, externalSpecB.Spec.Template.Spec
 	return !kapihelper.Semantic.DeepEqual(specA, specB)
 }
