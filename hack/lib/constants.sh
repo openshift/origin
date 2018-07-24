@@ -61,6 +61,30 @@ readonly OS_GOVET_BLACKLIST=(
 	"pkg/build/vendor/github.com/docker/docker/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
 	"pkg/build/builder/vendor/.*"
 	"pkg/cmd/server/start/.*"
+  "pkg/apps/controller/deployer/deployer_controller_test.go:265:6: updatedDeployment declared but not used"
+  "pkg/build/controller/build/build_controller_test.go:328:4: podDeleted declared but not used"
+  "pkg/cmd/infra/deployer/deployer_test.go:147:7: actualDesired declared but not used"
+  "pkg/image/trigger/buildconfigs/buildconfigs.go:147: Infof format %s has arg t of wrong type github.com/openshift/origin/pkg/build/apis/build.BuildTriggerPolicy"
+  "pkg/network/node/egressip.go:164: Warning call has possible formatting directive %q"
+  "pkg/oc/cli/admin/diagnostics/diagnostics/client/pod/run_diagnostics_pod.go:[0-9]+: github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types.Parameter composite literal uses unkeyed fields"
+  "pkg/oc/cli/admin/diagnostics/diagnostics/cluster/network/run_pod.go:[0-9]+: github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types.Parameter composite literal uses unkeyed fields"
+  "pkg/oc/cli/admin/diagnostics/diagnostics/host/etcd.go:51: github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types.Parameter composite literal uses unkeyed fields"
+  "pkg/oc/cli/admin/diagnostics/diagnostics/cluster/app_create/main.go:[0-9]+: github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types.Parameter composite literal uses unkeyed fields"
+  "pkg/oc/cli/admin/diagnostics/diagnostics/cluster/aggregated_logging/diagnostic.go:215: github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types.Parameter composite literal uses unkeyed fields"
+  "pkg/oc/cli/admin/migrate/storage/storage.go:365: call of glog.Errorf copies lock value: github.com/openshift/origin/vendor/golang.org/x/time/rate.Limiter contains sync.Mutex"
+  "pkg/oc/cli/admin/migrate/legacyhpa/hpa.go:[0-9]+: github.com/openshift/origin/vendor/k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta composite literal uses unkeyed fields"
+  "pkg/oc/cli/admin/migrate/legacyhpa/hpa_test.go:[0-9]+: github.com/openshift/origin/vendor/k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta composite literal uses unkeyed fields"
+  "pkg/oc/cli/admin/migrate/templateinstances/templateinstances_test.go:[0-9]+: github.com/openshift/origin/vendor/k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta composite literal uses unkeyed fields"
+  "pkg/oc/cli/admin/prune/imageprune/prune.go:893: Infof format %s has arg img of wrong type *github.com/openshift/origin/pkg/image/apis/image.Image"
+  "pkg/router/f5/plugin_test.go:301: github.com/openshift/origin/pkg/router/f5/testing.PolicyRule composite literal uses unkeyed fields"
+  "pkg/router/f5/plugin_test.go:889: github.com/openshift/origin/pkg/router/f5/testing.PolicyRule composite literal uses unkeyed fields"
+  "test/extended/util/url/url_test.go:9:14: undefined: URLTest"
+  "test/extended/router/headers.go:27:13: routerNs declared but not used"
+  "test/extended/router/router.go:86:8: r declared but not used"
+  "test/extended/builds/pipeline.go:87:3: dcLogFollow declared but not used"
+  "test/extended/builds/pipeline.go:88:3: dcLogStdOut declared but not used"
+  "test/extended/builds/pipeline.go:88:16: dcLogStdErr declared but not used"
+  "test/integration/imagechange_buildtrigger_test.go:[0-9]+: Fatalf format %s has arg bc.Spec.Triggers[0].ImageChange of wrong type *github.com/openshift/origin/pkg/build/apis/build.ImageChangeTrigger"
 )
 
 #If you update this list, be sure to get the images/origin/Dockerfile
@@ -179,7 +203,7 @@ function os::util::list_go_src_files() {
 readonly -f os::util::list_go_src_files
 
 # os::util::list_go_src_dirs lists dirs in origin/ and cmd/ dirs excluding
-# doc.go, useful for tools that iterate over source to provide vetting or 
+# doc.go, useful for tools that iterate over source to provide vetting or
 # linting, or for godep-save etc.
 #
 # Globals:
