@@ -1,15 +1,15 @@
 package: github.com/openshift/library-go
 import:
 - package: k8s.io/apimachinery
-  version: kubernetes-1.11.0
+  version: kubernetes-1.11.1
 - package: k8s.io/api
-  version: kubernetes-1.11.0
+  version: kubernetes-1.11.1
 - package: k8s.io/apiserver
-  version: kubernetes-1.11.0
+  version: kubernetes-1.11.1
 - package: k8s.io/apiextensions-apiserver
-  version: kubernetes-1.11.0
+  version: kubernetes-1.11.1
 - package: k8s.io/client-go
-  version: kubernetes-1.11.0
+  version: kubernetes-1.11.1
 - package: github.com/openshift/api
   version: master
 
@@ -25,3 +25,7 @@ import:
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - package: github.com/spf13/pflag
   version: 583c0c0531f06d5278b7d917446061adc344b5cd
+- package: github.com/sirupsen/logrus
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+- package: github.com/blang/semver
+  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6

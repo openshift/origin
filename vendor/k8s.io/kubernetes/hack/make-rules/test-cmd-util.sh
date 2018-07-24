@@ -1392,6 +1392,12 @@ run_kubectl_old_print_tests() {
   actual_output=$(kubectl get pod --server-print=false "${kube_flags[@]}" | awk 'NF{NF--};1')
   kube::test::if_has_string "${actual_output}" "${expected_output}"
 
+  # Test printing objects with --use-openapi-print-columns
+  actual_output=$(kubectl get namespaces --use-openapi-print-columns --v=7 "${kube_flags[@]}" 2>&1)
+  # it should request full objects (not server-side printing)
+  kube::test::if_has_not_string "${actual_output}" 'application/json;as=Table'
+  kube::test::if_has_string "${actual_output}"     'application/json'
+
   ### Test retrieval of daemonsets against server-side printing
   kubectl apply -f hack/testdata/rollingupdate-daemonset.yaml "${kube_flags[@]}"
   # Post-condition: daemonset is created
@@ -3483,13 +3489,15 @@ run_rs_tests() {
   kube::log::status "Deleting rs"
   kubectl delete rs frontend "${kube_flags[@]}"
   # Post-condition: no pods from frontend replica set
-  kube::test::get_object_assert 'pods -l "tier=frontend"' "{{range.items}}{{$id_field}}:{{end}}" ''
+  kube::test::wait_object_assert 'pods -l "tier=frontend"' "{{range.items}}{{$id_field}}:{{end}}" ''
 
   ### Create and then delete a replica set with cascade=false, make sure it doesn't delete pods.
   # Pre-condition: no replica set exists
   kube::test::get_object_assert rs "{{range.items}}{{$id_field}}:{{end}}" ''
   # Command
   kubectl create -f hack/testdata/frontend-replicaset.yaml "${kube_flags[@]}"
+  # wait for all 3 pods to be set up
+  kube::test::wait_object_assert 'pods -l "tier=frontend"' "{{range.items}}{{$pod_container_name_field}}:{{end}}" 'php-redis:php-redis:php-redis:'
   kube::log::status "Deleting rs"
   kubectl delete rs frontend "${kube_flags[@]}" --cascade=false
   # Wait for the rs to be deleted.

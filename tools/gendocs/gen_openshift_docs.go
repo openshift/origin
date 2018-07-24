@@ -51,5 +51,8 @@ func main() {
 	cmd := cli.NewCommandCLI("oc", "oc", &bytes.Buffer{}, out, ioutil.Discard)
 	kcmdutil.AddPrinterFlags(cmd)
 
-	gendocs.GenDocs(cmd, outFile)
+	if err := gendocs.GenDocs(cmd, outFile); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to generate docs: %v\n", err)
+		os.Exit(1)
+	}
 }

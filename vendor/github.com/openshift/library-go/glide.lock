@@ -1,5 +1,5 @@
-hash: 3b2ac5588e1edc90dd3cf20c5d1b9931b8a5d85cb316d7d53badf62e20674425
-updated: 2018-07-03T09:55:12.563502691-04:00
+hash: dda20859ba4eff22e18c1f0d54dd1d9a625cb371cd1f206bab65373bbf524b2c
+updated: 2018-07-23T18:02:00.753943-04:00
 imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
@@ -57,7 +57,7 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: 31a7bbd2266d178da3c12bb83f5274d387f775e6
+  version: fc4c02c9169b85b9a80353f11ac15ce542a0944a
   subpackages:
   - config/v1
   - operator/v1alpha1
@@ -109,7 +109,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 072894a440bdee3a891dea811fe42902311cd2a3
+  version: 2d6f90ab1293a1fb871cf149423ebb72aa7423aa
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
@@ -141,7 +141,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 3de98c57bc05a81cf463e0ad7a0af4cec8a5b510
+  version: 06dfdaae5c2bd89e1243151ff65b9bf8ee050f28
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1
@@ -190,12 +190,12 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 01459b68eb5fee2dcf5ca0e29df8bcac89ead47b
+  version: 8b122ec9e3bbab91a262d17a39325e69349dc44d
   subpackages:
   - pkg/authentication/user
   - pkg/util/logs
 - name: k8s.io/client-go
-  version: 7d04d0e2a0a1a4d4a1cd6baa432a2301492e4e65
+  version: 59698c7d9724b0f95f9dc9e7f7dfdcc3dfeceb82
   subpackages:
   - discovery
   - discovery/fake

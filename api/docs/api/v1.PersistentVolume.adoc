@@ -141,7 +141,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
 </div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:
 </div></details><div style="margin-left:13px;">    <span title="(string) Driver is the name of the driver to use for this volume. Required.">driver</span>:
-</div><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified.">fsType</span>:
+</div><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;.">fsType</span>:
 </div><details><summary>    <span title="(v1.SecretReference) NodePublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodePublishVolume and NodeUnpublishVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.">nodePublishSecretRef</span>:
 </summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
 </div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:

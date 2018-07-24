@@ -1,5 +1,5 @@
-hash: 7a825a3fb9315325701b51170aad4bedabbaaa546168698d201dea4edb448483
-updated: 2018-07-17T08:42:40.351628601-04:00
+hash: 3a31c2ad6d46a90d10085820aad8125a5030b008cfa385aa83847c2160461266
+updated: 2018-07-24T10:23:05.94302-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -74,13 +74,13 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: 12a230f9f9225237f1a35b86171848da610900bb
+  version: fc4c02c9169b85b9a80353f11ac15ce542a0944a
   subpackages:
   - config/v1
   - operator/v1alpha1
   - servicecertsigner/v1alpha1
 - name: github.com/openshift/client-go
-  version: b22949ca0eae046da7611d0d20c8089dcec212d6
+  version: 5b198a036f098f34fbf0c42768382d80708cd2a9
   subpackages:
   - servicecertsigner/clientset/versioned
   - servicecertsigner/clientset/versioned/scheme
@@ -91,7 +91,7 @@ imports:
   - servicecertsigner/informers/externalversions/servicecertsigner/v1alpha1
   - servicecertsigner/listers/servicecertsigner/v1alpha1
 - name: github.com/openshift/library-go
-  version: d366b6f2e76695de0e702cb9d06767bd517753b0
+  version: 4fdb3248631788907d4774a1e987bbfabc37fcbc
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -131,7 +131,7 @@ imports:
   subpackages:
   - xfs
 - name: github.com/sirupsen/logrus
-  version: 92052687f8ec598ff0da626d2909478cfd1e3a3c
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/spf13/cobra
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/pflag
@@ -186,7 +186,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 072894a440bdee3a891dea811fe42902311cd2a3
+  version: 2d6f90ab1293a1fb871cf149423ebb72aa7423aa
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
@@ -218,7 +218,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 3de98c57bc05a81cf463e0ad7a0af4cec8a5b510
+  version: 06dfdaae5c2bd89e1243151ff65b9bf8ee050f28
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1
@@ -269,13 +269,13 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 01459b68eb5fee2dcf5ca0e29df8bcac89ead47b
+  version: 8b122ec9e3bbab91a262d17a39325e69349dc44d
   subpackages:
   - pkg/authentication/user
   - pkg/util/flag
   - pkg/util/logs
 - name: k8s.io/client-go
-  version: 7d04d0e2a0a1a4d4a1cd6baa432a2301492e4e65
+  version: 59698c7d9724b0f95f9dc9e7f7dfdcc3dfeceb82
   subpackages:
   - discovery
   - discovery/fake
@@ -436,7 +436,7 @@ imports:
   - util/retry
   - util/workqueue
 - name: k8s.io/kube-aggregator
-  version: bd6e1ad75c9758cad2069bb2f65880cf805ad8e9
+  version: 89cd614e9090a2f1e78316ed459857c49c55d276
   subpackages:
   - pkg/apis/apiregistration
   - pkg/apis/apiregistration/v1
