@@ -522,15 +522,11 @@ function os::start::internal::openshift_executable() {
 
 		openshift_executable="${sudo} docker run ${docker_options} ${volumes} ${envvars} openshift/origin:${version}"
 	else
-		local envvars=""
-		if [[ -n "${ENV:-}" ]]; then
-			envvars="env "
-			for envvar in "${ENV[@]}"; do
-				envvars+="${envvar} "
-			done
-		fi
-
-		openshift_executable="${sudo} ${envvars} $(which openshift)"
+		if [[ -n "${sudo}" ]]; then
+		    openshift_executable="${sudo} -E $(which openshift)"
+        else
+		    openshift_executable="$(which openshift)"
+        fi
 	fi
 
 	echo "${openshift_executable}"

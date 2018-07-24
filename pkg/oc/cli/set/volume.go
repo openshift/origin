@@ -29,9 +29,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/origin/pkg/oc/util/clientcmd"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 const (
@@ -157,7 +157,7 @@ type AddVolumeOptions struct {
 
 func NewVolumeOptions(streams genericclioptions.IOStreams) *VolumeOptions {
 	return &VolumeOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("volume updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("volume updated").WithTypeSetter(scheme.Scheme),
 
 		Containers: "*",
 		AddOpts: &AddVolumeOptions{
@@ -438,7 +438,7 @@ func (a *AddVolumeOptions) Complete() error {
 
 func (o *VolumeOptions) RunVolume() error {
 	b := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(o.DefaultNamespace).DefaultNamespace().

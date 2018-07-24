@@ -21,7 +21,7 @@ func Resource(resource string) schema.GroupResource {
 	return schema.GroupResource{Group: GroupName, Resource: resource}
 }
 
-func InstallLegacyInternalAll(scheme *runtime.Scheme) {
+func InstallInternalLegacyAll(scheme *runtime.Scheme) {
 	InstallInternalLegacyApps(scheme)
 	InstallInternalLegacyAuthorization(scheme)
 	InstallInternalLegacyBuild(scheme)
@@ -36,7 +36,7 @@ func InstallLegacyInternalAll(scheme *runtime.Scheme) {
 	InstallInternalLegacyUser(scheme)
 }
 
-func InstallLegacyExternalAll(scheme *runtime.Scheme) {
+func InstallExternalLegacyAll(scheme *runtime.Scheme) {
 	InstallExternalLegacyApps(scheme)
 	InstallExternalLegacyAuthorization(scheme)
 	InstallExternalLegacyBuild(scheme)

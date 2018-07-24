@@ -31,6 +31,17 @@ import (
 	"github.com/openshift/origin/pkg/user/apis/user"
 )
 
+// deprecated
+func IsOAPI(gvk schema.GroupVersionKind) bool {
+	if len(gvk.Group) > 0 {
+		return false
+	}
+
+	_, ok := oapiKindsToGroup[gvk.Kind]
+	return ok
+}
+
+// deprecated
 func OAPIToGroupifiedGVK(gvk *schema.GroupVersionKind) {
 	if len(gvk.Group) > 0 {
 		return
@@ -43,6 +54,7 @@ func OAPIToGroupifiedGVK(gvk *schema.GroupVersionKind) {
 	gvk.Group = newGroup
 }
 
+// deprecated
 func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 	if len(gvk.Group) > 0 {
 		return
@@ -53,16 +65,19 @@ func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 		newGroup := fixOAPIGroupKindInTopLevelUnstructured(obj.Object)
 		if len(newGroup) > 0 {
 			gvk.Group = newGroup
+			uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 		}
 	case *unstructured.UnstructuredList:
 		newGroup := fixOAPIGroupKindInTopLevelUnstructured(obj.Object)
 		if len(newGroup) > 0 {
 			gvk.Group = newGroup
+			uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 		}
 
 	case *apps.DeploymentConfig, *appsv1.DeploymentConfig, *apps.DeploymentConfigList, *appsv1.DeploymentConfigList,
 		*apps.DeploymentConfigRollback, *appsv1.DeploymentConfigRollback:
 		gvk.Group = apps.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *authorization.ClusterRoleBinding, *authorizationv1.ClusterRoleBinding, *authorization.ClusterRoleBindingList, *authorizationv1.ClusterRoleBindingList,
 		*authorization.ClusterRole, *authorizationv1.ClusterRole, *authorization.ClusterRoleList, *authorizationv1.ClusterRoleList,
@@ -70,10 +85,12 @@ func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 		*authorization.RoleBinding, *authorizationv1.RoleBinding, *authorization.RoleBindingList, *authorizationv1.RoleBindingList,
 		*authorization.RoleBindingRestriction, *authorizationv1.RoleBindingRestriction, *authorization.RoleBindingRestrictionList, *authorizationv1.RoleBindingRestrictionList:
 		gvk.Group = authorization.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *build.BuildConfig, *buildv1.BuildConfig, *build.BuildConfigList, *buildv1.BuildConfigList,
 		*build.Build, *buildv1.Build, *build.BuildList, *buildv1.BuildList:
 		gvk.Group = build.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *image.Image, *imagev1.Image, *image.ImageList, *imagev1.ImageList,
 		*image.ImageSignature, *imagev1.ImageSignature,
@@ -83,43 +100,52 @@ func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 		*image.ImageStream, *imagev1.ImageStream, *image.ImageStreamList, *imagev1.ImageStreamList,
 		*image.ImageStreamTag, *imagev1.ImageStreamTag:
 		gvk.Group = image.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *network.ClusterNetwork, *networkv1.ClusterNetwork, *network.ClusterNetworkList, *networkv1.ClusterNetworkList,
 		*network.NetNamespace, *networkv1.NetNamespace, *network.NetNamespaceList, *networkv1.NetNamespaceList,
 		*network.HostSubnet, *networkv1.HostSubnet, *network.HostSubnetList, *networkv1.HostSubnetList,
 		*network.EgressNetworkPolicy, *networkv1.EgressNetworkPolicy, *network.EgressNetworkPolicyList, *networkv1.EgressNetworkPolicyList:
 		gvk.Group = network.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *project.Project, *projectv1.Project, *project.ProjectList, *projectv1.ProjectList,
 		*project.ProjectRequest, *projectv1.ProjectRequest:
 		gvk.Group = project.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *quota.ClusterResourceQuota, *quotav1.ClusterResourceQuota, *quota.ClusterResourceQuotaList, *quotav1.ClusterResourceQuotaList:
 		gvk.Group = quota.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *oauth.OAuthAuthorizeToken, *oauthv1.OAuthAuthorizeToken, *oauth.OAuthAuthorizeTokenList, *oauthv1.OAuthAuthorizeTokenList,
 		*oauth.OAuthClientAuthorization, *oauthv1.OAuthClientAuthorization, *oauth.OAuthClientAuthorizationList, *oauthv1.OAuthClientAuthorizationList,
 		*oauth.OAuthClient, *oauthv1.OAuthClient, *oauth.OAuthClientList, *oauthv1.OAuthClientList,
 		*oauth.OAuthAccessToken, *oauthv1.OAuthAccessToken, *oauth.OAuthAccessTokenList, *oauthv1.OAuthAccessTokenList:
 		gvk.Group = oauth.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *route.Route, *routev1.Route, *route.RouteList, *routev1.RouteList:
 		gvk.Group = route.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *security.SecurityContextConstraints, *securityv1.SecurityContextConstraints, *security.SecurityContextConstraintsList, *securityv1.SecurityContextConstraintsList,
 		*security.PodSecurityPolicySubjectReview, *securityv1.PodSecurityPolicySubjectReview,
 		*security.PodSecurityPolicySelfSubjectReview, *securityv1.PodSecurityPolicySelfSubjectReview,
 		*security.PodSecurityPolicyReview, *securityv1.PodSecurityPolicyReview:
 		gvk.Group = security.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *template.Template, *templatev1.Template, *template.TemplateList, *templatev1.TemplateList:
 		gvk.Group = template.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *user.Group, *userv1.Group, *user.GroupList, *userv1.GroupList,
 		*user.Identity, *userv1.Identity, *user.IdentityList, *userv1.IdentityList,
 		*user.UserIdentityMapping, *userv1.UserIdentityMapping,
 		*user.User, *userv1.User, *user.UserList, *userv1.UserList:
 		gvk.Group = user.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	}
 }
