@@ -134,10 +134,10 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 	}
 
 	go func() {
-		informers.GetBuildInformers().Start(utilwait.NeverStop)
-		informers.GetImageInformers().Start(utilwait.NeverStop)
-		informers.GetAppInformers().Start(utilwait.NeverStop)
-		informers.GetSecurityInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftBuildInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftImageInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftAppInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftSecurityInformers().Start(utilwait.NeverStop)
 	}()
 
 	controllerContext := kctrlmgr.ControllerContext{
@@ -146,13 +146,13 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 			SharedInformerFactory: informers.GetExternalKubeInformers(),
 			generic: []GenericResourceInformer{
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetImageInformers().ForResource(resource)
+					return informers.GetInternalOpenshiftImageInformers().ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetBuildInformers().ForResource(resource)
+					return informers.GetInternalOpenshiftBuildInformers().ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetAppInformers().ForResource(resource)
+					return informers.GetInternalOpenshiftAppInformers().ForResource(resource)
 				}),
 				informers.GetExternalKubeInformers(),
 			},
@@ -170,12 +170,12 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		ExternalKubeInformers: informers.GetExternalKubeInformers(),
-		AppInformers:          informers.GetAppInformers(),
-		BuildInformers:        informers.GetBuildInformers(),
-		ImageInformers:        informers.GetImageInformers(),
-		SecurityInformers:     informers.GetSecurityInformers(),
-		Stop:                  controllerContext.Stop,
+		ExternalKubeInformers:     informers.GetExternalKubeInformers(),
+		InternalAppsInformers:     informers.GetInternalOpenshiftAppInformers(),
+		InternalBuildInformers:    informers.GetInternalOpenshiftBuildInformers(),
+		InternalImageInformers:    informers.GetInternalOpenshiftImageInformers(),
+		InternalSecurityInformers: informers.GetInternalOpenshiftSecurityInformers(),
+		Stop: controllerContext.Stop,
 	}
 
 	for i := 0; i < counts.BuildControllers; i++ {

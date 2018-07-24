@@ -129,10 +129,10 @@ func (c *OpenshiftAPIExtraConfig) Validate() error {
 		ret = append(ret, fmt.Errorf("KubeInformers is required"))
 	}
 	if c.QuotaInformers == nil {
-		ret = append(ret, fmt.Errorf("QuotaInformers is required"))
+		ret = append(ret, fmt.Errorf("InternalQuotaInformers is required"))
 	}
 	if c.SecurityInformers == nil {
-		ret = append(ret, fmt.Errorf("SecurityInformers is required"))
+		ret = append(ret, fmt.Errorf("InternalSecurityInformers is required"))
 	}
 	if c.RuleResolver == nil {
 		ret = append(ret, fmt.Errorf("RuleResolver is required"))

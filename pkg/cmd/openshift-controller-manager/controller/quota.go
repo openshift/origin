@@ -24,7 +24,7 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 
 	imageEvaluators := image.NewReplenishmentEvaluators(
 		listerFuncForResource,
-		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
+		ctx.InternalImageInformers.Image().InternalVersion().ImageStreams(),
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(saName).Image())
 	resourceQuotaRegistry := generic.NewRegistry(imageEvaluators)
 
@@ -55,7 +55,7 @@ func RunClusterQuotaReconciliationController(ctx ControllerContext) (bool, error
 
 	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(
 		ctx.ExternalKubeInformers.Core().V1().Namespaces(),
-		ctx.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
+		ctx.InternalQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
 	resourceQuotaControllerClient := ctx.ClientBuilder.ClientOrDie("resourcequota-controller")
 	discoveryFunc := resourceQuotaControllerClient.Discovery().ServerPreferredNamespacedResources
 	listerFuncForResource := generic.ListerFuncForResourceFunc(ctx.GenericResourceInformer.ForResource)
@@ -65,14 +65,14 @@ func RunClusterQuotaReconciliationController(ctx ControllerContext) (bool, error
 	resourceQuotaRegistry := generic.NewRegistry(quotaConfiguration.Evaluators())
 	imageEvaluators := image.NewReplenishmentEvaluators(
 		listerFuncForResource,
-		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
+		ctx.InternalImageInformers.Image().InternalVersion().ImageStreams(),
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(saName).Image())
 	for i := range imageEvaluators {
 		resourceQuotaRegistry.Add(imageEvaluators[i])
 	}
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
-		ClusterQuotaInformer: ctx.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterQuotaInformer: ctx.InternalQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:   clusterQuotaMappingController.GetClusterQuotaMapper(),
 		ClusterQuotaClient:   ctx.ClientBuilder.OpenshiftInternalQuotaClientOrDie(saName).Quota().ClusterResourceQuotas(),
 

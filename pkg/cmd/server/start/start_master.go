@@ -17,6 +17,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -34,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -446,7 +448,10 @@ func (m *Master) Start() error {
 		if err != nil {
 			return err
 		}
-		if err := informers.AddUserIndexes(); err != nil {
+
+		if err := informers.GetInternalOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+		}); err != nil {
 			return err
 		}
 

@@ -45,10 +45,10 @@ import (
 type InformerAccess interface {
 	GetInternalKubeInformers() kinternalinformers.SharedInformerFactory
 	GetExternalKubeInformers() kexternalinformers.SharedInformerFactory
-	GetImageInformers() imageinformer.SharedInformerFactory
-	GetQuotaInformers() quotainformer.SharedInformerFactory
-	GetSecurityInformers() securityinformer.SharedInformerFactory
-	GetUserInformers() userinformer.SharedInformerFactory
+	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
+	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
+	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
+	GetInternalOpenshiftUserInformers() userinformer.SharedInformerFactory
 }
 
 func NewPluginInitializer(
@@ -92,7 +92,7 @@ func NewPluginInitializer(
 	// TODO make a union registry
 	quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
 	imageEvaluators := image.NewReplenishmentEvaluatorsForAdmission(
-		informers.GetImageInformers().Image().InternalVersion().ImageStreams(),
+		informers.GetInternalOpenshiftImageInformers().Image().InternalVersion().ImageStreams(),
 		imageClient.Image(),
 	)
 	for i := range imageEvaluators {
@@ -169,11 +169,11 @@ func NewPluginInitializer(
 		JenkinsPipelineConfig:                options.JenkinsPipelineConfig,
 		RESTClientConfig:                     *privilegedLoopbackConfig,
 		Informers:                            informers.GetInternalKubeInformers(),
-		ClusterResourceQuotaInformer:         informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterResourceQuotaInformer:         informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:                   clusterQuotaMappingController.GetClusterQuotaMapper(),
 		RegistryHostnameRetriever:            imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
-		SecurityInformers:                    informers.GetSecurityInformers(),
-		UserInformers:                        informers.GetUserInformers(),
+		SecurityInformers:                    informers.GetInternalOpenshiftSecurityInformers(),
+		UserInformers:                        informers.GetInternalOpenshiftUserInformers(),
 	}
 
 	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
