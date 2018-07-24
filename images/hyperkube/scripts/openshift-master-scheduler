@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# This launches the scheduler by converting the master configuration into scheduler flags.
+
+set -euo pipefail
+
+if [[ -f /etc/origin/node/master-config.yaml ]]; then
+  config=/etc/origin/node/master-config.yaml
+fi
+flags=$( /usr/bin/openshift-master-config --scheduler=true "--config=${config}" )
+eval "exec /usr/bin/hyperkube scheduler --v=${DEBUG_LOGLEVEL:-2} ${flags}"

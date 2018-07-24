@@ -11,7 +11,7 @@ import (
 
 )
 
-func computeSchedulerArgs(kubeconfigFile, schedulerConfigFile string, qps float32, burst int, schedulerArgs map[string][]string) []string {
+func ComputeSchedulerArgs(kubeconfigFile, schedulerConfigFile string, qps float32, burst int, schedulerArgs map[string][]string) []string {
 	cmdLineArgs := map[string][]string{}
 	// deep-copy the input args to avoid mutation conflict.
 	for k, v := range schedulerArgs {
@@ -56,7 +56,7 @@ func computeSchedulerArgs(kubeconfigFile, schedulerConfigFile string, qps float3
 
 func runEmbeddedScheduler(kubeconfigFile, schedulerConfigFile string, qps float32, burst int, cmdLineArgs map[string][]string) {
 	cmd := schedulerapp.NewSchedulerCommand()
-	args := computeSchedulerArgs(kubeconfigFile, schedulerConfigFile, qps, burst, cmdLineArgs)
+	args := ComputeSchedulerArgs(kubeconfigFile, schedulerConfigFile, qps, burst, cmdLineArgs)
 	if err := cmd.ParseFlags(args); err != nil {
 		glog.Fatal(err)
 	}
