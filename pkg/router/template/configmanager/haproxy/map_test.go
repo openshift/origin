@@ -2,11 +2,13 @@ package haproxy
 
 import (
 	"testing"
+
+	haproxytesting "github.com/openshift/origin/pkg/router/template/configmanager/haproxy/testing"
 )
 
 // TestBuildHAProxyMaps tests haproxy maps.
 func TestBuildHAProxyMaps(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -56,7 +58,7 @@ func TestBuildHAProxyMaps(t *testing.T) {
 
 // TestNewHAProxyMap tests a new haproxy map.
 func TestNewHAProxyMap(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -91,7 +93,7 @@ func TestNewHAProxyMap(t *testing.T) {
 
 // TestHAProxyMapRefresh tests haproxy map refresh.
 func TestHAProxyMapRefresh(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -167,7 +169,7 @@ func TestHAProxyMapRefresh(t *testing.T) {
 
 // TestHAProxyMapCommit tests haproxy map commit.
 func TestHAProxyMapCommit(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -227,7 +229,7 @@ func TestHAProxyMapCommit(t *testing.T) {
 
 // TestHAProxyMapName tests haproxy map returns its name.
 func TestHAProxyMapName(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -303,7 +305,7 @@ func TestHAProxyMapName(t *testing.T) {
 
 // TestHAProxyMapFind tests finding an entry in a haproxy map.
 func TestHAProxyMapFind(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -441,7 +443,7 @@ func TestHAProxyMapFind(t *testing.T) {
 
 // TestHAProxyMapAdd tests adding an entry in a haproxy map.
 func TestHAProxyMapAdd(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -598,7 +600,7 @@ func TestHAProxyMapAdd(t *testing.T) {
 
 // TestHAProxyMapDelete tests deleting entries in a haproxy map.
 func TestHAProxyMapDelete(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -720,7 +722,7 @@ func TestHAProxyMapDelete(t *testing.T) {
 
 // TestHAProxyMapDeleteEntry tests deleting an entry in a haproxy map.
 func TestHAProxyMapDeleteEntry(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {

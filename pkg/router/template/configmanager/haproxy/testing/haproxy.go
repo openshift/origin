@@ -1,4 +1,4 @@
-package haproxy
+package testing
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ const (
 
 	serverName = "_dynamic-pod-1"
 
-	onePodAndOneDynamicServerBackendTemplate = `1
+	OnePodAndOneDynamicServerBackendTemplate = `1
 # be_id be_name srv_id srv_name srv_addr srv_op_state srv_admin_state srv_uweight srv_iweight srv_time_since_last_change srv_check_status srv_check_result srv_check_health srv_check_state srv_agent_state bk_f_forced_id srv_f_forced_id srv_fqdn srv_port
 9 %s 1 pod:test-1-l8x8w:test-service:172.17.0.3:1234 172.17.0.3 2 4 256 1 8117 6 3 4 6 0 0 0 - 1234
 9 %s 2 _dynamic-pod-1 172.4.0.4 2 4 256 1 8117 6 3 4 6 0 0 0 - 1234
@@ -50,7 +50,7 @@ func startFakeHAProxyServer(prefix string) (*fakeHAProxy, error) {
 	return server, nil
 }
 
-func startFakeServerForTest(t *testing.T) *fakeHAProxy {
+func StartFakeServerForTest(t *testing.T) *fakeHAProxy {
 	name := fmt.Sprintf("fake-haproxy-%s", t.Name())
 	server, err := startFakeHAProxyServer(name)
 	if err != nil {
@@ -356,7 +356,7 @@ func (p *fakeHAProxy) showServers(name string) string {
 
 	if name != p.backendName {
 		if _, ok := onePodAndOneDynamicServerBackends[name]; ok {
-			return fmt.Sprintf(onePodAndOneDynamicServerBackendTemplate, name, name)
+			return fmt.Sprintf(OnePodAndOneDynamicServerBackendTemplate, name, name)
 		}
 		if len(name) > 0 {
 			return fmt.Sprintf("Can't find backend.\n")
