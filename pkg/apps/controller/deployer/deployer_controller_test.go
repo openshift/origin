@@ -8,8 +8,7 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
-	"k8s.io/api/core/v1"
-	kapiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
@@ -23,19 +22,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	appsinternaltest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 var (
-	env = []kapiv1.EnvVar{{Name: "ENV1", Value: "VAL1"}}
+	env = []corev1.EnvVar{{Name: "ENV1", Value: "VAL1"}}
 )
 
 func alwaysReady() bool { return true }
@@ -45,7 +40,7 @@ type deploymentController struct {
 	podIndexer cache.Indexer
 }
 
-func okDeploymentController(client kclientset.Interface, deployment *v1.ReplicationController, hookPodNames []string, related bool, deployerStatus v1.PodPhase) *deploymentController {
+func okDeploymentController(client kclientset.Interface, deployment *corev1.ReplicationController, hookPodNames []string, related bool, deployerStatus corev1.PodPhase) *deploymentController {
 	informerFactory := kinformers.NewSharedInformerFactory(client, 0)
 	rcInformer := informerFactory.Core().V1().ReplicationControllers()
 	podInformer := informerFactory.Core().V1().Pods()
@@ -73,7 +68,7 @@ func okDeploymentController(client kclientset.Interface, deployment *v1.Replicat
 	}
 }
 
-func deployerPod(deployment *v1.ReplicationController, alternateName string, related bool) *v1.Pod {
+func deployerPod(deployment *corev1.ReplicationController, alternateName string, related bool) *corev1.Pod {
 	deployerPodName := appsutil.DeployerPodNameForDeployment(deployment.Name)
 	if len(alternateName) > 0 {
 		deployerPodName = alternateName
@@ -81,35 +76,35 @@ func deployerPod(deployment *v1.ReplicationController, alternateName string, rel
 
 	deployment.Namespace = "test"
 
-	pod := &v1.Pod{
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deployerPodName,
 			Namespace: deployment.Namespace,
 			Labels: map[string]string{
-				appsapi.DeployerPodForDeploymentLabel: deployment.Name,
+				appsutil.DeployerPodForDeploymentLabel: deployment.Name,
 			},
 			Annotations: map[string]string{
-				appsapi.DeploymentAnnotation: deployment.Name,
+				appsutil.DeploymentAnnotation: deployment.Name,
 			},
 		},
 	}
 
 	if !related {
-		delete(pod.Annotations, appsapi.DeploymentAnnotation)
+		delete(pod.Annotations, appsutil.DeploymentAnnotation)
 	}
 
 	return pod
 }
 
-func okContainer() *v1.Container {
-	return &v1.Container{
+func okContainer() *corev1.Container {
+	return &corev1.Container{
 		Image:   "openshift/origin-deployer",
 		Command: []string{"/bin/echo", "hello", "world"},
 		Env:     env,
-		Resources: v1.ResourceRequirements{
-			Limits: v1.ResourceList{
-				v1.ResourceName(v1.ResourceCPU):    resource.MustParse("10"),
-				v1.ResourceName(v1.ResourceMemory): resource.MustParse("10G"),
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+				corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("10G"),
 			},
 		},
 	}
@@ -124,22 +119,22 @@ func TestMakeDeployerContainer(t *testing.T) {
 		return string(b)
 	}
 	client := &fake.Clientset{}
-	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
+	controller := okDeploymentController(client, nil, nil, true, corev1.PodUnknown)
 	strategy := appstest.OkRollingStrategy()
 	tests := []struct {
 		name        string
-		environment []v1.EnvVar
-		expected    []v1.EnvVar
+		environment []corev1.EnvVar
+		expected    []corev1.EnvVar
 	}{
 		{
 			name:        "simple var should be injected",
-			environment: []v1.EnvVar{{Name: "FOO", Value: "BAR"}},
-			expected:    []v1.EnvVar{{Name: "FOO", Value: "BAR"}},
+			environment: []corev1.EnvVar{{Name: "FOO", Value: "BAR"}},
+			expected:    []corev1.EnvVar{{Name: "FOO", Value: "BAR"}},
 		},
 		{
 			name:        "big vars should not be injected",
-			environment: []v1.EnvVar{{Name: "FOO", Value: randSeq(1001 * 128)}},
-			expected:    []v1.EnvVar{},
+			environment: []corev1.EnvVar{{Name: "FOO", Value: randSeq(1001 * 128)}},
+			expected:    []corev1.EnvVar{},
 		},
 	}
 	for _, test := range tests {
@@ -161,14 +156,14 @@ func TestMakeDeployerContainer(t *testing.T) {
 // to a new deployment is valid.
 func TestHandle_createPodOk(t *testing.T) {
 	var (
-		updatedDeployment *v1.ReplicationController
-		createdPod        *v1.Pod
+		updatedDeployment *corev1.ReplicationController
+		createdPod        *corev1.Pod
 		expectedContainer = okContainer()
 	)
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		pod := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod)
+		pod := action.(clientgotesting.CreateAction).GetObject().(*corev1.Pod)
 		createdPod = pod
 		return true, pod, nil
 	})
@@ -176,20 +171,20 @@ func TestHandle_createPodOk(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
 	// Verify new -> pending
-	config := appsinternaltest.OkDeploymentConfig(1)
-	config.Spec.Strategy = appsinternaltest.OkCustomStrategy()
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
+	config := appstest.OkDeploymentConfig(1)
+	config.Spec.Strategy = appstest.OkCustomStrategy()
+	deployment, _ := appsutil.MakeDeployment(config)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 	deployment.CreationTimestamp = metav1.Now()
 
-	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
+	controller := okDeploymentController(client, nil, nil, true, corev1.PodUnknown)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -200,7 +195,7 @@ func TestHandle_createPodOk(t *testing.T) {
 	}
 
 	// TODO: Change appsutil to openshift/api
-	if e, a := appsapi.DeploymentStatusPending, appsinternalutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := appsutil.DeploymentStatusPending, appsutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
 
@@ -232,8 +227,8 @@ func TestHandle_createPodOk(t *testing.T) {
 		t.Fatalf("expected ActiveDeadlineSeconds to be set on the deployer pod")
 	}
 
-	if *createdPod.Spec.ActiveDeadlineSeconds != appsapi.MaxDeploymentDurationSeconds {
-		t.Fatalf("expected ActiveDeadlineSeconds on the deployer pod to be set to %d; found: %d", appsapi.MaxDeploymentDurationSeconds, *createdPod.Spec.ActiveDeadlineSeconds)
+	if *createdPod.Spec.ActiveDeadlineSeconds != appsutil.MaxDeploymentDurationSeconds {
+		t.Fatalf("expected ActiveDeadlineSeconds on the deployer pod to be set to %d; found: %d", appsutil.MaxDeploymentDurationSeconds, *createdPod.Spec.ActiveDeadlineSeconds)
 	}
 
 	actualContainer := createdPod.Spec.Containers[0]
@@ -262,25 +257,25 @@ func TestHandle_createPodOk(t *testing.T) {
 // TestHandle_createPodFail ensures that an API failure while creating a
 // deployer pod results in a nonfatal error.
 func TestHandle_createPodFail(t *testing.T) {
-	var updatedDeployment *v1.ReplicationController
+	var updatedDeployment *corev1.ReplicationController
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod).Name
+		name := action.(clientgotesting.CreateAction).GetObject().(*corev1.Pod).Name
 		return true, nil, fmt.Errorf("failed to create pod %q", name)
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
-	config := appsinternaltest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
 	deployment.CreationTimestamp = metav1.Now()
 
-	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
+	controller := okDeploymentController(client, nil, nil, true, corev1.PodUnknown)
 
 	err := controller.handle(deployment, false)
 	if err == nil {
@@ -299,51 +294,51 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 	tests := []struct {
 		name string
 
-		podPhase v1.PodPhase
-		expected appsapi.DeploymentStatus
+		podPhase corev1.PodPhase
+		expected appsutil.DeploymentStatus
 	}{
 		{
 			name: "pending",
 
-			podPhase: v1.PodPending,
-			expected: appsapi.DeploymentStatusPending,
+			podPhase: corev1.PodPending,
+			expected: appsutil.DeploymentStatusPending,
 		},
 		{
 			name: "running",
 
-			podPhase: v1.PodRunning,
-			expected: appsapi.DeploymentStatusRunning,
+			podPhase: corev1.PodRunning,
+			expected: appsutil.DeploymentStatusRunning,
 		},
 		{
 			name: "complete",
 
-			podPhase: v1.PodFailed,
-			expected: appsapi.DeploymentStatusFailed,
+			podPhase: corev1.PodFailed,
+			expected: appsutil.DeploymentStatusFailed,
 		},
 		{
 			name: "failed",
 
-			podPhase: v1.PodSucceeded,
-			expected: appsapi.DeploymentStatusComplete,
+			podPhase: corev1.PodSucceeded,
+			expected: appsutil.DeploymentStatusComplete,
 		},
 	}
 
 	for _, test := range tests {
-		var updatedDeployment *v1.ReplicationController
+		var updatedDeployment *corev1.ReplicationController
 
-		config := appsinternaltest.OkDeploymentConfig(1)
-		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
-		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
+		config := appstest.OkDeploymentConfig(1)
+		deployment, _ := appsutil.MakeDeployment(config)
+		deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
 		deployment.CreationTimestamp = metav1.Now()
 		deployerPodName := appsutil.DeployerPodNameForDeployment(deployment.Name)
 
 		client := &fake.Clientset{}
 		client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			name := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod).Name
-			return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
+			name := action.(clientgotesting.CreateAction).GetObject().(*corev1.Pod).Name
+			return true, nil, kerrors.NewAlreadyExists(corev1.Resource("Pod"), name)
 		})
 		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 			updatedDeployment = rc
 			return true, rc, nil
 		})
@@ -355,12 +350,12 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 			continue
 		}
 
-		if updatedDeployment.Annotations[appsapi.DeploymentPodAnnotation] != deployerPodName {
+		if updatedDeployment.Annotations[appsutil.DeploymentPodAnnotation] != deployerPodName {
 			t.Errorf("%s: deployment not updated with pod name annotation", test.name)
 			continue
 		}
 
-		if e, a := string(test.expected), updatedDeployment.Annotations[appsapi.DeploymentStatusAnnotation]; e != a {
+		if e, a := string(test.expected), updatedDeployment.Annotations[appsutil.DeploymentStatusAnnotation]; e != a {
 			t.Errorf("%s: deployment status not updated. Expected %q, got %q", test.name, e, a)
 		}
 	}
@@ -370,39 +365,39 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 // deployer pod, when a pod with the same name but missing annotations results
 // a transition to failed.
 func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
-	var updatedDeployment *v1.ReplicationController
+	var updatedDeployment *corev1.ReplicationController
 
-	config := appsinternaltest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config)
 	deployment.CreationTimestamp = metav1.Now()
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod).Name
-		return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
+		name := action.(clientgotesting.CreateAction).GetObject().(*corev1.Pod).Name
+		return true, nil, kerrors.NewAlreadyExists(corev1.Resource("Pod"), name)
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
-	controller := okDeploymentController(client, deployment, nil, false, v1.PodRunning)
+	controller := okDeploymentController(client, deployment, nil, false, corev1.PodRunning)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, exists := updatedDeployment.Annotations[appsapi.DeploymentPodAnnotation]; exists {
+	if _, exists := updatedDeployment.Annotations[appsutil.DeploymentPodAnnotation]; exists {
 		t.Fatalf("deployment updated with pod name annotation")
 	}
 
-	if e, a := appsapi.DeploymentFailedUnrelatedDeploymentExists, updatedDeployment.Annotations[appsapi.DeploymentStatusReasonAnnotation]; e != a {
+	if e, a := appsutil.DeploymentFailedUnrelatedDeploymentExists, updatedDeployment.Annotations[appsutil.DeploymentStatusReasonAnnotation]; e != a {
 		t.Fatalf("expected reason annotation %s, got %s", e, a)
 	}
 
-	if e, a := appsapi.DeploymentStatusFailed, appsinternalutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := appsutil.DeploymentStatusFailed, appsutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 }
@@ -411,41 +406,41 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 // deployer pod, when a pod with the same name but be scaled to zero results
 // a transition to failed.
 func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
-	var updatedDeployment *v1.ReplicationController
+	var updatedDeployment *corev1.ReplicationController
 
-	config := appsinternaltest.TestDeploymentConfig(appsinternaltest.OkDeploymentConfig(1))
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
+	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
+	deployment, _ := appsutil.MakeDeployment(config)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod).Name
-		return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
+		name := action.(clientgotesting.CreateAction).GetObject().(*corev1.Pod).Name
+		return true, nil, kerrors.NewAlreadyExists(corev1.Resource("Pod"), name)
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
-	controller := okDeploymentController(client, deployment, nil, false, v1.PodRunning)
+	controller := okDeploymentController(client, deployment, nil, false, corev1.PodRunning)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, exists := updatedDeployment.Annotations[appsapi.DeploymentPodAnnotation]; exists {
+	if _, exists := updatedDeployment.Annotations[appsutil.DeploymentPodAnnotation]; exists {
 		t.Fatalf("deployment updated with pod name annotation")
 	}
 
-	if e, a := appsapi.DeploymentFailedUnrelatedDeploymentExists, updatedDeployment.Annotations[appsapi.DeploymentStatusReasonAnnotation]; e != a {
+	if e, a := appsutil.DeploymentFailedUnrelatedDeploymentExists, updatedDeployment.Annotations[appsutil.DeploymentStatusReasonAnnotation]; e != a {
 		t.Fatalf("expected reason annotation %s, got %s", e, a)
 	}
 
-	if e, a := appsapi.DeploymentStatusFailed, appsinternalutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := appsutil.DeploymentStatusFailed, appsutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 	if e, a := int32(0), *updatedDeployment.Spec.Replicas; e != a {
@@ -460,34 +455,34 @@ func TestHandle_noop(t *testing.T) {
 	tests := []struct {
 		name string
 
-		podPhase        v1.PodPhase
-		deploymentPhase appsapi.DeploymentStatus
+		podPhase        corev1.PodPhase
+		deploymentPhase appsutil.DeploymentStatus
 	}{
 		{
 			name: "pending",
 
-			podPhase:        v1.PodPending,
-			deploymentPhase: appsapi.DeploymentStatusPending,
+			podPhase:        corev1.PodPending,
+			deploymentPhase: appsutil.DeploymentStatusPending,
 		},
 		{
 			name: "running",
 
-			podPhase:        v1.PodRunning,
-			deploymentPhase: appsapi.DeploymentStatusRunning,
+			podPhase:        corev1.PodRunning,
+			deploymentPhase: appsutil.DeploymentStatusRunning,
 		},
 		{
 			name: "complete",
 
-			podPhase:        v1.PodFailed,
-			deploymentPhase: appsapi.DeploymentStatusFailed,
+			podPhase:        corev1.PodFailed,
+			deploymentPhase: appsutil.DeploymentStatusFailed,
 		},
 	}
 
 	for _, test := range tests {
 		client := fake.NewSimpleClientset()
 
-		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
-		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
+		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
+		deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 		deployment.CreationTimestamp = metav1.Now()
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
@@ -516,7 +511,7 @@ func TestHandle_noop(t *testing.T) {
 // TestHandle_failedTest ensures that failed test deployments have their
 // replicas set to zero.
 func TestHandle_failedTest(t *testing.T) {
-	var updatedDeployment *v1.ReplicationController
+	var updatedDeployment *corev1.ReplicationController
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -524,20 +519,20 @@ func TestHandle_failedTest(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
 	// Verify successful cleanup
-	config := appsinternaltest.TestDeploymentConfig(appsinternaltest.OkDeploymentConfig(1))
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
+	deployment, _ := appsutil.MakeDeployment(config)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusRunning)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusRunning)
 
-	controller := okDeploymentController(client, deployment, nil, true, v1.PodFailed)
+	controller := okDeploymentController(client, deployment, nil, true, corev1.PodFailed)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -573,12 +568,12 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 	})
 
 	// Verify successful cleanup
-	config := appsinternaltest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusComplete)
 	deployment.CreationTimestamp = metav1.Now()
 
-	controller := okDeploymentController(client, deployment, hookPods, true, v1.PodSucceeded)
+	controller := okDeploymentController(client, deployment, hookPods, true, corev1.PodSucceeded)
 	hookPods = append(hookPods, deployment.Name)
 
 	if err := controller.handle(deployment, false); err != nil {
@@ -599,7 +594,7 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 func TestHandle_cleanupPodOkTest(t *testing.T) {
 	hookPods := []string{"pre", "post"}
 	deletedPodNames := []string{}
-	var updatedDeployment *v1.ReplicationController
+	var updatedDeployment *corev1.ReplicationController
 
 	client := &fake.Clientset{}
 	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -612,20 +607,20 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
 	// Verify successful cleanup
-	config := appsinternaltest.TestDeploymentConfig(appsinternaltest.OkDeploymentConfig(1))
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
+	deployment, _ := appsutil.MakeDeployment(config)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusRunning)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusRunning)
 
-	controller := okDeploymentController(client, deployment, hookPods, true, v1.PodSucceeded)
+	controller := okDeploymentController(client, deployment, hookPods, true, corev1.PodSucceeded)
 	hookPods = append(hookPods, deployment.Name)
 
 	if err := controller.handle(deployment, false); err != nil {
@@ -663,14 +658,14 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 	})
 
 	// Verify no-op
-	config := appsinternaltest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config)
 	deployment.CreationTimestamp = metav1.Now()
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusComplete)
 
-	controller := okDeploymentController(client, deployment, nil, true, v1.PodSucceeded)
+	controller := okDeploymentController(client, deployment, nil, true, corev1.PodSucceeded)
 	pod := deployerPod(deployment, "", true)
-	pod.Labels[appsapi.DeployerPodForDeploymentLabel] = "unrelated"
+	pod.Labels[appsutil.DeployerPodForDeploymentLabel] = "unrelated"
 	controller.podIndexer.Update(pod)
 
 	if err := controller.handle(deployment, false); err != nil {
@@ -695,12 +690,12 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 	})
 
 	// Verify error
-	config := appsinternaltest.OkDeploymentConfig(1)
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config)
 	deployment.CreationTimestamp = metav1.Now()
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusComplete)
 
-	controller := okDeploymentController(client, deployment, nil, true, v1.PodSucceeded)
+	controller := okDeploymentController(client, deployment, nil, true, corev1.PodSucceeded)
 
 	err := controller.handle(deployment, false)
 	if err == nil {
@@ -714,7 +709,7 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 // TestHandle_cancelNew ensures that a New cancelled deployment will be transitioned
 // to Pending even if the deployer pod is Running.
 func TestHandle_cancelNew(t *testing.T) {
-	var updatedDeployment *v1.ReplicationController
+	var updatedDeployment *corev1.ReplicationController
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -722,23 +717,23 @@ func TestHandle_cancelNew(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
+	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
 	deployment.CreationTimestamp = metav1.Now()
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
-	deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
+	deployment.Annotations["openshift.io/deployment.cancelled"] = "true"
 
-	controller := okDeploymentController(client, deployment, nil, true, v1.PodRunning)
+	controller := okDeploymentController(client, deployment, nil, true, corev1.PodRunning)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if e, a := appsapi.DeploymentStatusPending, appsinternalutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := appsutil.DeploymentStatusPending, appsutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 }
@@ -746,13 +741,13 @@ func TestHandle_cancelNew(t *testing.T) {
 // TestHandle_cleanupNewWithDeployers ensures that we will try to cleanup deployer pods
 // for a cancelled deployment.
 func TestHandle_cleanupNewWithDeployers(t *testing.T) {
-	var updatedDeployment *v1.ReplicationController
+	var updatedDeployment *corev1.ReplicationController
 	deletedDeployer := false
 
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
+	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
 	deployment.CreationTimestamp = metav1.Now()
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
-	deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusNew)
+	deployment.Annotations["openshift.io/deployment.cancelled"] = "true"
 
 	client := &fake.Clientset{}
 	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -764,18 +759,18 @@ func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		updatedDeployment = rc
 		return true, nil, nil
 	})
 
-	controller := okDeploymentController(client, deployment, nil, true, v1.PodRunning)
+	controller := okDeploymentController(client, deployment, nil, true, corev1.PodRunning)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if e, a := appsapi.DeploymentStatusPending, appsinternalutil.DeploymentStatusFor(updatedDeployment); e != a {
+	if e, a := appsutil.DeploymentStatusPending, appsutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 	if !deletedDeployer {
@@ -791,40 +786,40 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 	tests := []struct {
 		name string
 
-		deploymentPhase appsapi.DeploymentStatus
-		podPhase        v1.PodPhase
+		deploymentPhase appsutil.DeploymentStatus
+		podPhase        corev1.PodPhase
 
 		expected int
 	}{
 		{
 			name: "pending",
 
-			deploymentPhase: appsapi.DeploymentStatusPending,
-			podPhase:        v1.PodPending,
+			deploymentPhase: appsutil.DeploymentStatusPending,
+			podPhase:        corev1.PodPending,
 
 			expected: len(hookPods) + 1,
 		},
 		{
 			name: "running",
 
-			deploymentPhase: appsapi.DeploymentStatusRunning,
-			podPhase:        v1.PodRunning,
+			deploymentPhase: appsutil.DeploymentStatusRunning,
+			podPhase:        corev1.PodRunning,
 
 			expected: len(hookPods) + 1,
 		},
 		{
 			name: "failed",
 
-			deploymentPhase: appsapi.DeploymentStatusFailed,
-			podPhase:        v1.PodFailed,
+			deploymentPhase: appsutil.DeploymentStatusFailed,
+			podPhase:        corev1.PodFailed,
 
 			expected: len(hookPods) + 1,
 		},
 		{
 			name: "complete",
 
-			deploymentPhase: appsapi.DeploymentStatusComplete,
-			podPhase:        v1.PodSucceeded,
+			deploymentPhase: appsutil.DeploymentStatusComplete,
+			podPhase:        corev1.PodSucceeded,
 
 			expected: len(hookPods) + 1,
 		},
@@ -844,10 +839,10 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			return true, nil, nil
 		})
 
-		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
+		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
 		deployment.CreationTimestamp = metav1.Now()
-		deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
-		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
+		deployment.Annotations["openshift.io/deployment.cancelled"] = "true"
+		deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 
 		controller := okDeploymentController(client, deployment, hookPods, true, test.podPhase)
 
@@ -869,50 +864,50 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 func TestHandle_deployerPodDisappeared(t *testing.T) {
 	tests := []struct {
 		name          string
-		phase         appsapi.DeploymentStatus
+		phase         appsutil.DeploymentStatus
 		willBeDropped bool
 		shouldRetry   bool
 	}{
 		{
 			name:          "pending - retry",
-			phase:         appsapi.DeploymentStatusPending,
+			phase:         appsutil.DeploymentStatusPending,
 			willBeDropped: false,
 			shouldRetry:   true,
 		},
 		{
 			name:          "pending - fail",
-			phase:         appsapi.DeploymentStatusPending,
+			phase:         appsutil.DeploymentStatusPending,
 			willBeDropped: true,
 			shouldRetry:   false,
 		},
 		{
 			name:  "running",
-			phase: appsapi.DeploymentStatusRunning,
+			phase: appsutil.DeploymentStatusRunning,
 		},
 	}
 
 	for _, test := range tests {
-		var updatedDeployment *v1.ReplicationController
+		var updatedDeployment *corev1.ReplicationController
 		updateCalled := false
 
 		client := &fake.Clientset{}
 		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 			updatedDeployment = rc
 			updateCalled = true
 			return true, nil, nil
 		})
 
-		deployment, err := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
+		deployment, err := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
 		}
-		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.phase)
+		deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(test.phase)
 		deployment.CreationTimestamp = metav1.Now()
 		updatedDeployment = deployment
 
-		controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
+		controller := okDeploymentController(client, nil, nil, true, corev1.PodUnknown)
 
 		err = controller.handle(deployment, test.willBeDropped)
 		if !test.shouldRetry && err != nil {
@@ -934,14 +929,14 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 			continue
 		}
 
-		gotStatus := appsinternalutil.DeploymentStatusFor(updatedDeployment)
-		if !test.shouldRetry && appsapi.DeploymentStatusFailed != gotStatus {
-			t.Errorf("%s: expected deployment status %q, got %q", test.name, appsapi.DeploymentStatusFailed, gotStatus)
+		gotStatus := appsutil.DeploymentStatusFor(updatedDeployment)
+		if !test.shouldRetry && appsutil.DeploymentStatusFailed != gotStatus {
+			t.Errorf("%s: expected deployment status %q, got %q", test.name, appsutil.DeploymentStatusFailed, gotStatus)
 			continue
 		}
 
-		if test.shouldRetry && appsapi.DeploymentStatusPending != gotStatus {
-			t.Errorf("%s: expected deployment status %q, got %q", test.name, appsapi.DeploymentStatusPending, gotStatus)
+		if test.shouldRetry && appsutil.DeploymentStatusPending != gotStatus {
+			t.Errorf("%s: expected deployment status %q, got %q", test.name, appsutil.DeploymentStatusPending, gotStatus)
 			continue
 		}
 	}
@@ -952,98 +947,98 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 	tests := []struct {
 		name string
 
-		podPhase        v1.PodPhase
-		deploymentPhase appsapi.DeploymentStatus
-		expected        appsapi.DeploymentStatus
+		podPhase        corev1.PodPhase
+		deploymentPhase appsutil.DeploymentStatus
+		expected        appsutil.DeploymentStatus
 	}{
 		{
 			name: "New -> Pending",
 
-			podPhase:        v1.PodPending,
-			deploymentPhase: appsapi.DeploymentStatusNew,
+			podPhase:        corev1.PodPending,
+			deploymentPhase: appsutil.DeploymentStatusNew,
 
-			expected: appsapi.DeploymentStatusPending,
+			expected: appsutil.DeploymentStatusPending,
 		},
 		{
 			name: "New -> Running",
 
-			podPhase:        v1.PodRunning,
-			deploymentPhase: appsapi.DeploymentStatusNew,
+			podPhase:        corev1.PodRunning,
+			deploymentPhase: appsutil.DeploymentStatusNew,
 
-			expected: appsapi.DeploymentStatusRunning,
+			expected: appsutil.DeploymentStatusRunning,
 		},
 		{
 			name: "New -> Complete",
 
-			podPhase:        v1.PodSucceeded,
-			deploymentPhase: appsapi.DeploymentStatusNew,
+			podPhase:        corev1.PodSucceeded,
+			deploymentPhase: appsutil.DeploymentStatusNew,
 
-			expected: appsapi.DeploymentStatusComplete,
+			expected: appsutil.DeploymentStatusComplete,
 		},
 		{
 			name: "New -> Failed",
 
-			podPhase:        v1.PodFailed,
-			deploymentPhase: appsapi.DeploymentStatusNew,
+			podPhase:        corev1.PodFailed,
+			deploymentPhase: appsutil.DeploymentStatusNew,
 
-			expected: appsapi.DeploymentStatusFailed,
+			expected: appsutil.DeploymentStatusFailed,
 		},
 		{
 			name: "Pending -> Running",
 
-			podPhase:        v1.PodRunning,
-			deploymentPhase: appsapi.DeploymentStatusPending,
+			podPhase:        corev1.PodRunning,
+			deploymentPhase: appsutil.DeploymentStatusPending,
 
-			expected: appsapi.DeploymentStatusRunning,
+			expected: appsutil.DeploymentStatusRunning,
 		},
 		{
 			name: "Pending -> Complete",
 
-			podPhase:        v1.PodSucceeded,
-			deploymentPhase: appsapi.DeploymentStatusPending,
+			podPhase:        corev1.PodSucceeded,
+			deploymentPhase: appsutil.DeploymentStatusPending,
 
-			expected: appsapi.DeploymentStatusComplete,
+			expected: appsutil.DeploymentStatusComplete,
 		},
 		{
 			name: "Pending -> Failed",
 
-			podPhase:        v1.PodFailed,
-			deploymentPhase: appsapi.DeploymentStatusPending,
+			podPhase:        corev1.PodFailed,
+			deploymentPhase: appsutil.DeploymentStatusPending,
 
-			expected: appsapi.DeploymentStatusFailed,
+			expected: appsutil.DeploymentStatusFailed,
 		},
 		{
 			name: "Running -> Complete",
 
-			podPhase:        v1.PodSucceeded,
-			deploymentPhase: appsapi.DeploymentStatusRunning,
+			podPhase:        corev1.PodSucceeded,
+			deploymentPhase: appsutil.DeploymentStatusRunning,
 
-			expected: appsapi.DeploymentStatusComplete,
+			expected: appsutil.DeploymentStatusComplete,
 		},
 		{
 			name: "Running -> Failed",
 
-			podPhase:        v1.PodFailed,
-			deploymentPhase: appsapi.DeploymentStatusRunning,
+			podPhase:        corev1.PodFailed,
+			deploymentPhase: appsutil.DeploymentStatusRunning,
 
-			expected: appsapi.DeploymentStatusFailed,
+			expected: appsutil.DeploymentStatusFailed,
 		},
 	}
 
 	for _, test := range tests {
-		var updatedDeployment *v1.ReplicationController
+		var updatedDeployment *corev1.ReplicationController
 		updateCalled := false
 
 		client := &fake.Clientset{}
 		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 			updatedDeployment = rc
 			updateCalled = true
 			return true, nil, nil
 		})
 
-		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appsinternaltest.OkDeploymentConfig(1))
-		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
+		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
+		deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 		deployment.CreationTimestamp = metav1.Now()
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
@@ -1058,7 +1053,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 			continue
 		}
 
-		if e, a := test.expected, appsinternalutil.DeploymentStatusFor(updatedDeployment); e != a {
+		if e, a := test.expected, appsutil.DeploymentStatusFor(updatedDeployment); e != a {
 			t.Errorf("%s: expected deployment status %q, got %q", test.name, e, a)
 		}
 	}
@@ -1081,42 +1076,42 @@ func expectMapContains(t *testing.T, exists, expected map[string]string, what st
 func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
 	testCases := []struct {
 		name         string
-		strategy     appsapi.DeploymentStrategy
+		strategy     appsv1.DeploymentStrategy
 		labels       map[string]string
 		annotations  map[string]string
 		verifyLabels bool
 	}{
-		{name: "labels and annotations", strategy: appsinternaltest.OkStrategy(), labels: map[string]string{"label1": "value1"}, annotations: map[string]string{"annotation1": "value1"}, verifyLabels: true},
-		{name: "custom strategy, no annotations", strategy: appsinternaltest.OkCustomStrategy(), labels: map[string]string{"label2": "value2", "label3": "value3"}, verifyLabels: true},
-		{name: "custom strategy, no labels", strategy: appsinternaltest.OkCustomStrategy(), annotations: map[string]string{"annotation3": "value3"}, verifyLabels: true},
-		{name: "no overrride", strategy: appsinternaltest.OkStrategy(), labels: map[string]string{appsapi.DeployerPodForDeploymentLabel: "ignored"}, verifyLabels: false},
+		{name: "labels and annotations", strategy: appstest.OkStrategy(), labels: map[string]string{"label1": "value1"}, annotations: map[string]string{"annotation1": "value1"}, verifyLabels: true},
+		{name: "custom strategy, no annotations", strategy: appstest.OkCustomStrategy(), labels: map[string]string{"label2": "value2", "label3": "value3"}, verifyLabels: true},
+		{name: "custom strategy, no labels", strategy: appstest.OkCustomStrategy(), annotations: map[string]string{"annotation3": "value3"}, verifyLabels: true},
+		{name: "no overrride", strategy: appstest.OkStrategy(), labels: map[string]string{appsutil.DeployerPodForDeploymentLabel: "ignored"}, verifyLabels: false},
 	}
 
 	for _, test := range testCases {
 		t.Logf("evaluating test case %s", test.name)
-		config := appsinternaltest.OkDeploymentConfig(1)
+		config := appstest.OkDeploymentConfig(1)
 		config.Spec.Strategy = test.strategy
 		config.Spec.Strategy.Labels = test.labels
 		config.Spec.Strategy.Annotations = test.annotations
-		deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+		deployment, _ := appsutil.MakeDeployment(config)
 
 		client := &fake.Clientset{}
 		client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, deployerPod(deployment, "", true), nil
 		})
 
-		controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
+		controller := okDeploymentController(client, nil, nil, true, corev1.PodUnknown)
 
 		podTemplate, err := controller.makeDeployerPod(deployment)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		nameLabel, ok := podTemplate.Labels[appsapi.DeployerPodForDeploymentLabel]
+		nameLabel, ok := podTemplate.Labels[appsutil.DeployerPodForDeploymentLabel]
 		if ok && nameLabel != deployment.Name {
-			t.Errorf("label %s expected %s, got %s", appsapi.DeployerPodForDeploymentLabel, deployment.Name, nameLabel)
+			t.Errorf("label %s expected %s, got %s", appsutil.DeployerPodForDeploymentLabel, deployment.Name, nameLabel)
 		} else if !ok {
-			t.Errorf("label %s not present", appsapi.DeployerPodForDeploymentLabel)
+			t.Errorf("label %s not present", appsutil.DeployerPodForDeploymentLabel)
 		}
 		if test.verifyLabels {
 			expectMapContains(t, podTemplate.Labels, test.labels, "labels")
@@ -1127,36 +1122,36 @@ func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
 
 func TestMakeDeployerPod(t *testing.T) {
 	client := &fake.Clientset{}
-	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
+	controller := okDeploymentController(client, nil, nil, true, corev1.PodUnknown)
 	config := appstest.OkDeploymentConfig(1)
 	deployment, _ := appsutil.MakeDeployment(config)
 	container := controller.makeDeployerContainer(&config.Spec.Strategy)
 	container.Resources = config.Spec.Strategy.Resources
 	defaultGracePeriod := int64(10)
 	defaultShareProcessNamespace := false
-	maxDeploymentDurationSeconds := appsapi.MaxDeploymentDurationSeconds
+	maxDeploymentDurationSeconds := appsutil.MaxDeploymentDurationSeconds
 
 	for i := 1; i <= 25; i++ {
 		seed := rand.Int63()
 		f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), legacyscheme.Codecs)
 		f.Funcs(
-			func(p *kapiv1.PodTemplateSpec, c fuzz.Continue) {
+			func(p *corev1.PodTemplateSpec, c fuzz.Continue) {
 				c.FuzzNoCustom(p)
 				p.Spec.InitContainers = nil
 
 				// These are specific for deployer pod container:
-				p.Spec.Containers = []kapiv1.Container{*container}
+				p.Spec.Containers = []corev1.Container{*container}
 				p.Spec.Containers[0].Name = "deployment"
 				p.Spec.Containers[0].Command = container.Command
 				p.Spec.Containers[0].Args = container.Args
 				p.Spec.Containers[0].Image = container.Image
-				p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, kapiv1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: "config-1"})
-				p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, kapiv1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: "default"})
+				p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, corev1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: "config-1"})
+				p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, corev1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: "default"})
 				p.Spec.Containers[0].Resources = container.Resources
-				p.Spec.Containers[0].ImagePullPolicy = kapiv1.PullIfNotPresent
+				p.Spec.Containers[0].ImagePullPolicy = corev1.PullIfNotPresent
 
 				// These are hardcoded for deployer pod spec
-				p.Spec.RestartPolicy = kapiv1.RestartPolicyNever
+				p.Spec.RestartPolicy = corev1.RestartPolicyNever
 				p.Spec.TerminationGracePeriodSeconds = &defaultGracePeriod
 				p.Spec.ActiveDeadlineSeconds = &maxDeploymentDurationSeconds
 				p.Spec.ServiceAccountName = "sa:test"
@@ -1184,7 +1179,7 @@ func TestMakeDeployerPod(t *testing.T) {
 				p.Spec.ReadinessGates = nil
 			},
 		)
-		inputPodTemplate := &kapiv1.PodTemplateSpec{}
+		inputPodTemplate := &corev1.PodTemplateSpec{}
 		f.Fuzz(&inputPodTemplate)
 		deployment.Spec.Template = inputPodTemplate
 
