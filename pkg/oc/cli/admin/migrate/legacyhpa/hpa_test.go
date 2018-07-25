@@ -15,38 +15,38 @@ func TestDefaultMigrations(t *testing.T) {
 	}{
 		{
 			name:   "legacy-dc",
-			input:  metav1.TypeMeta{"DeploymentConfig", "v1"},
-			output: metav1.TypeMeta{"DeploymentConfig", "apps.openshift.io/v1"},
+			input:  metav1.TypeMeta{Kind: "DeploymentConfig", APIVersion: "v1"},
+			output: metav1.TypeMeta{Kind: "DeploymentConfig", APIVersion: "apps.openshift.io/v1"},
 		},
 		{
 			name:   "console-dc",
-			input:  metav1.TypeMeta{"DeploymentConfig", "extensions/v1beta1"},
-			output: metav1.TypeMeta{"DeploymentConfig", "apps.openshift.io/v1"},
+			input:  metav1.TypeMeta{Kind: "DeploymentConfig", APIVersion: "extensions/v1beta1"},
+			output: metav1.TypeMeta{Kind: "DeploymentConfig", APIVersion: "apps.openshift.io/v1"},
 		},
 		{
 			name:   "console-rc",
-			input:  metav1.TypeMeta{"ReplicationController", "extensions/v1beta1"},
-			output: metav1.TypeMeta{"ReplicationController", "v1"},
+			input:  metav1.TypeMeta{Kind: "ReplicationController", APIVersion: "extensions/v1beta1"},
+			output: metav1.TypeMeta{Kind: "ReplicationController", APIVersion: "v1"},
 		},
 		{
 			name:   "console-deploy",
-			input:  metav1.TypeMeta{"Deployment", "extensions/v1beta1"},
-			output: metav1.TypeMeta{"Deployment", "apps/v1"},
+			input:  metav1.TypeMeta{Kind: "Deployment", APIVersion: "extensions/v1beta1"},
+			output: metav1.TypeMeta{Kind: "Deployment", APIVersion: "apps/v1"},
 		},
 		{
 			name:   "console-rs",
-			input:  metav1.TypeMeta{"ReplicaSet", "extensions/v1beta1"},
-			output: metav1.TypeMeta{"ReplicaSet", "apps/v1"},
+			input:  metav1.TypeMeta{Kind: "ReplicaSet", APIVersion: "extensions/v1beta1"},
+			output: metav1.TypeMeta{Kind: "ReplicaSet", APIVersion: "apps/v1"},
 		},
 		{
 			name:   "ok-dc",
-			input:  metav1.TypeMeta{"DeploymentConfig", "apps.openshift.io/v1"},
-			output: metav1.TypeMeta{"DeploymentConfig", "apps.openshift.io/v1"},
+			input:  metav1.TypeMeta{Kind: "DeploymentConfig", APIVersion: "apps.openshift.io/v1"},
+			output: metav1.TypeMeta{Kind: "DeploymentConfig", APIVersion: "apps.openshift.io/v1"},
 		},
 		{
 			name:   "other",
-			input:  metav1.TypeMeta{"Cheddar", "cheese/v1alpha1"},
-			output: metav1.TypeMeta{"Cheddar", "cheese/v1alpha1"},
+			input:  metav1.TypeMeta{Kind: "Cheddar", APIVersion: "cheese/v1alpha1"},
+			output: metav1.TypeMeta{Kind: "Cheddar", APIVersion: "cheese/v1alpha1"},
 		},
 	}
 
