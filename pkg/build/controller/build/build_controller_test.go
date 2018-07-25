@@ -326,14 +326,12 @@ func TestHandleBuild(t *testing.T) {
 			} else {
 				kubeClient = fakeKubeExternalClientSet()
 			}
-			podDeleted := false
 			podCreated := false
 			kubeClient.(*kexternalclientfake.Clientset).PrependReactor("delete", "pods",
 				func(action clientgotesting.Action) (bool, runtime.Object, error) {
 					if tc.errorOnPodDelete {
 						return true, nil, fmt.Errorf("error")
 					}
-					podDeleted = true
 					return true, nil, nil
 				})
 			kubeClient.(*kexternalclientfake.Clientset).PrependReactor("create", "pods",

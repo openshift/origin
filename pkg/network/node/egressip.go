@@ -161,7 +161,7 @@ func (eip *egressIPWatcher) assignEgressIP(egressIP, mark string) error {
 	go func() {
 		out, err := exec.Command("/sbin/arping", "-q", "-A", "-c", "1", "-I", eip.localEgressLink.Attrs().Name, egressIP).CombinedOutput()
 		if err != nil {
-			glog.Warning("Failed to send ARP claim for egress IP %q: %v (%s)", egressIP, err, string(out))
+			glog.Warningf("Failed to send ARP claim for egress IP %q: %v (%s)", egressIP, err, string(out))
 			return
 		}
 		time.Sleep(2 * time.Second)

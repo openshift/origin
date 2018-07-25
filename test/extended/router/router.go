@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/url"
@@ -83,13 +82,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 			g.By("waiting for the ingress rule to be converted to routes")
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig())
-			var r []routev1.Route
 			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
 				routes, err := client.Route().Routes(ns).List(metav1.ListOptions{})
 				if err != nil {
 					return false, err
 				}
-				r = routes.Items
 				return len(routes.Items) == 4, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())

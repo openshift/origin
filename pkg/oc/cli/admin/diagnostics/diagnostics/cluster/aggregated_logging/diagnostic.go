@@ -3,6 +3,7 @@ package aggregated_logging
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -23,7 +24,6 @@ import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"strings"
 )
 
 // AggregatedLogging is a Diagnostic to check the configurations
@@ -212,7 +212,12 @@ func (d *AggregatedLogging) Check() types.DiagnosticResult {
 
 func (d *AggregatedLogging) AvailableParameters() []types.Parameter {
 	return []types.Parameter{
-		{flagLoggingProject, fmt.Sprintf("Project that has deployed aggregated logging. Default projects: %s", strings.Join(defaultLoggingProjects, " or ")), &d.Project, ""},
+		{
+			Name:        flagLoggingProject,
+			Description: fmt.Sprintf("Project that has deployed aggregated logging. Default projects: %s", strings.Join(defaultLoggingProjects, " or ")),
+			Target:      &d.Project,
+			Default:     "",
+		},
 	}
 }
 

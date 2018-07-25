@@ -298,7 +298,7 @@ func postRuleHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 
 		ruleName := payload.Name
 
-		newRule := f5testing.PolicyRule{[]f5testing.PolicyCondition{}}
+		newRule := f5testing.PolicyRule{Conditions: []f5testing.PolicyCondition{}}
 		f5state.Policies[policy.id()][ruleName] = newRule
 
 		OK(response)
@@ -886,7 +886,7 @@ func postConditionHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 
 		conditions := f5state.Policies[policy.id()][ruleName].Conditions
 		conditions = append(conditions, payload)
-		f5state.Policies[policy.id()][ruleName] = f5testing.PolicyRule{conditions}
+		f5state.Policies[policy.id()][ruleName] = f5testing.PolicyRule{Conditions: conditions}
 
 		OK(response)
 	}

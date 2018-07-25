@@ -6,8 +6,8 @@ import (
 )
 
 func TestTestsToScript(t *testing.T) {
-	tests := []*URLTest{
-		MustURLTest("GET", "https://www.google.com"),
+	tests := []*Test{
+		Expect("GET", "https://www.google.com"),
 	}
 	fmt.Println(testsToScript(tests))
 }

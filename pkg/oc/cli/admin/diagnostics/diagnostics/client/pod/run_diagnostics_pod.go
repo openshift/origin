@@ -55,8 +55,18 @@ func (d *DiagnosticPod) Requirements() (client bool, host bool) {
 
 func (d *DiagnosticPod) AvailableParameters() []types.Parameter {
 	return []types.Parameter{
-		{ImageTemplateParam, "Image template to use in creating a pod", &d.ImageTemplate.Format, variable.NewDefaultImageTemplate().Format},
-		{LatestImageParam, "If true, when expanding the image template, use latest version, not release version", &d.ImageTemplate.Latest, false},
+		{
+			Name:        ImageTemplateParam,
+			Description: "Image template to use in creating a pod",
+			Target:      &d.ImageTemplate.Format,
+			Default:     variable.NewDefaultImageTemplate().Format,
+		},
+		{
+			Name:        LatestImageParam,
+			Description: "If true, when expanding the image template, use latest version, not release version",
+			Target:      &d.ImageTemplate.Latest,
+			Default:     false,
+		},
 	}
 }
 
