@@ -1017,6 +1017,9 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 }
 
 func isOOMKilled(pod *v1.Pod) bool {
+	if pod == nil {
+		return false
+	}
 	if pod.Status.Reason == "OOMKilled" {
 		return true
 	}
