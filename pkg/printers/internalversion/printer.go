@@ -20,6 +20,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -276,7 +277,7 @@ func printBuild(build *buildapi.Build, w io.Writer, opts kprinters.PrintOptions)
 	if len(build.Status.Reason) > 0 {
 		status = fmt.Sprintf("%s (%s)", status, build.Status.Reason)
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, buildapi.StrategyType(build.Spec.Strategy), from, status, created, duration); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, buildapihelpers.StrategyType(build.Spec.Strategy), from, status, created, duration); err != nil {
 		return err
 	}
 	if err := appendItemLabels(build.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
@@ -306,9 +307,29 @@ func describeSourceShort(spec buildapi.CommonSpec) string {
 			from = fmt.Sprintf("%s@%s", from, rev)
 		}
 	default:
-		from = buildapi.SourceType(source)
+		from = buildSourceType(source)
 	}
 	return from
+}
+
+func buildSourceType(source buildapi.BuildSource) string {
+	var sourceType string
+	if source.Git != nil {
+		sourceType = "Git"
+	}
+	if source.Dockerfile != nil {
+		if len(sourceType) != 0 {
+			sourceType = sourceType + ","
+		}
+		sourceType = sourceType + "Dockerfile"
+	}
+	if source.Binary != nil {
+		if len(sourceType) != 0 {
+			sourceType = sourceType + ","
+		}
+		sourceType = sourceType + "Binary"
+	}
+	return sourceType
 }
 
 var nonCommitRev = regexp.MustCompile("[^a-fA-F0-9]")
@@ -330,7 +351,7 @@ func describeSourceGitRevision(spec buildapi.CommonSpec) string {
 
 func printBuildList(buildList *buildapi.BuildList, w io.Writer, opts kprinters.PrintOptions) error {
 	builds := buildList.Items
-	sort.Sort(buildapi.BuildSliceByCreationTimestamp(builds))
+	sort.Sort(buildapihelpers.BuildSliceByCreationTimestamp(builds))
 	for _, build := range builds {
 		if err := printBuild(&build, w, opts); err != nil {
 			return err
@@ -349,7 +370,7 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kprinters.Prin
 				return err
 			}
 		}
-		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildapi.StrategyType(bc.Spec.Strategy), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
+		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildapihelpers.StrategyType(bc.Spec.Strategy), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
 		return err
 	}
 	if opts.WithNamespace {
@@ -357,7 +378,7 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kprinters.Prin
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d", name, buildapi.StrategyType(bc.Spec.Strategy), from, bc.Status.LastVersion); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d", name, buildapihelpers.StrategyType(bc.Spec.Strategy), from, bc.Status.LastVersion); err != nil {
 		return err
 	}
 	if err := appendItemLabels(bc.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {

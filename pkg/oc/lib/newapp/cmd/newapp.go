@@ -27,6 +27,7 @@ import (
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -1191,7 +1192,7 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 		}
 
 		if bc, ok := obj.(*buildapi.BuildConfig); ok {
-			input := buildapi.GetInputReference(bc.Spec.Strategy)
+			input := buildapihelpers.GetInputReference(bc.Spec.Strategy)
 			output := bc.Spec.Output.To
 
 			if output == nil || input == nil {

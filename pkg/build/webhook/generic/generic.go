@@ -14,6 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
@@ -109,7 +110,7 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 
 // GetTriggers retrieves the WebHookTriggers for this webhook type (if any)
 func (p *WebHookPlugin) GetTriggers(buildConfig *buildapi.BuildConfig) ([]*buildapi.WebHookTrigger, error) {
-	triggers := buildapi.FindTriggerPolicy(buildapi.GenericWebHookBuildTriggerType, buildConfig)
+	triggers := buildapihelpers.FindTriggerPolicy(buildapi.GenericWebHookBuildTriggerType, buildConfig)
 	webhookTriggers := []*buildapi.WebHookTrigger{}
 	for _, trigger := range triggers {
 		if trigger.GenericWebHook != nil {

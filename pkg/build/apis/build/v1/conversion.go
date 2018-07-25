@@ -6,6 +6,7 @@ import (
 
 	"github.com/openshift/api/build/v1"
 	newer "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -18,7 +19,7 @@ func Convert_v1_BuildConfig_To_build_BuildConfig(in *v1.BuildConfig, out *newer.
 	// Strip off any default imagechange triggers where the buildconfig's
 	// "from" is not an ImageStreamTag, because those triggers
 	// will never be invoked.
-	imageRef := newer.GetInputReference(out.Spec.Strategy)
+	imageRef := buildapihelpers.GetInputReference(out.Spec.Strategy)
 	hasIST := imageRef != nil && imageRef.Kind == "ImageStreamTag"
 	for _, trigger := range out.Spec.Triggers {
 		if trigger.Type != newer.ImageChangeBuildTriggerType {

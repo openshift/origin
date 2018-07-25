@@ -1,8 +1,10 @@
-package build
+package buildapihelpers
 
 import (
 	"reflect"
 	"testing"
+
+	buildinternalapi "github.com/openshift/origin/pkg/build/apis/build"
 
 	"strings"
 
@@ -10,12 +12,12 @@ import (
 )
 
 func TestFilterBuilds_withEmptyArray(t *testing.T) {
-	actual := FilterBuilds([]Build{}, nil)
+	actual := FilterBuilds([]buildinternalapi.Build{}, nil)
 	assertThatArrayIsEmpty(t, actual)
 }
 
 func TestFilterBuilds_withAllElementsAccepted(t *testing.T) {
-	expected := []Build{
+	expected := []buildinternalapi.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "build1-abc",
@@ -37,7 +39,7 @@ func TestFilterBuilds_withAllElementsAccepted(t *testing.T) {
 }
 
 func TestFilterBuilds_withFilteredElements(t *testing.T) {
-	input := []Build{
+	input := []buildinternalapi.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "skip1-abc",
@@ -55,10 +57,10 @@ func TestFilterBuilds_withFilteredElements(t *testing.T) {
 		},
 	}
 
-	expected := []Build{input[1]}
+	expected := []buildinternalapi.Build{input[1]}
 
 	skipByNamePrefixPredicate := func(arg interface{}) bool {
-		return !strings.HasPrefix(arg.(Build).Name, "skip")
+		return !strings.HasPrefix(arg.(buildinternalapi.Build).Name, "skip")
 	}
 
 	actual := FilterBuilds(input, skipByNamePrefixPredicate)
@@ -66,11 +68,11 @@ func TestFilterBuilds_withFilteredElements(t *testing.T) {
 }
 
 func TestByBuildConfigPredicate_withBuildConfigAnnotation(t *testing.T) {
-	input := []Build{
+	input := []buildinternalapi.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "build1-abc",
-				Annotations: map[string]string{BuildConfigAnnotation: "foo"},
+				Annotations: map[string]string{buildinternalapi.BuildConfigAnnotation: "foo"},
 			},
 		},
 		{
@@ -81,7 +83,7 @@ func TestByBuildConfigPredicate_withBuildConfigAnnotation(t *testing.T) {
 		},
 	}
 
-	expected := []Build{input[0]}
+	expected := []buildinternalapi.Build{input[0]}
 
 	actual := FilterBuilds(input, ByBuildConfigPredicate("foo"))
 	assertThatArraysAreEquals(t, actual, expected)
@@ -91,11 +93,11 @@ func TestByBuildConfigPredicate_withBuildConfigAnnotation(t *testing.T) {
 }
 
 func TestByBuildConfigPredicate_withBuildConfigLabel(t *testing.T) {
-	input := []Build{
+	input := []buildinternalapi.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
-				Labels: map[string]string{BuildConfigLabel: "foo"},
+				Labels: map[string]string{buildinternalapi.BuildConfigLabel: "foo"},
 			},
 		},
 		{
@@ -106,7 +108,7 @@ func TestByBuildConfigPredicate_withBuildConfigLabel(t *testing.T) {
 		},
 	}
 
-	expected := []Build{input[0]}
+	expected := []buildinternalapi.Build{input[0]}
 
 	actual := FilterBuilds(input, ByBuildConfigPredicate("foo"))
 	assertThatArraysAreEquals(t, actual, expected)
@@ -116,11 +118,11 @@ func TestByBuildConfigPredicate_withBuildConfigLabel(t *testing.T) {
 }
 
 func TestByBuildConfigPredicate_withBuildConfigLabelDeprecated(t *testing.T) {
-	input := []Build{
+	input := []buildinternalapi.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
-				Labels: map[string]string{BuildConfigLabelDeprecated: "foo"},
+				Labels: map[string]string{buildinternalapi.BuildConfigLabelDeprecated: "foo"},
 			},
 		},
 		{
@@ -131,7 +133,7 @@ func TestByBuildConfigPredicate_withBuildConfigLabelDeprecated(t *testing.T) {
 		},
 	}
 
-	expected := []Build{input[0]}
+	expected := []buildinternalapi.Build{input[0]}
 
 	actual := FilterBuilds(input, ByBuildConfigPredicate("foo"))
 	assertThatArraysAreEquals(t, actual, expected)
@@ -141,11 +143,11 @@ func TestByBuildConfigPredicate_withBuildConfigLabelDeprecated(t *testing.T) {
 }
 
 func TestByBuildConfigPredicate_withBothBuildConfigLabels(t *testing.T) {
-	input := []Build{
+	input := []buildinternalapi.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
-				Labels: map[string]string{BuildConfigLabel: "foo"},
+				Labels: map[string]string{buildinternalapi.BuildConfigLabel: "foo"},
 			},
 		},
 		{
@@ -157,12 +159,12 @@ func TestByBuildConfigPredicate_withBothBuildConfigLabels(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build3-abc",
-				Labels: map[string]string{BuildConfigLabelDeprecated: "foo"},
+				Labels: map[string]string{buildinternalapi.BuildConfigLabelDeprecated: "foo"},
 			},
 		},
 	}
 
-	expected := []Build{input[0], input[2]}
+	expected := []buildinternalapi.Build{input[0], input[2]}
 
 	actual := FilterBuilds(input, ByBuildConfigPredicate("foo"))
 	assertThatArraysAreEquals(t, actual, expected)
@@ -172,7 +174,7 @@ func TestByBuildConfigPredicate_withBothBuildConfigLabels(t *testing.T) {
 }
 
 func TestByBuildConfigPredicate_withoutBuildConfigLabels(t *testing.T) {
-	input := []Build{
+	input := []buildinternalapi.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
@@ -185,13 +187,13 @@ func TestByBuildConfigPredicate_withoutBuildConfigLabels(t *testing.T) {
 	assertThatArrayIsEmpty(t, actual)
 }
 
-func assertThatArraysAreEquals(t *testing.T, expected, actual []Build) {
+func assertThatArraysAreEquals(t *testing.T, expected, actual []buildinternalapi.Build) {
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("Expected: %v\ngot: %v", expected, actual)
 	}
 }
 
-func assertThatArrayIsEmpty(t *testing.T, array []Build) {
+func assertThatArrayIsEmpty(t *testing.T, array []buildinternalapi.Build) {
 	if len(array) != 0 {
 		t.Errorf("expected empty array, got %v", array)
 	}

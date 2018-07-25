@@ -16,6 +16,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/security/apis/security"
@@ -62,10 +63,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildapi.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildapihelpers.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {

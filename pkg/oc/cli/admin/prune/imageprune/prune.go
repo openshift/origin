@@ -29,6 +29,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
@@ -747,7 +748,7 @@ func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *kapi.ObjectRef
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
 func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *kapi.ObjectReference, strategy buildapi.BuildStrategy, predecessor gonum.Node) []error {
-	from := buildapi.GetInputReference(strategy)
+	from := buildapihelpers.GetInputReference(strategy)
 	if from == nil {
 		glog.V(4).Infof("Unable to determine 'from' reference - skipping")
 		return nil

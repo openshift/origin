@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
 
 // Resolver knows how to resolve the set of candidate objects to prune
@@ -113,8 +114,8 @@ func (o *perBuildConfigResolver) Resolve() ([]*buildapi.Build, error) {
 				failedBuilds = append(failedBuilds, build)
 			}
 		}
-		sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(completeBuilds)))
-		sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(failedBuilds)))
+		sort.Sort(sort.Reverse(buildapihelpers.BuildPtrSliceByCreationTimestamp(completeBuilds)))
+		sort.Sort(sort.Reverse(buildapihelpers.BuildPtrSliceByCreationTimestamp(failedBuilds)))
 
 		if o.keepComplete >= 0 && o.keepComplete < len(completeBuilds) {
 			prunableBuilds = append(prunableBuilds, completeBuilds[o.keepComplete:]...)
