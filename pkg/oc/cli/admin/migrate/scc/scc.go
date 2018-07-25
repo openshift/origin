@@ -29,6 +29,11 @@ const clusterRoleAndBindingNamePrefix = "psp:"
 // This is an equivalent of the SCC.Priority field but applies to PSP and it's required for seamless transition.
 const pspPriorityAnnotationKey = "security.openshift.io/psp-priority"
 
+// Before going v1, Sysctls only appeared in the Annotations field. Since the server can be of an older
+// version, we should make sure that the migration is done properly, meaning the annoations should also
+// be migrated
+const sysctlsPodSecurityPolicyAnnotationKey string = "security.alpha.kubernetes.io/sysctls"
+
 var (
 	internalMigrateSCCShort = "Converts SCCs to similar PSPs"
 	internalMigrateSCCLong  = templates.LongDesc(`
@@ -180,7 +185,7 @@ func (o *MigrateSCCOptions) save(info *resource.Info, reporter migrate.Reporter)
 func convertSccToPsp(scc *securityv1.SecurityContextConstraints) (*policy.PodSecurityPolicy, error) {
 	annotations := make(map[string]string)
 	extractSeccompProfiles(scc, annotations)
-	extractSysctls(scc, annotations)
+	extractSysctlsAnnotation(scc, annotations)
 	extractPriority(scc, annotations)
 
 	selinux, err := extractSELinux(scc)
@@ -203,7 +208,6 @@ func convertSccToPsp(scc *securityv1.SecurityContextConstraints) (*policy.PodSec
 		return nil, err
 	}
 
-	// TODO: migrate DefaultAllowPrivilegeEscalation and AllowPrivilegeEscalation when they will be implemented for SCC
 	// Note that SCCs have "kubernetes.io/description" annotation but looks like no one uses it,
 	// so we don't copy it over
 	return &policy.PodSecurityPolicy{
@@ -212,21 +216,25 @@ func convertSccToPsp(scc *securityv1.SecurityContextConstraints) (*policy.PodSec
 			Annotations: annotations,
 		},
 		Spec: policy.PodSecurityPolicySpec{
-			Privileged:               extractPrivileged(scc),
-			DefaultAddCapabilities:   extractDefaultAddCapabilities(scc),
-			RequiredDropCapabilities: extractRequiredDropCapabilities(scc),
-			AllowedCapabilities:      extractAllowedCapabilities(scc),
-			Volumes:                  extractVolumes(scc),
-			HostNetwork:              extractHostNetwork(scc),
-			HostPorts:                extractHostPorts(scc),
-			HostPID:                  extractHostPID(scc),
-			HostIPC:                  extractHostIPC(scc),
-			SELinux:                  selinux,
-			RunAsUser:                runAsUser,
-			SupplementalGroups:       supplementalGroups,
-			FSGroup:                  fsGroup,
-			ReadOnlyRootFilesystem:   extractReadOnlyRootFilesystem(scc),
-			AllowedFlexVolumes:       extractAllowedFlexVolumes(scc),
+			Privileged:                      extractPrivileged(scc),
+			DefaultAddCapabilities:          extractDefaultAddCapabilities(scc),
+			RequiredDropCapabilities:        extractRequiredDropCapabilities(scc),
+			AllowedCapabilities:             extractAllowedCapabilities(scc),
+			Volumes:                         extractVolumes(scc),
+			HostNetwork:                     extractHostNetwork(scc),
+			HostPorts:                       extractHostPorts(scc),
+			HostPID:                         extractHostPID(scc),
+			HostIPC:                         extractHostIPC(scc),
+			SELinux:                         selinux,
+			RunAsUser:                       runAsUser,
+			SupplementalGroups:              supplementalGroups,
+			FSGroup:                         fsGroup,
+			ReadOnlyRootFilesystem:          extractReadOnlyRootFilesystem(scc),
+			AllowedFlexVolumes:              extractAllowedFlexVolumes(scc),
+			AllowedUnsafeSysctls:            extractAllowedUnsafeSysctls(scc),
+			ForbiddenSysctls:                extractForbiddenSysctls(scc),
+			DefaultAllowPrivilegeEscalation: extractDefaultAllowPrivilegeEscalation(scc),
+			AllowPrivilegeEscalation:        extractAllowPrivilegeEscalation(scc),
 			// AllowedHostPaths exists only in PSP.
 			// Leave it empty, so Kubernetes will use its default value that means "allow all".
 		},

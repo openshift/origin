@@ -6,7 +6,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta "k8s.io/api/policy/v1beta1"
-	internalextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/security/podsecuritypolicy/seccomp"
 
 	securityv1 "github.com/openshift/api/security/v1"
@@ -267,17 +266,33 @@ func extractSeccompProfiles(scc *securityv1.SecurityContextConstraints, annotati
 	}
 }
 
-// Sysctl support is implemented as an annotation in both OpenShift and Kubernetes.
-func extractSysctls(scc *securityv1.SecurityContextConstraints, annotations map[string]string) {
-	sysctls, hasSysctls := scc.Annotations[internalextensions.SysctlsPodSecurityPolicyAnnotationKey]
+func extractAllowedUnsafeSysctls(scc *securityv1.SecurityContextConstraints) []string {
+	return scc.AllowedUnsafeSysctls
+}
+
+func extractForbiddenSysctls(scc *securityv1.SecurityContextConstraints) []string {
+	return scc.ForbiddenSysctls
+}
+
+// Sysctl support is implemented as an annotation in older versions of OpenShift and Kubernetes.
+func extractSysctlsAnnotation(scc *securityv1.SecurityContextConstraints, annotations map[string]string) {
+	sysctls, hasSysctls := scc.Annotations[sysctlsPodSecurityPolicyAnnotationKey]
 	if hasSysctls {
-		annotations[internalextensions.SysctlsPodSecurityPolicyAnnotationKey] = sysctls
+		annotations[sysctlsPodSecurityPolicyAnnotationKey] = sysctls
 	}
 }
 
 // PSP doesn't have priority like SCC does. We hold the value of SCC.Priroty field in a custom annotation.
-func extractPriority(scc *securityapiv1.SecurityContextConstraints, annotations map[string]string) {
+func extractPriority(scc *securityv1.SecurityContextConstraints, annotations map[string]string) {
 	if scc.Priority != nil {
 		annotations[pspPriorityAnnotationKey] = fmt.Sprintf("%d", *scc.Priority)
 	}
+}
+
+func extractDefaultAllowPrivilegeEscalation(scc *securityv1.SecurityContextConstraints) *bool {
+	return scc.DefaultAllowPrivilegeEscalation
+}
+
+func extractAllowPrivilegeEscalation(scc *securityv1.SecurityContextConstraints) *bool {
+	return scc.AllowPrivilegeEscalation
 }

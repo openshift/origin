@@ -8,7 +8,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	internalextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/security/podsecuritypolicy/seccomp"
 
 	securityv1 "github.com/openshift/api/security/v1"
@@ -554,9 +553,47 @@ func TestExtractSeccompProfilesWithWildcardAndNamedProfiles(t *testing.T) {
 	}
 }
 
-func TestExtractSysctls(t *testing.T) {
+func TestExtractAllowedUnsafeSysctls(t *testing.T) {
+	expected := []string{"net.ipv4.route.*", "kernel.msg*"}
+
+	scc := &securityv1.SecurityContextConstraints{
+		AllowedUnsafeSysctls: expected,
+	}
+
+	actual := extractAllowedUnsafeSysctls(scc)
+
+	if len(actual) != len(expected) {
+		t.Errorf("extractAllowedUnsafeSysctls() was expected to read 2 strings, but it read %q instead", actual)
+	}
+	for i := 0; i < len(expected); i++ {
+		if actual[i] != expected[i] {
+			t.Errorf("extractAllowedUnsafeSysctls() was expected to read %q, but it read %q instead", expected, actual)
+		}
+	}
+}
+
+func TestExtractForbiddenSysctls(t *testing.T) {
+	expected := []string{"kernel.shm_rmid_forced", "net.ipv4.ip_local_port_range", "net.ipv4.tcp_syncookies"}
+
+	scc := &securityv1.SecurityContextConstraints{
+		ForbiddenSysctls: expected,
+	}
+
+	actual := extractForbiddenSysctls(scc)
+
+	if len(actual) != len(expected) {
+		t.Errorf("extractForbiddenSysctls() was expected to read 2 strings, but it read %q instead", actual)
+	}
+	for i := 0; i < len(expected); i++ {
+		if actual[i] != expected[i] {
+			t.Errorf("extractForbiddenSysctls() was expected to read %q, but it read %q instead", expected, actual)
+		}
+	}
+}
+
+func TestExtractSysctlsAnnotation(t *testing.T) {
 	expected := "net.ipv4.route.*,kernel.msg*"
-	sysctlsAnnotation := internalextensions.SysctlsPodSecurityPolicyAnnotationKey
+	sysctlsAnnotation := sysctlsPodSecurityPolicyAnnotationKey
 
 	scc := &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
@@ -567,7 +604,7 @@ func TestExtractSysctls(t *testing.T) {
 	}
 
 	annotations := make(map[string]string)
-	extractSysctls(scc, annotations)
+	extractSysctlsAnnotation(scc, annotations)
 
 	actual, hasAnnotation := annotations[sysctlsAnnotation]
 	if !hasAnnotation {
@@ -580,7 +617,7 @@ func TestExtractSysctls(t *testing.T) {
 func TestExtractPriority(t *testing.T) {
 	var priority int32 = 10
 	expected := fmt.Sprintf("%d", priority)
-	scc := &securityapi.SecurityContextConstraints{
+	scc := &securityv1.SecurityContextConstraints{
 		Priority: &priority,
 	}
 
