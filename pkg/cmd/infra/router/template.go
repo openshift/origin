@@ -372,10 +372,7 @@ func (o *TemplateRouterOptions) Run() error {
 			return err
 		}
 		checkController := metrics.ControllerLive()
-		liveChecks := []healthz.HealthzChecker{checkController}
-		if !(isTrue(util.Env("ROUTER_BIND_PORTS_BEFORE_SYNC", ""))) {
-			liveChecks = append(liveChecks, checkBackend)
-		}
+		liveChecks := []healthz.HealthzChecker{checkController, checkBackend}
 
 		kubeconfig, _, err := o.Config.KubeConfig()
 		if err != nil {
