@@ -12,16 +12,16 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	userv1 "github.com/openshift/api/user/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // GroupSyncer runs a Sync job on Groups
 type GroupSyncer interface {
 	// Sync syncs groups in OpenShift with records from an external source
-	Sync() (groupsAffected []*userapi.Group, errors []error)
+	Sync() (groupsAffected []*userv1.Group, errors []error)
 }
 
 // LDAPGroupSyncer sync Groups with records on an external LDAP server
@@ -35,7 +35,7 @@ type LDAPGroupSyncer struct {
 	// Maps an LDAP group enrty to an OpenShift Group's Name
 	GroupNameMapper interfaces.LDAPGroupNameMapper
 	// Allows the Syncer to search for OpenShift Groups
-	GroupClient usertypedclient.GroupInterface
+	GroupClient userv1client.GroupInterface
 	// Host stores the address:port of the LDAP server
 	Host string
 	// DryRun indicates that no changes should be made.
@@ -49,8 +49,8 @@ type LDAPGroupSyncer struct {
 var _ GroupSyncer = &LDAPGroupSyncer{}
 
 // Sync allows the LDAPGroupSyncer to be a GroupSyncer
-func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
-	openshiftGroups := []*userapi.Group{}
+func (s *LDAPGroupSyncer) Sync() ([]*userv1.Group, []error) {
+	openshiftGroups := []*userv1.Group{}
 	var errors []error
 
 	// determine what to sync
@@ -120,7 +120,7 @@ func (s *LDAPGroupSyncer) determineUsernames(members []*ldap.Entry) ([]string, e
 }
 
 // updateOpenShiftGroup creates the OpenShift Group in etcd
-func (s *LDAPGroupSyncer) updateOpenShiftGroup(openshiftGroup *userapi.Group) error {
+func (s *LDAPGroupSyncer) updateOpenShiftGroup(openshiftGroup *userv1.Group) error {
 	if len(openshiftGroup.UID) > 0 {
 		_, err := s.GroupClient.Update(openshiftGroup)
 		return err
@@ -131,7 +131,7 @@ func (s *LDAPGroupSyncer) updateOpenShiftGroup(openshiftGroup *userapi.Group) er
 }
 
 // makeOpenShiftGroup creates the OpenShift Group object that needs to be updated, updates its data
-func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []string) (*userapi.Group, error) {
+func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []string) (*userv1.Group, error) {
 	hostIP, _, err := net.SplitHostPort(s.Host)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []st
 
 	group, err := s.GroupClient.Get(groupName, metav1.GetOptions{})
 	if kapierrors.IsNotFound(err) {
-		group = &userapi.Group{}
+		group = &userv1.Group{}
 		group.Name = groupName
 		group.Annotations = map[string]string{
 			ldaputil.LDAPURLAnnotation: s.Host,

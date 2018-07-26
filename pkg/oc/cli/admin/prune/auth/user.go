@@ -4,28 +4,28 @@ import (
 	"fmt"
 	"io"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	authv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 func reapForUser(
-	userClient userclient.Interface,
-	authorizationClient authclient.Interface,
-	oauthClient oauthclient.Interface,
-	securityClient securitytypedclient.SecurityContextConstraintsInterface,
+	userClient userv1client.UserV1Interface,
+	authorizationClient authv1client.AuthorizationV1Interface,
+	oauthClient oauthv1client.OauthV1Interface,
+	securityClient securityv1client.SecurityContextConstraintsInterface,
 	name string,
 	out io.Writer) error {
 
 	errors := []error{}
 
-	removedSubject := kapi.ObjectReference{Kind: "User", Name: name}
+	removedSubject := corev1.ObjectReference{Kind: "User", Name: name}
 	errors = append(errors, reapClusterBindings(removedSubject, authorizationClient, out)...)
 	errors = append(errors, reapNamespacedBindings(removedSubject, authorizationClient, out)...)
 
@@ -53,7 +53,7 @@ func reapForUser(
 	}
 
 	// Remove the user from groups
-	groups, err := userClient.User().Groups().List(metav1.ListOptions{})
+	groups, err := userClient.Groups().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func reapForUser(
 		if len(retainedUsers) != len(group.Users) {
 			updatedGroup := group
 			updatedGroup.Users = retainedUsers
-			if _, err := userClient.User().Groups().Update(&updatedGroup); err != nil && !kerrors.IsNotFound(err) {
+			if _, err := userClient.Groups().Update(&updatedGroup); err != nil && !kerrors.IsNotFound(err) {
 				errors = append(errors, err)
 			} else {
 				fmt.Fprintf(out, "group.user.openshift.io/"+updatedGroup.Name+" updated\n")
@@ -78,13 +78,13 @@ func reapForUser(
 	// Remove the user's OAuthClientAuthorizations
 	// Once https://github.com/kubernetes/kubernetes/pull/28112 is fixed, use a field selector
 	// to filter on the userName, rather than fetching all authorizations and filtering client-side
-	authorizations, err := oauthClient.Oauth().OAuthClientAuthorizations().List(metav1.ListOptions{})
+	authorizations, err := oauthClient.OAuthClientAuthorizations().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	for _, authorization := range authorizations.Items {
 		if authorization.UserName == name {
-			if err := oauthClient.Oauth().OAuthClientAuthorizations().Delete(authorization.Name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
+			if err := oauthClient.OAuthClientAuthorizations().Delete(authorization.Name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 				errors = append(errors, err)
 			} else {
 				fmt.Fprintf(out, "oauthclientauthorization.oauth.openshift.io/"+authorization.Name+" updated\n")

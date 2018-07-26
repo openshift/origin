@@ -20,6 +20,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
@@ -29,8 +30,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/groupsync"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror"
-	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const SyncRecommendedName = "sync"
@@ -97,7 +96,7 @@ type SyncOptions struct {
 	Confirm bool
 
 	// GroupInterface is the interface used to interact with OpenShift Group objects
-	GroupInterface usertypedclient.GroupInterface
+	GroupInterface userv1client.GroupInterface
 
 	// Stderr is the writer to write warnings and errors to
 	Stderr io.Writer
@@ -226,11 +225,11 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 	if err != nil {
 		return err
 	}
-	userClient, err := userclientinternal.NewForConfig(clientConfig)
+	userClient, err := userv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.GroupInterface = userClient.User().Groups()
+	o.GroupInterface = userClient.Groups()
 
 	return nil
 }
@@ -506,7 +505,7 @@ func (o *SyncOptions) GetBlacklist() []string {
 	return o.Blacklist
 }
 
-func (o *SyncOptions) GetClient() usertypedclient.GroupInterface {
+func (o *SyncOptions) GetClient() userv1client.GroupInterface {
 	return o.GroupInterface
 }
 
