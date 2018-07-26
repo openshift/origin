@@ -15,6 +15,8 @@ import (
 	diffutil "k8s.io/apimachinery/pkg/util/diff"
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
+
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 func TestModifyNamedClusterRoleBinding(t *testing.T) {
@@ -634,6 +636,8 @@ func TestModifyRoleBindingWarnings(t *testing.T) {
 		userNotFoundWarning           = "Warning: User 'tbd-user-0' not found\n"
 		groupNotFoundWarning          = "Warning: Group 'tbd-group-0' not found\n"
 		serviceAccountNotFoundWarning = "Warning: ServiceAccount 'tbd-serviceaccount-0' not found\n"
+
+		builtinAuthenticatedGroup     = user.AllAuthenticated
 	)
 	var (
 		boundSubjects = []rbacv1.Subject{
@@ -918,6 +922,42 @@ func TestModifyRoleBindingWarnings(t *testing.T) {
 								Name: newRoleBindingName, Namespace: currentNamespace},
 							Subjects: []rbacv1.Subject{
 								{APIGroup: rbacv1.GroupName, Kind: rbacv1.GroupKind, Name: existingGroupName}},
+							RoleRef: rbacv1.RoleRef{
+								APIGroup: rbacv1.GroupName, Kind: "Role", Name: existingRoleName},
+						},
+					},
+				},
+				clusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+					Items: []rbacv1.ClusterRoleBinding{existingClusterRoleBinding},
+				},
+			},
+		},
+		{
+			name:         "add-role-to-group",
+			subtest:      "no-warning-needed",
+			initialState: defaultInitialState,
+			inputs: cmdInputs{
+				roleKind:        "Role",
+				roleName:        existingRoleName,
+				roleBindingName: newRoleBindingName,
+				roleNamespace:   currentNamespace,
+				userNames:       []string{},
+				serviceAccounts: []rbacv1.Subject{},
+				groupNames:      []string{builtinAuthenticatedGroup},
+			},
+			expectedOutputs: cmdOutputs{
+				warnings: []string{},
+			},
+			expectedState: clusterState{
+				roleBindings: &rbacv1.RoleBindingList{
+					Items: []rbacv1.RoleBinding{
+						existingRoleBinding,
+						existingNamespacedRoleBinding,
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: newRoleBindingName, Namespace: currentNamespace},
+							Subjects: []rbacv1.Subject{
+								{APIGroup: rbacv1.GroupName, Kind: rbacv1.GroupKind, Name: builtinAuthenticatedGroup}},
 							RoleRef: rbacv1.RoleRef{
 								APIGroup: rbacv1.GroupName, Kind: "Role", Name: existingRoleName},
 						},

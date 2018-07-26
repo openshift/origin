@@ -20,6 +20,8 @@ import (
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
+
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 const (
@@ -577,6 +579,17 @@ func (o *RoleModificationOptions) AddRole() error {
 	}
 	existingSubjects := roleBinding.Subjects()
 	newSubjects := addSubjects(o.Users, o.Groups, o.Subjects, existingSubjects)
+	systemGroups := map[string]bool{
+		user.SystemPrivilegedGroup: true,
+		user.NodesGroup:            true,
+		user.AllUnauthenticated:    true,
+		user.AllAuthenticated:      true,
+		user.Anonymous:             true,
+		user.APIServerUser:         true,
+		user.KubeProxy:             true,
+		user.KubeControllerManager: true,
+		user.KubeScheduler:         true,
+	}
 	// warn if any new subject does not exist, skipping existing subjects on the binding
 	if o.PrintErrf != nil {
 		// `addSubjects` appends new subjects onto the list of existing ones, skip over the existing ones
@@ -593,6 +606,9 @@ func (o *RoleModificationOptions) AddRole() error {
 				}
 			case rbacv1.GroupKind:
 				if o.UserClient != nil {
+					if _, ok := systemGroups[newSubject.Name]; ok {
+						continue
+					}
 					_, err = o.UserClient.Groups().Get(newSubject.Name, metav1.GetOptions{})
 				}
 			}
