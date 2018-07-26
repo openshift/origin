@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	"github.com/golang/glog"
 	routev1 "github.com/openshift/api/route/v1"
 )
 
@@ -25,6 +26,8 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 
 	svc, err := kc.Core().Services(namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
+		glog.V(4).Infof("error getting service %q in namespace %q: %v", serviceName, namespace, err)
+
 		if len(portString) == 0 {
 			return nil, fmt.Errorf("you need to provide a route port via --port when exposing a non-existent service")
 		}

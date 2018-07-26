@@ -62,7 +62,6 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when running with the haproxy config manager", func() {
-			g.Skip("TODO: This test is flaking, fix it")
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
@@ -119,7 +118,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 						serviceName = "insecure-service"
 					}
 
-					err := oc.AsAdmin().Run("create").Args("route", t, name, "--service", serviceName, "--hostname", hostName).Execute()
+					err := oc.AsAdmin().Run("create").Args("route", t, name, "--loglevel=4", "--service", serviceName, "--hostname", hostName).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = oc.AsAdmin().Run("label").Args("route", name, "select=haproxy-cfgmgr").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
