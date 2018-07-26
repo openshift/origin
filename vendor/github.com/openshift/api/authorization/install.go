@@ -5,6 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
+	authorizationv1alpha1 "github.com/openshift/api/authorization/v1alpha1"
 )
 
 const (
@@ -12,7 +13,7 @@ const (
 )
 
 var (
-	schemeBuilder = runtime.NewSchemeBuilder(authorizationv1.Install)
+	schemeBuilder = runtime.NewSchemeBuilder(authorizationv1.Install, authorizationv1alpha1.Install)
 	// Install is a function which adds every version of this group to a scheme
 	Install = schemeBuilder.AddToScheme
 )

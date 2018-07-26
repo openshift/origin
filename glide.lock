@@ -1,5 +1,5 @@
-hash: a2c79e128028aab55833eb434e44e9c3a61f438d0bbc35e0e01054c43cca58be
-updated: 2018-07-24T10:48:47.407904-04:00
+hash: 5c0a13925ec36691fb020c3f90935ae2a72c3844ebfc8c017c51c1c92f6ea049
+updated: 2018-07-24T20:46:02.417658305-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -819,14 +819,17 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: fc4c02c9169b85b9a80353f11ac15ce542a0944a
+  version: 1ad0bfb06897123d2c3218d4786479aa4585f032
+  repo: https://github.com/enj/api.git
   subpackages:
   - apps
   - apps/v1
   - authorization
   - authorization/v1
+  - authorization/v1alpha1
   - build
   - build/v1
+  - config
   - config/v1
   - image
   - image/docker10
@@ -836,6 +839,7 @@ imports:
   - network/v1
   - oauth
   - oauth/v1
+  - operator
   - operator/v1alpha1
   - pkg/serialization
   - project
@@ -846,14 +850,17 @@ imports:
   - route/v1
   - security
   - security/v1
+  - servicecertsigner
   - servicecertsigner/v1alpha1
   - template
   - template/v1
   - user
   - user/v1
+  - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 5b198a036f098f34fbf0c42768382d80708cd2a9
+  version: e0e58f3e405d4d68b69c0af1f13b6e6086d7da2b
+  repo: https://github.com/enj/client-go.git
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -868,11 +875,15 @@ imports:
   - authorization/clientset/versioned/scheme
   - authorization/clientset/versioned/typed/authorization/v1
   - authorization/clientset/versioned/typed/authorization/v1/fake
+  - authorization/clientset/versioned/typed/authorization/v1alpha1
+  - authorization/clientset/versioned/typed/authorization/v1alpha1/fake
   - authorization/informers/externalversions
   - authorization/informers/externalversions/authorization
   - authorization/informers/externalversions/authorization/v1
+  - authorization/informers/externalversions/authorization/v1alpha1
   - authorization/informers/externalversions/internalinterfaces
   - authorization/listers/authorization/v1
+  - authorization/listers/authorization/v1alpha1
   - build/clientset/versioned
   - build/clientset/versioned/fake
   - build/clientset/versioned/scheme
@@ -1853,7 +1864,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 247ad078b18cc00ef0dd65daacf7ff84a280298a
+  version: 28c8fa4796688acace68c19ff33d603adac77d91
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2187,6 +2198,7 @@ imports:
   - pkg/kubectl/cmd/wait
   - pkg/kubectl/explain
   - pkg/kubectl/genericclioptions
+  - pkg/kubectl/genericclioptions/openshiftpatch
   - pkg/kubectl/genericclioptions/printers
   - pkg/kubectl/genericclioptions/resource
   - pkg/kubectl/metricsutil

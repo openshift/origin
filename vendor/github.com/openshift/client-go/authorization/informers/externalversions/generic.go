@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	v1 "github.com/openshift/api/authorization/v1"
+	v1alpha1 "github.com/openshift/api/authorization/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -47,6 +48,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().RoleBindings().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("rolebindingrestrictions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().RoleBindingRestrictions().Informer()}, nil
+
+		// Group=authorization.openshift.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("accessrestrictions"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1alpha1().AccessRestrictions().Informer()}, nil
 
 	}
 

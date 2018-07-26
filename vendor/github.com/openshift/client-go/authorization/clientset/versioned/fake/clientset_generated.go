@@ -6,6 +6,8 @@ import (
 	clientset "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationv1 "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	fakeauthorizationv1 "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1/fake"
+	authorizationv1alpha1 "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1alpha1"
+	fakeauthorizationv1alpha1 "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -63,4 +65,9 @@ func (c *Clientset) AuthorizationV1() authorizationv1.AuthorizationV1Interface {
 // Authorization retrieves the AuthorizationV1Client
 func (c *Clientset) Authorization() authorizationv1.AuthorizationV1Interface {
 	return &fakeauthorizationv1.FakeAuthorizationV1{Fake: &c.Fake}
+}
+
+// AuthorizationV1alpha1 retrieves the AuthorizationV1alpha1Client
+func (c *Clientset) AuthorizationV1alpha1() authorizationv1alpha1.AuthorizationV1alpha1Interface {
+	return &fakeauthorizationv1alpha1.FakeAuthorizationV1alpha1{Fake: &c.Fake}
 }

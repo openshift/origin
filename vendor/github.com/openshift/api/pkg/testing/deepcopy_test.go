@@ -14,7 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	apps "github.com/openshift/api/apps/v1"
-	authorization "github.com/openshift/api/authorization/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	authorizationv1alpha1 "github.com/openshift/api/authorization/v1alpha1"
 	build "github.com/openshift/api/build/v1"
 	image "github.com/openshift/api/image/v1"
 	network "github.com/openshift/api/network/v1"
@@ -28,18 +29,19 @@ import (
 )
 
 var groups = map[schema.GroupVersion]func(*runtime.Scheme) error{
-	apps.GroupVersion:          apps.Install,
-	authorization.GroupVersion: authorization.Install,
-	build.GroupVersion:         build.Install,
-	image.GroupVersion:         image.Install,
-	network.GroupVersion:       network.Install,
-	oauth.GroupVersion:         oauth.Install,
-	project.GroupVersion:       project.Install,
-	quota.GroupVersion:         quota.Install,
-	route.GroupVersion:         route.Install,
-	security.GroupVersion:      security.Install,
-	template.GroupVersion:      template.Install,
-	user.GroupVersion:          user.Install,
+	apps.GroupVersion:                  apps.Install,
+	authorizationv1.GroupVersion:       authorizationv1.Install,
+	authorizationv1alpha1.GroupVersion: authorizationv1alpha1.Install,
+	build.GroupVersion:                 build.Install,
+	image.GroupVersion:                 image.Install,
+	network.GroupVersion:               network.Install,
+	oauth.GroupVersion:                 oauth.Install,
+	project.GroupVersion:               project.Install,
+	quota.GroupVersion:                 quota.Install,
+	route.GroupVersion:                 route.Install,
+	security.GroupVersion:              security.Install,
+	template.GroupVersion:              template.Install,
+	user.GroupVersion:                  user.Install,
 }
 
 // TestRoundTripTypesWithoutProtobuf applies the round-trip test to all round-trippable Kinds
