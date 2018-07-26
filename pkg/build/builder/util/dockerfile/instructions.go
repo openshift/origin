@@ -33,6 +33,11 @@ func Label(m []KeyValue) (string, error) {
 	return keyValueInstruction(command.Label, m)
 }
 
+// Run builds a RUN Dockerfile instruction from the string cmd.
+func Run(cmd string) (string, error) {
+	return unquotedArgsInstruction(command.Run, cmd)
+}
+
 // keyValueInstruction builds a Dockerfile instruction from the mapping m. Keys
 // and values are serialized as JSON strings to ensure compatibility with the
 // Dockerfile parser. Syntax:
