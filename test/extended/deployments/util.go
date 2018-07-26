@@ -33,9 +33,9 @@ import (
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	"github.com/openshift/origin/pkg/apps/apiserver/registry/deploylog"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	"github.com/openshift/origin/pkg/apps/registry/deploylog"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )

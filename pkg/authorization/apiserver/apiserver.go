@@ -16,17 +16,17 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	authorizationapiv1 "github.com/openshift/api/authorization/v1"
-	"github.com/openshift/origin/pkg/authorization/registry/clusterrole"
-	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
-	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/localsubjectaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/role"
-	"github.com/openshift/origin/pkg/authorization/registry/rolebinding"
-	rolebindingrestrictionetcd "github.com/openshift/origin/pkg/authorization/registry/rolebindingrestriction/etcd"
-	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/clusterrole"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/clusterrolebinding"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/localresourceaccessreview"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/localsubjectaccessreview"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/resourceaccessreview"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/role"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/rolebinding"
+	rolebindingrestrictionetcd "github.com/openshift/origin/pkg/authorization/apiserver/registry/rolebindingrestriction/etcd"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/selfsubjectrulesreview"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/authorization/apiserver/registry/subjectrulesreview"
 )
 
 type ExtraConfig struct {

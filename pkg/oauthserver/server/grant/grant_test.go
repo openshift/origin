@@ -18,7 +18,7 @@ import (
 
 	oapi "github.com/openshift/api/oauth/v1"
 	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
-	oauthclientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	oauthclientregistry "github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
 

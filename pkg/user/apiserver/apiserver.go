@@ -11,10 +11,10 @@ import (
 
 	userapiv1 "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
-	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
-	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
-	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
-	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
+	groupetcd "github.com/openshift/origin/pkg/user/apiserver/registry/group/etcd"
+	identityetcd "github.com/openshift/origin/pkg/user/apiserver/registry/identity/etcd"
+	useretcd "github.com/openshift/origin/pkg/user/apiserver/registry/user/etcd"
+	"github.com/openshift/origin/pkg/user/apiserver/registry/useridentitymapping"
 )
 
 type ExtraConfig struct {

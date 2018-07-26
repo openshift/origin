@@ -12,10 +12,10 @@ import (
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
-	brokertemplateinstanceetcd "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance/etcd"
-	templateregistry "github.com/openshift/origin/pkg/template/registry/template"
-	templateetcd "github.com/openshift/origin/pkg/template/registry/template/etcd"
-	templateinstanceetcd "github.com/openshift/origin/pkg/template/registry/templateinstance/etcd"
+	brokertemplateinstanceetcd "github.com/openshift/origin/pkg/template/apiserver/registry/brokertemplateinstance/etcd"
+	templateregistry "github.com/openshift/origin/pkg/template/apiserver/registry/template"
+	templateetcd "github.com/openshift/origin/pkg/template/apiserver/registry/template/etcd"
+	templateinstanceetcd "github.com/openshift/origin/pkg/template/apiserver/registry/templateinstance/etcd"
 )
 
 type ExtraConfig struct {

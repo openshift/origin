@@ -12,8 +12,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	routeapiv1 "github.com/openshift/api/route/v1"
+	routeetcd "github.com/openshift/origin/pkg/route/apiserver/registry/route/etcd"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
-	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 )
 
