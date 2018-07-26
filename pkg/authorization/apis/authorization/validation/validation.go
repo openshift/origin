@@ -397,15 +397,17 @@ func ValidateAccessRestrictionSpec(spec *authorizationapi.AccessRestrictionSpec,
 	}
 
 	for i, rule := range spec.MatchAttributes {
-		allErrs = append(allErrs, rbacvalidation.ValidatePolicyRule(rule, false, fld.Child("matchAttributes").Index(i))...)
+		attributePath := fld.Child("matchAttributes").Index(i)
+
+		allErrs = append(allErrs, rbacvalidation.ValidatePolicyRule(rule, false, attributePath)...)
+
+		if len(rule.NonResourceURLs) != 0 {
+			allErrs = append(allErrs, field.Invalid(attributePath.Child("nonResourceURLs"), rule.NonResourceURLs, "nonResourceURLs cannot be specified"))
+		}
 	}
 
-	if len(spec.AllowedSubjects) == 0 && len(spec.DeniedSubjects) == 0 {
-		allErrs = append(allErrs, field.Required(fld.Child("allowedSubjects"), "either allowedSubjects or deniedSubjects must be specified"))
-	}
-
-	if len(spec.AllowedSubjects) != 0 && len(spec.DeniedSubjects) != 0 {
-		allErrs = append(allErrs, field.Invalid(fld.Child("deniedSubjects"), "<omitted>", "both allowedSubjects and deniedSubjects cannot be specified"))
+	if len(spec.DeniedSubjects) == 0 {
+		allErrs = append(allErrs, field.Required(fld.Child("deniedSubjects"), "deniedSubjects must be specified"))
 	}
 
 	for i, subjectMatcher := range spec.AllowedSubjects {

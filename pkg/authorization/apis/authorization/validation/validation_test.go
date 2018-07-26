@@ -408,6 +408,13 @@ func TestValidateAccessRestriction(t *testing.T) {
 								},
 							},
 						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"system:authenticated", "system:unauthenticated"},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -547,7 +554,7 @@ func TestValidateAccessRestriction(t *testing.T) {
 				},
 			},
 			want: field.ErrorList{
-				{Type: field.ErrorTypeRequired, Field: "spec.allowedSubjects", BadValue: "", Detail: "either allowedSubjects or deniedSubjects must be specified"},
+				{Type: field.ErrorTypeRequired, Field: "spec.deniedSubjects", BadValue: "", Detail: "deniedSubjects must be specified"},
 			},
 		},
 		{
@@ -582,9 +589,7 @@ func TestValidateAccessRestriction(t *testing.T) {
 					},
 				},
 			},
-			want: field.ErrorList{
-				{Type: field.ErrorTypeInvalid, Field: "spec.deniedSubjects", BadValue: "<omitted>", Detail: "both allowedSubjects and deniedSubjects cannot be specified"},
-			},
+			want: field.ErrorList{},
 		},
 		{
 			name: "both user and group subject matcher",
@@ -603,6 +608,13 @@ func TestValidateAccessRestriction(t *testing.T) {
 						},
 						AllowedSubjects: []authorizationapi.SubjectMatcher{
 							{},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"system:authenticated", "system:unauthenticated"},
+								},
+							},
 						},
 					},
 				},
@@ -647,6 +659,13 @@ func TestValidateAccessRestriction(t *testing.T) {
 								},
 								GroupRestriction: &authorizationapi.GroupRestriction{
 									Groups: []string{"jobGroup"},
+								},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"system:authenticated", "system:unauthenticated"},
 								},
 							},
 						},
@@ -739,6 +758,13 @@ func TestValidateAccessRestriction(t *testing.T) {
 											},
 										},
 									},
+								},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"system:authenticated", "system:unauthenticated"},
 								},
 							},
 						},
