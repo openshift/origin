@@ -1,11 +1,13 @@
 package validation
 
 import (
+	"reflect"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
@@ -372,5 +374,573 @@ func TestValidateRoleUpdate(t *testing.T) {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
+	}
+}
+
+func TestValidateAccessRestriction(t *testing.T) {
+	type args struct {
+		obj *authorizationapi.AccessRestriction
+	}
+	tests := []struct {
+		name string
+		args args
+		want field.ErrorList
+	}{
+		{
+			name: "valid allowed subjects",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "whitelist-write-jobs",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+								APIGroups: []string{"batch"},
+								Resources: []string{"jobs"},
+							},
+						},
+						AllowedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Groups: []string{"jobGroup"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{},
+		},
+		{
+			name: "valid denied subjects",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "blacklist-label-get-pods",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"list"},
+								APIGroups: []string{""},
+								Resources: []string{"pods"},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"non-admins"},
+								},
+							},
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Selectors: []metav1.LabelSelector{
+										{
+											MatchLabels: map[string]string{
+												"alsobad": "yup",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{},
+		},
+		{
+			name: "invalid object meta",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"get"},
+								APIGroups: []string{""},
+								Resources: []string{"pods"},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"non-admins"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "metadata.name", BadValue: "", Detail: "name or generateName is required"},
+			},
+		},
+		{
+			name: "missing match attributes",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"group"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.matchAttributes", BadValue: "", Detail: "must supply at least one policy rule"},
+			},
+		},
+		{
+			name: "invalid policy rule and user restriction",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"list"},
+								Resources: []string{"pods"},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.matchAttributes[0].apiGroups", BadValue: "", Detail: "resource rules must supply at least one api group"},
+				{Type: field.ErrorTypeRequired, Field: "spec.deniedSubjects[0].userRestriction.users", BadValue: "", Detail: "must specify at least one user, group, or label selector"},
+			},
+		},
+		{
+			name: "missing subject matcher",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"get"},
+								APIGroups: []string{""},
+								Resources: []string{"pods"},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.allowedSubjects", BadValue: "", Detail: "either allowedSubjects or deniedSubjects must be specified"},
+			},
+		},
+		{
+			name: "both allow and deny subject matcher",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"get"},
+								APIGroups: []string{""},
+								Resources: []string{"pods"},
+							},
+						},
+						AllowedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"group"},
+								},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Groups: []string{"group"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeInvalid, Field: "spec.deniedSubjects", BadValue: "<omitted>", Detail: "both allowedSubjects and deniedSubjects cannot be specified"},
+			},
+		},
+		{
+			name: "both user and group subject matcher",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"create"},
+								APIGroups: []string{"batch"},
+								Resources: []string{"jobs"},
+							},
+						},
+						AllowedSubjects: []authorizationapi.SubjectMatcher{
+							{},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeInvalid, Field: "spec.allowedSubjects[0].userRestriction", BadValue: "<omitted>", Detail: "either userRestriction or groupRestriction must be specified"},
+			},
+		},
+		{
+			name: "both user and group subject matcher, allowed subjects",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"create"},
+								APIGroups: []string{"batch"},
+								Resources: []string{"jobs"},
+							},
+						},
+						AllowedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{},
+							},
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Selectors: []metav1.LabelSelector{
+										{
+											MatchLabels: map[string]string{
+												"foo": "+",
+											},
+										},
+									},
+								},
+							},
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"jobGroup"},
+								},
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Groups: []string{"jobGroup"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.allowedSubjects[0].userRestriction.users", BadValue: "", Detail: "must specify at least one user, group, or label selector"},
+				{Type: field.ErrorTypeInvalid, Field: "spec.allowedSubjects[1].userRestriction.labels[0].matchLabels", BadValue: "+",
+					Detail: "a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character " +
+						"(e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')"},
+				{Type: field.ErrorTypeInvalid, Field: "spec.allowedSubjects[2].groupRestriction", BadValue: "<omitted>", Detail: "both userRestriction and groupRestriction cannot be specified"},
+			},
+		},
+		{
+			name: "both user and group subject matcher, denied subjects",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"create"},
+								APIGroups: []string{"batch"},
+								Resources: []string{"jobs"},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{},
+							},
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Selectors: []metav1.LabelSelector{
+										{
+											MatchLabels: map[string]string{
+												"foo": "+",
+											},
+										},
+									},
+								},
+							},
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"jobGroup"},
+								},
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Groups: []string{"jobGroup"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.deniedSubjects[0].userRestriction.users", BadValue: "", Detail: "must specify at least one user, group, or label selector"},
+				{Type: field.ErrorTypeInvalid, Field: "spec.deniedSubjects[1].userRestriction.labels[0].matchLabels", BadValue: "+",
+					Detail: "a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character " +
+						"(e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')"},
+				{Type: field.ErrorTypeInvalid, Field: "spec.deniedSubjects[2].groupRestriction", BadValue: "<omitted>", Detail: "both userRestriction and groupRestriction cannot be specified"},
+			},
+		},
+		{
+			name: "subject matcher, allowed subjects, group restriction",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"create"},
+								APIGroups: []string{"batch"},
+								Resources: []string{"jobs"},
+							},
+						},
+						AllowedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{},
+							},
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Selectors: []metav1.LabelSelector{
+										{
+											MatchLabels: map[string]string{
+												"foo": "+",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.allowedSubjects[0].groupRestriction.groups", BadValue: "", Detail: "must specify at least one group or label selector"},
+				{Type: field.ErrorTypeInvalid, Field: "spec.allowedSubjects[1].groupRestriction.labels[0].matchLabels", BadValue: "+",
+					Detail: "a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character " +
+						"(e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')"},
+			},
+		},
+		{
+			name: "subject matcher, denied subjects, group restriction",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"create"},
+								APIGroups: []string{"batch"},
+								Resources: []string{"jobs"},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{},
+							},
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Selectors: []metav1.LabelSelector{
+										{
+											MatchLabels: map[string]string{
+												"foo": "+",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.deniedSubjects[0].groupRestriction.groups", BadValue: "", Detail: "must specify at least one group or label selector"},
+				{Type: field.ErrorTypeInvalid, Field: "spec.deniedSubjects[1].groupRestriction.labels[0].matchLabels", BadValue: "+",
+					Detail: "a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character " +
+						"(e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ValidateAccessRestriction(tt.args.obj); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ValidateAccessRestriction() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidateAccessRestrictionUpdate(t *testing.T) {
+	type args struct {
+		obj *authorizationapi.AccessRestriction
+		old *authorizationapi.AccessRestriction
+	}
+	tests := []struct {
+		name string
+		args args
+		want field.ErrorList
+	}{
+		{
+			name: "change from whitelist to blacklist",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:            "some-name",
+						ResourceVersion: "1",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"educate"},
+								APIGroups: []string{""},
+								Resources: []string{"dolphins"},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Users: []string{"liggitt"},
+								},
+							},
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Groups: []string{"pandas"},
+								},
+							},
+						},
+					},
+				},
+				old: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "some-name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+								APIGroups: []string{"batch"},
+								Resources: []string{"jobs"},
+							},
+						},
+						AllowedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Groups: []string{"jobGroup"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{},
+		},
+		{
+			name: "invalid object metadata update name",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:            "some-other-name",
+						ResourceVersion: "1",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"list"},
+								APIGroups: []string{""},
+								Resources: []string{"pods"},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Selectors: []metav1.LabelSelector{
+										{
+											MatchLabels: map[string]string{
+												"bad": "yes",
+											},
+										},
+									},
+								},
+							},
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Selectors: []metav1.LabelSelector{
+										{
+											MatchLabels: map[string]string{
+												"alsobad": "yup",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				old: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "some-name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+								APIGroups: []string{"batch"},
+								Resources: []string{"jobs"},
+							},
+						},
+						AllowedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								GroupRestriction: &authorizationapi.GroupRestriction{
+									Groups: []string{"jobGroup"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeInvalid, Field: "metadata.name", BadValue: "some-other-name", Detail: "field is immutable"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ValidateAccessRestrictionUpdate(tt.args.obj, tt.args.old); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ValidateAccessRestrictionUpdate() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

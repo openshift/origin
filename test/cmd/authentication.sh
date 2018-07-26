@@ -103,7 +103,11 @@ os::cmd::expect_success_and_text 'oc get --raw /healthz --as=user3' 'ok'
 # TODO validate controller
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/authentication/scopedtokens"
-
+os::test::junit::declare_suite_start 'cmd/authentication/accessrestrictions'
+# make sure we can interact with access restrictions via oc and YAML
+os::cmd::expect_success_and_text "oc create -f '${OS_ROOT}/test/testdata/accessrestriction.yaml'" 'accessrestriction.authorization.openshift.io/bad-user created'
+os::cmd::expect_success_and_text 'oc get accessrestriction bad-user -o=jsonpath={.spec.deniedSubjects[*].userRestriction.labels[*].matchLabels.bad}' 'yes'
+os::cmd::expect_success_and_text 'oc delete accessrestriction bad-user' 'accessrestriction.authorization.openshift.io "bad-user" deleted'
+os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end

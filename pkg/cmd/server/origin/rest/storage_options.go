@@ -46,8 +46,10 @@ func StorageOptions(options configapi.MasterConfig) (restoptions.Getter, error) 
 			{Resource: "netnamespaces"}:                                        "registry/sdnnetnamespaces",
 			{Resource: "netnamespaces", Group: "network.openshift.io"}:         "registry/sdnnetnamespaces",
 		},
-		// storage versions: no overrides anymore
-		map[schema.GroupResource]schema.GroupVersion{},
+		// storage versions: use v1alpha1 instead of v1 for accessrestrictions
+		map[schema.GroupResource]schema.GroupVersion{
+			{Group: "authorization.openshift.io", Resource: "accessrestrictions"}: {Group: "authorization.openshift.io", Version: "v1alpha1"},
+		},
 		// quorum resources:
 		map[schema.GroupResource]struct{}{
 			{Resource: "oauthauthorizetokens"}:                              {},

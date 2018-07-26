@@ -101,6 +101,13 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
+	// github.com/openshift/origin/pkg/authorization/apis/authorization/v1alpha1
+	gvr("authorization.openshift.io", "v1alpha1", "accessrestrictions"): {
+		stub:             `{"metadata": {"name": "ar1"}, "spec": {"deniedSubjects": [{"userRestriction": {"labels": [{"matchLabels": {"bad": "yes"}}]}}], "matchAttributes": [{"apiGroups": ["*"], "resources": ["*"], "verbs": ["*"]}]}}`,
+		expectedEtcdPath: "openshift.io/accessrestrictions/ar1",
+	},
+	// --
+
 	// github.com/openshift/origin/pkg/build/apis/build/v1
 	gvr("", "v1", "builds"): {
 		stub:              `{"metadata": {"name": "build1"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,

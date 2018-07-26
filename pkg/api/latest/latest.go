@@ -23,6 +23,7 @@ var OldestVersion = schema.GroupVersion{Group: "", Version: "v1"}
 // with a set of versions to choose.
 var Versions = []schema.GroupVersion{
 	{Group: "authorization.openshift.io", Version: "v1"},
+	{Group: "authorization.openshift.io", Version: "v1alpha1"},
 	{Group: "build.openshift.io", Version: "v1"},
 	{Group: "apps.openshift.io", Version: "v1"},
 	{Group: "template.openshift.io", Version: "v1"},

@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -16,6 +17,8 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	authorizationapiv1 "github.com/openshift/api/authorization/v1"
+	authorizationapiv1alpha1 "github.com/openshift/api/authorization/v1alpha1"
+	accessrestrictionetcd "github.com/openshift/origin/pkg/authorization/registry/accessrestriction/etcd"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrole"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
 	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
@@ -89,8 +92,15 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
+	v1alpha1Storage, err := c.v1alpha1RESTStorage()
+	if err != nil {
+		return nil, err
+	}
+
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(authorizationapiv1.GroupName, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
-	apiGroupInfo.VersionedResourcesStorageMap[authorizationapiv1.SchemeGroupVersion.Version] = v1Storage
+	apiGroupInfo.PrioritizedVersions = []schema.GroupVersion{authorizationapiv1.GroupVersion, authorizationapiv1alpha1.GroupVersion}
+	apiGroupInfo.VersionedResourcesStorageMap[authorizationapiv1.GroupVersion.Version] = v1Storage
+	apiGroupInfo.VersionedResourcesStorageMap[authorizationapiv1alpha1.GroupVersion.Version] = v1alpha1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
 	}
@@ -138,4 +148,15 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["clusterRoleBindings"] = clusterrolebinding.NewREST(rbacClient.RESTClient())
 	v1Storage["roleBindingRestrictions"] = roleBindingRestrictionStorage
 	return v1Storage, nil
+}
+
+func (c *completedConfig) v1alpha1RESTStorage() (map[string]rest.Storage, error) {
+	accessRestrictionStorage, err := accessrestrictionetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.ExtraConfig.RuleResolver)
+	if err != nil {
+		return nil, fmt.Errorf("error building accessRestrictions REST storage: %v", err)
+	}
+
+	v1alpha1Storage := map[string]rest.Storage{}
+	v1alpha1Storage["accessRestrictions"] = accessRestrictionStorage
+	return v1alpha1Storage, nil
 }

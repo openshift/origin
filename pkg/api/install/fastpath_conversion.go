@@ -40,6 +40,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
+	authorizationv1alpha1 "github.com/openshift/api/authorization/v1alpha1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -50,6 +51,7 @@ import (
 
 	appsconversionv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	authorizationconversionv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	authorizationconversionv1alpha1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1alpha1"
 	buildconversionv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageconversionv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	oauthconversionv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
@@ -465,6 +467,17 @@ func init() {
 			switch b := objB.(type) {
 			case *authorizationv1.RoleBindingRestriction:
 				return true, authorizationconversionv1.Convert_authorization_RoleBindingRestriction_To_v1_RoleBindingRestriction(a, b, s)
+			}
+
+		case *authorizationv1alpha1.AccessRestriction:
+			switch b := objB.(type) {
+			case *authorizationapi.AccessRestriction:
+				return true, authorizationconversionv1alpha1.Convert_v1alpha1_AccessRestriction_To_authorization_AccessRestriction(a, b, s)
+			}
+		case *authorizationapi.AccessRestriction:
+			switch b := objB.(type) {
+			case *authorizationv1alpha1.AccessRestriction:
+				return true, authorizationconversionv1alpha1.Convert_authorization_AccessRestriction_To_v1alpha1_AccessRestriction(a, b, s)
 			}
 
 		case *userv1.User:

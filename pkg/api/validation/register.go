@@ -48,6 +48,7 @@ func registerAll() {
 	Validator.MustRegister(&authorizationapi.RoleBindingRestriction{}, true, authorizationvalidation.ValidateRoleBindingRestriction, authorizationvalidation.ValidateRoleBindingRestrictionUpdate)
 	Validator.MustRegister(&authorizationapi.ClusterRole{}, false, authorizationvalidation.ValidateClusterRole, authorizationvalidation.ValidateClusterRoleUpdate)
 	Validator.MustRegister(&authorizationapi.ClusterRoleBinding{}, false, authorizationvalidation.ValidateClusterRoleBinding, authorizationvalidation.ValidateClusterRoleBindingUpdate)
+	Validator.MustRegister(&authorizationapi.AccessRestriction{}, false, authorizationvalidation.ValidateAccessRestriction, authorizationvalidation.ValidateAccessRestrictionUpdate)
 
 	Validator.MustRegister(&buildapi.Build{}, true, buildvalidation.ValidateBuild, buildvalidation.ValidateBuildUpdate)
 	Validator.MustRegister(&buildapi.BuildConfig{}, true, buildvalidation.ValidateBuildConfig, buildvalidation.ValidateBuildConfigUpdate)

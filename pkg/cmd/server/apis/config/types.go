@@ -103,7 +103,7 @@ var (
 	}
 
 	OriginAPIGroupsToAllowedVersions = map[string][]string{
-		OriginAPIGroupAuthorization: {"v1"},
+		OriginAPIGroupAuthorization: {"v1", "v1alpha1"},
 		OriginAPIGroupBuild:         {"v1"},
 		OriginAPIGroupDeploy:        {"v1"},
 		OriginAPIGroupTemplate:      {"v1"},

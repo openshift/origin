@@ -1,0 +1,17 @@
+apiVersion: authorization.openshift.io/v1alpha1
+kind: AccessRestriction
+metadata:
+  name: bad-user
+spec:
+  deniedSubjects:
+  - userRestriction:
+      labels:
+      - matchLabels:
+          bad: 'yes'
+  matchAttributes:
+  - apiGroups:
+    - '*'
+    resources:
+    - '*'
+    verbs:
+    - '*'

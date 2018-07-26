@@ -60,6 +60,7 @@ var expectedIndex = []string{
 	"/apis/authorization.k8s.io/v1beta1",
 	"/apis/authorization.openshift.io",
 	"/apis/authorization.openshift.io/v1",
+	"/apis/authorization.openshift.io/v1alpha1",
 	"/apis/autoscaling",
 	"/apis/autoscaling/v1",
 	"/apis/autoscaling/v2beta1",

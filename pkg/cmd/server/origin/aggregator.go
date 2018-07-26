@@ -234,18 +234,19 @@ var apiVersionPriorities = map[schema.GroupVersion]priority{
 
 	// arbitrarily starting openshift around 10000.
 	// bump authorization above RBAC
-	{Group: "authorization.openshift.io", Version: "v1"}: {group: 17050, version: 15},
-	{Group: "build.openshift.io", Version: "v1"}:         {group: 9900, version: 15},
-	{Group: "apps.openshift.io", Version: "v1"}:          {group: 9900, version: 15},
-	{Group: "image.openshift.io", Version: "v1"}:         {group: 9900, version: 15},
-	{Group: "oauth.openshift.io", Version: "v1"}:         {group: 9900, version: 15},
-	{Group: "project.openshift.io", Version: "v1"}:       {group: 9900, version: 15},
-	{Group: "quota.openshift.io", Version: "v1"}:         {group: 9900, version: 15},
-	{Group: "route.openshift.io", Version: "v1"}:         {group: 9900, version: 15},
-	{Group: "network.openshift.io", Version: "v1"}:       {group: 9900, version: 15},
-	{Group: "security.openshift.io", Version: "v1"}:      {group: 9900, version: 15},
-	{Group: "template.openshift.io", Version: "v1"}:      {group: 9900, version: 15},
-	{Group: "user.openshift.io", Version: "v1"}:          {group: 9900, version: 15},
+	{Group: "authorization.openshift.io", Version: "v1"}:       {group: 17050, version: 15},
+	{Group: "authorization.openshift.io", Version: "v1alpha1"}: {group: 17050, version: 15},
+	{Group: "build.openshift.io", Version: "v1"}:               {group: 9900, version: 15},
+	{Group: "apps.openshift.io", Version: "v1"}:                {group: 9900, version: 15},
+	{Group: "image.openshift.io", Version: "v1"}:               {group: 9900, version: 15},
+	{Group: "oauth.openshift.io", Version: "v1"}:               {group: 9900, version: 15},
+	{Group: "project.openshift.io", Version: "v1"}:             {group: 9900, version: 15},
+	{Group: "quota.openshift.io", Version: "v1"}:               {group: 9900, version: 15},
+	{Group: "route.openshift.io", Version: "v1"}:               {group: 9900, version: 15},
+	{Group: "network.openshift.io", Version: "v1"}:             {group: 9900, version: 15},
+	{Group: "security.openshift.io", Version: "v1"}:            {group: 9900, version: 15},
+	{Group: "template.openshift.io", Version: "v1"}:            {group: 9900, version: 15},
+	{Group: "user.openshift.io", Version: "v1"}:                {group: 9900, version: 15},
 }
 
 func apiServicesToRegister(delegateAPIServer genericapiserver.DelegationTarget, registration autoregister.AutoAPIServiceRegistration) []*apiregistration.APIService {
