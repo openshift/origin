@@ -21,6 +21,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -992,7 +993,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 				// the deployments we continue to keep should be the latest ones
 				for _, deployment := range oldDeployments {
-					o.Expect(appsinternalutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", iterations-revisionHistoryLimit))
+					o.Expect(appsutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", iterations-revisionHistoryLimit))
 				}
 				return true, nil
 			})
@@ -1285,7 +1286,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 					appsapi.DeploymentStatusReasonAnnotation, appsapi.DeploymentCancelledByUser,
 				)))
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(appsinternalutil.DeploymentVersionFor(rc)).To(o.Equal(dc.Status.LatestVersion))
+			o.Expect(appsutil.DeploymentVersionFor(rc)).To(o.Equal(dc.Status.LatestVersion))
 
 			g.By("redeploying immediately by config change")
 			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
@@ -1424,7 +1425,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 					appsapi.DeploymentStatusReasonAnnotation, appsapi.DeploymentCancelledByUser,
 				)))
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(appsinternalutil.DeploymentVersionFor(rc)).To(o.BeEquivalentTo(1))
+			o.Expect(appsutil.DeploymentVersionFor(rc)).To(o.BeEquivalentTo(1))
 
 			g.By("redeploying immediately by config change")
 			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))

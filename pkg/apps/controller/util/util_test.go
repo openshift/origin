@@ -2,18 +2,14 @@ package util
 
 import (
 	"reflect"
-	"sort"
-	"strconv"
 	"testing"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -28,119 +24,6 @@ func TestPodName(t *testing.T) {
 	actual := DeployerPodNameForDeployment(deployment.Name)
 	if expected != actual {
 		t.Errorf("Unexpected pod name for deployment. Expected: %s Got: %s", expected, actual)
-	}
-}
-
-func TestMakeDeploymentOk(t *testing.T) {
-	config := appstest.OkDeploymentConfig(1)
-	deployment, err := makeInternalDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
-
-	if err != nil {
-		t.Fatalf("unexpected error: %#v", err)
-	}
-
-	expectedAnnotations := map[string]string{
-		appsapi.DeploymentConfigAnnotation:  config.Name,
-		appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusNew),
-		appsapi.DeploymentVersionAnnotation: strconv.FormatInt(config.Status.LatestVersion, 10),
-	}
-
-	for key, expected := range expectedAnnotations {
-		if actual := deployment.Annotations[key]; actual != expected {
-			t.Fatalf("expected deployment annotation %s=%s, got %s", key, expected, actual)
-		}
-	}
-
-	expectedAnnotations = map[string]string{
-		appsapi.DeploymentAnnotation:        deployment.Name,
-		appsapi.DeploymentConfigAnnotation:  config.Name,
-		appsapi.DeploymentVersionAnnotation: strconv.FormatInt(config.Status.LatestVersion, 10),
-	}
-
-	for key, expected := range expectedAnnotations {
-		if actual := deployment.Spec.Template.Annotations[key]; actual != expected {
-			t.Fatalf("expected pod template annotation %s=%s, got %s", key, expected, actual)
-		}
-	}
-
-	if len(EncodedDeploymentConfigFor(deployment)) == 0 {
-		t.Fatalf("expected deployment with DeploymentEncodedConfigAnnotation annotation")
-	}
-
-	if deployment.Spec.Replicas != 0 {
-		t.Fatalf("expected deployment replicas to be 0")
-	}
-
-	if l, e, a := appsapi.DeploymentConfigAnnotation, config.Name, deployment.Labels[appsapi.DeploymentConfigAnnotation]; e != a {
-		t.Fatalf("expected label %s=%s, got %s", l, e, a)
-	}
-
-	if e, a := config.Name, deployment.Spec.Template.Labels[appsapi.DeploymentConfigLabel]; e != a {
-		t.Fatalf("expected label DeploymentConfigLabel=%s, got %s", e, a)
-	}
-
-	if e, a := deployment.Name, deployment.Spec.Template.Labels[appsapi.DeploymentLabel]; e != a {
-		t.Fatalf("expected label DeploymentLabel=%s, got %s", e, a)
-	}
-
-	if e, a := config.Name, deployment.Spec.Selector[appsapi.DeploymentConfigLabel]; e != a {
-		t.Fatalf("expected selector DeploymentConfigLabel=%s, got %s", e, a)
-	}
-
-	if e, a := deployment.Name, deployment.Spec.Selector[appsapi.DeploymentLabel]; e != a {
-		t.Fatalf("expected selector DeploymentLabel=%s, got %s", e, a)
-	}
-}
-
-func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
-	mkdeployment := func(version int64) *kapi.ReplicationController {
-		deployment, _ := makeInternalDeployment(appstest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
-		return deployment
-	}
-	deployments := []*kapi.ReplicationController{
-		mkdeployment(4),
-		mkdeployment(1),
-		mkdeployment(2),
-		mkdeployment(3),
-	}
-	sort.Sort(byLatestVersionAsc(deployments))
-	for i := int64(0); i < 4; i++ {
-		if e, a := i+1, DeploymentVersionFor(deployments[i]); e != a {
-			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
-		}
-	}
-	sort.Sort(ByLatestVersionDesc(deployments))
-	for i := int64(0); i < 4; i++ {
-		if e, a := 4-i, DeploymentVersionFor(deployments[i]); e != a {
-			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
-		}
-	}
-}
-
-// TestSort verifies that builds are sorted by most recently created
-func TestSort(t *testing.T) {
-	present := metav1.Now()
-	past := metav1.NewTime(present.Time.Add(-1 * time.Minute))
-	controllers := []*kapi.ReplicationController{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "past",
-				CreationTimestamp: past,
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "present",
-				CreationTimestamp: present,
-			},
-		},
-	}
-	sort.Sort(ByMostRecent(controllers))
-	if controllers[0].Name != "present" {
-		t.Errorf("Unexpected sort order")
-	}
-	if controllers[1].Name != "past" {
-		t.Errorf("Unexpected sort order")
 	}
 }
 
@@ -636,7 +519,7 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 
 	for _, tc := range tests {
 		config := tc.config
-		deployment, err := MakeDeploymentV1(config)
+		deployment, err := MakeDeploymentV1FromInternalConfig(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

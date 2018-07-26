@@ -7,7 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // Resolver knows how to resolve the set of candidate objects to prune
@@ -59,7 +59,7 @@ func (o *orphanDeploymentResolver) Resolve() ([]*kapi.ReplicationController, err
 
 	results := []*kapi.ReplicationController{}
 	for _, deployment := range deployments {
-		deploymentStatus := appsinternalutil.DeploymentStatusFor(deployment)
+		deploymentStatus := appsutil.DeploymentStatusFor(deployment)
 		if !o.deploymentStatusFilter.Has(string(deploymentStatus)) {
 			continue
 		}
@@ -86,6 +86,15 @@ func NewPerDeploymentConfigResolver(dataSet DataSet, keepComplete int, keepFaile
 	}
 }
 
+// ByMostRecent sorts deployments by most recently created.
+type ByMostRecent []*kapi.ReplicationController
+
+func (s ByMostRecent) Len() int      { return len(s) }
+func (s ByMostRecent) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s ByMostRecent) Less(i, j int) bool {
+	return !s[i].CreationTimestamp.Before(&s[j].CreationTimestamp)
+}
+
 func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, error) {
 	deploymentConfigs, err := o.dataSet.ListDeploymentConfigs()
 	if err != nil {
@@ -104,15 +113,15 @@ func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, 
 
 		completeDeployments, failedDeployments := []*kapi.ReplicationController{}, []*kapi.ReplicationController{}
 		for _, deployment := range deployments {
-			status := appsinternalutil.DeploymentStatusFor(deployment)
+			status := appsutil.DeploymentStatusFor(deployment)
 			if completeStates.Has(string(status)) {
 				completeDeployments = append(completeDeployments, deployment)
 			} else if failedStates.Has(string(status)) {
 				failedDeployments = append(failedDeployments, deployment)
 			}
 		}
-		sort.Sort(appsinternalutil.ByMostRecent(completeDeployments))
-		sort.Sort(appsinternalutil.ByMostRecent(failedDeployments))
+		sort.Sort(ByMostRecent(completeDeployments))
+		sort.Sort(ByMostRecent(failedDeployments))
 
 		if o.keepComplete >= 0 && o.keepComplete < len(completeDeployments) {
 			results = append(results, completeDeployments[o.keepComplete:]...)

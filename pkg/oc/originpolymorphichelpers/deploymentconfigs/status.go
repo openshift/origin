@@ -7,21 +7,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 )
 
-func NewDeploymentConfigStatusViewer(appsClient appsclient.Interface) kubectl.StatusViewer {
-	return &DeploymentConfigStatusViewer{dn: appsClient.Apps()}
+func NewDeploymentConfigStatusViewer(client appstypedclient.AppsV1Interface) kubectl.StatusViewer {
+	return &DeploymentConfigStatusViewer{dn: client}
 }
 
 // DeploymentConfigStatusViewer is an implementation of the kubectl StatusViewer interface
 // for deployment configs.
 type DeploymentConfigStatusViewer struct {
-	dn appsinternal.DeploymentConfigsGetter
+	dn appstypedclient.DeploymentConfigsGetter
 }
 
 var _ kubectl.StatusViewer = &DeploymentConfigStatusViewer{}
@@ -36,7 +35,7 @@ func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRev
 
 	if latestRevision == 0 {
 		switch {
-		case appsinternalutil.HasImageChangeTrigger(config):
+		case appsutil.HasImageChangeTrigger(config):
 			return fmt.Sprintf("Deployment config %q waiting on image update\n", name), false, nil
 
 		case len(config.Spec.Triggers) == 0:
@@ -48,20 +47,20 @@ func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRev
 		return "", false, fmt.Errorf("desired revision (%d) is different from the running revision (%d)", desiredRevision, latestRevision)
 	}
 
-	cond := appsinternalutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
+	cond := appsutil.GetDeploymentCondition(config.Status, appsv1.DeploymentProgressing)
 
 	if config.Generation <= config.Status.ObservedGeneration {
 		switch {
-		case cond != nil && cond.Reason == appsapi.NewRcAvailableReason:
+		case cond != nil && cond.Reason == appsutil.NewRcAvailableReason:
 			return fmt.Sprintf("%s\n", cond.Message), true, nil
 
-		case cond != nil && cond.Reason == appsapi.TimedOutReason:
+		case cond != nil && cond.Reason == appsutil.TimedOutReason:
 			return "", true, errors.New(cond.Message)
 
-		case cond != nil && cond.Reason == appsapi.CancelledRolloutReason:
+		case cond != nil && cond.Reason == appsutil.CancelledRolloutReason:
 			return "", true, errors.New(cond.Message)
 
-		case cond != nil && cond.Reason == appsapi.PausedConfigReason:
+		case cond != nil && cond.Reason == appsutil.PausedConfigReason:
 			return "", true, fmt.Errorf("Deployment config %q is paused. Resume to continue watching the status of the rollout.\n", config.Name)
 
 		case config.Status.UpdatedReplicas < config.Spec.Replicas:

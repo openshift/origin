@@ -203,7 +203,7 @@ func deploymentReachedCompletion(dc *appsapi.DeploymentConfig, rcs []*corev1.Rep
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
 	legacyscheme.Scheme.Convert(rcv1, rc, nil)
-	version := appsinternalutil.DeploymentVersionFor(rc)
+	version := appsutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
 	}
@@ -237,7 +237,7 @@ func deploymentFailed(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCon
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
 	legacyscheme.Scheme.Convert(rcv1, rc, nil)
-	version := appsinternalutil.DeploymentVersionFor(rc)
+	version := appsutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
 	}
@@ -255,7 +255,7 @@ func deploymentRunning(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCo
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
 	legacyscheme.Scheme.Convert(rcv1, rc, nil)
-	version := appsinternalutil.DeploymentVersionFor(rc)
+	version := appsutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		//e2e.Logf("deployment %s is not the latest version on DC: %d", rc.Name, version)
 		return false, nil
@@ -267,11 +267,11 @@ func deploymentRunning(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCo
 		if appsinternalutil.IsDeploymentCancelled(rc) {
 			return true, nil
 		}
-		reason := appsinternalutil.DeploymentStatusReasonFor(rc)
+		reason := appsutil.DeploymentStatusReasonFor(rc)
 		if reason == "deployer pod no longer exists" {
 			return true, nil
 		}
-		return false, fmt.Errorf("deployment failed: %v", appsinternalutil.DeploymentStatusReasonFor(rc))
+		return false, fmt.Errorf("deployment failed: %v", appsutil.DeploymentStatusReasonFor(rc))
 	case appsapi.DeploymentStatusRunning, appsapi.DeploymentStatusComplete:
 		return true, nil
 	default:

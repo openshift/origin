@@ -24,7 +24,6 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/set"
 )
@@ -168,7 +167,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		latestDeploymentName := appsutil.LatestDeploymentNameForConfigV1(config)
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(config)
 		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
@@ -179,7 +178,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		if !appsinternalutil.IsFailedDeployment(rc) {
+		if !appsutil.IsFailedDeployment(rc) {
 			message := fmt.Sprintf("rollout #%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion,
 				strings.ToLower(appsutil.AnnotationFor(rc, appsutil.DeploymentStatusAnnotation)))
 			if appsutil.IsCompleteDeployment(rc) {

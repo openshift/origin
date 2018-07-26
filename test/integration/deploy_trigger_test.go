@@ -12,9 +12,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
@@ -92,10 +92,10 @@ func TestTriggers_manual(t *testing.T) {
 	}
 	deployment := event.Object.(*kapi.ReplicationController)
 
-	if e, a := config.Name, appsinternalutil.DeploymentConfigNameFor(deployment); e != a {
+	if e, a := config.Name, appsutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
-	if e, a := int64(1), appsinternalutil.DeploymentVersionFor(deployment); e != a {
+	if e, a := int64(1), appsutil.DeploymentVersionFor(deployment); e != a {
 		t.Fatalf("Deployment annotation version does not match: %#v", deployment)
 	}
 }
@@ -594,7 +594,7 @@ func TestTriggers_configChange(t *testing.T) {
 
 	deployment := event.Object.(*kapi.ReplicationController)
 
-	if e, a := config.Name, appsinternalutil.DeploymentConfigNameFor(deployment); e != a {
+	if e, a := config.Name, appsutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 

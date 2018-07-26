@@ -13,7 +13,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -216,7 +216,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 }
 
 func mkdeployment(version int64, status appsapi.DeploymentStatus) *corev1.ReplicationController {
-	deployment, _ := appsinternalutil.MakeDeploymentV1(appstest.OkDeploymentConfig(version))
+	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(version))
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
 	return deployment
 }

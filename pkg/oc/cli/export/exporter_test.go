@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )

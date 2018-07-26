@@ -8,6 +8,7 @@ import (
 	"testing"
 	"text/tabwriter"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -238,6 +239,22 @@ func TestDescribeBuildDuration(t *testing.T) {
 		if actual, expected := describeBuildDuration(tc.build), tc.output; !strings.Contains(actual, expected) {
 			t.Errorf("(%d) expected duration output %s, got %s", i, expected, actual)
 		}
+	}
+}
+
+func mkV1Pod(status corev1.PodPhase, exitCode int) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "PodName"},
+		Status: corev1.PodStatus{
+			Phase: status,
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					State: corev1.ContainerState{
+						Terminated: &corev1.ContainerStateTerminated{ExitCode: int32(exitCode)},
+					},
+				},
+			},
+		},
 	}
 }
 

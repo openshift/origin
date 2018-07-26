@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 )
 
 var (

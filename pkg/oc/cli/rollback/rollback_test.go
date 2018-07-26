@@ -3,12 +3,12 @@ package rollback
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/fake"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 func TestRollbackOptions_findTargetDeployment(t *testing.T) {
@@ -74,17 +74,17 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
 
-		existingControllers := &kapi.ReplicationControllerList{}
+		existingControllers := &corev1.ReplicationControllerList{}
 		for _, existing := range test.existing {
 			config := appstest.OkDeploymentConfig(existing.version)
-			deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(config)
+			deployment, _ := appsutil.MakeDeployment(config)
 			deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(existing.status)
 			existingControllers.Items = append(existingControllers.Items, *deployment)
 		}
 
 		fakekc := fake.NewSimpleClientset(existingControllers)
 		opts := &RollbackOptions{
-			kc: fakekc,
+			kubeClient: fakekc,
 		}
 
 		config := appstest.OkDeploymentConfig(test.configVersion)
@@ -103,7 +103,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 		if target == nil {
 			t.Fatalf("expected a target deployment")
 		}
-		if e, a := test.expectedVersion, appsinternalutil.DeploymentVersionFor(target); e != a {
+		if e, a := test.expectedVersion, appsutil.DeploymentVersionFor(target); e != a {
 			t.Errorf("expected target version %d, got %d", e, a)
 		}
 	}

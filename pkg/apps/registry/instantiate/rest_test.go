@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/api/image"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
