@@ -116,18 +116,7 @@ func matches(accessRestriction *authorizationv1alpha1.AccessRestriction, request
 }
 
 func (a *accessRestrictionAuthorizer) allowed(accessRestriction *authorizationv1alpha1.AccessRestriction, user user.Info) bool {
-	s := accessRestriction.Spec
-	isWhitelist := len(s.AllowedSubjects) != 0 && len(s.DeniedSubjects) == 0
-	isBlacklist := len(s.DeniedSubjects) != 0 && len(s.AllowedSubjects) == 0
-
-	switch {
-	case isWhitelist:
-		return a.subjectsMatch(s.AllowedSubjects, user)
-	case isBlacklist:
-		return !a.subjectsMatch(s.DeniedSubjects, user)
-	}
-
-	return false // fail closed (but validation prevents this)
+	return a.subjectsMatch(accessRestriction.Spec.AllowedSubjects, user) || !a.subjectsMatch(accessRestriction.Spec.DeniedSubjects, user)
 }
 
 func (a *accessRestrictionAuthorizer) subjectsMatch(subjects []authorizationv1alpha1.SubjectMatcher, user user.Info) bool {

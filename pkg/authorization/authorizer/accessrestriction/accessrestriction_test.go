@@ -35,6 +35,13 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 					},
 				},
 			},
+			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					GroupRestriction: &authorizationv1.GroupRestriction{
+						Groups: []string{"system:authenticated", "system:unauthenticated"},
+					},
+				},
+			},
 		},
 	}
 	secretWhitelistGroup := &authorizationv1alpha1.AccessRestriction{
@@ -57,6 +64,13 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 								},
 							},
 						},
+					},
+				},
+			},
+			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					GroupRestriction: &authorizationv1.GroupRestriction{
+						Groups: []string{"system:authenticated", "system:unauthenticated"},
 					},
 				},
 			},
@@ -96,6 +110,13 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 					},
 				},
 			},
+			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					GroupRestriction: &authorizationv1.GroupRestriction{
+						Groups: []string{"system:authenticated", "system:unauthenticated"},
+					},
+				},
+			},
 		},
 	}
 	identityWhitelistSA := &authorizationv1alpha1.AccessRestriction{
@@ -119,6 +140,13 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 								},
 							},
 						},
+					},
+				},
+			},
+			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					GroupRestriction: &authorizationv1.GroupRestriction{
+						Groups: []string{"system:authenticated", "system:unauthenticated", "system:serviceaccounts"},
 					},
 				},
 			},
@@ -192,6 +220,13 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 					},
 				},
 			},
+			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					GroupRestriction: &authorizationv1.GroupRestriction{
+						Groups: []string{"system:authenticated", "system:unauthenticated"},
+					},
+				},
+			},
 		},
 	}
 	requiresBothUserAndGroup2 := &authorizationv1alpha1.AccessRestriction{
@@ -207,6 +242,13 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				{
 					GroupRestriction: &authorizationv1.GroupRestriction{
 						Groups: []string{"group1"},
+					},
+				},
+			},
+			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					GroupRestriction: &authorizationv1.GroupRestriction{
+						Groups: []string{"system:authenticated", "system:unauthenticated"},
 					},
 				},
 			},
@@ -255,7 +297,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "bob",
-						Groups: []string{},
+						Groups: []string{"system:authenticated"},
 					},
 					Verb:            "get",
 					Namespace:       "non-empty",
@@ -283,7 +325,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "bob",
-						Groups: []string{"admins"},
+						Groups: []string{"admins", "system:authenticated"},
 					},
 					Verb:            "get",
 					Namespace:       "non-empty",
@@ -311,7 +353,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "bob",
-						Groups: []string{},
+						Groups: []string{"system:authenticated"},
 					},
 					Verb:            "get",
 					Namespace:       "non-empty",
@@ -340,7 +382,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "bob",
-						Groups: []string{},
+						Groups: []string{"system:authenticated"},
 					},
 					Verb:            "get",
 					Namespace:       "non-empty",
@@ -371,7 +413,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "bob",
-						Groups: []string{}, // works when only the group object has the user
+						Groups: []string{"system:authenticated"}, // works when only the group object has the user
 					},
 					Verb:            "get",
 					Namespace:       "non-empty",
@@ -402,7 +444,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "bob",
-						Groups: []string{"sgroup"}, // works when only the virtual user has the group
+						Groups: []string{"sgroup", "system:authenticated"}, // works when only the virtual user has the group
 					},
 					Verb:            "get",
 					Namespace:       "non-empty",
@@ -435,7 +477,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "bob",
-						Groups: []string{},
+						Groups: []string{"system:authenticated"},
 					},
 					Verb:            "list",
 					Namespace:       "non-empty",
@@ -468,7 +510,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "nancy",
-						Groups: []string{},
+						Groups: []string{"system:authenticated"},
 					},
 					Verb:            "list",
 					Namespace:       "non-empty",
@@ -576,7 +618,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "whitelist deny SA user",
+			name: "whitelist deny SA user, correct namespace with incorrect name",
 			fields: fields{
 				accessRestrictionLister: testAccessRestrictionLister(
 					identityWhitelistSA,
@@ -639,7 +681,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "whitelist deny SA user",
+			name: "whitelist deny SA user via all SA group",
 			fields: fields{
 				accessRestrictionLister: testAccessRestrictionLister(
 					identityWhitelistSA,
@@ -690,7 +732,8 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 			args: args{
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
-						Name: "eric",
+						Name:   "eric",
+						Groups: []string{"system:authenticated"},
 					},
 					Verb:            "update",
 					Namespace:       "non-empty",
@@ -727,7 +770,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "some-random-name-ignored",
-						Groups: []string{"sharks"}, // this is weird because it is the randy user's label matching that allows it
+						Groups: []string{"sharks", "system:authenticated"}, // this is weird because it is the randy user's label matching that allows it
 					},
 					Verb:            "update",
 					Namespace:       "non-empty",
@@ -758,7 +801,8 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 			args: args{
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
-						Name: "gopher",
+						Name:   "gopher",
+						Groups: []string{"system:authenticated"},
 					},
 					Verb:            "delete",
 					Namespace:       "non-empty",
@@ -795,7 +839,8 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 			args: args{
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
-						Name: "not-gopher",
+						Name:   "not-gopher",
+						Groups: []string{"system:authenticated"},
 					},
 					Verb:            "delete",
 					Namespace:       "non-empty",
@@ -833,7 +878,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "not-gopher",
-						Groups: []string{"pythons"},
+						Groups: []string{"pythons", "system:authenticated"},
 					},
 					Verb:            "delete",
 					Namespace:       "non-empty",
@@ -871,7 +916,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "not-gopher",
-						Groups: []string{"not-pythons"},
+						Groups: []string{"not-pythons", "system:authenticated"},
 					},
 					Verb:            "delete",
 					Namespace:       "non-empty",
@@ -910,7 +955,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "frank",
-						Groups: []string{"not-pythons"},
+						Groups: []string{"not-pythons", "system:authenticated"},
 					},
 					Verb:            "delete",
 					Namespace:       "non-empty",
@@ -949,7 +994,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "not-used",
-						Groups: []string{"danger-zone"}, // this is weird because it is the frank user's label matching that denies it
+						Groups: []string{"danger-zone", "system:authenticated"}, // this is weird because it is the frank user's label matching that denies it
 					},
 					Verb:            "delete",
 					Namespace:       "non-empty",
@@ -991,7 +1036,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "user1",
-						Groups: []string{"not-group1"},
+						Groups: []string{"not-group1", "system:authenticated"},
 					},
 					Verb:            "update",
 					Namespace:       "non-empty",
@@ -1033,7 +1078,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "not-user1",
-						Groups: []string{"group1"},
+						Groups: []string{"group1", "system:authenticated"},
 					},
 					Verb:            "update",
 					Namespace:       "non-empty",
@@ -1075,7 +1120,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User: &user.DefaultInfo{
 						Name:   "user1",
-						Groups: []string{"group1"},
+						Groups: []string{"group1", "system:authenticated"},
 					},
 					Verb:            "update",
 					Namespace:       "non-empty",
