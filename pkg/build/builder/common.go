@@ -231,6 +231,31 @@ func execPostCommitHook(ctx context.Context, client DockerClient, postCommitSpec
 	return err
 }
 
+// buildPostCommit transforms the supplied postCommitSpec into dockerfile commands.
+func buildPostCommit(postCommitSpec buildapiv1.BuildPostCommitSpec) string {
+	command := postCommitSpec.Command
+	args := postCommitSpec.Args
+	script := postCommitSpec.Script
+	if script == "" && len(command) == 0 && len(args) == 0 {
+		// Post commit hook is not set, return early.
+		return ""
+	}
+	glog.V(0).Infof("Building post commit hook ...")
+	glog.V(4).Infof("Post commit hook spec: %+v", postCommitSpec)
+
+	if script != "" {
+		// The `-i` flag is needed to support CentOS and RHEL images
+		// that use Software Collections (SCL), in order to have the
+		// appropriate collections enabled in the shell. E.g., in the
+		// Ruby image, this is necessary to make `ruby`, `bundle` and
+		// other binaries available in the PATH.
+		command = []string{"/bin/sh", "-ic"}
+		args = append([]string{script, command[0]}, args...)
+	}
+	return fmt.Sprintf("%s %s", strings.Join(command, " "), strings.Join(args, " "))
+
+}
+
 // GetSourceRevision returns a SourceRevision object either from the build (if it already had one)
 // or by creating one from the sourceInfo object passed in.
 func GetSourceRevision(build *buildapiv1.Build, sourceInfo *git.SourceInfo) *buildapiv1.SourceRevision {
@@ -428,6 +453,11 @@ func addBuildParameters(dir string, build *buildapiv1.Build, sourceInfo *git.Sou
 		return err
 	}
 
+	// Append post commit
+	if err := appendPostCommit(node, buildPostCommit(build.Spec.PostCommit)); err != nil {
+		return err
+	}
+
 	// Insert environment variables defined in the build strategy.
 	if err := insertEnvAfterFrom(node, build.Spec.Strategy.DockerStrategy.Env); err != nil {
 		return err
@@ -479,38 +509,42 @@ func replaceImagesFromSource(node *parser.Node, imageSources []buildapiv1.ImageS
 	}
 }
 
-// findReferencedImages returns all qualified images referenced by the Dockerfile, whether the
-// build is a multi-stage build, or returns an error.
-func findReferencedImages(dockerfilePath string) ([]string, bool, error) {
+// findReferencedImages returns all qualified image names referenced by the Dockerfile,
+// stage names, or an error.
+func findReferencedImages(dockerfilePath string) (sets.String, sets.String, error) {
 	if len(dockerfilePath) == 0 {
-		return nil, false, nil
+		return nil, nil, nil
 	}
-	node, err := imagebuilder.ParseFile(dockerfilePath)
+
+	nodes, err := imagebuilder.ParseFile(dockerfilePath)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, err
 	}
-	names := make(map[string]string)
-	images := sets.NewString()
-	stages := imagebuilder.NewStages(node, imagebuilder.NewBuilder(nil))
+	stages := imagebuilder.NewStages(nodes, imagebuilder.NewBuilder(nil))
+
+	names := sets.NewString()
+	stageNames := sets.NewString()
+	imageNames := sets.NewString()
+
 	for _, stage := range stages {
+		stageNames.Insert(stage.Name)
 		for _, child := range stage.Node.Children {
 			switch {
 			case child.Value == dockercmd.From && child.Next != nil:
-				image := child.Next.Value
-				names[stage.Name] = image
-				images.Insert(image)
+				imageNames.Insert(child.Next.Value)
+				names.Insert(stage.Name)
 			case child.Value == dockercmd.Copy:
 				if ref, ok := nodeHasFromRef(child); ok {
 					if len(ref) > 0 {
-						if _, ok := names[ref]; !ok {
-							images.Insert(ref)
+						if names.Has(ref) {
+							imageNames.Insert(ref)
 						}
 					}
 				}
 			}
 		}
 	}
-	return images.List(), len(stages) > 1, nil
+	return imageNames, stageNames, nil
 }
 
 func overwriteFile(name string, out []byte) error {
