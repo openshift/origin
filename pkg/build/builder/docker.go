@@ -147,18 +147,6 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 
-	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
-
-	err = execPostCommitHook(ctx, d.dockerClient, d.build.Spec.PostCommit, buildTag, cname)
-
-	if err != nil {
-		d.build.Status.Phase = buildapiv1.BuildPhaseFailed
-		d.build.Status.Reason = buildapiv1.StatusReasonPostCommitHookFailed
-		d.build.Status.Message = builderutil.StatusMessagePostCommitHookFailed
-		HandleBuildStatusUpdate(d.build, d.client, nil)
-		return err
-	}
-
 	if push {
 		if err := tagImage(d.dockerClient, buildTag, pushTag); err != nil {
 			return err
@@ -401,8 +389,8 @@ func getDockerfilePath(dir string, build *buildapiv1.Build) string {
 }
 
 // replaceLastFrom changes the last FROM instruction of node to point to the
-// base image.
-func replaceLastFrom(node *parser.Node, image string) error {
+// given image with an optional alias.
+func replaceLastFrom(node *parser.Node, image string, alias string) error {
 	if node == nil {
 		return nil
 	}
@@ -412,12 +400,47 @@ func replaceLastFrom(node *parser.Node, image string) error {
 			if child.Next == nil {
 				child.Next = &parser.Node{}
 			}
+
 			glog.Infof("Replaced Dockerfile FROM image %s", child.Next.Value)
 			child.Next.Value = image
+			if len(alias) != 0 {
+				if child.Next.Next == nil {
+					child.Next.Next = &parser.Node{}
+				}
+				child.Next.Next.Value = "as"
+				if child.Next.Next.Next == nil {
+					child.Next.Next.Next = &parser.Node{}
+				}
+				child.Next.Next.Next.Value = alias
+			}
 			return nil
 		}
 	}
 	return nil
+}
+
+// getLastFrom gets the image name of the last FROM instruction
+// in the dockerfile
+func getLastFrom(node *parser.Node) (string, string) {
+	if node == nil {
+		return "", ""
+	}
+	var image, alias string
+	for i := len(node.Children) - 1; i >= 0; i-- {
+		child := node.Children[i]
+		if child != nil && child.Value == dockercmd.From {
+			if child.Next != nil {
+				image = child.Next.Value
+				if child.Next.Next != nil && strings.ToUpper(child.Next.Next.Value) == "AS" {
+					if child.Next.Next.Next != nil {
+						alias = child.Next.Next.Next.Value
+					}
+				}
+				break
+			}
+		}
+	}
+	return image, alias
 }
 
 // appendEnv appends an ENV Dockerfile instruction as the last child of node
@@ -433,6 +456,50 @@ func appendLabel(node *parser.Node, m []dockerfile.KeyValue) error {
 		return nil
 	}
 	return appendKeyValueInstruction(dockerfile.Label, node, m)
+}
+
+// appendPostCommit appends a RUN <cmd> Dockerfile instruction as the last child of node
+func appendPostCommit(node *parser.Node, cmd string) error {
+	if len(cmd) == 0 {
+		return nil
+	}
+
+	image, alias := getLastFrom(node)
+	if len(alias) == 0 {
+		alias = postCommitAlias
+		if err := replaceLastFrom(node, image, alias); err != nil {
+			return err
+		}
+	}
+
+	if err := appendStringInstruction(dockerfile.From, node, alias); err != nil {
+		return err
+	}
+
+	if err := appendStringInstruction(dockerfile.Run, node, cmd); err != nil {
+		return err
+	}
+
+	if err := appendStringInstruction(dockerfile.From, node, alias); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// appendStringInstruction is a primitive used to avoid code duplication.
+// Callers should use a derivative of this such as appendPostCommit.
+// appendStringInstruction appends a Dockerfile instruction with string
+// syntax created by f as the last child of node with the string from cmd.
+func appendStringInstruction(f func(string) (string, error), node *parser.Node, cmd string) error {
+	if node == nil {
+		return nil
+	}
+	instruction, err := f(cmd)
+	if err != nil {
+		return err
+	}
+	return dockerfile.InsertInstructions(node, len(node.Children), instruction)
 }
 
 // appendKeyValueInstruction is a primitive used to avoid code duplication.

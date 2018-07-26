@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/MakeNowJust/heredoc"
+
 	"github.com/fsouza/go-dockerclient"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +20,7 @@ import (
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
+	"github.com/openshift/imagebuilder"
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
 
 	"github.com/openshift/library-go/pkg/git"
@@ -133,11 +136,203 @@ RUN echo "hello world"
 			t.Errorf("test[%d]: %v", i, err)
 			continue
 		}
-		replaceLastFrom(got, test.image)
+		replaceLastFrom(got, test.image, "")
 		if !bytes.Equal(dockerfile.Write(got), dockerfile.Write(want)) {
 			t.Errorf("test[%d]: replaceLastFrom(node, %+v) = %+v; want %+v", i, test.image, got, want)
 			t.Logf("resulting Dockerfile:\n%s", dockerfile.Write(got))
 		}
+	}
+}
+
+func TestAppendPostCommit(t *testing.T) {
+	type want struct {
+		Err bool
+		Out string
+	}
+	tests := []struct {
+		description string
+		original    string
+		postCommit  buildapiv1.BuildPostCommitSpec
+		from        *corev1.ObjectReference
+		build       []buildapiv1.ImageSource
+		want        want
+	}{
+		{
+			description: "basic multi-part bash command",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN echo "hello world"
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo", "hello"},
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM busybox as <alias>
+				RUN echo "hello world"
+				FROM <alias>
+				RUN echo hello
+				FROM <alias>
+				`),
+			},
+		},
+		{
+			description: "basic bash command with args",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN touch /tmp/hello
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"ls"},
+				Args:    []string{"-l", "/tmp/hello"}},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM busybox as <alias>
+				RUN touch /tmp/hello
+				FROM <alias>
+				RUN ls -l /tmp/hello
+				FROM <alias>
+				`),
+			},
+		},
+		{
+			description: "basic bash script",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN echo "hello world"
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo hello $1 world",
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM busybox as <alias>
+				RUN echo "hello world"
+				FROM <alias>
+				RUN /bin/sh -ic 'echo hello $1 world'
+				FROM <alias>
+				`),
+			},
+		},
+		{
+			description: "basic bash script with args",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN echo "hello world"
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo",
+				Args:   []string{"hello", "$1", "world"},
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM busybox as <alias>
+				RUN echo "hello world"
+				FROM <alias>
+				RUN /bin/sh -ic 'echo hello $1 world'
+				FROM <alias>
+				`),
+			},
+		},
+		{
+			description: "multi-stage basic multi-part bash command",
+			original: heredoc.Doc(`
+				FROM busybox as appimage
+				RUN echo "hello world"
+				FROM appimage
+				RUN touch /tmp/hello
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo", "hello", "$1", "world"},
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM busybox as appimage
+				RUN echo "hello world"
+				FROM appimage as <alias>
+				RUN touch /tmp/hello
+				FROM <alias>
+				RUN echo hello $1 world
+				FROM <alias>
+				`),
+			},
+		},
+		{
+			description: "multi-stage basic bash command with args and alias",
+			original: heredoc.Doc(`
+				FROM busybox as appimage
+				RUN echo "hello world"
+				FROM appimage as myimage
+				RUN touch /tmp/hello
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo"},
+				Args:    []string{"hello", "$1", "world"},
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM busybox as appimage
+				RUN echo "hello world"
+				FROM appimage as myimage
+				RUN touch /tmp/hello
+				FROM myimage
+				RUN echo hello $1 world
+				FROM myimage
+				`),
+			},
+		},
+		{
+			description: "multi-stage basic bash script with aliases",
+			original: heredoc.Doc(`
+				FROM busybox as appimage
+				RUN echo "hello world"
+				FROM appimage as appimage2
+				RUN touch /tmp/hello
+				FROM appimage2 as appimage3
+				RUN touch /tmp/hello2
+				FROM appimage3 as appimage4
+				RUN touch /tmp/hello3
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo hello $1 world",
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM busybox as appimage
+				RUN echo "hello world"
+				FROM appimage as appimage2
+				RUN touch /tmp/hello
+				FROM appimage2 as appimage3
+				RUN touch /tmp/hello2
+				FROM appimage3 as appimage4
+				RUN touch /tmp/hello3
+				FROM appimage4
+				RUN /bin/sh -ic 'echo hello $1 world'
+				FROM appimage4
+				`),
+			},
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			node, err := imagebuilder.ParseDockerfile(strings.NewReader(test.original))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := appendPostCommit(node, buildPostCommit(test.postCommit)); err != nil {
+				t.Errorf("appendPostCommit error: %#v", err)
+			}
+			wantNode, err := imagebuilder.ParseDockerfile(strings.NewReader(strings.Replace(test.want.Out, "<alias>", postCommitAlias, -1)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(dockerfile.Write(node), dockerfile.Write(wantNode)) {
+				t.Errorf("FAILED!")
+				t.Logf("wanted:\n%s", dockerfile.Write(wantNode))
+				t.Logf("got:\n%s", dockerfile.Write(node))
+			}
+		})
 	}
 }
 
