@@ -16,6 +16,7 @@ import (
 	authorizationlisters "github.com/openshift/client-go/authorization/listers/authorization/v1alpha1"
 	userinformers "github.com/openshift/client-go/user/informers/externalversions/user/v1"
 	userlisters "github.com/openshift/client-go/user/listers/user/v1"
+	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
 
 	"github.com/golang/glog"
 )
@@ -43,6 +44,13 @@ type accessRestrictionAuthorizer struct {
 }
 
 func (a *accessRestrictionAuthorizer) Authorize(requestAttributes authorizer.Attributes) (authorizer.Decision, string, error) {
+	// prevent cycle based deadlock between the kube and openshift api servers
+	if isIgnored(requestAttributes) {
+		// resource is cluster scoped or in a reserved namespace so we state that we have no opinion
+		// the reason must be blank, otherwise we would spam all RBAC denies with it (which is generally not useful)
+		return authorizer.DecisionNoOpinion, "", nil
+	}
+
 	// make sure all of our informers are ready
 	if !a.synced() {
 		reason := "access restriction informers are not synced"
@@ -81,6 +89,23 @@ func (a *accessRestrictionAuthorizer) Authorize(requestAttributes authorizer.Att
 	// no access restriction matched and denied this request, so we state that we have no opinion
 	// the reason must be blank, otherwise we would spam all RBAC denies with it (which is generally not useful)
 	return authorizer.DecisionNoOpinion, "", nil
+}
+
+func isIgnored(requestAttributes authorizer.Attributes) bool {
+	// non-resource request is inherently cluster scoped
+	if !requestAttributes.IsResourceRequest() {
+		return true
+	}
+
+	ns := requestAttributes.GetNamespace()
+
+	// is this cluster scoped
+	if ns == v1.NamespaceNone {
+		return true
+	}
+
+	// is this in a reserved namespace
+	return clusterresourceoverride.IsExemptedNamespace(ns)
 }
 
 func matches(accessRestriction *authorizationv1alpha1.AccessRestriction, requestAttributes authorizer.Attributes) bool {

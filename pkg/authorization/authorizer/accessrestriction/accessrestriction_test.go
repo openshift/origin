@@ -176,23 +176,6 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 		},
 		Groups: []string{"danger-zone"},
 	}
-	oauthURLBlacklistUser := &authorizationv1alpha1.AccessRestriction{
-		Spec: authorizationv1alpha1.AccessRestrictionSpec{
-			MatchAttributes: []rbacv1.PolicyRule{
-				{
-					Verbs:           []string{"GET"},
-					NonResourceURLs: []string{"/oauth/*"},
-				},
-			},
-			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
-				{
-					UserRestriction: &authorizationv1.UserRestriction{
-						Users: []string{"oauth-man"},
-					},
-				},
-			},
-		},
-	}
 	requiresBothUserAndGroup1 := &authorizationv1alpha1.AccessRestriction{
 		Spec: authorizationv1alpha1.AccessRestrictionSpec{
 			MatchAttributes: []rbacv1.PolicyRule{
@@ -253,6 +236,9 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 					1, // invalid data
 				),
 			},
+			args: args{
+				requestAttributes: &authorizer.AttributesRecord{Namespace: "non-empty", ResourceRequest: true},
+			},
 			want:    authorizer.DecisionDeny,
 			want1:   "cannot determine access restrictions",
 			wantErr: true,
@@ -272,6 +258,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{},
 					},
 					Verb:            "get",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "pods",
 					Subresource:     "",
@@ -299,6 +286,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"admins"},
 					},
 					Verb:            "get",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "pods",
 					Subresource:     "",
@@ -326,6 +314,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{},
 					},
 					Verb:            "get",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "node",
 					Subresource:     "",
@@ -354,6 +343,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{},
 					},
 					Verb:            "get",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "secrets",
 					Subresource:     "",
@@ -384,6 +374,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{}, // works when only the group object has the user
 					},
 					Verb:            "get",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "secrets",
 					Subresource:     "",
@@ -414,6 +405,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"sgroup"}, // works when only the virtual user has the group
 					},
 					Verb:            "get",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "secrets",
 					Subresource:     "",
@@ -446,6 +438,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{},
 					},
 					Verb:            "list",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "configmaps",
 					Subresource:     "",
@@ -478,6 +471,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{},
 					},
 					Verb:            "list",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "configmaps",
 					Subresource:     "",
@@ -507,6 +501,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User:            serviceaccount.UserInfo("ns1", "sa1", "007"),
 					Verb:            "get",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "pods",
 					Subresource:     "",
@@ -536,6 +531,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User:            serviceaccount.UserInfo("ns2", "sa2", "008"),
 					Verb:            "get",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "secrets",
 					Subresource:     "",
@@ -566,6 +562,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User:            serviceaccount.UserInfo("ns3", "sa3", "009"),
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "user.openshift.io",
 					Resource:        "identities",
 					Subresource:     "",
@@ -597,6 +594,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User:            serviceaccount.UserInfo("ns3", "sa3.1", "009.1"),
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "user.openshift.io",
 					Resource:        "identities",
 					Subresource:     "",
@@ -627,6 +625,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User:            serviceaccount.UserInfo("ns4", "sa4", "010"),
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "user.openshift.io",
 					Resource:        "identities",
 					Subresource:     "",
@@ -658,6 +657,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 				requestAttributes: &authorizer.AttributesRecord{
 					User:            serviceaccount.UserInfo("ns5", "sa5", "011"),
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "user.openshift.io",
 					Resource:        "identities",
 					Subresource:     "",
@@ -693,6 +693,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Name: "eric",
 					},
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "user.openshift.io",
 					Resource:        "identities",
 					Subresource:     "",
@@ -729,6 +730,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"sharks"}, // this is weird because it is the randy user's label matching that allows it
 					},
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "user.openshift.io",
 					Resource:        "identities",
 					Subresource:     "",
@@ -759,6 +761,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Name: "gopher",
 					},
 					Verb:            "delete",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "serviceaccounts",
 					Subresource:     "",
@@ -795,6 +798,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Name: "not-gopher",
 					},
 					Verb:            "delete",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "serviceaccounts",
 					Subresource:     "",
@@ -832,6 +836,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"pythons"},
 					},
 					Verb:            "delete",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "serviceaccounts",
 					Subresource:     "",
@@ -869,6 +874,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"not-pythons"},
 					},
 					Verb:            "delete",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "serviceaccounts",
 					Subresource:     "",
@@ -907,6 +913,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"not-pythons"},
 					},
 					Verb:            "delete",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "serviceaccounts",
 					Subresource:     "",
@@ -945,6 +952,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"danger-zone"}, // this is weird because it is the frank user's label matching that denies it
 					},
 					Verb:            "delete",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "serviceaccounts",
 					Subresource:     "",
@@ -958,83 +966,12 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "blacklist deny user path",
-			fields: fields{
-				accessRestrictionLister: testAccessRestrictionLister(
-					oauthURLBlacklistUser,
-					// the rest are not important for this test, just there to make sure it is ignored
-					saBlacklistUser,
-					identityWhitelistSA,
-					secretWhitelistGroup,
-					configmapWhitelistUser,
-					podWhitelistGroup,
-				),
-				userLister: testUserLister(
-					// the rest are not important for this test, just there to make sure it is ignored
-					groupedLabeledUserFrank,
-					groupedLabeledUserRandy,
-				),
-				groupLister: testGroupLister(
-					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
-				),
-			},
-			args: args{
-				requestAttributes: &authorizer.AttributesRecord{
-					User: &user.DefaultInfo{
-						Name: "oauth-man",
-					},
-					Verb:            "GET",
-					ResourceRequest: false,
-					Path:            "/oauth/token",
-				},
-			},
-			want:    authorizer.DecisionDeny,
-			want1:   "denied by access restriction",
-			wantErr: false,
-		},
-		{
-			name: "blacklist not deny user path",
-			fields: fields{
-				accessRestrictionLister: testAccessRestrictionLister(
-					oauthURLBlacklistUser,
-					// the rest are not important for this test, just there to make sure it is ignored
-					saBlacklistUser,
-					identityWhitelistSA,
-					secretWhitelistGroup,
-					configmapWhitelistUser,
-					podWhitelistGroup,
-				),
-				userLister: testUserLister(
-					// the rest are not important for this test, just there to make sure it is ignored
-					groupedLabeledUserFrank,
-					groupedLabeledUserRandy,
-				),
-				groupLister: testGroupLister(
-					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
-				),
-			},
-			args: args{
-				requestAttributes: &authorizer.AttributesRecord{
-					User: &user.DefaultInfo{
-						Name: "not-oauth-man",
-					},
-					Verb:            "GET",
-					ResourceRequest: false,
-					Path:            "/oauth/token",
-				},
-			},
-			want:    authorizer.DecisionNoOpinion,
-			want1:   "",
-			wantErr: false,
-		},
-		{
 			name: "whitelist deny requires both user and group, only user given",
 			fields: fields{
 				accessRestrictionLister: testAccessRestrictionLister(
 					requiresBothUserAndGroup1,
 					requiresBothUserAndGroup2,
 					// the rest are not important for this test, just there to make sure it is ignored
-					oauthURLBlacklistUser,
 					saBlacklistUser,
 					identityWhitelistSA,
 					secretWhitelistGroup,
@@ -1057,6 +994,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"not-group1"},
 					},
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "daemonsets",
 					Subresource:     "",
@@ -1076,7 +1014,6 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 					requiresBothUserAndGroup1,
 					requiresBothUserAndGroup2,
 					// the rest are not important for this test, just there to make sure it is ignored
-					oauthURLBlacklistUser,
 					saBlacklistUser,
 					identityWhitelistSA,
 					secretWhitelistGroup,
@@ -1099,6 +1036,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"group1"},
 					},
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "daemonsets",
 					Subresource:     "",
@@ -1118,7 +1056,6 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 					requiresBothUserAndGroup1,
 					requiresBothUserAndGroup2,
 					// the rest are not important for this test, just there to make sure it is ignored
-					oauthURLBlacklistUser,
 					saBlacklistUser,
 					identityWhitelistSA,
 					secretWhitelistGroup,
@@ -1141,6 +1078,7 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 						Groups: []string{"group1"},
 					},
 					Verb:            "update",
+					Namespace:       "non-empty",
 					APIGroup:        "",
 					Resource:        "daemonsets",
 					Subresource:     "",

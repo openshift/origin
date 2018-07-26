@@ -137,7 +137,8 @@ func (a *clusterResourceOverridePlugin) ValidateInitialization() error {
 	return v.ValidateInitialization()
 }
 
-func isExemptedNamespace(name string) bool {
+// TODO this needs a better home
+func IsExemptedNamespace(name string) bool {
 	for _, s := range delegated.ForbiddenNames {
 		if name == s {
 			return true
@@ -176,7 +177,7 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 		return nil // disabled for this project, do nothing
 	}
 
-	if isExemptedNamespace(ns.Name) {
+	if IsExemptedNamespace(ns.Name) {
 		glog.V(5).Infof("%s is skipping exempted project %s", api.PluginName, attr.GetNamespace())
 		return nil // project is exempted, do nothing
 	}
