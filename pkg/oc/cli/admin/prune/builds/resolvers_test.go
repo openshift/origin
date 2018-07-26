@@ -9,27 +9,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
 
 type mockResolver struct {
-	builds []*buildapi.Build
+	builds []*buildv1.Build
 	err    error
 }
 
-func (m *mockResolver) Resolve() ([]*buildapi.Build, error) {
+func (m *mockResolver) Resolve() ([]*buildv1.Build, error) {
 	return m.builds, m.err
 }
 
 func TestMergeResolver(t *testing.T) {
 	resolverA := &mockResolver{
-		builds: []*buildapi.Build{
+		builds: []*buildv1.Build{
 			mockBuild("a", "b", nil),
 		},
 	}
 	resolverB := &mockResolver{
-		builds: []*buildapi.Build{
+		builds: []*buildv1.Build{
 			mockBuild("c", "d", nil),
 		},
 	}
@@ -53,24 +53,24 @@ func TestOrphanBuildResolver(t *testing.T) {
 	activeBuildConfig := mockBuildConfig("a", "active-build-config")
 	inactiveBuildConfig := mockBuildConfig("a", "inactive-build-config")
 
-	buildConfigs := []*buildapi.BuildConfig{activeBuildConfig}
-	builds := []*buildapi.Build{}
+	buildConfigs := []*buildv1.BuildConfig{activeBuildConfig}
+	builds := []*buildv1.Build{}
 
 	expectedNames := sets.String{}
-	BuildPhaseOptions := []buildapi.BuildPhase{
-		buildapi.BuildPhaseCancelled,
-		buildapi.BuildPhaseComplete,
-		buildapi.BuildPhaseError,
-		buildapi.BuildPhaseFailed,
-		buildapi.BuildPhaseNew,
-		buildapi.BuildPhasePending,
-		buildapi.BuildPhaseRunning,
+	BuildPhaseOptions := []buildv1.BuildPhase{
+		buildv1.BuildPhaseCancelled,
+		buildv1.BuildPhaseComplete,
+		buildv1.BuildPhaseError,
+		buildv1.BuildPhaseFailed,
+		buildv1.BuildPhaseNew,
+		buildv1.BuildPhasePending,
+		buildv1.BuildPhaseRunning,
 	}
-	BuildPhaseFilter := []buildapi.BuildPhase{
-		buildapi.BuildPhaseCancelled,
-		buildapi.BuildPhaseComplete,
-		buildapi.BuildPhaseError,
-		buildapi.BuildPhaseFailed,
+	BuildPhaseFilter := []buildv1.BuildPhase{
+		buildv1.BuildPhaseCancelled,
+		buildv1.BuildPhaseComplete,
+		buildv1.BuildPhaseError,
+		buildv1.BuildPhaseFailed,
 	}
 	BuildPhaseFilterSet := sets.String{}
 	for _, BuildPhase := range BuildPhaseFilter {
@@ -103,21 +103,21 @@ func TestOrphanBuildResolver(t *testing.T) {
 }
 
 func TestPerBuildConfigResolver(t *testing.T) {
-	BuildPhaseOptions := []buildapi.BuildPhase{
-		buildapi.BuildPhaseCancelled,
-		buildapi.BuildPhaseComplete,
-		buildapi.BuildPhaseError,
-		buildapi.BuildPhaseFailed,
-		buildapi.BuildPhaseNew,
-		buildapi.BuildPhasePending,
-		buildapi.BuildPhaseRunning,
+	BuildPhaseOptions := []buildv1.BuildPhase{
+		buildv1.BuildPhaseCancelled,
+		buildv1.BuildPhaseComplete,
+		buildv1.BuildPhaseError,
+		buildv1.BuildPhaseFailed,
+		buildv1.BuildPhaseNew,
+		buildv1.BuildPhasePending,
+		buildv1.BuildPhaseRunning,
 	}
-	buildConfigs := []*buildapi.BuildConfig{
+	buildConfigs := []*buildv1.BuildConfig{
 		mockBuildConfig("a", "build-config-1"),
 		mockBuildConfig("b", "build-config-2"),
 	}
 	buildsPerStatus := 100
-	builds := []*buildapi.Build{}
+	builds := []*buildv1.Build{}
 	for _, buildConfig := range buildConfigs {
 		for _, BuildPhaseOption := range BuildPhaseOptions {
 			for i := 0; i < buildsPerStatus; i++ {
@@ -138,15 +138,15 @@ func TestPerBuildConfigResolver(t *testing.T) {
 		dataSet := NewDataSet(buildConfigs, builds)
 
 		expectedNames := sets.String{}
-		buildCompleteStatusFilterSet := sets.NewString(string(buildapi.BuildPhaseComplete))
-		buildFailedStatusFilterSet := sets.NewString(string(buildapi.BuildPhaseCancelled), string(buildapi.BuildPhaseError), string(buildapi.BuildPhaseFailed))
+		buildCompleteStatusFilterSet := sets.NewString(string(buildv1.BuildPhaseComplete))
+		buildFailedStatusFilterSet := sets.NewString(string(buildv1.BuildPhaseCancelled), string(buildv1.BuildPhaseError), string(buildv1.BuildPhaseFailed))
 
 		for _, buildConfig := range buildConfigs {
 			buildItems, err := dataSet.ListBuildsByBuildConfig(buildConfig)
 			if err != nil {
 				t.Errorf("Unexpected err %v", err)
 			}
-			var completeBuilds, failedBuilds []*buildapi.Build
+			var completeBuilds, failedBuilds []*buildv1.Build
 			for _, build := range buildItems {
 				if buildCompleteStatusFilterSet.Has(string(build.Status.Phase)) {
 					completeBuilds = append(completeBuilds, build)
@@ -156,7 +156,7 @@ func TestPerBuildConfigResolver(t *testing.T) {
 			}
 			sort.Sort(sort.Reverse(buildapihelpers.BuildPtrSliceByCreationTimestamp(completeBuilds)))
 			sort.Sort(sort.Reverse(buildapihelpers.BuildPtrSliceByCreationTimestamp(failedBuilds)))
-			var purgeComplete, purgeFailed []*buildapi.Build
+			var purgeComplete, purgeFailed []*buildv1.Build
 			if keep >= 0 && keep < len(completeBuilds) {
 				purgeComplete = completeBuilds[keep:]
 			}

@@ -21,7 +21,6 @@ import (
 	appsmanualclientv1 "github.com/openshift/origin/pkg/apps/client/v1"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildmanualclientv1 "github.com/openshift/origin/pkg/build/client/v1"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -87,18 +86,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-
-			// convert to internal in order to filter
-			internalBuildItems := []buildapi.Build{}
-			for _, external := range builds.Items {
-				internal := &buildapi.Build{}
-				if err := buildapiv1.Convert_v1_Build_To_build_Build(&external, internal, nil); err != nil {
-					return nil, err
-				}
-				internalBuildItems = append(internalBuildItems, *internal)
-			}
-
-			filteredInternalBuildItems := ocbuildapihelpers.FilterBuilds(internalBuildItems, ocbuildapihelpers.ByBuildConfigPredicate(t.Name))
+			filteredInternalBuildItems := ocbuildapihelpers.FilterBuilds(builds.Items, ocbuildapihelpers.ByBuildConfigPredicate(t.Name))
 			if len(filteredInternalBuildItems) == 0 {
 				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
@@ -136,7 +124,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-			builds.Items = ocbuildapihelpers.FilterBuilds(builds.Items, ocbuildapihelpers.ByBuildConfigPredicate(t.Name))
+			builds.Items = ocbuildapihelpers.FilterBuildsInternal(builds.Items, ocbuildapihelpers.ByBuildConfigPredicateInternal(t.Name))
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
@@ -145,7 +133,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
 				return logClient.Logs(desired, *bopts), nil
 			}
-			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestamp(builds.Items)))
+			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestampInternal(builds.Items)))
 			return logClient.Logs(builds.Items[0].Name, *bopts), nil
 
 		default:

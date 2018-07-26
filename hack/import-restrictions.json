@@ -514,7 +514,6 @@
       "github.com/openshift/origin/pkg/authorization/util",
       "github.com/openshift/origin/pkg/build/apis/build",
       "github.com/openshift/origin/pkg/build/apis/build/install",
-      "github.com/openshift/origin/pkg/build/apis/build/v1",
       "github.com/openshift/origin/pkg/build/buildapihelpers",
       "github.com/openshift/origin/pkg/build/client",
       "github.com/openshift/origin/pkg/build/client/internalversion",

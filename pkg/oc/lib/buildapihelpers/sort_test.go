@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	buildinternalapi "github.com/openshift/origin/pkg/build/apis/build"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 func TestSortBuildSliceByCreationTimestamp(t *testing.T) {
 	present := metav1.Now()
 	past := metav1.NewTime(present.Add(-time.Minute))
-	builds := []buildinternalapi.Build{
+	builds := []buildv1.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "present",
@@ -36,7 +36,7 @@ func TestSortBuildSliceByCreationTimestamp(t *testing.T) {
 func TestSortBuildPtrSliceByCreationTimestamp(t *testing.T) {
 	present := metav1.Now()
 	past := metav1.NewTime(present.Add(-time.Minute))
-	builds := []*buildinternalapi.Build{
+	builds := []*buildv1.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "present",
