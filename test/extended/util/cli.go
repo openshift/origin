@@ -29,8 +29,9 @@ import (
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	_ "github.com/openshift/origin/pkg/api/install"
-	appsclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsinternalclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -239,8 +240,17 @@ func (c *CLI) RESTMapper() meta.RESTMapper {
 	return ret
 }
 
-func (c *CLI) AppsClient() appsclientset.Interface {
-	client, err := appsclientset.NewForConfig(c.UserConfig())
+func (c *CLI) AppsClient() appsclient.Interface {
+	client, err := appsclient.NewForConfig(c.UserConfig())
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+// DEPRECATED: Use the external client instead
+func (c *CLI) AppsInternalClient() appsinternalclient.Interface {
+	client, err := appsinternalclient.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -305,8 +315,16 @@ func (c *CLI) UserClient() userclientset.Interface {
 	return client
 }
 
-func (c *CLI) AdminAppsClient() appsclientset.Interface {
-	client, err := appsclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminAppsClient() appsclient.Interface {
+	client, err := appsclient.NewForConfig(c.AdminConfig())
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminInternalAppsClient() appsinternalclient.Interface {
+	client, err := appsinternalclient.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
