@@ -22,7 +22,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/api/apps"
@@ -44,7 +43,7 @@ const (
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	dcClient  appsclient.DeploymentConfigsGetter
-	rcClient  kcoreclient.ReplicationControllersGetter
+	rcClient  corev1client.ReplicationControllersGetter
 	podClient corev1client.PodsGetter
 	timeout   time.Duration
 	interval  time.Duration
@@ -60,7 +59,7 @@ var _ = rest.GetterWithOptions(&REST{})
 // one for deployments (replication controllers) and one for pods to get the necessary
 // attributes to assemble the URL to which the request shall be redirected in order to
 // get the deployment logs.
-func NewREST(dcClient appsclient.DeploymentConfigsGetter, rcClient kcoreclient.ReplicationControllersGetter, podClient corev1client.PodsGetter) *REST {
+func NewREST(dcClient appsclient.DeploymentConfigsGetter, rcClient corev1client.ReplicationControllersGetter, podClient corev1client.PodsGetter) *REST {
 	r := &REST{
 		dcClient:  dcClient,
 		rcClient:  rcClient,
@@ -193,9 +192,9 @@ func (r *REST) getLogs(podNamespace, podName string, logOpts *corev1.PodLogOptio
 }
 
 // waitForExistingDeployment will use the timeout to wait for a deployment to appear.
-func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.ReplicationController, error) {
+func (r *REST) waitForExistingDeployment(namespace, name string) (*corev1.ReplicationController, error) {
 	var (
-		target *kapi.ReplicationController
+		target *corev1.ReplicationController
 		err    error
 	)
 
@@ -219,7 +218,7 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 
 // returnApplicationPodName returns the best candidate pod for the target deployment in order to
 // view its logs.
-func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (string, error) {
+func (r *REST) returnApplicationPodName(target *corev1.ReplicationController) (string, error) {
 	selector := labels.SelectorFromValidatedSet(labels.Set(target.Spec.Selector))
 	sortBy := func(pods []*corev1.Pod) sort.Interface { return controller.ByLogging(pods) }
 
@@ -272,7 +271,7 @@ func GetFirstPod(client corev1client.PodsGetter, namespace string, selector stri
 
 // WaitForRunningDeployerPod waits a given period of time until the deployer pod
 // for given replication controller is not running.
-func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *kapi.ReplicationController, timeout time.Duration) error {
+func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *corev1.ReplicationController, timeout time.Duration) error {
 	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
 	canGetLogs := func(p *corev1.Pod) bool {
 		return corev1.PodSucceeded == p.Status.Phase || corev1.PodFailed == p.Status.Phase || corev1.PodRunning == p.Status.Phase
