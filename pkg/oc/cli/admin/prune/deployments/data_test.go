@@ -5,35 +5,40 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
-func mockDeploymentConfig(namespace, name string) *appsapi.DeploymentConfig {
-	return &appsapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
+func mockDeploymentConfig(namespace, name string) *appsv1.DeploymentConfig {
+	return &appsv1.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
-func withSize(item *kapi.ReplicationController, replicas int) *kapi.ReplicationController {
-	item.Spec.Replicas = int32(replicas)
+func withSize(item *corev1.ReplicationController, replicas int32) *corev1.ReplicationController {
+	item.Spec.Replicas = &replicas
 	item.Status.Replicas = int32(replicas)
 	return item
 }
 
-func withCreated(item *kapi.ReplicationController, creationTimestamp metav1.Time) *kapi.ReplicationController {
+func withCreated(item *corev1.ReplicationController, creationTimestamp metav1.Time) *corev1.ReplicationController {
 	item.CreationTimestamp = creationTimestamp
 	return item
 }
 
-func withStatus(item *kapi.ReplicationController, status appsapi.DeploymentStatus) *kapi.ReplicationController {
+func withStatus(item *corev1.ReplicationController, status appsapi.DeploymentStatus) *corev1.ReplicationController {
 	item.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
 	return item
 }
 
-func mockDeployment(namespace, name string, deploymentConfig *appsapi.DeploymentConfig) *kapi.ReplicationController {
-	item := &kapi.ReplicationController{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name, Annotations: map[string]string{}}}
+func mockDeployment(namespace, name string, deploymentConfig *appsv1.DeploymentConfig) *corev1.ReplicationController {
+	zero := int32(0)
+	item := &corev1.ReplicationController{
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name, Annotations: map[string]string{}},
+		Spec:       corev1.ReplicationControllerSpec{Replicas: &zero},
+	}
 	if deploymentConfig != nil {
 		item.Annotations[appsapi.DeploymentConfigAnnotation] = deploymentConfig.Name
 	}
@@ -52,7 +57,7 @@ func TestDeploymentByDeploymentConfigIndexFunc(t *testing.T) {
 	if !reflect.DeepEqual(actualKey, expectedKey) {
 		t.Errorf("expected %v, actual %v", expectedKey, actualKey)
 	}
-	deploymentWithNoConfig := &kapi.ReplicationController{}
+	deploymentWithNoConfig := &corev1.ReplicationController{}
 	actualKey, err = DeploymentByDeploymentConfigIndexFunc(deploymentWithNoConfig)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -67,7 +72,7 @@ func TestFilterBeforePredicate(t *testing.T) {
 	youngerThan := time.Hour
 	now := metav1.Now()
 	old := metav1.NewTime(now.Time.Add(-1 * youngerThan))
-	items := []*kapi.ReplicationController{}
+	items := []*corev1.ReplicationController{}
 	items = append(items, withCreated(mockDeployment("a", "old", nil), old))
 	items = append(items, withCreated(mockDeployment("a", "new", nil), now))
 	filter := &andFilter{
@@ -83,10 +88,10 @@ func TestFilterBeforePredicate(t *testing.T) {
 }
 
 func TestEmptyDataSet(t *testing.T) {
-	deployments := []*kapi.ReplicationController{}
-	deploymentConfigs := []*appsapi.DeploymentConfig{}
+	deployments := []*corev1.ReplicationController{}
+	deploymentConfigs := []*appsv1.DeploymentConfig{}
 	dataSet := NewDataSet(deploymentConfigs, deployments)
-	_, exists, err := dataSet.GetDeploymentConfig(&kapi.ReplicationController{})
+	_, exists, err := dataSet.GetDeploymentConfig(&corev1.ReplicationController{})
 	if exists || err != nil {
 		t.Errorf("Unexpected result %v, %v", exists, err)
 	}
@@ -104,7 +109,7 @@ func TestEmptyDataSet(t *testing.T) {
 	if len(deploymentResults) != 0 {
 		t.Errorf("Unexpected result %v", deploymentResults)
 	}
-	deploymentResults, err = dataSet.ListDeploymentsByDeploymentConfig(&appsapi.DeploymentConfig{})
+	deploymentResults, err = dataSet.ListDeploymentsByDeploymentConfig(&appsv1.DeploymentConfig{})
 	if err != nil {
 		t.Errorf("Unexpected result %v", err)
 	}
@@ -114,11 +119,11 @@ func TestEmptyDataSet(t *testing.T) {
 }
 
 func TestPopulatedDataSet(t *testing.T) {
-	deploymentConfigs := []*appsapi.DeploymentConfig{
+	deploymentConfigs := []*appsv1.DeploymentConfig{
 		mockDeploymentConfig("a", "deployment-config-1"),
 		mockDeploymentConfig("b", "deployment-config-2"),
 	}
-	deployments := []*kapi.ReplicationController{
+	deployments := []*corev1.ReplicationController{
 		mockDeployment("a", "deployment-1", deploymentConfigs[0]),
 		mockDeployment("a", "deployment-2", deploymentConfigs[0]),
 		mockDeployment("b", "deployment-3", deploymentConfigs[1]),
