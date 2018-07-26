@@ -156,6 +156,13 @@ func TestAccessRestrictionAuthorizer(t *testing.T) {
 						},
 					},
 				},
+				DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+					{
+						UserRestriction: &authorizationv1.UserRestriction{
+							Groups: []string{"system:authenticated", "system:unauthenticated"},
+						},
+					},
+				},
 			},
 		},
 		{
