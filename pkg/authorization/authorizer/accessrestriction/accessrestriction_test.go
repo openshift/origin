@@ -750,43 +750,6 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "whitelist not deny user via embedded group of other labeled user",
-			fields: fields{
-				accessRestrictionLister: testAccessRestrictionLister(
-					identityWhitelistSA,
-					// the rest are not important for this test, just there to make sure it is ignored
-					secretWhitelistGroup,
-					configmapWhitelistUser,
-					podWhitelistGroup,
-				),
-				userLister: testUserLister(
-					groupedLabeledUserRandy, // this matches the label selector for the AR and makes the group allowed
-				),
-				groupLister: testGroupLister(
-					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
-				),
-			},
-			args: args{
-				requestAttributes: &authorizer.AttributesRecord{
-					User: &user.DefaultInfo{
-						Name:   "some-random-name-ignored",
-						Groups: []string{"sharks", "system:authenticated"}, // this is weird because it is the randy user's label matching that allows it
-					},
-					Verb:            "update",
-					Namespace:       "non-empty",
-					APIGroup:        "user.openshift.io",
-					Resource:        "identities",
-					Subresource:     "",
-					Name:            "github:phantom",
-					ResourceRequest: true,
-					Path:            "",
-				},
-			},
-			want:    authorizer.DecisionNoOpinion,
-			want1:   "",
-			wantErr: false,
-		},
-		{
 			name: "simple blacklist user deny",
 			fields: fields{
 				accessRestrictionLister: testAccessRestrictionLister(
@@ -956,45 +919,6 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 					User: &user.DefaultInfo{
 						Name:   "frank",
 						Groups: []string{"not-pythons", "system:authenticated"},
-					},
-					Verb:            "delete",
-					Namespace:       "non-empty",
-					APIGroup:        "",
-					Resource:        "serviceaccounts",
-					Subresource:     "",
-					Name:            "builder",
-					ResourceRequest: true,
-					Path:            "",
-				},
-			},
-			want:    authorizer.DecisionDeny,
-			want1:   "denied by access restriction",
-			wantErr: false,
-		},
-		{
-			name: "blacklist deny user via embedded group of other labeled user",
-			fields: fields{
-				accessRestrictionLister: testAccessRestrictionLister(
-					saBlacklistUser,
-					// the rest are not important for this test, just there to make sure it is ignored
-					identityWhitelistSA,
-					secretWhitelistGroup,
-					configmapWhitelistUser,
-					podWhitelistGroup,
-				),
-				userLister: testUserLister(
-					groupedLabeledUserFrank,
-					groupedLabeledUserRandy, // not important for this test, just there to make sure it is ignored
-				),
-				groupLister: testGroupLister(
-					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
-				),
-			},
-			args: args{
-				requestAttributes: &authorizer.AttributesRecord{
-					User: &user.DefaultInfo{
-						Name:   "not-used",
-						Groups: []string{"danger-zone", "system:authenticated"}, // this is weird because it is the frank user's label matching that denies it
 					},
 					Verb:            "delete",
 					Namespace:       "non-empty",

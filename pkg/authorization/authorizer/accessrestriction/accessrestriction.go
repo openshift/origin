@@ -147,7 +147,7 @@ func (a *accessRestrictionAuthorizer) userMatches(userRestriction *authorization
 	}
 	for _, labelSelector := range userRestriction.Selectors {
 		for _, u := range a.labelSelectorToUsers(labelSelector) {
-			if u.Name == user.GetName() || hasAny(u.Groups, user.GetGroups()) { // TODO not sure if we should check groups here
+			if u.Name == user.GetName() {
 				return true
 			}
 		}
