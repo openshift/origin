@@ -510,6 +510,7 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 		actualKubeletFlags = append(actualKubeletFlags, curr)
 	}
 	container.Args = append(actualKubeletFlags, "--pod-manifest-path=/var/lib/origin/pod-manifests")
+	container.Args = append(container.Args, "--file-check-frequency=1s")
 	container.Args = append(container.Args, "--cluster-dns=172.30.0.2")
 	container.Args = append(container.Args, fmt.Sprintf("--v=%d", c.ServerLogLevel))
 	glog.V(1).Info(strings.Join(container.Args, " "))
