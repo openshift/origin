@@ -132,7 +132,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["deploymentConfigs/scale"] = deployConfigScaleStorage
 	v1Storage["deploymentConfigs/status"] = deployConfigStatusStorage
 	v1Storage["deploymentConfigs/rollback"] = deployConfigRollbackStorage
-	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftInternalAppsClient.Apps(), kubeInternalClient.Core(), kubeClient.CoreV1())
+	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftInternalAppsClient.Apps(), kubeClient)
 	v1Storage["deploymentConfigs/instantiate"] = dcInstantiateStorage
 	return v1Storage, nil
 }

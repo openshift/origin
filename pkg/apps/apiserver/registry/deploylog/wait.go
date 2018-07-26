@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	"github.com/golang/glog"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -23,7 +24,7 @@ var (
 // WaitForRunningDeployment waits until the specified deployment is no longer New or Pending. Returns true if
 // the deployment became running, complete, or failed within timeout, false if it did not, and an error if any
 // other error state occurred. The last observed deployment state is returned.
-func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, observed *kapi.ReplicationController, timeout time.Duration) (*kapi.ReplicationController, bool, error) {
+func WaitForRunningDeployment(rn corev1client.ReplicationControllersGetter, observed *corev1.ReplicationController, timeout time.Duration) (*corev1.ReplicationController, bool, error) {
 	options := metav1.SingleObject(observed.ObjectMeta)
 	w, err := rn.ReplicationControllers(observed.Namespace).Watch(options)
 	if err != nil {
@@ -44,7 +45,7 @@ func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, obser
 			}
 			return false, fmt.Errorf("encountered error while watching for replication controller: %v", e.Object)
 		}
-		obj, isController := e.Object.(*kapi.ReplicationController)
+		obj, isController := e.Object.(*corev1.ReplicationController)
 		if !isController {
 			return false, fmt.Errorf("received unknown object while watching for deployments: %v", obj)
 		}
