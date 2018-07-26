@@ -536,6 +536,34 @@ func TestValidateAccessRestriction(t *testing.T) {
 			},
 		},
 		{
+			name: "invalid policy rule due to nonResourceURLs",
+			args: args{
+				obj: &authorizationapi.AccessRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "name",
+					},
+					Spec: authorizationapi.AccessRestrictionSpec{
+						MatchAttributes: []rbac.PolicyRule{
+							{
+								Verbs:           []string{"get"},
+								NonResourceURLs: []string{"/apis"},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"group"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: field.ErrorList{
+				{Type: field.ErrorTypeInvalid, Field: "spec.matchAttributes[0].nonResourceURLs", BadValue: []string{"/apis"}, Detail: "nonResourceURLs cannot be specified"},
+			},
+		},
+		{
 			name: "missing subject matcher",
 			args: args{
 				obj: &authorizationapi.AccessRestriction{
@@ -885,6 +913,13 @@ func TestValidateAccessRestrictionUpdate(t *testing.T) {
 							{
 								GroupRestriction: &authorizationapi.GroupRestriction{
 									Groups: []string{"jobGroup"},
+								},
+							},
+						},
+						DeniedSubjects: []authorizationapi.SubjectMatcher{
+							{
+								UserRestriction: &authorizationapi.UserRestriction{
+									Groups: []string{"system:authenticated", "system:unauthenticated"},
 								},
 							},
 						},
