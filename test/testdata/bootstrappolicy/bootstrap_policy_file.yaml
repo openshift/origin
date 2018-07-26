@@ -290,6 +290,14 @@ items:
     - list
     - watch
   - apiGroups:
+    - authorization.openshift.io
+    resources:
+    - accessrestrictions
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - ""
     - build.openshift.io
     resources:
