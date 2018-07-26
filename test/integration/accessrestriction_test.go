@@ -203,6 +203,34 @@ func TestAccessRestrictionAuthorizer(t *testing.T) {
 				},
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "does-not-apply-to-any-user",
+			},
+			Spec: authorizationv1alpha1.AccessRestrictionSpec{
+				MatchAttributes: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{rbacv1.VerbAll},
+						APIGroups: []string{rbacv1.APIGroupAll},
+						Resources: []string{rbacv1.ResourceAll},
+					},
+				},
+				AllowedSubjects: []authorizationv1alpha1.SubjectMatcher{
+					{
+						UserRestriction: &authorizationv1.UserRestriction{
+							Users: []string{"no-such-user-1"},
+						},
+					},
+				},
+				DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+					{
+						UserRestriction: &authorizationv1.UserRestriction{
+							Users: []string{"no-such-user-2"},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, accessRestriction := range accessRestrictions {
