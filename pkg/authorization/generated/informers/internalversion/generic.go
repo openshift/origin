@@ -37,6 +37,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=authorization.openshift.io, Version=internalVersion
+	case authorization.SchemeGroupVersion.WithResource("accessrestrictions"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().AccessRestrictions().Informer()}, nil
 	case authorization.SchemeGroupVersion.WithResource("clusterroles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterRoles().Informer()}, nil
 	case authorization.SchemeGroupVersion.WithResource("clusterrolebindings"):

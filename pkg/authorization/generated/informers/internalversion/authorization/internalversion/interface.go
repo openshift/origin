@@ -8,6 +8,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// AccessRestrictions returns a AccessRestrictionInformer.
+	AccessRestrictions() AccessRestrictionInformer
 	// ClusterRoles returns a ClusterRoleInformer.
 	ClusterRoles() ClusterRoleInformer
 	// ClusterRoleBindings returns a ClusterRoleBindingInformer.
@@ -29,6 +31,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// AccessRestrictions returns a AccessRestrictionInformer.
+func (v *version) AccessRestrictions() AccessRestrictionInformer {
+	return &accessRestrictionInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // ClusterRoles returns a ClusterRoleInformer.

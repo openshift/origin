@@ -258,6 +258,11 @@
     File: v1.SubjectAccessReview
   - Name: v1.SubjectRulesReview
     File: v1.SubjectRulesReview
+- Name: /apis/authorization.openshift.io/v1alpha1
+  Dir: apis-authorization.openshift.io
+  Topics:
+  - Name: v1alpha1.AccessRestriction
+    File: v1alpha1.AccessRestriction
 - Name: /apis/build.openshift.io/v1
   Dir: apis-build.openshift.io
   Topics:

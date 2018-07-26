@@ -2,6 +2,10 @@
 
 package internalversion
 
+// AccessRestrictionListerExpansion allows custom methods to be added to
+// AccessRestrictionLister.
+type AccessRestrictionListerExpansion interface{}
+
 // ClusterRoleListerExpansion allows custom methods to be added to
 // ClusterRoleLister.
 type ClusterRoleListerExpansion interface{}

@@ -12,6 +12,10 @@ type FakeAuthorization struct {
 	*testing.Fake
 }
 
+func (c *FakeAuthorization) AccessRestrictions() internalversion.AccessRestrictionInterface {
+	return &FakeAccessRestrictions{c}
+}
+
 func (c *FakeAuthorization) ClusterRoles() internalversion.ClusterRoleInterface {
 	return &FakeClusterRoles{c}
 }

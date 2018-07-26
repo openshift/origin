@@ -2,6 +2,8 @@
 
 package internalversion
 
+type AccessRestrictionExpansion interface{}
+
 type ClusterRoleExpansion interface{}
 
 type ClusterRoleBindingExpansion interface{}
