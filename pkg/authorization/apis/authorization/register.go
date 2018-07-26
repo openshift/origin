@@ -56,6 +56,9 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 
 		&RoleBindingRestriction{},
 		&RoleBindingRestrictionList{},
+
+		&AccessRestriction{},
+		&AccessRestrictionList{},
 	)
 	return nil
 }

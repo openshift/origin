@@ -9,6 +9,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	authorizationapiv1alpha1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1alpha1"
 )
 
 func init() {
@@ -20,5 +21,6 @@ func Install(scheme *runtime.Scheme) {
 	utilruntime.Must(authorizationapi.Install(scheme))
 	utilruntime.Must(rbacconversion.AddToScheme(scheme))
 	utilruntime.Must(authorizationapiv1.Install(scheme))
+	utilruntime.Must(authorizationapiv1alpha1.Install(scheme))
 	utilruntime.Must(scheme.SetVersionPriority(authorizationv1.GroupVersion))
 }
