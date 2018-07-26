@@ -254,6 +254,49 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 			},
 		},
 	}
+	blocksAllRequests := &authorizationv1alpha1.AccessRestriction{
+		Spec: authorizationv1alpha1.AccessRestrictionSpec{
+			MatchAttributes: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"*"},
+					APIGroups: []string{"*"},
+					Resources: []string{"*"},
+				},
+			},
+			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					GroupRestriction: &authorizationv1.GroupRestriction{
+						Groups: []string{"system:authenticated", "system:unauthenticated"},
+					},
+				},
+			},
+		},
+	}
+	blockGroupExceptOneUser := &authorizationv1alpha1.AccessRestriction{
+		Spec: authorizationv1alpha1.AccessRestrictionSpec{
+			MatchAttributes: []rbacv1.PolicyRule{
+				{
+					Verbs:     []string{"*"},
+					APIGroups: []string{"*"},
+					Resources: []string{"*"},
+				},
+			},
+			AllowedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					UserRestriction: &authorizationv1.UserRestriction{
+						Users: []string{"exceptional-user"},
+					},
+				},
+			},
+			DeniedSubjects: []authorizationv1alpha1.SubjectMatcher{
+				{
+					GroupRestriction: &authorizationv1.GroupRestriction{
+						Groups: []string{"unprivileged-group"},
+					},
+				},
+			},
+		},
+	}
 
 	type fields struct {
 		accessRestrictionLister authorizationlisters.AccessRestrictionLister
@@ -1052,6 +1095,307 @@ func Test_accessRestrictionAuthorizer_Authorize(t *testing.T) {
 					Resource:        "daemonsets",
 					Subresource:     "",
 					Name:            "proxy",
+					ResourceRequest: true,
+					Path:            "",
+				},
+			},
+			want:    authorizer.DecisionNoOpinion,
+			want1:   "",
+			wantErr: false,
+		},
+		{
+			name: "ignored due to non-resource request",
+			fields: fields{
+				accessRestrictionLister: testAccessRestrictionLister(
+					blocksAllRequests,
+					// the rest are not important for this test, just there to make sure it is ignored
+					requiresBothUserAndGroup1,
+					requiresBothUserAndGroup2,
+					saBlacklistUser,
+					identityWhitelistSA,
+					secretWhitelistGroup,
+					configmapWhitelistUser,
+					podWhitelistGroup,
+				),
+				userLister: testUserLister(
+					// the rest are not important for this test, just there to make sure it is ignored
+					groupedLabeledUserFrank,
+					groupedLabeledUserRandy,
+				),
+				groupLister: testGroupLister(
+					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
+				),
+			},
+			args: args{
+				requestAttributes: &authorizer.AttributesRecord{
+					User: &user.DefaultInfo{
+						Name:   "user1",
+						Groups: []string{"group1", "system:authenticated"},
+					},
+					Verb:            "update",
+					Namespace:       "non-empty",
+					APIGroup:        "",
+					Resource:        "daemonsets",
+					Subresource:     "",
+					Name:            "proxy",
+					ResourceRequest: false, // causes this to be ignored
+					Path:            "",
+				},
+			},
+			want:    authorizer.DecisionNoOpinion,
+			want1:   "",
+			wantErr: false,
+		},
+		{
+			name: "ignored due to cluster scope",
+			fields: fields{
+				accessRestrictionLister: testAccessRestrictionLister(
+					blocksAllRequests,
+					// the rest are not important for this test, just there to make sure it is ignored
+					requiresBothUserAndGroup1,
+					requiresBothUserAndGroup2,
+					saBlacklistUser,
+					identityWhitelistSA,
+					secretWhitelistGroup,
+					configmapWhitelistUser,
+					podWhitelistGroup,
+				),
+				userLister: testUserLister(
+					// the rest are not important for this test, just there to make sure it is ignored
+					groupedLabeledUserFrank,
+					groupedLabeledUserRandy,
+				),
+				groupLister: testGroupLister(
+					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
+				),
+			},
+			args: args{
+				requestAttributes: &authorizer.AttributesRecord{
+					User: &user.DefaultInfo{
+						Name:   "user1",
+						Groups: []string{"group1", "system:authenticated"},
+					},
+					Verb:            "update",
+					Namespace:       "", // causes this to be ignored
+					APIGroup:        "",
+					Resource:        "daemonsets",
+					Subresource:     "",
+					Name:            "proxy",
+					ResourceRequest: true,
+					Path:            "",
+				},
+			},
+			want:    authorizer.DecisionNoOpinion,
+			want1:   "",
+			wantErr: false,
+		},
+		{
+			name: "ignored due to reserved namespace name",
+			fields: fields{
+				accessRestrictionLister: testAccessRestrictionLister(
+					blocksAllRequests,
+					// the rest are not important for this test, just there to make sure it is ignored
+					requiresBothUserAndGroup1,
+					requiresBothUserAndGroup2,
+					saBlacklistUser,
+					identityWhitelistSA,
+					secretWhitelistGroup,
+					configmapWhitelistUser,
+					podWhitelistGroup,
+				),
+				userLister: testUserLister(
+					// the rest are not important for this test, just there to make sure it is ignored
+					groupedLabeledUserFrank,
+					groupedLabeledUserRandy,
+				),
+				groupLister: testGroupLister(
+					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
+				),
+			},
+			args: args{
+				requestAttributes: &authorizer.AttributesRecord{
+					User: &user.DefaultInfo{
+						Name:   "user1",
+						Groups: []string{"group1", "system:authenticated"},
+					},
+					Verb:            "update",
+					Namespace:       "kube-system", // causes this to be ignored
+					APIGroup:        "",
+					Resource:        "daemonsets",
+					Subresource:     "",
+					Name:            "proxy",
+					ResourceRequest: true,
+					Path:            "",
+				},
+			},
+			want:    authorizer.DecisionNoOpinion,
+			want1:   "",
+			wantErr: false,
+		},
+		{
+			name: "ignored due to reserved namespace prefix",
+			fields: fields{
+				accessRestrictionLister: testAccessRestrictionLister(
+					blocksAllRequests,
+					// the rest are not important for this test, just there to make sure it is ignored
+					requiresBothUserAndGroup1,
+					requiresBothUserAndGroup2,
+					saBlacklistUser,
+					identityWhitelistSA,
+					secretWhitelistGroup,
+					configmapWhitelistUser,
+					podWhitelistGroup,
+				),
+				userLister: testUserLister(
+					// the rest are not important for this test, just there to make sure it is ignored
+					groupedLabeledUserFrank,
+					groupedLabeledUserRandy,
+				),
+				groupLister: testGroupLister(
+					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
+				),
+			},
+			args: args{
+				requestAttributes: &authorizer.AttributesRecord{
+					User: &user.DefaultInfo{
+						Name:   "user1",
+						Groups: []string{"group1", "system:authenticated"},
+					},
+					Verb:            "update",
+					Namespace:       "openshift-foo", // causes this to be ignored
+					APIGroup:        "",
+					Resource:        "daemonsets",
+					Subresource:     "",
+					Name:            "proxy",
+					ResourceRequest: true,
+					Path:            "",
+				},
+			},
+			want:    authorizer.DecisionNoOpinion,
+			want1:   "",
+			wantErr: false,
+		},
+		{
+			name: "block normal user in group",
+			fields: fields{
+				accessRestrictionLister: testAccessRestrictionLister(
+					blockGroupExceptOneUser,
+					// the rest are not important for this test, just there to make sure it is ignored
+					requiresBothUserAndGroup1,
+					requiresBothUserAndGroup2,
+					saBlacklistUser,
+					identityWhitelistSA,
+					secretWhitelistGroup,
+					configmapWhitelistUser,
+					podWhitelistGroup,
+				),
+				userLister: testUserLister(
+					// the rest are not important for this test, just there to make sure it is ignored
+					groupedLabeledUserFrank,
+					groupedLabeledUserRandy,
+				),
+				groupLister: testGroupLister(
+					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
+				),
+			},
+			args: args{
+				requestAttributes: &authorizer.AttributesRecord{
+					User: &user.DefaultInfo{
+						Name:   "unexceptional-user",
+						Groups: []string{"unprivileged-group"},
+					},
+					Verb:            "hug",
+					Namespace:       "non-empty",
+					APIGroup:        "",
+					Resource:        "pandas",
+					Subresource:     "",
+					Name:            "",
+					ResourceRequest: true,
+					Path:            "",
+				},
+			},
+			want:    authorizer.DecisionDeny,
+			want1:   "denied by access restriction",
+			wantErr: false,
+		},
+		{
+			name: "do not block normal user not in group",
+			fields: fields{
+				accessRestrictionLister: testAccessRestrictionLister(
+					blockGroupExceptOneUser,
+					// the rest are not important for this test, just there to make sure it is ignored
+					requiresBothUserAndGroup1,
+					requiresBothUserAndGroup2,
+					saBlacklistUser,
+					identityWhitelistSA,
+					secretWhitelistGroup,
+					configmapWhitelistUser,
+					podWhitelistGroup,
+				),
+				userLister: testUserLister(
+					// the rest are not important for this test, just there to make sure it is ignored
+					groupedLabeledUserFrank,
+					groupedLabeledUserRandy,
+				),
+				groupLister: testGroupLister(
+					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
+				),
+			},
+			args: args{
+				requestAttributes: &authorizer.AttributesRecord{
+					User: &user.DefaultInfo{
+						Name:   "unexceptional-user",
+						Groups: []string{"privileged-group"},
+					},
+					Verb:            "hug",
+					Namespace:       "non-empty",
+					APIGroup:        "",
+					Resource:        "pandas",
+					Subresource:     "",
+					Name:            "",
+					ResourceRequest: true,
+					Path:            "",
+				},
+			},
+			want:    authorizer.DecisionNoOpinion,
+			want1:   "",
+			wantErr: false,
+		},
+		{
+			name: "do not block exceptional user in group",
+			fields: fields{
+				accessRestrictionLister: testAccessRestrictionLister(
+					blockGroupExceptOneUser,
+					// the rest are not important for this test, just there to make sure it is ignored
+					requiresBothUserAndGroup1,
+					requiresBothUserAndGroup2,
+					saBlacklistUser,
+					identityWhitelistSA,
+					secretWhitelistGroup,
+					configmapWhitelistUser,
+					podWhitelistGroup,
+				),
+				userLister: testUserLister(
+					// the rest are not important for this test, just there to make sure it is ignored
+					groupedLabeledUserFrank,
+					groupedLabeledUserRandy,
+				),
+				groupLister: testGroupLister(
+					secretLabelGroupNoUsers, // not important for this test, just there to make sure it is ignored
+				),
+			},
+			args: args{
+				requestAttributes: &authorizer.AttributesRecord{
+					User: &user.DefaultInfo{
+						Name:   "exceptional-user",
+						Groups: []string{"unprivileged-group"},
+					},
+					Verb:            "hug",
+					Namespace:       "non-empty",
+					APIGroup:        "",
+					Resource:        "pandas",
+					Subresource:     "",
+					Name:            "",
 					ResourceRequest: true,
 					Path:            "",
 				},
