@@ -12,7 +12,8 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	"github.com/golang/glog"
+	authorizationexternalclient "github.com/openshift/client-go/authorization/clientset/versioned"
+	authorizationexternalinformer "github.com/openshift/client-go/authorization/informers/externalversions"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
@@ -37,6 +38,8 @@ import (
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	usercache "github.com/openshift/origin/pkg/user/cache"
+
+	"github.com/golang/glog"
 )
 
 type GenericResourceInformer interface {
@@ -121,19 +124,20 @@ func (i genericInformers) Start(stopCh <-chan struct{}) {
 // is intentionally private.  We don't want to leak it out further than this package.
 // Everything else should say what it wants.
 type informerHolder struct {
-	internalKubeInformers  kinternalinformers.SharedInformerFactory
-	externalKubeInformers  kexternalinformers.SharedInformerFactory
-	appInformers           appinformer.SharedInformerFactory
-	authorizationInformers authorizationinformer.SharedInformerFactory
-	buildInformers         buildinformer.SharedInformerFactory
-	imageInformers         imageinformer.SharedInformerFactory
-	networkInformers       networkinformer.SharedInformerFactory
-	oauthInformers         oauthinformer.SharedInformerFactory
-	quotaInformers         quotainformer.SharedInformerFactory
-	routeInformers         routeinformer.SharedInformerFactory
-	securityInformers      securityinformer.SharedInformerFactory
-	templateInformers      templateinformer.SharedInformerFactory
-	userInformers          userinformer.SharedInformerFactory
+	internalKubeInformers          kinternalinformers.SharedInformerFactory
+	externalKubeInformers          kexternalinformers.SharedInformerFactory
+	appInformers                   appinformer.SharedInformerFactory
+	authorizationInformers         authorizationinformer.SharedInformerFactory
+	authorizationExternalInformers authorizationexternalinformer.SharedInformerFactory
+	buildInformers                 buildinformer.SharedInformerFactory
+	imageInformers                 imageinformer.SharedInformerFactory
+	networkInformers               networkinformer.SharedInformerFactory
+	oauthInformers                 oauthinformer.SharedInformerFactory
+	quotaInformers                 quotainformer.SharedInformerFactory
+	routeInformers                 routeinformer.SharedInformerFactory
+	securityInformers              securityinformer.SharedInformerFactory
+	templateInformers              templateinformer.SharedInformerFactory
+	userInformers                  userinformer.SharedInformerFactory
 }
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
@@ -152,6 +156,10 @@ func NewInformers(clientConfig *rest.Config) (*informerHolder, error) {
 		return nil, err
 	}
 	authorizationClient, err := authorizationclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+	authorizationExternalClient, err := authorizationexternalclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -201,19 +209,20 @@ func NewInformers(clientConfig *rest.Config) (*informerHolder, error) {
 		map[string]cache.IndexFunc{appslisters.ImageStreamReferenceIndex: appslisters.ImageStreamReferenceIndexFunc})
 
 	return &informerHolder{
-		internalKubeInformers:  kinternalinformers.NewSharedInformerFactory(kubeInternal, defaultInformerResyncPeriod),
-		externalKubeInformers:  kexternalinformers.NewSharedInformerFactory(kubeExternal, defaultInformerResyncPeriod),
-		appInformers:           appInformers,
-		authorizationInformers: authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
-		buildInformers:         buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
-		imageInformers:         imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
-		networkInformers:       networkinformer.NewSharedInformerFactory(networkClient, defaultInformerResyncPeriod),
-		oauthInformers:         oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
-		quotaInformers:         quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
-		routeInformers:         routeinformer.NewSharedInformerFactory(routerClient, defaultInformerResyncPeriod),
-		securityInformers:      securityinformer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
-		templateInformers:      templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod),
-		userInformers:          userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
+		internalKubeInformers:          kinternalinformers.NewSharedInformerFactory(kubeInternal, defaultInformerResyncPeriod),
+		externalKubeInformers:          kexternalinformers.NewSharedInformerFactory(kubeExternal, defaultInformerResyncPeriod),
+		appInformers:                   appInformers,
+		authorizationInformers:         authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
+		authorizationExternalInformers: authorizationexternalinformer.NewSharedInformerFactory(authorizationExternalClient, defaultInformerResyncPeriod),
+		buildInformers:                 buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
+		imageInformers:                 imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
+		networkInformers:               networkinformer.NewSharedInformerFactory(networkClient, defaultInformerResyncPeriod),
+		oauthInformers:                 oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
+		quotaInformers:                 quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
+		routeInformers:                 routeinformer.NewSharedInformerFactory(routerClient, defaultInformerResyncPeriod),
+		securityInformers:              securityinformer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
+		templateInformers:              templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod),
+		userInformers:                  userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 	}, nil
 }
 
@@ -236,6 +245,9 @@ func (i *informerHolder) GetAppInformers() appinformer.SharedInformerFactory {
 }
 func (i *informerHolder) GetAuthorizationInformers() authorizationinformer.SharedInformerFactory {
 	return i.authorizationInformers
+}
+func (i *informerHolder) GetExternalAuthorizationInformers() authorizationexternalinformer.SharedInformerFactory {
+	return i.authorizationExternalInformers
 }
 func (i *informerHolder) GetBuildInformers() buildinformer.SharedInformerFactory {
 	return i.buildInformers
@@ -271,6 +283,7 @@ func (i *informerHolder) Start(stopCh <-chan struct{}) {
 	i.externalKubeInformers.Start(stopCh)
 	i.appInformers.Start(stopCh)
 	i.authorizationInformers.Start(stopCh)
+	i.authorizationExternalInformers.Start(stopCh)
 	i.buildInformers.Start(stopCh)
 	i.imageInformers.Start(stopCh)
 	i.networkInformers.Start(stopCh)
