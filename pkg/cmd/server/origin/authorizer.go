@@ -13,6 +13,7 @@ import (
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	openshiftauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
+	"github.com/openshift/origin/pkg/authorization/authorizer/accessrestriction"
 	"github.com/openshift/origin/pkg/authorization/authorizer/browsersafe"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
@@ -22,6 +23,10 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 	rbacInformers := informers.GetExternalKubeInformers().Rbac().V1()
 
 	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister(), messageMaker)
+
+	accessRestrictionInformer := informers.GetExternalAuthorizationInformers().Authorization().V1alpha1().AccessRestrictions()
+	userInformer := informers.GetUserInformers().User().V1()
+	accessRestrictionAuthorizer := accessrestriction.NewAuthorizer(accessRestrictionInformer, userInformer.Users(), userInformer.Groups())
 
 	kubeAuthorizer := rbacauthorizer.New(
 		&rbacauthorizer.RoleGetter{Lister: rbacInformers.Roles().Lister()},
@@ -46,6 +51,10 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 		browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated),
 		// authorizes system:masters to do anything, just like upstream
 		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup),
+		// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately.
+		// The deny authorizer comes after system:masters but before everything else
+		// Thus it can never permanently break the cluster because we always have a way to fix things
+		browsersafe.NewBrowserSafeAuthorizer(accessRestrictionAuthorizer, user.AllAuthenticated),
 		nodeAuthorizer,
 		// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
 		browsersafe.NewBrowserSafeAuthorizer(openshiftauthorizer.NewAuthorizer(kubeAuthorizer, messageMaker), user.AllAuthenticated),

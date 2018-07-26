@@ -12,7 +12,7 @@ import (
 
 const (
 	PolicyCachePollInterval = 100 * time.Millisecond
-	PolicyCachePollTimeout  = 5 * time.Second
+	PolicyCachePollTimeout  = 15 * time.Second
 )
 
 // WaitForPolicyUpdate checks if the given client can perform the named verb and action.
