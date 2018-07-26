@@ -267,11 +267,6 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		)
 	}
 
-	// TODO: in 3.12 allow "-v" to support global verbosity like kubectl, not just "--v"
-	if flag := cmds.PersistentFlags().Lookup("v"); flag != nil {
-		flag.Shorthand = ""
-	}
-
 	return cmds
 }
 

@@ -88,7 +88,11 @@ func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, stream
 	}
 	cmd.Flags().StringVarP(&o.outputFormat, "output", "o", o.outputFormat, "Output format. One of: dot.")
 	// TODO: remove verbose in 3.12
-	cmd.Flags().BoolVarP(&o.suggest, "verbose", "v", o.suggest, "See details for resolving issues.")
+	// this is done to trick pflag into allowing the duplicate registration.  The local value here wins
+	cmd.Flags().BoolVarP(&o.suggest, "v", "v", o.suggest, "See details for resolving issues.")
+	cmd.Flags().MarkDeprecated("v", "Use --suggest instead.  Will be dropped in a future release")
+	cmd.Flags().MarkShorthandDeprecated("v", "Use --suggest instead.  Will be dropped in a future release")
+	cmd.Flags().BoolVar(&o.suggest, "verbose", o.suggest, "See details for resolving issues.")
 	cmd.Flags().MarkDeprecated("verbose", "Use --suggest instead.")
 	cmd.Flags().MarkHidden("verbose")
 	cmd.Flags().BoolVar(&o.suggest, "suggest", o.suggest, "See details for resolving issues.")
