@@ -78,6 +78,10 @@ os::cmd::expect_success "oc logout"
 os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything" "You don't have any projects. You can try to create a new project, by running"
 os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
 
+# Verify the deprecated flags are working
+os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecated'
+os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
+
 # logout
 os::cmd::expect_success "oc logout"
 
