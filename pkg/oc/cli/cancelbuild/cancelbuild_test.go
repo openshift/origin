@@ -64,11 +64,12 @@ func TestCancelBuildRun(t *testing.T) {
 	}{
 		"cancelled": {
 			opts: &CancelBuildOptions{
-				PrinterCancel:  &discardingPrinter{},
-				PrinterRestart: &discardingPrinter{},
-				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
-				Namespace:      "test",
-				States:         []string{"new", "pending", "running"},
+				PrinterCancel:           &discardingPrinter{},
+				PrinterCancelInProgress: &discardingPrinter{},
+				PrinterRestart:          &discardingPrinter{},
+				IOStreams:               genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:               "test",
+				States:                  []string{"new", "pending", "running"},
 			},
 			phase: buildapi.BuildPhaseCancelled,
 			expectedActions: []testAction{
@@ -78,10 +79,11 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"complete": {
 			opts: &CancelBuildOptions{
-				PrinterCancel:  &discardingPrinter{},
-				PrinterRestart: &discardingPrinter{},
-				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
-				Namespace:      "test",
+				PrinterCancel:           &discardingPrinter{},
+				PrinterCancelInProgress: &discardingPrinter{},
+				PrinterRestart:          &discardingPrinter{},
+				IOStreams:               genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:               "test",
 			},
 			phase: buildapi.BuildPhaseComplete,
 			expectedActions: []testAction{
@@ -91,10 +93,11 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"new": {
 			opts: &CancelBuildOptions{
-				PrinterCancel:  &discardingPrinter{},
-				PrinterRestart: &discardingPrinter{},
-				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
-				Namespace:      "test",
+				PrinterCancel:           &discardingPrinter{},
+				PrinterCancelInProgress: &discardingPrinter{},
+				PrinterRestart:          &discardingPrinter{},
+				IOStreams:               genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:               "test",
 			},
 			phase: buildapi.BuildPhaseNew,
 			expectedActions: []testAction{
@@ -106,10 +109,11 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"pending": {
 			opts: &CancelBuildOptions{
-				PrinterCancel:  &discardingPrinter{},
-				PrinterRestart: &discardingPrinter{},
-				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
-				Namespace:      "test",
+				PrinterCancel:           &discardingPrinter{},
+				PrinterCancelInProgress: &discardingPrinter{},
+				PrinterRestart:          &discardingPrinter{},
+				IOStreams:               genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:               "test",
 			},
 			phase: buildapi.BuildPhaseNew,
 			expectedActions: []testAction{
@@ -121,11 +125,12 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"running and restart": {
 			opts: &CancelBuildOptions{
-				PrinterCancel:  &discardingPrinter{},
-				PrinterRestart: &discardingPrinter{},
-				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
-				Namespace:      "test",
-				Restart:        true,
+				PrinterCancel:           &discardingPrinter{},
+				PrinterCancelInProgress: &discardingPrinter{},
+				PrinterRestart:          &discardingPrinter{},
+				IOStreams:               genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:               "test",
+				Restart:                 true,
 			},
 			phase: buildapi.BuildPhaseNew,
 			expectedActions: []testAction{
