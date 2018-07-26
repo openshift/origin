@@ -19,15 +19,13 @@ import (
 	userv1 "github.com/openshift/api/user/v1"
 	authorizationv1alpha1clientset "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1alpha1"
 	userv1clientset "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestAccessRestrictionEscalationCheck(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
+	masterConfig, clusterAdminKubeConfig := masterWithAccessRestrictionDenyAuthorizer(t)
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -124,10 +122,7 @@ func TestAccessRestrictionEscalationCheck(t *testing.T) {
 }
 
 func TestAccessRestrictionAuthorizer(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
+	masterConfig, clusterAdminKubeConfig := masterWithAccessRestrictionDenyAuthorizer(t)
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -337,6 +332,30 @@ func TestAccessRestrictionAuthorizer(t *testing.T) {
 		_, err = impersonateMoPods.List(metav1.ListOptions{})
 		checkAccessRestrictionError(t, err)
 	}
+}
+
+func masterWithAccessRestrictionDenyAuthorizer(t *testing.T) (*configapi.MasterConfig, string) {
+	t.Helper()
+
+	masterConfig, err := testserver.DefaultMasterOptions()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	args := masterConfig.KubernetesMasterConfig.APIServerArguments
+	if existing, ok := args["feature-gates"]; ok {
+		args["feature-gates"] = []string{existing[0] + ",AccessRestrictionDenyAuthorizer=true"}
+	} else {
+		args["feature-gates"] = []string{"AccessRestrictionDenyAuthorizer=true"}
+	}
+	masterConfig.KubernetesMasterConfig.APIServerArguments = args
+
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return masterConfig, clusterAdminKubeConfig
 }
 
 func checkAccessRestrictionError(t *testing.T, err error) {
