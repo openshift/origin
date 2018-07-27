@@ -175,6 +175,8 @@ os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=blah -o yaml -- echo 'hello world'" 'does not have a container named'
 # Non-existent volume
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --volumes=blah -o yaml -- echo 'hello world'" 'does not have a volume named'
+# verify the deprecated flag shorthand is working
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre -v blah -o yaml -- echo 'hello world'" 'shorthand -v has been deprecated'
 # Existing container
 os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'does not have a container named'
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'containerName: ruby-helloworld'
@@ -185,7 +187,7 @@ os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --
 os::cmd::expect_success "oc create -f test/integration/testdata/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set deployment-hook dc/test-deployment-config --pre" "you must specify a command"
 os::cmd::expect_success_and_text "oc set deployment-hook test-deployment-config --pre -- echo 'hello world'" "updated"
-os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --v=1 --pre -- echo 'hello world'" "was not changed"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --loglevel=1 --pre -- echo 'hello world'" "was not changed"
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "pre:"
 os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre --failure-policy=abort -- echo 'test'" "updated"
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "failurePolicy: Abort"

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	haproxytesting "github.com/openshift/origin/pkg/router/template/configmanager/haproxy/testing"
 )
 
 // TestNewConverter tests a new converter.
@@ -352,35 +354,35 @@ func TestShowServerStateOutputConverter(t *testing.T) {
 	}{
 		{
 			name:            "show servers state",
-			commandOutput:   onePodAndOneDynamicServerBackendTemplate,
+			commandOutput:   haproxytesting.OnePodAndOneDynamicServerBackendTemplate,
 			header:          serversStateHeader,
 			converter:       stripVersionNumber,
 			failureExpected: false,
 		},
 		{
 			name:            "show servers state without a converter",
-			commandOutput:   onePodAndOneDynamicServerBackendTemplate,
+			commandOutput:   haproxytesting.OnePodAndOneDynamicServerBackendTemplate,
 			header:          serversStateHeader,
 			converter:       nil,
 			failureExpected: true,
 		},
 		{
 			name:            "show servers state without removing version number",
-			commandOutput:   onePodAndOneDynamicServerBackendTemplate,
+			commandOutput:   haproxytesting.OnePodAndOneDynamicServerBackendTemplate,
 			header:          serversStateHeader,
 			converter:       removeLeadingHashConverter,
 			failureExpected: true,
 		},
 		{
 			name:            "show servers state removing first line with version number",
-			commandOutput:   onePodAndOneDynamicServerBackendTemplate,
+			commandOutput:   haproxytesting.OnePodAndOneDynamicServerBackendTemplate,
 			header:          serversStateHeader,
 			converter:       removeFirstLineConverter,
 			failureExpected: false,
 		},
 		{
 			name:            "show servers state with error converter",
-			commandOutput:   onePodAndOneDynamicServerBackendTemplate,
+			commandOutput:   haproxytesting.OnePodAndOneDynamicServerBackendTemplate,
 			header:          serversStateHeader,
 			converter:       errorConverter,
 			failureExpected: true,

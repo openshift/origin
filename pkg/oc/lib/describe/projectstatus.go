@@ -518,7 +518,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		switch {
 		case !d.Suggest && ((len(errorMarkers) > 0 && errorSuggestions > 0) || len(warningMarkers) > 0 || len(infoMarkers) > 0):
-			fmt.Fprintf(out, "%s identified, use '%s status -v' to see details.\n", markerString, d.CommandBaseName)
+			fmt.Fprintf(out, "%s identified, use '%s status --sugest' to see details.\n", markerString, d.CommandBaseName)
 
 		case (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0):
 			fmt.Fprintln(out, "You have no services, deployment configs, or build configs.")

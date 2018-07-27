@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
+
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -68,6 +68,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/types"
 	"github.com/openshift/origin/pkg/oc/cli/version"
 	"github.com/openshift/origin/pkg/oc/cli/whoami"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 const productName = `OpenShift`

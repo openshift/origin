@@ -2,6 +2,8 @@ package haproxy
 
 import (
 	"testing"
+
+	haproxytesting "github.com/openshift/origin/pkg/router/template/configmanager/haproxy/testing"
 )
 
 type infoEntry struct {
@@ -37,7 +39,7 @@ func TestNewClient(t *testing.T) {
 
 // TestClientRunCommand tests client command execution.
 func TestClientRunCommand(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	testCases := []struct {
@@ -121,7 +123,7 @@ func TestClientRunInfoCommandConverter(t *testing.T) {
 		},
 	}
 
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	for _, tc := range testCases {
@@ -157,7 +159,7 @@ func TestClientRunBackendCommandConverter(t *testing.T) {
 		},
 	}
 
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	for _, tc := range testCases {
@@ -200,7 +202,7 @@ func TestClientRunMapCommandConverter(t *testing.T) {
 		},
 	}
 
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	for _, tc := range testCases {
@@ -243,7 +245,7 @@ func TestClientRunServerCommandConverter(t *testing.T) {
 		},
 	}
 
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	for _, tc := range testCases {
@@ -315,7 +317,7 @@ func TestClientExecute(t *testing.T) {
 		},
 	}
 
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	for _, tc := range testCases {
@@ -333,7 +335,7 @@ func TestClientExecute(t *testing.T) {
 
 // TestClientReset tests client state reset.
 func TestClientReset(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	client := NewClient(server.SocketFile(), 1)
@@ -375,7 +377,7 @@ func TestClientReset(t *testing.T) {
 
 // TestClientCommit tests client state commit.
 func TestClientCommit(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	client := NewClient(server.SocketFile(), 1)
@@ -439,7 +441,7 @@ func TestClientCommit(t *testing.T) {
 
 // TestClientBackends tests client backends.
 func TestClientBackends(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	client := NewClient(server.SocketFile(), 1)
@@ -501,7 +503,7 @@ func TestClientFindBackend(t *testing.T) {
 		},
 	}
 
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	for _, tc := range testCases {
@@ -527,7 +529,7 @@ func TestClientFindBackend(t *testing.T) {
 
 // TestClientMaps tests client haproxy maps.
 func TestClientMaps(t *testing.T) {
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	client := NewClient(server.SocketFile(), 1)
@@ -584,7 +586,7 @@ func TestClientFindMap(t *testing.T) {
 		},
 	}
 
-	server := startFakeServerForTest(t)
+	server := haproxytesting.StartFakeServerForTest(t)
 	defer server.Stop()
 
 	for _, tc := range testCases {
