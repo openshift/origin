@@ -864,9 +864,6 @@ func TestEgressCIDRAllocation(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	allocation = eit.ReallocateEgressIPs()
-	if len(allocation) != 0 {
-		t.Fatalf("Unexpected allocation: %#v", allocation)
-	}
 	updateAllocations(eit, allocation)
 	err = w.assertNoChanges()
 	if err != nil {

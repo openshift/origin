@@ -506,13 +506,12 @@ func (eit *EgressIPTracker) findEgressIPAllocation(ip net.IP, allocation map[str
 	return bestNode, otherNodes
 }
 
-// ReallocateEgressIPs returns a map from Node name to array-of-Egress-IP. Unchanged nodes are not included.
+// ReallocateEgressIPs returns a map from Node name to array-of-Egress-IP for all auto-allocated egress IPs
 func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 	eit.Lock()
 	defer eit.Unlock()
 
 	allocation := make(map[string][]string)
-	changed := make(map[string]bool)
 	alreadyAllocated := make(map[string]bool)
 	for _, node := range eit.nodes {
 		if len(node.parsedCIDRs) > 0 {
@@ -520,8 +519,7 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 		}
 	}
 	// For each active egress IP, if it still fits within some egress CIDR on its node,
-	// add it to that node's allocation. (Otherwise add the node to the "changed" map,
-	// since we'll be removing this egress IP from it.)
+	// add it to that node's allocation.
 	for egressIP, eip := range eit.egressIPs {
 		if eip.assignedNodeIP == "" {
 			continue
@@ -536,8 +534,6 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 		}
 		if found {
 			allocation[node.nodeName] = append(allocation[node.nodeName], egressIP)
-		} else {
-			changed[node.nodeName] = true
 		}
 		// (We set alreadyAllocated even if the egressIP will be removed from
 		// its current node; we can't assign it to a new node until the next
@@ -553,7 +549,6 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 		nodeName, otherNodes := eit.findEgressIPAllocation(eip.parsed, allocation)
 		if nodeName != "" && !otherNodes {
 			allocation[nodeName] = append(allocation[nodeName], egressIP)
-			changed[nodeName] = true
 			alreadyAllocated[egressIP] = true
 		}
 	}
@@ -565,15 +560,8 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 		nodeName, _ := eit.findEgressIPAllocation(eip.parsed, allocation)
 		if nodeName != "" {
 			allocation[nodeName] = append(allocation[nodeName], egressIP)
-			changed[nodeName] = true
 		}
 	}
 
-	// Remove unchanged nodes from the return value
-	for _, node := range eit.nodes {
-		if !changed[node.nodeName] {
-			delete(allocation, node.nodeName)
-		}
-	}
 	return allocation
 }

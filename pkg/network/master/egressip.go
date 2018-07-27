@@ -6,6 +6,7 @@ import (
 	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 
@@ -82,8 +83,12 @@ func (eim *egressIPManager) maybeDoUpdateEgressCIDRs() (bool, error) {
 				return err
 			}
 
-			hs.EgressIPs = egressIPs
-			_, err = eim.networkClient.Network().HostSubnets().Update(hs)
+			oldIPs := sets.NewString(hs.EgressIPs...)
+			newIPs := sets.NewString(egressIPs...)
+			if !oldIPs.Equal(newIPs) {
+				hs.EgressIPs = egressIPs
+				_, err = eim.networkClient.Network().HostSubnets().Update(hs)
+			}
 			return err
 		})
 		if resultErr != nil {
