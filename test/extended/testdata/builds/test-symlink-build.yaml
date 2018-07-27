@@ -1,0 +1,26 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: symlink-is
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: symlink-bc
+  spec:
+    source:
+      type: binary
+      binary: {}
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs:latest
+          namespace: openshift
+    output:
+      to:
+        kind: ImageStreamTag
+        name: symlink-is:latest

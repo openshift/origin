@@ -81,6 +81,7 @@
 // test/extended/testdata/builds/test-s2i-build-quota.json
 // test/extended/testdata/builds/test-s2i-build.json
 // test/extended/testdata/builds/test-s2i-no-outputname.json
+// test/extended/testdata/builds/test-symlink-build.yaml
 // test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml
 // test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml
 // test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml
@@ -4290,6 +4291,49 @@ func testExtendedTestdataBuildsTestS2iNoOutputnameJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-s2i-no-outputname.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestSymlinkBuildYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: symlink-is
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: symlink-bc
+  spec:
+    source:
+      type: binary
+      binary: {}
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs:latest
+          namespace: openshift
+    output:
+      to:
+        kind: ImageStreamTag
+        name: symlink-is:latest
+`)
+
+func testExtendedTestdataBuildsTestSymlinkBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestSymlinkBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsTestSymlinkBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestSymlinkBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-symlink-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -34153,6 +34197,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-s2i-build-quota.json": testExtendedTestdataBuildsTestS2iBuildQuotaJson,
 	"test/extended/testdata/builds/test-s2i-build.json": testExtendedTestdataBuildsTestS2iBuildJson,
 	"test/extended/testdata/builds/test-s2i-no-outputname.json": testExtendedTestdataBuildsTestS2iNoOutputnameJson,
+	"test/extended/testdata/builds/test-symlink-build.yaml": testExtendedTestdataBuildsTestSymlinkBuildYaml,
 	"test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml,
 	"test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml,
 	"test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml,
@@ -34636,6 +34681,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-s2i-build-quota.json": &bintree{testExtendedTestdataBuildsTestS2iBuildQuotaJson, map[string]*bintree{}},
 					"test-s2i-build.json": &bintree{testExtendedTestdataBuildsTestS2iBuildJson, map[string]*bintree{}},
 					"test-s2i-no-outputname.json": &bintree{testExtendedTestdataBuildsTestS2iNoOutputnameJson, map[string]*bintree{}},
+					"test-symlink-build.yaml": &bintree{testExtendedTestdataBuildsTestSymlinkBuildYaml, map[string]*bintree{}},
 					"valuefrom": &bintree{nil, map[string]*bintree{
 						"failed-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml, map[string]*bintree{}},
 						"failed-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml, map[string]*bintree{}},
