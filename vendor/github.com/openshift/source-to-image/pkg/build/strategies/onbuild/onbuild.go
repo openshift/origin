@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
@@ -52,7 +53,7 @@ func New(client docker.Client, config *api.Config, fs fs.FileSystem, overrides b
 	if err != nil {
 		return nil, err
 	}
-	s.SetScripts([]string{}, []string{api.Assemble, api.Run})
+	s.SetScripts([]string{}, []string{constants.Assemble, constants.Run})
 
 	downloader := overrides.Downloader
 	if downloader == nil {
@@ -156,7 +157,7 @@ func (builder *OnBuild) CreateDockerfile(config *api.Config) error {
 	if err != nil {
 		return err
 	}
-	env, err := scripts.GetEnvironment(config)
+	env, err := scripts.GetEnvironment(filepath.Join(config.WorkingDir, constants.Source))
 	if err != nil {
 		glog.V(1).Infof("Environment: %v", err)
 	} else {
@@ -176,19 +177,19 @@ func (builder *OnBuild) CreateDockerfile(config *api.Config) error {
 func (builder *OnBuild) copySTIScripts(config *api.Config) {
 	scriptsPath := filepath.Join(config.WorkingDir, "upload", "scripts")
 	sourcePath := filepath.Join(config.WorkingDir, "upload", "src")
-	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, api.Run)); err == nil {
+	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, constants.Run)); err == nil {
 		glog.V(3).Info("Found S2I 'run' script, copying to application source dir")
-		builder.fs.Copy(filepath.Join(scriptsPath, api.Run), filepath.Join(sourcePath, api.Run))
+		builder.fs.Copy(filepath.Join(scriptsPath, constants.Run), filepath.Join(sourcePath, constants.Run))
 	}
-	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, api.Assemble)); err == nil {
+	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, constants.Assemble)); err == nil {
 		glog.V(3).Info("Found S2I 'assemble' script, copying to application source dir")
-		builder.fs.Copy(filepath.Join(scriptsPath, api.Assemble), filepath.Join(sourcePath, api.Assemble))
+		builder.fs.Copy(filepath.Join(scriptsPath, constants.Assemble), filepath.Join(sourcePath, constants.Assemble))
 	}
 }
 
 // hasAssembleScript checks if the the assemble script is available
 func (builder *OnBuild) hasAssembleScript(config *api.Config) bool {
-	assemblePath := filepath.Join(config.WorkingDir, "upload", "src", api.Assemble)
+	assemblePath := filepath.Join(config.WorkingDir, "upload", "src", constants.Assemble)
 	_, err := builder.fs.Stat(assemblePath)
 	return err == nil
 }

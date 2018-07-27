@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/docker"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
@@ -89,8 +90,8 @@ func (f *FakeSTI) Cleanup(*api.Config) {
 
 func (f *FakeSTI) Prepare(*api.Config) error {
 	f.PrepareCalled = true
-	f.SetupRequired = []string{api.Assemble, api.Run}
-	f.SetupOptional = []string{api.SaveArtifacts}
+	f.SetupRequired = []string{constants.Assemble, constants.Run}
+	f.SetupOptional = []string{constants.SaveArtifacts}
 	return nil
 }
 
@@ -222,11 +223,11 @@ func TestBuild(t *testing.T) {
 		builder.Build(&api.Config{Incremental: incremental})
 
 		// Verify the right scripts were configed
-		if !reflect.DeepEqual(fh.SetupRequired, []string{api.Assemble, api.Run}) {
-			t.Errorf("Unexpected required scripts configed: %#v", fh.SetupRequired)
+		if !reflect.DeepEqual(fh.SetupRequired, []string{constants.Assemble, constants.Run}) {
+			t.Errorf("Unexpected required scripts configured: %#v", fh.SetupRequired)
 		}
-		if !reflect.DeepEqual(fh.SetupOptional, []string{api.SaveArtifacts}) {
-			t.Errorf("Unexpected optional scripts configed: %#v", fh.SetupOptional)
+		if !reflect.DeepEqual(fh.SetupOptional, []string{constants.SaveArtifacts}) {
+			t.Errorf("Unexpected optional scripts configured: %#v", fh.SetupOptional)
 		}
 
 		// Verify that Exists was called
@@ -240,7 +241,7 @@ func TestBuild(t *testing.T) {
 		}
 
 		// Verify that Execute was called with the right script
-		if fh.ExecuteCommand != api.Assemble {
+		if fh.ExecuteCommand != constants.Assemble {
 			t.Errorf("Unexpected execute command: %s", fh.ExecuteCommand)
 		}
 	}
@@ -373,16 +374,16 @@ func TestPostExecute(t *testing.T) {
 			bh.docker.(*docker.FakeDocker).GetImageIDResult = tc.previousImageID
 		}
 		if tc.scriptsFromImage {
-			bh.scriptsURL = map[string]string{api.Run: "image:///usr/libexec/s2i/run"}
+			bh.scriptsURL = map[string]string{constants.Run: "image:///usr/libexec/s2i/run"}
 		}
 		err := bh.PostExecute(containerID, "cmd1")
 		if err != nil {
 			t.Errorf("(%d) Unexpected error from postExecute: %v", i, err)
 		}
 		// Ensure CommitContainer was called with the right parameters
-		expectedCmd := []string{"cmd1/scripts/" + api.Run}
+		expectedCmd := []string{"cmd1/scripts/" + constants.Run}
 		if tc.scriptsFromImage {
-			expectedCmd = []string{"/usr/libexec/s2i/" + api.Run}
+			expectedCmd = []string{"/usr/libexec/s2i/" + constants.Run}
 		}
 		if !reflect.DeepEqual(dh.CommitContainerOpts.Command, expectedCmd) {
 			t.Errorf("(%d) Unexpected commit container command: %#v, expected %q", i, dh.CommitContainerOpts.Command, expectedCmd)
@@ -437,7 +438,7 @@ func TestExists(t *testing.T) {
 		bh.config.WorkingDir = "/working-dir"
 		bh.config.Incremental = ti.incremental
 		bh.config.BuilderPullPolicy = api.PullAlways
-		bh.installedScripts = map[string]bool{api.SaveArtifacts: ti.scriptInstalled}
+		bh.installedScripts = map[string]bool{constants.SaveArtifacts: ti.scriptInstalled}
 		bh.incrementalDocker.(*docker.FakeDocker).PullResult = ti.previousImage
 		bh.config.DockerConfig = &api.DockerConfig{Endpoint: "http://localhost:4243"}
 		incremental := bh.Exists(bh.config)
@@ -616,7 +617,7 @@ func TestFetchSource(t *testing.T) {
 
 func TestPrepareOK(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
-	rh.SetScripts([]string{api.Assemble, api.Run}, []string{api.SaveArtifacts})
+	rh.SetScripts([]string{constants.Assemble, constants.Run}, []string{constants.SaveArtifacts})
 	rh.fs.(*testfs.FakeFileSystem).WorkingDirResult = "/working-dir"
 	err := rh.Prepare(rh.config)
 	if err != nil {
@@ -634,10 +635,10 @@ func TestPrepareOK(t *testing.T) {
 		t.Errorf("Unexpected set of MkdirAll calls: %#v", mkdirs)
 	}
 	scripts := rh.installer.(*test.FakeInstaller).Scripts
-	if !reflect.DeepEqual(scripts[0], []string{api.Assemble, api.Run}) {
+	if !reflect.DeepEqual(scripts[0], []string{constants.Assemble, constants.Run}) {
 		t.Errorf("Unexpected set of required scripts: %#v", scripts[0])
 	}
-	if !reflect.DeepEqual(scripts[1], []string{api.SaveArtifacts}) {
+	if !reflect.DeepEqual(scripts[1], []string{constants.SaveArtifacts}) {
 		t.Errorf("Unexpected set of optional scripts: %#v", scripts[1])
 	}
 }
@@ -662,17 +663,17 @@ func TestPrepareErrorMkdirAll(t *testing.T) {
 
 func TestPrepareErrorRequiredDownloadAndInstall(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
-	rh.SetScripts([]string{api.Assemble, api.Run}, []string{api.SaveArtifacts})
-	rh.installer.(*test.FakeInstaller).Error = fmt.Errorf("%v", api.Assemble)
+	rh.SetScripts([]string{constants.Assemble, constants.Run}, []string{constants.SaveArtifacts})
+	rh.installer.(*test.FakeInstaller).Error = fmt.Errorf("%v", constants.Assemble)
 	err := rh.Prepare(rh.config)
-	if err == nil || err.Error() != api.Assemble {
+	if err == nil || err.Error() != constants.Assemble {
 		t.Errorf("An error was expected for required DownloadAndInstall, but got different: %v", err)
 	}
 }
 
 func TestPrepareErrorOptionalDownloadAndInstall(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
-	rh.SetScripts([]string{api.Assemble, api.Run}, []string{api.SaveArtifacts})
+	rh.SetScripts([]string{constants.Assemble, constants.Run}, []string{constants.SaveArtifacts})
 	err := rh.Prepare(rh.config)
 	if err != nil {
 		t.Errorf("Unexpected error when downloading optional scripts: %v", err)
@@ -794,7 +795,7 @@ func TestPrepareDownloadAssembleRuntime(t *testing.T) {
 
 	builder := newFakeSTI(&FakeSTI{})
 	builder.runtimeInstaller = installer
-	builder.optionalRuntimeScripts = []string{api.AssembleRuntime}
+	builder.optionalRuntimeScripts = []string{constants.AssembleRuntime}
 
 	config := builder.config
 	config.RuntimeImage = "my-app"
@@ -804,8 +805,8 @@ func TestPrepareDownloadAssembleRuntime(t *testing.T) {
 		t.Fatalf("Prepare() unexpectedly failed with error: %v", err)
 	}
 
-	if len(installer.Scripts) != 1 || installer.Scripts[0][0] != api.AssembleRuntime {
-		t.Errorf("Prepare() should download %q script but it downloaded %v", api.AssembleRuntime, installer.Scripts)
+	if len(installer.Scripts) != 1 || installer.Scripts[0][0] != constants.AssembleRuntime {
+		t.Errorf("Prepare() should download %q script but it downloaded %v", constants.AssembleRuntime, installer.Scripts)
 	}
 }
 

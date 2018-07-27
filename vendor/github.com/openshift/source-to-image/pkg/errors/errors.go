@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
@@ -73,7 +74,7 @@ func NewPullImageError(name string, err error) error {
 		Message:    fmt.Sprintf("unable to get %s", name),
 		Details:    err,
 		ErrorCode:  PullImageError,
-		Suggestion: "check image name, or if using local image add --pull-policy=never flag",
+		Suggestion: fmt.Sprintf("check image name, or if using a local image set the builder image pull policy to %q", "never"),
 	}
 }
 
@@ -172,7 +173,7 @@ func NewInstallError(script string) error {
 		Message:    fmt.Sprintf("failed to install %v", script),
 		Details:    nil,
 		ErrorCode:  InstallError,
-		Suggestion: "provide URL with Source-To-Image scripts with -s flag or check the image if it contains %q label set",
+		Suggestion: fmt.Sprintf("set the scripts URL parameter with the location of the S2I scripts, or check if the image has the %q label set", constants.ScriptsURLLabel),
 	}
 }
 
@@ -183,7 +184,7 @@ func NewInstallRequiredError(scripts []string, label string) error {
 		Message:    fmt.Sprintf("failed to install %v", scripts),
 		Details:    nil,
 		ErrorCode:  InstallErrorRequired,
-		Suggestion: "provide URL with Source-To-Image scripts with -s flag or check the image if it contains " + label + " label set",
+		Suggestion: fmt.Sprintf("set the scripts URL parameter with the location of the S2I scripts, or check if the image has the %q label set", constants.ScriptsURLLabel),
 	}
 }
 
@@ -233,7 +234,7 @@ func NewUserNotAllowedError(image string, onbuild bool) error {
 	return Error{
 		Message:    msg,
 		ErrorCode:  UserNotAllowedError,
-		Suggestion: fmt.Sprintf("modify image %q to use a numeric user within the allowed range, or build without the --allowed-uids flag", image),
+		Suggestion: fmt.Sprintf("modify image %q to use a numeric user within the allowed range, or build without the allowed UIDs paremeter set", image),
 	}
 }
 
@@ -244,11 +245,10 @@ func NewAssembleUserNotAllowedError(image string, usesConfig bool) error {
 	var msg, suggestion string
 	if usesConfig {
 		msg = "assemble user must be numeric and within the range of allowed users"
-		suggestion = "build without the allowed-uids or assemble-user configurations set"
+		suggestion = "build without the allowed UIDs or assemble user configurations set"
 	} else {
-		assembleLabel := "io.openshift.s2i.assemble-user"
-		msg = fmt.Sprintf("image %q includes the %q label whose value is not within the allowed range", image, assembleLabel)
-		suggestion = fmt.Sprintf("modify the %q label in image %q to use a numeric user within the allowed range, or build without the allowed-uids configuration set", assembleLabel, image)
+		msg = fmt.Sprintf("image %q includes the %q label whose value is not within the allowed range", image, constants.AssembleUserLabel)
+		suggestion = fmt.Sprintf("modify the %q label in image %q to use a numeric user within the allowed range, or build without the allowed UIDs configuration set", constants.AssembleUserLabel, image)
 	}
 	return Error{
 		Message:    msg,
@@ -264,7 +264,7 @@ func NewEmptyGitRepositoryError(source string) error {
 	return Error{
 		Message:    fmt.Sprintf("The git repository \"%s\" has no tracking information or commits", source),
 		ErrorCode:  EmptyGitRepositoryError,
-		Suggestion: "Either commit files to the Git repository, remove the .git directory from the project, or use --copy to ignore the repository.",
+		Suggestion: "Either commit files to the Git repository, remove the .git directory from the project, or force copy of source files to ignore the repository.",
 	}
 }
 
@@ -290,7 +290,7 @@ func CheckError(err error) {
 		}
 		glog.Error("If the problem persists consult the docs at https://github.com/openshift/source-to-image/tree/master/docs. " +
 			"Eventually reach us on freenode #openshift or file an issue at https://github.com/openshift/source-to-image/issues " +
-			"providing us with a log from your build using --loglevel=3")
+			"providing us with a log from your build using log output level 3.")
 		os.Exit(e.ErrorCode)
 	} else {
 		glog.Errorf("An error occurred: %v", err)

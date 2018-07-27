@@ -73,8 +73,12 @@ func (l *RangeList) String() string {
 }
 
 // IsUserAllowed checks that the given user is numeric and is
-// contained by the given RangeList
+// contained by the given RangeList.  Returns true if
+// allowed is nil or empty.
 func IsUserAllowed(user string, allowed *RangeList) bool {
+	if allowed == nil || allowed.Empty() {
+		return true
+	}
 	uid, err := strconv.Atoi(user)
 	if err != nil {
 		return false

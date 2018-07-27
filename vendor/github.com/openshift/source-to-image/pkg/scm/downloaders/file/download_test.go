@@ -2,6 +2,7 @@ package file
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
@@ -25,6 +26,23 @@ func TestDownload(t *testing.T) {
 	}
 	if info.Location != config.Source.URL.Path || info.ContextDir != config.ContextDir {
 		t.Errorf("Unexpected info")
+	}
+}
+
+func TestDownloadRecursive(t *testing.T) {
+	fs := &testfs.FakeFileSystem{}
+	f := &File{fs}
+
+	config := &api.Config{
+		Source:     git.MustParse("some/a/../path"),
+		WorkingDir: "b/../some/path/target",
+	}
+	_, err := f.Download(config)
+	if err == nil {
+		t.Errorf("Expected recursive copy error, got nil")
+	}
+	if !strings.Contains(err.Error(), "recursive copy requested") {
+		t.Errorf("Expected error text: recursive copy requested, got: %v", err)
 	}
 }
 

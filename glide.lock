@@ -1,5 +1,5 @@
-hash: a2c79e128028aab55833eb434e44e9c3a61f438d0bbc35e0e01054c43cca58be
-updated: 2018-07-26T22:16:26.706964018-04:00
+hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
+updated: 2018-07-30T12:12:44.968933471+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -992,13 +992,15 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: cfe7e9f503d38ceca35cc7f04fef5fdd822e8c5a
+  version: bc5fa283a2c6c6eb815f2d0e370198f53a770cc0
   subpackages:
   - pkg/api
+  - pkg/api/constants
   - pkg/api/describe
   - pkg/api/validation
   - pkg/build
   - pkg/build/strategies
+  - pkg/build/strategies/dockerfile
   - pkg/build/strategies/layered
   - pkg/build/strategies/onbuild
   - pkg/build/strategies/sti
@@ -1859,7 +1861,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: d8c60b6ee690566052d6d19692c935c3aeffa159
+  version: 556366d1e6a8785060e9c831c0f93015d321bb44
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
