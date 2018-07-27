@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,7 +27,6 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	testutil "github.com/openshift/origin/test/util"
@@ -34,7 +35,7 @@ import (
 	// install all APIs
 	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/openshift/origin/pkg/api/install"
-	"golang.org/x/net/context"
+	"github.com/openshift/origin/pkg/api/legacygroupification"
 )
 
 // Etcd data for all persisted objects.
@@ -1154,7 +1155,7 @@ type allClient struct {
 func (c *allClient) verb(verb string, gvk schema.GroupVersionKind) (*restclient.Request, error) {
 	apiPath := "/apis"
 	switch {
-	case latest.OriginLegacyKind(gvk):
+	case legacygroupification.IsOAPI(gvk) && gvk != (schema.GroupVersionKind{Group: "", Version: "v1", Kind: "SecurityContextConstraints"}):
 		apiPath = "/oapi"
 	case gvk.Group == kapi.GroupName:
 		apiPath = "/api"

@@ -27,7 +27,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/api/imagereferencemutators"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	"github.com/openshift/origin/pkg/build/buildscheme"
@@ -564,7 +564,7 @@ var (
 // mutator that need to be resolved prior to the resource being accepted and returns
 // them as an array of "namespace/name" strings. If any references are invalid, an error
 // is returned.
-func unresolvedImageStreamReferences(m meta.ImageReferenceMutator, defaultNamespace string) ([]string, error) {
+func unresolvedImageStreamReferences(m imagereferencemutators.ImageReferenceMutator, defaultNamespace string) ([]string, error) {
 	var streams []string
 	fn := func(ref *kapi.ObjectReference) error {
 		switch ref.Kind {
@@ -723,7 +723,7 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 // resolveImageReferences resolves references to Docker images computed from the build.Spec. It will update
 // the output spec as well if it has not already been updated.
 func (bc *BuildController) resolveImageReferences(build *buildapi.Build, update *buildUpdate) error {
-	m := meta.NewBuildMutator(build)
+	m := imagereferencemutators.NewBuildMutator(build)
 
 	// get a list of all unresolved references to add to the cache
 	streams, err := unresolvedImageStreamReferences(m, build.Namespace)

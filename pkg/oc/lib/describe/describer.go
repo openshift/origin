@@ -41,6 +41,7 @@ import (
 	"github.com/openshift/api/user"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	oapi "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -64,7 +65,7 @@ import (
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
-func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host string, withCoreGroup bool) map[schema.GroupKind]kprinters.Describer {
+func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host string) map[schema.GroupKind]kprinters.Describer {
 	// FIXME: This should use the client factory
 	// we can't fail and we can't log at a normal level because this is sometimes called with `nils` for help :(
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
@@ -152,22 +153,15 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	}
 
 	// Register the legacy ("core") API group for all kinds as well.
-	if withCoreGroup {
-		for _, t := range legacyscheme.Scheme.KnownTypes(oapi.SchemeGroupVersion) {
-			coreKind := oapi.SchemeGroupVersion.WithKind(t.Name())
-			for g, d := range m {
-				if g.Kind == coreKind.Kind {
-					m[oapi.Kind(g.Kind)] = d
-				}
-			}
-		}
+	for gk, d := range m {
+		m[legacy.Kind(gk.Kind)] = d
 	}
 	return m
 }
 
 // DescriberFor returns a describer for a given kind of resource
 func DescriberFor(kind schema.GroupKind, clientConfig *rest.Config, kclient kclientset.Interface, host string) (kprinters.Describer, bool) {
-	f, ok := describerMap(clientConfig, kclient, host, true)[kind]
+	f, ok := describerMap(clientConfig, kclient, host)[kind]
 	if ok {
 		return f, true
 	}

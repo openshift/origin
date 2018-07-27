@@ -32,7 +32,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
-	ometa "github.com/openshift/origin/pkg/api/meta"
+	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"

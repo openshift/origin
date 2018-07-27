@@ -19,8 +19,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/api/imagereferencemutators"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
@@ -148,11 +147,11 @@ func (a *imagePolicyPlugin) ValidateInitialization() error {
 // resource instead of legacy one.
 func mutateAttributesToLegacyResources(attr admission.Attributes) admission.Attributes {
 	resource := attr.GetResource()
-	if len(resource.Group) > 0 && latest.IsOriginAPIGroup(resource.Group) {
+	if len(resource.Group) > 0 && isOriginAPIGroup(resource.Group) {
 		resource.Group = ""
 	}
 	kind := attr.GetKind()
-	if len(kind.Group) > 0 && latest.IsOriginAPIGroup(kind.Group) {
+	if len(kind.Group) > 0 && isOriginAPIGroup(kind.Group) {
 		kind.Group = ""
 	}
 	attrs := admission.NewAttributesRecord(
@@ -167,6 +166,33 @@ func mutateAttributesToLegacyResources(attr admission.Attributes) admission.Attr
 		attr.GetUserInfo(),
 	)
 	return attrs
+}
+
+// originVersions is the list of versions that are reflected in the ungroupified oapi
+var originVersions = []schema.GroupVersion{
+	{Group: "authorization.openshift.io", Version: "v1"},
+	{Group: "build.openshift.io", Version: "v1"},
+	{Group: "apps.openshift.io", Version: "v1"},
+	{Group: "template.openshift.io", Version: "v1"},
+	{Group: "image.openshift.io", Version: "v1"},
+	{Group: "project.openshift.io", Version: "v1"},
+	{Group: "user.openshift.io", Version: "v1"},
+	{Group: "oauth.openshift.io", Version: "v1"},
+	{Group: "network.openshift.io", Version: "v1"},
+	{Group: "route.openshift.io", Version: "v1"},
+	{Group: "quota.openshift.io", Version: "v1"},
+	{Group: "security.openshift.io", Version: "v1"},
+	{Group: "", Version: "v1"},
+}
+
+// isOriginAPIGroup returns true if the provided group name belongs to Origin API.
+func isOriginAPIGroup(groupName string) bool {
+	for _, v := range originVersions {
+		if v.Group == groupName {
+			return true
+		}
+	}
+	return false
 }
 
 // Admit attempts to apply the image policy to the incoming resource.
@@ -204,7 +230,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 		return nil
 	}
 	glog.V(5).Infof("running image policy admission for %s:%s/%s", attr.GetKind(), attr.GetNamespace(), attr.GetName())
-	m, err := meta.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
+	m, err := imagereferencemutators.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
 	if err != nil {
 		return apierrs.NewForbidden(gr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
 	}
@@ -213,7 +239,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 		m = &mutationPreventer{m}
 	}
 
-	annotations, _ := meta.GetAnnotationAccessor(attr.GetObject())
+	annotations, _ := imagereferencemutators.GetAnnotationAccessor(attr.GetObject())
 
 	// load exclusion rules from the namespace cache
 	var excluded sets.String
@@ -233,10 +259,10 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 }
 
 type mutationPreventer struct {
-	m meta.ImageReferenceMutator
+	m imagereferencemutators.ImageReferenceMutator
 }
 
-func (m *mutationPreventer) Mutate(fn meta.ImageReferenceMutateFunc) field.ErrorList {
+func (m *mutationPreventer) Mutate(fn imagereferencemutators.ImageReferenceMutateFunc) field.ErrorList {
 	return m.m.Mutate(func(ref *kapi.ObjectReference) error {
 		original := ref.DeepCopy()
 		if err := fn(ref); err != nil {

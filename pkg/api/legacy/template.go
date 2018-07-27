@@ -52,8 +52,8 @@ func addUngroupifiedInternalTemplateTypes(scheme *runtime.Scheme) error {
 		&template.Template{},
 		&template.TemplateList{},
 	}
-	scheme.AddKnownTypes(internalGroupVersion, types...)
-	scheme.AddKnownTypeWithName(internalGroupVersion.WithKind("TemplateConfig"), &template.Template{})
-	scheme.AddKnownTypeWithName(internalGroupVersion.WithKind("ProcessedTemplate"), &template.Template{})
+	scheme.AddKnownTypes(InternalGroupVersion, types...)
+	scheme.AddKnownTypeWithName(InternalGroupVersion.WithKind("TemplateConfig"), &template.Template{})
+	scheme.AddKnownTypeWithName(InternalGroupVersion.WithKind("ProcessedTemplate"), &template.Template{})
 	return nil
 }

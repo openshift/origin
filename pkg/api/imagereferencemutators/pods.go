@@ -1,4 +1,4 @@
-package meta
+package imagereferencemutators
 
 import (
 	"fmt"
@@ -10,18 +10,14 @@ import (
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
-	oapps "github.com/openshift/api/apps"
 	appsapiv1 "github.com/openshift/api/apps/v1"
-	"github.com/openshift/api/security"
 	securityapiv1 "github.com/openshift/api/security/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -48,37 +44,6 @@ func GetPodSpecReferenceMutator(obj runtime.Object) (PodSpecReferenceMutator, er
 		return &podSpecV1Mutator{spec: spec, path: path}, nil
 	}
 	return nil, errNoImageMutator
-}
-
-// resourcesToCheck is a map of resources and corresponding kinds of things that
-// we want handled in this plugin
-var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
-	kapi.Resource("pods"):                   kapi.Kind("Pod"),
-	kapi.Resource("podtemplates"):           kapi.Kind("PodTemplate"),
-	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
-	batch.Resource("jobs"):                  batch.Kind("Job"),
-	batch.Resource("jobtemplates"):          batch.Kind("JobTemplate"),
-
-	batch.Resource("cronjobs"):         batch.Kind("CronJob"),
-	extensions.Resource("deployments"): extensions.Kind("Deployment"),
-	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),
-	apps.Resource("statefulsets"):      apps.Kind("StatefulSet"),
-
-	legacy.Resource("deploymentconfigs"):                   legacy.Kind("DeploymentConfig"),
-	legacy.Resource("podsecuritypolicysubjectreviews"):     legacy.Kind("PodSecurityPolicySubjectReview"),
-	legacy.Resource("podsecuritypolicyselfsubjectreviews"): legacy.Kind("PodSecurityPolicySelfSubjectReview"),
-	legacy.Resource("podsecuritypolicyreviews"):            legacy.Kind("PodSecurityPolicyReview"),
-
-	oapps.Resource("deploymentconfigs"):                      oapps.Kind("DeploymentConfig"),
-	security.Resource("podsecuritypolicysubjectreviews"):     security.Kind("PodSecurityPolicySubjectReview"),
-	security.Resource("podsecuritypolicyselfsubjectreviews"): security.Kind("PodSecurityPolicySelfSubjectReview"),
-	security.Resource("podsecuritypolicyreviews"):            security.Kind("PodSecurityPolicyReview"),
-}
-
-// HasPodSpec returns true if the resource is known to have a pod spec.
-func HasPodSpec(gr schema.GroupResource) (schema.GroupKind, bool) {
-	gk, ok := resourcesToCheck[gr]
-	return gk, ok
 }
 
 var errNoPodSpec = fmt.Errorf("No PodSpec available for this object")

@@ -46,7 +46,7 @@ func addUngroupifiedNetworkTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalNetworkTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&network.ClusterNetwork{},
 		&network.ClusterNetworkList{},
 		&network.HostSubnet{},

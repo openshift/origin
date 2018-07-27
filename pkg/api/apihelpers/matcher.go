@@ -1,4 +1,4 @@
-package api
+package apihelpers
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"

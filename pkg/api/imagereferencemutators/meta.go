@@ -1,4 +1,4 @@
-package meta
+package imagereferencemutators
 
 import (
 	"fmt"
@@ -63,11 +63,6 @@ func GetImageReferenceMutator(obj, old runtime.Object) (ImageReferenceMutator, e
 		}
 		return nil, errNoImageMutator
 	}
-}
-
-type pairwiseMutator struct {
-	newer ImageReferenceMutator
-	older ImageReferenceMutator
 }
 
 type AnnotationAccessor interface {

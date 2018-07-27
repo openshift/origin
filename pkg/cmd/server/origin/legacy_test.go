@@ -2,24 +2,13 @@ package origin
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
-
-func TestLegacyKinds(t *testing.T) {
-	for gvk := range legacyscheme.Scheme.AllKnownTypes() {
-		if latest.OriginLegacyKind(gvk) && !OriginLegacyKinds.Has(gvk.Kind) &&
-			!strings.HasPrefix(gvk.Kind, "SecurityContextConstraint") /* SCC is a special case that's allowed */ {
-			t.Errorf("%s should not be registered into legacy Origin API", gvk.Kind)
-		}
-	}
-}
 
 func TestKnownAPIGroups(t *testing.T) {
 	unexposedGroups := sets.NewString("componentconfig", "metrics", "policy", "federation", "scheduling.k8s.io")

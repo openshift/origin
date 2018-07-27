@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 )
 
@@ -20,20 +19,16 @@ func NewDescriberFn(delegate kcmdutil.DescriberFunc) kcmdutil.DescriberFunc {
 		// for now we can special case our "sometimes origin, sometimes kube" resource
 		// I think it is correct for more code if this is NOT considered an origin type since
 		// it wasn't an origin type pre 3.6.
-		isSCC := mapping.GroupVersionKind.Kind == "SecurityContextConstraints"
-		if latest.OriginKind(mapping.GroupVersionKind) || isSCC {
-			clientConfig, err := restClientGetter.ToRESTConfig()
-			if err != nil {
-				return nil, fmt.Errorf("unable to create client config %s: %v", mapping.GroupVersionKind.Kind, err)
-			}
-			kClient, err := kinternalclient.NewForConfig(clientConfig)
-			if err != nil {
-				return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
-			}
-			describer, ok := describe.DescriberFor(mapping.GroupVersionKind.GroupKind(), clientConfig, kClient, clientConfig.Host)
-			if !ok {
-				return nil, fmt.Errorf("no description has been implemented for %q", mapping.GroupVersionKind.Kind)
-			}
+		clientConfig, err := restClientGetter.ToRESTConfig()
+		if err != nil {
+			return nil, fmt.Errorf("unable to create client config %s: %v", mapping.GroupVersionKind.Kind, err)
+		}
+		kClient, err := kinternalclient.NewForConfig(clientConfig)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
+		}
+		describer, ok := describe.DescriberFor(mapping.GroupVersionKind.GroupKind(), clientConfig, kClient, clientConfig.Host)
+		if ok {
 			return describer, nil
 		}
 

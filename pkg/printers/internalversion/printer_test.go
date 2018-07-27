@@ -15,7 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -72,7 +72,7 @@ func TestPrinterCoverage(t *testing.T) {
 	AddHandlers(printer)
 
 main:
-	for _, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {
+	for _, apiType := range legacyscheme.Scheme.KnownTypes(legacy.InternalGroupVersion) {
 		if !strings.Contains(apiType.PkgPath(), "github.com/openshift/origin") || strings.Contains(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}

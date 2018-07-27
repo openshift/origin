@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	ometa "github.com/openshift/origin/pkg/api/meta"
+	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
 )
 
 var (

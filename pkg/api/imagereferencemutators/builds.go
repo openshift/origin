@@ -1,4 +1,4 @@
-package meta
+package imagereferencemutators
 
 import (
 	"k8s.io/apimachinery/pkg/api/errors"

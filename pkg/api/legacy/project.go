@@ -43,7 +43,7 @@ func addUngroupifiedProjectTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalProjectTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&project.Project{},
 		&project.ProjectList{},
 		&project.ProjectRequest{},

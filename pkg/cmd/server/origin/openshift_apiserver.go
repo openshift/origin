@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/meta"
 
+	"k8s.io/api/core/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,8 +32,6 @@ import (
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	oappsapiv1 "github.com/openshift/api/apps/v1"
-	"github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/v1"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
@@ -73,6 +72,7 @@ import (
 
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/legacy"
 )
 
 type OpenshiftAPIExtraConfig struct {
@@ -561,14 +561,14 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 	legacyStorageModifier.mutate(legacyStorage)
 
-	if err := s.GenericAPIServer.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(legacyStorage))); err != nil {
+	if err := s.GenericAPIServer.InstallLegacyAPIGroup(legacy.RESTPrefix, apiLegacyV1(LegacyStorage(legacyStorage))); err != nil {
 		return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
 	}
-	glog.Infof("Started Origin API at %s/%s", api.Prefix, v1.SchemeGroupVersion.Version)
+	glog.Infof("Started Origin API at %s/%s", legacy.RESTPrefix, legacy.GroupVersion.Version)
 
 	// fix API doc string
 	for _, service := range s.GenericAPIServer.Handler.GoRestfulContainer.RegisteredWebServices() {
-		if service.RootPath() == api.Prefix+"/"+v1.SchemeGroupVersion.Version {
+		if service.RootPath() == legacy.RESTPrefix+"/"+v1.SchemeGroupVersion.Version {
 			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
 	}

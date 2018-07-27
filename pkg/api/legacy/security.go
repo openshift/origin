@@ -58,6 +58,6 @@ func addUngroupifiedInternalSecurityTypes(scheme *runtime.Scheme) error {
 		&security.PodSecurityPolicySelfSubjectReview{},
 		&security.PodSecurityPolicyReview{},
 	}
-	scheme.AddKnownTypes(internalGroupVersion, types...)
+	scheme.AddKnownTypes(InternalGroupVersion, types...)
 	return nil
 }

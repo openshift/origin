@@ -20,7 +20,7 @@ import (
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
 
 	"github.com/openshift/api/project"
-	oapi "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
@@ -93,7 +93,7 @@ func (s *REST) List(ctx context.Context, options *metainternal.ListOptions) (run
 	if err != nil {
 		return nil, err
 	}
-	m := nsregistry.MatchNamespace(oapi.InternalListOptionsToSelectors(options))
+	m := nsregistry.MatchNamespace(apihelpers.InternalListOptionsToSelectors(options))
 	list, err := filterList(namespaceList, m, nil)
 	if err != nil {
 		return nil, err

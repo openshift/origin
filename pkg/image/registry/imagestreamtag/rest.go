@@ -16,7 +16,7 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	imagegroup "github.com/openshift/api/image"
-	oapi "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -86,7 +86,7 @@ func (r *REST) List(ctx context.Context, options *metainternal.ListOptions) (run
 		return nil, err
 	}
 
-	matcher := MatchImageStreamTag(oapi.InternalListOptionsToSelectors(options))
+	matcher := MatchImageStreamTag(apihelpers.InternalListOptionsToSelectors(options))
 
 	list := &imageapi.ImageStreamTagList{}
 	for _, currIS := range imageStreams.Items {

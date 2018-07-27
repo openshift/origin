@@ -6,13 +6,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1conversions "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -276,30 +277,16 @@ func OkStreamForConfig(config *appsapi.DeploymentConfig) *imageapi.ImageStream {
 	return nil
 }
 
-func RemoveTriggerTypes(config *appsapi.DeploymentConfig, triggerTypes ...appsapi.DeploymentTriggerType) {
-	types := sets.NewString()
-	for _, triggerType := range triggerTypes {
-		types.Insert(string(triggerType))
-	}
-
-	remaining := []appsapi.DeploymentTriggerPolicy{}
-	for _, trigger := range config.Spec.Triggers {
-		if types.Has(string(trigger.Type)) {
-			continue
-		}
-		remaining = append(remaining, trigger)
-	}
-
-	config.Spec.Triggers = remaining
-}
-
 func RoundTripConfig(t *testing.T, config *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
-	versioned, err := legacyscheme.Scheme.ConvertToVersion(config, appsv1.SchemeGroupVersion)
+	scheme := runtime.NewScheme()
+	appsv1conversions.Install(scheme)
+
+	versioned, err := scheme.ConvertToVersion(config, appsv1.GroupVersion)
 	if err != nil {
 		t.Errorf("unexpected conversion error: %v", err)
 		return nil
 	}
-	defaulted, err := legacyscheme.Scheme.ConvertToVersion(versioned, appsapi.SchemeGroupVersion)
+	defaulted, err := scheme.ConvertToVersion(versioned, appsapi.SchemeGroupVersion)
 	if err != nil {
 		t.Errorf("unexpected conversion error: %v", err)
 		return nil
