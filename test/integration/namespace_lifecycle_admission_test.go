@@ -9,6 +9,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -63,13 +64,20 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ns.Spec.Finalizers = append(ns.Spec.Finalizers, projectapi.FinalizerOrigin)
-	t.Log(spew.Sdump(ns))
-	afterUpdate, err := clusterAdminKubeClientset.Core().Namespaces().Finalize(ns)
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		ns, err = clusterAdminKubeClientset.Core().Namespaces().Get("test", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		ns.Spec.Finalizers = append(ns.Spec.Finalizers, projectapi.FinalizerOrigin)
+		t.Log(spew.Sdump(ns))
+		afterUpdate, err := clusterAdminKubeClientset.Core().Namespaces().Finalize(ns)
+		t.Log(spew.Sdump(afterUpdate))
+		return err
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(spew.Sdump(afterUpdate))
 
 	// watch to see the finalizer added
 	for {
