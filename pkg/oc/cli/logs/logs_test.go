@@ -12,9 +12,10 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	buildv1 "github.com/openshift/api/build/v1"
+	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 )
 
 // TestLogsFlagParity makes sure that our copied flags don't slip during rebases
@@ -46,16 +47,16 @@ func (f *fakeWriter) Write(p []byte) (n int, err error) {
 }
 
 func TestRunLogForPipelineStrategy(t *testing.T) {
-	bld := buildapi.Build{
+	bld := buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "foo-0",
 			Namespace:   "foo",
 			Annotations: map[string]string{buildapi.BuildJenkinsBlueOceanLogURLAnnotation: "https://foo"},
 		},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Strategy: buildapi.BuildStrategy{
-					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+		Spec: buildv1.BuildSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Strategy: buildv1.BuildStrategy{
+					JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{},
 				},
 			},
 		},
@@ -71,15 +72,15 @@ func TestRunLogForPipelineStrategy(t *testing.T) {
 			o: &bld,
 		},
 		{
-			o: &buildapi.BuildConfig{
+			o: &buildv1.BuildConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "foo",
 				},
-				Spec: buildapi.BuildConfigSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Strategy: buildapi.BuildStrategy{
-							JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+				Spec: buildv1.BuildConfigSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Strategy: buildv1.BuildStrategy{
+							JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{},
 						},
 					},
 				},
@@ -91,12 +92,13 @@ func TestRunLogForPipelineStrategy(t *testing.T) {
 		o := &LogsOptions{
 			IOStreams: streams,
 			KubeLogOptions: &kcmd.LogsOptions{
+				IOStreams: streams,
 				Object:    tc.o,
 				Namespace: "foo",
 			},
 			Client: fakebc.Build(),
 		}
-		if err := o.RunLog(); err != nil {
+		if err := o.runLogPipeline(); err != nil {
 			t.Errorf("%#v: RunLog error %v", tc.o, err)
 		}
 		if !strings.Contains(out.String(), "https://foo") {
@@ -112,11 +114,11 @@ func TestIsPipelineBuild(t *testing.T) {
 		isPipeline bool
 	}{
 		{
-			o: &buildapi.Build{
-				Spec: buildapi.BuildSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Strategy: buildapi.BuildStrategy{
-							JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+			o: &buildv1.Build{
+				Spec: buildv1.BuildSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Strategy: buildv1.BuildStrategy{
+							JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{},
 						},
 					},
 				},
@@ -124,11 +126,11 @@ func TestIsPipelineBuild(t *testing.T) {
 			isPipeline: true,
 		},
 		{
-			o: &buildapi.Build{
-				Spec: buildapi.BuildSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Strategy: buildapi.BuildStrategy{
-							SourceStrategy: &buildapi.SourceBuildStrategy{},
+			o: &buildv1.Build{
+				Spec: buildv1.BuildSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Strategy: buildv1.BuildStrategy{
+							SourceStrategy: &buildv1.SourceBuildStrategy{},
 						},
 					},
 				},
@@ -136,11 +138,11 @@ func TestIsPipelineBuild(t *testing.T) {
 			isPipeline: false,
 		},
 		{
-			o: &buildapi.BuildConfig{
-				Spec: buildapi.BuildConfigSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Strategy: buildapi.BuildStrategy{
-							JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+			o: &buildv1.BuildConfig{
+				Spec: buildv1.BuildConfigSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Strategy: buildv1.BuildStrategy{
+							JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{},
 						},
 					},
 				},
@@ -148,11 +150,11 @@ func TestIsPipelineBuild(t *testing.T) {
 			isPipeline: true,
 		},
 		{
-			o: &buildapi.BuildConfig{
-				Spec: buildapi.BuildConfigSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Strategy: buildapi.BuildStrategy{
-							DockerStrategy: &buildapi.DockerBuildStrategy{},
+			o: &buildv1.BuildConfig{
+				Spec: buildv1.BuildConfigSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Strategy: buildv1.BuildStrategy{
+							DockerStrategy: &buildv1.DockerBuildStrategy{},
 						},
 					},
 				},
