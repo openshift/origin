@@ -12,8 +12,8 @@ func RunDefaultRoleBindingController(ctx ControllerContext) (bool, error) {
 	}
 
 	go defaultrolebindings.NewDefaultRoleBindingsController(
-		ctx.ExternalKubeInformers.Rbac().V1().RoleBindings(),
-		ctx.ExternalKubeInformers.Core().V1().Namespaces(),
+		ctx.KubernetesInformers.Rbac().V1().RoleBindings(),
+		ctx.KubernetesInformers.Core().V1().Namespaces(),
 		kubeClient.RbacV1(),
 	).Run(5, ctx.Stop)
 

@@ -20,8 +20,8 @@ func RunServiceServingCertsController(ctx ControllerContext) (bool, error) {
 	}
 
 	servingCertController := servingcertcontroller.NewServiceServingCertController(
-		ctx.ExternalKubeInformers.Core().V1().Services(),
-		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		ctx.KubernetesInformers.Core().V1().Services(),
+		ctx.KubernetesInformers.Core().V1().Secrets(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
 		ca,
@@ -29,8 +29,8 @@ func RunServiceServingCertsController(ctx ControllerContext) (bool, error) {
 		2*time.Minute,
 	)
 	servingCertUpdateController := servingcertcontroller.NewServiceServingCertUpdateController(
-		ctx.ExternalKubeInformers.Core().V1().Services(),
-		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		ctx.KubernetesInformers.Core().V1().Services(),
+		ctx.KubernetesInformers.Core().V1().Secrets(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
 		ca,
 		"cluster.local",

@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 	"k8s.io/client-go/restmapper"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,9 +30,9 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
+	appsinformer "github.com/openshift/client-go/apps/informers/externalversions"
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -105,19 +106,22 @@ type MasterConfig struct {
 }
 
 type InformerAccess interface {
-	GetInternalKubeInformers() kinternalinformers.SharedInformerFactory
-	GetExternalKubeInformers() kinformers.SharedInformerFactory
-	GetAppInformers() appinformer.SharedInformerFactory
-	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
-	GetBuildInformers() buildinformer.SharedInformerFactory
-	GetImageInformers() imageinformer.SharedInformerFactory
-	GetNetworkInformers() networkinformer.SharedInformerFactory
-	GetOauthInformers() oauthinformer.SharedInformerFactory
-	GetQuotaInformers() quotainformer.SharedInformerFactory
-	GetSecurityInformers() securityinformer.SharedInformerFactory
-	GetRouteInformers() routeinformer.SharedInformerFactory
-	GetUserInformers() userinformer.SharedInformerFactory
-	GetTemplateInformers() templateinformer.SharedInformerFactory
+	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
+	GetKubernetesInformers() kinformers.SharedInformerFactory
+
+	GetOpenshiftAppInformers() appsinformer.SharedInformerFactory
+
+	GetInternalOpenshiftAuthorizationInformers() authorizationinformer.SharedInformerFactory
+	GetInternalOpenshiftBuildInformers() buildinformer.SharedInformerFactory
+	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
+	GetInternalOpenshiftNetworkInformers() networkinformer.SharedInformerFactory
+	GetInternalOpenshiftOauthInformers() oauthinformer.SharedInformerFactory
+	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
+	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
+	GetInternalOpenshiftRouteInformers() routeinformer.SharedInformerFactory
+	GetInternalOpenshiftUserInformers() userinformer.SharedInformerFactory
+	GetInternalOpenshiftTemplateInformers() templateinformer.SharedInformerFactory
+
 	ToGenericInformer() GenericResourceInformer
 
 	Start(stopCh <-chan struct{})
@@ -141,7 +145,9 @@ func BuildMasterConfig(
 		if err != nil {
 			return nil, err
 		}
-		if err := realLoopbackInformers.AddUserIndexes(); err != nil {
+		if err := realLoopbackInformers.GetInternalOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+		}); err != nil {
 			return nil, err
 		}
 		informers = realLoopbackInformers
@@ -190,7 +196,7 @@ func BuildMasterConfig(
 	}
 	namespaceLabelDecorator := namespaceconditions.NamespaceLabelConditions{
 		NamespaceClient: privilegedLoopbackKubeClientsetExternal.CoreV1(),
-		NamespaceLister: informers.GetExternalKubeInformers().Core().V1().Namespaces().Lister(),
+		NamespaceLister: informers.GetKubernetesInformers().Core().V1().Namespaces().Lister(),
 
 		SkipLevelZeroNames: originadmission.SkipRunLevelZeroPlugins,
 		SkipLevelOneNames:  originadmission.SkipRunLevelOnePlugins,
@@ -213,7 +219,7 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	subjectLocator := NewSubjectLocator(informers.GetExternalKubeInformers().Rbac().V1())
+	subjectLocator := NewSubjectLocator(informers.GetKubernetesInformers().Rbac().V1())
 
 	config := &MasterConfig{
 		Options: options,
@@ -228,13 +234,13 @@ func BuildMasterConfig(
 
 		RESTOptionsGetter: restOptsGetter,
 
-		RuleResolver:   NewRuleResolver(informers.GetExternalKubeInformers().Rbac().V1()),
+		RuleResolver:   NewRuleResolver(informers.GetKubernetesInformers().Rbac().V1()),
 		SubjectLocator: subjectLocator,
 
 		ProjectAuthorizationCache: newProjectAuthorizationCache(
 			subjectLocator,
-			informers.GetInternalKubeInformers().Core().InternalVersion().Namespaces().Informer(),
-			informers.GetExternalKubeInformers().Rbac().V1(),
+			informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer(),
+			informers.GetKubernetesInformers().Rbac().V1(),
 		),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
@@ -246,12 +252,12 @@ func BuildMasterConfig(
 		PrivilegedLoopbackKubernetesClientsetInternal: kubeInternalClient,
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
 
-		InternalKubeInformers:  informers.GetInternalKubeInformers(),
-		ClientGoKubeInformers:  informers.GetExternalKubeInformers(),
-		AuthorizationInformers: informers.GetAuthorizationInformers(),
-		QuotaInformers:         informers.GetQuotaInformers(),
-		SecurityInformers:      informers.GetSecurityInformers(),
-		RouteInformers:         informers.GetRouteInformers(),
+		InternalKubeInformers:  informers.GetInternalKubernetesInformers(),
+		ClientGoKubeInformers:  informers.GetKubernetesInformers(),
+		AuthorizationInformers: informers.GetInternalOpenshiftAuthorizationInformers(),
+		QuotaInformers:         informers.GetInternalOpenshiftQuotaInformers(),
+		SecurityInformers:      informers.GetInternalOpenshiftSecurityInformers(),
+		RouteInformers:         informers.GetInternalOpenshiftRouteInformers(),
 	}
 
 	for name, hook := range authenticatorPostStartHooks {
@@ -280,8 +286,8 @@ func BuildMasterConfig(
 
 func newClusterQuotaMappingController(informers InformerAccess) *clusterquotamapping.ClusterQuotaMappingController {
 	return clusterquotamapping.NewClusterQuotaMappingControllerInternal(
-		informers.GetInternalKubeInformers().Core().InternalVersion().Namespaces(),
-		informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
+		informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(),
+		informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
 }
 
 func newProjectCache(informers InformerAccess, privilegedLoopbackConfig *restclient.Config, defaultNodeSelector string) (*projectcache.ProjectCache, error) {
@@ -290,7 +296,7 @@ func newProjectCache(informers InformerAccess, privilegedLoopbackConfig *restcli
 		return nil, err
 	}
 	return projectcache.NewProjectCache(
-		informers.GetInternalKubeInformers().Core().InternalVersion().Namespaces().Informer(),
+		informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer(),
 		kubeInternalClient.Core().Namespaces(),
 		defaultNodeSelector), nil
 }

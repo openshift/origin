@@ -170,12 +170,12 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		ExternalKubeInformers: informers.GetExternalKubeInformers(),
-		AppInformers:          informers.GetAppInformers(),
-		BuildInformers:        informers.GetBuildInformers(),
-		ImageInformers:        informers.GetImageInformers(),
-		SecurityInformers:     informers.GetSecurityInformers(),
-		Stop:                  controllerContext.Stop,
+		KubernetesInformers:       informers.GetExternalKubeInformers(),
+		InternalBuildInformers:    informers.GetInternalOpenshiftBuildInformers(),
+		AppsInformers:             informers.GetOpenshiftAppInformers(),
+		InternalImageInformers:    informers.GetInternalOpenshiftImageInformers(),
+		InternalSecurityInformers: informers.GetInternalOpenshiftSecurityInformers(),
+		Stop: controllerContext.Stop,
 	}
 
 	for i := 0; i < counts.BuildControllers; i++ {

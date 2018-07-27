@@ -22,10 +22,10 @@ func RunIngressToRouteController(ctx ControllerContext) (bool, error) {
 	controller := ingress.NewController(
 		coreClient,
 		routeClient,
-		ctx.ExternalKubeInformers.Extensions().V1beta1().Ingresses(),
-		ctx.ExternalKubeInformers.Core().V1().Secrets(),
-		ctx.ExternalKubeInformers.Core().V1().Services(),
-		ctx.RouteInformers.Route().V1().Routes(),
+		ctx.KubernetesInformers.Extensions().V1beta1().Ingresses(),
+		ctx.KubernetesInformers.Core().V1().Secrets(),
+		ctx.KubernetesInformers.Core().V1().Services(),
+		ctx.InternalRouteInformers.Route().V1().Routes(),
 	)
 
 	go controller.Run(5, ctx.Stop)

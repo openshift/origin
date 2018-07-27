@@ -28,7 +28,7 @@ func RunIngressIPController(ctx ControllerContext) (bool, error) {
 	}
 
 	ingressIPController := ingressip.NewIngressIPController(
-		ctx.ExternalKubeInformers.Core().V1().Services().Informer(),
+		ctx.KubernetesInformers.Core().V1().Services().Informer(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceIngressIPControllerServiceAccountName),
 		ipNet,
 		resyncPeriod,
