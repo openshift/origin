@@ -34,7 +34,7 @@ func RunImageTriggerController(ctx ControllerContext) (bool, error) {
 		return true, err
 	}
 
-	appsClient, err := ctx.ClientBuilder.OpenshiftInternalAppsClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	appsClient, err := ctx.ClientBuilder.OpenshiftAppsClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
@@ -47,10 +47,10 @@ func RunImageTriggerController(ctx ControllerContext) (bool, error) {
 	sources := []imagetriggercontroller.TriggerSource{
 		{
 			Resource:  schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"},
-			Informer:  ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
-			Store:     ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer().GetIndexer(),
+			Informer:  ctx.AppsInformers.Apps().V1().DeploymentConfigs().Informer(),
+			Store:     ctx.AppsInformers.Apps().V1().DeploymentConfigs().Informer().GetIndexer(),
 			TriggerFn: triggerdeploymentconfigs.NewDeploymentConfigTriggerIndexer,
-			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: appsClient.Apps()},
+			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: appsClient.AppsV1()},
 		},
 	}
 	sources = append(sources, imagetriggercontroller.TriggerSource{

@@ -134,10 +134,10 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 	}
 
 	go func() {
-		informers.GetBuildInformers().Start(utilwait.NeverStop)
-		informers.GetImageInformers().Start(utilwait.NeverStop)
-		informers.GetAppInformers().Start(utilwait.NeverStop)
-		informers.GetSecurityInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftBuildInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftImageInformers().Start(utilwait.NeverStop)
+		informers.GetOpenshiftAppInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftSecurityInformers().Start(utilwait.NeverStop)
 	}()
 
 	controllerContext := kctrlmgr.ControllerContext{
@@ -146,13 +146,13 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 			SharedInformerFactory: informers.GetExternalKubeInformers(),
 			generic: []GenericResourceInformer{
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetImageInformers().ForResource(resource)
+					return informers.GetInternalOpenshiftImageInformers().ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetBuildInformers().ForResource(resource)
+					return informers.GetInternalOpenshiftBuildInformers().ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetAppInformers().ForResource(resource)
+					return informers.GetOpenshiftAppInformers().ForResource(resource)
 				}),
 				informers.GetExternalKubeInformers(),
 			},
@@ -171,8 +171,8 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 			},
 		},
 		KubernetesInformers:       informers.GetExternalKubeInformers(),
-		InternalBuildInformers:    informers.GetInternalOpenshiftBuildInformers(),
 		AppsInformers:             informers.GetOpenshiftAppInformers(),
+		InternalBuildInformers:    informers.GetInternalOpenshiftBuildInformers(),
 		InternalImageInformers:    informers.GetInternalOpenshiftImageInformers(),
 		InternalSecurityInformers: informers.GetInternalOpenshiftSecurityInformers(),
 		Stop: controllerContext.Stop,
