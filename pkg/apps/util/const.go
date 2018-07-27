@@ -94,8 +94,9 @@ const (
 	DeploymentFailedUnableToCreateDeployerPod = "unable to create deployer pod"
 	DeploymentFailedDeployerPodNoLongerExists = "deployer pod no longer exists"
 
-	deploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
-	deploymentCancelledByUser     = "cancelled by the user"
+	deploymentCancelledAnnotation            = "openshift.io/deployment.cancelled"
+	deploymentCancelledByUser                = "cancelled by the user"
+	deploymentCancelledNewerDeploymentExists = "newer deployment was found running"
 
 	deploymentEncodedConfigAnnotation = "openshift.io/encoded-deployment-config"
 

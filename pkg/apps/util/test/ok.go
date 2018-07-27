@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 const (
@@ -24,6 +23,7 @@ func OkDeploymentConfig(version int64) *appsv1.DeploymentConfig {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "config",
 			Namespace: corev1.NamespaceDefault,
+			SelfLink:  "/apis/apps.openshift.io/v1/deploymentConfig/config",
 		},
 		Spec:   OkDeploymentConfigSpec(),
 		Status: OkDeploymentConfigStatus(version),
@@ -79,7 +79,7 @@ func OkStrategy() appsv1.DeploymentStrategy {
 		RecreateParams: &appsv1.RecreateDeploymentStrategyParams{
 			TimeoutSeconds: mkintp(20),
 		},
-		ActiveDeadlineSeconds: mkintp(int(appsutil.MaxDeploymentDurationSeconds)),
+		ActiveDeadlineSeconds: mkintp(21600),
 	}
 }
 

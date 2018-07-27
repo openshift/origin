@@ -15,15 +15,12 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
-	"github.com/openshift/origin/pkg/apps/strategy"
-
-	_ "github.com/openshift/origin/pkg/api/install"
+	appsstrategy "github.com/openshift/origin/pkg/apps/strategy"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
-func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) strategy.UpdateAcceptor {
+func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) appsstrategy.UpdateAcceptor {
 	return &testAcceptor{
 		acceptFn: func(deployment *corev1.ReplicationController) error {
 			return nil
@@ -31,34 +28,33 @@ func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) strategy.Up
 	}
 }
 
-func recreateParams(timeout int64, preFailurePolicy, midFailurePolicy, postFailurePolicy appsapi.LifecycleHookFailurePolicy) appsapi.DeploymentStrategy {
-	var pre, mid, post *appsapi.LifecycleHook
+func recreateParams(timeout int64, preFailurePolicy, midFailurePolicy, postFailurePolicy appsv1.LifecycleHookFailurePolicy) appsv1.DeploymentStrategy {
+	var pre, mid, post *appsv1.LifecycleHook
 	if len(preFailurePolicy) > 0 {
-		pre = &appsapi.LifecycleHook{
+		pre = &appsv1.LifecycleHook{
 			FailurePolicy: preFailurePolicy,
-			ExecNewPod:    &appsapi.ExecNewPodHook{},
+			ExecNewPod:    &appsv1.ExecNewPodHook{},
 		}
 	}
 	if len(midFailurePolicy) > 0 {
-		mid = &appsapi.LifecycleHook{
+		mid = &appsv1.LifecycleHook{
 			FailurePolicy: midFailurePolicy,
-			ExecNewPod:    &appsapi.ExecNewPodHook{},
+			ExecNewPod:    &appsv1.ExecNewPodHook{},
 		}
 	}
 	if len(postFailurePolicy) > 0 {
-		post = &appsapi.LifecycleHook{
+		post = &appsv1.LifecycleHook{
 			FailurePolicy: postFailurePolicy,
-			ExecNewPod:    &appsapi.ExecNewPodHook{},
+			ExecNewPod:    &appsv1.ExecNewPodHook{},
 		}
 	}
-	return appsapi.DeploymentStrategy{
-		Type: appsapi.DeploymentStrategyTypeRecreate,
-		RecreateParams: &appsapi.RecreateDeploymentStrategyParams{
+	return appsv1.DeploymentStrategy{
+		Type: appsv1.DeploymentStrategyTypeRecreate,
+		RecreateParams: &appsv1.RecreateDeploymentStrategyParams{
 			TimeoutSeconds: &timeout,
-
-			Pre:  pre,
-			Mid:  mid,
-			Post: post,
+			Pre:            pre,
+			Mid:            mid,
+			Post:           post,
 		},
 	}
 }
@@ -141,12 +137,12 @@ func TestRecreate_initialDeployment(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", "")
-	deployment, _ = appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	deployment, _ = appsutil.MakeDeployment(config)
 
 	controllerClient := newFakeControllerClient(deployment)
 	strategy.rcClient = controllerClient
 	strategy.scaleClient = controllerClient.fakeScaleClient()
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 3)
 	if err != nil {
@@ -160,8 +156,8 @@ func TestRecreate_initialDeployment(t *testing.T) {
 
 func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, appsapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config.Spec.Strategy = recreateParams(30, appsv1.LifecycleHookFailurePolicyAbort, "", "")
+	deployment, _ := appsutil.MakeDeployment(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -179,7 +175,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 			},
 		},
 	}
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -192,8 +188,8 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 
 func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, appsapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config.Spec.Strategy = recreateParams(30, appsv1.LifecycleHookFailurePolicyAbort, "", "")
+	deployment, _ := appsutil.MakeDeployment(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy := &RecreateDeploymentStrategy{
@@ -209,7 +205,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 			},
 		},
 	}
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err == nil {
@@ -223,8 +219,8 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 
 func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, "", appsapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config.Spec.Strategy = recreateParams(30, "", appsv1.LifecycleHookFailurePolicyAbort, "")
+	deployment, _ := appsutil.MakeDeployment(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy := &RecreateDeploymentStrategy{
@@ -240,7 +236,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 			},
 		},
 	}
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err == nil {
@@ -254,8 +250,8 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 
 func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, "", "", appsapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config.Spec.Strategy = recreateParams(30, "", "", appsv1.LifecycleHookFailurePolicyAbort)
+	deployment, _ := appsutil.MakeDeployment(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -273,7 +269,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 			},
 		},
 	}
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -286,8 +282,8 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 
 func TestRecreate_deploymentPostHookFail(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, "", "", appsapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(config)
+	config.Spec.Strategy = recreateParams(30, "", "", appsv1.LifecycleHookFailurePolicyAbort)
+	deployment, _ := appsutil.MakeDeployment(config)
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -305,7 +301,7 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 			},
 		},
 	}
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err == nil {
@@ -332,12 +328,12 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ = appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(2))
+	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
+	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2))
 	controllerClient := newFakeControllerClient(deployment)
 	strategy.rcClient = controllerClient
 	strategy.scaleClient = controllerClient.fakeScaleClient()
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
 	if err != nil {
@@ -376,13 +372,13 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ = appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(2))
+	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
+	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2))
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy.rcClient = controllerClient
 	strategy.scaleClient = controllerClient.fakeScaleClient()
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
 	if err != nil {
@@ -419,12 +415,12 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ = appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(2))
+	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
+	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2))
 	rcClient := newFakeControllerClient(deployment)
 	strategy.rcClient = rcClient
 	strategy.scaleClient = rcClient.fakeScaleClient()
-	strategy.podClient = &fakePodClient{deployerName: appsinternalutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
 	if err == nil {
 		t.Fatalf("expected a deployment failure")

@@ -7,16 +7,13 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 func TestDeployer_getDeploymentFail(t *testing.T) {
@@ -43,11 +40,11 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 }
 
 func TestDeployer_deployScenarios(t *testing.T) {
-	mkd := func(version int64, status appsapi.DeploymentStatus, replicas int32, desired int32) *corev1.ReplicationController {
+	mkd := func(version int64, status appsutil.DeploymentStatus, replicas int32, desired int32) *corev1.ReplicationController {
 		deployment := mkdeployment(version, status)
 		deployment.Spec.Replicas = &replicas
 		if desired > 0 {
-			deployment.Annotations[appsapi.DesiredReplicasAnnotation] = strconv.Itoa(int(desired))
+			deployment.Annotations[appsutil.DesiredReplicasAnnotation] = strconv.Itoa(int(desired))
 		}
 		return deployment
 	}
@@ -66,7 +63,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"initial deployment",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsapi.DeploymentStatusNew, 0, 3),
+				mkd(1, appsutil.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			0, 1,
@@ -77,9 +74,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"last deploy failed",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsapi.DeploymentStatusComplete, 3, 0),
-				mkd(2, appsapi.DeploymentStatusFailed, 1, 3),
-				mkd(3, appsapi.DeploymentStatusNew, 0, 3),
+				mkd(1, appsutil.DeploymentStatusComplete, 3, 0),
+				mkd(2, appsutil.DeploymentStatusFailed, 1, 3),
+				mkd(3, appsutil.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			1, 3,
@@ -92,9 +89,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"sequential complete",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsapi.DeploymentStatusComplete, 0, 0),
-				mkd(2, appsapi.DeploymentStatusComplete, 3, 0),
-				mkd(3, appsapi.DeploymentStatusNew, 0, 3),
+				mkd(1, appsutil.DeploymentStatusComplete, 0, 0),
+				mkd(2, appsutil.DeploymentStatusComplete, 3, 0),
+				mkd(3, appsutil.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			2, 3,
@@ -105,9 +102,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"sequential failure",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsapi.DeploymentStatusFailed, 1, 3),
-				mkd(2, appsapi.DeploymentStatusFailed, 1, 3),
-				mkd(3, appsapi.DeploymentStatusNew, 0, 3),
+				mkd(1, appsutil.DeploymentStatusFailed, 1, 3),
+				mkd(2, appsutil.DeploymentStatusFailed, 1, 3),
+				mkd(3, appsutil.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			0, 3,
@@ -121,9 +118,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"version mismatch",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsapi.DeploymentStatusComplete, 0, 0),
-				mkd(2, appsapi.DeploymentStatusNew, 3, 0),
-				mkd(3, appsapi.DeploymentStatusComplete, 0, 3),
+				mkd(1, appsutil.DeploymentStatusComplete, 0, 0),
+				mkd(2, appsutil.DeploymentStatusNew, 3, 0),
+				mkd(3, appsutil.DeploymentStatusComplete, 0, 3),
 			},
 			// from and to version
 			3, 2,
@@ -215,9 +212,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 	}
 }
 
-func mkdeployment(version int64, status appsapi.DeploymentStatus) *corev1.ReplicationController {
-	deployment, _ := appsinternalutil.MakeDeploymentV1FromInternalConfig(appstest.OkDeploymentConfig(version))
-	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
+func mkdeployment(version int64, status appsutil.DeploymentStatus) *corev1.ReplicationController {
+	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(version))
+	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(status)
 	return deployment
 }
 
@@ -245,24 +242,4 @@ func (t *FakeScaler) Scale(namespace, name string, newSize uint, preconditions *
 
 func (t *FakeScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint, resource schema.GroupResource) (string, error) {
 	return "", fmt.Errorf("unexpected call to ScaleSimple")
-}
-
-type FakeLaggedScaler struct {
-	Events     []ScaleEvent
-	RetryCount int
-}
-
-func (t *FakeLaggedScaler) Scale(namespace, name string, newSize uint, preconditions *kubectl.ScalePrecondition, retry, wait *kubectl.RetryParams, resource schema.GroupResource) error {
-	if t.RetryCount != 2 {
-		t.RetryCount += 1
-		// This is faking a real error from the
-		// "k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle" package.
-		return errors.NewForbidden(resource, name, fmt.Errorf("%s: not yet ready to handle request", name))
-	}
-	t.Events = append(t.Events, ScaleEvent{name, newSize})
-	return nil
-}
-
-func (t *FakeLaggedScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint, resource schema.GroupResource) (string, error) {
-	return "", nil
 }

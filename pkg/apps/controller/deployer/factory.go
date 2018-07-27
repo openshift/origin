@@ -18,7 +18,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -92,7 +91,7 @@ func (c *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
 func (c *DeploymentController) addReplicationController(obj interface{}) {
 	rc := obj.(*v1.ReplicationController)
 	// Filter out all unrelated replication controllers.
-	if !appsinternalutil.IsOwnedByConfig(rc) {
+	if !appsutil.IsOwnedByConfig(rc) {
 		return
 	}
 
@@ -103,7 +102,7 @@ func (c *DeploymentController) updateReplicationController(old, cur interface{})
 	curRC := cur.(*v1.ReplicationController)
 
 	// Filter out all unrelated replication controllers.
-	if !appsinternalutil.IsOwnedByConfig(curRC) {
+	if !appsutil.IsOwnedByConfig(curRC) {
 		return
 	}
 

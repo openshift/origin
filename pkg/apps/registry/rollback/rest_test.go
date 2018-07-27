@@ -14,16 +14,16 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/api/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 )
 
 type terribleGenerator struct{}
 
-func (tg *terribleGenerator) GenerateRollback(from, to *appsapi.DeploymentConfig, spec *appsapi.DeploymentConfigRollbackSpec) (*appsapi.DeploymentConfig, error) {
+func (tg *terribleGenerator) GenerateRollback(from, to *appsv1.DeploymentConfig, spec *appsv1.DeploymentConfigRollbackSpec) (*appsapi.DeploymentConfig, error) {
 	return nil, kerrors.NewInternalError(errors.New("something terrible happened"))
 }
 
@@ -62,7 +62,7 @@ func TestCreateOk(t *testing.T) {
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
+		deployment, _ := appstest.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		return true, deployment, nil
 	})
 
@@ -114,7 +114,7 @@ func TestCreateGeneratorError(t *testing.T) {
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
+		deployment, _ := appstest.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		return true, deployment, nil
 	})
 
@@ -143,7 +143,7 @@ func TestCreateMissingDeployment(t *testing.T) {
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
+		deployment, _ := appstest.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		return true, nil, kerrors.NewNotFound(kapi.Resource("replicationController"), deployment.Name)
 	})
 
@@ -171,7 +171,7 @@ func TestCreateInvalidDeployment(t *testing.T) {
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		// invalidate the encoded config
-		deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
+		deployment, _ := appstest.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		deployment.Annotations[appsapi.DeploymentEncodedConfigAnnotation] = ""
 		return true, deployment, nil
 	})
@@ -200,7 +200,7 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
+		deployment, _ := appstest.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		return true, deployment, nil
 	})
 

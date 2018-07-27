@@ -27,7 +27,7 @@ import (
 )
 
 func RunImageTriggerController(ctx ControllerContext) (bool, error) {
-	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
+	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
 
 	buildClient, err := ctx.ClientBuilder.OpenshiftInternalBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 	if err != nil {
@@ -47,16 +47,16 @@ func RunImageTriggerController(ctx ControllerContext) (bool, error) {
 	sources := []imagetriggercontroller.TriggerSource{
 		{
 			Resource:  schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"},
-			Informer:  ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
-			Store:     ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer().GetIndexer(),
+			Informer:  ctx.InternalAppsInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
+			Store:     ctx.InternalAppsInformers.Apps().InternalVersion().DeploymentConfigs().Informer().GetIndexer(),
 			TriggerFn: triggerdeploymentconfigs.NewDeploymentConfigTriggerIndexer,
 			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: appsClient.Apps()},
 		},
 	}
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildconfigs"},
-		Informer:  ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
-		Store:     ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
+		Informer:  ctx.InternalBuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
+		Store:     ctx.InternalBuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
 		TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
 		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.Core().RESTClient()),
 	})
@@ -148,7 +148,7 @@ func RunImageSignatureImportController(ctx ControllerContext) (bool, error) {
 	controller := imagesignaturecontroller.NewSignatureImportController(
 		context.Background(),
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
-		ctx.ImageInformers.Image().InternalVersion().Images(),
+		ctx.InternalImageInformers.Image().InternalVersion().Images(),
 		resyncPeriod,
 		signatureFetchTimeout,
 		signatureImportLimit,
@@ -158,7 +158,7 @@ func RunImageSignatureImportController(ctx ControllerContext) (bool, error) {
 }
 
 func RunImageImportController(ctx ControllerContext) (bool, error) {
-	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
+	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
 	controller := imagecontroller.NewImageStreamController(
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
 		informer,
