@@ -63,14 +63,15 @@ type CancelBuildOptions struct {
 	Namespace  string
 	BuildNames []string
 
-	HasError       bool
-	ReportError    func(error)
-	PrinterCancel  printers.ResourcePrinter
-	PrinterRestart printers.ResourcePrinter
-	Mapper         meta.RESTMapper
-	Client         buildinternalclient.Interface
-	BuildClient    buildtypedclient.BuildResourceInterface
-	BuildLister    buildlister.BuildLister
+	HasError                bool
+	ReportError             func(error)
+	PrinterCancel           printers.ResourcePrinter
+	PrinterCancelInProgress printers.ResourcePrinter
+	PrinterRestart          printers.ResourcePrinter
+	Mapper                  meta.RESTMapper
+	Client                  buildinternalclient.Interface
+	BuildClient             buildtypedclient.BuildResourceInterface
+	BuildLister             buildlister.BuildLister
 
 	// timeout is used by unit tests to shorten the polling period
 	timeout time.Duration
@@ -122,6 +123,7 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 	// FIXME: this double printers should not be necessary
 	o.PrinterCancel = &printers.NamePrinter{Operation: "cancelled"}
 	o.PrinterRestart = &printers.NamePrinter{Operation: "restarted"}
+	o.PrinterCancelInProgress = &printers.NamePrinter{Operation: "marked for cancellation, waiting to be cancelled"}
 
 	if o.timeout.Seconds() == 0 {
 		o.timeout = 30 * time.Second
@@ -245,8 +247,18 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				return
 			}
 
+			// ignore exit if error here; the phase verfication below is more important
+			o.PrinterCancelInProgress.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(build, nil), o.Out)
+
 			// Make sure the build phase is really cancelled.
-			err = wait.Poll(500*time.Millisecond, o.timeout, func() (bool, error) {
+			timeout := o.timeout
+			if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
+				//bump the timeout in case we have to wait for Jenkins
+				//to come up so that the sync plugin can actually change
+				//the phase
+				timeout = timeout + (3 * time.Minute)
+			}
+			err = wait.Poll(500*time.Millisecond, timeout, func() (bool, error) {
 				updatedBuild, err := o.BuildClient.Get(build.Name, metav1.GetOptions{})
 				if err != nil {
 					return true, err
