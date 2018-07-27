@@ -294,8 +294,7 @@
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
-      "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
-      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme"
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1"
     ]
   },
 

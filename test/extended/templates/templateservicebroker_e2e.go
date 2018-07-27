@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/client/internalversion"
+	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -220,7 +221,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		}))
 
 		o.Expect(templateInstance.Status.Conditions).To(o.HaveLen(1))
-		o.Expect(templateInstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue)).To(o.Equal(true))
+		o.Expect(templatecontroller.TemplateInstanceHasCondition(templateInstance, templateapi.TemplateInstanceReady, kapi.ConditionTrue)).To(o.Equal(true))
 
 		o.Expect(templateInstance.Status.Objects).To(o.HaveLen(len(template.Objects)))
 		for i, obj := range templateInstance.Status.Objects {

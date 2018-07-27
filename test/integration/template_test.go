@@ -7,23 +7,24 @@ import (
 	"testing"
 
 	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/dynamic"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/template/client/internalversion"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	templateapi "github.com/openshift/api/template/v1"
+	"github.com/openshift/origin/pkg/client/templateprocessing"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestTemplate(t *testing.T) {
 	masterConfig, path, err := testserver.StartTestMasterAPI()
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatal(err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
@@ -43,8 +44,12 @@ func TestTemplate(t *testing.T) {
 			},
 		}
 
-		templateObjects := []runtime.Object{
-			&v1.Service{
+		corev1Scheme := runtime.NewScheme()
+		utilruntime.Must(corev1.AddToScheme(corev1Scheme))
+		corev1Codec := serializer.NewCodecFactory(corev1Scheme).LegacyCodec(corev1.SchemeGroupVersion)
+
+		template.Objects = append(template.Objects, runtime.RawExtension{
+			Raw: []byte(runtime.EncodeOrDie(corev1Codec, &v1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "${NAME}-tester",
 					Namespace: "somevalue",
@@ -53,22 +58,21 @@ func TestTemplate(t *testing.T) {
 					ClusterIP:       "1.2.3.4",
 					SessionAffinity: "some-bad-${VALUE}",
 				},
-			},
-		}
-		templateapi.AddObjectsToTemplate(template, templateObjects, v1.SchemeGroupVersion)
+			})),
+		})
 
-		templateProcessor := internalversion.NewTemplateProcessorClient(templateclient.NewForConfigOrDie(config).Template().RESTClient(), "default")
-		obj, err := templateProcessor.Process(template)
+		dynamicClient, err := dynamic.NewForConfig(config)
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatal(err)
 		}
-		if len(obj.Objects) != 1 {
+		obj, err := templateprocessing.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(obj.Items) != 1 {
 			t.Fatalf("unexpected object: %#v", obj)
 		}
-		if err := runtime.DecodeList(obj.Objects, unstructured.UnstructuredJSONScheme); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		svc := obj.Objects[0].(*unstructured.Unstructured).Object
+		svc := obj.Items[0].Object
 		spec := svc["spec"].(map[string]interface{})
 		meta := svc["metadata"].(map[string]interface{})
 		// keep existing values
@@ -128,22 +132,31 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	templatev1Scheme := runtime.NewScheme()
+	utilruntime.Must(templateapi.Install(templatev1Scheme))
+	templatev1Codec := serializer.NewCodecFactory(templatev1Scheme).LegacyCodec(templateapi.GroupVersion)
+
 	walkJSONFiles("../templates/fixtures", func(name, path string, data []byte) {
-		template, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), data)
+		t.Logf("staring %q", path)
+		template, err := runtime.Decode(templatev1Codec, data)
 		if err != nil {
-			t.Errorf("%q: unexpected error: %v", path, err)
+			t.Errorf("%q: %v", path, err)
 			return
 		}
-		templateProcessor := internalversion.NewTemplateProcessorClient(templateclient.NewForConfigOrDie(clusterAdminClientConfig).Template().RESTClient(), "default")
-		config, err := templateProcessor.Process(template.(*templateapi.Template))
+		dynamicClient, err := dynamic.NewForConfig(clusterAdminClientConfig)
 		if err != nil {
-			t.Errorf("%q: unexpected error: %v", path, err)
+			t.Errorf("%q: %v", path, err)
 			return
 		}
-		if len(config.Objects) == 0 {
+		processedList, err := templateprocessing.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template.(*templateapi.Template))
+		if err != nil {
+			t.Errorf("%q: %v", path, err)
+			return
+		}
+		if len(processedList.Items) == 0 {
 			t.Errorf("%q: no items in config object", path)
 			return
 		}
-		t.Logf("tested %q", path)
+
 	})
 }

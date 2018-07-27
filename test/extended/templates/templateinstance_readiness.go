@@ -17,6 +17,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -87,10 +88,10 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		// the build or dc have not settled; the templateinstance must also
 		// indicate this
 
-		if templateinstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue) {
+		if templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceReady, kapi.ConditionTrue) {
 			return false, errors.New("templateinstance unexpectedly reported ready")
 		}
-		if templateinstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+		if templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
 			return false, errors.New("templateinstance unexpectedly reported failure")
 		}
 
@@ -154,11 +155,11 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 					return false, err
 				}
 
-				if templateinstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
 					return false, errors.New("templateinstance unexpectedly reported failure")
 				}
 
-				return templateinstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue), nil
+				return templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceReady, kapi.ConditionTrue), nil
 			})
 			if err != nil {
 				err := dumpObjectReadiness(cli, templateinstance)
@@ -216,11 +217,11 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 					return false, err
 				}
 
-				if templateinstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue) {
+				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceReady, kapi.ConditionTrue) {
 					return false, errors.New("templateinstance unexpectedly reported ready")
 				}
 
-				return templateinstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue), nil
+				return templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue), nil
 			})
 			if err != nil {
 				err := dumpObjectReadiness(cli, templateinstance)
