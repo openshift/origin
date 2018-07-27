@@ -102,7 +102,7 @@ items:
     runPolicy: Serial
     source:
       git:
-        uri: https://github.com/openshift/ruby-ex.git
+        uri: https://github.com/sclorg/ruby-ex.git
       type: Git
     strategy:
       sourceStrategy:
