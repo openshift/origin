@@ -40,5 +40,8 @@ class OriginTagger(VersionTagger):
         super(OriginTagger, self)._tag_release()
 
     def _get_tag_for_version(self, version, release=None):
-        return "v{}".format(version)
+        if release:
+            return "v{}".format(version)
+        else:
+            return "v{}-{}".format(version, release)
 # vim:expandtab:autoindent:tabstop=4:shiftwidth=4:filetype=python:textwidth=0:
