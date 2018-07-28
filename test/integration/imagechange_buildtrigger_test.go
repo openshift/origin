@@ -302,19 +302,19 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 		if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:"+tag {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
 	case strategy.DockerStrategy != nil:
 		if strategy.DockerStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:"+tag {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
 	case strategy.CustomStrategy != nil:
 		if strategy.CustomStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:"+tag {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
 	}
 	event = <-buildWatch.ResultChan()
@@ -376,19 +376,19 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 		if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	case strategy.DockerStrategy != nil:
 		if strategy.DockerStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	case strategy.CustomStrategy != nil:
 		if strategy.CustomStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	}
 

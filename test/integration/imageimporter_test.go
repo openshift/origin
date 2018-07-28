@@ -8,10 +8,12 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/golang/glog"
 	gocontext "golang.org/x/net/context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -654,7 +656,10 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 func TestImageStreamImportScheduled(t *testing.T) {
 	written := make(chan struct{}, 2)
 	count := 0
+	var lock sync.Mutex
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lock.Lock()
+		defer lock.Unlock()
 		t.Logf("got %s %s", r.Method, r.URL.Path)
 		switch r.URL.Path {
 		case "/v2/":
@@ -663,12 +668,13 @@ func TestImageStreamImportScheduled(t *testing.T) {
 		case "/v2/test/image/manifests/latest", "/v2/test/image/manifests/" + etcdDigest, "/v2/test/image/manifests/" + phpDigest:
 			count++
 			t.Logf("serving %d", count)
+			glog.Infof("serving request %d for %s", count, r.URL.Path)
 			var manifest, digest string
 			switch count {
 			case 1, 2:
 				digest = etcdDigest
 				manifest = etcdManifest
-			case 3, 4, 5, 6:
+			case 3, 4, 5:
 				digest = phpDigest
 				manifest = phpManifest
 			default:
@@ -817,7 +823,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 		t.Fatalf("expected generation 2 for stream and spec tag: %v %#v", tagGen, change)
 	}
 	conditions := change.Status.Tags["latest"].Conditions
-	if len(conditions) == 0 || conditions[0].Type != imageapi.ImportSuccess || conditions[0].Generation != 3 {
+	if len(conditions) == 0 || conditions[0].Type != imageapi.ImportSuccess || string(conditions[0].Status) != "False" || conditions[0].Generation != 3 {
 		t.Fatalf("expected generation 3 for condition and import failed: %#v", conditions)
 	}
 
