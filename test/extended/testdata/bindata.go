@@ -20959,10 +20959,10 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
     "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/cakephp-ex/blob/master/README.md.",
+            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.",
             "iconClass": "icon-php",
             "openshift.io/display-name": "CakePHP + MySQL",
-            "openshift.io/documentation-url": "https://github.com/openshift/cakephp-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/cakephp-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a CakePHP application, including a build configuration, application deployment configuration, and database deployment configuration.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -21449,7 +21449,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/cakephp-ex.git"
+            "value": "https://github.com/sclorg/cakephp-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -21559,10 +21559,10 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
     "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
             "iconClass": "icon-php",
             "openshift.io/display-name": "CakePHP + MySQL (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/openshift/cakephp-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/cakephp-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a CakePHP application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -22023,7 +22023,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/cakephp-ex.git"
+            "value": "https://github.com/sclorg/cakephp-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -23208,13 +23208,13 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
         "app": "django-psql-persistent",
         "template": "django-psql-persistent"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
+            "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.",
             "iconClass": "icon-python",
             "openshift.io/display-name": "Django + PostgreSQL",
-            "openshift.io/documentation-url": "https://github.com/openshift/django-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/django-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a Django based application, including a build configuration, application deployment configuration, and database deployment configuration.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -23685,7 +23685,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/django-ex.git"
+            "value": "https://github.com/sclorg/django-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -23784,13 +23784,13 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
         "app": "django-psql-example",
         "template": "django-psql-example"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
             "iconClass": "icon-python",
             "openshift.io/display-name": "Django + PostgreSQL (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/openshift/django-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/django-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a Django based application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -24235,7 +24235,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/django-ex.git"
+            "value": "https://github.com/sclorg/django-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -25870,13 +25870,13 @@ var _examplesQuickstartsNodejsMongodbPersistentJson = []byte(`{
     "labels": {
         "template": "nodejs-mongo-persistent"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nodejs-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
+            "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nodejs-ex/blob/master/README.md.",
             "iconClass": "icon-nodejs",
             "openshift.io/display-name": "Node.js + MongoDB",
-            "openshift.io/documentation-url": "https://github.com/openshift/nodejs-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/nodejs-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a NodeJS application, including a build configuration, application deployment configuration, and database deployment configuration.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -26354,7 +26354,7 @@ var _examplesQuickstartsNodejsMongodbPersistentJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/nodejs-ex.git"
+            "value": "https://github.com/sclorg/nodejs-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -26450,13 +26450,13 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
         "app": "nodejs-mongodb-example",
         "template": "nodejs-mongodb-example"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nodejs-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nodejs-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
             "iconClass": "icon-nodejs",
             "openshift.io/display-name": "Node.js + MongoDB (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/openshift/nodejs-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/nodejs-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a NodeJS application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -26910,7 +26910,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/nodejs-ex.git"
+            "value": "https://github.com/sclorg/nodejs-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -31553,10 +31553,10 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
     "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
             "iconClass": "icon-php",
             "openshift.io/display-name": "CakePHP + MySQL (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/openshift/cakephp-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/cakephp-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a CakePHP application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -32017,7 +32017,7 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/cakephp-ex.git"
+            "value": "https://github.com/sclorg/cakephp-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
