@@ -72,10 +72,14 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 				o.Expect(ok).To(o.BeTrue())
 				o.Expect(len(l.Layers)).To(o.BeNumerically(">", 0))
 				o.Expect(l.Manifest).ToNot(o.BeNil())
+				o.Expect(layers.Blobs[*l.Manifest]).ToNot(o.BeNil())
+				o.Expect(layers.Blobs[*l.Manifest].MediaType).To(o.Equal("application/vnd.docker.container.image.v1+json"))
 				for _, layerID := range l.Layers {
 					o.Expect(layers.Blobs).To(o.HaveKey(layerID))
 					o.Expect(layers.Blobs[layerID].MediaType).NotTo(o.BeEmpty())
 				}
+				o.Expect(layers.Blobs).To(o.HaveKey(image.Image.Name))
+				o.Expect(layers.Blobs[image.Image.Name].MediaType).To(o.Equal("application/vnd.docker.distribution.manifest.v2+json"))
 				if i == 0 {
 					busyboxLayers = l.Layers
 				}

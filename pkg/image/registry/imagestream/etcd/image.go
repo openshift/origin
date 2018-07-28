@@ -121,9 +121,10 @@ func NewImageLayerIndex(lw ImageListWatch) ImageLayerIndex {
 	return imageLayerIndex{informer: informer}
 }
 
-// manifestFromImage attempts to find a manifest blob description from
-// an image. Images older than schema2 in Docker do not have a manifest blob.
-func manifestFromImage(image *imagev1.Image) *imagev1.ImageLayer {
+// configFromImage attempts to find a config blob description from
+// an image. Images older than schema2 in Docker do not have a config blob - the manifest
+// has that data embedded.
+func configFromImage(image *imagev1.Image) *imagev1.ImageLayer {
 	if image.DockerImageManifestMediaType != "application/vnd.docker.distribution.manifest.v2+json" {
 		return nil
 	}
@@ -134,7 +135,7 @@ func manifestFromImage(image *imagev1.Image) *imagev1.ImageLayer {
 	}
 	return &imagev1.ImageLayer{
 		Name:      meta.ID,
-		MediaType: image.DockerImageManifestMediaType,
+		MediaType: "application/vnd.docker.container.image.v1+json",
 	}
 }
 
@@ -145,16 +146,22 @@ func manifestFromImage(image *imagev1.Image) *imagev1.ImageLayer {
 type ImageLayers struct {
 	Name            string
 	ResourceVersion string
-	Manifest        *imagev1.ImageLayer
+	MediaType       string
+	Config          *imagev1.ImageLayer
 	Layers          []imagev1.ImageLayer
 }
 
 func imageLayersForImage(image *imagev1.Image) *ImageLayers {
+	mediaType := image.DockerImageManifestMediaType
+	if len(mediaType) == 0 {
+		mediaType = "application/vnd.docker.distribution.manifest.v2+json"
+	}
 	return &ImageLayers{
 		Name:            image.Name,
 		ResourceVersion: image.ResourceVersion,
+		MediaType:       mediaType,
+		Config:          configFromImage(image),
 		Layers:          image.DockerImageLayers,
-		Manifest:        manifestFromImage(image),
 	}
 }
 
@@ -170,15 +177,16 @@ func (l *ImageLayers) DeepCopyObject() runtime.Object {
 		layers = make([]imagev1.ImageLayer, len(l.Layers))
 		copy(layers, l.Layers)
 	}
-	var manifest *imagev1.ImageLayer
-	if l.Manifest != nil {
-		copied := *l.Manifest
-		manifest = &copied
+	var config *imagev1.ImageLayer
+	if l.Config != nil {
+		copied := *l.Config
+		config = &copied
 	}
 	return &ImageLayers{
 		Name:            l.Name,
 		ResourceVersion: l.ResourceVersion,
-		Manifest:        manifest,
+		MediaType:       l.MediaType,
+		Config:          config,
 		Layers:          layers,
 	}
 }
