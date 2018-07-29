@@ -8335,6 +8335,13 @@ func schema_openshift_api_network_v1_ClusterNetwork(ref common.ReferenceCallback
 							},
 						},
 					},
+					"vxlanPort": {
+						SchemaProps: spec.SchemaProps{
+							Description: "VXLANPort sets the VXLAN destination port used by the cluster. It is set by the master configuration file on startup and cannot be edited manually. Valid values for VXLANPort are integers 1-65535 inclusive and if unset defaults to 4789. Changing VXLANPort allows users to resolve issues between openshift SDN and other software trying to use the same VXLAN destination port.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
 				},
 				Required: []string{"serviceNetwork", "clusterNetworks"},
 			},

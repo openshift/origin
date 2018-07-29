@@ -96,6 +96,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div></details><div style="margin-left:13px;"><span title="(string) Network is a CIDR string specifying the global overlay network&#39;s L3 space">network</span>:
 </div><div style="margin-left:13px;"><span title="(string) PluginName is the name of the network plugin being used">pluginName</span>:
 </div><div style="margin-left:13px;"><span title="(string) ServiceNetwork is the CIDR range that Service IP addresses are allocated from">serviceNetwork</span>:
+</div><div style="margin-left:13px;"><span title="(integer) VXLANPort sets the VXLAN destination port used by the cluster. It is set by the master configuration file on startup and cannot be edited manually. Valid values for VXLANPort are integers 1-65535 inclusive and if unset defaults to 4789. Changing VXLANPort allows users to resolve issues between openshift SDN and other software trying to use the same VXLAN destination port.">vxlanPort</span>:
 </div>
 </pre>
 ++++

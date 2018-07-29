@@ -70,6 +70,7 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfi
 			ClusterNetworks:    in.NetworkConfig.ClusterNetworks,
 			NetworkPluginName:  in.NetworkConfig.NetworkPluginName,
 			ServiceNetworkCIDR: in.NetworkConfig.ServiceNetworkCIDR,
+			VXLANPort:          in.NetworkConfig.VXLANPort,
 		},
 		Ingress: configapi.IngressControllerConfig{
 			IngressIPNetworkCIDR: in.NetworkConfig.IngressIPNetworkCIDR,

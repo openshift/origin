@@ -379,6 +379,10 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 					},
 				}
 			}
+
+			if out.VXLANPort == 0 {
+				out.VXLANPort = 4789
+			}
 			return nil
 		},
 		func(in *AuditConfig, out *internal.AuditConfig, s conversion.Scope) error {
