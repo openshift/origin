@@ -27,6 +27,8 @@ import (
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
+	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
+	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
 
 var (
@@ -232,10 +234,10 @@ func (o *MirrorImageOptions) Run() error {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	q := newWorkQueue(o.MaxRegistry, stopCh)
-	registryWorkers := make(map[string]*workQueue)
+	q := workqueue.New(o.MaxRegistry, stopCh)
+	registryWorkers := make(map[string]workqueue.Interface)
 	for name := range p.RegistryNames() {
-		registryWorkers[name] = newWorkQueue(o.MaxPerRegistry, stopCh)
+		registryWorkers[name] = workqueue.New(o.MaxPerRegistry, stopCh)
 	}
 
 	next := time.Now()
@@ -247,12 +249,12 @@ func (o *MirrorImageOptions) Run() error {
 	ctx := apirequest.NewContext()
 	for j := range work.phases {
 		phase := &work.phases[j]
-		q.Batch(func(w Work) {
+		q.Batch(func(w workqueue.Work) {
 			for i := range phase.independent {
 				unit := phase.independent[i]
 				w.Parallel(func() {
 					// upload blobs
-					registryWorkers[unit.registry.name].Batch(func(w Work) {
+					registryWorkers[unit.registry.name].Batch(func(w workqueue.Work) {
 						for i := range unit.repository.blobs {
 							op := unit.repository.blobs[i]
 							for digestString := range op.blobs {
@@ -318,11 +320,11 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	q := newWorkQueue(o.MaxRegistry, stopCh)
-	registryWorkers := make(map[string]*workQueue)
+	q := workqueue.New(o.MaxRegistry, stopCh)
+	registryWorkers := make(map[string]workqueue.Interface)
 	for name := range tree {
 		if _, ok := registryWorkers[name.registry]; !ok {
-			registryWorkers[name.registry] = newWorkQueue(o.MaxPerRegistry, stopCh)
+			registryWorkers[name.registry] = workqueue.New(o.MaxPerRegistry, stopCh)
 		}
 	}
 
@@ -330,7 +332,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 
 	for name := range tree {
 		src := tree[name]
-		q.Queue(func(_ Work) {
+		q.Queue(func(_ workqueue.Work) {
 			srcRepo, err := fromContext.Repository(ctx, src.ref.DockerClientDefaults().RegistryURL(), src.ref.RepositoryName(), o.Insecure)
 			if err != nil {
 				plan.AddError(retrieverError{err: fmt.Errorf("unable to connect to %s: %v", src.ref, err), src: src.ref})
@@ -342,7 +344,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 				return
 			}
 			rq := registryWorkers[name.registry]
-			rq.Batch(func(w Work) {
+			rq.Batch(func(w workqueue.Work) {
 				// convert source tags to digests
 				for tag := range src.tags {
 					srcTag, pushTargets := tag, src.tags[tag]
@@ -361,7 +363,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 
 			canonicalFrom := srcRepo.Named()
 
-			rq.Queue(func(w Work) {
+			rq.Queue(func(w workqueue.Work) {
 				for key := range src.digests {
 					srcDigestString, pushTargets := key, src.digests[key]
 					w.Parallel(func() {
@@ -375,7 +377,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 
 						// filter or load manifest list as appropriate
 						originalSrcDigest := srcDigest
-						srcManifests, srcManifest, srcDigest, err := processManifestList(ctx, srcDigest, srcManifest, manifests, src.ref, o.includeDescriptor)
+						srcManifests, srcManifest, srcDigest, err := imagemanifest.ProcessManifestList(ctx, srcDigest, srcManifest, manifests, src.ref, o.includeDescriptor)
 						if err != nil {
 							plan.AddError(retrieverError{src: src.ref, err: err})
 							return
@@ -599,7 +601,7 @@ func copyManifests(
 			panic(fmt.Sprintf("empty source manifest for %s", srcDigest))
 		}
 		for _, tag := range tags.List() {
-			toDigest, err := putManifestInCompatibleSchema(ctx, srcManifest, tag, plan.to, plan.toBlobs, ref)
+			toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, srcManifest, tag, plan.to, plan.toBlobs, ref)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("unable to push manifest to %s: %v", plan.toRef, err))
 				continue
@@ -622,7 +624,7 @@ func copyManifests(
 		if !ok {
 			panic(fmt.Sprintf("empty source manifest for %s", srcDigest))
 		}
-		toDigest, err := putManifestInCompatibleSchema(ctx, srcManifest, "", plan.to, plan.toBlobs, ref)
+		toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, srcManifest, "", plan.to, plan.toBlobs, ref)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("unable to push manifest to %s: %v", plan.toRef, err))
 			continue

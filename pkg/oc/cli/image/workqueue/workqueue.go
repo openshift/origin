@@ -1,4 +1,4 @@
-package mirror
+package workqueue
 
 import (
 	"sync"
@@ -6,12 +6,27 @@ import (
 	"github.com/golang/glog"
 )
 
+type Work interface {
+	Parallel(fn func())
+}
+
+type Try interface {
+	Try(fn func() error)
+}
+
+type Interface interface {
+	Batch(func(Work))
+	Try(func(Try)) error
+	Queue(func(Work))
+	Done()
+}
+
 type workQueue struct {
 	ch chan workUnit
 	wg *sync.WaitGroup
 }
 
-func newWorkQueue(workers int, stopCh <-chan struct{}) *workQueue {
+func New(workers int, stopCh <-chan struct{}) Interface {
 	q := &workQueue{
 		ch: make(chan workUnit, 100),
 		wg: &sync.WaitGroup{},
@@ -75,14 +90,6 @@ func (q *workQueue) Done() {
 type workUnit struct {
 	fn func()
 	wg *sync.WaitGroup
-}
-
-type Work interface {
-	Parallel(fn func())
-}
-
-type Try interface {
-	Try(fn func() error)
 }
 
 type worker struct {

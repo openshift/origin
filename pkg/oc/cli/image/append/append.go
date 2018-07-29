@@ -38,6 +38,8 @@ import (
 	"github.com/openshift/origin/pkg/image/dockerlayer/add"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
+	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
+	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
 
 var (
@@ -276,7 +278,7 @@ func (o *AppendImageOptions) Run() error {
 		}
 
 		originalSrcDigest := srcDigest
-		srcManifests, srcManifest, srcDigest, err := processManifestList(ctx, srcDigest, srcManifest, manifests, *from, o.includeDescriptor)
+		srcManifests, srcManifest, srcDigest, err := imagemanifest.ProcessManifestList(ctx, srcDigest, srcManifest, manifests, *from, o.includeDescriptor)
 		if err != nil {
 			return err
 		}
@@ -445,8 +447,8 @@ func (o *AppendImageOptions) Run() error {
 	// upload base layers in parallel
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	q := newWorkQueue(o.MaxPerRegistry, stopCh)
-	err = q.Try(func(w Try) {
+	q := workqueue.New(o.MaxPerRegistry, stopCh)
+	err = q.Try(func(w workqueue.Try) {
 		for i := range layers[:numLayers] {
 			layer := &layers[i]
 			index := i
@@ -551,7 +553,7 @@ func (o *AppendImageOptions) Run() error {
 	if err != nil {
 		return fmt.Errorf("unable to upload the new image manifest: %v", err)
 	}
-	toDigest, err := putManifestInCompatibleSchema(ctx, manifest, to.Tag, toManifests, fromRepo.Blobs(ctx), toRepo.Named())
+	toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, manifest, to.Tag, toManifests, fromRepo.Blobs(ctx), toRepo.Named())
 	if err != nil {
 		return fmt.Errorf("unable to convert the image to a compatible schema version: %v", err)
 	}

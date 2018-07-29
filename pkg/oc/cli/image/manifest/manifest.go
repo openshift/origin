@@ -1,4 +1,4 @@
-package mirror
+package manifest
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
-func processManifestList(ctx context.Context, srcDigest digest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imagereference.DockerImageReference, filterFn func(*manifestlist.ManifestDescriptor, bool) bool) ([]distribution.Manifest, distribution.Manifest, digest.Digest, error) {
+func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imagereference.DockerImageReference, filterFn func(*manifestlist.ManifestDescriptor, bool) bool) ([]distribution.Manifest, distribution.Manifest, digest.Digest, error) {
 	var srcManifests []distribution.Manifest
 	switch t := srcManifest.(type) {
 	case *manifestlist.DeserializedManifestList:
@@ -84,7 +84,7 @@ func processManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 }
 
 // TDOO: remove when quay.io switches to v2 schema
-func putManifestInCompatibleSchema(
+func PutManifestInCompatibleSchema(
 	ctx context.Context,
 	srcManifest distribution.Manifest,
 	tag string,
