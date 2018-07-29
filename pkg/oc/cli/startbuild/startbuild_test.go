@@ -24,8 +24,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildclientmanual "github.com/openshift/origin/pkg/build/client/v1"
 	"github.com/openshift/origin/pkg/oauth/generated/clientset/scheme"
 )
 
@@ -134,7 +135,7 @@ type FakeBuildConfigs struct {
 	expectAsFile bool
 }
 
-func (c FakeBuildConfigs) InstantiateBinary(name string, options *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
+func (c FakeBuildConfigs) InstantiateBinary(name string, options *buildv1.BinaryBuildRequestOptions, r io.Reader) (result *buildv1.Build, err error) {
 	if binary, err := ioutil.ReadAll(r); err != nil {
 		c.t.Errorf("Error while reading binary over HTTP: %v", err)
 	} else if string(binary) != "hi" {
@@ -147,7 +148,7 @@ func (c FakeBuildConfigs) InstantiateBinary(name string, options *buildapi.Binar
 		c.t.Errorf("Expecting archive, got file")
 	}
 
-	return &buildapi.Build{}, nil
+	return &buildv1.Build{}, nil
 }
 
 func TestHttpBinary(t *testing.T) {
@@ -228,7 +229,7 @@ func TestHttpBinary(t *testing.T) {
 	for _, tc := range tests {
 		stdin := bytes.NewReader([]byte{})
 		stdout := &bytes.Buffer{}
-		options := buildapi.BinaryBuildRequestOptions{}
+		options := buildv1.BinaryBuildRequestOptions{}
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			if tc.contentDisposition {
 				w.Header().Add("Content-Disposition", "attachment; filename=hi.txt")
@@ -330,7 +331,7 @@ func TestStreamBuildLogs(t *testing.T) {
 
 	for _, tc := range cases {
 		out := &bytes.Buffer{}
-		build := &buildapi.Build{
+		build := &buildv1.Build{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-build",
 				Namespace: "test-namespace",
@@ -363,7 +364,7 @@ func TestStreamBuildLogs(t *testing.T) {
 
 		o := &StartBuildOptions{
 			IOStreams:      ioStreams,
-			BuildLogClient: buildclient.NewBuildLogClient(fakeREST, build.Namespace),
+			BuildLogClient: buildclientmanual.NewBuildLogClient(fakeREST, build.Namespace),
 		}
 
 		err := o.streamBuildLogs(build)
