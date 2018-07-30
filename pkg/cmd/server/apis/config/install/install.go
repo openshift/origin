@@ -12,11 +12,11 @@ import (
 	overridesinstall "github.com/openshift/origin/pkg/build/controller/build/apis/overrides/install"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
-	imagepolicyinstall "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/install"
-	ingressadmissioninstall "github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission/install"
-	requestlimitinstall "github.com/openshift/origin/pkg/project/admission/apis/requestlimit/install"
-	clusterresourceoverrideinstall "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride/install"
-	runoncedurationinstall "github.com/openshift/origin/pkg/quota/admission/apis/runonceduration/install"
+	imagepolicyinstall "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/install"
+	ingressadmissioninstall "github.com/openshift/origin/pkg/network/apiserver/admission/apis/ingressadmission/install"
+	requestlimitinstall "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/install"
+	clusterresourceoverrideinstall "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride/install"
+	runoncedurationinstall "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration/install"
 	podnodeconstraintsinstall "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/install"
 )
 

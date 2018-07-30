@@ -21,7 +21,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
-	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
+	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
 	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 
 	// install all APIs

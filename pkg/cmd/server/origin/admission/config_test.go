@@ -9,8 +9,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
-	sccadmission "github.com/openshift/origin/pkg/security/admission"
+	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
+	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
 

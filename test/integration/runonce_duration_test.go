@@ -7,7 +7,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	pluginapi "github.com/openshift/origin/pkg/quota/admission/apis/runonceduration"
+	pluginapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

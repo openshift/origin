@@ -7,7 +7,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kubeapiserver "k8s.io/kubernetes/pkg/kubeapiserver/options"
 
-	imageadmission "github.com/openshift/origin/pkg/image/admission"
+	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 )
 
 var admissionPluginsNotUsedByKube = sets.NewString(

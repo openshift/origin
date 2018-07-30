@@ -23,11 +23,11 @@ import (
 
 	"github.com/openshift/api/image"
 	oauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/image/admission"
-	admfake "github.com/openshift/origin/pkg/image/admission/fake"
-	"github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
+	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
+	"github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
+	"github.com/openshift/origin/pkg/image/util/testutil"
 )
 
 type fakeUser struct {
@@ -408,7 +408,7 @@ func TestLimitVerifier(t *testing.T) {
 				imageapi.ResourceImageStreamImages: *resource.NewQuantity(maxImages, resource.DecimalSI),
 				imageapi.ResourceImageStreamTags:   *resource.NewQuantity(maxImageTags, resource.DecimalSI),
 			}
-			usage := admission.GetImageStreamUsage(is)
+			usage := limitrange.GetImageStreamUsage(is)
 			if less, exceeded := kquota.LessThanOrEqual(usage, limit); !less {
 				return makeISForbiddenError(is.Name, exceeded)
 			}

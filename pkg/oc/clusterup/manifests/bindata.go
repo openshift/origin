@@ -72,6 +72,7 @@ import (
 	"strings"
 	"time"
 )
+
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -15755,14 +15756,14 @@ objects:
       # and services to allow each to use different authentication configs.
       #
       # Kubernetes labels will be added as Prometheus labels on metrics via the
-      # `+"`"+`labelmap`+"`"+` relabeling action.
+      # ` + "`" + `labelmap` + "`" + ` relabeling action.
 
       # Scrape config for API servers.
       #
       # Kubernetes exposes API servers as endpoints to the default/kubernetes
-      # service so this uses `+"`"+`endpoints`+"`"+` role and uses relabelling to only keep
+      # service so this uses ` + "`" + `endpoints` + "`" + ` role and uses relabelling to only keep
       # the endpoints associated with the default/kubernetes service using the
-      # default named port `+"`"+`https`+"`"+`. This works for single API server deployments as
+      # default named port ` + "`" + `https` + "`" + `. This works for single API server deployments as
       # well as HA API server deployments.
       scrape_configs:
       - job_name: 'kubernetes-apiservers'
@@ -15877,11 +15878,11 @@ objects:
       # The relabeling allows the actual service scrape endpoint to be configured
       # via the following annotations:
       #
-      # * `+"`"+`prometheus.io/scrape`+"`"+`: Only scrape services that have a value of `+"`"+`true`+"`"+`
-      # * `+"`"+`prometheus.io/scheme`+"`"+`: If the metrics endpoint is secured then you will need
-      # to set this to `+"`"+`https`+"`"+` & most likely set the `+"`"+`tls_config`+"`"+` of the scrape config.
-      # * `+"`"+`prometheus.io/path`+"`"+`: If the metrics path is not `+"`"+`/metrics`+"`"+` override this.
-      # * `+"`"+`prometheus.io/port`+"`"+`: If the metrics are exposed on a different port to the
+      # * ` + "`" + `prometheus.io/scrape` + "`" + `: Only scrape services that have a value of ` + "`" + `true` + "`" + `
+      # * ` + "`" + `prometheus.io/scheme` + "`" + `: If the metrics endpoint is secured then you will need
+      # to set this to ` + "`" + `https` + "`" + ` & most likely set the ` + "`" + `tls_config` + "`" + ` of the scrape config.
+      # * ` + "`" + `prometheus.io/path` + "`" + `: If the metrics path is not ` + "`" + `/metrics` + "`" + ` override this.
+      # * ` + "`" + `prometheus.io/port` + "`" + `: If the metrics are exposed on a different port to the
       # service then set this appropriately.
       - job_name: 'kubernetes-service-endpoints'
 
@@ -18066,7 +18067,7 @@ parameters:
 - name: OPENSHIFT_PULL_POLICY
   value: Always
 - name: NAMESPACE
-  # This namespace cannot be changed. Only `+"`"+`openshift-web-console`+"`"+` is supported.
+  # This namespace cannot be changed. Only ` + "`" + `openshift-web-console` + "`" + ` is supported.
   value: openshift-web-console
 - name: LOGLEVEL
   value: "0"
@@ -18550,7 +18551,7 @@ func pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "pkg/image/apiserver/admission/apis/imagepolicy/v1/default-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -18607,66 +18608,66 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"examples/image-streams/image-streams-centos7.json": examplesImageStreamsImageStreamsCentos7Json,
-	"examples/image-streams/image-streams-rhel7.json": examplesImageStreamsImageStreamsRhel7Json,
-	"examples/db-templates/mariadb-ephemeral-template.json": examplesDbTemplatesMariadbEphemeralTemplateJson,
-	"examples/db-templates/mariadb-persistent-template.json": examplesDbTemplatesMariadbPersistentTemplateJson,
-	"examples/db-templates/mongodb-ephemeral-template.json": examplesDbTemplatesMongodbEphemeralTemplateJson,
-	"examples/db-templates/mongodb-persistent-template.json": examplesDbTemplatesMongodbPersistentTemplateJson,
-	"examples/db-templates/mysql-ephemeral-template.json": examplesDbTemplatesMysqlEphemeralTemplateJson,
-	"examples/db-templates/mysql-persistent-template.json": examplesDbTemplatesMysqlPersistentTemplateJson,
-	"examples/db-templates/postgresql-ephemeral-template.json": examplesDbTemplatesPostgresqlEphemeralTemplateJson,
-	"examples/db-templates/postgresql-persistent-template.json": examplesDbTemplatesPostgresqlPersistentTemplateJson,
-	"examples/db-templates/redis-ephemeral-template.json": examplesDbTemplatesRedisEphemeralTemplateJson,
-	"examples/db-templates/redis-persistent-template.json": examplesDbTemplatesRedisPersistentTemplateJson,
-	"examples/jenkins/jenkins-ephemeral-template.json": examplesJenkinsJenkinsEphemeralTemplateJson,
-	"examples/jenkins/jenkins-persistent-template.json": examplesJenkinsJenkinsPersistentTemplateJson,
-	"examples/jenkins/pipeline/bluegreen-pipeline.yaml": examplesJenkinsPipelineBluegreenPipelineYaml,
-	"examples/jenkins/pipeline/mapsapp-pipeline.yaml": examplesJenkinsPipelineMapsappPipelineYaml,
-	"examples/jenkins/pipeline/maven-pipeline.yaml": examplesJenkinsPipelineMavenPipelineYaml,
-	"examples/jenkins/pipeline/nodejs-sample-pipeline.yaml": examplesJenkinsPipelineNodejsSamplePipelineYaml,
-	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
-	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
-	"examples/quickstarts/cakephp-mysql-persistent.json": examplesQuickstartsCakephpMysqlPersistentJson,
-	"examples/quickstarts/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJson,
-	"examples/quickstarts/dancer-mysql-persistent.json": examplesQuickstartsDancerMysqlPersistentJson,
-	"examples/quickstarts/dancer-mysql.json": examplesQuickstartsDancerMysqlJson,
-	"examples/quickstarts/django-postgresql-persistent.json": examplesQuickstartsDjangoPostgresqlPersistentJson,
-	"examples/quickstarts/django-postgresql.json": examplesQuickstartsDjangoPostgresqlJson,
-	"examples/quickstarts/dotnet-pgsql-persistent.json": examplesQuickstartsDotnetPgsqlPersistentJson,
-	"examples/quickstarts/dotnet.json": examplesQuickstartsDotnetJson,
-	"examples/quickstarts/httpd.json": examplesQuickstartsHttpdJson,
-	"examples/quickstarts/nginx.json": examplesQuickstartsNginxJson,
-	"examples/quickstarts/nodejs-mongodb-persistent.json": examplesQuickstartsNodejsMongodbPersistentJson,
-	"examples/quickstarts/nodejs-mongodb.json": examplesQuickstartsNodejsMongodbJson,
-	"examples/quickstarts/rails-postgresql-persistent.json": examplesQuickstartsRailsPostgresqlPersistentJson,
-	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
-	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
-	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
-	"examples/service-catalog/service-catalog-rbac.yaml": examplesServiceCatalogServiceCatalogRbacYaml,
-	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
-	"install/automationservicebroker/install-rbac.yaml": installAutomationservicebrokerInstallRbacYaml,
-	"install/automationservicebroker/install.yaml": installAutomationservicebrokerInstallYaml,
-	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
-	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
-	"install/kube-controller-manager/kube-controller-manager.yaml": installKubeControllerManagerKubeControllerManagerYaml,
-	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
-	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
-	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
-	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
-	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
-	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
-	"install/openshift-service-cert-signer-operator/install-rbac.yaml": installOpenshiftServiceCertSignerOperatorInstallRbacYaml,
-	"install/openshift-service-cert-signer-operator/install.yaml": installOpenshiftServiceCertSignerOperatorInstallYaml,
-	"install/openshift-web-console-operator/install-rbac.yaml": installOpenshiftWebConsoleOperatorInstallRbacYaml,
-	"install/openshift-web-console-operator/install.yaml": installOpenshiftWebConsoleOperatorInstallYaml,
-	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
-	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
+	"examples/image-streams/image-streams-centos7.json":                                  examplesImageStreamsImageStreamsCentos7Json,
+	"examples/image-streams/image-streams-rhel7.json":                                    examplesImageStreamsImageStreamsRhel7Json,
+	"examples/db-templates/mariadb-ephemeral-template.json":                              examplesDbTemplatesMariadbEphemeralTemplateJson,
+	"examples/db-templates/mariadb-persistent-template.json":                             examplesDbTemplatesMariadbPersistentTemplateJson,
+	"examples/db-templates/mongodb-ephemeral-template.json":                              examplesDbTemplatesMongodbEphemeralTemplateJson,
+	"examples/db-templates/mongodb-persistent-template.json":                             examplesDbTemplatesMongodbPersistentTemplateJson,
+	"examples/db-templates/mysql-ephemeral-template.json":                                examplesDbTemplatesMysqlEphemeralTemplateJson,
+	"examples/db-templates/mysql-persistent-template.json":                               examplesDbTemplatesMysqlPersistentTemplateJson,
+	"examples/db-templates/postgresql-ephemeral-template.json":                           examplesDbTemplatesPostgresqlEphemeralTemplateJson,
+	"examples/db-templates/postgresql-persistent-template.json":                          examplesDbTemplatesPostgresqlPersistentTemplateJson,
+	"examples/db-templates/redis-ephemeral-template.json":                                examplesDbTemplatesRedisEphemeralTemplateJson,
+	"examples/db-templates/redis-persistent-template.json":                               examplesDbTemplatesRedisPersistentTemplateJson,
+	"examples/jenkins/jenkins-ephemeral-template.json":                                   examplesJenkinsJenkinsEphemeralTemplateJson,
+	"examples/jenkins/jenkins-persistent-template.json":                                  examplesJenkinsJenkinsPersistentTemplateJson,
+	"examples/jenkins/pipeline/bluegreen-pipeline.yaml":                                  examplesJenkinsPipelineBluegreenPipelineYaml,
+	"examples/jenkins/pipeline/mapsapp-pipeline.yaml":                                    examplesJenkinsPipelineMapsappPipelineYaml,
+	"examples/jenkins/pipeline/maven-pipeline.yaml":                                      examplesJenkinsPipelineMavenPipelineYaml,
+	"examples/jenkins/pipeline/nodejs-sample-pipeline.yaml":                              examplesJenkinsPipelineNodejsSamplePipelineYaml,
+	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml":                    examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
+	"examples/jenkins/pipeline/samplepipeline.yaml":                                      examplesJenkinsPipelineSamplepipelineYaml,
+	"examples/quickstarts/cakephp-mysql-persistent.json":                                 examplesQuickstartsCakephpMysqlPersistentJson,
+	"examples/quickstarts/cakephp-mysql.json":                                            examplesQuickstartsCakephpMysqlJson,
+	"examples/quickstarts/dancer-mysql-persistent.json":                                  examplesQuickstartsDancerMysqlPersistentJson,
+	"examples/quickstarts/dancer-mysql.json":                                             examplesQuickstartsDancerMysqlJson,
+	"examples/quickstarts/django-postgresql-persistent.json":                             examplesQuickstartsDjangoPostgresqlPersistentJson,
+	"examples/quickstarts/django-postgresql.json":                                        examplesQuickstartsDjangoPostgresqlJson,
+	"examples/quickstarts/dotnet-pgsql-persistent.json":                                  examplesQuickstartsDotnetPgsqlPersistentJson,
+	"examples/quickstarts/dotnet.json":                                                   examplesQuickstartsDotnetJson,
+	"examples/quickstarts/httpd.json":                                                    examplesQuickstartsHttpdJson,
+	"examples/quickstarts/nginx.json":                                                    examplesQuickstartsNginxJson,
+	"examples/quickstarts/nodejs-mongodb-persistent.json":                                examplesQuickstartsNodejsMongodbPersistentJson,
+	"examples/quickstarts/nodejs-mongodb.json":                                           examplesQuickstartsNodejsMongodbJson,
+	"examples/quickstarts/rails-postgresql-persistent.json":                              examplesQuickstartsRailsPostgresqlPersistentJson,
+	"examples/quickstarts/rails-postgresql.json":                                         examplesQuickstartsRailsPostgresqlJson,
+	"examples/heapster/heapster-standalone.yaml":                                         examplesHeapsterHeapsterStandaloneYaml,
+	"examples/prometheus/prometheus.yaml":                                                examplesPrometheusPrometheusYaml,
+	"examples/service-catalog/service-catalog-rbac.yaml":                                 examplesServiceCatalogServiceCatalogRbacYaml,
+	"examples/service-catalog/service-catalog.yaml":                                      examplesServiceCatalogServiceCatalogYaml,
+	"install/automationservicebroker/install-rbac.yaml":                                  installAutomationservicebrokerInstallRbacYaml,
+	"install/automationservicebroker/install.yaml":                                       installAutomationservicebrokerInstallYaml,
+	"install/etcd/etcd.yaml":                                                             installEtcdEtcdYaml,
+	"install/kube-apiserver/apiserver.yaml":                                              installKubeApiserverApiserverYaml,
+	"install/kube-controller-manager/kube-controller-manager.yaml":                       installKubeControllerManagerKubeControllerManagerYaml,
+	"install/kube-dns/install.yaml":                                                      installKubeDnsInstallYaml,
+	"install/kube-proxy/install.yaml":                                                    installKubeProxyInstallYaml,
+	"install/kube-scheduler/kube-scheduler.yaml":                                         installKubeSchedulerKubeSchedulerYaml,
+	"install/openshift-apiserver/install.yaml":                                           installOpenshiftApiserverInstallYaml,
+	"install/openshift-controller-manager/install-rbac.yaml":                             installOpenshiftControllerManagerInstallRbacYaml,
+	"install/openshift-controller-manager/install.yaml":                                  installOpenshiftControllerManagerInstallYaml,
+	"install/openshift-service-cert-signer-operator/install-rbac.yaml":                   installOpenshiftServiceCertSignerOperatorInstallRbacYaml,
+	"install/openshift-service-cert-signer-operator/install.yaml":                        installOpenshiftServiceCertSignerOperatorInstallYaml,
+	"install/openshift-web-console-operator/install-rbac.yaml":                           installOpenshiftWebConsoleOperatorInstallRbacYaml,
+	"install/openshift-web-console-operator/install.yaml":                                installOpenshiftWebConsoleOperatorInstallYaml,
+	"install/origin-web-console/console-config.yaml":                                     installOriginWebConsoleConsoleConfigYaml,
+	"install/origin-web-console/console-template.yaml":                                   installOriginWebConsoleConsoleTemplateYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
-	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
-	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
-	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
-	"pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml": pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml,
+	"install/templateservicebroker/apiserver-config.yaml":                                installTemplateservicebrokerApiserverConfigYaml,
+	"install/templateservicebroker/apiserver-template.yaml":                              installTemplateservicebrokerApiserverTemplateYaml,
+	"install/templateservicebroker/rbac-template.yaml":                                   installTemplateservicebrokerRbacTemplateYaml,
+	"pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml":                        pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -18708,67 +18709,68 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"examples": &bintree{nil, map[string]*bintree{
 		"db-templates": &bintree{nil, map[string]*bintree{
-			"mariadb-ephemeral-template.json": &bintree{examplesDbTemplatesMariadbEphemeralTemplateJson, map[string]*bintree{}},
-			"mariadb-persistent-template.json": &bintree{examplesDbTemplatesMariadbPersistentTemplateJson, map[string]*bintree{}},
-			"mongodb-ephemeral-template.json": &bintree{examplesDbTemplatesMongodbEphemeralTemplateJson, map[string]*bintree{}},
-			"mongodb-persistent-template.json": &bintree{examplesDbTemplatesMongodbPersistentTemplateJson, map[string]*bintree{}},
-			"mysql-ephemeral-template.json": &bintree{examplesDbTemplatesMysqlEphemeralTemplateJson, map[string]*bintree{}},
-			"mysql-persistent-template.json": &bintree{examplesDbTemplatesMysqlPersistentTemplateJson, map[string]*bintree{}},
-			"postgresql-ephemeral-template.json": &bintree{examplesDbTemplatesPostgresqlEphemeralTemplateJson, map[string]*bintree{}},
+			"mariadb-ephemeral-template.json":     &bintree{examplesDbTemplatesMariadbEphemeralTemplateJson, map[string]*bintree{}},
+			"mariadb-persistent-template.json":    &bintree{examplesDbTemplatesMariadbPersistentTemplateJson, map[string]*bintree{}},
+			"mongodb-ephemeral-template.json":     &bintree{examplesDbTemplatesMongodbEphemeralTemplateJson, map[string]*bintree{}},
+			"mongodb-persistent-template.json":    &bintree{examplesDbTemplatesMongodbPersistentTemplateJson, map[string]*bintree{}},
+			"mysql-ephemeral-template.json":       &bintree{examplesDbTemplatesMysqlEphemeralTemplateJson, map[string]*bintree{}},
+			"mysql-persistent-template.json":      &bintree{examplesDbTemplatesMysqlPersistentTemplateJson, map[string]*bintree{}},
+			"postgresql-ephemeral-template.json":  &bintree{examplesDbTemplatesPostgresqlEphemeralTemplateJson, map[string]*bintree{}},
 			"postgresql-persistent-template.json": &bintree{examplesDbTemplatesPostgresqlPersistentTemplateJson, map[string]*bintree{}},
-			"redis-ephemeral-template.json": &bintree{examplesDbTemplatesRedisEphemeralTemplateJson, map[string]*bintree{}},
-			"redis-persistent-template.json": &bintree{examplesDbTemplatesRedisPersistentTemplateJson, map[string]*bintree{}},
+			"redis-ephemeral-template.json":       &bintree{examplesDbTemplatesRedisEphemeralTemplateJson, map[string]*bintree{}},
+			"redis-persistent-template.json":      &bintree{examplesDbTemplatesRedisPersistentTemplateJson, map[string]*bintree{}},
 		}},
 		"heapster": &bintree{nil, map[string]*bintree{
 			"heapster-standalone.yaml": &bintree{examplesHeapsterHeapsterStandaloneYaml, map[string]*bintree{}},
 		}},
 		"image-streams": &bintree{nil, map[string]*bintree{
 			"image-streams-centos7.json": &bintree{examplesImageStreamsImageStreamsCentos7Json, map[string]*bintree{}},
-			"image-streams-rhel7.json": &bintree{examplesImageStreamsImageStreamsRhel7Json, map[string]*bintree{}},
+			"image-streams-rhel7.json":   &bintree{examplesImageStreamsImageStreamsRhel7Json, map[string]*bintree{}},
 		}},
 		"jenkins": &bintree{nil, map[string]*bintree{
-			"jenkins-ephemeral-template.json": &bintree{examplesJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{}},
+			"jenkins-ephemeral-template.json":  &bintree{examplesJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{}},
 			"jenkins-persistent-template.json": &bintree{examplesJenkinsJenkinsPersistentTemplateJson, map[string]*bintree{}},
 			"pipeline": &bintree{nil, map[string]*bintree{
-				"bluegreen-pipeline.yaml": &bintree{examplesJenkinsPipelineBluegreenPipelineYaml, map[string]*bintree{}},
-				"mapsapp-pipeline.yaml": &bintree{examplesJenkinsPipelineMapsappPipelineYaml, map[string]*bintree{}},
-				"maven-pipeline.yaml": &bintree{examplesJenkinsPipelineMavenPipelineYaml, map[string]*bintree{}},
-				"nodejs-sample-pipeline.yaml": &bintree{examplesJenkinsPipelineNodejsSamplePipelineYaml, map[string]*bintree{}},
+				"bluegreen-pipeline.yaml":               &bintree{examplesJenkinsPipelineBluegreenPipelineYaml, map[string]*bintree{}},
+				"mapsapp-pipeline.yaml":                 &bintree{examplesJenkinsPipelineMapsappPipelineYaml, map[string]*bintree{}},
+				"maven-pipeline.yaml":                   &bintree{examplesJenkinsPipelineMavenPipelineYaml, map[string]*bintree{}},
+				"nodejs-sample-pipeline.yaml":           &bintree{examplesJenkinsPipelineNodejsSamplePipelineYaml, map[string]*bintree{}},
 				"openshift-client-plugin-pipeline.yaml": &bintree{examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml, map[string]*bintree{}},
-				"samplepipeline.yaml": &bintree{examplesJenkinsPipelineSamplepipelineYaml, map[string]*bintree{}},
+				"samplepipeline.yaml":                   &bintree{examplesJenkinsPipelineSamplepipelineYaml, map[string]*bintree{}},
 			}},
 		}},
 		"prometheus": &bintree{nil, map[string]*bintree{
 			"prometheus.yaml": &bintree{examplesPrometheusPrometheusYaml, map[string]*bintree{}},
 		}},
 		"quickstarts": &bintree{nil, map[string]*bintree{
-			"cakephp-mysql-persistent.json": &bintree{examplesQuickstartsCakephpMysqlPersistentJson, map[string]*bintree{}},
-			"cakephp-mysql.json": &bintree{examplesQuickstartsCakephpMysqlJson, map[string]*bintree{}},
-			"dancer-mysql-persistent.json": &bintree{examplesQuickstartsDancerMysqlPersistentJson, map[string]*bintree{}},
-			"dancer-mysql.json": &bintree{examplesQuickstartsDancerMysqlJson, map[string]*bintree{}},
+			"cakephp-mysql-persistent.json":     &bintree{examplesQuickstartsCakephpMysqlPersistentJson, map[string]*bintree{}},
+			"cakephp-mysql.json":                &bintree{examplesQuickstartsCakephpMysqlJson, map[string]*bintree{}},
+			"dancer-mysql-persistent.json":      &bintree{examplesQuickstartsDancerMysqlPersistentJson, map[string]*bintree{}},
+			"dancer-mysql.json":                 &bintree{examplesQuickstartsDancerMysqlJson, map[string]*bintree{}},
 			"django-postgresql-persistent.json": &bintree{examplesQuickstartsDjangoPostgresqlPersistentJson, map[string]*bintree{}},
-			"django-postgresql.json": &bintree{examplesQuickstartsDjangoPostgresqlJson, map[string]*bintree{}},
-			"dotnet-pgsql-persistent.json": &bintree{examplesQuickstartsDotnetPgsqlPersistentJson, map[string]*bintree{}},
-			"dotnet.json": &bintree{examplesQuickstartsDotnetJson, map[string]*bintree{}},
-			"httpd.json": &bintree{examplesQuickstartsHttpdJson, map[string]*bintree{}},
-			"nginx.json": &bintree{examplesQuickstartsNginxJson, map[string]*bintree{}},
-			"nodejs-mongodb-persistent.json": &bintree{examplesQuickstartsNodejsMongodbPersistentJson, map[string]*bintree{}},
-			"nodejs-mongodb.json": &bintree{examplesQuickstartsNodejsMongodbJson, map[string]*bintree{}},
-			"rails-postgresql-persistent.json": &bintree{examplesQuickstartsRailsPostgresqlPersistentJson, map[string]*bintree{}},
-			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
+			"django-postgresql.json":            &bintree{examplesQuickstartsDjangoPostgresqlJson, map[string]*bintree{}},
+			"dotnet-pgsql-persistent.json":      &bintree{examplesQuickstartsDotnetPgsqlPersistentJson, map[string]*bintree{}},
+			"dotnet.json":                       &bintree{examplesQuickstartsDotnetJson, map[string]*bintree{}},
+			"httpd.json":                        &bintree{examplesQuickstartsHttpdJson, map[string]*bintree{}},
+			"nginx.json":                        &bintree{examplesQuickstartsNginxJson, map[string]*bintree{}},
+			"nodejs-mongodb-persistent.json":    &bintree{examplesQuickstartsNodejsMongodbPersistentJson, map[string]*bintree{}},
+			"nodejs-mongodb.json":               &bintree{examplesQuickstartsNodejsMongodbJson, map[string]*bintree{}},
+			"rails-postgresql-persistent.json":  &bintree{examplesQuickstartsRailsPostgresqlPersistentJson, map[string]*bintree{}},
+			"rails-postgresql.json":             &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
 		}},
 		"service-catalog": &bintree{nil, map[string]*bintree{
 			"service-catalog-rbac.yaml": &bintree{examplesServiceCatalogServiceCatalogRbacYaml, map[string]*bintree{}},
-			"service-catalog.yaml": &bintree{examplesServiceCatalogServiceCatalogYaml, map[string]*bintree{}},
+			"service-catalog.yaml":      &bintree{examplesServiceCatalogServiceCatalogYaml, map[string]*bintree{}},
 		}},
 	}},
 	"install": &bintree{nil, map[string]*bintree{
 		"automationservicebroker": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installAutomationservicebrokerInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installAutomationservicebrokerInstallYaml, map[string]*bintree{}},
+			"install.yaml":      &bintree{installAutomationservicebrokerInstallYaml, map[string]*bintree{}},
 		}},
 		"etcd": &bintree{nil, map[string]*bintree{
 			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
@@ -18793,27 +18795,27 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
+			"install.yaml":      &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
 		}},
 		"openshift-service-cert-signer-operator": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftServiceCertSignerOperatorInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installOpenshiftServiceCertSignerOperatorInstallYaml, map[string]*bintree{}},
+			"install.yaml":      &bintree{installOpenshiftServiceCertSignerOperatorInstallYaml, map[string]*bintree{}},
 		}},
 		"openshift-web-console-operator": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallYaml, map[string]*bintree{}},
+			"install.yaml":      &bintree{installOpenshiftWebConsoleOperatorInstallYaml, map[string]*bintree{}},
 		}},
 		"origin-web-console": &bintree{nil, map[string]*bintree{
-			"console-config.yaml": &bintree{installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
+			"console-config.yaml":   &bintree{installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
 			"console-template.yaml": &bintree{installOriginWebConsoleConsoleTemplateYaml, map[string]*bintree{}},
 		}},
 		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
 			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
 		}},
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
-			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
+			"apiserver-config.yaml":   &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
 			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
-			"rbac-template.yaml": &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
+			"rbac-template.yaml":      &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
 		}},
 	}},
 	"pkg": &bintree{nil, map[string]*bintree{
@@ -18877,4 +18879,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

@@ -13,8 +13,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	admissionttesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 
