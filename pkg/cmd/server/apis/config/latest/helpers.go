@@ -130,7 +130,7 @@ func strictDecodeCheck(jsonData []byte, obj runtime.Object) error {
 	d.DisallowUnknownFields()
 	// note that we only care about the error, out is discarded
 	if err := d.Decode(out); err != nil {
-		glog.Errorf("Encountered config error %v in object %T, raw JSON:\n%s", err, obj, string(jsonData)) // TODO just return the error and die
+		glog.Warningf("Unsupported field found: %v in object %T, raw JSON:\n%s", err, obj, string(jsonData)) // TODO just return the error and die
 	}
 	// never error for now, we need to determine a safe way to make this check fatal
 	return nil
