@@ -119,12 +119,6 @@ function start() {
   fi
   echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" >> "${config_root}/dind-env"
 
-  local registry_ip=
-  if [[ -n "${local_registry}" ]]; then
-    registry_ip=$(get-registry-ip)
-    enable-local-registry "${origin_root}" "${config_root}" "${registry_ip}" "${local_registry_images[@]}"
-  fi
-
   # Create containers
   start-container "${config_root}" "${deployed_config_root}" "${MASTER_IMAGE}" "${MASTER_NAME}"
   for name in "${NODE_NAMES[@]}"; do
@@ -136,7 +130,10 @@ function start() {
   fi
 
   if [[ -n "${local_registry}" ]]; then
-    add-registry-to-runtime "${registry_ip}:${REGISTRY_PORT}" "${container_runtime}"
+    local registry_ip=$(get-registry-ip)
+    ensure-local-registry "${origin_root}" "${config_root}" "${registry_ip}" "${local_registry_images[@]}"
+
+    ensure-add-registry-to-runtime "${registry_ip}:${REGISTRY_PORT}" "${container_runtime}"
   fi
 
   if [[ -n "${ADDITIONAL_NETWORK_INTERFACE}" || -n "${local_registry}" ]]; then
@@ -190,7 +187,7 @@ function get-registry-ip() {
   echo $(ip addr show ${default_iface} | grep -Po 'inet \K[\d.]+')
 }
 
-function add-registry-to-runtime() {
+function ensure-add-registry-to-runtime() {
   local registry=$1
   local runtime=$2
 
@@ -201,7 +198,6 @@ function add-registry-to-runtime() {
       local error=0
       ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl is-active --quiet dbus" 2>&1 > /dev/null || error=1
       if [[ "${error}" -eq "0" ]]; then
-        echo ""
         break
       fi
       echo -n "."
@@ -210,27 +206,40 @@ function add-registry-to-runtime() {
     done
 
     if [[ "${runtime}" = "dockershim" ]]; then
-      ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i '/^\[registries.search\]$/{\$!{N;s/^\[registries.search\]\nregistries .*/\[registries.search\]\nregistries = \[\"${registry}\", \"docker.io\", \"registry.fedoraproject.org\", \"registry.access.redhat.com\"\]/g;ty;P;D;:y}}' /etc/containers/registries.conf"
-      ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i '/^\[registries.insecure\]$/{\$!{N;s/^\[registries.insecure\]\nregistries .*/\[registries.insecure\]\nregistries = \[\"${registry}\"\]/g;ty;P;D;:y}}' /etc/containers/registries.conf"
-      ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl restart docker"
+      error=0
+      ${DOCKER_CMD} exec -t ${cid} sh -c "grep -q ${registry} /etc/containers/registries.conf" || error=1
+      if [[ "${error}" -eq "1" ]]; then
+        ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i '/^\[registries.search\]$/{\$!{N;s/^\[registries.search\]\nregistries .*/\[registries.search\]\nregistries = \[\"${registry}\", \"docker.io\", \"registry.fedoraproject.org\", \"registry.access.redhat.com\"\]/g;ty;P;D;:y}}' /etc/containers/registries.conf"
+        ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i '/^\[registries.insecure\]$/{\$!{N;s/^\[registries.insecure\]\nregistries .*/\[registries.insecure\]\nregistries = \[\"${registry}\"\]/g;ty;P;D;:y}}' /etc/containers/registries.conf"
+        ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl restart docker"
+      fi
     else
-      ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i 's/^registries .*/registries = [\n\t\"${registry}\",/g' /etc/crio/crio.conf"
-      ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i 's/^insecure_registries .*/insecure_registries = [\n\t\"${registry}\",/g' /etc/crio/crio.conf"
-      ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl restart crio"
+      error=0
+      ${DOCKER_CMD} exec -t ${cid} sh -c "grep -q ${registry} /etc/crio/crio.conf" || error=1
+      if [[ "${error}" -eq "1" ]]; then
+        ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i 's/^registries .*/registries = [\n\t\"${registry}\",/g' /etc/crio/crio.conf"
+        ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i 's/^insecure_registries .*/insecure_registries = [\n\t\"${registry}\",/g' /etc/crio/crio.conf"
+        ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl restart crio"
+      fi
     fi
   done
 }
 
-function enable-local-registry() {
+function ensure-local-registry() {
   local origin_root=$1
   local config_root=$2
   local ip=$3
   local images=($4)
   local tag=$(pushd "${origin_root}" >/dev/null ; git describe --abbrev=0 ; popd > /dev/null)
 
-  # Start local registry
-  ${DOCKER_CMD} run -d -p ${REGISTRY_PORT}:5000 --restart=always --name ${REGISTRY_NAME} registry:2 > /dev/null
-  echo "Created local registry '${REGISTRY_NAME}' at ${ip}:${REGISTRY_PORT}"
+  local cid=$( ${DOCKER_CMD} ps -qa --filter "name=${REGISTRY_NAME}" )
+  if [[ -z "${cid}" ]]; then
+    # Start local registry
+    ${DOCKER_CMD} run -d -p ${REGISTRY_PORT}:5000 --restart=always --name ${REGISTRY_NAME} registry:2 > /dev/null
+    echo "  Created local registry '${REGISTRY_NAME}' at ${ip}:${REGISTRY_PORT}"
+  else
+    echo "  Found local registry '${REGISTRY_NAME}' at ${ip}:${REGISTRY_PORT}"
+  fi
 
   # Build, tag and push local images
   for image in "${images[@]}"; do
@@ -243,17 +252,28 @@ function enable-local-registry() {
     ${DOCKER_CMD} push ${ip}:${REGISTRY_PORT}/${image}:${tag}
   done
 
-  local image_prefix=$(echo ${images[0]} | cut -d'-' -f1)
-  echo "OPENSHIFT_IMAGE_FORMAT=${ip}:${REGISTRY_PORT}/${image_prefix}-\\\${component}:\\\${version}" >> "${config_root}/dind-env"
+  local error=0
+  $( grep -q "OPENSHIFT_IMAGE_FORMAT" "${config_root}/dind-env" ) || error=1
+  if [[ "${error}" -eq "1" ]]; then
+    local image_prefix=$( ${BUILD_LOCAL_IMAGES_CMD} get-list | grep -v ERROR | head -n 1 | xargs | cut -d '-' -f1 )
+    echo "OPENSHIFT_IMAGE_FORMAT=${ip}:${REGISTRY_PORT}/${image_prefix}-\\\${component}:\\\${version}" >> "${config_root}/dind-env"
+  fi
 }
 
 function get-local-images() {
   local user_requested_images=$1
+  if [[ -z "${user_requested_images}" || "${user_requested_images}" == "none" ]]; then
+      echo ""
+      return 0
+  fi
+
   local local_image_list=$(${BUILD_LOCAL_IMAGES_CMD} get-list | grep -v ERROR | xargs)
   local supported_images=(${local_image_list})
   local -a images=()
 
-  if [[ -n "${user_requested_images}" ]]; then
+  if [[ "${user_requested_images}" == "all" ]]; then
+    images=${supported_images[@]}
+  else
     images=($(echo ${user_requested_images} | tr "," " "))
 
     # Validate user provided images
@@ -273,8 +293,6 @@ function get-local-images() {
         return 1
       fi
     done
-  else
-    images=${supported_images[@]}
   fi
 
   echo ${images[@]}
@@ -629,8 +647,11 @@ function check-containers {
 function refresh() {
   local origin_root=$1
   local config_root=$2
-  local cluster_id=$3
-  local wait_for_cluster=$4
+  local deployed_config_root=$3
+  local cluster_id=$4
+  local wait_for_cluster=$5
+  local local_registry=$6
+  local local_registry_images=$7
 
   echo "Refreshing dind cluster '${cluster_id}'"
 
@@ -649,6 +670,17 @@ function refresh() {
   # Copy over the new openshift binaries
   echo "  Copying new runtime to cluster '${cluster_id}'..."
   copy-runtime "${origin_root}" "${config_root}/"
+
+  if [[ -n "${local_registry}" ]]; then
+    local registry_ip=$(get-registry-ip)
+    ensure-local-registry "${origin_root}" "${config_root}" "${registry_ip}" "${local_registry_images[@]}"
+
+    local container_runtime=$( grep OPENSHIFT_CONTAINER_RUNTIME "${config_root}/dind-env" | cut -d '=' -f2 )
+    ensure-add-registry-to-runtime "${registry_ip}:${REGISTRY_PORT}" "${container_runtime}"
+
+    update-master-config "${deployed_config_root}"
+    update-node-config "${deployed_config_root}"
+  fi
 
   # Restart the master and node openshift processes
   echo "  Restarting master and node processes in cluster '${cluster_id}'..."
@@ -861,7 +893,7 @@ case "${1:-""}" in
     ENABLE_LOCAL_REGISTRY=
     LOCAL_REGISTRY_IMAGES=
     OPTIND=2
-    while getopts ":abc:in:rsN:lm:" opt; do
+    while getopts ":abc:in:rsN:m:" opt; do
       case $opt in
         b)
           BUILD=1
@@ -887,10 +919,8 @@ case "${1:-""}" in
         a)
           ADDITIONAL_NETWORK_INTERFACE=1
           ;;
-        l)
-          ENABLE_LOCAL_REGISTRY=1
-          ;;
         m)
+          ENABLE_LOCAL_REGISTRY=1
           LOCAL_REGISTRY_IMAGES="${OPTARG}"
           ;;
         \?)
@@ -987,8 +1017,10 @@ case "${1:-""}" in
     BUILD=
     BUILD_IMAGES=
     WAIT_FOR_CLUSTER=1
+    ENABLE_LOCAL_REGISTRY=
+    LOCAL_REGISTRY_IMAGES=
     OPTIND=2
-    while getopts ":bis" opt; do
+    while getopts ":bism:" opt; do
       case $opt in
         b)
           BUILD=1
@@ -998,6 +1030,10 @@ case "${1:-""}" in
           ;;
         s)
           WAIT_FOR_CLUSTER=
+          ;;
+        m)
+          ENABLE_LOCAL_REGISTRY=1
+          LOCAL_REGISTRY_IMAGES="${OPTARG}"
           ;;
         \?)
           echo "Invalid option: -${OPTARG}" >&2
@@ -1021,7 +1057,17 @@ case "${1:-""}" in
       build-images "${OS_ROOT}"
     fi
 
-    refresh "${OS_ROOT}" "${CONFIG_ROOT}" "${CLUSTER_ID}" "${WAIT_FOR_CLUSTER}"
+    declare -a images=("")
+    if [[ -n "${ENABLE_LOCAL_REGISTRY}" ]]; then
+      error=0
+      images=$(get-local-images "${LOCAL_REGISTRY_IMAGES}") || error=1
+      if [[ "${error}" -eq "1" ]]; then
+        echo "${images}"
+        exit 1
+      fi
+    fi
+
+    refresh "${OS_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" "${CLUSTER_ID}" "${WAIT_FOR_CLUSTER}" "${ENABLE_LOCAL_REGISTRY}" "${images[@]}"
     ;;
   pause)
     pause "${CLUSTER_ID}"
@@ -1086,9 +1132,10 @@ start accepts the following options:
  -i                build container images before starting the cluster
  -r                remove an existing cluster
  -a                add additional network interface to all nodes in the cluster
- -l                setup registry to push and pull local images
  -m                filtered local images for registry (comma separated list)
-                   default: all images supported by ${OS_ROOT}/hack/build-local-images.py
+                   ensures local registry if it doesn't exists
+                   special value 'none' or '': no images are pushed to local registry
+                   special value 'all': pushes all images supported by ${OS_ROOT}/hack/build-local-images.py
  -s                skip waiting for nodes to become ready
 
 Any of the arguments that would be used in creating openshift master can be passed
@@ -1100,6 +1147,10 @@ refresh accepts the following options:
  -b                build origin before starting the cluster
  -i                build container images before starting the cluster
  -s                skip waiting for nodes to become ready
+ -m                filtered local images for registry (comma separated list)
+                   ensures local registry if it doesn't exists
+                   special value 'none' or '': no images are pushed to local registry
+                   special value 'all': pushes all images supported by ${OS_ROOT}/hack/build-local-images.py
 
 add-node and resume accept the following option:
  -s                skip waiting for nodes to become ready
