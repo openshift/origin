@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/image/append"
+	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	"github.com/openshift/origin/pkg/oc/cli/image/mirror"
 )
 
@@ -37,6 +38,7 @@ func NewCmdImage(fullName string, f kcmdutil.Factory, streams genericclioptions.
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
 				append.NewCmdAppendImage(name, streams),
+				extract.New(name, streams),
 				mirror.NewCmdMirrorImage(name, streams),
 			},
 		},
