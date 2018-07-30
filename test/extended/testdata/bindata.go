@@ -5691,7 +5691,7 @@ spec:
           command:
           - /bin/bash
           - -c
-          - "echo 'test pre hook executed' && sleep 5"
+          - "echo 'test pre hook executed' && sleep 15"
   template:
     metadata:
       labels:
