@@ -189,7 +189,6 @@ oc-create-useridentitymapping.1
 oc-create.1
 oc-debug.1
 oc-delete.1
-oc-deploy.1
 oc-describe.1
 oc-edit.1
 oc-ex-build-chain.1
