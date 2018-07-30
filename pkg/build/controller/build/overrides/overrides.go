@@ -9,11 +9,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
-	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
 	"github.com/openshift/origin/pkg/build/controller/build/apis/overrides/validation"
 	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
+	"github.com/openshift/origin/pkg/build/controller/common"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
@@ -42,7 +42,7 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 		return nil
 	}
 
-	build, err := buildadmission.GetBuildFromPod(pod)
+	build, err := common.GetBuildFromPod(pod)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 		}
 	}
 
-	return buildadmission.SetBuildInPod(pod, build)
+	return common.SetBuildInPod(pod, build)
 }
 
 func applyForcePullToPod(pod *v1.Pod) error {

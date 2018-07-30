@@ -11,7 +11,7 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/kubeapiserver/options"
 
 	// Admission control plug-ins used by OpenShift
-	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/admission/restrictusers"
+	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
 	buildjenkinsbootstrapper "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper"
 	buildsecretinjector "github.com/openshift/origin/pkg/build/admission/secretinjector"
 	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
