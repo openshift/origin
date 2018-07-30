@@ -12,8 +12,14 @@ import (
 var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs, addDefaultingFuncs)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	SchemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		imagepolicy.InstallLegacy,
+
+		addConversionFuncs,
+		addDefaultingFuncs,
+	)
+	InstallLegacy = SchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.

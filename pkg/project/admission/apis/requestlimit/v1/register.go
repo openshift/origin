@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"github.com/openshift/origin/pkg/project/admission/apis/requestlimit"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -15,11 +16,17 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
-	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
+	LegacySchemeBuilder = runtime.NewSchemeBuilder(
+		addLegacyKnownTypes,
+		requestlimit.InstallLegacy,
+	)
+	InstallLegacy = LegacySchemeBuilder.AddToScheme
 
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	SchemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		requestlimit.Install,
+	)
+	Install = SchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.

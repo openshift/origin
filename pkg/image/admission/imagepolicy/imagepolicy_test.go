@@ -22,9 +22,10 @@ import (
 
 	"github.com/openshift/api/image"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
-	_ "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/install"
 	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -36,6 +37,10 @@ const (
 	goodSHA = "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"
 	badSHA  = "sha256:503c75e8121369581e5e5abe57b5a3f12db859052b217a8ea16eb86f4b5561a1"
 )
+
+func init() {
+	configinstall.InstallLegacyInternal(configapi.Scheme)
+}
 
 type resolveFunc func(ref *kapi.ObjectReference, defaultNamespace string, forceLocalResolve bool) (*rules.ImagePolicyAttributes, error)
 

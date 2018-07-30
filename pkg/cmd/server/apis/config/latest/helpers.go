@@ -16,6 +16,7 @@ import (
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 )
 
 func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {
@@ -145,7 +146,7 @@ func getExternalZeroValue(obj runtime.Object) (runtime.Object, error) {
 	if len(gvks) == 0 { // should never happen
 		return nil, fmt.Errorf("no gvks found for %#v", obj)
 	}
-	gvk := Version.WithKind(gvks[0].Kind)
+	gvk := configv1.SchemeGroupVersion.WithKind(gvks[0].Kind)
 	return configapi.Scheme.New(gvk)
 }
 

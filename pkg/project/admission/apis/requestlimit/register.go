@@ -14,11 +14,11 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
-	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
+	LegacySchemeBuilder = runtime.NewSchemeBuilder(addLegacyKnownTypes)
+	InstallLegacy       = LegacySchemeBuilder.AddToScheme
 
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	Install       = SchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.

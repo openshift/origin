@@ -9,7 +9,7 @@ var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: runtime.APIVers
 
 var (
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	InstallLegacy = SchemeBuilder.AddToScheme
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {
