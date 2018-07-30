@@ -13,7 +13,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauth/urls"
-	"github.com/openshift/origin/pkg/oauthserver/osinserver"
 )
 
 // OauthAuthorizationServerMetadata holds OAuth 2.0 Authorization Server Metadata used for discovery
@@ -51,15 +50,14 @@ type OauthAuthorizationServerMetadata struct {
 // validate configuration using LoadOAuthMetadataFile
 
 func getOauthMetadata(masterPublicURL string) OauthAuthorizationServerMetadata {
-	config := osinserver.NewDefaultServerConfig()
 	return OauthAuthorizationServerMetadata{
 		Issuer:                masterPublicURL,
 		AuthorizationEndpoint: urls.OpenShiftOAuthAuthorizeURL(masterPublicURL),
 		TokenEndpoint:         urls.OpenShiftOAuthTokenURL(masterPublicURL),
 		// Note: this list is incomplete, which is allowed per the draft spec
 		ScopesSupported:               scope.DefaultSupportedScopes(),
-		ResponseTypesSupported:        config.AllowedAuthorizeTypes,
-		GrantTypesSupported:           osin.AllowedAccessType{osin.AUTHORIZATION_CODE, osin.AccessRequestType("implicit")}, // TODO use config.AllowedAccessTypes once our implementation handles other grant types
+		ResponseTypesSupported:        osin.AllowedAuthorizeType{osin.CODE, osin.TOKEN},
+		GrantTypesSupported:           osin.AllowedAccessType{osin.AUTHORIZATION_CODE, osin.AccessRequestType("implicit")},
 		CodeChallengeMethodsSupported: validation.CodeChallengeMethodsSupported,
 	}
 }
