@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,9 +23,10 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/api/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -281,7 +283,11 @@ func canTrigger(
 	}
 
 	canTriggerByConfigChange := false
-	if appsinternalutil.HasChangeTrigger(config) && // Our deployment config has a config change trigger
+	externalConfig := &appsv1.DeploymentConfig{}
+	if err := legacyscheme.Scheme.Convert(config, externalConfig, nil); err != nil {
+		return false, nil, err
+	}
+	if appsutil.HasChangeTrigger(externalConfig) && // Our deployment config has a config change trigger
 		len(causes) == 0 && // and no other trigger has triggered.
 		(config.Status.LatestVersion == 0 || // Either it's the initial deployment
 			!kapihelper.Semantic.DeepEqual(config.Spec.Template, decoded.Spec.Template)) /* or a config change happened so we need to trigger */ {
@@ -300,8 +306,11 @@ func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient
 	if config.Status.LatestVersion == 0 {
 		return config, nil
 	}
-
-	latestDeploymentName := appsinternalutil.LatestDeploymentNameForConfig(config)
+	externalConfig := &appsv1.DeploymentConfig{}
+	if err := legacyscheme.Scheme.Convert(config, externalConfig, nil); err != nil {
+		return nil, err
+	}
+	latestDeploymentName := appsutil.LatestDeploymentNameForConfig(externalConfig)
 	deployment, err := rn.ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		// If there's no deployment for the latest config, we have no basis of
@@ -309,11 +318,15 @@ func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient
 		// to make the deployment for the config, so return early.
 		return nil, err
 	}
-	decoded, err := appsinternalutil.DecodeDeploymentConfig(deployment)
+	decoded, err := appsutil.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
-	return decoded, nil
+	internalConfig := &appsapi.DeploymentConfig{}
+	if err := legacyscheme.Scheme.Convert(decoded, internalConfig, nil); err != nil {
+		return nil, err
+	}
+	return internalConfig, nil
 }
 
 // hasUpdatedTriggers checks if there is an diffence between previous deployment config

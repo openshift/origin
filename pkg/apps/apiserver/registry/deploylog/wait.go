@@ -11,8 +11,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/golang/glog"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 var (
@@ -51,9 +50,9 @@ func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, obser
 		}
 		observed = obj
 		switch appsutil.DeploymentStatusFor(observed) {
-		case appsapi.DeploymentStatusRunning, appsapi.DeploymentStatusFailed, appsapi.DeploymentStatusComplete:
+		case appsutil.DeploymentStatusRunning, appsutil.DeploymentStatusFailed, appsutil.DeploymentStatusComplete:
 			return true, nil
-		case appsapi.DeploymentStatusNew, appsapi.DeploymentStatusPending:
+		case appsutil.DeploymentStatusNew, appsutil.DeploymentStatusPending:
 			return false, nil
 		default:
 			return false, ErrUnknownDeploymentPhase

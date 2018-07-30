@@ -10,15 +10,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/kubernetes/fake"
 	fakeexternal "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -26,8 +27,8 @@ import (
 
 var testSelector = map[string]string{"test": "rest"}
 
-func makeDeployment(version int64) kapi.ReplicationController {
-	deployment, err := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(version))
+func makeDeployment(version int64) corev1.ReplicationController {
+	deployment, err := appsutil.MakeDeployment(appstest.OkDeploymentConfig(version))
 	if err != nil {
 		panic(err)
 	}
@@ -36,8 +37,8 @@ func makeDeployment(version int64) kapi.ReplicationController {
 	return *deployment
 }
 
-func makeDeploymentList(versions int64) *kapi.ReplicationControllerList {
-	list := &kapi.ReplicationControllerList{}
+func makeDeploymentList(versions int64) *corev1.ReplicationControllerList {
+	list := &corev1.ReplicationControllerList{}
 	for v := int64(1); v <= versions; v++ {
 		list.Items = append(list.Items, makeDeployment(v))
 	}
@@ -87,9 +88,15 @@ var (
 func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 	// Fake deploymentConfig
 	config := appstest.OkDeploymentConfig(version)
-	fakeDn := appsfake.NewSimpleClientset(config)
+
+	internalConfig := &appsapi.DeploymentConfig{}
+	if err := legacyscheme.Scheme.Convert(config, internalConfig, nil); err != nil {
+		panic(err)
+	}
+
+	fakeDn := appsfake.NewSimpleClientset(internalConfig)
 	fakeDn.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, config, nil
+		return true, internalConfig, nil
 	})
 
 	// Used for testing validation errors prior to getting replication controllers.
@@ -128,13 +135,13 @@ func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 		// ...otherwise try to get the logs from the deployer pod.
 		fakeDeployer := &kapi.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      appsinternalutil.DeployerPodNameForDeployment(obj.Name),
+				Name:      appsutil.DeployerPodNameForDeployment(obj.Name),
 				Namespace: metav1.NamespaceDefault,
 			},
 			Spec: kapi.PodSpec{
 				Containers: []kapi.Container{
 					{
-						Name: appsinternalutil.DeployerPodNameForDeployment(obj.Name) + "-container",
+						Name: appsutil.DeployerPodNameForDeployment(obj.Name) + "-container",
 					},
 				},
 				NodeName: "some-host",

@@ -4,18 +4,18 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 func TestWaitForRunningDeploymentSuccess(t *testing.T) {
-	fakeController := &kapi.ReplicationController{}
+	fakeController := &corev1.ReplicationController{}
 	fakeController.Name = "test-1"
 	fakeController.Namespace = "test"
 	fakeController.Annotations = map[string]string{appsapi.DeploymentStatusAnnotation: string(appsapi.DeploymentStatusRunning)}
@@ -44,7 +44,7 @@ func TestWaitForRunningDeploymentSuccess(t *testing.T) {
 }
 
 func TestWaitForRunningDeploymentRestartWatch(t *testing.T) {
-	fakeController := &kapi.ReplicationController{}
+	fakeController := &corev1.ReplicationController{}
 	fakeController.Name = "test-1"
 	fakeController.Namespace = "test"
 
