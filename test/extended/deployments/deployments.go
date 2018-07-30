@@ -582,7 +582,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
 
-			out, err := oc.Run("deploy").Args("--follow", "dc/custom-deployment").Output()
+			out, err := oc.Run("logs").Args("--follow", "dc/custom-deployment").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the deployment is marked complete")
@@ -757,13 +757,8 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			}
 			resource := "dc/" + dcName
 
-			g.By("verifying that we cannot start a new deployment via oc deploy")
-			out, err := oc.Run("deploy").Args(resource, "--latest").Output()
-			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
-
 			g.By("verifying that we cannot start a new deployment via oc rollout")
-			out, err = oc.Run("rollout").Args("latest", resource).Output()
+			out, err := oc.Run("rollout").Args("latest", resource).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
 
@@ -771,11 +766,6 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			out, err = oc.Run("rollout").Args("cancel", resource).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("unable to cancel paused deployment"))
-
-			g.By("verifying that we cannot retry a deployment")
-			out, err = oc.Run("deploy").Args(resource, "--retry").Output()
-			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deployment config"))
 
 			g.By("verifying that we cannot rollout retry a deployment")
 			out, err = oc.Run("rollout").Args("retry", resource).Output()
