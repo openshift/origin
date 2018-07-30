@@ -192,7 +192,7 @@ func (r *LayersREST) Get(ctx context.Context, name string, options *metav1.GetOp
 						isl.Blobs[layer.Name] = imageapi.ImageLayerData{LayerSize: &layer.LayerSize, MediaType: layer.MediaType}
 					}
 				}
-				if blob := entry.Manifest; blob != nil {
+				if blob := entry.Config; blob != nil {
 					reference.Manifest = &blob.Name
 					if _, ok := isl.Blobs[blob.Name]; !ok {
 						if blob.LayerSize == 0 {
@@ -202,6 +202,10 @@ func (r *LayersREST) Get(ctx context.Context, name string, options *metav1.GetOp
 							isl.Blobs[blob.Name] = imageapi.ImageLayerData{LayerSize: &blob.LayerSize, MediaType: blob.MediaType}
 						}
 					}
+				}
+				// the image manifest is always a blob - schema2 images also have a config blob referenced from the manifest
+				if _, ok := isl.Blobs[item.Image]; !ok {
+					isl.Blobs[item.Image] = imageapi.ImageLayerData{MediaType: entry.MediaType}
 				}
 				isl.Images[item.Image] = reference
 			}
