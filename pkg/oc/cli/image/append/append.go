@@ -9,8 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"regexp"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -20,8 +18,6 @@ import (
 
 	"github.com/docker/distribution"
 	distributioncontext "github.com/docker/distribution/context"
-	"github.com/docker/distribution/manifest/manifestlist"
-	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/client"
@@ -88,10 +84,7 @@ type AppendImageOptions struct {
 	DropHistory bool
 	CreatedAt   string
 
-	OSFilter        *regexp.Regexp
-	DefaultOSFilter bool
-
-	FilterByOS string
+	FilterOptions imagemanifest.FilterOptions
 
 	MaxPerRegistry int
 
@@ -101,12 +94,6 @@ type AppendImageOptions struct {
 
 	genericclioptions.IOStreams
 }
-
-// schema2ManifestOnly specifically requests a manifest list first
-var schema2ManifestOnly = distribution.WithManifestMediaTypes([]string{
-	manifestlist.MediaTypeManifestList,
-	schema2.MediaTypeManifest,
-})
 
 func NewAppendImageOptions(streams genericclioptions.IOStreams) *AppendImageOptions {
 	return &AppendImageOptions{
@@ -131,9 +118,10 @@ func NewCmdAppendImage(name string, streams genericclioptions.IOStreams) *cobra.
 	}
 
 	flag := cmd.Flags()
+	o.FilterOptions.Bind(flag)
+
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing to the destination.")
 	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
-	flag.StringVar(&o.FilterByOS, "filter-by-os", o.FilterByOS, "A regular expression to control which images are mirrored. Images will be passed as '<platform>/<architecture>[/<variant>]'.")
 
 	flag.StringVar(&o.From, "from", o.From, "The image to use as a base. If empty, a new scratch image is created.")
 	flag.StringVar(&o.To, "to", o.To, "The Docker repository tag to upload the appended image to.")
@@ -150,17 +138,8 @@ func NewCmdAppendImage(name string, streams genericclioptions.IOStreams) *cobra.
 }
 
 func (o *AppendImageOptions) Complete(cmd *cobra.Command, args []string) error {
-	pattern := o.FilterByOS
-	if len(pattern) == 0 && !cmd.Flags().Changed("filter-by-os") {
-		o.DefaultOSFilter = true
-		pattern = regexp.QuoteMeta(fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
-	}
-	if len(pattern) > 0 {
-		re, err := regexp.Compile(pattern)
-		if err != nil {
-			return fmt.Errorf("--filter-by-os was not a valid regular expression: %v", err)
-		}
-		o.OSFilter = re
+	if err := o.FilterOptions.Complete(cmd.Flags()); err != nil {
+		return err
 	}
 
 	for _, arg := range args {
@@ -175,20 +154,6 @@ func (o *AppendImageOptions) Complete(cmd *cobra.Command, args []string) error {
 	o.LayerFiles = args
 
 	return nil
-}
-
-// includeDescriptor returns true if the provided manifest should be included.
-func (o *AppendImageOptions) includeDescriptor(d *manifestlist.ManifestDescriptor, hasMultiple bool) bool {
-	if o.OSFilter == nil {
-		return true
-	}
-	if o.DefaultOSFilter && !hasMultiple {
-		return true
-	}
-	if len(d.Platform.Variant) > 0 {
-		return o.OSFilter.MatchString(fmt.Sprintf("%s/%s/%s", d.Platform.OS, d.Platform.Architecture, d.Platform.Variant))
-	}
-	return o.OSFilter.MatchString(fmt.Sprintf("%s/%s", d.Platform.OS, d.Platform.Architecture))
 }
 
 func (o *AppendImageOptions) Run() error {
@@ -258,97 +223,16 @@ func (o *AppendImageOptions) Run() error {
 			return err
 		}
 		fromRepo = repo
-		var srcDigest digest.Digest
-		if len(from.Tag) > 0 {
-			desc, err := repo.Tags(ctx).Get(ctx, from.Tag)
-			if err != nil {
-				return err
-			}
-			srcDigest = desc.Digest
-		} else {
-			srcDigest = digest.Digest(from.ID)
-		}
-		manifests, err := repo.Manifests(ctx)
+
+		srcManifest, _, location, err := imagemanifest.FirstManifest(ctx, *from, repo, o.FilterOptions.Include)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to read image %s: %v", from, err)
 		}
-		srcManifest, err := manifests.Get(ctx, srcDigest, schema2ManifestOnly)
+		base, layers, err = imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), location)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to parse image %s: %v", from, err)
 		}
 
-		originalSrcDigest := srcDigest
-		srcManifests, srcManifest, srcDigest, err := imagemanifest.ProcessManifestList(ctx, srcDigest, srcManifest, manifests, *from, o.includeDescriptor)
-		if err != nil {
-			return err
-		}
-		if len(srcManifests) == 0 {
-			return fmt.Errorf("filtered all images from %s", from)
-		}
-
-		var location string
-		if srcDigest == originalSrcDigest {
-			location = fmt.Sprintf("manifest %s", srcDigest)
-		} else {
-			location = fmt.Sprintf("manifest %s in manifest list %s", srcDigest, originalSrcDigest)
-		}
-
-		switch t := srcManifest.(type) {
-		case *schema2.DeserializedManifest:
-			if t.Config.MediaType != schema2.MediaTypeImageConfig {
-				return fmt.Errorf("unable to append layers to images with config %s from %s", t.Config.MediaType, location)
-			}
-			configJSON, err := repo.Blobs(ctx).Get(ctx, t.Config.Digest)
-			if err != nil {
-				return fmt.Errorf("unable to find manifest for image %s: %v", *from, err)
-			}
-			glog.V(4).Infof("Raw image config json:\n%s", string(configJSON))
-			config := &docker10.DockerImageConfig{}
-			if err := json.Unmarshal(configJSON, &config); err != nil {
-				return fmt.Errorf("the source image manifest could not be parsed: %v", err)
-			}
-
-			base = config
-			layers = t.Layers
-			base.Size = 0
-			for _, layer := range t.Layers {
-				base.Size += layer.Size
-			}
-
-		case *schema1.SignedManifest:
-			if glog.V(4) {
-				_, configJSON, _ := srcManifest.Payload()
-				glog.Infof("Raw image config json:\n%s", string(configJSON))
-			}
-			if len(t.History) == 0 {
-				return fmt.Errorf("input image is in an unknown format: no v1Compatibility history")
-			}
-			config := &docker10.DockerV1CompatibilityImage{}
-			if err := json.Unmarshal([]byte(t.History[0].V1Compatibility), &config); err != nil {
-				return err
-			}
-
-			base = &docker10.DockerImageConfig{}
-			if err := docker10.Convert_DockerV1CompatibilityImage_to_DockerImageConfig(config, base); err != nil {
-				return err
-			}
-
-			// schema1 layers are in reverse order
-			layers = make([]distribution.Descriptor, 0, len(t.FSLayers))
-			for i := len(t.FSLayers) - 1; i >= 0; i-- {
-				layer := distribution.Descriptor{
-					MediaType: schema2.MediaTypeLayer,
-					Digest:    t.FSLayers[i].BlobSum,
-					// size must be reconstructed from the blobs
-				}
-				// we must reconstruct the tar sum from the blobs
-				add.AddLayerToConfig(base, layer, "")
-				layers = append(layers, layer)
-			}
-
-		default:
-			return fmt.Errorf("unable to append layers to images of type %T from %s", srcManifest, location)
-		}
 	} else {
 		base = add.NewEmptyConfig()
 		layers = []distribution.Descriptor{add.AddScratchLayerToConfig(base)}

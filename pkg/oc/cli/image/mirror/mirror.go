@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"regexp"
 	"time"
 
 	"github.com/docker/distribution"
@@ -78,9 +77,8 @@ var (
 
 type MirrorImageOptions struct {
 	Mappings []Mapping
-	OSFilter *regexp.Regexp
 
-	FilterByOS string
+	FilterOptions imagemanifest.FilterOptions
 
 	DryRun             bool
 	Insecure           bool
@@ -104,12 +102,6 @@ func NewMirrorImageOptions(streams genericclioptions.IOStreams) *MirrorImageOpti
 	}
 }
 
-// schema2ManifestOnly specifically requests a manifest list first
-var schema2ManifestOnly = distribution.WithManifestMediaTypes([]string{
-	manifestlist.MediaTypeManifestList,
-	schema2.MediaTypeManifest,
-})
-
 // NewCommandMirrorImage copies images from one location to another.
 func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewMirrorImageOptions(streams)
@@ -120,17 +112,18 @@ func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.
 		Long:    mirrorDesc,
 		Example: fmt.Sprintf(mirrorExample, name+" mirror"),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(args))
+			kcmdutil.CheckErr(o.Complete(c, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
 	flag := cmd.Flags()
+	o.FilterOptions.Bind(flag)
+
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing to the destinations.")
 	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
 	flag.BoolVar(&o.SkipMount, "skip-mount", o.SkipMount, "Always push layers instead of cross-mounting them")
 	flag.BoolVar(&o.SkipMultipleScopes, "skip-multiple-scopes", o.SkipMultipleScopes, "Some registries do not support multiple scopes passed to the registry login.")
-	flag.StringVar(&o.FilterByOS, "filter-by-os", o.FilterByOS, "A regular expression to control which images are mirrored. Images will be passed as '<platform>/<architecture>[/<variant>]'.")
 	flag.BoolVar(&o.Force, "force", o.Force, "Attempt to write all layers and manifests even if they exist in the remote repository.")
 	flag.IntVar(&o.MaxRegistry, "max-registry", 4, "Number of concurrent registries to connect to at any one time.")
 	flag.IntVar(&o.MaxPerRegistry, "max-per-registry", 6, "Number of concurrent requests allowed per registry.")
@@ -140,7 +133,11 @@ func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.
 	return cmd
 }
 
-func (o *MirrorImageOptions) Complete(args []string) error {
+func (o *MirrorImageOptions) Complete(cmd *cobra.Command, args []string) error {
+	if err := o.FilterOptions.Complete(cmd.Flags()); err != nil {
+		return err
+	}
+
 	overlap := make(map[string]string)
 
 	var err error
@@ -166,15 +163,6 @@ func (o *MirrorImageOptions) Complete(args []string) error {
 		}
 	}
 
-	pattern := o.FilterByOS
-	if len(pattern) > 0 {
-		re, err := regexp.Compile(pattern)
-		if err != nil {
-			return fmt.Errorf("--filter-by-os was not a valid regular expression: %v", err)
-		}
-		o.OSFilter = re
-	}
-
 	return nil
 }
 
@@ -192,17 +180,6 @@ func (o *MirrorImageOptions) Repository(ctx context.Context, context *registrycl
 	default:
 		return nil, fmt.Errorf("unrecognized destination type %s", t)
 	}
-}
-
-// includeDescriptor returns true if the provided manifest should be included.
-func (o *MirrorImageOptions) includeDescriptor(d *manifestlist.ManifestDescriptor, hasMultiple bool) bool {
-	if o.OSFilter == nil {
-		return true
-	}
-	if len(d.Platform.Variant) > 0 {
-		return o.OSFilter.MatchString(fmt.Sprintf("%s/%s/%s", d.Platform.OS, d.Platform.Architecture, d.Platform.Variant))
-	}
-	return o.OSFilter.MatchString(fmt.Sprintf("%s/%s", d.Platform.OS, d.Platform.Architecture))
 }
 
 func (o *MirrorImageOptions) Run() error {
@@ -369,7 +346,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 					w.Parallel(func() {
 						// load the manifest
 						srcDigest := godigest.Digest(srcDigestString)
-						srcManifest, err := manifests.Get(ctx, godigest.Digest(srcDigest), schema2ManifestOnly)
+						srcManifest, err := manifests.Get(ctx, godigest.Digest(srcDigest), imagemanifest.PreferManifestList)
 						if err != nil {
 							plan.AddError(retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s manifest %s: %v", src.ref, srcDigest, err)})
 							return
@@ -377,7 +354,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 
 						// filter or load manifest list as appropriate
 						originalSrcDigest := srcDigest
-						srcManifests, srcManifest, srcDigest, err := imagemanifest.ProcessManifestList(ctx, srcDigest, srcManifest, manifests, src.ref, o.includeDescriptor)
+						srcManifests, srcManifest, srcDigest, err := imagemanifest.ProcessManifestList(ctx, srcDigest, srcManifest, manifests, src.ref, o.FilterOptions.IncludeAll)
 						if err != nil {
 							plan.AddError(retrieverError{src: src.ref, err: err})
 							return
