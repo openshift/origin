@@ -9,7 +9,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	templatev1 "github.com/openshift/api/template/v1"
-	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
+	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 )
 
 const CreateBootstrapProjectTemplateCommand = "create-bootstrap-project-template"

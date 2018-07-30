@@ -12,11 +12,11 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
+	deployconfigetcd "github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig/etcd"
+	deploylogregistry "github.com/openshift/origin/pkg/apps/apiserver/registry/deploylog"
+	deployconfiginstantiate "github.com/openshift/origin/pkg/apps/apiserver/registry/instantiate"
+	deployrollback "github.com/openshift/origin/pkg/apps/apiserver/registry/rollback"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	deployconfigetcd "github.com/openshift/origin/pkg/apps/registry/deployconfig/etcd"
-	deploylogregistry "github.com/openshift/origin/pkg/apps/registry/deploylog"
-	deployconfiginstantiate "github.com/openshift/origin/pkg/apps/registry/instantiate"
-	deployrollback "github.com/openshift/origin/pkg/apps/registry/rollback"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 )
 

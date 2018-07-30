@@ -18,7 +18,7 @@ import (
 
 	oapi "github.com/openshift/api/oauth/v1"
 	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
-	oauthclientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
 
@@ -39,11 +39,11 @@ func badAuth(err error) *testAuth {
 	return &testAuth{Success: false, User: nil, Err: err}
 }
 
-func emptyClientRegistry() oauthclientregistry.Getter {
+func emptyClientRegistry() api.OAuthClientGetter {
 	return oauthfake.NewSimpleClientset().Oauth().OAuthClients()
 }
 
-func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []string) oauthclientregistry.Getter {
+func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []string) api.OAuthClientGetter {
 	client := &oapi.OAuthClient{ObjectMeta: metav1.ObjectMeta{Name: clientID}, Secret: "mysecret", RedirectURIs: redirectURIs}
 	client.Name = clientID
 	if len(literalScopes) > 0 {
@@ -53,7 +53,7 @@ func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []
 
 	return fakeOAuthClient.Oauth().OAuthClients()
 }
-func badClientRegistry(err error) oauthclientregistry.Getter {
+func badClientRegistry(err error) api.OAuthClientGetter {
 	fakeOAuthClient := oauthfake.NewSimpleClientset()
 	fakeOAuthClient.PrependReactor("get", "oauthclients", func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, err
@@ -80,7 +80,7 @@ func TestGrant(t *testing.T) {
 	testCases := map[string]struct {
 		CSRF           csrf.CSRF
 		Auth           *testAuth
-		ClientRegistry oauthclientregistry.Getter
+		ClientRegistry api.OAuthClientGetter
 		AuthRegistry   *oauthfake.Clientset
 
 		Path       string

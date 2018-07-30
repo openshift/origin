@@ -11,7 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -215,7 +214,7 @@ func ValidateNetNamespace(netnamespace *networkapi.NetNamespace) field.ErrorList
 		allErrs = append(allErrs, field.Invalid(field.NewPath("netname"), netnamespace.NetName, fmt.Sprintf("must be the same as metadata.name: %q", netnamespace.Name)))
 	}
 
-	if err := network.ValidVNID(netnamespace.NetID); err != nil {
+	if err := ValidVNID(netnamespace.NetID); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("netid"), netnamespace.NetID, err.Error()))
 	}
 

@@ -25,7 +25,7 @@ import (
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
-	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
+	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )

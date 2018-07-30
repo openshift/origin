@@ -11,10 +11,10 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 
 	networkapiv1 "github.com/openshift/api/network/v1"
-	clusternetworketcd "github.com/openshift/origin/pkg/network/registry/clusternetwork/etcd"
-	egressnetworkpolicyetcd "github.com/openshift/origin/pkg/network/registry/egressnetworkpolicy/etcd"
-	hostsubnetetcd "github.com/openshift/origin/pkg/network/registry/hostsubnet/etcd"
-	netnamespaceetcd "github.com/openshift/origin/pkg/network/registry/netnamespace/etcd"
+	clusternetworketcd "github.com/openshift/origin/pkg/network/apiserver/registry/clusternetwork/etcd"
+	egressnetworkpolicyetcd "github.com/openshift/origin/pkg/network/apiserver/registry/egressnetworkpolicy/etcd"
+	hostsubnetetcd "github.com/openshift/origin/pkg/network/apiserver/registry/hostsubnet/etcd"
+	netnamespaceetcd "github.com/openshift/origin/pkg/network/apiserver/registry/netnamespace/etcd"
 )
 
 type ExtraConfig struct {

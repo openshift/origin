@@ -14,12 +14,12 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
+	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicyreview"
+	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicyselfsubjectreview"
+	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
+	"github.com/openshift/origin/pkg/security/apiserver/registry/rangeallocations"
+	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
-	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
-	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
-	"github.com/openshift/origin/pkg/security/registry/rangeallocations"
-	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
 

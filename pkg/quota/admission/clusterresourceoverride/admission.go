@@ -19,8 +19,8 @@ import (
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 	"github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	api "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride/validation"
 )

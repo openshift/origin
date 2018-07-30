@@ -5,14 +5,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
-	deploymentconfigetcd "github.com/openshift/origin/pkg/apps/registry/deployconfig/etcd"
-	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
-	buildconfig "github.com/openshift/origin/pkg/build/registry/buildconfig"
-	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
-	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
-	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
-	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
+	"github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig"
+	deploymentconfigetcd "github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig/etcd"
+	buildetcd "github.com/openshift/origin/pkg/build/apiserver/registry/build/etcd"
+	buildconfig "github.com/openshift/origin/pkg/build/apiserver/registry/buildconfig"
+	buildconfigetcd "github.com/openshift/origin/pkg/build/apiserver/registry/buildconfig/etcd"
+	imagestreametcd "github.com/openshift/origin/pkg/image/apiserver/registry/imagestream/etcd"
+	routeregistry "github.com/openshift/origin/pkg/route/apiserver/registry/route"
+	routeetcd "github.com/openshift/origin/pkg/route/apiserver/registry/route/etcd"
 )
 
 var (

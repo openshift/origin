@@ -12,10 +12,10 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	quotaapiv1 "github.com/openshift/api/quota/v1"
+	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/apiserver/registry/appliedclusterresourcequota"
+	clusterresourcequotaetcd "github.com/openshift/origin/pkg/quota/apiserver/registry/clusterresourcequota/etcd"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
-	clusterresourcequotaetcd "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota/etcd"
 )
 
 type ExtraConfig struct {

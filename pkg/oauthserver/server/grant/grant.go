@@ -18,9 +18,8 @@ import (
 	oapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	oauthclientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/oauth/scope"
+	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 )
@@ -84,11 +83,11 @@ type Grant struct {
 	auth           authenticator.Request
 	csrf           csrf.CSRF
 	render         FormRenderer
-	clientregistry oauthclientregistry.Getter
+	clientregistry api.OAuthClientGetter
 	authregistry   oauthclient.OAuthClientAuthorizationInterface
 }
 
-func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry oauthclientregistry.Getter, authregistry oauthclient.OAuthClientAuthorizationInterface) *Grant {
+func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry api.OAuthClientGetter, authregistry oauthclient.OAuthClientAuthorizationInterface) *Grant {
 	return &Grant{
 		auth:           auth,
 		csrf:           csrf,
@@ -155,7 +154,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	grantedScopes := []Scope{}
 	requestedScopes := []Scope{}
 
-	clientAuthID := oauthclientauthorization.ClientAuthorizationName(user.GetName(), client.Name)
+	clientAuthID := user.GetName() + ":" + client.Name
 	if clientAuth, err := l.authregistry.Get(clientAuthID, metav1.GetOptions{}); err == nil {
 		grantedScopeNames = clientAuth.Scopes
 	}
@@ -247,7 +246,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	clientAuthID := oauthclientauthorization.ClientAuthorizationName(user.GetName(), client.Name)
+	clientAuthID := user.GetName() + ":" + client.Name
 
 	clientAuth, err := l.authregistry.Get(clientAuthID, metav1.GetOptions{})
 	if err == nil && clientAuth != nil {
