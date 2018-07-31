@@ -17,9 +17,9 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
-	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

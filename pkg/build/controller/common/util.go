@@ -11,7 +11,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 
-	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
@@ -126,7 +125,7 @@ func ResolveValueFrom(pod *v1.Pod, client kclientset.Interface) error {
 	var outputEnv []kapi.EnvVar
 	var allErrs []error
 
-	build, err := buildadmission.GetBuildFromPod(pod)
+	build, err := GetBuildFromPod(pod)
 	if err != nil {
 		return nil
 	}
@@ -159,5 +158,5 @@ func ResolveValueFrom(pod *v1.Pod, client kclientset.Interface) error {
 	}
 
 	buildutil.SetBuildEnv(build, outputEnv)
-	return buildadmission.SetBuildInPod(pod, build)
+	return SetBuildInPod(pod, build)
 }

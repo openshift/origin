@@ -21,11 +21,11 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	imageadmission "github.com/openshift/origin/pkg/image/admission"
-	imagepolicy "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
-	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
-	sccadmission "github.com/openshift/origin/pkg/security/admission"
+	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
+	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
+	ingressadmission "github.com/openshift/origin/pkg/network/apiserver/admission"
+	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
+	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
 

@@ -9,10 +9,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	buildadmission "github.com/openshift/origin/pkg/build/admission"
-	u "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
+	"github.com/openshift/origin/pkg/build/controller/common"
+	u "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -31,7 +31,7 @@ func TestProxyDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := common.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestEnvDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := common.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestIncrementalDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := common.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestIncrementalDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, err = buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+	build, err = common.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -581,7 +581,7 @@ func TestResourceDefaults(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
-		build, err = buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+		build, err = common.GetBuildFromPod((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
@@ -597,4 +597,28 @@ func TestResourceDefaults(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestSetBuildLogLevel(t *testing.T) {
+	build := u.Build().WithSourceStrategy()
+	pod := u.Pod().WithEnvVar("BUILD", "foo")
+	setPodLogLevelFromBuild((*v1.Pod)(pod), build.AsBuild())
+
+	if len(pod.Spec.Containers[0].Args) == 0 {
+		t.Errorf("Builds pod loglevel was not set")
+	}
+
+	if pod.Spec.Containers[0].Args[0] != "--loglevel=0" {
+		t.Errorf("Default build pod loglevel was not set to 0")
+	}
+
+	build = u.Build().WithSourceStrategy()
+	pod = u.Pod().WithEnvVar("BUILD", "foo")
+	build.Spec.Strategy.SourceStrategy.Env = []kapi.EnvVar{{Name: "BUILD_LOGLEVEL", Value: "7", ValueFrom: nil}}
+	setPodLogLevelFromBuild((*v1.Pod)(pod), build.AsBuild())
+
+	if pod.Spec.Containers[0].Args[0] != "--loglevel=7" {
+		t.Errorf("Build pod loglevel was not transferred from BUILD_LOGLEVEL environment variable: %#v", pod)
+	}
+
 }

@@ -15,9 +15,9 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/image"
-	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
+	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"

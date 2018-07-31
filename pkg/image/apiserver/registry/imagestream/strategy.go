@@ -21,10 +21,10 @@ import (
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
+	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 )
 
 type ResourceGetter interface {

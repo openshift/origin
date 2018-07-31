@@ -22,9 +22,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	admfake "github.com/openshift/origin/pkg/image/admission/fake"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
+	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/apiserver/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"

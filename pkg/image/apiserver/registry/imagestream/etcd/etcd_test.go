@@ -3,9 +3,9 @@ package etcd
 import (
 	"testing"
 
-	admfake "github.com/openshift/origin/pkg/image/admission/fake"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
+	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
 	"github.com/openshift/origin/pkg/util/restoptions"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
