@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 )
@@ -21,38 +22,38 @@ func GenerateConfigFromLabels(config *api.Config, metadata *docker.PullResult) e
 
 	labels := metadata.Image.Config.Labels
 
-	if builderVersion, ok := labels["io.openshift.builder-version"]; ok {
+	if builderVersion, ok := labels[constants.BuilderVersionLabel]; ok {
 		config.BuilderImageVersion = builderVersion
-		config.BuilderBaseImageVersion = labels["io.openshift.builder-base-version"]
+		config.BuilderBaseImageVersion = labels[constants.BuilderBaseVersionLabel]
 	}
 
-	config.ScriptsURL = labels[api.DefaultNamespace+"scripts-url"]
+	config.ScriptsURL = labels[constants.ScriptsURLLabel]
 	if len(config.ScriptsURL) == 0 {
 		// FIXME: Backward compatibility
-		config.ScriptsURL = labels["io.s2i.scripts-url"]
+		config.ScriptsURL = labels[constants.DeprecatedScriptsURLLabel]
 	}
 
-	config.Description = labels[api.KubernetesNamespace+"description"]
-	config.DisplayName = labels[api.KubernetesNamespace+"display-name"]
+	config.Description = labels[constants.KubernetesDescriptionLabel]
+	config.DisplayName = labels[constants.KubernetesDisplayNameLabel]
 
-	if builder, ok := labels[api.DefaultNamespace+"build.image"]; ok {
+	if builder, ok := labels[constants.BuildImageLabel]; ok {
 		config.BuilderImage = builder
 	} else {
-		return fmt.Errorf("required label %q not found in image", api.DefaultNamespace+"build.image")
+		return fmt.Errorf("required label %q not found in image", constants.BuildImageLabel)
 	}
 
-	if repo, ok := labels[api.DefaultNamespace+"build.source-location"]; ok {
+	if repo, ok := labels[constants.BuildSourceLocationLabel]; ok {
 		source, err := git.Parse(repo)
 		if err != nil {
-			return fmt.Errorf("couldn't parse label %q value %s: %v", api.DefaultNamespace+"build.source-location", repo, err)
+			return fmt.Errorf("couldn't parse label %q value %s: %v", constants.BuildSourceLocationLabel, repo, err)
 		}
 		config.Source = source
 	} else {
-		return fmt.Errorf("required label %q not found in image", api.DefaultNamespace+"build.source-location")
+		return fmt.Errorf("required label %q not found in image", constants.BuildSourceLocationLabel)
 	}
 
-	config.ContextDir = labels[api.DefaultNamespace+"build.source-context-dir"]
-	config.Source.URL.Fragment = labels[api.DefaultNamespace+"build.commit.ref"]
+	config.ContextDir = labels[constants.BuildSourceContextDirLabel]
+	config.Source.URL.Fragment = labels[constants.BuildCommitRefLabel]
 
 	return nil
 }
