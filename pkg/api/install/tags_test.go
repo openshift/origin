@@ -11,8 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
+	configapiinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 )
 
 func TestDescriptions(t *testing.T) {
@@ -66,6 +65,7 @@ func TestInternalJsonTags(t *testing.T) {
 	scheme := runtime.NewScheme()
 	InstallInternalOpenShift(scheme)
 	InstallInternalKube(scheme)
+	configapiinstall.InstallLegacyInternal(scheme)
 
 	seen := map[reflect.Type]bool{}
 	seenGroups := sets.String{}
@@ -80,10 +80,6 @@ func TestInternalJsonTags(t *testing.T) {
 		for _, apiType := range scheme.KnownTypes(internalVersion) {
 			checkInternalJsonTags(apiType, &seen, t)
 		}
-	}
-
-	for _, apiType := range configapi.Scheme.KnownTypes(configapi.SchemeGroupVersion) {
-		checkInternalJsonTags(apiType, &seen, t)
 	}
 }
 
@@ -130,6 +126,7 @@ func TestExternalJsonTags(t *testing.T) {
 	scheme := runtime.NewScheme()
 	InstallInternalOpenShift(scheme)
 	InstallInternalKube(scheme)
+	configapiinstall.InstallLegacyInternal(scheme)
 
 	seen := map[reflect.Type]bool{}
 
@@ -138,11 +135,6 @@ func TestExternalJsonTags(t *testing.T) {
 			checkExternalJsonTags(apiType, &seen, t)
 		}
 	}
-
-	for _, apiType := range configapi.Scheme.KnownTypes(configapiv1.SchemeGroupVersion) {
-		checkExternalJsonTags(apiType, &seen, t)
-	}
-
 }
 
 func checkExternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing.T) {

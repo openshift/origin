@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -9,8 +10,11 @@ import (
 var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	SchemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		ingressadmission.InstallLegacy,
+	)
+	InstallLegacy = SchemeBuilder.AddToScheme
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {

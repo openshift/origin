@@ -28,7 +28,7 @@ func Resource(resource string) schema.GroupResource {
 
 var (
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	InstallLegacy = SchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.

@@ -6,20 +6,11 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	kapiserverinstall "k8s.io/apiserver/pkg/apis/apiserver/install"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 )
-
-var (
-	scheme = runtime.NewScheme()
-)
-
-func init() {
-	kapiserverinstall.Install(scheme)
-}
 
 func getPluginConfig(cfg configapi.AdmissionPluginConfig) (string, error) {
 	obj := cfg.Configuration
