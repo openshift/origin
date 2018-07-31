@@ -9,21 +9,21 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/util/retry"
-	kbatch "k8s.io/kubernetes/pkg/apis/batch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	securityclient "github.com/openshift/client-go/security/clientset/versioned"
+	securitytypedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
-	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 const (
@@ -115,7 +115,7 @@ func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interf
 	}
 
 	// TODO: Make the job idempotent and non-failing
-	_, err = kclient.Batch().Jobs(pvTargetNamespace).Get(pvSetupJobName, metav1.GetOptions{})
+	_, err = kclient.BatchV1().Jobs(pvTargetNamespace).Get(pvSetupJobName, metav1.GetOptions{})
 	if err == nil {
 		return nil
 	}
@@ -130,7 +130,7 @@ func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interf
 	}
 
 	setupJob := persistentStorageSetupJob(pvSetupJobName, targetDir, c.InstallContext.ClientImage(), pvCount)
-	if _, err = kclient.Batch().Jobs(pvTargetNamespace).Create(setupJob); err != nil {
+	if _, err = kclient.BatchV1().Jobs(pvTargetNamespace).Create(setupJob); err != nil {
 		return fmt.Errorf("cannot create job to setup persistent volumes (%s/%s): %v", pvTargetNamespace, pvSetupJobName, err)
 	}
 
@@ -138,21 +138,21 @@ func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interf
 }
 
 func ensurePVInstallerSA(rbacClient rbacv1client.RbacV1Interface, kclient kubernetes.Interface, securityClient securityclient.Interface) error {
-	sa, err := kclient.Core().ServiceAccounts(pvTargetNamespace).Get(pvInstallerSA, metav1.GetOptions{})
+	sa, err := kclient.CoreV1().ServiceAccounts(pvTargetNamespace).Get(pvInstallerSA, metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
 			return fmt.Errorf("error retrieving installer service account (%s/%s): %v", pvTargetNamespace, pvInstallerSA, err)
 		}
-		sa = &kapi.ServiceAccount{}
+		sa = &corev1.ServiceAccount{}
 		sa.Name = pvInstallerSA
-		if _, err := kclient.Core().ServiceAccounts(pvTargetNamespace).Create(sa); err != nil {
+		if _, err := kclient.CoreV1().ServiceAccounts(pvTargetNamespace).Create(sa); err != nil {
 			return fmt.Errorf("cannot create %q service account: %v", sa.Name, err)
 		}
 	}
 
 	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			return addSCCToServiceAccount(securityClient.Security(), "privileged", pvInstallerSA, pvTargetNamespace, &bytes.Buffer{})
+			return addSCCToServiceAccount(securityClient.SecurityV1(), "privileged", pvInstallerSA, pvTargetNamespace, &bytes.Buffer{})
 		})
 		// TODO: We do need to figure out why this is sometimes giving a 404. on SCC get
 		if kerrors.IsNotFound(err) {
@@ -183,39 +183,39 @@ func ensurePVInstallerSA(rbacClient rbacv1client.RbacV1Interface, kclient kubern
 	return nil
 }
 
-func persistentStorageSetupJob(name, dir, image string, pvCount int) *kbatch.Job {
+func persistentStorageSetupJob(name, dir, image string, pvCount int) *batchv1.Job {
 	// Job volume
-	volume := kapi.Volume{}
+	volume := corev1.Volume{}
 	volume.Name = "pvdir"
-	volume.HostPath = &kapi.HostPathVolumeSource{Path: dir}
+	volume.HostPath = &corev1.HostPathVolumeSource{Path: dir}
 
 	// Volume mount
-	mount := kapi.VolumeMount{}
+	mount := corev1.VolumeMount{}
 	mount.Name = "pvdir"
 	mount.MountPath = dir
 
 	// Job container
-	container := kapi.Container{}
+	container := corev1.Container{}
 	container.Name = "setup-persistent-volumes"
 	container.Image = image
 	container.Command = []string{"/bin/bash", "-c", fmt.Sprintf(createPVScript, pvCount, dir)}
 	privileged := true
-	container.SecurityContext = &kapi.SecurityContext{
+	container.SecurityContext = &corev1.SecurityContext{
 		Privileged: &privileged,
 	}
-	container.VolumeMounts = []kapi.VolumeMount{mount}
+	container.VolumeMounts = []corev1.VolumeMount{mount}
 
 	// Job
 	completions := int32(1)
 	deadline := int64(60 * 20)
-	job := &kbatch.Job{}
+	job := &batchv1.Job{}
 	job.Name = name
 	job.Spec.Completions = &completions
 	job.Spec.ActiveDeadlineSeconds = &deadline
-	job.Spec.Template.Spec.Volumes = []kapi.Volume{volume}
-	job.Spec.Template.Spec.RestartPolicy = kapi.RestartPolicyNever
+	job.Spec.Template.Spec.Volumes = []corev1.Volume{volume}
+	job.Spec.Template.Spec.RestartPolicy = corev1.RestartPolicyNever
 	job.Spec.Template.Spec.ServiceAccountName = pvInstallerSA
-	job.Spec.Template.Spec.Containers = []kapi.Container{container}
+	job.Spec.Template.Spec.Containers = []corev1.Container{container}
 	return job
 }
 
@@ -233,7 +233,7 @@ func addSCCToServiceAccount(securityClient securitytypedclient.SecurityContextCo
 	modifySCC := policy.SCCModificationOptions{
 		SCCName:      scc,
 		SCCInterface: securityClient.SecurityContextConstraints(),
-		Subjects: []kapi.ObjectReference{
+		Subjects: []corev1.ObjectReference{
 			{
 				Namespace: namespace,
 				Name:      sa,
