@@ -1136,4 +1136,38 @@ func TestEgressCIDRAllocationOffline(t *testing.T) {
 		t.Fatalf("Bad IP allocation: %#v", allocation)
 	}
 	updateAllocations(eit, allocation)
+
+	// Bring node-3 back
+	eit.SetNodeOffline("172.17.0.3", false)
+	err = w.assertUpdateEgressCIDRsNotification()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// First reallocation should remove some IPs from node-4 and node-5 but not add
+	// them to node-3. As above, the "balanced" allocation we're aiming for may not
+	// be perfect, but it has to be planning to assign at least 2 IPs to node-3.
+	allocation = eit.ReallocateEgressIPs()
+	node3ips = allocation["node-3"]
+	node4ips = allocation["node-4"]
+	node5ips = allocation["node-5"]
+	if len(node3ips) != 0 || len(node4ips)+len(node5ips) > 4 {
+		t.Fatalf("Bad IP allocation: %#v", allocation)
+	}
+	updateAllocations(eit, allocation)
+
+	err = w.assertUpdateEgressCIDRsNotification()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Next reallocation should reassign egress IPs to node-3
+	allocation = eit.ReallocateEgressIPs()
+	node3ips = allocation["node-3"]
+	node4ips = allocation["node-4"]
+	node5ips = allocation["node-5"]
+	if len(node3ips) < 2 || len(node4ips) == 0 || len(node5ips) == 0 {
+		t.Fatalf("Bad IP allocation: %#v", allocation)
+	}
+	updateAllocations(eit, allocation)
 }
