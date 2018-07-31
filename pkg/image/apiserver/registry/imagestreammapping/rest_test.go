@@ -11,6 +11,7 @@ import (
 	etcd "github.com/coreos/etcd/clientv3"
 	"k8s.io/apiserver/pkg/registry/rest"
 
+	authorizationapi "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +23,6 @@ import (
 	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagegroup "github.com/openshift/api/image"

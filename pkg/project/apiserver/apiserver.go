@@ -12,9 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	restclient "k8s.io/client-go/rest"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	projectapiv1 "github.com/openshift/api/project/v1"

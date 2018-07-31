@@ -8,15 +8,16 @@ import (
 	"testing"
 	"time"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
+	clientgofake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/utils/clock"
@@ -80,14 +81,16 @@ func TestControllerCheckReadiness(t *testing.T) {
 
 	// fakeclient, respond "allowed" to any subjectaccessreview
 	fakeclientset := &fake.Clientset{}
+	sarClient := clientgofake.NewSimpleClientset()
 	c := &TemplateInstanceController{
 		dynamicRestMapper: testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...),
+		sarClient:         sarClient.AuthorizationV1(),
 		kc:                fakeclientset,
 		clock:             clock,
 		dynamicClient:     client,
 	}
-	fakeclientset.AddReactor("create", "subjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &authorization.SubjectAccessReview{Status: authorization.SubjectAccessReviewStatus{Allowed: true}}, nil
+	sarClient.PrependReactor("create", "subjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, &authorizationv1.SubjectAccessReview{Status: authorizationv1.SubjectAccessReviewStatus{Allowed: true}}, nil
 	})
 
 	templateInstance := &templateapi.TemplateInstance{

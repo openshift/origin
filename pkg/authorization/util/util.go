@@ -3,24 +3,24 @@ package util
 import (
 	"errors"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/kubernetes/pkg/apis/authorization"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 )
 
 // AddUserToSAR adds the requisite user information to a SubjectAccessReview.
 // It returns the modified SubjectAccessReview.
-func AddUserToSAR(user user.Info, sar *authorization.SubjectAccessReview) *authorization.SubjectAccessReview {
+func AddUserToSAR(user user.Info, sar *authorizationv1.SubjectAccessReview) *authorizationv1.SubjectAccessReview {
 	sar.Spec.User = user.GetName()
 	// reminiscent of the bad old days of C.  Copies copy the min number of elements of both source and dest
 	sar.Spec.Groups = make([]string, len(user.GetGroups()))
 	copy(sar.Spec.Groups, user.GetGroups())
-	sar.Spec.Extra = map[string]authorization.ExtraValue{}
+	sar.Spec.Extra = map[string]authorizationv1.ExtraValue{}
 
 	for k, v := range user.GetExtra() {
-		sar.Spec.Extra[k] = authorization.ExtraValue(v)
+		sar.Spec.Extra[k] = authorizationv1.ExtraValue(v)
 	}
 
 	return sar
@@ -29,9 +29,9 @@ func AddUserToSAR(user user.Info, sar *authorization.SubjectAccessReview) *autho
 // Authorize verifies that a given user is permitted to carry out a given
 // action.  If this cannot be determined, or if the user is not permitted, an
 // error is returned.
-func Authorize(sarClient internalversion.SubjectAccessReviewInterface, user user.Info, resourceAttributes *authorization.ResourceAttributes) error {
-	sar := AddUserToSAR(user, &authorization.SubjectAccessReview{
-		Spec: authorization.SubjectAccessReviewSpec{
+func Authorize(sarClient authorizationclient.SubjectAccessReviewInterface, user user.Info, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	sar := AddUserToSAR(user, &authorizationv1.SubjectAccessReview{
+		Spec: authorizationv1.SubjectAccessReviewSpec{
 			ResourceAttributes: resourceAttributes,
 		},
 	})

@@ -10,7 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
