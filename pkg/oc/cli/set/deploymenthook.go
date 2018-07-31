@@ -54,10 +54,10 @@ var (
 
 	  # Set the pre deployment hook to execute a db migration command for an application
 	  # using the data volume from the application
-	  %[1]s deployment-hook dc/myapp --pre -v data -- /var/lib/migrate-db.sh
+	  %[1]s deployment-hook dc/myapp --pre --volumes=data -- /var/lib/migrate-db.sh
 
 	  # Set a mid deployment hook along with additional environment variables
-	  %[1]s deployment-hook dc/myapp --mid -v data -e VAR1=value1 -e VAR2=value2 -- /var/lib/prepare-deploy.sh`)
+	  %[1]s deployment-hook dc/myapp --mid --volumes=data -e VAR1=value1 -e VAR2=value2 -- /var/lib/prepare-deploy.sh`)
 )
 
 type DeploymentHookOptions struct {
