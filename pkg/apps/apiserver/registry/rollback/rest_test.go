@@ -15,9 +15,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/api/apps"
+	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
@@ -59,16 +59,14 @@ func TestCreateInvalid(t *testing.T) {
 func TestCreateOk(t *testing.T) {
 	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		internalConfig := &appsapi.DeploymentConfig{}
-		legacyscheme.Scheme.Convert(appstest.OkDeploymentConfig(2), internalConfig, nil)
-		return true, internalConfig, nil
+		return true, appstest.OkDeploymentConfig(2), nil
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
-		internalDeployment := &kapi.ReplicationController{}
-		legacyscheme.Scheme.Convert(deployment, internalDeployment, nil)
-		return true, internalDeployment, nil
+		deploymentInternal := &kapi.ReplicationController{}
+		legacyscheme.Scheme.Convert(deployment, deploymentInternal, nil)
+		return true, deploymentInternal, nil
 	})
 
 	obj, err := NewREST(oc, kc).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
@@ -94,9 +92,8 @@ func TestCreateOk(t *testing.T) {
 func TestCreateRollbackToLatest(t *testing.T) {
 	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		internalConfig := &appsapi.DeploymentConfig{}
-		legacyscheme.Scheme.Convert(appstest.OkDeploymentConfig(2), internalConfig, nil)
-		return true, internalConfig, nil
+		config := appstest.OkDeploymentConfig(2)
+		return true, config, nil
 	})
 
 	_, err := NewREST(oc, &fake.Clientset{}).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
@@ -117,9 +114,8 @@ func TestCreateRollbackToLatest(t *testing.T) {
 func TestCreateGeneratorError(t *testing.T) {
 	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		internalConfig := &appsapi.DeploymentConfig{}
-		legacyscheme.Scheme.Convert(appstest.OkDeploymentConfig(2), internalConfig, nil)
-		return true, internalConfig, nil
+		config := appstest.OkDeploymentConfig(2)
+		return true, config, nil
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -150,9 +146,8 @@ func TestCreateGeneratorError(t *testing.T) {
 func TestCreateMissingDeployment(t *testing.T) {
 	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		internalConfig := &appsapi.DeploymentConfig{}
-		legacyscheme.Scheme.Convert(appstest.OkDeploymentConfig(2), internalConfig, nil)
-		return true, internalConfig, nil
+		config := appstest.OkDeploymentConfig(2)
+		return true, config, nil
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -179,9 +174,8 @@ func TestCreateMissingDeployment(t *testing.T) {
 func TestCreateInvalidDeployment(t *testing.T) {
 	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		internalConfig := &appsapi.DeploymentConfig{}
-		legacyscheme.Scheme.Convert(appstest.OkDeploymentConfig(2), internalConfig, nil)
-		return true, internalConfig, nil
+		config := appstest.OkDeploymentConfig(2)
+		return true, config, nil
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {

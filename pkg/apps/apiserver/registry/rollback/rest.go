@@ -15,27 +15,27 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/api/apps"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	appsclienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.
 type REST struct {
 	generator RollbackGenerator
-	dn        appsclient.DeploymentConfigsGetter
+	dn        appsclienttyped.DeploymentConfigsGetter
 	rn        kcoreclient.ReplicationControllersGetter
 }
 
 var _ rest.Creater = &REST{}
 
 // NewREST safely creates a new REST.
-func NewREST(appsclient appsclientinternal.Interface, kc kclientset.Interface) *REST {
+func NewREST(appsclient appsclient.Interface, kc kclientset.Interface) *REST {
 	return &REST{
 		generator: NewRollbackGenerator(),
-		dn:        appsclient.Apps(),
+		dn:        appsclient.AppsV1(),
 		rn:        kc.Core(),
 	}
 }
@@ -106,7 +106,12 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		from.Annotations[key] = value
 	}
 
-	return r.generator.GenerateRollback(from, toInternal, &rollback.Spec)
+	fromInternal := &appsapi.DeploymentConfig{}
+	if err := legacyscheme.Scheme.Convert(from, fromInternal, nil); err != nil {
+		return nil, kerrors.NewInternalError(err)
+	}
+
+	return r.generator.GenerateRollback(fromInternal, toInternal, &rollback.Spec)
 }
 
 func newInvalidError(rollback *appsapi.DeploymentConfigRollback, reason string) error {
