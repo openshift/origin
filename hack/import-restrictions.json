@@ -108,15 +108,7 @@
       "github.com/openshift/origin/pkg/oauthserver",
 
       "github.com/openshift/origin/pkg/cmd/server/origin",
-      "github.com/openshift/origin/pkg/authorization/registry/clusterrole",
-      "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding",
-      "github.com/openshift/origin/pkg/authorization/registry/role",
-      "github.com/openshift/origin/pkg/authorization/registry/rolebinding",
-      "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper",
-      "github.com/openshift/origin/pkg/build/admission/secretinjector",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/validation",
-      "github.com/openshift/origin/pkg/cmd/server/handlers",
-      "github.com/openshift/origin/pkg/oauth/util",
       "github.com/openshift/origin/pkg/oc/cli/admin",
       "github.com/openshift/origin/pkg/oc/cli/admin/createerrortemplate",
       "github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate",
@@ -126,8 +118,7 @@
       "github.com/openshift/origin/pkg/oc/lib/groupsync/ad",
       "github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector",
       "github.com/openshift/origin/pkg/oc/lib/groupsync/rfc2307",
-      "github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror",
-      "github.com/openshift/origin/pkg/user"
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror"
     ],
     "forbiddenImportPackageRoots": [
       "github.com/openshift/origin/pkg/oauthserver"
