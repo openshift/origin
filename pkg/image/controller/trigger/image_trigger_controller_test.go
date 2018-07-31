@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +26,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
@@ -506,7 +507,7 @@ func TestBuildConfigTriggerIndexer(t *testing.T) {
 func TestDeploymentConfigTriggerIndexer(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	informer, fw := newFakeInformer(&appsapi.DeploymentConfig{}, &appsapi.DeploymentConfigList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
+	informer, fw := newFakeInformer(&appsv1.DeploymentConfig{}, &appsv1.DeploymentConfigList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
 
 	c := NewTriggerCache()
 	r := &mockTagRetriever{}
@@ -652,26 +653,26 @@ func scenario_1_buildConfig_strategy_cacheEntry() *trigger.CacheEntry {
 	}
 }
 
-func scenario_1_deploymentConfig_imageSource() *appsapi.DeploymentConfig {
-	return &appsapi.DeploymentConfig{
+func scenario_1_deploymentConfig_imageSource() *appsv1.DeploymentConfig {
+	return &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "deploy1", Namespace: "test"},
-		Spec: appsapi.DeploymentConfigSpec{
-			Triggers: []appsapi.DeploymentTriggerPolicy{
-				{ImageChangeParams: &appsapi.DeploymentTriggerImageChangeParams{
+		Spec: appsv1.DeploymentConfigSpec{
+			Triggers: []appsv1.DeploymentTriggerPolicy{
+				{ImageChangeParams: &appsv1.DeploymentTriggerImageChangeParams{
 					Automatic:          true,
 					ContainerNames:     []string{"first", "second"},
-					From:               kapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"},
+					From:               corev1.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"},
 					LastTriggeredImage: "image/result:2",
 				}},
-				{ImageChangeParams: &appsapi.DeploymentTriggerImageChangeParams{
+				{ImageChangeParams: &appsv1.DeploymentTriggerImageChangeParams{
 					Automatic:      true,
 					ContainerNames: []string{"third"},
-					From:           kapi.ObjectReference{Kind: "DockerImage", Name: "mysql", Namespace: "other"},
+					From:           corev1.ObjectReference{Kind: "DockerImage", Name: "mysql", Namespace: "other"},
 				}},
 			},
-			Template: &kapi.PodTemplateSpec{
-				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{
+			Template: &corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{Name: "first", Image: "image/result:2"},
 						{Name: "second", Image: ""},
 						{Name: "third", Image: ""},
@@ -897,25 +898,25 @@ func benchmark_1_pod(r *rand.Rand, identity, maxStreams, maxTags, containers int
 	return pod
 }
 
-func benchmark_1_deploymentConfig(r *rand.Rand, identity, maxStreams, maxTags, containers int32) *appsapi.DeploymentConfig {
-	dc := &appsapi.DeploymentConfig{
+func benchmark_1_deploymentConfig(r *rand.Rand, identity, maxStreams, maxTags, containers int32) *appsv1.DeploymentConfig {
+	dc := &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("dc-%d", identity),
 			Namespace: "test",
 		},
-		Spec: appsapi.DeploymentConfigSpec{
-			Template: &kapi.PodTemplateSpec{},
+		Spec: appsv1.DeploymentConfigSpec{
+			Template: &corev1.PodTemplateSpec{},
 		},
 	}
 	for i := int32(0); i < containers; i++ {
-		dc.Spec.Triggers = append(dc.Spec.Triggers, appsapi.DeploymentTriggerPolicy{
-			ImageChangeParams: &appsapi.DeploymentTriggerImageChangeParams{
+		dc.Spec.Triggers = append(dc.Spec.Triggers, appsv1.DeploymentTriggerPolicy{
+			ImageChangeParams: &appsv1.DeploymentTriggerImageChangeParams{
 				Automatic:      true,
 				ContainerNames: []string{fmt.Sprintf("container-%d", i)},
-				From:           kapi.ObjectReference{Kind: "ImageStreamTag", Name: randomStreamTag(r, maxStreams, maxTags)},
+				From:           corev1.ObjectReference{Kind: "ImageStreamTag", Name: randomStreamTag(r, maxStreams, maxTags)},
 			},
 		})
-		dc.Spec.Template.Spec.Containers = append(dc.Spec.Template.Spec.Containers, kapi.Container{Name: fmt.Sprintf("container-%d", i), Image: "initial-image"})
+		dc.Spec.Template.Spec.Containers = append(dc.Spec.Template.Spec.Containers, corev1.Container{Name: fmt.Sprintf("container-%d", i), Image: "initial-image"})
 	}
 	return dc
 }
@@ -985,7 +986,7 @@ func alterBuildConfigFromTriggers(bcWatch *consistentWatch) imageReactorFunc {
 func alterDeploymentConfigFromTriggers(dcWatch *consistentWatch) imageReactorFunc {
 	return imageReactorFunc(func(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
 		dc := obj.DeepCopyObject()
-		updated, resolvable, err := deploymentconfigs.UpdateDeploymentConfigImages(dc.(*appsapi.DeploymentConfig), tagRetriever)
+		updated, resolvable, err := deploymentconfigs.UpdateDeploymentConfigImages(dc.(*appsv1.DeploymentConfig), tagRetriever)
 		if err != nil {
 			return err
 		}
@@ -1098,7 +1099,7 @@ func TestTriggerController(t *testing.T) {
 	isInformer, isFakeWatch := newFakeInformer(&imageapi.ImageStream{}, &imageapi.ImageStreamList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
 	isWatch := &consistentWatch{watch: isFakeWatch}
 	podInformer, podWatch := newFakeInformer(&kapi.Pod{}, &kapi.PodList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
-	dcInformer, dcFakeWatch := newFakeInformer(&appsapi.DeploymentConfig{}, &appsapi.DeploymentConfigList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
+	dcInformer, dcFakeWatch := newFakeInformer(&appsv1.DeploymentConfig{}, &appsv1.DeploymentConfigList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
 	dcWatch := &consistentWatch{watch: dcFakeWatch}
 
 	buildReactorFn := alterBuildConfigFromTriggers(bcWatch)
@@ -1289,8 +1290,8 @@ func verifyState(
 	for i := 0; i < times; i++ {
 		var failures []string
 		for _, obj := range dcInformer.GetStore().List() {
-			if updated, resolved, err := deploymentconfigs.UpdateDeploymentConfigImages(obj.(*appsapi.DeploymentConfig), c.tagRetriever); updated != nil || !resolved || err != nil {
-				failures = append(failures, fmt.Sprintf("%s is not fully resolved: %v", obj.(*appsapi.DeploymentConfig).Name, err))
+			if updated, resolved, err := deploymentconfigs.UpdateDeploymentConfigImages(obj.(*appsv1.DeploymentConfig), c.tagRetriever); updated != nil || !resolved || err != nil {
+				failures = append(failures, fmt.Sprintf("%s is not fully resolved: %v", obj.(*appsv1.DeploymentConfig).Name, err))
 				continue
 			}
 		}

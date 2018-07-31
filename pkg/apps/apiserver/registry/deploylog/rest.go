@@ -20,17 +20,17 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/api/apps"
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 const (
@@ -43,7 +43,7 @@ const (
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	dcClient  appsclient.DeploymentConfigsGetter
-	rcClient  kcoreclient.ReplicationControllersGetter
+	rcClient  corev1client.ReplicationControllersGetter
 	podClient corev1client.PodsGetter
 	timeout   time.Duration
 	interval  time.Duration
@@ -59,11 +59,11 @@ var _ = rest.GetterWithOptions(&REST{})
 // one for deployments (replication controllers) and one for pods to get the necessary
 // attributes to assemble the URL to which the request shall be redirected in order to
 // get the deployment logs.
-func NewREST(dcClient appsclient.DeploymentConfigsGetter, rcClient kcoreclient.ReplicationControllersGetter, podClient corev1client.PodsGetter) *REST {
+func NewREST(dcClient appsclient.DeploymentConfigsGetter, client kubernetes.Interface) *REST {
 	r := &REST{
 		dcClient:  dcClient,
-		rcClient:  rcClient,
-		podClient: podClient,
+		rcClient:  client.CoreV1(),
+		podClient: client.CoreV1(),
 		timeout:   defaultTimeout,
 		interval:  defaultInterval,
 	}
@@ -128,20 +128,20 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 	}
 
 	// Get desired deployment
-	targetName := appsinternalutil.DeploymentNameForConfigVersion(config.Name, desiredVersion)
+	targetName := appsutil.DeploymentNameForConfigVersion(config.Name, desiredVersion)
 	target, err := r.waitForExistingDeployment(namespace, targetName)
 	if err != nil {
 		return nil, err
 	}
-	podName := appsinternalutil.DeployerPodNameForDeployment(target.Name)
+	podName := appsutil.DeployerPodNameForDeployment(target.Name)
 	labelForDeployment := fmt.Sprintf("%s/%s", target.Namespace, target.Name)
 
 	// Check for deployment status; if it is new or pending, we will wait for it. If it is complete,
 	// the deployment completed successfully and the deployer pod will be deleted so we will return a
 	// success message. If it is running or failed, retrieve the log from the deployer pod.
-	status := appsinternalutil.DeploymentStatusFor(target)
+	status := appsutil.DeploymentStatusFor(target)
 	switch status {
-	case appsapi.DeploymentStatusNew, appsapi.DeploymentStatusPending:
+	case appsutil.DeploymentStatusNew, appsutil.DeploymentStatusPending:
 		if deployLogOpts.NoWait {
 			glog.V(4).Infof("Deployment %s is in %s state. No logs to retrieve yet.", labelForDeployment, status)
 			return &genericrest.LocationStreamer{}, nil
@@ -159,13 +159,13 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 		if !ok {
 			return nil, apierrors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
 		}
-		if appsinternalutil.IsCompleteDeployment(latest) {
+		if appsutil.IsCompleteDeployment(latest) {
 			podName, err = r.returnApplicationPodName(target)
 			if err != nil {
 				return nil, err
 			}
 		}
-	case appsapi.DeploymentStatusComplete:
+	case appsutil.DeploymentStatusComplete:
 		podName, err = r.returnApplicationPodName(target)
 		if err != nil {
 			return nil, err
@@ -192,9 +192,9 @@ func (r *REST) getLogs(podNamespace, podName string, logOpts *corev1.PodLogOptio
 }
 
 // waitForExistingDeployment will use the timeout to wait for a deployment to appear.
-func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.ReplicationController, error) {
+func (r *REST) waitForExistingDeployment(namespace, name string) (*corev1.ReplicationController, error) {
 	var (
-		target *kapi.ReplicationController
+		target *corev1.ReplicationController
 		err    error
 	)
 
@@ -218,7 +218,7 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 
 // returnApplicationPodName returns the best candidate pod for the target deployment in order to
 // view its logs.
-func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (string, error) {
+func (r *REST) returnApplicationPodName(target *corev1.ReplicationController) (string, error) {
 	selector := labels.SelectorFromValidatedSet(labels.Set(target.Spec.Selector))
 	sortBy := func(pods []*corev1.Pod) sort.Interface { return controller.ByLogging(pods) }
 
@@ -271,8 +271,8 @@ func GetFirstPod(client corev1client.PodsGetter, namespace string, selector stri
 
 // WaitForRunningDeployerPod waits a given period of time until the deployer pod
 // for given replication controller is not running.
-func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *kapi.ReplicationController, timeout time.Duration) error {
-	podName := appsinternalutil.DeployerPodNameForDeployment(rc.Name)
+func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *corev1.ReplicationController, timeout time.Duration) error {
+	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
 	canGetLogs := func(p *corev1.Pod) bool {
 		return corev1.PodSucceeded == p.Status.Phase || corev1.PodFailed == p.Status.Phase || corev1.PodRunning == p.Status.Phase
 	}

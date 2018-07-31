@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/diff"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	scaleclient "k8s.io/client-go/scale"
@@ -110,9 +113,176 @@ func DeployerPodNameForDeployment(deployment string) string {
 	return apihelpers.GetPodName(deployment, "deploy")
 }
 
+// NewDeploymentCondition creates a new deployment condition.
+func NewDeploymentCondition(condType appsv1.DeploymentConditionType, status v1.ConditionStatus, reason string, message string) *appsv1.DeploymentCondition {
+	return &appsv1.DeploymentCondition{
+		Type:               condType,
+		Status:             status,
+		LastUpdateTime:     metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             reason,
+		Message:            message,
+	}
+}
+
+// SetDeploymentCondition updates the deployment to include the provided condition. If the condition that
+// we are about to add already exists and has the same status and reason then we are not going to update.
+func SetDeploymentCondition(status *appsv1.DeploymentConfigStatus, condition appsv1.DeploymentCondition) {
+	currentCond := GetDeploymentCondition(*status, condition.Type)
+	if currentCond != nil && currentCond.Status == condition.Status && currentCond.Reason == condition.Reason {
+		return
+	}
+	// Preserve lastTransitionTime if we are not switching between statuses of a condition.
+	if currentCond != nil && currentCond.Status == condition.Status {
+		condition.LastTransitionTime = currentCond.LastTransitionTime
+	}
+
+	newConditions := filterOutCondition(status.Conditions, condition.Type)
+	status.Conditions = append(newConditions, condition)
+}
+
+// RemoveDeploymentCondition removes the deployment condition with the provided type.
+func RemoveDeploymentCondition(status *appsv1.DeploymentConfigStatus, condType appsv1.DeploymentConditionType) {
+	status.Conditions = filterOutCondition(status.Conditions, condType)
+}
+
+// filterOutCondition returns a new slice of deployment conditions without conditions with the provided type.
+func filterOutCondition(conditions []appsv1.DeploymentCondition, condType appsv1.DeploymentConditionType) []appsv1.DeploymentCondition {
+	var newConditions []appsv1.DeploymentCondition
+	for _, c := range conditions {
+		if c.Type == condType {
+			continue
+		}
+		newConditions = append(newConditions, c)
+	}
+	return newConditions
+}
+
+// IsOwnedByConfig checks whether the provided replication controller is part of a
+// deployment configuration.
+// TODO: Switch to use owner references once we got those working.
+func IsOwnedByConfig(obj metav1.Object) bool {
+	_, ok := obj.GetAnnotations()[DeploymentConfigAnnotation]
+	return ok
+}
+
+// DeploymentsForCleanup determines which deployments for a configuration are relevant for the
+// revision history limit quota
+func DeploymentsForCleanup(configuration *appsv1.DeploymentConfig, deployments []*v1.ReplicationController) []v1.ReplicationController {
+	// if the past deployment quota has been exceeded, we need to prune the oldest deployments
+	// until we are not exceeding the quota any longer, so we sort oldest first
+	sort.Sort(sort.Reverse(ByLatestVersionDesc(deployments)))
+
+	relevantDeployments := []v1.ReplicationController{}
+	activeDeployment := ActiveDeployment(deployments)
+	if activeDeployment == nil {
+		// if cleanup policy is set but no successful deployments have happened, there will be
+		// no active deployment. We can consider all of the deployments in this case except for
+		// the latest one
+		for i := range deployments {
+			deployment := deployments[i]
+			if deploymentVersionFor(deployment) != configuration.Status.LatestVersion {
+				relevantDeployments = append(relevantDeployments, *deployment)
+			}
+		}
+	} else {
+		// if there is an active deployment, we need to filter out any deployments that we don't
+		// care about, namely the active deployment and any newer deployments
+		for i := range deployments {
+			deployment := deployments[i]
+			if deployment != activeDeployment && deploymentVersionFor(deployment) < deploymentVersionFor(activeDeployment) {
+				relevantDeployments = append(relevantDeployments, *deployment)
+			}
+		}
+	}
+
+	return relevantDeployments
+}
+
+// RecordConfigChangeCause sets a deployment config cause for config change.
+func RecordConfigChangeCause(config *appsv1.DeploymentConfig) {
+	config.Status.Details = &appsv1.DeploymentDetails{
+		Causes: []appsv1.DeploymentCause{
+			{
+				Type: appsv1.DeploymentTriggerOnConfigChange,
+			},
+		},
+		Message: "config change",
+	}
+}
+
+// RecordImageChangeCauses sets a deployment config cause for image change. It
+// takes a list of changed images and record an cause for each image.
+func RecordImageChangeCauses(config *appsv1.DeploymentConfig, imageNames []string) {
+	config.Status.Details = &appsv1.DeploymentDetails{
+		Message: "image change",
+	}
+	for _, imageName := range imageNames {
+		config.Status.Details.Causes = append(config.Status.Details.Causes, appsv1.DeploymentCause{
+			Type:         appsv1.DeploymentTriggerOnImageChange,
+			ImageTrigger: &appsv1.DeploymentCauseImageTrigger{From: v1.ObjectReference{Kind: "DockerImage", Name: imageName}},
+		})
+	}
+}
+
+// HasUpdatedImages indicates if the deployment configuration images were updated.
+func HasUpdatedImages(dc *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, []string) {
+	updatedImages := []string{}
+	rcImages := sets.NewString()
+	for _, c := range rc.Spec.Template.Spec.Containers {
+		rcImages.Insert(c.Image)
+	}
+	for _, c := range dc.Spec.Template.Spec.Containers {
+		if !rcImages.Has(c.Image) {
+			updatedImages = append(updatedImages, c.Image)
+		}
+	}
+	if len(updatedImages) == 0 {
+		return false, nil
+	}
+	return true, updatedImages
+}
+
+// HasLatestPodTemplate checks for differences between current deployment config
+// template and deployment config template encoded in the latest replication
+// controller. If they are different it will return an string diff containing
+// the change.
+func HasLatestPodTemplate(currentConfig *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, string, error) {
+	latestConfig, err := DecodeDeploymentConfig(rc)
+	if err != nil {
+		return true, "", err
+	}
+	// The latestConfig represents an encoded DC in the latest deployment (RC).
+	// TODO: This diverges from the upstream behavior where we compare deployment
+	// template vs. replicaset template. Doing that will disallow any
+	// modifications to the RC the deployment config controller create and manage
+	// as a change to the RC will cause the DC to be reconciled and ultimately
+	// trigger a new rollout because of skew between latest RC template and DC
+	// template.
+	if reflect.DeepEqual(currentConfig.Spec.Template, latestConfig.Spec.Template) {
+		return true, "", nil
+	}
+	return false, diff.ObjectReflectDiff(currentConfig.Spec.Template, latestConfig.Spec.Template), nil
+}
+
+// IsProgressing expects a state deployment config and its updated status in order to
+// determine if there is any progress.
+func IsProgressing(config *appsv1.DeploymentConfig, newStatus *appsv1.DeploymentConfigStatus) bool {
+	oldStatusOldReplicas := config.Status.Replicas - config.Status.UpdatedReplicas
+	newStatusOldReplicas := newStatus.Replicas - newStatus.UpdatedReplicas
+
+	return (newStatus.UpdatedReplicas > config.Status.UpdatedReplicas) || (newStatusOldReplicas < oldStatusOldReplicas)
+}
+
 // LabelForDeployment builds a string identifier for a Deployment.
 func LabelForDeployment(deployment *v1.ReplicationController) string {
 	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
+}
+
+// LabelForDeploymentConfig builds a string identifier for a DeploymentConfig.
+func LabelForDeploymentConfig(config runtime.Object) string {
+	accessor, _ := meta.Accessor(config)
+	return fmt.Sprintf("%s/%s", accessor.GetNamespace(), accessor.GetName())
 }
 
 // DeploymentDesiredReplicas returns number of desired replica for the given replication controller
@@ -123,6 +293,12 @@ func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
 // LatestDeploymentNameForConfig returns a stable identifier for deployment config
 func LatestDeploymentNameForConfig(config *appsv1.DeploymentConfig) string {
 	return LatestDeploymentNameForConfigAndVersion(config.Name, config.Status.LatestVersion)
+}
+
+// DeploymentNameForConfigVersion returns the name of the version-th deployment
+// for the config that has the provided name
+func DeploymentNameForConfigVersion(name string, version int64) string {
+	return fmt.Sprintf("%s-%d", name, version)
 }
 
 // LatestDeploymentNameForConfigAndVersion returns a stable identifier for config based on its version.
@@ -147,15 +323,59 @@ func DeleteStatusReasons(rc *v1.ReplicationController) {
 	delete(rc.Annotations, deploymentCancelledAnnotation)
 }
 
-func SetCancellationReasons(rc *v1.ReplicationController) {
+func SetCancelledByUserReason(rc *v1.ReplicationController) {
 	rc.Annotations[deploymentCancelledAnnotation] = "true"
 	rc.Annotations[DeploymentStatusReasonAnnotation] = deploymentCancelledByUser
+}
+
+func SetCancelledByNewerDeployment(rc *v1.ReplicationController) {
+	rc.Annotations[deploymentCancelledAnnotation] = "true"
+	rc.Annotations[DeploymentStatusReasonAnnotation] = deploymentCancelledNewerDeploymentExists
 }
 
 // HasSynced checks if the provided deployment config has been noticed by the deployment
 // config controller.
 func HasSynced(dc *appsv1.DeploymentConfig, generation int64) bool {
 	return dc.Status.ObservedGeneration >= generation
+}
+
+// HasChangeTrigger returns whether the provided deployment configuration has
+// a config change trigger or not
+func HasChangeTrigger(config *appsv1.DeploymentConfig) bool {
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == appsv1.DeploymentTriggerOnConfigChange {
+			return true
+		}
+	}
+	return false
+}
+
+// HasTrigger returns whether the provided deployment configuration has any trigger
+// defined or not.
+func HasTrigger(config *appsv1.DeploymentConfig) bool {
+	return HasChangeTrigger(config) || HasImageChangeTrigger(config)
+}
+
+// HasLastTriggeredImage returns whether all image change triggers in provided deployment
+// configuration has the lastTriggerImage field set (iow. all images were updated for
+// them). Returns false if deployment configuration has no image change trigger defined.
+func HasLastTriggeredImage(config *appsv1.DeploymentConfig) bool {
+	hasImageTrigger := false
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == appsv1.DeploymentTriggerOnImageChange {
+			hasImageTrigger = true
+			if len(trigger.ImageChangeParams.LastTriggeredImage) == 0 {
+				return false
+			}
+		}
+	}
+	return hasImageTrigger
+}
+
+// IsInitialDeployment returns whether the deployment configuration is the first version
+// of this configuration.
+func IsInitialDeployment(config *appsv1.DeploymentConfig) bool {
+	return config.Status.LatestVersion == 0
 }
 
 // IsRollingConfig returns true if the strategy type is a rolling update.
@@ -274,6 +494,13 @@ func DeploymentStatusFor(deployment runtime.Object) DeploymentStatus {
 	return DeploymentStatus(AnnotationFor(deployment, DeploymentStatusAnnotation))
 }
 
+func SetDeploymentLatestVersionAnnotation(rc *v1.ReplicationController, version string) {
+	if rc.Annotations == nil {
+		rc.Annotations = map[string]string{}
+	}
+	rc.Annotations[deploymentVersionAnnotation] = version
+}
+
 func DeploymentVersionFor(obj runtime.Object) int64 {
 	v, err := strconv.ParseInt(AnnotationFor(obj, deploymentVersionAnnotation), 10, 64)
 	if err != nil {
@@ -284,6 +511,26 @@ func DeploymentVersionFor(obj runtime.Object) int64 {
 
 func DeploymentNameFor(obj runtime.Object) string {
 	return AnnotationFor(obj, DeploymentAnnotation)
+}
+
+func deploymentVersionFor(obj runtime.Object) int64 {
+	v, err := strconv.ParseInt(AnnotationFor(obj, deploymentVersionAnnotation), 10, 64)
+	if err != nil {
+		return -1
+	}
+	return v
+}
+
+// LatestDeploymentInfo returns info about the latest deployment for a config,
+// or nil if there is no latest deployment. The latest deployment is not
+// always the same as the active deployment.
+func LatestDeploymentInfo(config *appsv1.DeploymentConfig, deployments []*v1.ReplicationController) (bool, *v1.ReplicationController) {
+	if config.Status.LatestVersion == 0 || len(deployments) == 0 {
+		return false, nil
+	}
+	sort.Sort(ByLatestVersionDesc(deployments))
+	candidate := deployments[0]
+	return deploymentVersionFor(candidate) == config.Status.LatestVersion, candidate
 }
 
 // GetDeploymentCondition returns the condition with the provided type.

@@ -25,8 +25,8 @@ func RunDeployerController(ctx ControllerContext) (bool, error) {
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Deployer.ImageTemplateFormat.Latest
 
 	go deployercontroller.NewDeployerController(
-		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers(),
-		ctx.ExternalKubeInformers.Core().V1().Pods(),
+		ctx.KubernetesInformers.Core().V1().ReplicationControllers(),
+		ctx.KubernetesInformers.Core().V1().Pods(),
 		kubeClient,
 		bootstrappolicy.DeployerServiceAccountName,
 		imageTemplate.ExpandOrDie("deployer"),
@@ -45,9 +45,9 @@ func RunDeploymentConfigController(ctx ControllerContext) (bool, error) {
 	}
 
 	go deployconfigcontroller.NewDeploymentConfigController(
-		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs(),
-		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers(),
-		ctx.ClientBuilder.OpenshiftInternalAppsClientOrDie(saName),
+		ctx.AppsInformers.Apps().V1().DeploymentConfigs(),
+		ctx.KubernetesInformers.Core().V1().ReplicationControllers(),
+		ctx.ClientBuilder.OpenshiftAppsClientOrDie(saName),
 		kubeClient,
 	).Run(5, ctx.Stop)
 

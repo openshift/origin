@@ -19,7 +19,7 @@ import (
 
 func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) authorizer.Authorizer {
 	messageMaker := openshiftauthorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
-	rbacInformers := informers.GetExternalKubeInformers().Rbac().V1()
+	rbacInformers := informers.GetKubernetesInformers().Rbac().V1()
 
 	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister(), messageMaker)
 
@@ -33,10 +33,10 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 	graph := node.NewGraph()
 	node.AddGraphEventHandlers(
 		graph,
-		informers.GetInternalKubeInformers().Core().InternalVersion().Nodes(),
-		informers.GetInternalKubeInformers().Core().InternalVersion().Pods(),
-		informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes(),
-		informers.GetExternalKubeInformers().Storage().V1beta1().VolumeAttachments(),
+		informers.GetInternalKubernetesInformers().Core().InternalVersion().Nodes(),
+		informers.GetInternalKubernetesInformers().Core().InternalVersion().Pods(),
+		informers.GetInternalKubernetesInformers().Core().InternalVersion().PersistentVolumes(),
+		informers.GetKubernetesInformers().Storage().V1beta1().VolumeAttachments(),
 	)
 	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())
 

@@ -31,8 +31,8 @@ func RunServiceAccountController(ctx ControllerContext) (bool, error) {
 	}
 
 	controller, err := sacontroller.NewServiceAccountsController(
-		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
-		ctx.ExternalKubeInformers.Core().V1().Namespaces(),
+		ctx.KubernetesInformers.Core().V1().ServiceAccounts(),
+		ctx.KubernetesInformers.Core().V1().Namespaces(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountControllerServiceAccountName),
 		options)
 	if err != nil {
@@ -47,21 +47,21 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 	kc := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountPullSecretsControllerServiceAccountName)
 
 	go serviceaccountcontrollers.NewDockercfgDeletedController(
-		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		ctx.KubernetesInformers.Core().V1().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgDeletedControllerOptions{},
 	).Run(ctx.Stop)
 
 	go serviceaccountcontrollers.NewDockercfgTokenDeletedController(
-		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		ctx.KubernetesInformers.Core().V1().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{},
 	).Run(ctx.Stop)
 
 	dockerURLsInitialized := make(chan struct{})
 	dockercfgController := serviceaccountcontrollers.NewDockercfgController(
-		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
-		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		ctx.KubernetesInformers.Core().V1().ServiceAccounts(),
+		ctx.KubernetesInformers.Core().V1().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsInitialized: dockerURLsInitialized},
 	)
@@ -74,8 +74,8 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 		AdditionalRegistryURLs: ctx.OpenshiftControllerConfig.DockerPullSecret.RegistryURLs,
 	}
 	go serviceaccountcontrollers.NewDockerRegistryServiceController(
-		ctx.ExternalKubeInformers.Core().V1().Secrets(),
-		ctx.ExternalKubeInformers.Core().V1().Services(),
+		ctx.KubernetesInformers.Core().V1().Secrets(),
+		ctx.KubernetesInformers.Core().V1().Services(),
 		kc,
 		dockerRegistryControllerOptions,
 	).Run(10, ctx.Stop)

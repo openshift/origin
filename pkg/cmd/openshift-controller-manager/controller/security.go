@@ -29,7 +29,7 @@ func RunNamespaceSecurityAllocationController(ctx ControllerContext) (bool, erro
 	}
 
 	controller := sccallocation.NewNamespaceSCCAllocationController(
-		ctx.ExternalKubeInformers.Core().V1().Namespaces(),
+		ctx.KubernetesInformers.Core().V1().Namespaces(),
 		kubeClient.CoreV1().Namespaces(),
 		securityClient.SecurityV1(),
 		uidRange,

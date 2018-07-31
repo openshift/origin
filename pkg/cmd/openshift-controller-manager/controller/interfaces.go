@@ -6,15 +6,15 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kexternalinformers "k8s.io/client-go/informers"
+	kubeinformers "k8s.io/client-go/informers"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	appsinformer "github.com/openshift/client-go/apps/informers/externalversions"
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
-	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -37,16 +37,19 @@ type ControllerContext struct {
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
 
-	ExternalKubeInformers   kexternalinformers.SharedInformerFactory
-	AppInformers            appinformer.SharedInformerFactory
-	BuildInformers          buildinformer.SharedInformerFactory
-	ImageInformers          imageinformer.SharedInformerFactory
-	NetworkInformers        networkinformer.SharedInformerFactory
-	TemplateInformers       templateinformer.SharedInformerFactory
-	QuotaInformers          quotainformer.SharedInformerFactory
-	AuthorizationInformers  authorizationinformer.SharedInformerFactory
-	RouteInformers          routeinformer.SharedInformerFactory
-	SecurityInformers       securityinformer.SharedInformerFactory
+	KubernetesInformers kubeinformers.SharedInformerFactory
+
+	InternalBuildInformers         buildinformer.SharedInformerFactory
+	InternalImageInformers         imageinformer.SharedInformerFactory
+	InternalNetworkInformers       networkinformer.SharedInformerFactory
+	InternalTemplateInformers      templateinformer.SharedInformerFactory
+	InternalQuotaInformers         quotainformer.SharedInformerFactory
+	InternalAuthorizationInformers authorizationinformer.SharedInformerFactory
+	InternalRouteInformers         routeinformer.SharedInformerFactory
+	InternalSecurityInformers      securityinformer.SharedInformerFactory
+
+	AppsInformers appsinformer.SharedInformerFactory
+
 	GenericResourceInformer GenericResourceInformer
 	RestMapper              meta.RESTMapper
 
@@ -58,7 +61,7 @@ type ControllerContext struct {
 }
 
 type GenericResourceInformer interface {
-	ForResource(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error)
+	ForResource(resource schema.GroupVersionResource) (kubeinformers.GenericInformer, error)
 	Start(stopCh <-chan struct{})
 }
 
@@ -71,8 +74,8 @@ type ControllerClientBuilder interface {
 	KubeInternalClient(name string) (kclientsetinternal.Interface, error)
 	KubeInternalClientOrDie(name string) kclientsetinternal.Interface
 
-	OpenshiftInternalAppsClient(name string) (appsclientinternal.Interface, error)
-	OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface
+	OpenshiftAppsClient(name string) (appsclient.Interface, error)
+	OpenshiftAppsClientOrDie(name string) appsclient.Interface
 
 	OpenshiftInternalBuildClient(name string) (buildclientinternal.Interface, error)
 	OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface
@@ -92,6 +95,7 @@ type ControllerClientBuilder interface {
 
 	OpenshiftInternalSecurityClient(name string) (securityclient.Interface, error)
 	OpenshiftInternalSecurityClientOrDie(name string) securityclient.Interface
+
 	OpenshiftV1SecurityClient(name string) (securityv1client.Interface, error)
 	OpenshiftV1SecurityClientOrDie(name string) securityv1client.Interface
 }
@@ -165,22 +169,22 @@ func (b OpenshiftControllerClientBuilder) OpenshiftInternalImageClientOrDie(name
 	return client
 }
 
-// OpenshiftInternalAppsClient provides a REST client for the apps API.
+// OpenshiftAppsClient provides a REST client for the apps API.
 // If the client cannot be created because of configuration error, this function
 // will error.
-func (b OpenshiftControllerClientBuilder) OpenshiftInternalAppsClient(name string) (appsclientinternal.Interface, error) {
+func (b OpenshiftControllerClientBuilder) OpenshiftAppsClient(name string) (appsclient.Interface, error) {
 	clientConfig, err := b.Config(name)
 	if err != nil {
 		return nil, err
 	}
-	return appsclientinternal.NewForConfig(clientConfig)
+	return appsclient.NewForConfig(clientConfig)
 }
 
-// OpenshiftInternalAppsClientOrDie provides a REST client for the apps API.
+// OpenshiftAppsClientOrDie provides a REST client for the apps API.
 // If the client cannot be created because of configuration error, this function
 // will panic.
-func (b OpenshiftControllerClientBuilder) OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface {
-	client, err := b.OpenshiftInternalAppsClient(name)
+func (b OpenshiftControllerClientBuilder) OpenshiftAppsClientOrDie(name string) appsclient.Interface {
+	client, err := b.OpenshiftAppsClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}

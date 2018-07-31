@@ -43,12 +43,12 @@ import (
 )
 
 type InformerAccess interface {
-	GetInternalKubeInformers() kinternalinformers.SharedInformerFactory
-	GetExternalKubeInformers() kexternalinformers.SharedInformerFactory
-	GetImageInformers() imageinformer.SharedInformerFactory
-	GetQuotaInformers() quotainformer.SharedInformerFactory
-	GetSecurityInformers() securityinformer.SharedInformerFactory
-	GetUserInformers() userinformer.SharedInformerFactory
+	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
+	GetKubernetesInformers() kexternalinformers.SharedInformerFactory
+	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
+	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
+	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
+	GetInternalOpenshiftUserInformers() userinformer.SharedInformerFactory
 }
 
 func NewPluginInitializer(
@@ -92,7 +92,7 @@ func NewPluginInitializer(
 	// TODO make a union registry
 	quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
 	imageEvaluators := image.NewReplenishmentEvaluatorsForAdmission(
-		informers.GetImageInformers().Image().InternalVersion().ImageStreams(),
+		informers.GetInternalOpenshiftImageInformers().Image().InternalVersion().ImageStreams(),
 		imageClient.Image(),
 	)
 	for i := range imageEvaluators {
@@ -124,13 +124,13 @@ func NewPluginInitializer(
 	// note: we are passing a combined quota registry here...
 	genericInitializer := initializer.New(
 		kubeClientGoClientSet,
-		informers.GetExternalKubeInformers(),
+		informers.GetKubernetesInformers(),
 		authorizer,
 		legacyscheme.Scheme,
 	)
 	kubePluginInitializer := kadmission.NewPluginInitializer(
 		kubeInternalClient,
-		informers.GetInternalKubeInformers(),
+		informers.GetInternalKubernetesInformers(),
 		cloudConfig,
 		restMapper,
 		generic.NewConfiguration(quotaRegistry.List(), map[schema.GroupResource]struct{}{}))
@@ -154,7 +154,7 @@ func NewPluginInitializer(
 
 	webhookInitializer := webhookinitializer.NewPluginInitializer(
 		webhookAuthResolverWrapper,
-		aggregatorapiserver.NewClusterIPServiceResolver(informers.GetExternalKubeInformers().Core().V1().Services().Lister()),
+		aggregatorapiserver.NewClusterIPServiceResolver(informers.GetKubernetesInformers().Core().V1().Services().Lister()),
 	)
 
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
@@ -168,12 +168,12 @@ func NewPluginInitializer(
 		Authorizer:                           authorizer,
 		JenkinsPipelineConfig:                options.JenkinsPipelineConfig,
 		RESTClientConfig:                     *privilegedLoopbackConfig,
-		Informers:                            informers.GetInternalKubeInformers(),
-		ClusterResourceQuotaInformer:         informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+		Informers:                            informers.GetInternalKubernetesInformers(),
+		ClusterResourceQuotaInformer:         informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:                   clusterQuotaMappingController.GetClusterQuotaMapper(),
 		RegistryHostnameRetriever:            imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
-		SecurityInformers:                    informers.GetSecurityInformers(),
-		UserInformers:                        informers.GetUserInformers(),
+		SecurityInformers:                    informers.GetInternalOpenshiftSecurityInformers(),
+		UserInformers:                        informers.GetInternalOpenshiftUserInformers(),
 	}
 
 	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil

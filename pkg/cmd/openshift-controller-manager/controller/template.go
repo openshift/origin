@@ -24,7 +24,7 @@ func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
 		ctx.ClientBuilder.KubeInternalClientOrDie(saName),
 		ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(saName),
 		ctx.ClientBuilder.OpenshiftInternalTemplateClientOrDie(saName),
-		ctx.TemplateInformers.Template().InternalVersion().TemplateInstances(),
+		ctx.InternalTemplateInformers.Template().InternalVersion().TemplateInstances(),
 	).Run(5, ctx.Stop)
 
 	return true, nil
@@ -46,7 +46,7 @@ func RunTemplateInstanceFinalizerController(ctx ControllerContext) (bool, error)
 		ctx.RestMapper,
 		dynamicClient,
 		ctx.ClientBuilder.OpenshiftInternalTemplateClientOrDie(saName),
-		ctx.TemplateInformers.Template().InternalVersion().TemplateInstances(),
+		ctx.InternalTemplateInformers.Template().InternalVersion().TemplateInstances(),
 	).Run(5, ctx.Stop)
 
 	return true, nil
