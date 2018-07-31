@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/test"
@@ -45,9 +46,9 @@ func newFakeLayeredWithScripts(workDir string) *Layered {
 
 func TestBuildOK(t *testing.T) {
 	workDir, _ := ioutil.TempDir("", "sti")
-	scriptDir := filepath.Join(workDir, api.UploadScripts)
+	scriptDir := filepath.Join(workDir, constants.UploadScripts)
 	err := os.MkdirAll(scriptDir, 0700)
-	assemble := filepath.Join(scriptDir, api.Assemble)
+	assemble := filepath.Join(scriptDir, constants.Assemble)
 	file, err := os.Create(assemble)
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
@@ -78,9 +79,9 @@ func TestBuildOK(t *testing.T) {
 
 func TestBuildOKWithImageRef(t *testing.T) {
 	workDir, _ := ioutil.TempDir("", "sti")
-	scriptDir := filepath.Join(workDir, api.UploadScripts)
+	scriptDir := filepath.Join(workDir, constants.UploadScripts)
 	err := os.MkdirAll(scriptDir, 0700)
-	assemble := filepath.Join(scriptDir, api.Assemble)
+	assemble := filepath.Join(scriptDir, constants.Assemble)
 	file, err := os.Create(assemble)
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)

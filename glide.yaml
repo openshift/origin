@@ -50,7 +50,7 @@ import:
   version: master
 # master already branched for 3.11
 - package: github.com/openshift/source-to-image
-  version: release-3.10
+  version: master
 
 # forks third
 # master

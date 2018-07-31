@@ -69,29 +69,40 @@ that image and add them to the tar streamed to the container into `/artifacts`.
 
 #### Build flags
 
-| Name                       | Description                                             |
-|:-------------------------- |:--------------------------------------------------------|
-| `--callback-url`           | URL to be invoked after a build (see [Callback URL](#callback-url)) |
-| `-c (--copy)`              | Use local file system copy instead of git cloning the source url (allows for inclusion of empty directories and uncommitted files) |
-| `-d (--destination)`       | Location where the scripts and sources will be placed prior doing build (see [S2I Scripts](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#s2i-scripts)) |
-| `--dockercfg-path`         | The path to the Docker configuration file |
-| `--incremental`            | Try to perform an incremental build |
-| `-e (--env)`               | Environment variable to be passed to the builder eg. `NAME=VALUE` |
-| `-E (--environment-file)`  | Specify the path to the file with environment |
-| `--exclude`  | Regular expression for selecting files from the source tree to exclude from the build, where the default excludes the '.git' directory (see https://golang.org/pkg/regexp for syntax, but note that \"\" will be interpreted as allow all files and exclude no files) |
-| `-p (--pull-policy)`       | Specify when to pull the builder image (`always`, `never` or `if-not-present`. Defaults to `if-not-present`) |
-| `--run`                    | Launch the resulting image after a successful build. All output from the image is being printed to help determine image's validity. In case of a long running image you will have to Ctrl-C to exit both s2i and the running container.  (defaults to false) |
-| `-r (--ref)`               | A branch/tag that the build should use instead of MASTER (applies only to Git source) |
-| `--rm`                     | Remove the previous image during incremental builds |
-| `--save-temp-dir`          | Save the working directory used for fetching scripts and sources |
-| `--context-dir`            | Specify the directory containing your application (if not located within the root path) |
-| `-s (--scripts-url)`       | URL of S2I scripts (see [S2I Scripts](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#s2i-scripts)) |
-| `--ignore-submodules`      | Ignore all git submodules when cloning application repository. (defaults to false)|
-| `-q (--quiet)`             | Operate quietly, suppressing all non-error output |
-| `-i (--inject)`            | Inject the content of the specified directory into the path in the container that runs the assemble script |
-| `-v (--volume)`            | Bind mounts a local directory into the container that runs the assemble script|
-| `--runtime-image`          | Image that will be used as the base for the runtime image (see [How to use a non-builder image for the final application image](https://github.com/openshift/source-to-image/blob/master/docs/runtime_image.md)) |
-| `-a (--runtime-artifact)`  | Specify a file or directory to be copied from the builder to the runtime image  (see [How to use a non-builder image for the final application image](https://github.com/openshift/source-to-image/blob/master/docs/runtime_image.md)) |
+| Name                        | Description                                             |
+|:----------------------------|:--------------------------------------------------------| 
+| `-u (--allowed-uids)`       | Specify a range of allowed user ids for the builder and runtime images. Ranges can be bounded (`1-10001`) or unbounded (`1-`). |
+| `-n (--application-name`)   | Specify the display name for the application (default: output image name) |
+| `--as-dockerfile`           | EXPERIMENTAL: Output a Dockerfile to this path instead of building a new image |
+| `--assemble-user`           | Specify the user to run assemble with |
+| `--callback-url`            | URL to be invoked after a build (see [Callback URL](#callback-url)) |
+| `--cap-drop`                | Specify a comma-separated list of capabilities to drop when running Docker containers |
+| `--context-dir`             | Specify the sub-directory inside the repository with the application sources |
+| `-c (--copy)`               | Use local file system copy instead of git cloning the source url (allows for inclusion of empty directories and uncommitted files) |
+| `--description`             | Specify the description of the application |
+| `-d (--destination)`        | Location where the scripts and sources will be placed prior doing build (see [S2I Scripts](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#s2i-scripts)) |
+| `--dockercfg-path`          | The path to the Docker configuration file |
+| `-e (--env)`                | Environment variable to be passed to the builder eg. `NAME=VALUE` |
+| `-E (--environment-file)`   | Specify the path to the file with environment |
+| `--exclude`                 | Regular expression for selecting files from the source tree to exclude from the build, where the default excludes the '.git' directory (see https://golang.org/pkg/regexp for syntax, but note that \"\" will be interpreted as allow all files and exclude no files) |
+| `--ignore-submodules`       | Ignore all git submodules when cloning application repository. (defaults to false)|
+| `--incremental`             | Try to perform an incremental build |
+| `--incremental-pull-policy` | Specify when to pull the previous image for incremental builds (always, never or if-not-present) (default "if-not-present") |
+| `-i (--inject)`             | Inject the content of the specified directory into the path in the container that runs the assemble script |
+| `--network`                 | Specify the default Docker Network name to be used in build process |
+| `-p (--pull-policy)`        | Specify when to pull the builder image (`always`, `never` or `if-not-present`. Defaults to `if-not-present`) |
+| `-q (--quiet)`              | Operate quietly, suppressing all non-error output |
+| `-r (--ref)`                | A branch/tag that the build should use instead of MASTER (applies only to Git source) |
+| `--rm`                      | Remove the previous image during incremental builds |
+| `--run`                     | Launch the resulting image after a successful build. All output from the image is being printed to help determine image's validity. In case of a long running image you will have to Ctrl-C to exit both s2i and the running container.  (defaults to false) |
+| `-a (--runtime-artifact)`   | Specify a file or directory to be copied from the builder to the runtime image  (see [How to use a non-builder image for the final application image](https://github.com/openshift/source-to-image/blob/master/docs/runtime_image.md)) |
+| `--runtime-image`           | Image that will be used as the base for the runtime image (see [How to use a non-builder image for the final application image](https://github.com/openshift/source-to-image/blob/master/docs/runtime_image.md)) |
+| `--runtime-pull-policy`     | Specify when to pull the runtime image (always, never or if-not-present) (default "if-not-present") |
+| `--save-temp-dir`           | Save the working directory used for fetching scripts and sources |
+| `-s (--scripts-url)`        | URL of S2I scripts (see [S2I Scripts](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#s2i-scripts)) |
+| `--use-config`              | Store command line options to .s2ifile |
+| `-v (--volume)`             | Bind mounts a local directory into the container that runs the assemble script |
+
 
 #### Context directory
 
@@ -148,7 +159,7 @@ Build a Ruby application from a Git source, using the official `ruby-23-centos7`
 image, the resulting image will be named `ruby-app`:
 
 ```
-$ s2i build https://github.com/openshift/ruby-hello-world openshift/ruby-23-centos7 ruby-app
+$ s2i build https://github.com/openshift/ruby-hello-world centos/ruby-23-centos7 ruby-app
 ```
 
 Build a Node.js application from a local directory, using a local image, the resulting
@@ -177,7 +188,7 @@ Build a Ruby application from a Git source, specifying `ref`, and using the offi
 `ruby-23-centos7` builder image.  The resulting image will be named `ruby-app`:
 
 ```
-$ s2i build --ref=my-branch https://github.com/openshift/ruby-hello-world openshift/ruby-23-centos7 ruby-app
+$ s2i build --ref=my-branch https://github.com/openshift/ruby-hello-world centos/ruby-23-centos7 ruby-app
 ```
 
 ***NOTE:*** If the ref is invalid or not present in the source repository then the build will fail.
@@ -186,7 +197,7 @@ Build a Ruby application from a Git source, overriding the scripts URL from a lo
 and specifying the scripts and sources be placed in `/opt` directory:
 
 ```
-$ s2i build --scripts-url=file://s2iscripts --destination=/opt https://github.com/openshift/ruby-hello-world openshift/ruby-23-centos7 ruby-app
+$ s2i build --scripts-url=file://s2iscripts --destination=/opt https://github.com/openshift/ruby-hello-world centos/ruby-23-centos7 ruby-app
 ```
 
 # s2i rebuild
@@ -232,7 +243,7 @@ $ s2i usage <builder image> [flags]
 
 Print the official `ruby-23-centos7` builder image usage:
 ```
-$ s2i usage openshift/ruby-23-centos7
+$ s2i usage centos/ruby-23-centos7
 ```
 
 

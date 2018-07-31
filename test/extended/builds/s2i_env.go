@@ -59,7 +59,7 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a test build")
-				path := exutil.FixturePath("testdata", "builds", "sti-environment-build-app")
+				path := exutil.FixturePath("testdata", "builds", "s2i-environment-build-app")
 				br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", path)
 				br.AssertSuccess()
 

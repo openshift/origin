@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies/layered"
 	dockerpkg "github.com/openshift/source-to-image/pkg/docker"
@@ -34,10 +35,10 @@ var (
 
 	// List of directories that needs to be present inside working dir
 	workingDirs = []string{
-		api.UploadScripts,
-		api.Source,
-		api.DefaultScripts,
-		api.UserScripts,
+		constants.UploadScripts,
+		constants.Source,
+		constants.DefaultScripts,
+		constants.UserScripts,
 	}
 
 	errMissingRequirements = errors.New("missing requirements")
@@ -121,9 +122,9 @@ func New(client dockerpkg.Client, config *api.Config, fs fs.FileSystem, override
 		fs:                     fs,
 		tar:                    tarHandler,
 		callbackInvoker:        util.NewCallbackInvoker(),
-		requiredScripts:        []string{api.Assemble, api.Run},
-		optionalScripts:        []string{api.SaveArtifacts},
-		optionalRuntimeScripts: []string{api.AssembleRuntime},
+		requiredScripts:        scripts.RequiredScripts,
+		optionalScripts:        scripts.OptionalScripts,
+		optionalRuntimeScripts: []string{constants.AssembleRuntime},
 		externalScripts:        map[string]bool{},
 		installedScripts:       map[string]bool{},
 		scriptsURL:             map[string]string{},
@@ -201,7 +202,7 @@ func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 	}
 
 	if builder.incremental = builder.artifacts.Exists(config); builder.incremental {
-		tag := firstNonEmpty(config.IncrementalFromTag, config.Tag)
+		tag := util.FirstNonEmpty(config.IncrementalFromTag, config.Tag)
 		glog.V(1).Infof("Existing image for tag %s detected for incremental build", tag)
 	} else {
 		glog.V(1).Info("Clean build will be performed")
@@ -216,12 +217,12 @@ func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 	}
 
 	if len(config.AssembleUser) > 0 {
-		glog.V(1).Infof("Running %q in %q as %q user", api.Assemble, config.Tag, config.AssembleUser)
+		glog.V(1).Infof("Running %q in %q as %q user", constants.Assemble, config.Tag, config.AssembleUser)
 	} else {
-		glog.V(1).Infof("Running %q in %q", api.Assemble, config.Tag)
+		glog.V(1).Infof("Running %q in %q", constants.Assemble, config.Tag)
 	}
 	startTime := time.Now()
-	if err := builder.scripts.Execute(api.Assemble, config.AssembleUser, config); err != nil {
+	if err := builder.scripts.Execute(constants.Assemble, config.AssembleUser, config); err != nil {
 		if err == errMissingRequirements {
 			glog.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")
 			return builder.layered.Build(config)
@@ -307,7 +308,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 						utilstatus.ReasonMessageGenericS2iBuildFailed,
 					)
 					return fmt.Errorf("could not  parse %q label with value %q on image %q: %v",
-						dockerpkg.AssembleInputFilesLabel, mapping, config.RuntimeImage, err)
+						constants.AssembleInputFilesLabel, mapping, config.RuntimeImage, err)
 				}
 			}
 		}
@@ -383,7 +384,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 	if len(config.ScriptsURL) > 0 {
 		failedCount := 0
 		for _, result := range requiredAndOptional {
-			if includes(result.FailedSources, scripts.ScriptURLHandler) {
+			if util.Includes(result.FailedSources, scripts.ScriptURLHandler) {
 				failedCount++
 			}
 		}
@@ -439,13 +440,15 @@ func (builder *STI) PostExecute(containerID, destination string) error {
 	return nil
 }
 
-func createBuildEnvironment(config *api.Config) []string {
-	env, err := scripts.GetEnvironment(config)
+// CreateBuildEnvironment constructs the environment variables to be provided to the assemble
+// script and committed in the new image.
+func CreateBuildEnvironment(sourcePath string, cfgEnv api.EnvironmentList) []string {
+	s2iEnv, err := scripts.GetEnvironment(filepath.Join(sourcePath, constants.Source))
 	if err != nil {
 		glog.V(3).Infof("No user environment provided (%v)", err)
 	}
 
-	return append(scripts.ConvertEnvironmentList(env), scripts.ConvertEnvironmentList(config.Environment)...)
+	return append(scripts.ConvertEnvironmentList(s2iEnv), scripts.ConvertEnvironmentList(cfgEnv)...)
 }
 
 // Exists determines if the current build supports incremental workflow.
@@ -461,7 +464,7 @@ func (builder *STI) Exists(config *api.Config) bool {
 		policy = api.DefaultPreviousImagePullPolicy
 	}
 
-	tag := firstNonEmpty(config.IncrementalFromTag, config.Tag)
+	tag := util.FirstNonEmpty(config.IncrementalFromTag, config.Tag)
 
 	startTime := time.Now()
 	result, err := dockerpkg.PullImage(tag, builder.incrementalDocker, policy)
@@ -476,7 +479,7 @@ func (builder *STI) Exists(config *api.Config) bool {
 		return false
 	}
 
-	return result.Image != nil && builder.installedScripts[api.SaveArtifacts]
+	return result.Image != nil && builder.installedScripts[constants.SaveArtifacts]
 }
 
 // Save extracts and restores the build artifacts from the previous build to
@@ -495,7 +498,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 		return err
 	}
 
-	image := firstNonEmpty(config.IncrementalFromTag, config.Tag)
+	image := util.FirstNonEmpty(config.IncrementalFromTag, config.Tag)
 
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
@@ -526,11 +529,11 @@ func (builder *STI) Save(config *api.Config) (err error) {
 	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
 		User:            user,
-		ExternalScripts: builder.externalScripts[api.SaveArtifacts],
+		ExternalScripts: builder.externalScripts[constants.SaveArtifacts],
 		ScriptsURL:      config.ScriptsURL,
 		Destination:     config.Destination,
 		PullImage:       false,
-		Command:         api.SaveArtifacts,
+		Command:         constants.SaveArtifacts,
 		Stdout:          outWriter,
 		Stderr:          errWriter,
 		OnStart:         extractFunc,
@@ -567,7 +570,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 
 	// we can't invoke this method before (for example in New() method)
 	// because of later initialization of config.WorkingDir
-	builder.env = createBuildEnvironment(config)
+	builder.env = CreateBuildEnvironment(config.WorkingDir, config.Environment)
 
 	errOutput := ""
 	outReader, outWriter := io.Pipe()
@@ -603,7 +606,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 	// and wait till all injections are uploaded into the container that runs the
 	// assemble script.
 	injectionError := make(chan error)
-	if len(config.Injections) > 0 && command == api.Assemble {
+	if len(config.Injections) > 0 && command == constants.Assemble {
 		workdir, err := builder.docker.GetImageWorkdir(config.BuilderImage)
 		if err != nil {
 			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
@@ -754,22 +757,4 @@ func isMissingRequirements(text string) bool {
 	tarCommand, _ := regexp.MatchString(`.*tar.*not found`, text)
 	shCommand, _ := regexp.MatchString(`.*/bin/sh.*no such file or directory`, text)
 	return tarCommand || shCommand
-}
-
-func includes(arr []string, str string) bool {
-	for _, s := range arr {
-		if s == str {
-			return true
-		}
-	}
-	return false
-}
-
-func firstNonEmpty(args ...string) string {
-	for _, value := range args {
-		if len(value) > 0 {
-			return value
-		}
-	}
-	return ""
 }

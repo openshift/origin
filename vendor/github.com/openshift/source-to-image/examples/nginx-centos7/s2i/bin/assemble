@@ -17,10 +17,10 @@ fi
 # We set them here just for show, but you will need to set this up with your logic
 # according to the application directory that you chose.
 
-#if [ "$(ls /tmp/artifacts/ 2>/dev/null)" ]; then
-#  echo "---> Restoring build artifacts..."
-#  mv /tmp/artifacts/* <your directory here>
-#fi
+if [ "$(ls /tmp/artifacts/ 2>/dev/null)" ]; then
+  echo "---> Restoring build artifacts..."
+  mv /tmp/artifacts/* /etc/nginx
+fi
 
 # Override the default nginx index.html file.
 # This is what we consider in this example 'installing the application'
