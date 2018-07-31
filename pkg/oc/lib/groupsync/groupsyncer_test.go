@@ -11,12 +11,13 @@ import (
 	"gopkg.in/ldap.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clientgotesting "k8s.io/client-go/testing"
+	clienttesting "k8s.io/client-go/testing"
 
+	userv1 "github.com/openshift/api/user/v1"
+	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
+	fakeuserv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userfakeclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )
 
 func TestMakeOpenShiftGroup(t *testing.T) {
@@ -35,7 +36,7 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 		ldapGroupUID   string
 		usernames      []string
 		startingGroups []runtime.Object
-		expectedGroup  *userapi.Group
+		expectedGroup  *userv1.Group
 		expectedErr    string
 	}{
 		"bad ldapGroupUID": {
@@ -45,7 +46,7 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 		"good": {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
-			expectedGroup: &userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
+			expectedGroup: &userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
 				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
 				Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 				Users: []string{"valerie"}},
@@ -53,12 +54,12 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 		"replaced good": {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
-			expectedGroup: &userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
+			expectedGroup: &userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
 				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
 				Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 				Users: []string{"valerie"}},
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 					Users: []string{"other-user"}},
@@ -68,7 +69,7 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "bravo"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 					Users: []string{"other-user"}},
@@ -79,7 +80,7 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "bad-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "bad-host"}},
 					Users: []string{"other-user"}},
@@ -90,7 +91,7 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port2", ldaputil.LDAPUIDAnnotation: "alfa"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 					Users: []string{"other-user"}},
@@ -100,8 +101,8 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 	}
 
 	for name, tc := range tcs {
-		fakeClient := userfakeclient.NewSimpleClientset(tc.startingGroups...)
-		syncer.GroupClient = fakeClient.User().Groups()
+		fakeClient := &fakeuserv1client.FakeUserV1{Fake: &(fakeuserclient.NewSimpleClientset(tc.startingGroups...).Fake)}
+		syncer.GroupClient = fakeClient.Groups()
 
 		actualGroup, err := syncer.makeOpenShiftGroup(tc.ldapGroupUID, tc.usernames)
 		if err != nil && len(tc.expectedErr) == 0 {
@@ -230,7 +231,7 @@ func TestMissingLDAPGroupUIDMapping(t *testing.T) {
 	checkClientForGroups(tc, newDefaultOpenShiftGroups(testGroupSyncer.Host), t)
 }
 
-func checkClientForGroups(tc *userfakeclient.Clientset, expectedGroups []*userapi.Group, t *testing.T) {
+func checkClientForGroups(tc *fakeuserv1client.FakeUserV1, expectedGroups []*userv1.Group, t *testing.T) {
 	actualGroups := extractActualGroups(tc)
 
 	for _, expectedGroup := range expectedGroups {
@@ -240,7 +241,7 @@ func checkClientForGroups(tc *userfakeclient.Clientset, expectedGroups []*userap
 	}
 }
 
-func groupExists(haystack []*userapi.Group, needle *userapi.Group) bool {
+func groupExists(haystack []*userv1.Group, needle *userv1.Group) bool {
 	for _, actual := range haystack {
 		actualGroup := actual.DeepCopy()
 		delete(actualGroup.Annotations, ldaputil.LDAPSyncTimeAnnotation)
@@ -253,22 +254,22 @@ func groupExists(haystack []*userapi.Group, needle *userapi.Group) bool {
 	return false
 }
 
-func extractActualGroups(tc *userfakeclient.Clientset) []*userapi.Group {
-	ret := []*userapi.Group{}
+func extractActualGroups(tc *fakeuserv1client.FakeUserV1) []*userv1.Group {
+	ret := []*userv1.Group{}
 	for _, genericAction := range tc.Actions() {
 		switch action := genericAction.(type) {
-		case clientgotesting.CreateAction:
-			ret = append(ret, action.GetObject().(*userapi.Group))
-		case clientgotesting.UpdateAction:
-			ret = append(ret, action.GetObject().(*userapi.Group))
+		case clienttesting.CreateAction:
+			ret = append(ret, action.GetObject().(*userv1.Group))
+		case clienttesting.UpdateAction:
+			ret = append(ret, action.GetObject().(*userv1.Group))
 		}
 	}
 
 	return ret
 }
 
-func newDefaultOpenShiftGroups(host string) []*userapi.Group {
-	return []*userapi.Group{
+func newDefaultOpenShiftGroups(host string) []*userv1.Group {
+	return []*userv1.Group{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "os" + Group1UID,
@@ -312,14 +313,14 @@ func newDefaultOpenShiftGroups(host string) []*userapi.Group {
 
 }
 
-func newTestSyncer() (*LDAPGroupSyncer, *userfakeclient.Clientset) {
-	tc := userfakeclient.NewSimpleClientset()
-	tc.PrependReactor("create", "groups", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		createAction := action.(clientgotesting.CreateAction)
+func newTestSyncer() (*LDAPGroupSyncer, *fakeuserv1client.FakeUserV1) {
+	tc := &fakeuserv1client.FakeUserV1{Fake: &(fakeuserclient.NewSimpleClientset().Fake)}
+	tc.PrependReactor("create", "groups", func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
+		createAction := action.(clienttesting.CreateAction)
 		return true, createAction.GetObject(), nil
 	})
-	tc.PrependReactor("update", "groups", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		updateAction := action.(clientgotesting.UpdateAction)
+	tc.PrependReactor("update", "groups", func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
+		updateAction := action.(clienttesting.UpdateAction)
 		return true, updateAction.GetObject(), nil
 	})
 
@@ -328,7 +329,7 @@ func newTestSyncer() (*LDAPGroupSyncer, *userfakeclient.Clientset) {
 		GroupMemberExtractor: newTestMemberExtractor(),
 		UserNameMapper:       newTestUserNameMapper(),
 		GroupNameMapper:      newTestGroupNameMapper(),
-		GroupClient:          tc.User().Groups(),
+		GroupClient:          tc.Groups(),
 		Host:                 newTestHost(),
 		Out:                  ioutil.Discard,
 		Err:                  ioutil.Discard,

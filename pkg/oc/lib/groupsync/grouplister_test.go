@@ -7,12 +7,13 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clientgotesting "k8s.io/client-go/testing"
+	clienttesting "k8s.io/client-go/testing"
 
+	userv1 "github.com/openshift/api/user/v1"
+	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
+	fakeuserv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	_ "github.com/openshift/origin/pkg/user/apis/user/install"
-	userfakeclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )
 
 func TestListAllOpenShiftGroups(t *testing.T) {
@@ -24,7 +25,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 	}{
 		"good": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
@@ -35,7 +36,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no url annotation": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPUIDAnnotation: "alpha-uid"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -43,7 +44,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no uid annotation": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -51,13 +52,13 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no match: different port": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port2",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
 					},
 					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "beta-uid",
@@ -68,13 +69,13 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"blacklist": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
 					},
 					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
-				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
+				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "beta-uid",
@@ -87,8 +88,8 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
-		fakeClient := userfakeclient.NewSimpleClientset(testCase.startingGroups...)
-		lister := NewAllOpenShiftGroupLister(testCase.blacklist, "test-host:port", fakeClient.User().Groups())
+		fakeClient := &fakeuserv1client.FakeUserV1{Fake: &(fakeuserclient.NewSimpleClientset(testCase.startingGroups...).Fake)}
+		lister := NewAllOpenShiftGroupLister(testCase.blacklist, "test-host:port", fakeClient.Groups())
 
 		groupNames, err := lister.ListGroups()
 		if err != nil {
@@ -110,12 +111,12 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 }
 
 func TestListAllOpenShiftGroupsListErr(t *testing.T) {
-	listFailClient := userfakeclient.NewSimpleClientset()
-	listFailClient.PrependReactor("list", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+	listFailClient := &fakeuserv1client.FakeUserV1{Fake: &clienttesting.Fake{}}
+	listFailClient.PrependReactor("list", "groups", func(action clienttesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("fail")
 	})
 
-	lister := NewAllOpenShiftGroupLister([]string{}, "test-host:port", listFailClient.User().Groups())
+	lister := NewAllOpenShiftGroupLister([]string{}, "test-host:port", listFailClient.Groups())
 	groupUIDs, err := lister.ListGroups()
 	if err == nil {
 		t.Error("expected an error listing groups, got none")
@@ -131,14 +132,14 @@ func TestListAllOpenShiftGroupsListErr(t *testing.T) {
 
 func TestListWhitelistOpenShiftGroups(t *testing.T) {
 	testCases := map[string]struct {
-		startingGroups []*userapi.Group
+		startingGroups []*userv1.Group
 		whitelist      []string
 		blacklist      []string
 		expectedName   string
 		expectedErr    string
 	}{
 		"good": {
-			startingGroups: []*userapi.Group{
+			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
@@ -150,7 +151,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 			expectedName: "alpha-uid",
 		},
 		"no url annotation": {
-			startingGroups: []*userapi.Group{
+			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPUIDAnnotation: "alpha-uid"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
@@ -159,7 +160,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 			expectedErr: `group "alpha" marked as having been synced did not have an openshift.io/ldap.url annotation`,
 		},
 		"no uid annotation": {
-			startingGroups: []*userapi.Group{
+			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
@@ -168,7 +169,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 			expectedErr: `group "alpha" marked as having been synced did not have an openshift.io/ldap.uid annotation`,
 		},
 		"no match: different port": {
-			startingGroups: []*userapi.Group{
+			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port2",
@@ -180,7 +181,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 			expectedErr: `group "alpha" was not synchronized from: test-host:port`,
 		},
 		"blacklist": {
-			startingGroups: []*userapi.Group{
+			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
@@ -201,18 +202,18 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
-		fakeClient := userfakeclient.NewSimpleClientset()
-		fakeClient.PrependReactor("get", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-			groups := map[string]*userapi.Group{}
+		fakeClient := &fakeuserv1client.FakeUserV1{Fake: &clienttesting.Fake{}}
+		fakeClient.PrependReactor("get", "groups", func(action clienttesting.Action) (bool, runtime.Object, error) {
+			groups := map[string]*userv1.Group{}
 			for _, group := range testCase.startingGroups {
 				groups[group.Name] = group
 			}
-			if group, exists := groups[action.(clientgotesting.GetAction).GetName()]; exists {
+			if group, exists := groups[action.(clienttesting.GetAction).GetName()]; exists {
 				return true, group, nil
 			}
 			return false, nil, nil
 		})
-		lister := NewOpenShiftGroupLister(testCase.whitelist, testCase.blacklist, "test-host:port", fakeClient.User().Groups())
+		lister := NewOpenShiftGroupLister(testCase.whitelist, testCase.blacklist, "test-host:port", fakeClient.Groups())
 
 		groupNames, err := lister.ListGroups()
 		if err != nil {
@@ -234,12 +235,12 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 }
 
 func TestListOpenShiftGroupsListErr(t *testing.T) {
-	listFailClient := userfakeclient.NewSimpleClientset()
-	listFailClient.PrependReactor("get", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+	listFailClient := &fakeuserv1client.FakeUserV1{Fake: &clienttesting.Fake{}}
+	listFailClient.PrependReactor("get", "groups", func(action clienttesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("fail")
 	})
 
-	lister := NewOpenShiftGroupLister([]string{"alpha", "beta"}, []string{"beta"}, "", listFailClient.User().Groups())
+	lister := NewOpenShiftGroupLister([]string{"alpha", "beta"}, []string{"beta"}, "", listFailClient.Groups())
 	groupUIDs, err := lister.ListGroups()
 	if err == nil {
 		t.Error("expected an error listing groups, got none")

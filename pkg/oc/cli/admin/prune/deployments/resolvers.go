@@ -3,8 +3,8 @@ package deployments
 import (
 	"sort"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -12,7 +12,7 @@ import (
 
 // Resolver knows how to resolve the set of candidate objects to prune
 type Resolver interface {
-	Resolve() ([]*kapi.ReplicationController, error)
+	Resolve() ([]*corev1.ReplicationController, error)
 }
 
 // mergeResolver merges the set of results from multiple resolvers
@@ -20,8 +20,8 @@ type mergeResolver struct {
 	resolvers []Resolver
 }
 
-func (m *mergeResolver) Resolve() ([]*kapi.ReplicationController, error) {
-	results := []*kapi.ReplicationController{}
+func (m *mergeResolver) Resolve() ([]*corev1.ReplicationController, error) {
+	results := []*corev1.ReplicationController{}
 	for _, resolver := range m.resolvers {
 		items, err := resolver.Resolve()
 		if err != nil {
@@ -51,13 +51,13 @@ type orphanDeploymentResolver struct {
 }
 
 // Resolve the matching set of objects
-func (o *orphanDeploymentResolver) Resolve() ([]*kapi.ReplicationController, error) {
+func (o *orphanDeploymentResolver) Resolve() ([]*corev1.ReplicationController, error) {
 	deployments, err := o.dataSet.ListDeployments()
 	if err != nil {
 		return nil, err
 	}
 
-	results := []*kapi.ReplicationController{}
+	results := []*corev1.ReplicationController{}
 	for _, deployment := range deployments {
 		deploymentStatus := appsutil.DeploymentStatusFor(deployment)
 		if !o.deploymentStatusFilter.Has(string(deploymentStatus)) {
@@ -87,7 +87,7 @@ func NewPerDeploymentConfigResolver(dataSet DataSet, keepComplete int, keepFaile
 }
 
 // ByMostRecent sorts deployments by most recently created.
-type ByMostRecent []*kapi.ReplicationController
+type ByMostRecent []*corev1.ReplicationController
 
 func (s ByMostRecent) Len() int      { return len(s) }
 func (s ByMostRecent) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
@@ -95,7 +95,7 @@ func (s ByMostRecent) Less(i, j int) bool {
 	return !s[i].CreationTimestamp.Before(&s[j].CreationTimestamp)
 }
 
-func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, error) {
+func (o *perDeploymentConfigResolver) Resolve() ([]*corev1.ReplicationController, error) {
 	deploymentConfigs, err := o.dataSet.ListDeploymentConfigs()
 	if err != nil {
 		return nil, err
@@ -104,14 +104,14 @@ func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, 
 	completeStates := sets.NewString(string(appsapi.DeploymentStatusComplete))
 	failedStates := sets.NewString(string(appsapi.DeploymentStatusFailed))
 
-	results := []*kapi.ReplicationController{}
+	results := []*corev1.ReplicationController{}
 	for _, deploymentConfig := range deploymentConfigs {
 		deployments, err := o.dataSet.ListDeploymentsByDeploymentConfig(deploymentConfig)
 		if err != nil {
 			return nil, err
 		}
 
-		completeDeployments, failedDeployments := []*kapi.ReplicationController{}, []*kapi.ReplicationController{}
+		completeDeployments, failedDeployments := []*corev1.ReplicationController{}, []*corev1.ReplicationController{}
 		for _, deployment := range deployments {
 			status := appsutil.DeploymentStatusFor(deployment)
 			if completeStates.Has(string(status)) {

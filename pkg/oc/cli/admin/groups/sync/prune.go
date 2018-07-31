@@ -3,7 +3,6 @@ package sync
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -14,13 +13,12 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync"
-	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const PruneRecommendedName = "prune"
@@ -53,92 +51,73 @@ var (
 
 type PruneOptions struct {
 	// Config is the LDAP sync config read from file
-	Config *config.LDAPSyncConfig
+	Config     *config.LDAPSyncConfig
+	ConfigFile string
 
 	// Whitelist are the names of OpenShift group or LDAP group UIDs to use for syncing
-	Whitelist []string
+	Whitelist     []string
+	WhitelistFile string
 
 	// Blacklist are the names of OpenShift group or LDAP group UIDs to exclude
-	Blacklist []string
+	Blacklist     []string
+	BlacklistFile string
 
 	// Confirm determines whether or not to write to OpenShift
 	Confirm bool
 
 	// GroupInterface is the interface used to interact with OpenShift Group objects
-	GroupInterface usertypedclient.GroupInterface
+	GroupInterface userv1client.GroupInterface
 
-	// Stderr is the writer to write warnings and errors to
-	Stderr io.Writer
-
-	// Out is the writer to write output to
-	Out io.Writer
+	genericclioptions.IOStreams
 }
 
-func NewPruneOptions() *PruneOptions {
+func NewPruneOptions(streams genericclioptions.IOStreams) *PruneOptions {
 	return &PruneOptions{
-		Stderr:    os.Stderr,
 		Whitelist: []string{},
+		IOStreams: streams,
 	}
 }
 
 func NewCmdPrune(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := NewPruneOptions()
-	options.Out = streams.Out
-
-	whitelistFile := ""
-	blacklistFile := ""
-	configFile := ""
-
+	o := NewPruneOptions(streams)
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [WHITELIST] [--whitelist=WHITELIST-FILE] [--blacklist=BLACKLIST-FILE] --sync-config=CONFIG-SOURCE", name),
 		Short:   "Remove old OpenShift groups referencing missing records on an external provider",
 		Long:    pruneLong,
 		Example: fmt.Sprintf(pruneExamples, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(whitelistFile, blacklistFile, configFile, args, f))
-			kcmdutil.CheckErr(options.Validate())
-			err := options.Run(c, f)
-			if err != nil {
-				if aggregate, ok := err.(kerrs.Aggregate); ok {
-					for _, err := range aggregate.Errors() {
-						fmt.Printf("%s\n", err)
-					}
-					os.Exit(1)
-				}
-			}
-			kcmdutil.CheckErr(err)
+		Run: func(cmd *cobra.Command, args []string) {
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist file")
+	cmd.Flags().StringVar(&o.WhitelistFile, "whitelist", o.WhitelistFile, "path to the group whitelist file")
 	cmd.MarkFlagFilename("whitelist", "txt")
-	cmd.Flags().StringVar(&blacklistFile, "blacklist", whitelistFile, "path to the group blacklist file")
+	cmd.Flags().StringVar(&o.BlacklistFile, "blacklist", o.BlacklistFile, "path to the group blacklist file")
 	cmd.MarkFlagFilename("blacklist", "txt")
 	// TODO(deads): enable this once we're able to support string slice elements that have commas
-	// cmd.Flags().StringSliceVar(&options.Blacklist, "blacklist-group", options.Blacklist, "group to blacklist")
-
-	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
+	// cmd.Flags().StringSliceVar(&o.Blacklist, "blacklist-group", o.Blacklist, "group to blacklist")
+	cmd.Flags().StringVar(&o.ConfigFile, "sync-config", o.ConfigFile, "path to the sync config")
 	cmd.MarkFlagFilename("sync-config", "yaml", "yml")
-
-	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display groups")
+	cmd.Flags().BoolVar(&o.Confirm, "confirm", o.Confirm, "if true, modify OpenShift groups; if false, display groups")
 
 	return cmd
 }
 
-func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string, args []string, f kcmdutil.Factory) error {
+func (o *PruneOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	var err error
-
-	o.Config, err = decodeSyncConfigFromFile(configFile)
+	o.Config, err = decodeSyncConfigFromFile(o.ConfigFile)
 	if err != nil {
 		return err
 	}
 
-	o.Whitelist, err = buildOpenShiftGroupNameList(args, whitelistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
+	o.Whitelist, err = buildOpenShiftGroupNameList(args, o.WhitelistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
 	if err != nil {
 		return err
 	}
 
-	o.Blacklist, err = buildOpenShiftGroupNameList([]string{}, blacklistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
+	o.Blacklist, err = buildOpenShiftGroupNameList([]string{}, o.BlacklistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
 	if err != nil {
 		return err
 	}
@@ -147,11 +126,11 @@ func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string,
 	if err != nil {
 		return err
 	}
-	userClient, err := userclientinternal.NewForConfig(clientConfig)
+	userClient, err := userv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.GroupInterface = userClient.User().Groups()
+	o.GroupInterface = userClient.Groups()
 
 	return nil
 }
@@ -170,7 +149,7 @@ func (o *PruneOptions) Validate() error {
 
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
-func (o *PruneOptions) Run(cmd *cobra.Command, f kcmdutil.Factory) error {
+func (o *PruneOptions) Run() error {
 	bindPassword, err := config.ResolveStringValue(o.Config.BindPassword)
 	if err != nil {
 		return err
@@ -236,7 +215,7 @@ func (o *PruneOptions) GetBlacklist() []string {
 	return o.Blacklist
 }
 
-func (o *PruneOptions) GetClient() usertypedclient.GroupInterface {
+func (o *PruneOptions) GetClient() userv1client.GroupInterface {
 	return o.GroupInterface
 }
 

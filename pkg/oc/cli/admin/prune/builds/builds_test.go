@@ -1,19 +1,21 @@
 package builds
 
 import (
-	"io/ioutil"
 	"testing"
 
-	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	clienttesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+
+	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1/fake"
 )
 
 func TestBuildPruneNamespaced(t *testing.T) {
-	osFake := buildfake.NewSimpleClientset()
+	osFake := &fakebuildv1client.FakeBuildV1{Fake: &clienttesting.Fake{}}
 	opts := &PruneBuildsOptions{
 		Namespace: "foo",
 
 		BuildClient: osFake,
-		Out:         ioutil.Discard,
+		IOStreams:   genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
 	if err := opts.Run(); err != nil {

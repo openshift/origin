@@ -8,8 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 type mockDeleteRecorder struct {
@@ -17,9 +16,9 @@ type mockDeleteRecorder struct {
 	err error
 }
 
-var _ buildclient.BuildDeleter = &mockDeleteRecorder{}
+var _ BuildDeleter = &mockDeleteRecorder{}
 
-func (m *mockDeleteRecorder) DeleteBuild(build *buildapi.Build) error {
+func (m *mockDeleteRecorder) DeleteBuild(build *buildv1.Build) error {
 	m.set.Insert(build.Name)
 	return m.err
 }
@@ -35,20 +34,20 @@ func (m *mockDeleteRecorder) Verify(t *testing.T, expected sets.String) {
 }
 
 func TestPruneTask(t *testing.T) {
-	BuildPhaseOptions := []buildapi.BuildPhase{
-		buildapi.BuildPhaseCancelled,
-		buildapi.BuildPhaseComplete,
-		buildapi.BuildPhaseError,
-		buildapi.BuildPhaseFailed,
-		buildapi.BuildPhaseNew,
-		buildapi.BuildPhasePending,
-		buildapi.BuildPhaseRunning,
+	BuildPhaseOptions := []buildv1.BuildPhase{
+		buildv1.BuildPhaseCancelled,
+		buildv1.BuildPhaseComplete,
+		buildv1.BuildPhaseError,
+		buildv1.BuildPhaseFailed,
+		buildv1.BuildPhaseNew,
+		buildv1.BuildPhasePending,
+		buildv1.BuildPhaseRunning,
 	}
-	BuildPhaseFilter := []buildapi.BuildPhase{
-		buildapi.BuildPhaseCancelled,
-		buildapi.BuildPhaseComplete,
-		buildapi.BuildPhaseError,
-		buildapi.BuildPhaseFailed,
+	BuildPhaseFilter := []buildv1.BuildPhase{
+		buildv1.BuildPhaseCancelled,
+		buildv1.BuildPhaseComplete,
+		buildv1.BuildPhaseError,
+		buildv1.BuildPhaseFailed,
 	}
 	BuildPhaseFilterSet := sets.String{}
 	for _, BuildPhase := range BuildPhaseFilter {
@@ -62,8 +61,8 @@ func TestPruneTask(t *testing.T) {
 			now := metav1.Now()
 			old := metav1.NewTime(now.Time.Add(-1 * keepYoungerThan))
 
-			buildConfigs := []*buildapi.BuildConfig{}
-			builds := []*buildapi.Build{}
+			buildConfigs := []*buildv1.BuildConfig{}
+			builds := []*buildv1.Build{}
 
 			buildConfig := mockBuildConfig("a", "build-config")
 			buildConfigs = append(buildConfigs, buildConfig)

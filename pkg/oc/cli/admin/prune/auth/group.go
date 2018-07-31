@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"io"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
+	authv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 )
 
 func reapForGroup(
-	authorizationClient authclient.Interface,
-	securityClient securitytypedclient.SecurityContextConstraintsInterface,
+	authorizationClient authv1client.AuthorizationV1Interface,
+	securityClient securityv1client.SecurityContextConstraintsInterface,
 	name string,
 	out io.Writer) error {
 
 	errors := []error{}
 
-	removedSubject := kapi.ObjectReference{Kind: "Group", Name: name}
+	removedSubject := corev1.ObjectReference{Kind: "Group", Name: name}
 	errors = append(errors, reapClusterBindings(removedSubject, authorizationClient, out)...)
 	errors = append(errors, reapNamespacedBindings(removedSubject, authorizationClient, out)...)
 

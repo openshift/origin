@@ -4,15 +4,20 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 )
 
 type Pruner interface {
 	// Prune is responsible for actual removal of builds identified as candidates
 	// for pruning based on pruning algorithm.
-	Prune(deleter buildclient.BuildDeleter) error
+	Prune(deleter BuildDeleter) error
+}
+
+type BuildDeleter interface {
+	DeleteBuild(build *buildv1.Build) error
 }
 
 // pruner is an object that knows how to prune a data set
@@ -34,9 +39,9 @@ type PrunerOptions struct {
 	// KeepFailed is per BuildConfig how many of the most recent failed builds should be preserved
 	KeepFailed int
 	// BuildConfigs is the entire list of buildconfigs across all namespaces in the cluster.
-	BuildConfigs []*buildapi.BuildConfig
+	BuildConfigs []*buildv1.BuildConfig
 	// Builds is the entire list of builds across all namespaces in the cluster.
-	Builds []*buildapi.Build
+	Builds []*buildv1.Build
 }
 
 // NewPruner returns a Pruner over specified data using specified options.
@@ -52,11 +57,11 @@ func NewPruner(options PrunerOptions) Pruner {
 
 	resolvers := []Resolver{}
 	if options.Orphans {
-		inactiveBuildStatus := []buildapi.BuildPhase{
-			buildapi.BuildPhaseCancelled,
-			buildapi.BuildPhaseComplete,
-			buildapi.BuildPhaseError,
-			buildapi.BuildPhaseFailed,
+		inactiveBuildStatus := []buildv1.BuildPhase{
+			buildv1.BuildPhaseCancelled,
+			buildv1.BuildPhaseComplete,
+			buildv1.BuildPhaseError,
+			buildv1.BuildPhaseFailed,
 		}
 		resolvers = append(resolvers, NewOrphanBuildResolver(dataSet, inactiveBuildStatus))
 	}
@@ -68,7 +73,7 @@ func NewPruner(options PrunerOptions) Pruner {
 }
 
 // Prune will visit each item in the prunable set and invoke the associated BuildDeleter.
-func (p *pruner) Prune(deleter buildclient.BuildDeleter) error {
+func (p *pruner) Prune(deleter BuildDeleter) error {
 	builds, err := p.resolver.Resolve()
 	if err != nil {
 		return err
@@ -79,4 +84,21 @@ func (p *pruner) Prune(deleter buildclient.BuildDeleter) error {
 		}
 	}
 	return nil
+}
+
+// NewBuildDeleter creates a new buildDeleter.
+func NewBuildDeleter(client buildv1client.BuildsGetter) BuildDeleter {
+	return &buildDeleter{
+		client: client,
+	}
+}
+
+type buildDeleter struct {
+	client buildv1client.BuildsGetter
+}
+
+var _ BuildDeleter = &buildDeleter{}
+
+func (c *buildDeleter) DeleteBuild(build *buildv1.Build) error {
+	return c.client.Builds(build.Namespace).Delete(build.Name, &metav1.DeleteOptions{})
 }

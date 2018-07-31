@@ -5,43 +5,43 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
-func mockBuildConfig(namespace, name string) *buildapi.BuildConfig {
-	return &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
+func mockBuildConfig(namespace, name string) *buildv1.BuildConfig {
+	return &buildv1.BuildConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
-func withCreated(build *buildapi.Build, creationTimestamp metav1.Time) *buildapi.Build {
+func withCreated(build *buildv1.Build, creationTimestamp metav1.Time) *buildv1.Build {
 	build.CreationTimestamp = creationTimestamp
 	return build
 }
 
-func withStatus(build *buildapi.Build, status buildapi.BuildPhase) *buildapi.Build {
+func withStatus(build *buildv1.Build, status buildv1.BuildPhase) *buildv1.Build {
 	build.Status.Phase = status
 	return build
 }
 
-func mockBuild(namespace, name string, buildConfig *buildapi.BuildConfig) *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
+func mockBuild(namespace, name string, buildConfig *buildv1.BuildConfig) *buildv1.Build {
+	build := &buildv1.Build{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 	if buildConfig != nil {
-		build.Status.Config = &kapi.ObjectReference{
+		build.Status.Config = &corev1.ObjectReference{
 			Name:      buildConfig.Name,
 			Namespace: buildConfig.Namespace,
 		}
 	}
-	build.Status.Phase = buildapi.BuildPhaseNew
+	build.Status.Phase = buildv1.BuildPhaseNew
 	return build
 }
 
 func TestBuildByBuildConfigIndexFunc(t *testing.T) {
-	buildWithConfig := &buildapi.Build{
-		Status: buildapi.BuildStatus{
-			Config: &kapi.ObjectReference{
+	buildWithConfig := &buildv1.Build{
+		Status: buildv1.BuildStatus{
+			Config: &corev1.ObjectReference{
 				Name:      "buildConfigName",
 				Namespace: "buildConfigNamespace",
 			},
@@ -55,7 +55,7 @@ func TestBuildByBuildConfigIndexFunc(t *testing.T) {
 	if !reflect.DeepEqual(actualKey, expectedKey) {
 		t.Errorf("expected %#v, actual %#v", expectedKey, actualKey)
 	}
-	buildWithNoConfig := &buildapi.Build{}
+	buildWithNoConfig := &buildv1.Build{}
 	actualKey, err = BuildByBuildConfigIndexFunc(buildWithNoConfig)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -70,7 +70,7 @@ func TestFilterBeforePredicate(t *testing.T) {
 	youngerThan := time.Hour
 	now := metav1.Now()
 	old := metav1.NewTime(now.Time.Add(-1 * youngerThan))
-	builds := []*buildapi.Build{
+	builds := []*buildv1.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "old",
@@ -97,10 +97,10 @@ func TestFilterBeforePredicate(t *testing.T) {
 }
 
 func TestEmptyDataSet(t *testing.T) {
-	builds := []*buildapi.Build{}
-	buildConfigs := []*buildapi.BuildConfig{}
+	builds := []*buildv1.Build{}
+	buildConfigs := []*buildv1.BuildConfig{}
 	dataSet := NewDataSet(buildConfigs, builds)
-	_, exists, err := dataSet.GetBuildConfig(&buildapi.Build{})
+	_, exists, err := dataSet.GetBuildConfig(&buildv1.Build{})
 	if exists || err != nil {
 		t.Errorf("Unexpected result %v, %v", exists, err)
 	}
@@ -118,7 +118,7 @@ func TestEmptyDataSet(t *testing.T) {
 	if len(buildResults) != 0 {
 		t.Errorf("Unexpected result %v", buildResults)
 	}
-	buildResults, err = dataSet.ListBuildsByBuildConfig(&buildapi.BuildConfig{})
+	buildResults, err = dataSet.ListBuildsByBuildConfig(&buildv1.BuildConfig{})
 	if err != nil {
 		t.Errorf("Unexpected result %v", err)
 	}
@@ -128,11 +128,11 @@ func TestEmptyDataSet(t *testing.T) {
 }
 
 func TestPopuldatedDataSet(t *testing.T) {
-	buildConfigs := []*buildapi.BuildConfig{
+	buildConfigs := []*buildv1.BuildConfig{
 		mockBuildConfig("a", "build-config-1"),
 		mockBuildConfig("b", "build-config-2"),
 	}
-	builds := []*buildapi.Build{
+	builds := []*buildv1.Build{
 		mockBuild("a", "build-1", buildConfigs[0]),
 		mockBuild("a", "build-2", buildConfigs[0]),
 		mockBuild("b", "build-3", buildConfigs[1]),

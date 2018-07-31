@@ -536,7 +536,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 	if err != nil {
 		return "", err
 	}
-	buildList.Items = ocbuildapihelpers.FilterBuilds(buildList.Items, ocbuildapihelpers.ByBuildConfigPredicate(name))
+	buildList.Items = ocbuildapihelpers.FilterBuildsInternal(buildList.Items, ocbuildapihelpers.ByBuildConfigPredicateInternal(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)

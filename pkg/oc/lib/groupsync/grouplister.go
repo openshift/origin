@@ -8,14 +8,14 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	userv1 "github.com/openshift/api/user/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
-	ouserapi "github.com/openshift/origin/pkg/user/apis/user"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // NewAllOpenShiftGroupLister returns a new allOpenShiftGroupLister
-func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient usertypedclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
+func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient userv1client.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &allOpenShiftGroupLister{
 		blacklist: sets.NewString(blacklist...),
 		client:    groupClient,
@@ -29,7 +29,7 @@ func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient 
 type allOpenShiftGroupLister struct {
 	blacklist sets.String
 
-	client  usertypedclient.GroupInterface
+	client  userv1client.GroupInterface
 	ldapURL string
 
 	ldapGroupUIDToOpenShiftGroupName map[string]string
@@ -85,7 +85,7 @@ func (l *allOpenShiftGroupLister) GroupNameFor(ldapGroupUID string) (string, err
 }
 
 // validateGroupAnnotations determines if the group matches and errors if the annotations are missing
-func validateGroupAnnotations(ldapURL string, group ouserapi.Group) (bool, error) {
+func validateGroupAnnotations(ldapURL string, group userv1.Group) (bool, error) {
 	if actualURL, exists := group.Annotations[ldaputil.LDAPURLAnnotation]; !exists {
 		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation", group.Name, ldaputil.LDAPURLAnnotation)
 
@@ -102,7 +102,7 @@ func validateGroupAnnotations(ldapURL string, group ouserapi.Group) (bool, error
 
 // NewOpenShiftGroupLister returns a new openshiftGroupLister that divulges the LDAP group unique identifier for
 // each entry in the given whitelist of OpenShift Group names
-func NewOpenShiftGroupLister(whitelist, blacklist []string, ldapURL string, client usertypedclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
+func NewOpenShiftGroupLister(whitelist, blacklist []string, ldapURL string, client userv1client.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &openshiftGroupLister{
 		whitelist: whitelist,
 		blacklist: sets.NewString(blacklist...),
@@ -118,14 +118,14 @@ type openshiftGroupLister struct {
 	whitelist []string
 	blacklist sets.String
 
-	client  usertypedclient.GroupInterface
+	client  userv1client.GroupInterface
 	ldapURL string
 
 	ldapGroupUIDToOpenShiftGroupName map[string]string
 }
 
 func (l *openshiftGroupLister) ListGroups() ([]string, error) {
-	var groups []ouserapi.Group
+	var groups []userv1.Group
 	for _, name := range l.whitelist {
 		if l.blacklist.Has(name) {
 			continue
