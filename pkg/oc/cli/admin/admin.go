@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune"
 	"github.com/openshift/origin/pkg/oc/cli/admin/registry"
+	"github.com/openshift/origin/pkg/oc/cli/admin/release"
 	"github.com/openshift/origin/pkg/oc/cli/admin/router"
 	"github.com/openshift/origin/pkg/oc/cli/admin/top"
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
@@ -64,6 +65,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 				router.NewCmdRouter(f, fullName, "router", streams),
 				ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
 				registry.NewCmdRegistry(f, fullName, "registry", streams),
+				release.NewCmd(f, fullName, streams),
 			},
 		},
 		{

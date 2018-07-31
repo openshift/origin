@@ -259,7 +259,8 @@ func (o *Options) Run() error {
 	defer close(stopCh)
 	q := workqueue.New(o.MaxPerRegistry, stopCh)
 	return q.Try(func(q workqueue.Try) {
-		for _, mapping := range o.Mappings {
+		for i := range o.Mappings {
+			mapping := o.Mappings[i]
 			from := mapping.ImageRef
 			q.Try(func() error {
 				repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.Insecure)
