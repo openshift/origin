@@ -317,6 +317,17 @@ function os::test::extended::clusterup::portinuse () {
     os::cmd::expect_success "oc cluster up --base-dir=${base_dir} $arg"
 }
 
+# Verifies that the cluster up will bring the cluster back up from existing base directory.
+function os::test::extended:clusterup::existing () {
+    local base_dir
+    base_dir=$(os::test::extended::clusterup::make_base_dir "noargs")
+
+    os::test::extended::clusterup::standard_test \
+      --base-dir=${base_dir} \
+      --tag="$ORIGIN_COMMIT" \
+      --loglevel=4 \
+      ${@}
+}
 function os::test::extended::clusterup::portinuse_cleanup () {
     os::test::extended::clusterup::cleanup
     docker rm -f port53
@@ -326,6 +337,7 @@ function os::test::extended::clusterup::portinuse_cleanup () {
 readonly default_tests=(
     "service_catalog"
     "noargs"
+    "existing"
     "hostdirs"
     "publichostname"
     "numerichostname"
