@@ -3,52 +3,15 @@ package admission
 import (
 	"k8s.io/apiserver/pkg/admission"
 	restclient "k8s.io/client-go/rest"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 
-	authorizationclient "github.com/openshift/client-go/authorization/clientset/versioned"
-	buildclient "github.com/openshift/client-go/build/clientset/versioned"
-	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
-	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
-
-type WantsOpenshiftInternalAuthorizationClient interface {
-	SetOpenshiftInternalAuthorizationClient(authorizationclient.Interface)
-	admission.InitializationValidator
-}
-
-type WantsOpenshiftInternalBuildClient interface {
-	SetOpenshiftInternalBuildClient(buildclient.Interface)
-	admission.InitializationValidator
-}
-
-// WantsOpenshiftInternalQuotaClient should be implemented by admission plugins that need
-// an Openshift internal quota client
-type WantsOpenshiftInternalQuotaClient interface {
-	SetOpenshiftInternalQuotaClient(quotaclient.Interface)
-	admission.InitializationValidator
-}
-
-// WantsOpenshiftInternalUserClient should be implemented by admission plugins that need
-// an Openshift internal user client
-type WantsOpenshiftInternalUserClient interface {
-	SetOpenshiftInternalUserClient(userclient.Interface)
-	admission.InitializationValidator
-}
-
-// WantsOpenshiftInternalImageClient should be implemented by admission plugins that need
-// an Openshift internal image client
-type WantsOpenshiftInternalImageClient interface {
-	SetOpenshiftInternalImageClient(imageclient.Interface)
-	admission.InitializationValidator
-}
 
 // WantsProjectCache should be implemented by admission plugins that need a
 // project cache
@@ -73,13 +36,6 @@ type WantsJenkinsPipelineConfig interface {
 // WantsRESTClientConfig gives access to a RESTClientConfig.  It's useful for doing unusual things with transports.
 type WantsRESTClientConfig interface {
 	SetRESTClientConfig(restclient.Config)
-	admission.InitializationValidator
-}
-
-// WantsInternalKubernetesInformers should be implemented by admission plugins that need the internal kubernetes
-// informers.
-type WantsInternalKubernetesInformers interface {
-	SetInternalKubernetesInformers(kinternalinformers.SharedInformerFactory)
 	admission.InitializationValidator
 }
 

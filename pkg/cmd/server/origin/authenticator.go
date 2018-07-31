@@ -68,7 +68,7 @@ func NewAuthenticator(
 		serviceAccountTokenGetter,
 		userClient.User().Users(),
 		apiClientCAs,
-		usercache.NewGroupCache(informers.GetInternalOpenshiftUserInformers().User().V1().Groups()),
+		usercache.NewGroupCache(informers.GetOpenshiftUserInformers().User().V1().Groups()),
 	)
 }
 

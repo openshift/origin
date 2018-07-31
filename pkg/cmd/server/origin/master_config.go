@@ -110,6 +110,8 @@ type InformerAccess interface {
 	GetKubernetesInformers() kinformers.SharedInformerFactory
 
 	GetOpenshiftAppInformers() appsinformer.SharedInformerFactory
+	GetOpenshiftRouteInformers() routeinformer.SharedInformerFactory
+	GetOpenshiftUserInformers() userinformer.SharedInformerFactory
 
 	GetInternalOpenshiftAuthorizationInformers() authorizationinformer.SharedInformerFactory
 	GetInternalOpenshiftBuildInformers() buildinformer.SharedInformerFactory
@@ -118,8 +120,6 @@ type InformerAccess interface {
 	GetInternalOpenshiftOauthInformers() oauthinformer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
-	GetInternalOpenshiftRouteInformers() routeinformer.SharedInformerFactory
-	GetInternalOpenshiftUserInformers() userinformer.SharedInformerFactory
 	GetInternalOpenshiftTemplateInformers() templateinformer.SharedInformerFactory
 
 	ToGenericInformer() GenericResourceInformer
@@ -145,7 +145,7 @@ func BuildMasterConfig(
 		if err != nil {
 			return nil, err
 		}
-		if err := realLoopbackInformers.GetInternalOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+		if err := realLoopbackInformers.GetOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
 			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
 		}); err != nil {
 			return nil, err
@@ -257,7 +257,7 @@ func BuildMasterConfig(
 		AuthorizationInformers: informers.GetInternalOpenshiftAuthorizationInformers(),
 		QuotaInformers:         informers.GetInternalOpenshiftQuotaInformers(),
 		SecurityInformers:      informers.GetInternalOpenshiftSecurityInformers(),
-		RouteInformers:         informers.GetInternalOpenshiftRouteInformers(),
+		RouteInformers:         informers.GetOpenshiftRouteInformers(),
 	}
 
 	for name, hook := range authenticatorPostStartHooks {

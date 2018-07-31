@@ -5,24 +5,26 @@ import (
 	"io"
 	"strings"
 
-	"github.com/openshift/api/build"
-	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/build/buildscheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
+	"github.com/openshift/api/build"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildscheme"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -39,7 +41,7 @@ type buildByStrategy struct {
 }
 
 var _ = kubeadmission.WantsInternalKubeClientSet(&buildByStrategy{})
-var _ = oadmission.WantsOpenshiftInternalBuildClient(&buildByStrategy{})
+var _ = oadmission.WantsRESTClientConfig(&buildByStrategy{})
 
 // NewBuildByStrategy returns an admission control for builds that checks
 // on policy based on the build strategy type
@@ -88,8 +90,13 @@ func (a *buildByStrategy) SetInternalKubeClientSet(c internalclientset.Interface
 	a.sarClient = c.Authorization().SubjectAccessReviews()
 }
 
-func (a *buildByStrategy) SetOpenshiftInternalBuildClient(c buildclient.Interface) {
-	a.buildClient = c
+func (a *buildByStrategy) SetRESTClientConfig(restClientConfig rest.Config) {
+	var err error
+	a.buildClient, err = buildclient.NewForConfig(&restClientConfig)
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
 }
 
 func (a *buildByStrategy) ValidateInitialization() error {

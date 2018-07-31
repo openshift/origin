@@ -5,23 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	authorizationclient "github.com/openshift/client-go/authorization/clientset/versioned"
-	buildclient "github.com/openshift/client-go/build/clientset/versioned"
-	userclient "github.com/openshift/client-go/user/clientset/versioned"
-	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
-	"github.com/openshift/origin/pkg/quota/image"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	"github.com/openshift/origin/pkg/service"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -40,6 +23,20 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota/generic"
 	"k8s.io/kubernetes/pkg/quota/install"
+
+	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	"github.com/openshift/origin/pkg/quota/image"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	"github.com/openshift/origin/pkg/service"
 )
 
 type InformerAccess interface {
@@ -48,7 +45,7 @@ type InformerAccess interface {
 	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
-	GetInternalOpenshiftUserInformers() userinformer.SharedInformerFactory
+	GetOpenshiftUserInformers() userinformer.SharedInformerFactory
 }
 
 func NewPluginInitializer(
@@ -68,23 +65,7 @@ func NewPluginInitializer(
 	if err != nil {
 		return nil, err
 	}
-	authorizationClient, err := authorizationclient.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, err
-	}
-	buildClient, err := buildclient.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, err
-	}
 	imageClient, err := imageclient.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, err
-	}
-	quotaClient, err := quotaclient.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, err
-	}
-	userClient, err := userclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -158,22 +139,15 @@ func NewPluginInitializer(
 	)
 
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
-		OpenshiftInternalAuthorizationClient: authorizationClient,
-		OpenshiftInternalBuildClient:         buildClient,
-		OpenshiftInternalImageClient:         imageClient,
-		OpenshiftInternalQuotaClient:         quotaClient,
-		OpenshiftInternalUserClient:          userClient,
-		ProjectCache:                         projectCache,
-		OriginQuotaRegistry:                  quotaRegistry,
-		Authorizer:                           authorizer,
-		JenkinsPipelineConfig:                options.JenkinsPipelineConfig,
-		RESTClientConfig:                     *privilegedLoopbackConfig,
-		Informers:                            informers.GetInternalKubernetesInformers(),
-		ClusterResourceQuotaInformer:         informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
-		ClusterQuotaMapper:                   clusterQuotaMappingController.GetClusterQuotaMapper(),
-		RegistryHostnameRetriever:            imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
-		SecurityInformers:                    informers.GetInternalOpenshiftSecurityInformers(),
-		UserInformers:                        informers.GetInternalOpenshiftUserInformers(),
+		ProjectCache:                 projectCache,
+		OriginQuotaRegistry:          quotaRegistry,
+		JenkinsPipelineConfig:        options.JenkinsPipelineConfig,
+		RESTClientConfig:             *privilegedLoopbackConfig,
+		ClusterResourceQuotaInformer: informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
+		RegistryHostnameRetriever:    imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
+		SecurityInformers:            informers.GetInternalOpenshiftSecurityInformers(),
+		UserInformers:                informers.GetOpenshiftUserInformers(),
 	}
 
 	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil

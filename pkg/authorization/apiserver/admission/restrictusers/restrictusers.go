@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"io"
 
+	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	userapi "github.com/openshift/api/user/v1"
-	authorizationclient "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
@@ -46,8 +47,7 @@ type restrictUsersAdmission struct {
 	groupCache                    GroupCache
 }
 
-var _ = oadmission.WantsOpenshiftInternalAuthorizationClient(&restrictUsersAdmission{})
-var _ = oadmission.WantsOpenshiftInternalUserClient(&restrictUsersAdmission{})
+var _ = oadmission.WantsRESTClientConfig(&restrictUsersAdmission{})
 var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
 var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
 
@@ -63,12 +63,18 @@ func (q *restrictUsersAdmission) SetInternalKubeClientSet(c kclientset.Interface
 	q.kclient = c
 }
 
-func (q *restrictUsersAdmission) SetOpenshiftInternalAuthorizationClient(roleBindingRestrictionsGetter authorizationclient.Interface) {
-	q.roleBindingRestrictionsGetter = roleBindingRestrictionsGetter.Authorization()
-}
-
-func (q *restrictUsersAdmission) SetOpenshiftInternalUserClient(userClient userclient.Interface) {
-	q.userClient = userClient
+func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Config) {
+	var err error
+	q.roleBindingRestrictionsGetter, err = authorizationtypedclient.NewForConfig(&restClientConfig)
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
+	q.userClient, err = userclient.NewForConfig(&restClientConfig)
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {

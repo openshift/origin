@@ -449,7 +449,7 @@ func (m *Master) Start() error {
 			return err
 		}
 
-		if err := informers.GetInternalOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+		if err := informers.GetOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
 			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
 		}); err != nil {
 			return err
