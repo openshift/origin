@@ -182,7 +182,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
 			if err != nil {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 			}

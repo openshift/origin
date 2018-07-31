@@ -190,7 +190,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
 			if err != nil {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 			}
@@ -252,9 +252,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				// we leverage some of the openshift utilities for waiting for the deployment before we poll
 				// jenkins for the successful job completion
 				g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), "frontend-prod", 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend-prod", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build console logs and see if succeeded")
@@ -304,9 +304,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				// we leverage some of the openshift utilities for waiting for the deployment before we poll
 				// jenkins for the successful job completion
 				g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), "frontend-prod", 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend-prod", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build console logs and see if succeeded")
@@ -372,7 +372,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				// we leverage some of the openshift utilities for waiting for the deployment before we poll
 				// jenkins for the successful job completion
 				g.By("waiting for frontend deployments as signs that the build has finished")
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build console logs and see if succeeded")

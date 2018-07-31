@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	kbatchclient "k8s.io/client-go/kubernetes/typed/batch/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
@@ -35,9 +36,9 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	appstypeclientset "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstypeclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildtypedclientset "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
@@ -169,7 +170,8 @@ func DumpBuilds(oc *CLI) {
 }
 
 func GetDeploymentConfigPods(oc *CLI, dcName string, version int64) (*kapiv1.PodList, error) {
-	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d", appsapi.DeployerPodForDeploymentLabel, dcName, version)).String()})
+	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d",
+		appsutil.DeployerPodForDeploymentLabel, dcName, version)).String()})
 }
 
 func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
@@ -280,7 +282,7 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 }
 
 // DumpPodsCommand runs the provided command in every pod identified by selector in the provided namespace.
-func DumpPodsCommand(c kclientset.Interface, ns string, selector labels.Selector, cmd string) {
+func DumpPodsCommand(c kubernetes.Interface, ns string, selector labels.Selector, cmd string) {
 	podList, err := c.CoreV1().Pods(ns).List(metav1.ListOptions{LabelSelector: selector.String()})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -831,9 +833,9 @@ func CheckImageStreamTagNotFound(i *imageapi.ImageStream) bool {
 
 // WaitForDeploymentConfig waits for a DeploymentConfig to complete transition
 // to a given version and report minimum availability.
-func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, enforceNotProgressing bool, cli *CLI) error {
+func WaitForDeploymentConfig(kc kubernetes.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, enforceNotProgressing bool, cli *CLI) error {
 	e2e.Logf("waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
-	var dc *appsapi.DeploymentConfig
+	var dc *appsv1.DeploymentConfig
 
 	start := time.Now()
 	err := wait.Poll(time.Second, 15*time.Minute, func() (done bool, err error) {
@@ -853,28 +855,28 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 			return false, nil
 		}
 
-		var progressing, available *appsapi.DeploymentCondition
+		var progressing, available *appsv1.DeploymentCondition
 		for i, condition := range dc.Status.Conditions {
 			switch condition.Type {
-			case appsapi.DeploymentProgressing:
+			case appsv1.DeploymentProgressing:
 				progressing = &dc.Status.Conditions[i]
 
-			case appsapi.DeploymentAvailable:
+			case appsv1.DeploymentAvailable:
 				available = &dc.Status.Conditions[i]
 			}
 		}
 
 		if enforceNotProgressing {
-			if progressing != nil && progressing.Status == kapi.ConditionFalse {
+			if progressing != nil && progressing.Status == corev1.ConditionFalse {
 				return false, fmt.Errorf("not progressing")
 			}
 		}
 
 		if progressing != nil &&
-			progressing.Status == kapi.ConditionTrue &&
-			progressing.Reason == appsapi.NewRcAvailableReason &&
+			progressing.Status == corev1.ConditionTrue &&
+			progressing.Reason == appsutil.NewRcAvailableReason &&
 			available != nil &&
-			available.Status == kapi.ConditionTrue {
+			available.Status == corev1.ConditionTrue {
 			return true, nil
 		}
 
@@ -891,7 +893,7 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 		return err
 	}
 
-	requirement, err := labels.NewRequirement(appsapi.DeploymentLabel, selection.Equals, []string{appsutil.LatestDeploymentNameForConfigAndVersion(
+	requirement, err := labels.NewRequirement(appsutil.DeploymentLabel, selection.Equals, []string{appsutil.LatestDeploymentNameForConfigAndVersion(
 		dc.Name, dc.Status.LatestVersion)})
 	if err != nil {
 		return err

@@ -9,12 +9,14 @@ import (
 	o "github.com/onsi/gomega"
 
 	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
@@ -49,7 +51,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			return false, err
 		}
 
-		dc, err := cli.AppsInternalClient().Apps().DeploymentConfigs(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
+		dc, err := cli.AppsClient().AppsV1().DeploymentConfigs(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil
@@ -63,24 +65,24 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			return true, nil
 
 		case buildapi.BuildPhaseComplete:
-			var progressing, available *appsapi.DeploymentCondition
+			var progressing, available *appsv1.DeploymentCondition
 			for i, condition := range dc.Status.Conditions {
 				switch condition.Type {
-				case appsapi.DeploymentProgressing:
+				case appsv1.DeploymentProgressing:
 					progressing = &dc.Status.Conditions[i]
 
-				case appsapi.DeploymentAvailable:
+				case appsv1.DeploymentAvailable:
 					available = &dc.Status.Conditions[i]
 				}
 			}
 
 			if (progressing != nil &&
-				progressing.Status == kapi.ConditionTrue &&
-				progressing.Reason == appsapi.NewRcAvailableReason &&
+				progressing.Status == corev1.ConditionTrue &&
+				progressing.Reason == appsutil.NewRcAvailableReason &&
 				available != nil &&
-				available.Status == kapi.ConditionTrue) ||
+				available.Status == corev1.ConditionTrue) ||
 				(progressing != nil &&
-					progressing.Status == kapi.ConditionFalse) {
+					progressing.Status == corev1.ConditionFalse) {
 				return true, nil
 			}
 		}
