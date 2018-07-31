@@ -1,12 +1,17 @@
 package defaults
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
+
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
+	defaultsv1 "github.com/openshift/origin/pkg/build/controller/build/apis/defaults/v1"
 	"github.com/openshift/origin/pkg/build/controller/build/apis/defaults/validation"
 	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
 	"github.com/openshift/origin/pkg/build/controller/common"
@@ -21,11 +26,20 @@ type BuildDefaults struct {
 
 // NewBuildDefaults creates a new BuildDefaults that will apply the defaults specified in the plugin config
 func NewBuildDefaults(pluginConfig map[string]*configapi.AdmissionPluginConfig) (BuildDefaults, error) {
-	config := &defaultsapi.BuildDefaultsConfig{}
-	err := pluginconfig.ReadPluginConfig(pluginConfig, defaultsapi.BuildDefaultsPlugin, config)
+	scheme := runtime.NewScheme()
+	defaultsv1.InstallLegacy(scheme)
+	uncastConfig, err := pluginconfig.GetPluginConfigObj(pluginConfig, defaultsapi.BuildDefaultsPlugin, scheme)
 	if err != nil {
 		return BuildDefaults{}, err
 	}
+	if uncastConfig == nil {
+		return BuildDefaults{}, nil
+	}
+	config, ok := uncastConfig.(*defaultsapi.BuildDefaultsConfig)
+	if !ok {
+		return BuildDefaults{}, fmt.Errorf("expected BuildDefaultsConfig, not %T", uncastConfig)
+	}
+
 	errs := validation.ValidateBuildDefaultsConfig(config)
 	if len(errs) > 0 {
 		return BuildDefaults{}, errs.ToAggregate()
