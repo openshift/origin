@@ -56,6 +56,9 @@ type MigrateSCCOptions struct {
 	kubeRbacClient   *rbacv1client.RbacV1Client
 	kubePolicyClient *policyv1beta1client.PolicyV1beta1Client
 
+	cachedRoles        *rbacv1.RoleList
+	cachedClusterRoles *rbacv1.ClusterRoleList
+
 	migrate.ResourceOptions
 }
 
@@ -124,6 +127,17 @@ func (o *MigrateSCCOptions) Validate() error {
 }
 
 func (o *MigrateSCCOptions) Run() error {
+	var err error
+
+	o.cachedClusterRoles, err = o.kubeRbacClient.ClusterRoles().List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	o.cachedRoles, err = o.kubeRbacClient.Roles(metav1.NamespaceAll).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
 	return o.ResourceOptions.Visitor().Visit(func(info *resource.Info) (migrate.Reporter, error) {
 		if _, ok := info.Object.(*securityv1.SecurityContextConstraints); !ok {
 			return nil, fmt.Errorf("unrecognized object %#v", info.Object)
@@ -170,11 +184,23 @@ func (o *MigrateSCCOptions) save(info *resource.Info, reporter migrate.Reporter)
 	// cluster role and binding is optional:
 	// we don't create them if the access to SCC hasn't been granted to someone
 	if role != nil && binding != nil {
-		_, err = o.kubeRbacClient.ClusterRoles().Create(role)
-		if err == nil {
-			_, err = o.kubeRbacClient.ClusterRoleBindings().Create(binding)
+		if _, err = o.kubeRbacClient.ClusterRoles().Create(role); err != nil {
+			return err
 		}
-		if err != nil {
+		if _, err = o.kubeRbacClient.ClusterRoleBindings().Create(binding); err != nil {
+			return err
+		}
+	}
+
+	clusterRolesToUpdate := convertClusterRolesWithSCCRules(scc, o.cachedClusterRoles)
+	for _, crole := range clusterRolesToUpdate {
+		if _, err := o.kubeRbacClient.ClusterRoles().Update(&crole); err != nil {
+			return err
+		}
+	}
+	rolesToUpdate := convertRolesWithSCCRules(scc, o.cachedRoles)
+	for _, role := range rolesToUpdate {
+		if _, err := o.kubeRbacClient.Roles(role.Namespace).Update(&role); err != nil {
 			return err
 		}
 	}
@@ -293,4 +319,60 @@ func convertSccToClusterRoleBinding(scc *securityv1.SecurityContextConstraints) 
 	}
 
 	return &binding, nil
+}
+
+func convertClusterRolesWithSCCRules(scc *securityv1.SecurityContextConstraints, roles *rbacv1.ClusterRoleList) []rbacv1.ClusterRole {
+	var rolesToUpdate []rbacv1.ClusterRole
+	for i := 0; i < len(roles.Items); i++ {
+		if convertRulesWithSCCName(&roles.Items[i].Rules, scc.Name) {
+			rolesToUpdate = append(rolesToUpdate, roles.Items[i])
+		}
+	}
+	return rolesToUpdate
+}
+
+func convertRolesWithSCCRules(scc *securityv1.SecurityContextConstraints, roles *rbacv1.RoleList) []rbacv1.Role {
+	var rolesToUpdate []rbacv1.Role
+	for i := 0; i < len(roles.Items); i++ {
+		if convertRulesWithSCCName(&roles.Items[i].Rules, scc.Name) {
+			rolesToUpdate = append(rolesToUpdate, roles.Items[i])
+		}
+	}
+	return rolesToUpdate
+}
+
+// takes a pointer to a slice containing PolicyRule objects and a name of SCC being
+// migrated. The rules' resources fields are checked for appearance of the SCC resource.
+// PSP resource is added to the rule when SCC resource type is found along
+// with the migrated SCC name in the resourceNames field of a certain rule.
+func convertRulesWithSCCName(rules *[]rbacv1.PolicyRule, sccName string) (changed bool) {
+	if rules == nil {
+		return false
+	}
+
+	for i, rule := range *rules {
+		mayNeedChange := false
+		for _, rsc := range rule.Resources {
+			if rsc == "podsecuritypolicies" {
+				// we have podsecuritypolicies resource already, don't change anything
+				mayNeedChange = false
+				break
+			}
+			if rsc == "securitycontextconstraints" {
+				// this rule may need to be updated if the current SCC name appears among its resourceNames
+				mayNeedChange = true
+			}
+		} // Resources
+
+		if mayNeedChange {
+			// found SCC but no PSP resource, need to check for migrated SCC name
+			for _, rscName := range rule.ResourceNames {
+				if rscName == sccName {
+					(*rules)[i].Resources = append((*rules)[i].Resources, "podsecuritypolicies")
+					changed = true
+				}
+			} // ResourceNames
+		}
+	} // Rules
+	return changed
 }
