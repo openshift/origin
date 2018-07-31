@@ -141,7 +141,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 
 		g.By("waiting for the build to finish")
 		var lastBuild *buildapi.Build
-		err = wait.Poll(time.Second, 80*time.Second, func() (bool, error) {
+		err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
 			build, err := buildClient.Builds(oc.Namespace()).Get("output", metav1.GetOptions{})
 			if err != nil {
 				return false, err
