@@ -18,6 +18,7 @@ const (
 // CollectNetworkInfo is a Diagnostic to collect network information in the cluster.
 type CollectNetworkInfo struct {
 	KubeClient kclientset.Interface
+	Runtime    *util.Runtime
 }
 
 // Name is part of the Diagnostic interface and just returns name.
@@ -56,6 +57,6 @@ func (d CollectNetworkInfo) Check() types.DiagnosticResult {
 		Result: r,
 		Logdir: filepath.Join(util.NetworkDiagDefaultLogDir, util.NetworkDiagNodeLogDirPrefix, nodeName),
 	}
-	l.LogNode(d.KubeClient)
+	l.LogNode(d.KubeClient, d.Runtime)
 	return r
 }

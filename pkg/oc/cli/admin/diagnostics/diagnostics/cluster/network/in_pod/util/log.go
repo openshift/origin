@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
@@ -19,18 +18,18 @@ type LogInterface struct {
 	Logdir string
 }
 
-func (l *LogInterface) LogNode(kubeClient kclientset.Interface) {
+func (l *LogInterface) LogNode(kubeClient kclientset.Interface, runtime *Runtime) {
 	l.LogSystem()
 	l.LogServices()
 
-	l.Run("docker ps -a", "docker-ps")
 	l.Run("ovs-ofctl -O OpenFlow13 dump-flows br0", "flows")
 	l.Run("ovs-ofctl -O OpenFlow13 show br0", "ovs-show")
 	l.Run("tc qdisc show", "tc-qdisc")
 	l.Run("tc class show", "tc-class")
 	l.Run("tc filter show", "tc-filter")
-	l.Run("systemctl cat docker.service", "docker-unit-file")
-	l.logDockerNetworkFile()
+
+	l.logRuntime(runtime)
+	l.logPodInfo(kubeClient, runtime)
 }
 
 func (l *LogInterface) LogMaster() {
@@ -97,7 +96,6 @@ func (l *LogInterface) LogSystem() {
 	l.Run("lsmod", "modules")
 	l.Run("sysctl -a", "sysctl")
 	l.Run("oc version", "version")
-	l.Run("docker version", "version")
 	l.Run("cat /etc/system-release-cpe", "version")
 
 	l.logNetworkInterfaces()
@@ -135,18 +133,30 @@ func (l *LogInterface) Run(cmd, outfile string) {
 	}
 }
 
-func (l *LogInterface) logDockerNetworkFile() {
-	out, err := exec.Command("systemctl", "cat", "docker.service").CombinedOutput()
+func (l *LogInterface) logRuntime(runtime *Runtime) {
+	// Log runtime version
+	version, err := runtime.GetRuntimeVersion()
 	if err != nil {
-		l.Run(fmt.Sprintf("echo %s", string(out)), "docker-network-file")
+		l.Result.Error("DLogNet1006", err, fmt.Sprintf("Fetching runtime version failed: %v", err))
+		return
+	}
+	l.Run(fmt.Sprintf("echo '\n%v'", version), "version")
+
+	l.Run(fmt.Sprintf("systemctl cat %s.service", runtime.Name), fmt.Sprintf("%s-unit-file", runtime.Name))
+	l.logRuntimeNetworkFile(runtime.Name)
+}
+
+func (l *LogInterface) logRuntimeNetworkFile(name string) {
+	out, err := exec.Command("systemctl", "cat", fmt.Sprintf("%s.service", name)).CombinedOutput()
+	if err != nil {
+		l.Run(fmt.Sprintf("cat /etc/sysconfig/%s-network", name), fmt.Sprintf("%s-network-file", name))
 		return
 	}
 
-	re := regexp.MustCompile("EnvironmentFile=-(.*openshift-sdn.*)")
+	re := regexp.MustCompile("EnvironmentFile=-(.*-network)")
 	match := re.FindStringSubmatch(string(out))
 	if len(match) > 1 {
-		dockerNetworkFile := match[1]
-		l.Run(fmt.Sprintf("cat %s", dockerNetworkFile), "docker-network-file")
+		l.Run(fmt.Sprintf("cat %s", match[1]), fmt.Sprintf("%s-network-file", name))
 	}
 }
 
@@ -155,13 +165,13 @@ func (l *LogInterface) logNetworkInterfaces() {
 		if !strings.HasPrefix(path, "ifcfg-") {
 			return nil
 		}
-		l.Run(fmt.Sprintf("\necho %s", path), "ifcfg")
+		l.Run(fmt.Sprintf("\necho '%s'", path), "ifcfg")
 		l.Run(fmt.Sprintf("cat %s", path), "ifcfg")
 		return nil
 	})
 }
 
-func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface) {
+func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface, runtime *Runtime) {
 	pods, _, err := GetLocalAndNonLocalDiagnosticPods(kubeClient)
 	if err != nil {
 		l.Result.Error("DLogNet1003", err, err.Error())
@@ -173,18 +183,17 @@ func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface) {
 			continue
 		}
 
-		containerID := ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
-		out, err := exec.Command("docker", []string{"inspect", "-f", "'{{.State.Pid}}'", containerID}...).Output()
+		pid, err := runtime.GetContainerPid(pod.Status.ContainerStatuses[0].ContainerID)
 		if err != nil {
-			l.Result.Error("DLogNet1004", err, fmt.Sprintf("Fetching pid for container %q failed: %s", containerID, err))
+			l.Result.Error("DLogNet1008", err, err.Error())
 			continue
 		}
-		pid := strings.Trim(string(out[:]), "\n")
 
 		p := LogInterface{
 			Result: l.Result,
 			Logdir: filepath.Join(l.Logdir, NetworkDiagPodLogDirPrefix, pod.Name),
 		}
+
 		p.Run(fmt.Sprintf("nsenter -n -t %s -- ip addr show", pid), "addresses")
 		p.Run(fmt.Sprintf("nsenter -n -t %s -- ip route show", pid), "routes")
 	}
@@ -204,41 +213,4 @@ func (l *LogInterface) getConfigFileForService(serviceName, serviceArgs string) 
 		return ""
 	}
 	return string(out[:])
-}
-
-// ContainerID is a type that identifies a container.
-type ContainerID struct {
-	// The type of the container runtime. e.g. 'docker', 'rkt'.
-	Type string
-	// The identification of the container, this is comsumable by
-	// the underlying container runtime. (Note that the container
-	// runtime interface still takes the whole struct as input).
-	ID string
-}
-
-// Convenience method for creating a ContainerID from an ID string.
-func ParseContainerID(containerID string) ContainerID {
-	var id ContainerID
-	if err := id.ParseString(containerID); err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to parse containerID: %v", err))
-	}
-	return id
-}
-
-func (c *ContainerID) ParseString(data string) error {
-	// Trim the quotes and split the type and ID.
-	parts := strings.Split(strings.Trim(data, "\""), "://")
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid container ID: %q", data)
-	}
-	c.Type, c.ID = parts[0], parts[1]
-	return nil
-}
-
-func (c *ContainerID) String() string {
-	return fmt.Sprintf("%s://%s", c.Type, c.ID)
-}
-
-func (c *ContainerID) IsEmpty() bool {
-	return *c == ContainerID{}
 }

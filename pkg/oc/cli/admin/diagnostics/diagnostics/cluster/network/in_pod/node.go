@@ -20,6 +20,7 @@ const (
 // CheckNodeNetwork is a Diagnostic to check that pods in the cluster can access its own node
 type CheckNodeNetwork struct {
 	KubeClient kclientset.Interface
+	Runtime    *util.Runtime
 }
 
 // Name is part of the Diagnostic interface and just returns name.
@@ -61,27 +62,27 @@ func (d CheckNodeNetwork) Check() types.DiagnosticResult {
 	}
 
 	for _, pod := range localPods {
-		checkNodeConnection(&pod, localIP, r)
+		d.checkNodeConnection(&pod, localIP, r)
 	}
 	return r
 }
 
-func checkNodeConnection(pod *kapi.Pod, nodeIP string, r types.DiagnosticResult) {
+func (d CheckNodeNetwork) checkNodeConnection(pod *kapi.Pod, nodeIP string, r types.DiagnosticResult) {
 	if len(pod.Status.ContainerStatuses) == 0 {
 		err := fmt.Errorf("ContainerID not found for pod %q", util.PrintPod(pod))
 		r.Error("DNodeNet1003", err, err.Error())
 		return
 	}
 
-	kexecer := kexec.New()
-	containerID := util.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
-	pid, err := kexecer.Command("docker", "inspect", "-f", "{{.State.Pid}}", containerID).CombinedOutput()
+	pid, err := d.Runtime.GetContainerPid(pod.Status.ContainerStatuses[0].ContainerID)
 	if err != nil {
-		r.Error("DNodeNet1004", err, fmt.Sprintf("Fetching pid for pod %q, container %q failed. Error: %s", util.PrintPod(pod), containerID, err))
+		r.Error("DNodeNet1004", err, err.Error())
 		return
 	}
 
+	kexecer := kexec.New()
 	if _, err := kexecer.Command("nsenter", "-n", "-t", strings.Trim(fmt.Sprintf("%s", pid), "\n"), "--", "ping", "-c1", "-W2", nodeIP).CombinedOutput(); err != nil {
 		r.Error("DNodeNet1005", err, fmt.Sprintf("Connectivity from pod %q to node %q failed. Error: %s", util.PrintPod(pod), nodeIP, err))
+		return
 	}
 }
