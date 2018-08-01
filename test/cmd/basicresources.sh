@@ -325,6 +325,10 @@ os::cmd::expect_success          "echo '${group_json}' | oc create -f -"
 os::cmd::expect_success          "oc patch group patch-group -p 'users: [\"myuser\"]' --loglevel=8"
 os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'myuser'
 os::cmd::expect_success          "oc patch group patch-group -p 'users: []' --loglevel=8"
+# applying the same patch twice results in exit code 0, and "not patched" text
+os::cmd::expect_success_and_text "oc patch group patch-group -p 'users: []'" "not patched"
+# applying an invalid patch results in exit code 1 and an error
+os::cmd::expect_failure_and_text "oc patch group patch-group -p 'users: \"\"'" "cannot restore slice from string"
 os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: \[\]'
 echo "patch: ok"
 os::test::junit::declare_suite_end
