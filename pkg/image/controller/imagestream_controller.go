@@ -265,7 +265,7 @@ func handleImageStream(
 			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
 		}
 	}
-	result, err := client.ImageStreamImports(stream.Namespace).Create(isi)
+	result, err := client.ImageStreamImports(stream.Namespace).CreateWithoutTimeout(isi)
 	if err != nil {
 		if apierrs.IsNotFound(err) && isStatusErrorKind(err, "imageStream") {
 			return result, ErrNotImportable

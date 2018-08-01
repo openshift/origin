@@ -23,6 +23,7 @@ import (
 	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -153,7 +154,7 @@ func findImageChangeTrigger(bc *buildapi.BuildConfig, ref *kapi.ObjectReference)
 		imageChange := trigger.ImageChange
 		triggerRef := imageChange.From
 		if triggerRef == nil {
-			triggerRef = buildapi.GetInputReference(bc.Spec.Strategy)
+			triggerRef = buildapihelpers.GetInputReference(bc.Spec.Strategy)
 			if triggerRef == nil || triggerRef.Kind != "ImageStreamTag" {
 				continue
 			}
@@ -355,7 +356,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx context.Context, bc *buildapi.B
 
 		triggerImageRef := trigger.ImageChange.From
 		if triggerImageRef == nil {
-			triggerImageRef = buildapi.GetInputReference(bc.Spec.Strategy)
+			triggerImageRef = buildapihelpers.GetInputReference(bc.Spec.Strategy)
 		}
 		if triggerImageRef == nil {
 			glog.Warningf("Could not get ImageStream reference for default ImageChangeTrigger on BuildConfig %s/%s", bc.Namespace, bc.Name)
@@ -540,7 +541,7 @@ func (g *BuildGenerator) setBuildSourceImage(ctx context.Context, builderSecrets
 		var sourceImageSpec string
 		// if the imagesource matches the strategy from, and we have a trigger for the strategy from,
 		// use the imageid from the trigger rather than resolving it.
-		if strategyFrom := buildapi.GetInputReference(bcCopy.Spec.Strategy); strategyFrom != nil &&
+		if strategyFrom := buildapihelpers.GetInputReference(bcCopy.Spec.Strategy); strategyFrom != nil &&
 			reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
 			strategyImageChangeTrigger != nil {
 			sourceImageSpec = strategyImageChangeTrigger.LastTriggeredImageID
@@ -912,8 +913,8 @@ func setBuildAnnotationAndLabel(bcCopy *buildapi.BuildConfig, build *buildapi.Bu
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
-	build.Labels[buildapi.BuildConfigLabelDeprecated] = buildapi.LabelValue(bcCopy.Name)
-	build.Labels[buildapi.BuildConfigLabel] = buildapi.LabelValue(bcCopy.Name)
+	build.Labels[buildapi.BuildConfigLabelDeprecated] = buildapihelpers.LabelValue(bcCopy.Name)
+	build.Labels[buildapi.BuildConfigLabel] = buildapihelpers.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
 }
 

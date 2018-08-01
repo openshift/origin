@@ -1,14 +1,14 @@
 package integration
 
 import (
-	"io"
 	"reflect"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	groupscmd "github.com/openshift/origin/pkg/oc/cli/admin/groups"
@@ -185,15 +185,13 @@ func TestGroupCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	userClient := userclient.NewForConfigOrDie(clusterAdminClientConfig)
+	userClient := userv1client.NewForConfigOrDie(clusterAdminClientConfig)
 
 	newGroup := &groupsnewcmd.NewGroupOptions{
 		GroupClient: userClient.Groups(),
 		Group:       "group1",
 		Users:       []string{"first", "second", "third", "first"},
-		Printer: func(runtime.Object, io.Writer) error {
-			return nil
-		},
+		Printer:     printers.NewDiscardingPrinter(),
 	}
 	if err := newGroup.AddGroup(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -202,12 +200,14 @@ func TestGroupCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if e, a := []string{"first", "second", "third"}, group1.Users; !reflect.DeepEqual(e, a) {
+	if e, a := []string{"first", "second", "third"}, []string(group1.Users); !reflect.DeepEqual(e, a) {
 		t.Errorf("expected %v, actual %v", e, a)
 	}
 
+	userClientInternal := userclient.NewForConfigOrDie(clusterAdminClientConfig)
+
 	modifyUsers := &groupscmd.GroupModificationOptions{
-		GroupClient: userClient.Groups(),
+		GroupClient: userClientInternal.Groups(),
 		Group:       "group1",
 		Users:       []string{"second", "fourth", "fifth"},
 	}
@@ -218,7 +218,7 @@ func TestGroupCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if e, a := []string{"first", "second", "third", "fourth", "fifth"}, group1.Users; !reflect.DeepEqual(e, a) {
+	if e, a := []string{"first", "second", "third", "fourth", "fifth"}, []string(group1.Users); !reflect.DeepEqual(e, a) {
 		t.Errorf("expected %v, actual %v", e, a)
 	}
 
@@ -229,7 +229,7 @@ func TestGroupCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if e, a := []string{"first", "third"}, group1.Users; !reflect.DeepEqual(e, a) {
+	if e, a := []string{"first", "third"}, []string(group1.Users); !reflect.DeepEqual(e, a) {
 		t.Errorf("expected %v, actual %v", e, a)
 	}
 

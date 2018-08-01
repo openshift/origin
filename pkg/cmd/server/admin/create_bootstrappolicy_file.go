@@ -10,15 +10,15 @@ import (
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -73,34 +73,36 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 		return err
 	}
 
-	policyList := &kapi.List{}
+	policyList := &corev1.List{}
+	policyList.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("List"))
 	policy := bootstrappolicy.Policy()
+	rbacEncoder := scheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion)
 
 	for i := range policy.ClusterRoles {
-		versionedObject, err := legacyscheme.Scheme.ConvertToVersion(&policy.ClusterRoles[i], rbacv1.SchemeGroupVersion)
+		versionedObject, err := runtime.Encode(rbacEncoder, &policy.ClusterRoles[i])
 		if err != nil {
 			return err
 		}
-		policyList.Items = append(policyList.Items, versionedObject)
+		policyList.Items = append(policyList.Items, runtime.RawExtension{Raw: versionedObject})
 	}
 
 	for i := range policy.ClusterRoleBindings {
-		versionedObject, err := legacyscheme.Scheme.ConvertToVersion(&policy.ClusterRoleBindings[i], rbacv1.SchemeGroupVersion)
+		versionedObject, err := runtime.Encode(rbacEncoder, &policy.ClusterRoleBindings[i])
 		if err != nil {
 			return err
 		}
-		policyList.Items = append(policyList.Items, versionedObject)
+		policyList.Items = append(policyList.Items, runtime.RawExtension{Raw: versionedObject})
 	}
 
 	// iterate in a defined order
 	for _, namespace := range sets.StringKeySet(policy.Roles).List() {
 		roles := policy.Roles[namespace]
 		for i := range roles {
-			versionedObject, err := legacyscheme.Scheme.ConvertToVersion(&roles[i], rbacv1.SchemeGroupVersion)
+			versionedObject, err := runtime.Encode(rbacEncoder, &roles[i])
 			if err != nil {
 				return err
 			}
-			policyList.Items = append(policyList.Items, versionedObject)
+			policyList.Items = append(policyList.Items, runtime.RawExtension{Raw: versionedObject})
 		}
 	}
 
@@ -108,21 +110,18 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 	for _, namespace := range sets.StringKeySet(policy.RoleBindings).List() {
 		roleBindings := policy.RoleBindings[namespace]
 		for i := range roleBindings {
-			versionedObject, err := legacyscheme.Scheme.ConvertToVersion(&roleBindings[i], rbacv1.SchemeGroupVersion)
+			versionedObject, err := runtime.Encode(rbacEncoder, &roleBindings[i])
 			if err != nil {
 				return err
 			}
-			policyList.Items = append(policyList.Items, versionedObject)
+			policyList.Items = append(policyList.Items, runtime.RawExtension{Raw: versionedObject})
 		}
 	}
 
-	versionedPolicyList, err := legacyscheme.Scheme.ConvertToVersion(policyList, latest.Version)
-	if err != nil {
+	buffer := &bytes.Buffer{}
+	if err := (&printers.JSONPrinter{}).PrintObj(policyList, buffer); err != nil {
 		return err
 	}
-
-	buffer := &bytes.Buffer{}
-	(&printers.JSONPrinter{}).PrintObj(versionedPolicyList, buffer)
 
 	if err := ioutil.WriteFile(o.File, buffer.Bytes(), 0644); err != nil {
 		return err

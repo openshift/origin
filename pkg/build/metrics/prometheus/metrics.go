@@ -7,6 +7,7 @@ import (
 	kselector "k8s.io/apimachinery/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	internalversion "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -111,7 +112,7 @@ func addTimeGauge(ch chan<- prometheus.Metric, b *buildapi.Build, time *metav1.T
 func (bc *buildCollector) collectBuild(ch chan<- prometheus.Metric, b *buildapi.Build) (key collectKey) {
 
 	r := string(b.Status.Reason)
-	s := buildapi.StrategyType(b.Spec.Strategy)
+	s := buildapihelpers.StrategyType(b.Spec.Strategy)
 	key = collectKey{reason: r, strategy: s}
 	switch b.Status.Phase {
 	// remember, new and pending builds don't have a start time

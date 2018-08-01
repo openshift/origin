@@ -1,5 +1,5 @@
-hash: 91748cede774246187f6a8627e0a335015261f8e28708731a279c6ce205d9254
-updated: 2018-07-10T15:41:29.920958699-04:00
+hash: 45a7f40cc71c1eba5d67f1c71580775a9b825ae5ba406b191e4d50c700d5e732
+updated: 2018-07-23T16:11:42.626426-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -49,7 +49,7 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: 04a26bf3b8d69c390642c5803fe4cfdb899112aa
+  version: fc4c02c9169b85b9a80353f11ac15ce542a0944a
   subpackages:
   - apps/v1
   - authorization/v1
@@ -111,7 +111,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 072894a440bdee3a891dea811fe42902311cd2a3
+  version: 2d6f90ab1293a1fb871cf149423ebb72aa7423aa
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
@@ -187,7 +187,7 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: 7d04d0e2a0a1a4d4a1cd6baa432a2301492e4e65
+  version: 59698c7d9724b0f95f9dc9e7f7dfdcc3dfeceb82
   subpackages:
   - discovery
   - discovery/fake
@@ -217,7 +217,7 @@ imports:
   - util/integer
   - util/retry
 - name: k8s.io/code-generator
-  version: d7806fb979faad89dabf9e6a46aa18355962700c
+  version: f8b4a111163516cf26185a0530df90263c59bcc1
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b

@@ -11,6 +11,7 @@ import (
 
 	units "github.com/docker/go-units"
 	"github.com/golang/glog"
+	"k8s.io/client-go/kubernetes"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -27,7 +28,7 @@ import (
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapps "github.com/openshift/api/apps"
-	authorization "github.com/openshift/api/authorization"
+	"github.com/openshift/api/authorization"
 	"github.com/openshift/api/build"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/network"
@@ -38,16 +39,19 @@ import (
 	"github.com/openshift/api/security"
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
+	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	oapi "github.com/openshift/origin/pkg/api"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -61,9 +65,13 @@ import (
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
-func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host string, withCoreGroup bool) map[schema.GroupKind]kprinters.Describer {
+func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host string) map[schema.GroupKind]kprinters.Describer {
 	// FIXME: This should use the client factory
 	// we can't fail and we can't log at a normal level because this is sometimes called with `nils` for help :(
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
 	oauthorizationClient, err := oauthorizationclient.NewForConfig(clientConfig)
 	if err != nil {
 		glog.V(1).Info(err)
@@ -84,7 +92,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	if err != nil {
 		glog.V(1).Info(err)
 	}
-	appsClient, err := appsclient.NewForConfig(clientConfig)
+	appsClient, err := appstypedclient.NewForConfig(clientConfig)
 	if err != nil {
 		glog.V(1).Info(err)
 	}
@@ -114,7 +122,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	}
 
 	m := map[schema.GroupKind]kprinters.Describer{
-		oapps.Kind("DeploymentConfig"):               &DeploymentConfigDescriber{appsClient, kclient, nil},
+		oapps.Kind("DeploymentConfig"):               &DeploymentConfigDescriber{appsClient, kubeClient, nil},
 		build.Kind("Build"):                          &BuildDescriber{buildClient, kclient},
 		build.Kind("BuildConfig"):                    &BuildConfigDescriber{buildClient, kclient, host},
 		image.Kind("Image"):                          &ImageDescriber{imageClient},
@@ -145,22 +153,15 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	}
 
 	// Register the legacy ("core") API group for all kinds as well.
-	if withCoreGroup {
-		for _, t := range legacyscheme.Scheme.KnownTypes(oapi.SchemeGroupVersion) {
-			coreKind := oapi.SchemeGroupVersion.WithKind(t.Name())
-			for g, d := range m {
-				if g.Kind == coreKind.Kind {
-					m[oapi.Kind(g.Kind)] = d
-				}
-			}
-		}
+	for gk, d := range m {
+		m[legacy.Kind(gk.Kind)] = d
 	}
 	return m
 }
 
 // DescriberFor returns a describer for a given kind of resource
 func DescriberFor(kind schema.GroupKind, clientConfig *rest.Config, kclient kclientset.Interface, host string) (kprinters.Describer, bool) {
-	f, ok := describerMap(clientConfig, kclient, host, true)[kind]
+	f, ok := describerMap(clientConfig, kclient, host)[kind]
 	if ok {
 		return f, true
 	}
@@ -176,59 +177,59 @@ type BuildDescriber struct {
 // Describe returns the description of a build
 func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.buildClient.Builds(namespace)
-	build, err := c.Get(name, metav1.GetOptions{})
+	buildObj, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	events, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, build)
+	events, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, buildObj)
 	if events == nil {
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapi.GetBuildPodName(build), metav1.GetOptions{}); err == nil {
+	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapihelpers.GetBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
 		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
 	}
 	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, build.ObjectMeta)
+		formatMeta(out, buildObj.ObjectMeta)
 
 		fmt.Fprintln(out, "")
 
-		status := bold(build.Status.Phase)
-		if build.Status.Message != "" {
-			status += " (" + build.Status.Message + ")"
+		status := bold(buildObj.Status.Phase)
+		if buildObj.Status.Message != "" {
+			status += " (" + buildObj.Status.Message + ")"
 		}
 		formatString(out, "Status", status)
 
-		if build.Status.StartTimestamp != nil && !build.Status.StartTimestamp.IsZero() {
-			formatString(out, "Started", build.Status.StartTimestamp.Time.Format(time.RFC1123))
+		if buildObj.Status.StartTimestamp != nil && !buildObj.Status.StartTimestamp.IsZero() {
+			formatString(out, "Started", buildObj.Status.StartTimestamp.Time.Format(time.RFC1123))
 		}
 
 		// Create the time object with second-level precision so we don't get
 		// output like "duration: 1.2724395728934s"
-		formatString(out, "Duration", describeBuildDuration(build))
+		formatString(out, "Duration", describeBuildDuration(buildObj))
 
-		for _, stage := range build.Status.Stages {
+		for _, stage := range buildObj.Status.Stages {
 			duration := stage.StartTime.Time.Add(time.Duration(stage.DurationMilliseconds * int64(time.Millisecond))).Round(time.Second).Sub(stage.StartTime.Time.Round(time.Second))
 			formatString(out, fmt.Sprintf("  %v", stage.Name), fmt.Sprintf("  %v", duration))
 		}
 
 		fmt.Fprintln(out, "")
 
-		if build.Status.Config != nil {
-			formatString(out, "Build Config", build.Status.Config.Name)
+		if buildObj.Status.Config != nil {
+			formatString(out, "Build Config", buildObj.Status.Config.Name)
 		}
-		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
+		formatString(out, "Build Pod", buildapihelpers.GetBuildPodName(buildObj))
 
-		if build.Status.Output.To != nil && len(build.Status.Output.To.ImageDigest) > 0 {
-			formatString(out, "Image Digest", build.Status.Output.To.ImageDigest)
+		if buildObj.Status.Output.To != nil && len(buildObj.Status.Output.To.ImageDigest) > 0 {
+			formatString(out, "Image Digest", buildObj.Status.Output.To.ImageDigest)
 		}
 
-		describeCommonSpec(build.Spec.CommonSpec, out)
-		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
-		if len(build.Status.LogSnippet) != 0 {
-			formatString(out, "Log Tail", build.Status.LogSnippet)
+		describeCommonSpec(buildObj.Spec.CommonSpec, out)
+		describeBuildTriggerCauses(buildObj.Spec.TriggeredBy, out)
+		if len(buildObj.Status.LogSnippet) != 0 {
+			formatString(out, "Log Tail", buildObj.Status.LogSnippet)
 		}
 		if settings.ShowEvents {
 			kinternalprinters.DescribeEvents(events, kinternalprinters.NewPrefixWriter(out))
@@ -279,7 +280,7 @@ func nameAndNamespace(ns, name string) string {
 }
 
 func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
-	formatString(out, "\nStrategy", buildapi.StrategyType(p.Strategy))
+	formatString(out, "\nStrategy", buildapihelpers.StrategyType(p.Strategy))
 	noneType := true
 	if p.Source.Git != nil {
 		noneType = false
@@ -346,9 +347,9 @@ func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
 
 	if len(p.Source.Images) == 1 && len(p.Source.Images[0].Paths) == 1 {
 		noneType = false
-		image := p.Source.Images[0]
-		path := image.Paths[0]
-		formatString(out, "Image Source", fmt.Sprintf("copies %s from %s to %s", path.SourcePath, nameAndNamespace(image.From.Namespace, image.From.Name), path.DestinationDir))
+		imageObj := p.Source.Images[0]
+		path := imageObj.Paths[0]
+		formatString(out, "Image Source", fmt.Sprintf("copies %s from %s to %s", path.SourcePath, nameAndNamespace(imageObj.From.Namespace, imageObj.From.Name), path.DestinationDir))
 	} else {
 		for _, image := range p.Source.Images {
 			noneType = false
@@ -535,7 +536,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 	if err != nil {
 		return "", err
 	}
-	buildList.Items = buildapi.FilterBuilds(buildList.Items, buildapi.ByBuildConfigPredicate(name))
+	buildList.Items = ocbuildapihelpers.FilterBuildsInternal(buildList.Items, ocbuildapihelpers.ByBuildConfigPredicateInternal(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
@@ -552,7 +553,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 			fmt.Fprintf(out, "\nBuild\tStatus\tDuration\tCreation Time\n")
 
 			builds := buildList.Items
-			sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds)))
+			sort.Sort(sort.Reverse(buildapihelpers.BuildSliceByCreationTimestamp(builds)))
 
 			for i, build := range builds {
 				fmt.Fprintf(out, "%s \t%s \t%v \t%v\n",

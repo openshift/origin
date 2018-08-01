@@ -1,7 +1,10 @@
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
+
+	oauthapi "github.com/openshift/api/oauth/v1"
 )
 
 const (
@@ -87,4 +90,10 @@ type ProviderInfo struct {
 	Name string
 	// URL to login using this identity provider
 	URL string
+}
+
+// OAuthClientGetter exposes a way to get a specific client.  This is useful for other registries to get scope limitations
+// on particular clients.   This interface will make its easier to write a future cache on it
+type OAuthClientGetter interface {
+	Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error)
 }

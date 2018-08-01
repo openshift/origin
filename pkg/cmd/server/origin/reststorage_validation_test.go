@@ -18,9 +18,9 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclientfake "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
+	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securityclientfake "github.com/openshift/origin/pkg/security/generated/internalclientset/fake"
-	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 

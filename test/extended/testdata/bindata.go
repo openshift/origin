@@ -39,6 +39,9 @@
 // test/extended/testdata/builds/build-timing/test-s2i-build.json
 // test/extended/testdata/builds/gradle-pipeline.yaml
 // test/extended/testdata/builds/incremental-auth-build.json
+// test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
+// test/extended/testdata/builds/s2i-environment-build-app/Gemfile
+// test/extended/testdata/builds/s2i-environment-build-app/config.ru
 // test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble
 // test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml
 // test/extended/testdata/builds/statusfail-failedassemble.yaml
@@ -49,9 +52,6 @@
 // test/extended/testdata/builds/statusfail-oomkilled.yaml
 // test/extended/testdata/builds/statusfail-postcommithook.yaml
 // test/extended/testdata/builds/statusfail-pushtoregistry.yaml
-// test/extended/testdata/builds/sti-environment-build-app/.sti/environment
-// test/extended/testdata/builds/sti-environment-build-app/Gemfile
-// test/extended/testdata/builds/sti-environment-build-app/config.ru
 // test/extended/testdata/builds/test-auth-build.yaml
 // test/extended/testdata/builds/test-bc-with-pr-ref.yaml
 // test/extended/testdata/builds/test-build-app/Dockerfile
@@ -81,6 +81,7 @@
 // test/extended/testdata/builds/test-s2i-build-quota.json
 // test/extended/testdata/builds/test-s2i-build.json
 // test/extended/testdata/builds/test-s2i-no-outputname.json
+// test/extended/testdata/builds/test-symlink-build.yaml
 // test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml
 // test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml
 // test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml
@@ -546,7 +547,7 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
   strategy:
     type: Source
     sourceStrategy:
@@ -581,7 +582,7 @@ var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte
     "source": {
       "type": "Git",
       "git": {
-        "uri": "https://github.com/openshift/cakephp-ex.git"
+        "uri": "https://github.com/sclorg/cakephp-ex.git"
       }
     },
     "strategy": {
@@ -621,7 +622,7 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
       ref: master
   strategy:
     type: Source
@@ -754,7 +755,7 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
+      uri: 'https://github.com/sclorg/cakephp-ex.git'
   strategy:
     type: Source
     sourceStrategy:
@@ -1767,6 +1768,62 @@ func testExtendedTestdataBuildsIncrementalAuthBuildJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment = []byte(`TEST_ENV=success
+`)
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironmentBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment, nil
+}
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironmentBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile = []byte(`source "https://rubygems.org"
+
+gem "rack"
+`)
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile, nil
+}
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/s2i-environment-build-app/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
+`)
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRuBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu, nil
+}
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRuBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/s2i-environment-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble = []byte(`#!/usr/bin/env bash
 
 exit 123123
@@ -1949,7 +2006,7 @@ metadata:
 spec:
   source:
     git:
-      uri: "https://github.com/openshift/ruby-ex"
+      uri: "https://github.com/sclorg/ruby-ex"
   strategy:
     type: Source
     sourceStrategy:
@@ -2076,62 +2133,6 @@ func testExtendedTestdataBuildsStatusfailPushtoregistryYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-pushtoregistry.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment = []byte(`TEST_ENV=success
-`)
-
-func testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironmentBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment, nil
-}
-
-func testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironmentBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/sti-environment-build-app/.sti/environment", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile = []byte(`source "https://rubygems.org"
-
-gem "rack"
-`)
-
-func testExtendedTestdataBuildsStiEnvironmentBuildAppGemfileBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile, nil
-}
-
-func testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsStiEnvironmentBuildAppGemfileBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/sti-environment-build-app/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
-`)
-
-func testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRuBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu, nil
-}
-
-func testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRuBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/sti-environment-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -3641,7 +3642,7 @@ items:
     source:
       type: Git
       git:
-        uri: https://github.com/openshift/nodejs-ex.git
+        uri: https://github.com/sclorg/nodejs-ex.git
     strategy:
       type: Source
       sourceStrategy:
@@ -4290,6 +4291,49 @@ func testExtendedTestdataBuildsTestS2iNoOutputnameJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-s2i-no-outputname.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestSymlinkBuildYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: symlink-is
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: symlink-bc
+  spec:
+    source:
+      type: binary
+      binary: {}
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs:latest
+          namespace: openshift
+    output:
+      to:
+        kind: ImageStreamTag
+        name: symlink-is:latest
+`)
+
+func testExtendedTestdataBuildsTestSymlinkBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestSymlinkBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsTestSymlinkBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestSymlinkBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-symlink-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -5691,7 +5735,7 @@ spec:
           command:
           - /bin/bash
           - -c
-          - "echo 'test pre hook executed' && sleep 5"
+          - "echo 'test pre hook executed' && sleep 15"
   template:
     metadata:
       labels:
@@ -8919,7 +8963,7 @@ var _testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "https://github.com/openshift/nodejs-ex.git"
+            "uri": "https://github.com/sclorg/nodejs-ex.git"
           }
         },
         "strategy": {
@@ -20959,10 +21003,10 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
     "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/cakephp-ex/blob/master/README.md.",
+            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.",
             "iconClass": "icon-php",
             "openshift.io/display-name": "CakePHP + MySQL",
-            "openshift.io/documentation-url": "https://github.com/openshift/cakephp-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/cakephp-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a CakePHP application, including a build configuration, application deployment configuration, and database deployment configuration.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -21449,7 +21493,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/cakephp-ex.git"
+            "value": "https://github.com/sclorg/cakephp-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -21559,10 +21603,10 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
     "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
             "iconClass": "icon-php",
             "openshift.io/display-name": "CakePHP + MySQL (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/openshift/cakephp-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/cakephp-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a CakePHP application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -22023,7 +22067,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/cakephp-ex.git"
+            "value": "https://github.com/sclorg/cakephp-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -23208,13 +23252,13 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
         "app": "django-psql-persistent",
         "template": "django-psql-persistent"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
+            "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.",
             "iconClass": "icon-python",
             "openshift.io/display-name": "Django + PostgreSQL",
-            "openshift.io/documentation-url": "https://github.com/openshift/django-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/django-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a Django based application, including a build configuration, application deployment configuration, and database deployment configuration.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -23685,7 +23729,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/django-ex.git"
+            "value": "https://github.com/sclorg/django-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -23784,13 +23828,13 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
         "app": "django-psql-example",
         "template": "django-psql-example"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
             "iconClass": "icon-python",
             "openshift.io/display-name": "Django + PostgreSQL (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/openshift/django-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/django-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a Django based application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -24235,7 +24279,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/django-ex.git"
+            "value": "https://github.com/sclorg/django-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -25870,13 +25914,13 @@ var _examplesQuickstartsNodejsMongodbPersistentJson = []byte(`{
     "labels": {
         "template": "nodejs-mongo-persistent"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nodejs-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
+            "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nodejs-ex/blob/master/README.md.",
             "iconClass": "icon-nodejs",
             "openshift.io/display-name": "Node.js + MongoDB",
-            "openshift.io/documentation-url": "https://github.com/openshift/nodejs-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/nodejs-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a NodeJS application, including a build configuration, application deployment configuration, and database deployment configuration.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -26354,7 +26398,7 @@ var _examplesQuickstartsNodejsMongodbPersistentJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/nodejs-ex.git"
+            "value": "https://github.com/sclorg/nodejs-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -26450,13 +26494,13 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
         "app": "nodejs-mongodb-example",
         "template": "nodejs-mongodb-example"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nodejs-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nodejs-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
             "iconClass": "icon-nodejs",
             "openshift.io/display-name": "Node.js + MongoDB (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/openshift/nodejs-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/nodejs-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a NodeJS application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -26910,7 +26954,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/nodejs-ex.git"
+            "value": "https://github.com/sclorg/nodejs-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -28248,10 +28292,10 @@ parameters:
   value: openshift/oauth-proxy:v1.0.0
 - description: The location of the prometheus image
   name: IMAGE_PROMETHEUS
-  value: openshift/prometheus:v2.3.1
+  value: openshift/prometheus:v2.3.2
 - description: The location of the alertmanager image
   name: IMAGE_ALERTMANAGER
-  value: openshift/prometheus-alertmanager:v0.15.0
+  value: openshift/prometheus-alertmanager:v0.15.1
 - description: The location of alert-buffer image
   name: IMAGE_ALERT_BUFFER
   value: openshift/prometheus-alert-buffer:v0.0.2
@@ -31553,10 +31597,10 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
     "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
             "iconClass": "icon-php",
             "openshift.io/display-name": "CakePHP + MySQL (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/openshift/cakephp-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/cakephp-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a CakePHP application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -32017,7 +32061,7 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/cakephp-ex.git"
+            "value": "https://github.com/sclorg/cakephp-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
@@ -34111,6 +34155,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-timing/test-s2i-build.json": testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
 	"test/extended/testdata/builds/gradle-pipeline.yaml": testExtendedTestdataBuildsGradlePipelineYaml,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
+	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment": testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
+	"test/extended/testdata/builds/s2i-environment-build-app/Gemfile": testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile,
+	"test/extended/testdata/builds/s2i-environment-build-app/config.ru": testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu,
 	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
 	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml": testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
 	"test/extended/testdata/builds/statusfail-failedassemble.yaml": testExtendedTestdataBuildsStatusfailFailedassembleYaml,
@@ -34121,9 +34168,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/statusfail-oomkilled.yaml": testExtendedTestdataBuildsStatusfailOomkilledYaml,
 	"test/extended/testdata/builds/statusfail-postcommithook.yaml": testExtendedTestdataBuildsStatusfailPostcommithookYaml,
 	"test/extended/testdata/builds/statusfail-pushtoregistry.yaml": testExtendedTestdataBuildsStatusfailPushtoregistryYaml,
-	"test/extended/testdata/builds/sti-environment-build-app/.sti/environment": testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment,
-	"test/extended/testdata/builds/sti-environment-build-app/Gemfile": testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile,
-	"test/extended/testdata/builds/sti-environment-build-app/config.ru": testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu,
 	"test/extended/testdata/builds/test-auth-build.yaml": testExtendedTestdataBuildsTestAuthBuildYaml,
 	"test/extended/testdata/builds/test-bc-with-pr-ref.yaml": testExtendedTestdataBuildsTestBcWithPrRefYaml,
 	"test/extended/testdata/builds/test-build-app/Dockerfile": testExtendedTestdataBuildsTestBuildAppDockerfile,
@@ -34153,6 +34197,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-s2i-build-quota.json": testExtendedTestdataBuildsTestS2iBuildQuotaJson,
 	"test/extended/testdata/builds/test-s2i-build.json": testExtendedTestdataBuildsTestS2iBuildJson,
 	"test/extended/testdata/builds/test-s2i-no-outputname.json": testExtendedTestdataBuildsTestS2iNoOutputnameJson,
+	"test/extended/testdata/builds/test-symlink-build.yaml": testExtendedTestdataBuildsTestSymlinkBuildYaml,
 	"test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml,
 	"test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml,
 	"test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml,
@@ -34582,6 +34627,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"gradle-pipeline.yaml": &bintree{testExtendedTestdataBuildsGradlePipelineYaml, map[string]*bintree{}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
+					"s2i-environment-build-app": &bintree{nil, map[string]*bintree{
+						".s2i": &bintree{nil, map[string]*bintree{
+							"environment": &bintree{testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment, map[string]*bintree{}},
+						}},
+						"Gemfile": &bintree{testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile, map[string]*bintree{}},
+						"config.ru": &bintree{testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu, map[string]*bintree{}},
+					}},
 					"statusfail-assemble": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{
 							"bin": &bintree{nil, map[string]*bintree{
@@ -34598,13 +34650,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"statusfail-oomkilled.yaml": &bintree{testExtendedTestdataBuildsStatusfailOomkilledYaml, map[string]*bintree{}},
 					"statusfail-postcommithook.yaml": &bintree{testExtendedTestdataBuildsStatusfailPostcommithookYaml, map[string]*bintree{}},
 					"statusfail-pushtoregistry.yaml": &bintree{testExtendedTestdataBuildsStatusfailPushtoregistryYaml, map[string]*bintree{}},
-					"sti-environment-build-app": &bintree{nil, map[string]*bintree{
-						".sti": &bintree{nil, map[string]*bintree{
-							"environment": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment, map[string]*bintree{}},
-						}},
-						"Gemfile": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile, map[string]*bintree{}},
-						"config.ru": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu, map[string]*bintree{}},
-					}},
 					"test-auth-build.yaml": &bintree{testExtendedTestdataBuildsTestAuthBuildYaml, map[string]*bintree{}},
 					"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataBuildsTestBcWithPrRefYaml, map[string]*bintree{}},
 					"test-build-app": &bintree{nil, map[string]*bintree{
@@ -34636,6 +34681,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-s2i-build-quota.json": &bintree{testExtendedTestdataBuildsTestS2iBuildQuotaJson, map[string]*bintree{}},
 					"test-s2i-build.json": &bintree{testExtendedTestdataBuildsTestS2iBuildJson, map[string]*bintree{}},
 					"test-s2i-no-outputname.json": &bintree{testExtendedTestdataBuildsTestS2iNoOutputnameJson, map[string]*bintree{}},
+					"test-symlink-build.yaml": &bintree{testExtendedTestdataBuildsTestSymlinkBuildYaml, map[string]*bintree{}},
 					"valuefrom": &bintree{nil, map[string]*bintree{
 						"failed-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml, map[string]*bintree{}},
 						"failed-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml, map[string]*bintree{}},

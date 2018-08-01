@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"io"
-
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -11,10 +9,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	authv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 // PruneRolesOptions holds all the required options for pruning roles.
@@ -27,21 +25,23 @@ type PruneAuthOptions struct {
 	RoleBindingClient        rbacv1client.RoleBindingsGetter
 	ClusterRoleBindingClient rbacv1client.ClusterRoleBindingsGetter
 
-	// TODO switch these to external clients
-	UserInternalClient          userclient.Interface
-	AuthorizationInternalClient authclient.Interface
-	OAuthInternalClient         oauthclient.Interface
-	SCCClient                   securitytypedclient.SecurityInterface
+	UserClient          userv1client.UserV1Interface
+	AuthorizationClient authv1client.AuthorizationV1Interface
+	OAuthClient         oauthv1client.OauthV1Interface
+	SecurityClient      securityv1client.SecurityV1Interface
 
-	Out io.Writer
+	genericclioptions.IOStreams
+}
+
+func NewPruneAuthOptions(streams genericclioptions.IOStreams) *PruneAuthOptions {
+	return &PruneAuthOptions{
+		IOStreams: streams,
+	}
 }
 
 // NewCmdPruneRoles implements the OpenShift cli prune roles command.
 func NewCmdPruneAuth(f kcmdutil.Factory, name string, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &PruneAuthOptions{
-		Out: streams.Out,
-	}
-
+	o := NewPruneAuthOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Removes references to the specified roles, clusterroles, users, and groups.",
@@ -76,19 +76,19 @@ func (o *PruneAuthOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 	if err != nil {
 		return nil
 	}
-	o.UserInternalClient, err = userclient.NewForConfig(clientConfig)
+	o.UserClient, err = userv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return nil
 	}
-	o.AuthorizationInternalClient, err = authclient.NewForConfig(clientConfig)
+	o.AuthorizationClient, err = authv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return nil
 	}
-	o.OAuthInternalClient, err = oauthclient.NewForConfig(clientConfig)
+	o.OAuthClient, err = oauthv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return nil
 	}
-	o.SCCClient, err = securitytypedclient.NewForConfig(clientConfig)
+	o.SecurityClient, err = securityv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return nil
 	}
@@ -133,11 +133,10 @@ func (o *PruneAuthOptions) RunPrune() error {
 			reapForClusterRole(o.ClusterRoleBindingClient, o.RoleBindingClient, info.Namespace, info.Name, o.Out)
 
 		case isUser(info.Mapping):
-			reapForUser(o.UserInternalClient, o.AuthorizationInternalClient, o.OAuthInternalClient, o.SCCClient.SecurityContextConstraints(), info.Name, o.Out)
+			reapForUser(o.UserClient, o.AuthorizationClient, o.OAuthClient, o.SecurityClient.SecurityContextConstraints(), info.Name, o.Out)
 
 		case isGroup(info.Mapping):
-			reapForGroup(o.AuthorizationInternalClient, o.SCCClient.SecurityContextConstraints(), info.Name, o.Out)
-
+			reapForGroup(o.AuthorizationClient, o.SecurityClient.SecurityContextConstraints(), info.Name, o.Out)
 		}
 
 		return nil

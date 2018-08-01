@@ -5,22 +5,23 @@ import (
 	"fmt"
 	"testing"
 
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
-
-	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
+
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
-func makePod(name string, rc metav1.Object, namespace string, t *testing.T) kapi.Pod {
-	pod := kapi.Pod{
+func makePod(name string, rc metav1.Object, namespace string, t *testing.T) corev1.Pod {
+	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -49,8 +50,8 @@ func makeRC(name string, dc metav1.Object, namespace string, t *testing.T) *kapi
 	return &rc
 }
 
-func makePodRef(name, namespace string) *kapi.ObjectReference {
-	return &kapi.ObjectReference{
+func makePodRef(name, namespace string) *corev1.ObjectReference {
+	return &corev1.ObjectReference{
 		Kind:      "Pod",
 		Name:      name,
 		Namespace: namespace,
@@ -63,10 +64,10 @@ func makeRCRef(name string) *metav1.OwnerReference {
 }
 
 func TestFindIdlablesForEndpoints(t *testing.T) {
-	endpoints := &kapi.Endpoints{
-		Subsets: []kapi.EndpointSubset{
+	endpoints := &corev1.Endpoints{
+		Subsets: []corev1.EndpointSubset{
 			{
-				Addresses: []kapi.EndpointAddress{
+				Addresses: []corev1.EndpointAddress{
 					{
 						TargetRef: makePodRef("somepod1", "somens1"),
 					},
@@ -74,7 +75,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 						TargetRef: makePodRef("somepod2", "somens1"),
 					},
 					{
-						TargetRef: &kapi.ObjectReference{
+						TargetRef: &corev1.ObjectReference{
 							Kind:      "Cheese",
 							Name:      "cheddar",
 							Namespace: "somens",
@@ -83,7 +84,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 				},
 			},
 			{
-				Addresses: []kapi.EndpointAddress{
+				Addresses: []corev1.EndpointAddress{
 					{},
 					{
 						TargetRef: makePodRef("somepod3", "somens1"),
@@ -100,7 +101,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 				},
 			},
 			{
-				Addresses: []kapi.EndpointAddress{
+				Addresses: []corev1.EndpointAddress{
 					{},
 					{
 						TargetRef: makePodRef("somepod1", "somens2"),
@@ -119,7 +120,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 		"somens2/somerc2": makeRC("somerc2", nil, "somens2", t),
 	}
 
-	pods := map[kapi.ObjectReference]kapi.Pod{
+	pods := map[corev1.ObjectReference]corev1.Pod{
 		*makePodRef("somepod1", "somens1"): makePod("somepod1", controllers["somens1/somerc1"], "somens1", t),
 		*makePodRef("somepod2", "somens1"): makePod("somepod2", controllers["somens1/somerc2"], "somens1", t),
 		*makePodRef("somepod3", "somens1"): makePod("somepod3", controllers["somens1/somerc1"], "somens1", t),
@@ -128,7 +129,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 		*makePodRef("somepod1", "somens2"): makePod("somepod5", controllers["somens2/somerc2"], "somens2", t),
 	}
 
-	getPod := func(ref kapi.ObjectReference) (*kapi.Pod, error) {
+	getPod := func(ref corev1.ObjectReference) (*corev1.Pod, error) {
 		if pod, ok := pods[ref]; ok {
 			return &pod, nil
 		}

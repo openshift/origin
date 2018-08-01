@@ -12,13 +12,20 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
+	appsmanualclientv1 "github.com/openshift/origin/pkg/apps/client/v1"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildmanualclientv1 "github.com/openshift/origin/pkg/build/client/v1"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
 
 func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorphichelpers.LogsForObjectFunc {
@@ -39,6 +46,57 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				return nil, err
 			}
 			return appsmanualclient.NewRolloutLogClient(appsClient.Apps().RESTClient(), t.Namespace).Logs(t.Name, *dopts), nil
+		case *appsv1.DeploymentConfig:
+			dopts, ok := options.(*appsv1.DeploymentLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a DeploymentLogOptions")
+			}
+			appsClient, err := appsv1client.NewForConfig(clientConfig)
+			if err != nil {
+				return nil, err
+			}
+			return appsmanualclientv1.NewRolloutLogClient(appsClient.RESTClient(), t.Namespace).Logs(t.Name, *dopts), nil
+		case *buildv1.Build:
+			bopts, ok := options.(*buildv1.BuildLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a v1.BuildLogOptions")
+			}
+			if bopts.Version != nil {
+				return nil, errors.New("cannot specify a version and a build")
+			}
+			buildClient, err := buildv1client.NewForConfig(clientConfig)
+			if err != nil {
+				return nil, err
+			}
+			return buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts), nil
+		case *buildv1.BuildConfig:
+			bopts, ok := options.(*buildv1.BuildLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a v1.BuildLogOptions")
+			}
+			if bopts.Version != nil {
+				return nil, errors.New("cannot specify a version and a build")
+			}
+			buildClient, err := buildv1client.NewForConfig(clientConfig)
+			if err != nil {
+				return nil, err
+			}
+			logClient := buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace)
+			builds, err := buildClient.Builds(t.Namespace).List(metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			filteredInternalBuildItems := ocbuildapihelpers.FilterBuilds(builds.Items, ocbuildapihelpers.ByBuildConfigPredicate(t.Name))
+			if len(filteredInternalBuildItems) == 0 {
+				return nil, fmt.Errorf("no builds found for %q", t.Name)
+			}
+			if bopts.Version != nil {
+				// If a version has been specified, try to get the logs from that build.
+				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
+				return logClient.Logs(desired, *bopts), nil
+			}
+			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestamp(filteredInternalBuildItems)))
+			return logClient.Logs(filteredInternalBuildItems[0].Name, *bopts), nil
 		case *buildapi.Build:
 			bopts, ok := options.(*buildapi.BuildLogOptions)
 			if !ok {
@@ -66,7 +124,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigPredicate(t.Name))
+			builds.Items = ocbuildapihelpers.FilterBuildsInternal(builds.Items, ocbuildapihelpers.ByBuildConfigPredicateInternal(t.Name))
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
@@ -75,7 +133,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
 				return logClient.Logs(desired, *bopts), nil
 			}
-			sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds.Items)))
+			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestampInternal(builds.Items)))
 			return logClient.Logs(builds.Items[0].Name, *bopts), nil
 
 		default:

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +27,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/api/imagereferencemutators"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	"github.com/openshift/origin/pkg/build/buildscheme"
@@ -342,7 +343,7 @@ func (bc *BuildController) handleBuild(build *buildapi.Build) error {
 
 	glog.V(4).Infof("Handling build %s", buildDesc(build))
 
-	pod, podErr := bc.podStore.Pods(build.Namespace).Get(buildapi.GetBuildPodName(build))
+	pod, podErr := bc.podStore.Pods(build.Namespace).Get(buildapihelpers.GetBuildPodName(build))
 
 	// Technically the only error that is returned from retrieving the pod is the
 	// NotFound error so this check should not be needed, but leaving here in case
@@ -421,7 +422,7 @@ func shouldCancel(build *buildapi.Build) bool {
 func (bc *BuildController) cancelBuild(build *buildapi.Build) (*buildUpdate, error) {
 	glog.V(4).Infof("Cancelling build %s", buildDesc(build))
 
-	podName := buildapi.GetBuildPodName(build)
+	podName := buildapihelpers.GetBuildPodName(build)
 	err := bc.podClient.Pods(build.Namespace).Delete(podName, &metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, fmt.Errorf("could not delete build pod %s/%s to cancel build %s: %v", build.Namespace, podName, buildDesc(build), err)
@@ -563,7 +564,7 @@ var (
 // mutator that need to be resolved prior to the resource being accepted and returns
 // them as an array of "namespace/name" strings. If any references are invalid, an error
 // is returned.
-func unresolvedImageStreamReferences(m meta.ImageReferenceMutator, defaultNamespace string) ([]string, error) {
+func unresolvedImageStreamReferences(m imagereferencemutators.ImageReferenceMutator, defaultNamespace string) ([]string, error) {
 	var streams []string
 	fn := func(ref *kapi.ObjectReference) error {
 		switch ref.Kind {
@@ -722,7 +723,7 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 // resolveImageReferences resolves references to Docker images computed from the build.Spec. It will update
 // the output spec as well if it has not already been updated.
 func (bc *BuildController) resolveImageReferences(build *buildapi.Build, update *buildUpdate) error {
-	m := meta.NewBuildMutator(build)
+	m := imagereferencemutators.NewBuildMutator(build)
 
 	// get a list of all unresolved references to add to the cache
 	streams, err := unresolvedImageStreamReferences(m, build.Namespace)
@@ -1017,6 +1018,9 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 }
 
 func isOOMKilled(pod *v1.Pod) bool {
+	if pod == nil {
+		return false
+	}
 	if pod.Status.Reason == "OOMKilled" {
 		return true
 	}
@@ -1175,7 +1179,7 @@ func (bc *BuildController) patchBuild(build *buildapi.Build, update *buildUpdate
 // It is called when a corresponding pod for a build is not found in the cache.
 func (bc *BuildController) findMissingPod(build *buildapi.Build) *v1.Pod {
 	// Make one last attempt to fetch the pod using the REST client
-	pod, err := bc.podClient.Pods(build.Namespace).Get(buildapi.GetBuildPodName(build), metav1.GetOptions{})
+	pod, err := bc.podClient.Pods(build.Namespace).Get(buildapihelpers.GetBuildPodName(build), metav1.GetOptions{})
 	if err == nil {
 		glog.V(2).Infof("Found missing pod for build %s by using direct client.", buildDesc(build))
 		return pod

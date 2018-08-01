@@ -11,7 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -118,6 +117,12 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 		}
 	}
 
+	if clusterNet.VXLANPort != nil {
+		for _, msg := range utilvalidation.IsValidPortNum(int(*clusterNet.VXLANPort)) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("vxlanPort"), clusterNet.VXLANPort, msg))
+		}
+	}
+
 	if clusterNet.Name == networkapi.ClusterNetworkDefault && defaultClusterNetwork != nil {
 		if clusterNet.Network != defaultClusterNetwork.Network {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, "cannot change the default ClusterNetwork record via API."))
@@ -133,6 +138,13 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 		}
 		if clusterNet.PluginName != defaultClusterNetwork.PluginName {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("pluginName"), clusterNet.PluginName, "cannot change the default ClusterNetwork record via API."))
+		}
+		if (clusterNet.VXLANPort == nil) != (defaultClusterNetwork.VXLANPort == nil) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("vxlanPort"), clusterNet.VXLANPort, "cannot change the default ClusterNetwork record via API."))
+		} else if (clusterNet.VXLANPort != nil) && (defaultClusterNetwork.VXLANPort != nil) {
+			if *clusterNet.VXLANPort != *defaultClusterNetwork.VXLANPort {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("vxlanPort"), clusterNet.VXLANPort, "cannot change the default ClusterNetwork record via API."))
+			}
 		}
 	}
 
@@ -202,7 +214,7 @@ func ValidateNetNamespace(netnamespace *networkapi.NetNamespace) field.ErrorList
 		allErrs = append(allErrs, field.Invalid(field.NewPath("netname"), netnamespace.NetName, fmt.Sprintf("must be the same as metadata.name: %q", netnamespace.Name)))
 	}
 
-	if err := network.ValidVNID(netnamespace.NetID); err != nil {
+	if err := ValidVNID(netnamespace.NetID); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("netid"), netnamespace.NetID, err.Error()))
 	}
 

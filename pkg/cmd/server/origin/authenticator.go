@@ -64,11 +64,11 @@ func NewAuthenticator(
 	return newAuthenticator(
 		options,
 		oauthClient.OAuthAccessTokens(),
-		informers.GetOauthInformers().Oauth().InternalVersion().OAuthClients().Lister(),
+		informers.GetInternalOpenshiftOauthInformers().Oauth().InternalVersion().OAuthClients().Lister(),
 		serviceAccountTokenGetter,
 		userClient.User().Users(),
 		apiClientCAs,
-		usercache.NewGroupCache(informers.GetUserInformers().User().V1().Groups()),
+		usercache.NewGroupCache(informers.GetInternalOpenshiftUserInformers().User().V1().Groups()),
 	)
 }
 

@@ -5,109 +5,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
-	deploymentconfigetcd "github.com/openshift/origin/pkg/apps/registry/deployconfig/etcd"
-	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
-	buildconfig "github.com/openshift/origin/pkg/build/registry/buildconfig"
-	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
-	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
-	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
-	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
+	"github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig"
+	deploymentconfigetcd "github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig/etcd"
+	buildetcd "github.com/openshift/origin/pkg/build/apiserver/registry/build/etcd"
+	buildconfig "github.com/openshift/origin/pkg/build/apiserver/registry/buildconfig"
+	buildconfigetcd "github.com/openshift/origin/pkg/build/apiserver/registry/buildconfig/etcd"
+	imagestreametcd "github.com/openshift/origin/pkg/image/apiserver/registry/imagestream/etcd"
+	routeregistry "github.com/openshift/origin/pkg/route/apiserver/registry/route"
+	routeetcd "github.com/openshift/origin/pkg/route/apiserver/registry/route/etcd"
 )
 
 var (
-	// OriginLegacyKinds lists all kinds that are locked to the legacy Origin API schema.
-	// This list should not grow and adding a new types to the locked Origin API schema will
-	// cause a unit test failure.
-	OriginLegacyKinds = sets.NewString(
-		"AppliedClusterResourceQuota",
-		"AppliedClusterResourceQuotaList",
-		"BinaryBuildRequestOptions",
-		"Build",
-		"BuildConfig",
-		"BuildConfigList",
-		"BuildList",
-		"BuildLog",
-		"BuildLogOptions",
-		"BuildRequest",
-		"ClusterNetwork",
-		"ClusterNetworkList",
-		"ClusterResourceQuota",
-		"ClusterResourceQuotaList",
-		"ClusterRole",
-		"ClusterRoleBinding",
-		"ClusterRoleBindingList",
-		"ClusterRoleList",
-		"DeploymentConfig",
-		"DeploymentConfigList",
-		"DeploymentConfigRollback",
-		"DeploymentLog",
-		"DeploymentLogOptions",
-		"DeploymentRequest",
-		"EgressNetworkPolicy",
-		"EgressNetworkPolicyList",
-		"Group",
-		"GroupList",
-		"HostSubnet",
-		"HostSubnetList",
-		"Identity",
-		"IdentityList",
-		"Image",
-		"ImageList",
-		"ImageSignature",
-		"ImageStream",
-		"ImageStreamImage",
-		"ImageStreamImport",
-		"ImageStreamList",
-		"ImageStreamMapping",
-		"ImageStreamTag",
-		"ImageStreamTagList",
-		"IsPersonalSubjectAccessReview",
-		"LocalResourceAccessReview",
-		"LocalSubjectAccessReview",
-		"NetNamespace",
-		"NetNamespaceList",
-		"OAuthAccessToken",
-		"OAuthAccessTokenList",
-		"OAuthAuthorizeToken",
-		"OAuthAuthorizeTokenList",
-		"OAuthClient",
-		"OAuthClientAuthorization",
-		"OAuthClientAuthorizationList",
-		"OAuthClientList",
-		"OAuthRedirectReference",
-		"PodSecurityPolicyReview",
-		"PodSecurityPolicySelfSubjectReview",
-		"PodSecurityPolicySubjectReview",
-		"ProcessedTemplate",
-		"Project",
-		"ProjectList",
-		"ProjectRequest",
-		"ResourceAccessReview",
-		"ResourceAccessReviewResponse",
-		"Role",
-		"RoleBinding",
-		"RoleBindingList",
-		"RoleBindingRestriction",
-		"RoleBindingRestrictionList",
-		"RoleList",
-		"Route",
-		"RouteList",
-		"SelfSubjectRulesReview",
-		"SubjectAccessReview",
-		"SubjectAccessReviewResponse",
-		"SubjectRulesReview",
-		"Template",
-		"TemplateConfig",
-		"TemplateList",
-		"User",
-		"UserIdentityMapping",
-		"UserList",
-	)
-
-	// OriginLegacyResources lists all Origin resources that are locked for the legacy v1
+	// originLegacyResources lists all Origin resources that are locked for the legacy v1
 	// Origin API. This list should not grow.
-	OriginLegacyResources = sets.NewString(
+	originLegacyResources = sets.NewString(
 		"appliedClusterResourceQuotas",
 		"buildConfigs",
 		"builds",
@@ -156,9 +67,9 @@ var (
 		"users",
 	)
 
-	// OriginLegacySubresources lists all Origin sub-resources that are locked for the
+	// originLegacySubresources lists all Origin sub-resources that are locked for the
 	// legacy v1 Origin API. This list should not grow.
-	OriginLegacySubresources = sets.NewString(
+	originLegacySubresources = sets.NewString(
 		"clusterResourceQuotas/status",
 		"processedTemplates",
 		"imageStreams/status",
@@ -184,7 +95,7 @@ func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[
 	legacyStorage := map[string]rest.Storage{}
 	for _, gvStorage := range storage {
 		for resource, s := range gvStorage {
-			if OriginLegacyResources.Has(resource) || OriginLegacySubresources.Has(resource) {
+			if originLegacyResources.Has(resource) || originLegacySubresources.Has(resource) {
 				// We want *some* our legacy resources to orphan by default instead of garbage collecting.
 				// Kube only did this for a select few resources which were controller managed and established links
 				// via a workload controller.  In openshift, these will all conform to registry.Store so we

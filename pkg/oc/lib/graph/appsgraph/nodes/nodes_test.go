@@ -6,7 +6,7 @@ import (
 	"github.com/gonum/graph/topo"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	"github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubetypes "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 )
@@ -17,7 +17,7 @@ func TestDCPodTemplateSpecNode(t *testing.T) {
 	dc := &appsapi.DeploymentConfig{}
 	dc.Namespace = "ns"
 	dc.Name = "foo"
-	dc.Spec.Template = test.OkPodTemplate()
+	dc.Spec.Template = appstest.OkPodTemplate()
 
 	_ = EnsureDeploymentConfigNode(g, dc)
 

@@ -23,9 +23,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/origin/pkg/oc/util/clientcmd"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -116,7 +116,7 @@ type ProbeOptions struct {
 
 func NewProbeOptions(streams genericclioptions.IOStreams) *ProbeOptions {
 	return &ProbeOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("probes updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("probes updated").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 
 		ContainerSelector: "*",
@@ -290,7 +290,7 @@ func (o *ProbeOptions) Validate() error {
 
 func (o *ProbeOptions) Run() error {
 	b := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(o.Namespace).DefaultNamespace().

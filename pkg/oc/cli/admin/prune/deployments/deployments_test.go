@@ -1,29 +1,31 @@
 package deployments
 
 import (
-	"io/ioutil"
 	"testing"
 
-	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	fakecorev1client "k8s.io/client-go/kubernetes/typed/core/v1/fake"
+	clienttesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+
+	fakeappsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1/fake"
 )
 
 func TestDeploymentPruneNamespaced(t *testing.T) {
-	kFake := fake.NewSimpleClientset()
-	osFake := appsfake.NewSimpleClientset()
+	osFake := &fakeappsv1client.FakeAppsV1{Fake: &clienttesting.Fake{}}
+	coreFake := &fakecorev1client.FakeCoreV1{Fake: &clienttesting.Fake{}}
 	opts := &PruneDeploymentsOptions{
 		Namespace: "foo",
 
-		AppsClient: osFake.Apps(),
-		KubeClient: kFake,
-		Out:        ioutil.Discard,
+		AppsClient: osFake,
+		KubeClient: coreFake,
+		IOStreams:  genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
 	if err := opts.Run(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if len(osFake.Actions()) == 0 || len(kFake.Actions()) == 0 {
+	if len(osFake.Actions()) == 0 || len(coreFake.Actions()) == 0 {
 		t.Errorf("Missing get deployments actions")
 	}
 	for _, a := range osFake.Actions() {
@@ -31,7 +33,7 @@ func TestDeploymentPruneNamespaced(t *testing.T) {
 			t.Errorf("Unexpected namespace while pruning %s: %s", a.GetResource(), a.GetNamespace())
 		}
 	}
-	for _, a := range kFake.Actions() {
+	for _, a := range coreFake.Actions() {
 		if a.GetNamespace() != "foo" {
 			t.Errorf("Unexpected namespace while pruning %s: %s", a.GetResource(), a.GetNamespace())
 		}

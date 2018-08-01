@@ -21,7 +21,7 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 
 	var (
 		oc               = exutil.NewCLI("s2i-python", exutil.KubeConfigPath())
-		djangoRepository = "https://github.com/openshift/django-ex.git"
+		djangoRepository = "https://github.com/sclorg/django-ex.git"
 		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
 		pageCountFn      = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
 		dcName           = "django-ex"
@@ -70,7 +70,7 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), dcName, 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), dcName, 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for endpoint")
@@ -107,7 +107,7 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 				g.By("turning on hot-deploy")
 				err = oc.Run("set", "env").Args("dc", dcName, "APP_CONFIG=conf/reload.py").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), dcName, 2, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), dcName, 2, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for a new endpoint")

@@ -2,6 +2,7 @@ package sti
 
 import (
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/util/fs"
@@ -41,11 +42,11 @@ func (u *Usage) Show() error {
 	b := u.handler
 	defer u.garbage.Cleanup(u.config)
 
-	b.SetScripts([]string{api.Usage}, []string{})
+	b.SetScripts([]string{constants.Usage}, []string{})
 
 	if err := b.Prepare(u.config); err != nil {
 		return err
 	}
 
-	return b.Execute(api.Usage, "", u.config)
+	return b.Execute(constants.Usage, "", u.config)
 }

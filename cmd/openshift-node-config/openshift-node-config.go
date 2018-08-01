@@ -37,8 +37,8 @@ func main() {
 			Kubelet command-line flags.
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configapi.AddToScheme(configapi.Scheme)
-			configapiv1.AddToScheme(configapi.Scheme)
+			configapi.InstallLegacy(configapi.Scheme)
+			configapiv1.InstallLegacy(configapi.Scheme)
 
 			if len(configFile) == 0 {
 				return fmt.Errorf("you must specify a --config file to read")

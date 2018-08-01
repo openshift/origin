@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
@@ -455,7 +456,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 	}
 
 	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := configapi.Scheme.ConvertToVersion(config, latestconfigapi.Version)
+	ext, err := configapi.Scheme.ConvertToVersion(config, configv1.SchemeGroupVersion)
 	if err != nil {
 		return err
 	}
@@ -484,7 +485,7 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	json, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(latestconfigapi.Version), node)
+	json, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(configv1.SchemeGroupVersion), node)
 	if err != nil {
 		return err
 	}

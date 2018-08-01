@@ -8,10 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes/scheme"
+
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -33,7 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/cancelbuild"
 	"github.com/openshift/origin/pkg/oc/cli/cluster"
 	"github.com/openshift/origin/pkg/oc/cli/debug"
-	"github.com/openshift/origin/pkg/oc/cli/deploy"
 	configcmd "github.com/openshift/origin/pkg/oc/cli/experimental/config"
 	"github.com/openshift/origin/pkg/oc/cli/experimental/dockergc"
 	"github.com/openshift/origin/pkg/oc/cli/export"
@@ -70,6 +67,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/types"
 	"github.com/openshift/origin/pkg/oc/cli/version"
 	"github.com/openshift/origin/pkg/oc/cli/whoami"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 const productName = `OpenShift`
@@ -86,10 +84,10 @@ var (
     To create a new application, login to your server and then run new-app:
 
         %[1]s login https://mycluster.mycompany.com
-        %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+        %[1]s new-app centos/ruby-25-centos7~https://github.com/sclorg/ruby-ex.git
         %[1]s logs -f bc/ruby-ex
 
-    This will create an application based on the Docker image 'centos/ruby-22-centos7' that builds the source code from GitHub. A build will start automatically, push the resulting image to the registry, and a deployment will roll that change out in your project.
+    This will create an application based on the Docker image 'centos/ruby-25-centos7' that builds the source code from GitHub. A build will start automatically, push the resulting image to the registry, and a deployment will roll that change out in your project.
 
     Once your application is deployed, use the status, describe, and get commands to see more about the created components:
 
@@ -249,14 +247,13 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	templates.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
-	cmds.AddCommand(newExperimentalCommand("ex", name+"ex", f, ioStreams))
+	cmds.AddCommand(newExperimentalCommand("ex", name+" ex", f, ioStreams))
 
 	cmds.AddCommand(kubectlwrappers.NewCmdPlugin(fullName, f, ioStreams))
 	if name == fullName {
 		cmds.AddCommand(version.NewCmdVersion(fullName, f, version.NewVersionOptions(true, ioStreams)))
 	}
 	cmds.AddCommand(options.NewCmdOptions(ioStreams))
-	cmds.AddCommand(deploy.NewCmdDeploy(fullName, f, ioStreams))
 
 	if cmds.Flag("namespace") != nil {
 		if cmds.Flag("namespace").Annotations == nil {
@@ -343,10 +340,6 @@ func CommandFor(basename string) *cobra.Command {
 	if runtime.GOOS == "windows" {
 		basename = strings.ToLower(basename)
 		basename = strings.TrimSuffix(basename, ".exe")
-	}
-
-	if err := ocscheme.AddOpenShiftExternalToScheme(scheme.Scheme); err != nil {
-		glog.Fatal(err)
 	}
 
 	switch basename {

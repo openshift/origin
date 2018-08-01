@@ -17,6 +17,7 @@ import (
 type ovsPortInfo struct {
 	ofport      int
 	externalIDs map[string]string
+	dst_port    string
 }
 
 type ovsFake struct {
@@ -68,14 +69,17 @@ func (fake *ovsFake) AddPort(port string, ofportRequest int, properties ...strin
 	}
 
 	var externalIDs map[string]string
+	var dst_port string
 	for _, property := range properties {
-		if !strings.HasPrefix(property, "external-ids=") {
-			continue
+		if strings.HasPrefix(property, "external-ids=") {
+			var err error
+			externalIDs, err = ParseExternalIDs(property[13:])
+			if err != nil {
+				return -1, err
+			}
 		}
-		var err error
-		externalIDs, err = ParseExternalIDs(property[13:])
-		if err != nil {
-			return -1, err
+		if strings.HasPrefix(property, "options:dst_port=") {
+			dst_port = property[17:]
 		}
 	}
 
@@ -99,9 +103,9 @@ func (fake *ovsFake) AddPort(port string, ofportRequest int, properties ...strin
 			portInfo.ofport = ofportRequest
 		}
 		portInfo.externalIDs = externalIDs
+		portInfo.dst_port = dst_port
 		fake.ports[port] = portInfo
 	}
-
 	return portInfo.ofport, nil
 }
 
@@ -127,6 +131,9 @@ func (fake *ovsFake) Destroy(table, record string) error {
 }
 
 func (fake *ovsFake) Get(table, record, column string) (string, error) {
+	if column == "options:dst_port" {
+		return fmt.Sprintf("\"%s\"", fake.ports[record].dst_port), nil
+	}
 	return "", nil
 }
 

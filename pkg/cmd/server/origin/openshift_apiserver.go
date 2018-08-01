@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/meta"
 
+	"k8s.io/api/core/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,16 +32,14 @@ import (
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	oappsapiv1 "github.com/openshift/api/apps/v1"
-	"github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/v1"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
+	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	networkapiserver "github.com/openshift/origin/pkg/network/apiserver"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	projectapiserver "github.com/openshift/origin/pkg/project/apiserver"
@@ -52,9 +51,9 @@ import (
 	routeapiserver "github.com/openshift/origin/pkg/route/apiserver"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
+	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
-	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
 	userapiserver "github.com/openshift/origin/pkg/user/apiserver"
 	"github.com/openshift/origin/pkg/version"
@@ -73,6 +72,7 @@ import (
 
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/legacy"
 )
 
 type OpenshiftAPIExtraConfig struct {
@@ -129,10 +129,10 @@ func (c *OpenshiftAPIExtraConfig) Validate() error {
 		ret = append(ret, fmt.Errorf("KubeInformers is required"))
 	}
 	if c.QuotaInformers == nil {
-		ret = append(ret, fmt.Errorf("QuotaInformers is required"))
+		ret = append(ret, fmt.Errorf("InternalQuotaInformers is required"))
 	}
 	if c.SecurityInformers == nil {
-		ret = append(ret, fmt.Errorf("SecurityInformers is required"))
+		ret = append(ret, fmt.Errorf("InternalSecurityInformers is required"))
 	}
 	if c.RuleResolver == nil {
 		ret = append(ret, fmt.Errorf("RuleResolver is required"))
@@ -561,14 +561,14 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 	legacyStorageModifier.mutate(legacyStorage)
 
-	if err := s.GenericAPIServer.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(legacyStorage))); err != nil {
+	if err := s.GenericAPIServer.InstallLegacyAPIGroup(legacy.RESTPrefix, apiLegacyV1(LegacyStorage(legacyStorage))); err != nil {
 		return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
 	}
-	glog.Infof("Started Origin API at %s/%s", api.Prefix, v1.SchemeGroupVersion.Version)
+	glog.Infof("Started Origin API at %s/%s", legacy.RESTPrefix, legacy.GroupVersion.Version)
 
 	// fix API doc string
 	for _, service := range s.GenericAPIServer.Handler.GoRestfulContainer.RegisteredWebServices() {
-		if service.RootPath() == api.Prefix+"/"+v1.SchemeGroupVersion.Version {
+		if service.RootPath() == legacy.RESTPrefix+"/"+v1.SchemeGroupVersion.Version {
 			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
 	}

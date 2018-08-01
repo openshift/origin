@@ -6,8 +6,8 @@ import (
 
 	"github.com/golang/glog"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // GroupPruner runs a prune job on Groups
@@ -24,7 +24,7 @@ type LDAPGroupPruner struct {
 	// Maps an LDAP group enrty to an OpenShift Group's Name
 	GroupNameMapper interfaces.LDAPGroupNameMapper
 	// Allows the Pruner to search for OpenShift Groups
-	GroupClient usertypedclient.GroupInterface
+	GroupClient userv1client.GroupInterface
 	// Host stores the address:port of the LDAP server
 	Host string
 	// DryRun indicates that no changes should be made.

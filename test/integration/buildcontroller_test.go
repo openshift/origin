@@ -134,27 +134,27 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 	}
 
 	go func() {
-		informers.GetBuildInformers().Start(utilwait.NeverStop)
-		informers.GetImageInformers().Start(utilwait.NeverStop)
-		informers.GetAppInformers().Start(utilwait.NeverStop)
-		informers.GetSecurityInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftBuildInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftImageInformers().Start(utilwait.NeverStop)
+		informers.GetOpenshiftAppInformers().Start(utilwait.NeverStop)
+		informers.GetInternalOpenshiftSecurityInformers().Start(utilwait.NeverStop)
 	}()
 
 	controllerContext := kctrlmgr.ControllerContext{
 		ClientBuilder: saClientBuilder,
 		InformerFactory: genericInformers{
-			SharedInformerFactory: informers.GetExternalKubeInformers(),
+			SharedInformerFactory: informers.GetKubernetesInformers(),
 			generic: []GenericResourceInformer{
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetImageInformers().ForResource(resource)
+					return informers.GetInternalOpenshiftImageInformers().ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetBuildInformers().ForResource(resource)
+					return informers.GetInternalOpenshiftBuildInformers().ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetAppInformers().ForResource(resource)
+					return informers.GetOpenshiftAppInformers().ForResource(resource)
 				}),
-				informers.GetExternalKubeInformers(),
+				informers.GetKubernetesInformers(),
 			},
 		},
 		ComponentConfig:    kubecontrollerconfig.Config{}.ComponentConfig,
@@ -170,12 +170,12 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		ExternalKubeInformers: informers.GetExternalKubeInformers(),
-		AppInformers:          informers.GetAppInformers(),
-		BuildInformers:        informers.GetBuildInformers(),
-		ImageInformers:        informers.GetImageInformers(),
-		SecurityInformers:     informers.GetSecurityInformers(),
-		Stop:                  controllerContext.Stop,
+		KubernetesInformers:       informers.GetKubernetesInformers(),
+		AppsInformers:             informers.GetOpenshiftAppInformers(),
+		InternalBuildInformers:    informers.GetInternalOpenshiftBuildInformers(),
+		InternalImageInformers:    informers.GetInternalOpenshiftImageInformers(),
+		InternalSecurityInformers: informers.GetInternalOpenshiftSecurityInformers(),
+		Stop: controllerContext.Stop,
 	}
 
 	for i := 0; i < counts.BuildControllers; i++ {

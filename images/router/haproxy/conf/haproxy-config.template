@@ -228,9 +228,11 @@ frontend fe_sni
     {{- if isTrue (env "ROUTER_STRICT_SNI") }} strict-sni {{ end }}
     {{- ""}} crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}}
     {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
-    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ end }}
-    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CRL") }} crl-file {{.}} {{ end }}
-    {{- with (env "ROUTER_MUTUAL_TLS_AUTH") }} verify {{.}} {{ end }}
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH") }}
+      {{- ""}} verify {{.}}
+      {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ else }} ca-file /etc/ssl/certs/ca-bundle.trust.crt {{ end }}
+      {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CRL") }} crl-file {{.}} {{ end }}
+    {{- end }}
     {{- if isTrue (env "ROUTER_ENABLE_HTTP2") }} alpn h2,http/1.1{{ end }}
   mode http
 
@@ -298,9 +300,11 @@ backend be_no_sni
 frontend fe_no_sni
   # terminate ssl on edge
   bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}} accept-proxy
-    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ end }}
-    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CRL") }} crl-file {{.}} {{ end }}
-    {{- with (env "ROUTER_MUTUAL_TLS_AUTH") }} verify {{.}} {{ end }}
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH") }}
+      {{- ""}} verify {{.}}
+      {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ else }} ca-file /etc/ssl/certs/ca-bundle.trust.crt {{ end }}
+      {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CRL") }} crl-file {{.}} {{ end }}
+    {{- end }}
   mode http
 
   # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
@@ -384,7 +388,13 @@ backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
     {{- end }}
     {{- with $ip_whiteList := firstMatch $cidrListPattern (index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist") }}
-  acl whitelist src {{ $ip_whiteList }}
+      {{- if validateHAProxyWhiteList $ip_whiteList }}
+  acl whitelist src {{$ip_whiteList}}
+      {{- else }}
+	{{- with $whiteListFileName := generateHAProxyWhiteListFile $workingDir $cfgIdx $ip_whiteList}}
+  acl whitelist src -f {{$whiteListFileName}}
+        {{- end }}
+      {{- end }}
   tcp-request content reject if !whitelist
     {{- end }}
     {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
@@ -506,7 +516,13 @@ backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}source{{ end }}
     {{- end }}
     {{- with $ip_whiteList := firstMatch $cidrListPattern (index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist") }}
+      {{- if validateHAProxyWhiteList $ip_whiteList }}
   acl whitelist src {{$ip_whiteList}}
+      {{- else }}
+	{{- with $whiteListFileName := generateHAProxyWhiteListFile $workingDir $cfgIdx $ip_whiteList}}
+  acl whitelist src -f {{$whiteListFileName}}
+        {{- end }}
+      {{- end }}
   tcp-request content reject if !whitelist
     {{- end }}
     {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}

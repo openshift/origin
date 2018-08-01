@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
@@ -19,7 +20,7 @@ type mockDeleteRecorder struct {
 
 var _ DeploymentDeleter = &mockDeleteRecorder{}
 
-func (m *mockDeleteRecorder) DeleteDeployment(deployment *kapi.ReplicationController) error {
+func (m *mockDeleteRecorder) DeleteDeployment(deployment *corev1.ReplicationController) error {
 	m.set.Insert(deployment.Name)
 	return m.err
 }
@@ -58,8 +59,8 @@ func TestPruneTask(t *testing.T) {
 			now := metav1.Now()
 			old := metav1.NewTime(now.Time.Add(-1 * keepYoungerThan))
 
-			deploymentConfigs := []*appsapi.DeploymentConfig{}
-			deployments := []*kapi.ReplicationController{}
+			deploymentConfigs := []*appsv1.DeploymentConfig{}
+			deployments := []*corev1.ReplicationController{}
 
 			deploymentConfig := mockDeploymentConfig("a", "deployment-config")
 			deploymentConfigs = append(deploymentConfigs, deploymentConfig)

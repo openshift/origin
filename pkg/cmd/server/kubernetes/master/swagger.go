@@ -7,12 +7,11 @@ import (
 
 	apiserver "k8s.io/apiserver/pkg/server"
 
-	"github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 )
 
 var apiInfo = map[string]swagger.Info{
-	api.Prefix + "/" + v1.SchemeGroupVersion.Version: {
+	legacy.RESTPrefix + "/" + legacy.GroupVersion.Version: {
 		Title:       "OpenShift v1 REST API",
 		Description: `The OpenShift API exposes operations for managing an enterprise Kubernetes cluster, including security and user management, application deployments, image and source builds, HTTP(s) routing, and project management.`,
 	},
@@ -38,7 +37,7 @@ func customizeSwaggerDefinition(apiList *swagger.ApiDeclarationList) {
 			glog.Warningf("No API exists for predefined swagger description %s", path)
 		}
 	}
-	for _, version := range []string{api.Prefix + "/" + v1.SchemeGroupVersion.Version} {
+	for _, version := range []string{legacy.RESTPrefix + "/" + legacy.GroupVersion.Version} {
 		apiDeclaration, _ := apiList.At(version)
 		models := &apiDeclaration.Models
 

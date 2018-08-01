@@ -7,10 +7,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
-	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 )
 
 const maxTestImportTagsPerRepository = 5

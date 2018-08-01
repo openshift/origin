@@ -22,30 +22,31 @@ import (
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
 	"github.com/openshift/api/build"
-	buildapiv1 "github.com/openshift/api/build/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclientinternalmanual "github.com/openshift/origin/pkg/build/client/internalversion"
-	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	buildclientmanual "github.com/openshift/origin/pkg/build/client/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/git"
 	ocerrors "github.com/openshift/origin/pkg/oc/lib/errors"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -89,6 +90,10 @@ var (
 )
 
 type StartBuildOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	Git git.Repository
 
 	FromBuild    string
@@ -116,14 +121,14 @@ type StartBuildOptions struct {
 	GitPostReceive string
 
 	Mapper         meta.RESTMapper
-	BuildClient    buildclient.BuildInterface
-	BuildLogClient buildclientinternalmanual.BuildLogInterface
+	BuildClient    buildv1client.BuildV1Interface
+	BuildLogClient buildclientmanual.BuildLogInterface
 	ClientConfig   *restclient.Config
 
 	AsBinary    bool
 	ShortOutput bool
-	EnvVar      []kapi.EnvVar
-	BuildArgs   []kapi.EnvVar
+	EnvVar      []corev1.EnvVar
+	BuildArgs   []corev1.EnvVar
 	Name        string
 	Namespace   string
 
@@ -132,7 +137,8 @@ type StartBuildOptions struct {
 
 func NewStartBuildOptions(streams genericclioptions.IOStreams) *StartBuildOptions {
 	return &StartBuildOptions{
-		IOStreams: streams,
+		PrintFlags: genericclioptions.NewPrintFlags("started").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
 	}
 }
 
@@ -174,7 +180,7 @@ func NewCmdStartBuild(fullName string, f kcmdutil.Factory, streams genericcliopt
 	cmd.Flags().StringVar(&o.GitPostReceive, "git-post-receive", o.GitPostReceive, "The contents of the post-receive hook to trigger a build")
 	cmd.Flags().StringVar(&o.GitRepository, "git-repository", o.GitRepository, "The path to the git repository for post-receive; defaults to the current directory")
 
-	kcmdutil.AddOutputFlagsForMutation(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -214,6 +220,11 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 		return fmt.Errorf("only one of --from-file, --from-repo, --from-archive or --from-dir may be specified")
 	}
 
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
 	webhook := o.FromWebhook
 	buildName := o.FromBuild
 	buildLogLevel := o.LogLevel
@@ -238,20 +249,20 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 		return kcmdutil.UsageErrorf(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag.\nUse \"%s get bc\" to list all available build configs.", cmdFullName)
 	}
 
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return err
-	}
-
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	c, err := buildclientinternal.NewForConfig(clientConfig)
+
+	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
-	o.BuildClient = c.Build()
+
+	o.BuildClient, err = buildv1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
 
 	var (
 		name     = buildName
@@ -281,7 +292,7 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 
 	// when listing webhooks, allow --from-build to lookup a build config
 	if build.Resource("builds") == resource && len(o.ListWebhooks) > 0 {
-		build, err := o.BuildClient.Builds(namespace).Get(name, metav1.GetOptions{})
+		build, err := o.BuildClient.Builds(o.Namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -290,15 +301,14 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 			return fmt.Errorf("the provided Build %q was not created from a BuildConfig and cannot have webhooks", name)
 		}
 		if len(ref.Namespace) > 0 {
-			namespace = ref.Namespace
+			o.Namespace = ref.Namespace
 		}
 		name = ref.Name
 	}
 
-	o.Namespace = namespace
 	o.Name = name
 
-	o.BuildLogClient = buildclientinternalmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
+	o.BuildLogClient = buildclientmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
 
 	// Handle environment variables
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")
@@ -306,10 +316,17 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 	if err != nil {
 		return err
 	}
-	if len(buildLogLevel) > 0 {
-		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
+
+	// convert internal envvars returned from the helper to external versions
+	externalEnvVars, err := convertInternalEnvVarsToExternal(env)
+	if err != nil {
+		return err
 	}
-	o.EnvVar = env
+
+	if len(buildLogLevel) > 0 {
+		externalEnvVars = append(externalEnvVars, corev1.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
+	}
+	o.EnvVar = externalEnvVars
 
 	// Handle Docker build arguments. In order to leverage existing logic, we
 	// first create an EnvVar array, then convert it to []docker.BuildArg
@@ -317,9 +334,28 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 	if err != nil {
 		return err
 	}
-	o.BuildArgs = buildArgs
+
+	// convert internal buildargs returned from the helper to external versions
+	externalBuildArgs, err := convertInternalEnvVarsToExternal(buildArgs)
+	if err != nil {
+		return err
+	}
+	o.BuildArgs = externalBuildArgs
 
 	return nil
+}
+
+// convertInternalEnvVarsToExternal attempts to convert a list of EnvVars to external versions
+func convertInternalEnvVarsToExternal(buildArgs []kapi.EnvVar) ([]corev1.EnvVar, error) {
+	externalBuildArgs := []corev1.EnvVar{}
+	for _, internal := range buildArgs {
+		external := &corev1.EnvVar{}
+		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(&internal, external, nil); err != nil {
+			return nil, err
+		}
+		externalBuildArgs = append(externalBuildArgs, *external)
+	}
+	return externalBuildArgs, nil
 }
 
 // Validate returns validation errors regarding start-build
@@ -358,17 +394,17 @@ func (o *StartBuildOptions) Run() error {
 		return o.RunListBuildWebHooks()
 	}
 
-	buildRequestCauses := []buildapi.BuildTriggerCause{}
-	request := &buildapi.BuildRequest{
+	buildRequestCauses := []buildv1.BuildTriggerCause{}
+	request := &buildv1.BuildRequest{
 		TriggeredBy: append(buildRequestCauses,
-			buildapi.BuildTriggerCause{
+			buildv1.BuildTriggerCause{
 				Message: buildapi.BuildTriggerCauseManualMsg,
 			},
 		),
 		ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 	}
 
-	request.SourceStrategyOptions = &buildapi.SourceStrategyOptions{}
+	request.SourceStrategyOptions = &buildv1.SourceStrategyOptions{}
 	if o.IncrementalOverride {
 		request.SourceStrategyOptions.Incremental = &o.Incremental
 	}
@@ -377,7 +413,7 @@ func (o *StartBuildOptions) Run() error {
 		request.Env = o.EnvVar
 	}
 
-	request.DockerStrategyOptions = &buildapi.DockerStrategyOptions{}
+	request.DockerStrategyOptions = &buildv1.DockerStrategyOptions{}
 	if len(o.BuildArgs) > 0 {
 		request.DockerStrategyOptions.BuildArgs = o.BuildArgs
 	}
@@ -387,18 +423,18 @@ func (o *StartBuildOptions) Run() error {
 	}
 
 	if len(o.Commit) > 0 {
-		request.Revision = &buildapi.SourceRevision{
-			Git: &buildapi.GitSourceRevision{
+		request.Revision = &buildv1.SourceRevision{
+			Git: &buildv1.GitSourceRevision{
 				Commit: o.Commit,
 			},
 		}
 	}
 
 	var err error
-	var newBuild *buildapi.Build
+	var newBuild *buildv1.Build
 	switch {
 	case o.AsBinary:
-		request := &buildapi.BinaryBuildRequestOptions{
+		request := &buildv1.BinaryBuildRequestOptions{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      o.Name,
 				Namespace: o.Namespace,
@@ -411,7 +447,7 @@ func (o *StartBuildOptions) Run() error {
 		if len(o.BuildArgs) > 0 {
 			fmt.Fprintf(o.ErrOut, "WARNING: Specifying build arguments with binary builds is not supported.\n")
 		}
-		instantiateClient := buildclientinternalmanual.NewBuildInstantiateBinaryClient(o.BuildClient.RESTClient(), o.Namespace)
+		instantiateClient := buildclientmanual.NewBuildInstantiateBinaryClient(o.BuildClient.RESTClient(), o.Namespace)
 		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, instantiateClient, o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
 			if kerrors.IsAlreadyExists(err) {
 				return transformIsAlreadyExistsError(err, o.Name)
@@ -440,7 +476,9 @@ func (o *StartBuildOptions) Run() error {
 		}
 	}
 
-	kcmdutil.PrintSuccess(o.ShortOutput, o.Out, newBuild, false, "started")
+	if err := o.Printer.PrintObj(newBuild, o.Out); err != nil {
+		fmt.Fprintf(o.ErrOut, "error: %v\n", err)
+	}
 
 	// Stream the logs from the build
 	if o.Follow {
@@ -457,8 +495,8 @@ func (o *StartBuildOptions) Run() error {
 	return nil
 }
 
-func (o *StartBuildOptions) streamBuildLogs(build *buildapi.Build) error {
-	opts := buildapi.BuildLogOptions{
+func (o *StartBuildOptions) streamBuildLogs(build *buildv1.Build) error {
+	opts := buildv1.BuildLogOptions{
 		Follow: true,
 		NoWait: false,
 	}
@@ -504,7 +542,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		return err
 	}
 
-	webhookClient := buildclientinternalmanual.NewWebhookURLClient(o.BuildClient.RESTClient(), o.Namespace)
+	webhookClient := buildclientmanual.NewWebhookURLClient(o.BuildClient.RESTClient(), o.Namespace)
 	for _, t := range config.Spec.Triggers {
 		hookType := ""
 		switch {
@@ -521,7 +559,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		}
 		u, err := webhookClient.WebHookURL(o.Name, &t)
 		if err != nil {
-			if err != buildclientinternalmanual.ErrTriggerIsNotAWebHook {
+			if err != buildclientmanual.ErrTriggerIsNotAWebHook {
 				fmt.Fprintf(o.ErrOut, "error: unable to get webhook for %s: %v", o.Name, err)
 			}
 			continue
@@ -532,7 +570,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 	return nil
 }
 
-func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client buildclientinternalmanual.BuildInstantiateBinaryInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
+func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client buildclientmanual.BuildInstantiateBinaryInterface, fromDir, fromFile, fromRepo string, options *buildv1.BinaryBuildRequestOptions) (*buildv1.Build, error) {
 	asDir, asFile, asRepo := len(fromDir) > 0, len(fromFile) > 0, len(fromRepo) > 0
 
 	if asRepo && !git.IsGitInstalled() {
@@ -828,13 +866,12 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 	body, _ := ioutil.ReadAll(resp.Body)
 	if len(body) > 0 {
 		// In later server versions we return the created Build in the body.
-		var newBuild buildapi.Build
-		if err = json.Unmarshal(body, &buildapiv1.Build{}); err == nil {
-			if err = runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), body, &newBuild); err != nil {
-				return err
-			}
-
-			kcmdutil.PrintSuccess(o.ShortOutput, o.Out, &newBuild, false, "started")
+		newBuild := &buildv1.Build{}
+		if err := json.Unmarshal(body, newBuild); err != nil {
+			return err
+		}
+		if err := o.Printer.PrintObj(newBuild, o.Out); err != nil {
+			return err
 		}
 	}
 
@@ -915,14 +952,14 @@ func gitRefInfo(repo git.Repository, dir, ref string) (buildapi.GitRefInfo, erro
 }
 
 // WaitForBuildComplete waits for a build identified by the name to complete
-func WaitForBuildComplete(c buildclient.BuildResourceInterface, name string) error {
-	isOK := func(b *buildapi.Build) bool {
-		return b.Status.Phase == buildapi.BuildPhaseComplete
+func WaitForBuildComplete(c buildv1client.BuildInterface, name string) error {
+	isOK := func(b *buildv1.Build) bool {
+		return b.Status.Phase == buildv1.BuildPhaseComplete
 	}
-	isFailed := func(b *buildapi.Build) bool {
-		return b.Status.Phase == buildapi.BuildPhaseFailed ||
-			b.Status.Phase == buildapi.BuildPhaseCancelled ||
-			b.Status.Phase == buildapi.BuildPhaseError
+	isFailed := func(b *buildv1.Build) bool {
+		return b.Status.Phase == buildv1.BuildPhaseFailed ||
+			b.Status.Phase == buildv1.BuildPhaseCancelled ||
+			b.Status.Phase == buildv1.BuildPhaseError
 	}
 	for {
 		list, err := c.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
@@ -951,7 +988,7 @@ func WaitForBuildComplete(c buildclient.BuildResourceInterface, name string) err
 				// reget and re-watch
 				break
 			}
-			if e, ok := val.Object.(*buildapi.Build); ok {
+			if e, ok := val.Object.(*buildv1.Build); ok {
 				if name == e.Name && isOK(e) {
 					return nil
 				}

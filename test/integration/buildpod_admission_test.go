@@ -14,10 +14,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
-	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
 	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
+	buildtestutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -242,7 +243,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 	watchOpt := metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(
 			"metadata.name",
-			buildapi.GetBuildPodName(build),
+			buildapihelpers.GetBuildPodName(build),
 		).String(),
 	}
 	podWatch, err := kclientset.Core().Pods(ns).Watch(watchOpt)

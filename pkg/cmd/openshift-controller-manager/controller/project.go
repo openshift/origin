@@ -7,7 +7,7 @@ import (
 
 func RunOriginNamespaceController(ctx ControllerContext) (bool, error) {
 	controller := projectcontroller.NewProjectFinalizerController(
-		ctx.ExternalKubeInformers.Core().V1().Namespaces(),
+		ctx.KubernetesInformers.Core().V1().Namespaces(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraOriginNamespaceServiceAccountName),
 	)
 	go controller.Run(ctx.Stop, 5)

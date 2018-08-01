@@ -19,7 +19,7 @@
           "tags": "builder,ruby",
           "supports": "ruby:2.4,ruby",
           "version": "2.4 patched",
-          "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+          "sampleRepo": "https://github.com/sclorg/ruby-ex.git"
         },
         "from": {
           "kind": "DockerImage",

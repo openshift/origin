@@ -4,7 +4,8 @@ depcheck
 Dependency analysis tool for Go repositories.
 
 TL;DR traverse a Go repository, creating a dependency graph which can be used to
-visualize the directory structure, or to generate an analysis report.
+visualize the directory structure, or to generate an analysis report. Skip to the
+[Quick setup for Origin](#origin) section if running against `openshift/origin`.
 
 __Table of Contents__
 - [Why](#why)
@@ -12,6 +13,7 @@ __Table of Contents__
   - [Compiling](#compiling)
   - [Running](#running)
   - [Limitations](#limitations)
+  - [Quick setup for Origin](#origin)
 - [Advanced Usage](#advanced)
   - [Analyze](#analyze)
   - [Trace](#trace)
@@ -134,6 +136,64 @@ $ cp -rL /path/to/openshift/origin /tmp/depcheck/src/github.com/openshift/origin
 # to ensure we traverse packages of this particular directory, and
 # not the original "origin" directory
 $ export GOPATH=/tmp/depcheck
+```
+
+<a name="origin"></a>
+### Quick Setup for Origin
+
+Taking the above steps and limitations into account, here is a quick setup guide
+that is specific to the `openshift/origin` repository:
+
+```bash
+# create a temporary directory where we will copy the Origin repo.
+mkdir -p /tmp/depcheck/src/github.com/openshift
+```
+
+```bash
+# copy an existing copy of the Origin repo to the temp location we just created.
+# the purpose behind this is to expand all of the repo's symlinks (we have a few,
+# so this might take a minute).
+cp -rL /path/to/openshift/origin /tmp/depcheck/src/github.com/openshift/origin
+```
+
+```bash
+# ensure your current working directory is the new temp location
+cd /tmp/depcheck/src/github.com/openshift/origin
+```
+
+```bash
+# set the GOPATH to look in the new temporary location, in order
+# to ensure we traverse packages of this particular directory, and
+# not the original "origin" directory
+export GOPATH=/tmp/depcheck
+```
+
+```bash
+# compile the depcheck binary
+go build tools/depcheck/depcheck.go
+```
+
+```bash
+# with the depcheck binary in your current working directory, you
+# are now ready to run any command. Use the --openshift flag for
+# automatically using default package excludes and package filters
+# specific to the Origin repo. You can read more about excludes and
+# filters in the "Advanced Usage" section.
+
+# the command below analyzes first-level dependencies for the Origin repo,
+# and outputs a list of dependencies shared between Origin and our vendored
+# version of kubernetes.
+./depcheck analyze --root=github.com/openshift/origin --entry=cmd/... --entry=pkg/... --entry=tools/... --entry=test/... --openshift --dep=github.com/openshift/origin/vendor/k8s.io/kubernetes
+```
+
+```bash
+# the command below creates a dependency graph (in "dot" format)
+# for the origin repo, given a series of entrypoints into the repo.
+./depcheck trace --root=github.com/openshift/origin --entry=cmd/... --entry=pkg/... --entry=tools/... --entry=test/... --openshift > graph.dot
+
+# the resulting output in the ./graph.dot file can then be fed into a graph rendering
+# tool, such as "dot" to create a "svg" image, for example, which can be viewed in a browser.
+dot -T svg graph.dot > graph.svg
 ```
 
 <a name="advanced"></a>

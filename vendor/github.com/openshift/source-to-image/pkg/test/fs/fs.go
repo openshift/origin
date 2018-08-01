@@ -62,7 +62,8 @@ type FakeFileSystem struct {
 
 	Files []os.FileInfo
 
-	mutex sync.Mutex
+	mutex        sync.Mutex
+	keepSymlinks bool
 }
 
 // FakeReadCloser provider a fake ReadCloser
@@ -222,4 +223,16 @@ func (f *FakeFileSystem) Readlink(name string) (string, error) {
 func (f *FakeFileSystem) Symlink(oldname, newname string) error {
 	f.SymlinkOldname, f.SymlinkNewname = oldname, newname
 	return f.SymlinkError
+}
+
+// KeepSymlinks controls whether to handle symlinks as symlinks or follow
+// symlinks and copy files with content
+func (f *FakeFileSystem) KeepSymlinks(k bool) {
+	f.keepSymlinks = k
+}
+
+// ShouldKeepSymlinks informs whether to handle symlinks as symlinks or follow
+// symlinks and copy files by content
+func (f *FakeFileSystem) ShouldKeepSymlinks() bool {
+	return f.keepSymlinks
 }

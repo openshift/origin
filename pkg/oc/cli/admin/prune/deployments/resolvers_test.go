@@ -6,31 +6,31 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 )
 
 type mockResolver struct {
-	items []*kapi.ReplicationController
+	items []*corev1.ReplicationController
 	err   error
 }
 
-func (m *mockResolver) Resolve() ([]*kapi.ReplicationController, error) {
+func (m *mockResolver) Resolve() ([]*corev1.ReplicationController, error) {
 	return m.items, m.err
 }
 
 func TestMergeResolver(t *testing.T) {
 	resolverA := &mockResolver{
-		items: []*kapi.ReplicationController{
+		items: []*corev1.ReplicationController{
 			mockDeployment("a", "b", nil),
 		},
 	}
 	resolverB := &mockResolver{
-		items: []*kapi.ReplicationController{
+		items: []*corev1.ReplicationController{
 			mockDeployment("c", "d", nil),
 		},
 	}
@@ -54,8 +54,8 @@ func TestOrphanDeploymentResolver(t *testing.T) {
 	activeDeploymentConfig := mockDeploymentConfig("a", "active-deployment-config")
 	inactiveDeploymentConfig := mockDeploymentConfig("a", "inactive-deployment-config")
 
-	deploymentConfigs := []*appsapi.DeploymentConfig{activeDeploymentConfig}
-	deployments := []*kapi.ReplicationController{}
+	deploymentConfigs := []*appsv1.DeploymentConfig{activeDeploymentConfig}
+	deployments := []*corev1.ReplicationController{}
 
 	expectedNames := sets.String{}
 	deploymentStatusOptions := []appsapi.DeploymentStatus{
@@ -108,12 +108,12 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 		appsapi.DeploymentStatusPending,
 		appsapi.DeploymentStatusRunning,
 	}
-	deploymentConfigs := []*appsapi.DeploymentConfig{
+	deploymentConfigs := []*appsv1.DeploymentConfig{
 		mockDeploymentConfig("a", "deployment-config-1"),
 		mockDeploymentConfig("b", "deployment-config-2"),
 	}
 	deploymentsPerStatus := 100
-	deployments := []*kapi.ReplicationController{}
+	deployments := []*corev1.ReplicationController{}
 	for _, deploymentConfig := range deploymentConfigs {
 		for _, deploymentStatusOption := range deploymentStatusOptions {
 			for i := 0; i < deploymentsPerStatus; i++ {
@@ -142,7 +142,7 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 			if err != nil {
 				t.Errorf("Unexpected err %v", err)
 			}
-			completedDeployments, failedDeployments := []*kapi.ReplicationController{}, []*kapi.ReplicationController{}
+			completedDeployments, failedDeployments := []*corev1.ReplicationController{}, []*corev1.ReplicationController{}
 			for _, deployment := range deploymentItems {
 				status := deployment.Annotations[appsapi.DeploymentStatusAnnotation]
 				if deploymentCompleteStatusFilterSet.Has(status) {
@@ -151,10 +151,10 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 					failedDeployments = append(failedDeployments, deployment)
 				}
 			}
-			sort.Sort(appsinternalutil.ByMostRecent(completedDeployments))
-			sort.Sort(appsinternalutil.ByMostRecent(failedDeployments))
-			purgeCompleted := []*kapi.ReplicationController{}
-			purgeFailed := []*kapi.ReplicationController{}
+			sort.Sort(ByMostRecent(completedDeployments))
+			sort.Sort(ByMostRecent(failedDeployments))
+			purgeCompleted := []*corev1.ReplicationController{}
+			purgeFailed := []*corev1.ReplicationController{}
 			if keep >= 0 && keep < len(completedDeployments) {
 				purgeCompleted = completedDeployments[keep:]
 			}

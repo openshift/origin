@@ -57,7 +57,7 @@ func addUngroupifiedAppsTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalAppsTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&apps.DeploymentConfig{},
 		&apps.DeploymentConfigList{},
 		&apps.DeploymentConfigRollback{},

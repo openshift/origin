@@ -10,19 +10,28 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	rulevalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
-	"github.com/openshift/origin/pkg/api/v1"
+	"github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
 )
+
+var (
+	fileEncodingCodecFactory serializer.CodecFactory
+)
+
+func init() {
+	scheme := runtime.NewScheme()
+	install.InstallInternalOpenShift(scheme)
+	install.InstallInternalKube(scheme)
+	fileEncodingCodecFactory = serializer.NewCodecFactory(scheme)
+}
 
 func TestCreateBootstrapPolicyFile(t *testing.T) {
 	f, err := ioutil.TempFile("", "TestCreateBootstrapPolicyFile")
@@ -38,7 +47,7 @@ func TestCreateBootstrapPolicyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	list := &api.List{}
-	if _, _, err := legacyscheme.Codecs.UniversalDecoder().Decode(data, nil, list); err != nil {
+	if _, _, err := fileEncodingCodecFactory.UniversalDecoder().Decode(data, nil, list); err != nil {
 		t.Fatal(err)
 	}
 	testObjects(t, list, "bootstrap_policy_file.yaml")
@@ -104,11 +113,11 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 		t.Fatal(err)
 	}
 
-	if err := runtime.EncodeList(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion, v1.SchemeGroupVersion), list.Items); err != nil {
+	if err := runtime.EncodeList(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, legacy.GroupVersion), list.Items); err != nil {
 		t.Fatal(err)
 	}
 
-	jsonData, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion, v1.SchemeGroupVersion), list)
+	jsonData, err := runtime.Encode(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, legacy.GroupVersion), list)
 	if err != nil {
 		t.Fatal(err)
 	}

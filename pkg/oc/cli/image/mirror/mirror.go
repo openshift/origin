@@ -22,6 +22,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/image/registryclient"
@@ -73,11 +74,7 @@ var (
 `)
 )
 
-type pushOptions struct {
-	Out, ErrOut io.Writer
-
-	Filenames []string
-
+type MirrorImageOptions struct {
 	Mappings []Mapping
 	OSFilter *regexp.Regexp
 
@@ -93,6 +90,16 @@ type pushOptions struct {
 	MaxPerRegistry int
 
 	AttemptS3BucketCopy []string
+
+	Filenames []string
+
+	genericclioptions.IOStreams
+}
+
+func NewMirrorImageOptions(streams genericclioptions.IOStreams) *MirrorImageOptions {
+	return &MirrorImageOptions{
+		IOStreams: streams,
+	}
 }
 
 // schema2ManifestOnly specifically requests a manifest list first
@@ -102,8 +109,8 @@ var schema2ManifestOnly = distribution.WithManifestMediaTypes([]string{
 })
 
 // NewCommandMirrorImage copies images from one location to another.
-func NewCmdMirrorImage(name string, out, errOut io.Writer) *cobra.Command {
-	o := &pushOptions{}
+func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewMirrorImageOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "mirror SRC DST [DST ...]",
@@ -111,8 +118,6 @@ func NewCmdMirrorImage(name string, out, errOut io.Writer) *cobra.Command {
 		Long:    mirrorDesc,
 		Example: fmt.Sprintf(mirrorExample, name+" mirror"),
 		Run: func(c *cobra.Command, args []string) {
-			o.Out = out
-			o.ErrOut = errOut
 			kcmdutil.CheckErr(o.Complete(args))
 			kcmdutil.CheckErr(o.Run())
 		},
@@ -133,7 +138,7 @@ func NewCmdMirrorImage(name string, out, errOut io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (o *pushOptions) Complete(args []string) error {
+func (o *MirrorImageOptions) Complete(args []string) error {
 	overlap := make(map[string]string)
 
 	var err error
@@ -171,7 +176,7 @@ func (o *pushOptions) Complete(args []string) error {
 	return nil
 }
 
-func (o *pushOptions) Repository(ctx context.Context, context *registryclient.Context, t DestinationType, ref imagereference.DockerImageReference) (distribution.Repository, error) {
+func (o *MirrorImageOptions) Repository(ctx context.Context, context *registryclient.Context, t DestinationType, ref imagereference.DockerImageReference) (distribution.Repository, error) {
 	switch t {
 	case DestinationRegistry:
 		return context.Repository(ctx, ref.DockerClientDefaults().RegistryURL(), ref.RepositoryName(), o.Insecure)
@@ -188,7 +193,7 @@ func (o *pushOptions) Repository(ctx context.Context, context *registryclient.Co
 }
 
 // includeDescriptor returns true if the provided manifest should be included.
-func (o *pushOptions) includeDescriptor(d *manifestlist.ManifestDescriptor, hasMultiple bool) bool {
+func (o *MirrorImageOptions) includeDescriptor(d *manifestlist.ManifestDescriptor, hasMultiple bool) bool {
 	if o.OSFilter == nil {
 		return true
 	}
@@ -198,7 +203,7 @@ func (o *pushOptions) includeDescriptor(d *manifestlist.ManifestDescriptor, hasM
 	return o.OSFilter.MatchString(fmt.Sprintf("%s/%s", d.Platform.OS, d.Platform.Architecture))
 }
 
-func (o *pushOptions) Run() error {
+func (o *MirrorImageOptions) Run() error {
 	start := time.Now()
 	p, err := o.plan()
 	if err != nil {
@@ -286,7 +291,7 @@ func (o *pushOptions) Run() error {
 	return nil
 }
 
-func (o *pushOptions) plan() (*plan, error) {
+func (o *MirrorImageOptions) plan() (*plan, error) {
 	rt, err := rest.TransportFor(&rest.Config{})
 	if err != nil {
 		return nil, err

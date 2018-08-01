@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
+	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
@@ -63,6 +64,7 @@ type EgressIPTracker struct {
 
 	watcher EgressIPWatcher
 
+	nodes            map[ktypes.UID]*nodeEgress
 	nodesByNodeIP    map[string]*nodeEgress
 	namespacesByVNID map[uint32]*namespaceEgress
 	egressIPs        map[string]*egressIPInfo
@@ -77,6 +79,7 @@ func NewEgressIPTracker(watcher EgressIPWatcher) *EgressIPTracker {
 	return &EgressIPTracker{
 		watcher: watcher,
 
+		nodes:            make(map[ktypes.UID]*nodeEgress),
 		nodesByNodeIP:    make(map[string]*nodeEgress),
 		namespacesByVNID: make(map[uint32]*namespaceEgress),
 		egressIPs:        make(map[string]*egressIPInfo),
@@ -167,9 +170,10 @@ func (eit *EgressIPTracker) handleDeleteHostSubnet(obj interface{}) {
 	hs := obj.(*networkapi.HostSubnet)
 	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
 
-	eit.UpdateHostSubnetEgress(&networkapi.HostSubnet{
-		HostIP: hs.HostIP,
-	})
+	hs = hs.DeepCopy()
+	hs.EgressCIDRs = nil
+	hs.EgressIPs = nil
+	eit.UpdateHostSubnetEgress(hs)
 }
 
 func (eit *EgressIPTracker) UpdateHostSubnetEgress(hs *networkapi.HostSubnet) {
@@ -185,7 +189,7 @@ func (eit *EgressIPTracker) UpdateHostSubnetEgress(hs *networkapi.HostSubnet) {
 		sdnIP = netutils.GenerateDefaultGateway(cidr).String()
 	}
 
-	node := eit.nodesByNodeIP[hs.HostIP]
+	node := eit.nodes[hs.UID]
 	if node == nil {
 		if len(hs.EgressIPs) == 0 && len(hs.EgressCIDRs) == 0 {
 			return
@@ -196,9 +200,11 @@ func (eit *EgressIPTracker) UpdateHostSubnetEgress(hs *networkapi.HostSubnet) {
 			sdnIP:        sdnIP,
 			requestedIPs: sets.NewString(),
 		}
+		eit.nodes[hs.UID] = node
 		eit.nodesByNodeIP[hs.HostIP] = node
 	} else if len(hs.EgressIPs) == 0 && len(hs.EgressCIDRs) == 0 {
-		delete(eit.nodesByNodeIP, hs.HostIP)
+		delete(eit.nodes, hs.UID)
+		delete(eit.nodesByNodeIP, node.nodeIP)
 	}
 
 	// Process EgressCIDRs
@@ -216,6 +222,28 @@ func (eit *EgressIPTracker) UpdateHostSubnetEgress(hs *networkapi.HostSubnet) {
 			node.parsedCIDRs[cidr] = parsed
 		}
 		eit.updateEgressCIDRs = true
+	}
+
+	if node.nodeIP != hs.HostIP {
+		// We have to clean up the old egress IP mappings and call syncEgressIPs
+		// before we can change node.nodeIP
+		movedEgressIPs := make([]string, 0, node.requestedIPs.Len())
+		for _, ip := range node.requestedIPs.UnsortedList() {
+			eg := eit.egressIPs[ip]
+			if eg.assignedNodeIP == node.nodeIP {
+				movedEgressIPs = append(movedEgressIPs, ip)
+				eit.deleteNodeEgressIP(node, ip)
+			}
+		}
+		eit.syncEgressIPs()
+
+		delete(eit.nodesByNodeIP, node.nodeIP)
+		node.nodeIP = hs.HostIP
+		eit.nodesByNodeIP[node.nodeIP] = node
+
+		for _, ip := range movedEgressIPs {
+			eit.addNodeEgressIP(node, ip)
+		}
 	}
 
 	// Process new and removed EgressIPs
@@ -448,7 +476,7 @@ func (eit *EgressIPTracker) findEgressIPAllocation(ip net.IP, allocation map[str
 	bestNode := ""
 	otherNodes := false
 
-	for _, node := range eit.nodesByNodeIP {
+	for _, node := range eit.nodes {
 		egressIPs, exists := allocation[node.nodeName]
 		if !exists {
 			continue
@@ -478,7 +506,7 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 	allocation := make(map[string][]string)
 	changed := make(map[string]bool)
 	alreadyAllocated := make(map[string]bool)
-	for _, node := range eit.nodesByNodeIP {
+	for _, node := range eit.nodes {
 		if len(node.parsedCIDRs) > 0 {
 			allocation[node.nodeName] = make([]string, 0, node.requestedIPs.Len())
 		}
@@ -534,7 +562,7 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 	}
 
 	// Remove unchanged nodes from the return value
-	for _, node := range eit.nodesByNodeIP {
+	for _, node := range eit.nodes {
 		if !changed[node.nodeName] {
 			delete(allocation, node.nodeName)
 		}

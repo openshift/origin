@@ -31,6 +31,17 @@ import (
 	"github.com/openshift/origin/pkg/user/apis/user"
 )
 
+// deprecated
+func IsOAPI(gvk schema.GroupVersionKind) bool {
+	if len(gvk.Group) > 0 {
+		return false
+	}
+
+	_, ok := oapiKindsToGroup[gvk.Kind]
+	return ok
+}
+
+// deprecated
 func OAPIToGroupifiedGVK(gvk *schema.GroupVersionKind) {
 	if len(gvk.Group) > 0 {
 		return
@@ -43,6 +54,7 @@ func OAPIToGroupifiedGVK(gvk *schema.GroupVersionKind) {
 	gvk.Group = newGroup
 }
 
+// deprecated
 func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 	if len(gvk.Group) > 0 {
 		return
@@ -53,27 +65,40 @@ func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 		newGroup := fixOAPIGroupKindInTopLevelUnstructured(obj.Object)
 		if len(newGroup) > 0 {
 			gvk.Group = newGroup
+			uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 		}
 	case *unstructured.UnstructuredList:
 		newGroup := fixOAPIGroupKindInTopLevelUnstructured(obj.Object)
 		if len(newGroup) > 0 {
 			gvk.Group = newGroup
+			uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 		}
 
 	case *apps.DeploymentConfig, *appsv1.DeploymentConfig, *apps.DeploymentConfigList, *appsv1.DeploymentConfigList,
-		*apps.DeploymentConfigRollback, *appsv1.DeploymentConfigRollback:
+		*apps.DeploymentConfigRollback, *appsv1.DeploymentConfigRollback,
+		*apps.DeploymentLog, *appsv1.DeploymentLog,
+		*apps.DeploymentRequest, *appsv1.DeploymentRequest:
 		gvk.Group = apps.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *authorization.ClusterRoleBinding, *authorizationv1.ClusterRoleBinding, *authorization.ClusterRoleBindingList, *authorizationv1.ClusterRoleBindingList,
 		*authorization.ClusterRole, *authorizationv1.ClusterRole, *authorization.ClusterRoleList, *authorizationv1.ClusterRoleList,
 		*authorization.Role, *authorizationv1.Role, *authorization.RoleList, *authorizationv1.RoleList,
 		*authorization.RoleBinding, *authorizationv1.RoleBinding, *authorization.RoleBindingList, *authorizationv1.RoleBindingList,
-		*authorization.RoleBindingRestriction, *authorizationv1.RoleBindingRestriction, *authorization.RoleBindingRestrictionList, *authorizationv1.RoleBindingRestrictionList:
+		*authorization.RoleBindingRestriction, *authorizationv1.RoleBindingRestriction, *authorization.RoleBindingRestrictionList, *authorizationv1.RoleBindingRestrictionList,
+		*authorization.SubjectRulesReview, *authorizationv1.SubjectRulesReview, *authorization.SelfSubjectRulesReview, *authorizationv1.SelfSubjectRulesReview,
+		*authorization.ResourceAccessReview, *authorizationv1.ResourceAccessReview, *authorization.LocalResourceAccessReview, *authorizationv1.LocalResourceAccessReview,
+		*authorization.SubjectAccessReview, *authorizationv1.SubjectAccessReview, *authorization.LocalSubjectAccessReview, *authorizationv1.LocalSubjectAccessReview:
 		gvk.Group = authorization.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *build.BuildConfig, *buildv1.BuildConfig, *build.BuildConfigList, *buildv1.BuildConfigList,
-		*build.Build, *buildv1.Build, *build.BuildList, *buildv1.BuildList:
+		*build.Build, *buildv1.Build, *build.BuildList, *buildv1.BuildList,
+		*build.BuildLog, *buildv1.BuildLog,
+		*build.BuildRequest, *buildv1.BuildRequest,
+		*build.BinaryBuildRequestOptions, *buildv1.BinaryBuildRequestOptions:
 		gvk.Group = build.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *image.Image, *imagev1.Image, *image.ImageList, *imagev1.ImageList,
 		*image.ImageSignature, *imagev1.ImageSignature,
@@ -83,43 +108,53 @@ func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 		*image.ImageStream, *imagev1.ImageStream, *image.ImageStreamList, *imagev1.ImageStreamList,
 		*image.ImageStreamTag, *imagev1.ImageStreamTag:
 		gvk.Group = image.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *network.ClusterNetwork, *networkv1.ClusterNetwork, *network.ClusterNetworkList, *networkv1.ClusterNetworkList,
 		*network.NetNamespace, *networkv1.NetNamespace, *network.NetNamespaceList, *networkv1.NetNamespaceList,
 		*network.HostSubnet, *networkv1.HostSubnet, *network.HostSubnetList, *networkv1.HostSubnetList,
 		*network.EgressNetworkPolicy, *networkv1.EgressNetworkPolicy, *network.EgressNetworkPolicyList, *networkv1.EgressNetworkPolicyList:
 		gvk.Group = network.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *project.Project, *projectv1.Project, *project.ProjectList, *projectv1.ProjectList,
 		*project.ProjectRequest, *projectv1.ProjectRequest:
 		gvk.Group = project.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
-	case *quota.ClusterResourceQuota, *quotav1.ClusterResourceQuota, *quota.ClusterResourceQuotaList, *quotav1.ClusterResourceQuotaList:
+	case *quota.ClusterResourceQuota, *quotav1.ClusterResourceQuota, *quota.ClusterResourceQuotaList, *quotav1.ClusterResourceQuotaList,
+		*quota.AppliedClusterResourceQuota, *quotav1.AppliedClusterResourceQuota, *quota.AppliedClusterResourceQuotaList, *quotav1.AppliedClusterResourceQuotaList:
 		gvk.Group = quota.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *oauth.OAuthAuthorizeToken, *oauthv1.OAuthAuthorizeToken, *oauth.OAuthAuthorizeTokenList, *oauthv1.OAuthAuthorizeTokenList,
 		*oauth.OAuthClientAuthorization, *oauthv1.OAuthClientAuthorization, *oauth.OAuthClientAuthorizationList, *oauthv1.OAuthClientAuthorizationList,
 		*oauth.OAuthClient, *oauthv1.OAuthClient, *oauth.OAuthClientList, *oauthv1.OAuthClientList,
 		*oauth.OAuthAccessToken, *oauthv1.OAuthAccessToken, *oauth.OAuthAccessTokenList, *oauthv1.OAuthAccessTokenList:
 		gvk.Group = oauth.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *route.Route, *routev1.Route, *route.RouteList, *routev1.RouteList:
 		gvk.Group = route.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *security.SecurityContextConstraints, *securityv1.SecurityContextConstraints, *security.SecurityContextConstraintsList, *securityv1.SecurityContextConstraintsList,
 		*security.PodSecurityPolicySubjectReview, *securityv1.PodSecurityPolicySubjectReview,
 		*security.PodSecurityPolicySelfSubjectReview, *securityv1.PodSecurityPolicySelfSubjectReview,
 		*security.PodSecurityPolicyReview, *securityv1.PodSecurityPolicyReview:
 		gvk.Group = security.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *template.Template, *templatev1.Template, *template.TemplateList, *templatev1.TemplateList:
 		gvk.Group = template.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	case *user.Group, *userv1.Group, *user.GroupList, *userv1.GroupList,
 		*user.Identity, *userv1.Identity, *user.IdentityList, *userv1.IdentityList,
 		*user.UserIdentityMapping, *userv1.UserIdentityMapping,
 		*user.User, *userv1.User, *user.UserList, *userv1.UserList:
 		gvk.Group = user.GroupName
+		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
 	}
 }
@@ -127,14 +162,22 @@ func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 var oapiKindsToGroup = map[string]string{
 	"DeploymentConfigRollback": "apps.openshift.io",
 	"DeploymentConfig":         "apps.openshift.io", "DeploymentConfigList": "apps.openshift.io",
+	"DeploymentLog":      "apps.openshift.io",
+	"DeploymentRequest":  "apps.openshift.io",
 	"ClusterRoleBinding": "authorization.openshift.io", "ClusterRoleBindingList": "authorization.openshift.io",
 	"ClusterRole": "authorization.openshift.io", "ClusterRoleList": "authorization.openshift.io",
 	"RoleBindingRestriction": "authorization.openshift.io", "RoleBindingRestrictionList": "authorization.openshift.io",
 	"RoleBinding": "authorization.openshift.io", "RoleBindingList": "authorization.openshift.io",
 	"Role": "authorization.openshift.io", "RoleList": "authorization.openshift.io",
+	"SubjectRulesReview": "authorization.openshift.io", "SelfSubjectRulesReview": "authorization.openshift.io",
+	"ResourceAccessReview": "authorization.openshift.io", "LocalResourceAccessReview": "authorization.openshift.io",
+	"SubjectAccessReview": "authorization.openshift.io", "LocalSubjectAccessReview": "authorization.openshift.io",
 	"BuildConfig": "build.openshift.io", "BuildConfigList": "build.openshift.io",
 	"Build": "build.openshift.io", "BuildList": "build.openshift.io",
-	"Image": "image.openshift.io", "ImageList": "image.openshift.io",
+	"BinaryBuildRequestOptions": "build.openshift.io",
+	"BuildLog":                  "build.openshift.io",
+	"BuildRequest":              "build.openshift.io",
+	"Image":                     "image.openshift.io", "ImageList": "image.openshift.io",
 	"ImageSignature":     "image.openshift.io",
 	"ImageStreamImage":   "image.openshift.io",
 	"ImageStreamImport":  "image.openshift.io",
@@ -152,6 +195,7 @@ var oapiKindsToGroup = map[string]string{
 	"Project": "project.openshift.io", "ProjectList": "project.openshift.io",
 	"ProjectRequest":       "project.openshift.io",
 	"ClusterResourceQuota": "quota.openshift.io", "ClusterResourceQuotaList": "quota.openshift.io",
+	"AppliedClusterResourceQuota": "quota.openshift.io", "AppliedClusterResourceQuotaList": "quota.openshift.io",
 	"Route": "route.openshift.io", "RouteList": "route.openshift.io",
 	"SecurityContextConstraints": "security.openshift.io", "SecurityContextConstraintsList": "security.openshift.io",
 	"PodSecurityPolicySubjectReview":     "security.openshift.io",

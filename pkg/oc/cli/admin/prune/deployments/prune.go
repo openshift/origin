@@ -5,12 +5,13 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 type Pruner interface {
@@ -22,7 +23,7 @@ type Pruner interface {
 // DeploymentDeleter knows how to delete deployments from OpenShift.
 type DeploymentDeleter interface {
 	// DeleteDeployment removes the deployment from OpenShift's storage.
-	DeleteDeployment(deployment *kapi.ReplicationController) error
+	DeleteDeployment(deployment *corev1.ReplicationController) error
 }
 
 // pruner is an object that knows how to prune a data set
@@ -43,9 +44,9 @@ type PrunerOptions struct {
 	// KeepFailed is per DeploymentConfig how many of the most recent failed deployments should be preserved.
 	KeepFailed int
 	// DeploymentConfigs is the entire list of deploymentconfigs across all namespaces in the cluster.
-	DeploymentConfigs []*appsapi.DeploymentConfig
+	DeploymentConfigs []*appsv1.DeploymentConfig
 	// Deployments is the entire list of deployments across all namespaces in the cluster.
-	Deployments []*kapi.ReplicationController
+	Deployments []*corev1.ReplicationController
 }
 
 // NewPruner returns a Pruner over specified data using specified options.
@@ -95,25 +96,25 @@ func (p *pruner) Prune(deleter DeploymentDeleter) error {
 
 // deploymentDeleter removes a deployment from OpenShift.
 type deploymentDeleter struct {
-	deployments kcoreclient.ReplicationControllersGetter
-	pods        kcoreclient.PodsGetter
+	deployments corev1client.ReplicationControllersGetter
+	pods        corev1client.PodsGetter
 }
 
 var _ DeploymentDeleter = &deploymentDeleter{}
 
 // NewDeploymentDeleter creates a new deploymentDeleter.
-func NewDeploymentDeleter(deployments kcoreclient.ReplicationControllersGetter, pods kcoreclient.PodsGetter) DeploymentDeleter {
+func NewDeploymentDeleter(deployments corev1client.ReplicationControllersGetter, pods corev1client.PodsGetter) DeploymentDeleter {
 	return &deploymentDeleter{
 		deployments: deployments,
 		pods:        pods,
 	}
 }
 
-func (p *deploymentDeleter) DeleteDeployment(deployment *kapi.ReplicationController) error {
+func (p *deploymentDeleter) DeleteDeployment(deployment *corev1.ReplicationController) error {
 	glog.V(4).Infof("Deleting deployment %q", deployment.Name)
 	// If the deployment is failed we need to remove its deployer pods, too.
-	if appsinternalutil.IsFailedDeployment(deployment) {
-		dpSelector := appsinternalutil.DeployerPodSelector(deployment.Name)
+	if appsutil.IsFailedDeployment(deployment) {
+		dpSelector := appsutil.DeployerPodSelector(deployment.Name)
 		deployers, err := p.pods.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: dpSelector.String()})
 		if err != nil {
 			glog.Warningf("Cannot list deployer pods for %q: %v\n", deployment.Name, err)

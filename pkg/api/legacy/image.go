@@ -60,7 +60,7 @@ func addUngroupifiedImageTypes(scheme *runtime.Scheme) error {
 }
 
 func addUngroupifiedInternalImageTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(internalGroupVersion,
+	scheme.AddKnownTypes(InternalGroupVersion,
 		&image.Image{},
 		&image.ImageList{},
 		&image.DockerImage{},

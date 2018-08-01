@@ -38,7 +38,7 @@ func NewOpenShiftAPIServerCommand(name, basename string, out, errout io.Writer) 
 		Short: "Launch OpenShift apiserver",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
-			legacy.InstallLegacyInternalAll(legacyscheme.Scheme)
+			legacy.InstallInternalLegacyAll(legacyscheme.Scheme)
 
 			kcmdutil.CheckErr(options.Validate())
 

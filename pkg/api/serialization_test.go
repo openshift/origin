@@ -40,7 +40,6 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "github.com/openshift/origin/pkg/api/latest"
 	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )

@@ -489,7 +489,7 @@ os::cmd::expect_success_and_not_text "TERM=test_terminal oc rsh ${frontend_pod} 
 os::cmd::expect_success "oc rollout status dc/frontend --revision=1"
 # Test retrieving application logs from dc
 os::cmd::expect_success_and_text "oc logs dc/frontend" 'Connecting to production database'
-os::cmd::expect_success_and_text "oc deploy frontend" 'deployed'
+os::cmd::expect_success_and_text "oc rollout status dc/frontend" 'successfully rolled out'
 
 # Port forwarding
 os::log::info "Validating port-forward"

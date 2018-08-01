@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -38,7 +38,7 @@ var MissingValidationExceptions = []reflect.Type{
 }
 
 func TestCoverage(t *testing.T) {
-	for kind, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {
+	for kind, apiType := range legacyscheme.Scheme.KnownTypes(legacy.InternalGroupVersion) {
 		if strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}

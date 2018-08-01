@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
@@ -53,7 +54,7 @@ func (b *DockerIgnorer) Ignore(config *api.Config) error {
 }
 
 func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
-	path := filepath.Join(workingDir, api.IgnoreFile)
+	path := filepath.Join(workingDir, constants.IgnoreFile)
 	file, err := os.Open(path)
 	if err != nil {
 		if !os.IsNotExist(err) {

@@ -18,6 +18,7 @@ import (
 	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
@@ -317,7 +318,7 @@ func setupAdditionalSecrets(pod *v1.Pod, container *v1.Container, secrets []buil
 
 // getPodLabels creates labels for the Build Pod
 func getPodLabels(build *buildapi.Build) map[string]string {
-	return map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)}
+	return map[string]string{buildapi.BuildLabel: buildapihelpers.LabelValue(build.Name)}
 }
 
 func makeOwnerReference(build *buildapi.Build) metav1.OwnerReference {

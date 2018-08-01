@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
@@ -75,9 +76,7 @@ var (
 `)
 )
 
-type options struct {
-	Out, ErrOut io.Writer
-
+type AppendImageOptions struct {
 	From, To   string
 	LayerFiles []string
 
@@ -97,6 +96,8 @@ type options struct {
 	DryRun   bool
 	Insecure bool
 	Force    bool
+
+	genericclioptions.IOStreams
 }
 
 // schema2ManifestOnly specifically requests a manifest list first
@@ -105,11 +106,16 @@ var schema2ManifestOnly = distribution.WithManifestMediaTypes([]string{
 	schema2.MediaTypeManifest,
 })
 
-// New creates a new command
-func New(name string, out, errOut io.Writer) *cobra.Command {
-	o := &options{
+func NewAppendImageOptions(streams genericclioptions.IOStreams) *AppendImageOptions {
+	return &AppendImageOptions{
+		IOStreams:      streams,
 		MaxPerRegistry: 3,
 	}
+}
+
+// New creates a new command
+func NewCmdAppendImage(name string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewAppendImageOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "append",
@@ -117,8 +123,6 @@ func New(name string, out, errOut io.Writer) *cobra.Command {
 		Long:    desc,
 		Example: fmt.Sprintf(example, name),
 		Run: func(c *cobra.Command, args []string) {
-			o.Out = out
-			o.ErrOut = errOut
 			kcmdutil.CheckErr(o.Complete(c, args))
 			kcmdutil.CheckErr(o.Run())
 		},
@@ -143,7 +147,7 @@ func New(name string, out, errOut io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (o *options) Complete(cmd *cobra.Command, args []string) error {
+func (o *AppendImageOptions) Complete(cmd *cobra.Command, args []string) error {
 	pattern := o.FilterByOS
 	if len(pattern) == 0 && !cmd.Flags().Changed("filter-by-os") {
 		o.DefaultOSFilter = true
@@ -172,7 +176,7 @@ func (o *options) Complete(cmd *cobra.Command, args []string) error {
 }
 
 // includeDescriptor returns true if the provided manifest should be included.
-func (o *options) includeDescriptor(d *manifestlist.ManifestDescriptor, hasMultiple bool) bool {
+func (o *AppendImageOptions) includeDescriptor(d *manifestlist.ManifestDescriptor, hasMultiple bool) bool {
 	if o.OSFilter == nil {
 		return true
 	}
@@ -185,7 +189,7 @@ func (o *options) includeDescriptor(d *manifestlist.ManifestDescriptor, hasMulti
 	return o.OSFilter.MatchString(fmt.Sprintf("%s/%s", d.Platform.OS, d.Platform.Architecture))
 }
 
-func (o *options) Run() error {
+func (o *AppendImageOptions) Run() error {
 	var createdAt *time.Time
 	if len(o.CreatedAt) > 0 {
 		if d, err := strconv.ParseInt(o.CreatedAt, 10, 64); err == nil {

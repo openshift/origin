@@ -379,6 +379,10 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 					},
 				}
 			}
+
+			if out.VXLANPort == 0 {
+				out.VXLANPort = 4789
+			}
 			return nil
 		},
 		func(in *AuditConfig, out *internal.AuditConfig, s conversion.Scope) error {
@@ -433,15 +437,15 @@ func (c *MasterConfig) DecodeNestedObjects(d runtime.Decoder) error {
 	// decoding failures result in a runtime.Unknown object being created in Object and passed
 	// to conversion
 	for k, v := range c.AdmissionConfig.PluginConfig {
-		apihelpers.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
+		DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
 		c.AdmissionConfig.PluginConfig[k] = v
 	}
 	if c.OAuthConfig != nil {
 		for i := range c.OAuthConfig.IdentityProviders {
-			apihelpers.DecodeNestedRawExtensionOrUnknown(d, &c.OAuthConfig.IdentityProviders[i].Provider)
+			DecodeNestedRawExtensionOrUnknown(d, &c.OAuthConfig.IdentityProviders[i].Provider)
 		}
 	}
-	apihelpers.DecodeNestedRawExtensionOrUnknown(d, &c.AuditConfig.PolicyConfiguration)
+	DecodeNestedRawExtensionOrUnknown(d, &c.AuditConfig.PolicyConfiguration)
 	return nil
 }
 
@@ -451,20 +455,60 @@ var _ runtime.NestedObjectEncoder = &MasterConfig{}
 // objects are encoded with the provided encoder.
 func (c *MasterConfig) EncodeNestedObjects(e runtime.Encoder) error {
 	for k, v := range c.AdmissionConfig.PluginConfig {
-		if err := apihelpers.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
+		if err := EncodeNestedRawExtension(e, &v.Configuration); err != nil {
 			return err
 		}
 		c.AdmissionConfig.PluginConfig[k] = v
 	}
 	if c.OAuthConfig != nil {
 		for i := range c.OAuthConfig.IdentityProviders {
-			if err := apihelpers.EncodeNestedRawExtension(e, &c.OAuthConfig.IdentityProviders[i].Provider); err != nil {
+			if err := EncodeNestedRawExtension(e, &c.OAuthConfig.IdentityProviders[i].Provider); err != nil {
 				return err
 			}
 		}
 	}
-	if err := apihelpers.EncodeNestedRawExtension(e, &c.AuditConfig.PolicyConfiguration); err != nil {
+	if err := EncodeNestedRawExtension(e, &c.AuditConfig.PolicyConfiguration); err != nil {
 		return err
 	}
+	return nil
+}
+
+// DecodeNestedRawExtensionOrUnknown
+func DecodeNestedRawExtensionOrUnknown(d runtime.Decoder, ext *runtime.RawExtension) {
+	if ext.Raw == nil || ext.Object != nil {
+		return
+	}
+	obj, gvk, err := d.Decode(ext.Raw, nil, nil)
+	if err != nil {
+		unk := &runtime.Unknown{Raw: ext.Raw}
+		if runtime.IsNotRegisteredError(err) {
+			if _, gvk, err := d.Decode(ext.Raw, nil, unk); err == nil {
+				unk.APIVersion = gvk.GroupVersion().String()
+				unk.Kind = gvk.Kind
+				ext.Object = unk
+				return
+			}
+		}
+		// TODO: record mime-type with the object
+		if gvk != nil {
+			unk.APIVersion = gvk.GroupVersion().String()
+			unk.Kind = gvk.Kind
+		}
+		obj = unk
+	}
+	ext.Object = obj
+}
+
+// EncodeNestedRawExtension will encode the object in the RawExtension (if not nil) or
+// return an error.
+func EncodeNestedRawExtension(e runtime.Encoder, ext *runtime.RawExtension) error {
+	if ext.Raw != nil || ext.Object == nil {
+		return nil
+	}
+	data, err := runtime.Encode(e, ext.Object)
+	if err != nil {
+		return err
+	}
+	ext.Raw = data
 	return nil
 }

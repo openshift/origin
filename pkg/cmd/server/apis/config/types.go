@@ -642,6 +642,8 @@ type MasterNetworkConfig struct {
 	// For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips,
 	// nodes, pods, or services.
 	IngressIPNetworkCIDR string
+	// VXLANPort is the VXLAN port used by the cluster. If it is not set, 4789 is the default value
+	VXLANPort uint32
 }
 
 // ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs
@@ -1561,6 +1563,7 @@ type NetworkControllerConfig struct {
 	// ClusterNetworks contains a list of cluster networks that defines the global overlay networks L3 space.
 	ClusterNetworks    []ClusterNetworkEntry
 	ServiceNetworkCIDR string
+	VXLANPort          uint32
 }
 
 type ServiceAccountControllerConfig struct {

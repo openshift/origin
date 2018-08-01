@@ -14,9 +14,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 )
 
 const PruneBuildsRecommendedName = "builds"
@@ -46,43 +45,49 @@ type PruneBuildsOptions struct {
 	KeepFailed      int
 	Namespace       string
 
-	BuildClient buildinternalclient.Interface
-	Out         io.Writer
+	BuildClient buildv1client.BuildV1Interface
+
+	genericclioptions.IOStreams
 }
 
-// NewCmdPruneBuilds implements the OpenShift cli prune builds command.
-func NewCmdPruneBuilds(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
-	opts := &PruneBuildsOptions{
+func NewPruneBuildsOptions(streams genericclioptions.IOStreams) *PruneBuildsOptions {
+	return &PruneBuildsOptions{
 		Confirm:         false,
 		Orphans:         false,
 		KeepYoungerThan: 60 * time.Minute,
 		KeepComplete:    5,
 		KeepFailed:      1,
+		IOStreams:       streams,
 	}
+}
+
+// NewCmdPruneBuilds implements the OpenShift cli prune builds command.
+func NewCmdPruneBuilds(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewPruneBuildsOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name,
 		Short:   "Remove old completed and failed builds",
 		Long:    buildsLongDesc,
 		Example: fmt.Sprintf(buildsExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, streams.Out))
-			kcmdutil.CheckErr(opts.Validate())
-			kcmdutil.CheckErr(opts.Run())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "If true, specify that build pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
-	cmd.Flags().BoolVar(&opts.Orphans, "orphans", opts.Orphans, "If true, prune all builds whose associated BuildConfig no longer exists and whose status is complete, failed, error, or cancelled.")
-	cmd.Flags().DurationVar(&opts.KeepYoungerThan, "keep-younger-than", opts.KeepYoungerThan, "Specify the minimum age of a Build for it to be considered a candidate for pruning.")
-	cmd.Flags().IntVar(&opts.KeepComplete, "keep-complete", opts.KeepComplete, "Per BuildConfig, specify the number of builds whose status is complete that will be preserved.")
-	cmd.Flags().IntVar(&opts.KeepFailed, "keep-failed", opts.KeepFailed, "Per BuildConfig, specify the number of builds whose status is failed, error, or cancelled that will be preserved.")
+	cmd.Flags().BoolVar(&o.Confirm, "confirm", o.Confirm, "If true, specify that build pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(&o.Orphans, "orphans", o.Orphans, "If true, prune all builds whose associated BuildConfig no longer exists and whose status is complete, failed, error, or cancelled.")
+	cmd.Flags().DurationVar(&o.KeepYoungerThan, "keep-younger-than", o.KeepYoungerThan, "Specify the minimum age of a Build for it to be considered a candidate for pruning.")
+	cmd.Flags().IntVar(&o.KeepComplete, "keep-complete", o.KeepComplete, "Per BuildConfig, specify the number of builds whose status is complete that will be preserved.")
+	cmd.Flags().IntVar(&o.KeepFailed, "keep-failed", o.KeepFailed, "Per BuildConfig, specify the number of builds whose status is failed, error, or cancelled that will be preserved.")
 
 	return cmd
 }
 
 // Complete turns a partially defined PruneBuildsOptions into a solvent structure
 // which can be validated and used for pruning builds.
-func (o *PruneBuildsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *PruneBuildsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageErrorf(cmd, "no arguments are allowed to this command")
 	}
@@ -95,17 +100,15 @@ func (o *PruneBuildsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 			return err
 		}
 	}
-	o.Out = out
 
 	config, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	buildClient, err := buildinternalclient.NewForConfig(config)
+	o.BuildClient, err = buildv1client.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	o.BuildClient = buildClient
 
 	return nil
 }
@@ -126,20 +129,20 @@ func (o PruneBuildsOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune builds command.
 func (o PruneBuildsOptions) Run() error {
-	buildConfigList, err := o.BuildClient.Build().BuildConfigs(o.Namespace).List(metav1.ListOptions{})
+	buildConfigList, err := o.BuildClient.BuildConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-	buildConfigs := []*buildapi.BuildConfig{}
+	buildConfigs := []*buildv1.BuildConfig{}
 	for i := range buildConfigList.Items {
 		buildConfigs = append(buildConfigs, &buildConfigList.Items[i])
 	}
 
-	buildList, err := o.BuildClient.Build().Builds(o.Namespace).List(metav1.ListOptions{})
+	buildList, err := o.BuildClient.Builds(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-	builds := []*buildapi.Build{}
+	builds := []*buildv1.Build{}
 	for i := range buildList.Items {
 		builds = append(builds, &buildList.Items[i])
 	}
@@ -160,7 +163,7 @@ func (o PruneBuildsOptions) Run() error {
 	buildDeleter := &describingBuildDeleter{w: w}
 
 	if o.Confirm {
-		buildDeleter.delegate = buildclient.NewClientBuildClient(o.BuildClient)
+		buildDeleter.delegate = NewBuildDeleter(o.BuildClient)
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove builds")
 	}
@@ -172,13 +175,13 @@ func (o PruneBuildsOptions) Run() error {
 // If a delegate exists, its DeleteBuild function is invoked prior to returning.
 type describingBuildDeleter struct {
 	w             io.Writer
-	delegate      buildclient.BuildDeleter
+	delegate      BuildDeleter
 	headerPrinted bool
 }
 
-var _ buildclient.BuildDeleter = &describingBuildDeleter{}
+var _ BuildDeleter = &describingBuildDeleter{}
 
-func (p *describingBuildDeleter) DeleteBuild(build *buildapi.Build) error {
+func (p *describingBuildDeleter) DeleteBuild(build *buildv1.Build) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "NAMESPACE\tNAME")

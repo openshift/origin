@@ -65,7 +65,7 @@ Rolling deployments are the default in OpenShift. To see a rolling update, follo
 
 4.  In your browser, refresh the page until you see the 'v2' image.
 
-5.  If you are using the CLI, the `oc deploy deployment-example` command will show you how many pods are on version 1 and how many are on version 2. In the web console, you should see the pods slowly being added to v2 and removed from v1.
+5.  If you are using the CLI, the `oc rollout status deployment-example` command will show you how many pods are on version 1 and how many are on version 2. In the web console, you should see the pods slowly being added to v2 and removed from v1.
 
 During the deployment process, the new replication controller is incrementally scaled up. Once the new pods are marked as *ready* (because they pass their readiness check), the deployment process will continue. If the pods do not become ready, the process will abort, and the deployment config will be rolled back to its previous version.
 
@@ -104,7 +104,7 @@ You can configure a recreate deployment by updating a deployment config. The `re
 
 3.  In your browser, refresh the page until you see the 'v2' image.
 
-4.  If you are using the CLI, the `oc deploy recreate-example` command will show you how many pods are on version 1 and how many are on version 2. In the web console, you should see all old pods removed, and then all new pods created.
+4.  If you are using the CLI, the `oc rollout status recreate-example` command will show you how many pods are on version 1 and how many are on version 2. In the web console, you should see all old pods removed, and then all new pods created.
 
 
 ### Custom Deployment
@@ -196,7 +196,7 @@ OpenShift, through labels and deployment configurations, can support multiple si
 
 3.  Trigger a re-deployment of the first shard to pick up the new labels:
 
-        $ oc deploy ab-example-a --latest
+        $ oc rollout latest ab-example-a
 
 4.  Create a service that uses the common label:
 
@@ -220,7 +220,7 @@ OpenShift, through labels and deployment configurations, can support multiple si
 
 7.  Trigger a re-deployment of the second shard to pick up the new labels:
 
-        $ oc deploy ab-example-b --latest
+        $ oc rollout latest ab-example-b
 
 8.  At this point, both sets of pods are being served under the route. However, since both browsers (by leaving a connection open) and the router (by default through a cookie) will attempt to preserve your connection to a backend server, you may not see both shards being returned to you. To force your browser to one or the other shard, use the scale command:
 

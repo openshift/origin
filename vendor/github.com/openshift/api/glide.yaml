@@ -10,6 +10,6 @@ import:
 - package: github.com/json-iterator/go
   version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - package: k8s.io/apimachinery
-  version: kubernetes-1.11.0
+  version: kubernetes-1.11.1
 - package: k8s.io/api
-  version: kubernetes-1.11.0
+  version: kubernetes-1.11.1

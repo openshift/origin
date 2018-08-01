@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
@@ -182,6 +183,25 @@ func generateHAProxyCertConfigMap(td templateData) []string {
 	return lines
 }
 
+// validateHAProxyWhiteList validates a whitelist for use with an haproxy acl.
+func validateHAProxyWhiteList(value string) bool {
+	_, valid := haproxyutil.ValidateWhiteList(value)
+	return valid
+}
+
+// generateHAProxyWhiteListFile generates a whitelist file for use with an haproxy acl.
+func generateHAProxyWhiteListFile(workingDir, id, value string) string {
+	name := path.Join(workingDir, "whitelists", fmt.Sprintf("%s.txt", id))
+	cidrs, _ := haproxyutil.ValidateWhiteList(value)
+	data := []byte(strings.Join(cidrs, "\n") + "\n")
+	if err := ioutil.WriteFile(name, data, 0644); err != nil {
+		glog.Errorf("Error writing haproxy whitelist contents: %v", err)
+		return ""
+	}
+
+	return name
+}
+
 // getHTTPAliasesGroupedByHost returns HTTP(S) aliases grouped by their host.
 func getHTTPAliasesGroupedByHost(aliases map[string]ServiceAliasConfig) map[string]map[string]ServiceAliasConfig {
 	result := make(map[string]map[string]ServiceAliasConfig)
@@ -270,5 +290,7 @@ var helperFunctions = template.FuncMap{
 	"getHTTPAliasesGroupedByHost": getHTTPAliasesGroupedByHost, //returns HTTP(S) aliases grouped by their host
 	"getPrimaryAliasKey":          getPrimaryAliasKey,          //returns the key of the primary alias for a group of aliases
 
-	"generateHAProxyMap": generateHAProxyMap, //generates a haproxy map content
+	"generateHAProxyMap":           generateHAProxyMap,           //generates a haproxy map content
+	"validateHAProxyWhiteList":     validateHAProxyWhiteList,     //validates a haproxy whitelist (acl) content
+	"generateHAProxyWhiteListFile": generateHAProxyWhiteListFile, //generates a haproxy whitelist file for use in an acl
 }

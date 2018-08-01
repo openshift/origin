@@ -17,6 +17,7 @@ import (
 
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
@@ -37,7 +38,7 @@ func calculateBuildConfigTriggers(bc *buildapi.BuildConfig) []triggerapi.ObjectF
 			from = t.ImageChange.From
 			fieldPath = "spec.triggers"
 		} else {
-			from = buildapi.GetInputReference(bc.Spec.Strategy)
+			from = buildapihelpers.GetInputReference(bc.Spec.Strategy)
 			fieldPath = "spec.strategy.*.from"
 		}
 		if from == nil || from.Kind != "ImageStreamTag" || len(from.Name) == 0 {
@@ -144,14 +145,14 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 			continue
 		}
 		if p.Paused {
-			glog.V(5).Infof("Skipping paused build on bc: %s/%s for trigger: %s", bc.Namespace, bc.Name, t)
+			glog.V(5).Infof("Skipping paused build on bc: %s/%s for trigger: %+v", bc.Namespace, bc.Name, t)
 			continue
 		}
 		var from *kapi.ObjectReference
 		if p.From != nil {
 			from = p.From
 		} else {
-			from = buildapi.GetInputReference(bc.Spec.Strategy)
+			from = buildapihelpers.GetInputReference(bc.Spec.Strategy)
 		}
 		namespace := from.Namespace
 		if len(namespace) == 0 {

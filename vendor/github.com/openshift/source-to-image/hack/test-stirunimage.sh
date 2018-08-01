@@ -144,6 +144,11 @@ test_debug "s2i build with runtime image"
 s2i build --ref=10.x --context-dir=helloworld https://github.com/wildfly/quickstart docker.io/openshift/wildfly-101-centos7 test-jee-app-thin --runtime-image=docker.io/openshift/wildfly-101-centos7 &> "${WORK_DIR}/s2i-runtime-image.log"
 check_result $? "${WORK_DIR}/s2i-runtime-image.log"
 
+test_debug "s2i build with Dockerfile output"
+s2i build https://github.com/openshift/cakephp-ex docker.io/centos/php-70-centos7 --as-dockerfile=${WORK_DIR}/asdockerfile/Dockerfile --loglevel=5 >& "${WORK_DIR}/s2i-dockerfile.log"
+check_result $? "${WORK_DIR}/s2i-dockerfile.log"
+
+
 test_debug "s2i build with --run==true option"
 if [[ "$OSTYPE" == "cygwin" ]]; then
   ( cd hack/windows/sigintwrap && make )

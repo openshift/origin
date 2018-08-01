@@ -27,14 +27,14 @@ import (
 )
 
 func RunImageTriggerController(ctx ControllerContext) (bool, error) {
-	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
+	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
 
 	buildClient, err := ctx.ClientBuilder.OpenshiftInternalBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
 
-	appsClient, err := ctx.ClientBuilder.OpenshiftInternalAppsClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	appsClient, err := ctx.ClientBuilder.OpenshiftAppsClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
@@ -47,44 +47,44 @@ func RunImageTriggerController(ctx ControllerContext) (bool, error) {
 	sources := []imagetriggercontroller.TriggerSource{
 		{
 			Resource:  schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"},
-			Informer:  ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
-			Store:     ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer().GetIndexer(),
+			Informer:  ctx.AppsInformers.Apps().V1().DeploymentConfigs().Informer(),
+			Store:     ctx.AppsInformers.Apps().V1().DeploymentConfigs().Informer().GetIndexer(),
 			TriggerFn: triggerdeploymentconfigs.NewDeploymentConfigTriggerIndexer,
-			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: appsClient.Apps()},
+			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: appsClient.AppsV1()},
 		},
 	}
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildconfigs"},
-		Informer:  ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
-		Store:     ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
+		Informer:  ctx.InternalBuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
+		Store:     ctx.InternalBuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
 		TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
 		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.Core().RESTClient()),
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "extensions", Resource: "deployments"},
-		Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer(),
-		Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
+		Informer:  ctx.KubernetesInformers.Extensions().V1beta1().Deployments().Informer(),
+		Store:     ctx.KubernetesInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "extensions", Resource: "daemonsets"},
-		Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer(),
-		Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
+		Informer:  ctx.KubernetesInformers.Extensions().V1beta1().DaemonSets().Informer(),
+		Store:     ctx.KubernetesInformers.Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "apps", Resource: "statefulsets"},
-		Informer:  ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer(),
-		Store:     ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
+		Informer:  ctx.KubernetesInformers.Apps().V1beta1().StatefulSets().Informer(),
+		Store:     ctx.KubernetesInformers.Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "batch", Resource: "cronjobs"},
-		Informer:  ctx.ExternalKubeInformers.Batch().V1beta1().CronJobs().Informer(),
-		Store:     ctx.ExternalKubeInformers.Batch().V1beta1().CronJobs().Informer().GetIndexer(),
+		Informer:  ctx.KubernetesInformers.Batch().V1beta1().CronJobs().Informer(),
+		Store:     ctx.KubernetesInformers.Batch().V1beta1().CronJobs().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 	})
@@ -148,7 +148,7 @@ func RunImageSignatureImportController(ctx ControllerContext) (bool, error) {
 	controller := imagesignaturecontroller.NewSignatureImportController(
 		context.Background(),
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
-		ctx.ImageInformers.Image().InternalVersion().Images(),
+		ctx.InternalImageInformers.Image().InternalVersion().Images(),
 		resyncPeriod,
 		signatureFetchTimeout,
 		signatureImportLimit,
@@ -158,7 +158,7 @@ func RunImageSignatureImportController(ctx ControllerContext) (bool, error) {
 }
 
 func RunImageImportController(ctx ControllerContext) (bool, error) {
-	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
+	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
 	controller := imagecontroller.NewImageStreamController(
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
 		informer,

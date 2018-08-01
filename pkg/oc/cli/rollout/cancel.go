@@ -6,28 +6,28 @@ import (
 	"strings"
 	"time"
 
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/set"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 type CancelOptions struct {
@@ -37,10 +37,9 @@ type CancelOptions struct {
 	Namespace         string
 	NamespaceExplicit bool
 	Mapper            meta.RESTMapper
-	Typer             runtime.ObjectTyper
 	Encoder           runtime.Encoder
 	Resources         []string
-	Clientset         kclientset.Interface
+	KubeClient        kubernetes.Interface
 
 	Printer func(string) (printers.ResourcePrinter, error)
 
@@ -98,7 +97,6 @@ func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 	}
 
 	var err error
-	o.Typer = legacyscheme.Scheme
 	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
@@ -110,7 +108,11 @@ func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 		return err
 	}
 
-	o.Clientset, err = f.ClientSet()
+	config, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.KubeClient, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
@@ -127,7 +129,7 @@ func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 
 func (o CancelOptions) Run() error {
 	r := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		FilenameParam(o.NamespaceExplicit, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, o.Resources...).
@@ -160,14 +162,14 @@ func (o CancelOptions) Run() error {
 			return err
 		}
 
-		mutateFn := func(rc *kapi.ReplicationController) bool {
+		mutateFn := func(rc *corev1.ReplicationController) bool {
 			printer, err := o.Printer("already cancelled")
 			if err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
 				return false
 			}
 
-			if appsinternalutil.IsDeploymentCancelled(rc) {
+			if appsutil.IsDeploymentCancelled(rc) {
 				printer.PrintObj(info.Object, o.Out)
 				return false
 			}
@@ -190,7 +192,8 @@ func (o CancelOptions) Run() error {
 				return false
 			}
 
-			if _, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType, patches[0].Patch); err != nil {
+			if _, err := o.KubeClient.CoreV1().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType,
+				patches[0].Patch); err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
 				return false
 			}
@@ -213,13 +216,13 @@ func (o CancelOptions) Run() error {
 		if !cancelled {
 			latest := deployments[0]
 			maybeCancelling := ""
-			if appsinternalutil.IsDeploymentCancelled(latest) && !appsinternalutil.IsTerminatedDeployment(latest) {
+			if appsutil.IsDeploymentCancelled(latest) && !appsutil.IsTerminatedDeployment(latest) {
 				maybeCancelling = " (cancelling)"
 			}
 			timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
 			fmt.Fprintf(o.Out, "No rollout is in progress (latest rollout #%d %s%s %s ago)\n",
-				appsinternalutil.DeploymentVersionFor(latest),
-				strings.ToLower(string(appsinternalutil.DeploymentStatusFor(latest))),
+				appsutil.DeploymentVersionFor(latest),
+				strings.ToLower(string(appsutil.DeploymentStatusFor(latest))),
 				maybeCancelling,
 				timeAt)
 		}
@@ -228,28 +231,28 @@ func (o CancelOptions) Run() error {
 	return utilerrors.NewAggregate(allErrs)
 }
 
-func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]*kapi.ReplicationController, bool, error) {
-	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsinternalutil.ConfigSelector(name).String()})
+func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*corev1.ReplicationController) bool) ([]*corev1.ReplicationController, bool, error) {
+	deploymentList, err := o.KubeClient.CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(name).String()})
 	if err != nil {
 		return nil, false, err
 	}
 	if len(deploymentList.Items) == 0 {
 		return nil, false, fmt.Errorf("there have been no replication controllers for %s/%s\n", namespace, name)
 	}
-	deployments := make([]*kapi.ReplicationController, 0, len(deploymentList.Items))
+	deployments := make([]*corev1.ReplicationController, 0, len(deploymentList.Items))
 	for i := range deploymentList.Items {
 		deployments = append(deployments, &deploymentList.Items[i])
 	}
-	sort.Sort(appsinternalutil.ByLatestVersionDesc(deployments))
+	sort.Sort(appsutil.ByLatestVersionDesc(deployments))
 	allErrs := []error{}
 	cancelled := false
 
 	for _, deployment := range deployments {
-		status := appsinternalutil.DeploymentStatusFor(deployment)
+		status := appsutil.DeploymentStatusFor(deployment)
 		switch status {
-		case appsapi.DeploymentStatusNew,
-			appsapi.DeploymentStatusPending,
-			appsapi.DeploymentStatusRunning:
+		case appsutil.DeploymentStatusNew,
+			appsutil.DeploymentStatusPending,
+			appsutil.DeploymentStatusRunning:
 			cancelled = mutateFunc(deployment)
 		}
 	}

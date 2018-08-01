@@ -1,5 +1,20 @@
 #!/bin/bash
 
+# Prepares a multitenant cluster for running the networkpolicy plugin by
+#
+#   1) creating NetworkPolicy objects (and Namespace labels) that
+#      implement the same isolation/sharing as had been configured in
+#      the multitenant cluster via "oc adm pod-network".
+#
+#   2) re-isolating all projects that had previously been joined or
+#      made global (since the networkpolicy plugin requires every
+#      project to have a distinct NetID).
+#
+# See the documentation for more information on how to use this script
+# (the section "Migrating from ovs-networkpolicy to ovs-multitenant"
+# in the "Configuring the SDN" document in the "Installation and
+# Configuration" guide).
+
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -13,7 +28,7 @@ fi
 function default-deny() {
     oc create --namespace "$1" -f - <<EOF
 kind: NetworkPolicy
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
   name: default-deny
 spec:
@@ -24,7 +39,7 @@ EOF
 function allow-from-self() {
     oc create --namespace "$1" -f - <<EOF
 kind: NetworkPolicy
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
   name: allow-from-self
 spec:
@@ -38,7 +53,7 @@ EOF
 function allow-from-other() {
     oc create --namespace "$1" -f - <<EOF
 kind: NetworkPolicy
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
   name: $2
 spec:

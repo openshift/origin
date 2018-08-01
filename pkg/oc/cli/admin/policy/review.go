@@ -21,7 +21,7 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
-	ometa "github.com/openshift/origin/pkg/api/meta"
+	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"

@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,9 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace test", func() {
@@ -64,7 +66,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 			},
 		}
 
-		err = templateapi.AddObjectsToTemplate(&templateinstance.Spec.Template, []runtime.Object{
+		err = addObjectsToTemplate(&templateinstance.Spec.Template, []runtime.Object{
 			// secret in the same namespace
 			&kapi.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -78,7 +80,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 					Namespace: "${NAMESPACE}",
 				},
 			},
-		}, latest.Versions...)
+		}, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("creating the templateinstance")
@@ -133,3 +135,41 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 	})
 })
+
+// AddObjectsToTemplate adds the objects to the template using the target versions to choose the conversion destination
+func addObjectsToTemplate(template *templateapi.Template, objects []runtime.Object, targetVersions ...schema.GroupVersion) error {
+	for i := range objects {
+		obj := objects[i]
+		if obj == nil {
+			return errors.New("cannot add a nil object to a template")
+		}
+
+		// We currently add legacy types first to the scheme, followed by the types in the new api
+		// groups. We have to check all ObjectKinds and not just use the first one returned by
+		// ObjectKind().
+		gvks, _, err := legacyscheme.Scheme.ObjectKinds(obj)
+		if err != nil {
+			return err
+		}
+
+		var targetVersion *schema.GroupVersion
+	outerLoop:
+		for j := range targetVersions {
+			possibleVersion := targetVersions[j]
+			for _, kind := range gvks {
+				if kind.Group == possibleVersion.Group {
+					targetVersion = &possibleVersion
+					break outerLoop
+				}
+			}
+		}
+		if targetVersion == nil {
+			return fmt.Errorf("no target version found for object[%d], gvks %v in %v", i, gvks, targetVersions)
+		}
+
+		wrappedObject := runtime.NewEncodable(legacyscheme.Codecs.LegacyCodec(*targetVersion), obj)
+		template.Objects = append(template.Objects, wrappedObject)
+	}
+
+	return nil
+}

@@ -17,11 +17,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -54,10 +54,10 @@ var (
 
 	  # Set the pre deployment hook to execute a db migration command for an application
 	  # using the data volume from the application
-	  %[1]s deployment-hook dc/myapp --pre -v data -- /var/lib/migrate-db.sh
+	  %[1]s deployment-hook dc/myapp --pre --volumes=data -- /var/lib/migrate-db.sh
 
 	  # Set a mid deployment hook along with additional environment variables
-	  %[1]s deployment-hook dc/myapp --mid -v data -e VAR1=value1 -e VAR2=value2 -- /var/lib/prepare-deploy.sh`)
+	  %[1]s deployment-hook dc/myapp --mid --volumes=data -e VAR1=value1 -e VAR2=value2 -- /var/lib/prepare-deploy.sh`)
 )
 
 type DeploymentHookOptions struct {
@@ -92,7 +92,7 @@ type DeploymentHookOptions struct {
 
 func NewDeploymentHookOptions(streams genericclioptions.IOStreams) *DeploymentHookOptions {
 	return &DeploymentHookOptions{
-		PrintFlags:       genericclioptions.NewPrintFlags("hooks updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags:       genericclioptions.NewPrintFlags("hooks updated").WithTypeSetter(scheme.Scheme),
 		IOStreams:        streams,
 		FailurePolicyStr: "ignore",
 	}
@@ -122,10 +122,12 @@ func NewCmdDeploymentHook(fullName string, f kcmdutil.Factory, streams genericcl
 	cmd.Flags().BoolVar(&o.Mid, "mid", o.Mid, "Set or remove a mid deployment hook")
 	cmd.Flags().BoolVar(&o.Post, "post", o.Post, "Set or remove a post deployment hook")
 	cmd.Flags().StringArrayVarP(&o.Environment, "environment", "e", o.Environment, "Environment variable to use in the deployment hook pod")
-	// FIXME: https://github.com/openshift/origin/issues/20097
-	// cmd.Flags().StringSliceVarP(&o.Volumes, "volumes", "v", o.Volumes, "Volumes from the pod template to use in the deployment hook pod")
+	// TODO: remove shorthand 'v' in 3.12
+	// this is done to trick pflag into allowing the duplicate registration.  The local value here wins
+	cmd.Flags().StringSliceVarP(&o.Volumes, "v", "v", o.Volumes, "Volumes from the pod template to use in the deployment hook pod")
+	cmd.Flags().MarkDeprecated("v", "Use --volumes instead.  Will be dropped in a future release")
+	cmd.Flags().MarkShorthandDeprecated("v", "Use --volumes instead.")
 	cmd.Flags().StringSliceVar(&o.Volumes, "volumes", o.Volumes, "Volumes from the pod template to use in the deployment hook pod")
-	cmd.Flags().MarkShorthandDeprecated("volumes", "Use --volumes instead.")
 	cmd.Flags().StringVar(&o.FailurePolicyStr, "failure-policy", o.FailurePolicyStr, "The failure policy for the deployment hook. Valid values are: abort,retry,ignore")
 	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set deployment hook will NOT contact api-server but run locally.")
 
@@ -230,7 +232,7 @@ func (o *DeploymentHookOptions) Validate() error {
 
 func (o *DeploymentHookOptions) Run() error {
 	b := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(o.Namespace).DefaultNamespace().

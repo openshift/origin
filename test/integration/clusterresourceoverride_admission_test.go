@@ -9,13 +9,17 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
+	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
-
-	_ "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride/install"
 )
+
+func init() {
+	configinstall.InstallLegacyInternal(configapi.Scheme)
+}
 
 func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 	config := &overrideapi.ClusterResourceOverrideConfig{

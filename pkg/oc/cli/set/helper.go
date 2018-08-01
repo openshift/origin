@@ -2,16 +2,13 @@ package set
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
@@ -27,32 +24,6 @@ func selectContainers(containers []kapi.Container, spec string) ([]*kapi.Contain
 		}
 	}
 	return out, skipped
-}
-
-func handlePodUpdateError(out io.Writer, err error, resource string) {
-	if statusError, ok := err.(*errors.StatusError); ok && errors.IsInvalid(err) {
-		errorDetails := statusError.Status().Details
-		if errorDetails.Kind == "Pod" {
-			all, match := true, false
-			for _, cause := range errorDetails.Causes {
-				if cause.Field == "spec" && strings.Contains(cause.Message, "may not update fields other than") {
-					fmt.Fprintf(out, "error: may not update %s in pod %q directly\n", resource, errorDetails.Name)
-					match = true
-				} else {
-					all = false
-				}
-			}
-			if all && match {
-				return
-			}
-		} else {
-			if ok := kcmdutil.PrintErrorWithCauses(err, out); ok {
-				return
-			}
-		}
-	}
-
-	fmt.Fprintf(out, "error: %v\n", err)
 }
 
 // selectString returns true if the provided string matches spec, where spec is a string with

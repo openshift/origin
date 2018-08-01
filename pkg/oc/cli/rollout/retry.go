@@ -20,13 +20,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/set"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 type RetryOptions struct {
@@ -65,7 +64,7 @@ var (
 
 func NewRolloutRetryOptions(streams genericclioptions.IOStreams) *RetryOptions {
 	return &RetryOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("already retried").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("already retried").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }
@@ -135,7 +134,7 @@ func (o RetryOptions) Run() error {
 	}
 
 	r := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, o.Resources...).
@@ -168,7 +167,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		latestDeploymentName := appsutil.LatestDeploymentNameForConfigV1(config)
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(config)
 		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
@@ -179,7 +178,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		if !appsinternalutil.IsFailedDeployment(rc) {
+		if !appsutil.IsFailedDeployment(rc) {
 			message := fmt.Sprintf("rollout #%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion,
 				strings.ToLower(appsutil.AnnotationFor(rc, appsutil.DeploymentStatusAnnotation)))
 			if appsutil.IsCompleteDeployment(rc) {

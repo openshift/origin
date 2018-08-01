@@ -12,8 +12,8 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	requestlimit "github.com/openshift/origin/pkg/project/admission/apis/requestlimit"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	requestlimit "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
