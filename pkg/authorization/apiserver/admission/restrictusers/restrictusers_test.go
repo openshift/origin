@@ -5,6 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	userapi "github.com/openshift/api/user/v1"
+	fakeauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/fake"
+	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -13,13 +17,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
-
-	authorizationapi "github.com/openshift/api/authorization/v1"
-	userapi "github.com/openshift/api/user/v1"
-	fakeauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/fake"
-	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
 func TestAdmission(t *testing.T) {
@@ -365,9 +362,9 @@ func TestAdmission(t *testing.T) {
 			t.Errorf("unexpected error initializing admission plugin: %v", err)
 		}
 
-		plugin.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kclientset)
-		plugin.(oadmission.WantsOpenshiftInternalAuthorizationClient).SetOpenshiftInternalAuthorizationClient(fakeAuthorizationClient)
-		plugin.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(fakeUserClient)
+		plugin.(*restrictUsersAdmission).kclient = kclientset
+		plugin.(*restrictUsersAdmission).roleBindingRestrictionsGetter = fakeAuthorizationClient.AuthorizationV1()
+		plugin.(*restrictUsersAdmission).userClient = fakeUserClient
 		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}
 
 		err = admission.ValidateInitialization(plugin)

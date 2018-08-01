@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
 	"github.com/openshift/origin/pkg/util/restoptions"
+	authorizationapi "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -16,7 +17,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	// install all APIs

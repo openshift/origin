@@ -9,12 +9,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	restclient "k8s.io/client-go/rest"
 
 	routeapiv1 "github.com/openshift/api/route/v1"
 	routeetcd "github.com/openshift/origin/pkg/route/apiserver/registry/route/etcd"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 )
 
 type ExtraConfig struct {

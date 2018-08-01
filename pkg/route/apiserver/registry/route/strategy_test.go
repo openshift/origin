@@ -4,12 +4,12 @@ import (
 	"reflect"
 	"testing"
 
+	authorizationapi "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )

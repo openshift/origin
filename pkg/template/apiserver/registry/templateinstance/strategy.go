@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -11,10 +12,9 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	"github.com/openshift/origin/pkg/authorization/util"
@@ -26,10 +26,10 @@ import (
 type templateInstanceStrategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
-	authorizationClient authorizationinternalversion.AuthorizationInterface
+	authorizationClient authorizationclient.AuthorizationV1Interface
 }
 
-func NewStrategy(authorizationClient authorizationinternalversion.AuthorizationInterface) *templateInstanceStrategy {
+func NewStrategy(authorizationClient authorizationclient.AuthorizationV1Interface) *templateInstanceStrategy {
 	return &templateInstanceStrategy{legacyscheme.Scheme, names.SimpleNameGenerator, authorizationClient}
 }
 
@@ -146,7 +146,7 @@ func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templ
 	}
 
 	if templateInstance.Spec.Requester.Username != userinfo.GetName() {
-		if err := util.Authorize(s.authorizationClient.SubjectAccessReviews(), userinfo, &authorization.ResourceAttributes{
+		if err := util.Authorize(s.authorizationClient.SubjectAccessReviews(), userinfo, &authorizationv1.ResourceAttributes{
 			Namespace: templateInstance.Namespace,
 			Verb:      "assign",
 			Group:     templateapi.GroupName,

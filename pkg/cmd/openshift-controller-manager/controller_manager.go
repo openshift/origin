@@ -146,7 +146,7 @@ func newControllerContext(
 		InternalNetworkInformers:       originInformers.GetInternalOpenshiftNetworkInformers(),
 		InternalQuotaInformers:         originInformers.GetInternalOpenshiftQuotaInformers(),
 		InternalSecurityInformers:      originInformers.GetInternalOpenshiftSecurityInformers(),
-		InternalRouteInformers:         originInformers.GetInternalOpenshiftRouteInformers(),
+		InternalRouteInformers:         originInformers.GetOpenshiftRouteInformers(),
 		InternalTemplateInformers:      originInformers.GetInternalOpenshiftTemplateInformers(),
 		GenericResourceInformer:        originInformers.ToGenericInformer(),
 		Stop:             stopCh,

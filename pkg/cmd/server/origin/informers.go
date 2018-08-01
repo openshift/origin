@@ -242,7 +242,7 @@ func (i *informerHolder) GetInternalOpenshiftOauthInformers() oauthinformer.Shar
 func (i *informerHolder) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.quotaInformers
 }
-func (i *informerHolder) GetInternalOpenshiftRouteInformers() routeinformer.SharedInformerFactory {
+func (i *informerHolder) GetOpenshiftRouteInformers() routeinformer.SharedInformerFactory {
 	return i.routeInformers
 }
 func (i *informerHolder) GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory {
@@ -251,7 +251,7 @@ func (i *informerHolder) GetInternalOpenshiftSecurityInformers() securityinforme
 func (i *informerHolder) GetInternalOpenshiftTemplateInformers() templateinformer.SharedInformerFactory {
 	return i.templateInformers
 }
-func (i *informerHolder) GetInternalOpenshiftUserInformers() userinformer.SharedInformerFactory {
+func (i *informerHolder) GetOpenshiftUserInformers() userinformer.SharedInformerFactory {
 	return i.userInformers
 }
 
@@ -298,7 +298,7 @@ func (i *informerHolder) ToGenericInformer() GenericResourceInformer {
 			return i.GetInternalOpenshiftQuotaInformers().ForResource(resource)
 		}),
 		genericResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-			return i.GetInternalOpenshiftRouteInformers().ForResource(resource)
+			return i.GetOpenshiftRouteInformers().ForResource(resource)
 		}),
 		genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
 			return i.GetInternalOpenshiftSecurityInformers().ForResource(resource)
@@ -307,7 +307,7 @@ func (i *informerHolder) ToGenericInformer() GenericResourceInformer {
 			return i.GetInternalOpenshiftTemplateInformers().ForResource(resource)
 		}),
 		genericResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-			return i.GetInternalOpenshiftUserInformers().ForResource(resource)
+			return i.GetOpenshiftUserInformers().ForResource(resource)
 		}),
 	)
 }

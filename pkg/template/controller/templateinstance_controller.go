@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -16,9 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/dynamic"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/utils/clock"
@@ -55,7 +56,8 @@ type TemplateInstanceController struct {
 	//				status of the last build.
 	buildClient buildclient.Interface
 
-	kc kclientsetinternal.Interface
+	sarClient authorizationclient.SubjectAccessReviewsGetter
+	kc        kclientsetinternal.Interface
 
 	lister   templatelister.TemplateInstanceLister
 	informer cache.SharedIndexInformer
@@ -68,10 +70,11 @@ type TemplateInstanceController struct {
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, sarClient authorizationclient.SubjectAccessReviewsGetter, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
 		dynamicRestMapper: dynamicRestMapper,
 		dynamicClient:     dynamicClient,
+		sarClient:         sarClient,
 		kc:                kc,
 		templateClient:    templateClient,
 		buildClient:       buildClient,
@@ -215,7 +218,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 			return false, err
 		}
 
-		if err = util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		if err = util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: object.Ref.Namespace,
 			Verb:      "get",
 			Group:     mapping.Resource.Group,
@@ -345,7 +348,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 
 	var secret *kapi.Secret
 	if templateInstance.Spec.Secret != nil {
-		if err := util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: templateInstance.Namespace,
 			Verb:      "get",
 			Group:     kapi.GroupName,
@@ -374,7 +377,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		}
 	}
 
-	if err := util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+	if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: templateInstance.Namespace,
 		Verb:      "create",
 		Group:     templateapi.GroupName,
@@ -424,7 +427,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 			continue
 		}
 
-		if err := util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
 			Verb:      "create",
 			Group:     restMapping.Resource.Group,
