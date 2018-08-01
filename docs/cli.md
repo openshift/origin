@@ -196,34 +196,6 @@ Use `oc get builds` to obtain a list of builds.
 $ oc build-logs rubyapp-build
 ```
 
-### oc deploy
-
-This views, starts, cancels or retries deployments.
-The general form is:
-
-```bash
-$ oc deploy <deployment-config> [options]
-```
-
-If invoked without options, `oc deploy` displays the latest deployment for the specified *deployment-config*.
-For example:
-
-```bash
-$ oc deploy database
-```
-
-| Option    | Description |
-|:----------|-------------|
-|`--latest` | Start a deployment. |
-|`--retry`  | Retry the latest failed deployment. |
-|`--cancel` | Cancel the in-progress deployment. |
-
-The following example shows how to cancel the `database` deployment:
-
-```bash
-$ oc deploy database --cancel
-```
-
 ### oc rollback
 
 This reverts the pod and container configuration back to a previous deployment.

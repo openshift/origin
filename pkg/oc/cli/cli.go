@@ -31,7 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/cancelbuild"
 	"github.com/openshift/origin/pkg/oc/cli/cluster"
 	"github.com/openshift/origin/pkg/oc/cli/debug"
-	"github.com/openshift/origin/pkg/oc/cli/deploy"
 	configcmd "github.com/openshift/origin/pkg/oc/cli/experimental/config"
 	"github.com/openshift/origin/pkg/oc/cli/experimental/dockergc"
 	"github.com/openshift/origin/pkg/oc/cli/export"
@@ -255,7 +254,6 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		cmds.AddCommand(version.NewCmdVersion(fullName, f, version.NewVersionOptions(true, ioStreams)))
 	}
 	cmds.AddCommand(options.NewCmdOptions(ioStreams))
-	cmds.AddCommand(deploy.NewCmdDeploy(fullName, f, ioStreams))
 
 	if cmds.Flag("namespace") != nil {
 		if cmds.Flag("namespace").Annotations == nil {

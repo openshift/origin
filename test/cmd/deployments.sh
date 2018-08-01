@@ -67,8 +67,8 @@ echo "env: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/deployments/config"
-os::cmd::expect_success 'oc deploy test-deployment-config'
-os::cmd::expect_success 'oc deploy dc/test-deployment-config'
+os::cmd::expect_failure_and_text 'oc rollout latest test-deployment-config' 'already in progress'
+os::cmd::expect_failure_and_text 'oc rollout latest dc/test-deployment-config' 'already in progress'
 os::cmd::expect_success 'oc delete deploymentConfigs test-deployment-config'
 echo "deploymentConfigs: ok"
 os::test::junit::declare_suite_end
