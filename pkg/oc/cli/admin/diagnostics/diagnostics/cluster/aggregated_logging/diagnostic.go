@@ -13,8 +13,8 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	oauthtypedclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
@@ -117,7 +117,7 @@ func (d *AggregatedLogging) nodes(options metav1.ListOptions) (*kapi.NodeList, e
 func (d *AggregatedLogging) pods(project string, options metav1.ListOptions) (*kapi.PodList, error) {
 	return d.KubeClient.Core().Pods(project).List(options)
 }
-func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.ListOptions) (*appsapi.DeploymentConfigList, error) {
+func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.ListOptions) (*appsv1.DeploymentConfigList, error) {
 	return d.DCClient.DeploymentConfigs(project).List(options)
 }
 

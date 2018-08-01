@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,11 +19,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	appsapiv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -55,7 +54,7 @@ type RolloutLatestOptions struct {
 	DryRun bool
 	again  bool
 
-	appsClient appsclientinternal.DeploymentConfigsGetter
+	appsClient appsclient.DeploymentConfigsGetter
 	kubeClient kclientset.Interface
 
 	Printer printers.ResourcePrinter
@@ -129,7 +128,7 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 	if err != nil {
 		return err
 	}
-	o.appsClient, err = appsclientinternal.NewForConfig(clientConfig)
+	o.appsClient, err = appsclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -145,7 +144,7 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 
 func (o *RolloutLatestOptions) RunRolloutLatest() error {
 	infos, err := o.Builder.
-		WithScheme(ocscheme.ReadingInternalScheme).
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
 		NamespaceParam(o.Namespace).
 		ResourceNames("deploymentconfigs", o.Resource).
@@ -160,7 +159,7 @@ func (o *RolloutLatestOptions) RunRolloutLatest() error {
 	}
 
 	info := infos[0]
-	config, ok := info.Object.(*appsapi.DeploymentConfig)
+	config, ok := info.Object.(*appsv1.DeploymentConfig)
 	if !ok {
 		return fmt.Errorf("%s is not a deployment config", info.Name)
 	}
@@ -186,7 +185,7 @@ func (o *RolloutLatestOptions) RunRolloutLatest() error {
 
 	dc := config
 	if !o.DryRun {
-		request := &appsapi.DeploymentRequest{
+		request := &appsv1.DeploymentRequest{
 			Name:   config.Name,
 			Latest: !o.again,
 			Force:  true,
@@ -214,7 +213,7 @@ func (o *RolloutLatestOptions) RunRolloutLatest() error {
 type revisionPrinter struct{}
 
 func (p *revisionPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
-	dc, ok := obj.(*appsapiv1.DeploymentConfig)
+	dc, ok := obj.(*appsv1.DeploymentConfig)
 	if !ok {
 		return fmt.Errorf("%T is not a deployment config", obj)
 	}

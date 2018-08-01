@@ -13,11 +13,11 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -34,7 +34,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	)
 
 	g.BeforeEach(func() {
-		dc, err := oc.AdminInternalAppsClient().Apps().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
+		dc, err := oc.AdminAppsClient().Apps().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			g.Skip("no router installed on the cluster")
 			return
@@ -233,7 +233,7 @@ func (l promLabels) With(name, value string) promLabels {
 	return n
 }
 
-func findEnvVar(vars []kapi.EnvVar, key string) string {
+func findEnvVar(vars []corev1.EnvVar, key string) string {
 	for _, v := range vars {
 		if v.Name == key {
 			return v.Value

@@ -35,7 +35,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -128,7 +128,7 @@ type PruneImagesOptions struct {
 	IgnoreInvalidRefs   bool
 
 	ClientConfig       *restclient.Config
-	AppsClient         appsclient.AppsInterface
+	AppsClient         appsclient.DeploymentConfigsGetter
 	BuildClient        buildclient.BuildInterface
 	ImageClient        imageclient.ImageInterface
 	ImageClientFactory func() (imageclient.ImageInterface, error)
@@ -729,7 +729,7 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 }
 
 // getClients returns a OpenShift client and Kube client.
-func getClients(f kcmdutil.Factory) (appsclient.AppsInterface, buildclient.BuildInterface, imageclient.ImageInterface, kclientset.Interface, error) {
+func getClients(f kcmdutil.Factory) (appsclient.DeploymentConfigsGetter, buildclient.BuildInterface, imageclient.ImageInterface, kclientset.Interface, error) {
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return nil, nil, nil, nil, err

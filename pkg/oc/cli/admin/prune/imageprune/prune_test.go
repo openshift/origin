@@ -27,7 +27,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	fakeimageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
@@ -67,7 +67,7 @@ func TestImagePruning(t *testing.T) {
 		builds                        buildapi.BuildList
 		dss                           kapisext.DaemonSetList
 		deployments                   kapisext.DeploymentList
-		dcs                           appsapi.DeploymentConfigList
+		dcs                           appsv1.DeploymentConfigList
 		rss                           kapisext.ReplicaSetList
 		limits                        map[string][]*kapi.LimitRange
 		imageDeleterErr               error
@@ -1590,7 +1590,7 @@ func TestRegistryPruning(t *testing.T) {
 				Builds:           &buildapi.BuildList{},
 				DSs:              &kapisext.DaemonSetList{},
 				Deployments:      &kapisext.DeploymentList{},
-				DCs:              &appsapi.DeploymentConfigList{},
+				DCs:              &appsv1.DeploymentConfigList{},
 				RSs:              &kapisext.ReplicaSetList{},
 				RegistryClientFactory: FakeRegistryClientFactory,
 				RegistryURL:           &url.URL{Scheme: "https", Host: "registry1.io"},

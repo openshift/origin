@@ -18,7 +18,7 @@ import (
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"

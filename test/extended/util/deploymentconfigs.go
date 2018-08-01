@@ -14,7 +14,7 @@ func RemoveDeploymentConfigs(oc *CLI, dcs ...string) error {
 	errs := []error{}
 	for _, dc := range dcs {
 		e2e.Logf("Removing deployment config %s/%s", oc.Namespace(), dc)
-		if err := oc.AdminInternalAppsClient().Apps().DeploymentConfigs(oc.Namespace()).Delete(dc, &metav1.DeleteOptions{}); err != nil {
+		if err := oc.AdminAppsClient().Apps().DeploymentConfigs(oc.Namespace()).Delete(dc, &metav1.DeleteOptions{}); err != nil {
 			e2e.Logf("Error occurred removing deployment config: %v", err)
 			errs = append(errs, err)
 		}

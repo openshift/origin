@@ -5,7 +5,6 @@ import (
 
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsv1client "github.com/openshift/origin/pkg/apps/client/v1"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
@@ -28,7 +27,7 @@ func RunUnidlingController(ctx ControllerContext) (bool, error) {
 		scaleNamespacer,
 		coreClient,
 		coreClient,
-		appsclient.NewForConfigOrDie(ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName)),
+		appsClient,
 		coreClient,
 		resyncPeriod,
 	)

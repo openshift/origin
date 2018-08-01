@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -25,8 +26,9 @@ import (
 	kapisextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
 	deployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
@@ -69,7 +71,7 @@ type ProjectStatusDescriber struct {
 	ProjectClient projectclient.ProjectInterface
 	BuildClient   buildclient.BuildInterface
 	ImageClient   imageclient.ImageInterface
-	AppsClient    appsclient.AppsInterface
+	AppsClient    appsclient.AppsV1Interface
 	RouteClient   routeclient.RouteInterface
 	Server        string
 	Suggest       bool
@@ -1867,7 +1869,7 @@ func (l *isLoader) AddToGraph(g osgraph.Graph) error {
 type dcLoader struct {
 	namespace string
 	lister    appsclient.DeploymentConfigsGetter
-	items     []appsapi.DeploymentConfig
+	items     []appsv1.DeploymentConfig
 }
 
 func (l *dcLoader) Load() error {
@@ -1882,7 +1884,11 @@ func (l *dcLoader) Load() error {
 
 func (l *dcLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
-		appsgraph.EnsureDeploymentConfigNode(g, &l.items[i])
+		internalConfig := &appsapi.DeploymentConfig{}
+		if err := legacyscheme.Scheme.Convert(&l.items[i], internalConfig, nil); err != nil {
+			return err
+		}
+		appsgraph.EnsureDeploymentConfigNode(g, internalConfig)
 	}
 
 	return nil

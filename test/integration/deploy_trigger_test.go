@@ -11,10 +11,10 @@ import (
 	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
@@ -47,7 +47,7 @@ func TestTriggers_manual(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = namespace
-	config.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{{Type: appsapi.DeploymentTriggerManual}}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{{Type: "Manual"}}
 
 	dc, err := adminAppsClient.DeploymentConfigs(namespace).Create(config)
 	if err != nil {
@@ -60,7 +60,7 @@ func TestTriggers_manual(t *testing.T) {
 	}
 	defer rcWatch.Stop()
 
-	request := &appsapi.DeploymentRequest{
+	request := &appsv1.DeploymentRequest{
 		Name:   config.Name,
 		Latest: false,
 		Force:  true,
@@ -81,9 +81,9 @@ func TestTriggers_manual(t *testing.T) {
 		t.Fatal("Instantiated deployment config should have a cause of deployment")
 	}
 	gotType := config.Status.Details.Causes[0].Type
-	if gotType != appsapi.DeploymentTriggerManual {
+	if gotType != "Manual" {
 		t.Fatalf("Instantiated deployment config should have a %q cause of deployment instead of %q",
-			appsapi.DeploymentTriggerManual, gotType)
+			"Manual", gotType)
 	}
 
 	event := <-rcWatch.ResultChan()
@@ -125,7 +125,7 @@ func TestTriggers_imageChange(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
-	config.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{appstest.OkImageChangeTrigger()}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{appstest.OkImageChangeTrigger()}
 
 	configWatch, err := projectAdminAppsClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
@@ -183,14 +183,14 @@ func TestTriggers_imageChange(t *testing.T) {
 
 	createTagEvent()
 
-	var newConfig *appsapi.DeploymentConfig
+	var newConfig *appsv1.DeploymentConfig
 	t.Log("Waiting for a new deployment config in response to imagestream update")
 waitForNewConfig:
 	for {
 		select {
 		case event := <-configWatch.ResultChan():
 			if event.Type == watchapi.Modified {
-				newConfig = event.Object.(*appsapi.DeploymentConfig)
+				newConfig = event.Object.(*appsv1.DeploymentConfig)
 				// Multiple updates to the config can be expected (e.g. status
 				// updates), so wait for a significant update (e.g. version).
 				if newConfig.Status.LatestVersion > 0 {
@@ -289,7 +289,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
-	config.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{appstest.OkImageChangeTrigger()}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{appstest.OkImageChangeTrigger()}
 	config.Spec.Triggers[0].ImageChangeParams.Automatic = false
 	if config, err = adminAppsClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create deploymentconfig: %v", err)
@@ -297,7 +297,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 
 	createTagEvent(mapping)
 
-	var newConfig *appsapi.DeploymentConfig
+	var newConfig *appsv1.DeploymentConfig
 	t.Log("Waiting for the first imagestream update - no deployment should run")
 
 	timeout := time.After(20 * time.Second)
@@ -313,7 +313,7 @@ out:
 				continue
 			}
 
-			newConfig = event.Object.(*appsapi.DeploymentConfig)
+			newConfig = event.Object.(*appsv1.DeploymentConfig)
 
 			if newConfig.Status.LatestVersion > 0 {
 				t.Fatalf("unexpected latestVersion update - the config has no config change trigger")
@@ -341,7 +341,7 @@ loop:
 				continue
 			}
 
-			newConfig = event.Object.(*appsapi.DeploymentConfig)
+			newConfig = event.Object.(*appsv1.DeploymentConfig)
 
 			if newConfig.Status.LatestVersion > 0 {
 				t.Fatalf("unexpected latestVersion update - the config has no config change trigger")
@@ -353,7 +353,7 @@ loop:
 	}
 
 	t.Log("Instantiate the deployment config - the latest image should be picked up and a new deployment should run")
-	request := &appsapi.DeploymentRequest{
+	request := &appsv1.DeploymentRequest{
 		Name:   config.Name,
 		Latest: true,
 		Force:  true,
@@ -379,7 +379,7 @@ loop:
 	if config.Status.Details == nil || len(config.Status.Details.Causes) == 0 {
 		t.Fatalf("Expected a cause of deployment for deployment config %q", config.Name)
 	}
-	if gotType, expectedType := config.Status.Details.Causes[0].Type, appsapi.DeploymentTriggerManual; gotType != expectedType {
+	if gotType, expectedType := config.Status.Details.Causes[0].Type, "Manual"; string(gotType) != expectedType {
 		t.Fatalf("Instantiated deployment config should have a %q cause of deployment instead of %q", expectedType, gotType)
 	}
 }
@@ -414,7 +414,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	secondTrigger := appstest.OkImageChangeTrigger()
 	secondTrigger.ImageChangeParams.ContainerNames = []string{"container2"}
 	secondTrigger.ImageChangeParams.From.Name = imageapi.JoinImageStreamTag("sample", imageapi.DefaultImageTag)
-	config.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
 
 	configWatch, err := adminAppsClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
@@ -489,7 +489,7 @@ out:
 				continue
 			}
 
-			newConfig := event.Object.(*appsapi.DeploymentConfig)
+			newConfig := event.Object.(*appsv1.DeploymentConfig)
 			if newConfig.Status.LatestVersion > 0 {
 				t.Fatalf("unexpected latestVersion update: %#v", newConfig)
 			}
@@ -517,7 +517,7 @@ out:
 				continue
 			}
 
-			newConfig := event.Object.(*appsapi.DeploymentConfig)
+			newConfig := event.Object.(*appsv1.DeploymentConfig)
 			switch {
 			case newConfig.Status.LatestVersion == 0:
 				t.Logf("Wating for latestVersion to update to 1")
@@ -572,7 +572,7 @@ func TestTriggers_configChange(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = namespace
-	config.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{appstest.OkConfigChangeTrigger()}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{appstest.OkConfigChangeTrigger()}
 
 	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metav1.ListOptions{})
 	if err != nil {
@@ -607,7 +607,7 @@ func TestTriggers_configChange(t *testing.T) {
 			return err
 		}
 
-		liveDeployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
+		liveDeployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusComplete)
 
 		// update the deployment
 		_, err = kc.Core().ReplicationControllers(namespace).Update(liveDeployment)
