@@ -539,7 +539,7 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 
 	// Allocate pending egress IPs that can only go to a single node
 	for egressIP, eip := range eit.egressIPs {
-		if alreadyAllocated[egressIP] {
+		if alreadyAllocated[egressIP] || len(eip.namespaces) == 0 {
 			continue
 		}
 		nodeName, otherNodes := eit.findEgressIPAllocation(eip.parsed, allocation)
@@ -551,7 +551,7 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 	}
 	// Allocate any other pending egress IPs that we can
 	for egressIP, eip := range eit.egressIPs {
-		if alreadyAllocated[egressIP] {
+		if alreadyAllocated[egressIP] || len(eip.namespaces) == 0 {
 			continue
 		}
 		nodeName, _ := eit.findEgressIPAllocation(eip.parsed, allocation)

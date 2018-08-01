@@ -946,6 +946,36 @@ func TestEgressCIDRAllocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+
+	// Changing the EgressIPs of a namespace should drop the old allocation and create a new one
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     46,
+		EgressIPs: []string{"172.17.0.202"}, // was 172.17.0.200
+	})
+	err = w.assertChanges(
+		"release 172.17.0.200 on 172.17.0.4",
+		"namespace 46 dropped",
+		"update egress CIDRs",
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	allocation = eit.ReallocateEgressIPs()
+	for _, ip := range allocation["node-4"] {
+		if ip == "172.17.0.200" {
+			t.Fatalf("reallocation failed to drop unused egress IP 172.17.0.200: %#v", allocation)
+		}
+	}
+	updateAllocations(eit, allocation)
+	err = w.assertChanges(
+		"claim 172.17.0.202 on 172.17.0.4 for namespace 46",
+		"namespace 46 via 172.17.0.202 on 172.17.0.4",
+		"update egress CIDRs",
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
 }
 
 func TestEgressNodeRenumbering(t *testing.T) {
