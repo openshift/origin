@@ -62,8 +62,7 @@ var (
 		Images in manifest list format will automatically select an image that matches the current
 		operating system and architecture unless you use --filter-by-os to select a different image.
 		This flag has no effect on regular images.
-
-		Experimental: This command is under active development and may change without notice.`)
+		`)
 
 	example = templates.Examples(`
 # Remove the entrypoint on the mysql:latest image
@@ -75,8 +74,9 @@ var (
 )
 
 type AppendImageOptions struct {
-	From, To   string
-	LayerFiles []string
+	From, To    string
+	LayerFiles  []string
+	LayerStream io.Reader
 
 	ConfigPatch string
 	MetaPatch   string
@@ -235,7 +235,7 @@ func (o *AppendImageOptions) Run() error {
 
 	} else {
 		base = add.NewEmptyConfig()
-		layers = []distribution.Descriptor{add.AddScratchLayerToConfig(base)}
+		layers = nil
 		fromRepo = scratchRepo{}
 	}
 
@@ -276,47 +276,19 @@ func (o *AppendImageOptions) Run() error {
 	toBlobs := toRepo.Blobs(ctx)
 
 	for _, arg := range o.LayerFiles {
-		err := func() error {
-			f, err := os.Open(arg)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			var readerFrom io.ReaderFrom = ioutil.Discard.(io.ReaderFrom)
-			var done = func(distribution.Descriptor) error { return nil }
-			if !o.DryRun {
-				fmt.Fprint(o.Out, "Uploading ... ")
-				start := time.Now()
-				bw, err := toBlobs.Create(ctx)
-				if err != nil {
-					fmt.Fprintln(o.Out, "failed")
-					return err
-				}
-				readerFrom = bw
-				defer bw.Close()
-				done = func(desc distribution.Descriptor) error {
-					_, err := bw.Commit(ctx, desc)
-					if err != nil {
-						fmt.Fprintln(o.Out, "failed")
-						return err
-					}
-					fmt.Fprintf(o.Out, "%s/s\n", units.HumanSize(float64(desc.Size)/float64(time.Now().Sub(start))*float64(time.Second)))
-					return nil
-				}
-			}
-			layerDigest, blobDigest, modTime, n, err := add.DigestCopy(readerFrom, f)
-			desc := distribution.Descriptor{
-				Digest:    blobDigest,
-				Size:      n,
-				MediaType: schema2.MediaTypeLayer,
-			}
-			layers = append(layers, desc)
-			add.AddLayerToConfig(base, desc, layerDigest.String())
-			if modTime != nil && !modTime.IsZero() {
-				base.Created = *modTime
-			}
-			return done(desc)
-		}()
+		layers, err = appendFileAsLayer(ctx, arg, layers, base, o.DryRun, o.Out, toBlobs)
+		if err != nil {
+			return err
+		}
+	}
+	if o.LayerStream != nil {
+		layers, err = appendLayer(ctx, o.LayerStream, layers, base, o.DryRun, o.Out, toBlobs)
+		if err != nil {
+			return err
+		}
+	}
+	if len(layers) == 0 {
+		layers, err = appendLayer(ctx, bytes.NewBuffer(dockerlayer.GzippedEmptyLayer), layers, base, o.DryRun, o.Out, toBlobs)
 		if err != nil {
 			return err
 		}
@@ -463,6 +435,55 @@ func WithDescriptor(desc distribution.Descriptor) distribution.BlobCreateOption 
 		}
 		return nil
 	})
+}
+
+func appendFileAsLayer(ctx context.Context, name string, layers []distribution.Descriptor, config *docker10.DockerImageConfig, dryRun bool, out io.Writer, blobs distribution.BlobService) ([]distribution.Descriptor, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return appendLayer(ctx, f, layers, config, dryRun, out, blobs)
+}
+
+func appendLayer(ctx context.Context, r io.Reader, layers []distribution.Descriptor, config *docker10.DockerImageConfig, dryRun bool, out io.Writer, blobs distribution.BlobService) ([]distribution.Descriptor, error) {
+	var readerFrom io.ReaderFrom = ioutil.Discard.(io.ReaderFrom)
+	var done = func(distribution.Descriptor) error { return nil }
+	if !dryRun {
+		fmt.Fprint(out, "Uploading ... ")
+		start := time.Now()
+		bw, err := blobs.Create(ctx)
+		if err != nil {
+			fmt.Fprintln(out, "failed")
+			return nil, err
+		}
+		readerFrom = bw
+		defer bw.Close()
+		done = func(desc distribution.Descriptor) error {
+			_, err := bw.Commit(ctx, desc)
+			if err != nil {
+				fmt.Fprintln(out, "failed")
+				return err
+			}
+			fmt.Fprintf(out, "%s/s\n", units.HumanSize(float64(desc.Size)/float64(time.Now().Sub(start))*float64(time.Second)))
+			return nil
+		}
+	}
+	layerDigest, blobDigest, modTime, n, err := add.DigestCopy(readerFrom, r)
+	if err != nil {
+		return nil, err
+	}
+	desc := distribution.Descriptor{
+		Digest:    blobDigest,
+		Size:      n,
+		MediaType: schema2.MediaTypeLayer,
+	}
+	layers = append(layers, desc)
+	add.AddLayerToConfig(config, desc, layerDigest.String())
+	if modTime != nil && !modTime.IsZero() {
+		config.Created = *modTime
+	}
+	return layers, done(desc)
 }
 
 func calculateLayerDigest(blobs distribution.BlobService, dgst digest.Digest, readerFrom io.ReaderFrom, r io.Reader) (digest.Digest, error) {
