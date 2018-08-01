@@ -473,7 +473,6 @@
       "vendor/k8s.io/utils",
       "vendor/github.com/davecgh/go-spew/spew",
 
-      "github.com/openshift/origin/pkg/apps/generated",
       "github.com/openshift/origin/pkg/authorization/generated",
       "github.com/openshift/origin/pkg/build/apis/build/v1",
       "github.com/openshift/origin/pkg/build/generated",
