@@ -127,6 +127,20 @@ func CreateTruncateFilesScript(files []string, scriptName string) (string, error
 	return f.Name(), err
 }
 
+// CreateInjectionResultFile creates a result file with the message from the provided injection
+// error. The path to the result file is returned. If the provided error is nil, an empty file is
+// created.
+func CreateInjectionResultFile(injectErr error) (string, error) {
+	f, err := ioutil.TempFile("", "s2i-injection-result")
+	if err != nil {
+		return "", err
+	}
+	if injectErr != nil {
+		err = ioutil.WriteFile(f.Name(), []byte(injectErr.Error()), 0700)
+	}
+	return f.Name(), err
+}
+
 // HandleInjectionError handles the error caused by injection and provide
 // reasonable suggestion to users.
 func HandleInjectionError(p api.VolumeSpec, err error) error {

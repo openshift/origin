@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 )
 
@@ -11,7 +12,7 @@ import (
 // and source repository informations.
 func GenerateOutputImageLabels(info *git.SourceInfo, config *api.Config) map[string]string {
 	labels := map[string]string{}
-	namespace := api.DefaultNamespace
+	namespace := constants.DefaultNamespace
 	if len(config.LabelNamespace) > 0 {
 		namespace = config.LabelNamespace
 	}
@@ -24,13 +25,13 @@ func GenerateOutputImageLabels(info *git.SourceInfo, config *api.Config) map[str
 // GenerateLabelsFromConfig generate the labels based on build s2i Config
 func GenerateLabelsFromConfig(labels map[string]string, config *api.Config, namespace string) map[string]string {
 	if len(config.Description) > 0 {
-		labels[api.KubernetesNamespace+"description"] = config.Description
+		labels[constants.KubernetesDescriptionLabel] = config.Description
 	}
 
 	if len(config.DisplayName) > 0 {
-		labels[api.KubernetesNamespace+"display-name"] = config.DisplayName
-	} else {
-		labels[api.KubernetesNamespace+"display-name"] = config.Tag
+		labels[constants.KubernetesDisplayNameLabel] = config.DisplayName
+	} else if len(config.Tag) > 0 {
+		labels[constants.KubernetesDisplayNameLabel] = config.Tag
 	}
 
 	addBuildLabel(labels, "image", config.BuilderImage, namespace)
@@ -41,7 +42,7 @@ func GenerateLabelsFromConfig(labels map[string]string, config *api.Config, name
 // informations.
 func GenerateLabelsFromSourceInfo(labels map[string]string, info *git.SourceInfo, namespace string) map[string]string {
 	if info == nil {
-		glog.V(3).Info("Unable to fetch source informations, the output image labels will not be set")
+		glog.V(3).Info("Unable to fetch source information, the output image labels will not be set")
 		return labels
 	}
 

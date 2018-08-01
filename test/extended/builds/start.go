@@ -2,6 +2,7 @@ package builds
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -26,6 +27,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 		bcWithPRRef       = exutil.FixturePath("testdata", "builds", "test-bc-with-pr-ref.yaml")
 		exampleGemfile    = exutil.FixturePath("testdata", "builds", "test-build-app", "Gemfile")
 		exampleBuild      = exutil.FixturePath("testdata", "builds", "test-build-app")
+		symlinkFixture    = exutil.FixturePath("testdata", "builds", "test-symlink-build.yaml")
 		exampleGemfileURL = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
 		exampleArchiveURL = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
 		oc                = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
@@ -450,6 +452,39 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 				})
 			})
 
+			g.Describe("s2i build maintaining symlinks", func() {
+				g.It(fmt.Sprintf("should s2i build image and maintain symlinks"), func() {
+					g.By("initializing local repo")
+					repo, err := exutil.NewGitRepo("symlinks")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					defer repo.Remove()
+					err = repo.AddAndCommit("package.json", "{}")
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					err = os.Symlink(repo.RepoPath+"/package.json", repo.RepoPath+"/link")
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					exutil.CheckOpenShiftNamespaceImageStreams(oc)
+					g.By(fmt.Sprintf("calling oc create -f %q", symlinkFixture))
+					err = oc.Run("create").Args("-f", symlinkFixture).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("starting a build")
+					err = oc.Run("start-build").Args("symlink-bc", "--from-dir", repo.RepoPath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("waiting for build to finish")
+					err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "symlink-bc-1", exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
+					if err != nil {
+						exutil.DumpBuildLogs("symlink-bc", oc)
+					}
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					tag, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("symlink-is:latest", metav1.GetOptions{})
+					err = oc.Run("run").Args("-i", "-t", "symlink-test", "--image="+tag.Image.DockerImageReference, "--restart=Never", "--command", "--", "bash", "-c", "if [ ! -L link ]; then ls -ltr; exit 1; fi").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				})
+			})
 		})
 	})
 })

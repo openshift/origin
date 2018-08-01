@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	dockerpkg "github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/test"
 	testfs "github.com/openshift/source-to-image/pkg/test/fs"
@@ -38,11 +39,11 @@ func newFakeInstaller(config *fakeScriptManagerConfig) Installer {
 		fs:         config.fs,
 		download:   config.download,
 	}
-	m.Add(&URLScriptHandler{URL: m.ScriptsURL, download: m.download, fs: m.fs, name: ScriptURLHandler})
+	m.Add(&URLScriptHandler{URL: m.ScriptsURL, Download: m.download, FS: m.fs, Name: ScriptURLHandler})
 	m.Add(&SourceScriptHandler{fs: m.fs})
 	defaultURL, err := m.docker.GetScriptsURL(m.Image)
 	if err == nil && defaultURL != "" {
-		m.Add(&URLScriptHandler{URL: defaultURL, download: m.download, fs: m.fs, name: ImageURLHandler})
+		m.Add(&URLScriptHandler{URL: defaultURL, Download: m.download, FS: m.fs, Name: ImageURLHandler})
 	}
 	return &m
 }
@@ -68,7 +69,7 @@ func isValidInstallResult(result api.InstallResult, t *testing.T) {
 func TestInstallOptionalFromURL(t *testing.T) {
 	config := newFakeConfig()
 	inst := newFakeInstaller(config)
-	scripts := []string{api.Assemble, api.Run}
+	scripts := []string{constants.Assemble, constants.Run}
 	results := inst.InstallOptional(scripts, "/output")
 	for _, r := range results {
 		isValidInstallResult(r, t)
@@ -100,10 +101,10 @@ func TestInstallOptionalFromURL(t *testing.T) {
 func TestInstallRequiredFromURL(t *testing.T) {
 	config := newFakeConfig()
 	config.download.(*test.FakeDownloader).Err = map[string]error{
-		config.url + "/" + api.Assemble: fmt.Errorf("download error"),
+		config.url + "/" + constants.Assemble: fmt.Errorf("download error"),
 	}
 	inst := newFakeInstaller(config)
-	scripts := []string{api.Assemble, api.Run}
+	scripts := []string{constants.Assemble, constants.Run}
 	_, err := inst.InstallRequired(scripts, "/output")
 	if err == nil {
 		t.Errorf("expected assemble to fail install")
@@ -115,12 +116,12 @@ func TestInstallRequiredFromDocker(t *testing.T) {
 	// We fail the download for assemble, which means the Docker image default URL
 	// should be used instead.
 	config.download.(*test.FakeDownloader).Err = map[string]error{
-		config.url + "/" + api.Assemble: fmt.Errorf("not available"),
+		config.url + "/" + constants.Assemble: fmt.Errorf("not available"),
 	}
 	defaultDockerURL := "image:///usr/libexec/s2i/bin"
 	config.docker.(*dockerpkg.FakeDocker).DefaultURLResult = defaultDockerURL
 	inst := newFakeInstaller(config)
-	scripts := []string{api.Assemble, api.Run}
+	scripts := []string{constants.Assemble, constants.Run}
 	results, err := inst.InstallRequired(scripts, "/output")
 	if err != nil {
 		t.Errorf("unexpected error, assemble should be installed from docker image url")
@@ -134,7 +135,7 @@ func TestInstallRequiredFromDocker(t *testing.T) {
 		for _, u := range urls {
 			url := config.url
 			// The assemble script should be downloaded from image default URL
-			if s == api.Assemble {
+			if s == constants.Assemble {
 				url = defaultDockerURL
 			}
 			if u.String() == url+"/"+s {
@@ -151,13 +152,13 @@ func TestInstallRequiredFromSource(t *testing.T) {
 	config := newFakeConfig()
 	// There is no other script source than the source code
 	config.url = ""
-	deprecatedSourceScripts := strings.Replace(api.SourceScripts, ".s2i", ".sti", -1)
+	deprecatedSourceScripts := strings.Replace(constants.SourceScripts, ".s2i", ".sti", -1)
 	config.fs.(*testfs.FakeFileSystem).ExistsResult = map[string]bool{
-		filepath.Join("/workdir", api.SourceScripts, api.Assemble):  true,
-		filepath.Join("/workdir", deprecatedSourceScripts, api.Run): true,
+		filepath.Join("/workdir", constants.SourceScripts, constants.Assemble): true,
+		filepath.Join("/workdir", deprecatedSourceScripts, constants.Run):      true,
 	}
 	inst := newFakeInstaller(config)
-	scripts := []string{api.Assemble, api.Run}
+	scripts := []string{constants.Assemble, constants.Run}
 	result, err := inst.InstallRequired(scripts, "/workdir")
 	if err != nil {
 		t.Errorf("unexpected error, assemble should be installed from docker image url: %v", err)
@@ -168,8 +169,8 @@ func TestInstallRequiredFromSource(t *testing.T) {
 	for _, s := range scripts {
 		validResultURL := false
 		for _, r := range result {
-			// The api.Run use deprecated path, but it should still work.
-			if s == api.Run && r.URL == filepath.FromSlash(sourcesRootAbbrev+"/.sti/bin/"+s) {
+			// The constants.Run use deprecated path, but it should still work.
+			if s == constants.Run && r.URL == filepath.FromSlash(sourcesRootAbbrev+"/.sti/bin/"+s) {
 				validResultURL = true
 			}
 			if r.URL == filepath.FromSlash(sourcesRootAbbrev+"/.s2i/bin/"+s) {
@@ -201,17 +202,17 @@ func TestInstallRequiredFromSource(t *testing.T) {
 func TestInstallRequiredOrder(t *testing.T) {
 	config := newFakeConfig()
 	config.download.(*test.FakeDownloader).Err = map[string]error{
-		config.url + "/" + api.Assemble:      fmt.Errorf("not available"),
-		config.url + "/" + api.SaveArtifacts: fmt.Errorf("not available"),
+		config.url + "/" + constants.Assemble:      fmt.Errorf("not available"),
+		config.url + "/" + constants.SaveArtifacts: fmt.Errorf("not available"),
 	}
 	config.fs.(*testfs.FakeFileSystem).ExistsResult = map[string]bool{
-		filepath.Join("/workdir", api.SourceScripts, api.Assemble):      true,
-		filepath.Join("/workdir", api.SourceScripts, api.Run):           false,
-		filepath.Join("/workdir", api.SourceScripts, api.SaveArtifacts): false,
+		filepath.Join("/workdir", constants.SourceScripts, constants.Assemble):      true,
+		filepath.Join("/workdir", constants.SourceScripts, constants.Run):           false,
+		filepath.Join("/workdir", constants.SourceScripts, constants.SaveArtifacts): false,
 	}
 	defaultDockerURL := "http://the.docker.url/s2i"
 	config.docker.(*dockerpkg.FakeDocker).DefaultURLResult = defaultDockerURL
-	scripts := []string{api.Assemble, api.Run, api.SaveArtifacts}
+	scripts := []string{constants.Assemble, constants.Run, constants.SaveArtifacts}
 	inst := newFakeInstaller(config)
 	result, err := inst.InstallRequired(scripts, "/workdir")
 	if err != nil {
@@ -223,15 +224,15 @@ func TestInstallRequiredOrder(t *testing.T) {
 	for _, s := range scripts {
 		found := false
 		for _, r := range result {
-			if r.Script == s && r.Script == api.Assemble && r.URL == filepath.FromSlash(sourcesRootAbbrev+"/.s2i/bin/assemble") {
+			if r.Script == s && r.Script == constants.Assemble && r.URL == filepath.FromSlash(sourcesRootAbbrev+"/.s2i/bin/assemble") {
 				found = true
 				break
 			}
-			if r.Script == s && r.Script == api.Run && r.URL == config.url+"/"+api.Run {
+			if r.Script == s && r.Script == constants.Run && r.URL == config.url+"/"+constants.Run {
 				found = true
 				break
 			}
-			if r.Script == s && r.Script == api.SaveArtifacts && r.URL == defaultDockerURL+"/"+api.SaveArtifacts {
+			if r.Script == s && r.Script == constants.SaveArtifacts && r.URL == defaultDockerURL+"/"+constants.SaveArtifacts {
 				found = true
 				break
 			}
@@ -245,7 +246,7 @@ func TestInstallRequiredOrder(t *testing.T) {
 func TestInstallRequiredError(t *testing.T) {
 	config := newFakeConfig()
 	config.url = ""
-	scripts := []string{api.Assemble, api.Run}
+	scripts := []string{constants.Assemble, constants.Run}
 	inst := newFakeInstaller(config)
 	result, err := inst.InstallRequired(scripts, "/output")
 	if err == nil {
@@ -256,7 +257,7 @@ func TestInstallRequiredError(t *testing.T) {
 func TestInstallRequiredFromInvalidURL(t *testing.T) {
 	config := newFakeConfig()
 	config.url = "../invalid-url"
-	scripts := []string{api.Assemble}
+	scripts := []string{constants.Assemble}
 	inst := newFakeInstaller(config)
 	result, err := inst.InstallRequired(scripts, "/output")
 	if err == nil {

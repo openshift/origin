@@ -223,6 +223,8 @@ func (s *S2IBuilder) Build() error {
 		CGroupLimits:              s.cgLimits,
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
 		BlockOnBuild:              true,
+
+		KeepSymlinks: true,
 	}
 
 	if len(resolvConfHostPath) != 0 {

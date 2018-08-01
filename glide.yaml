@@ -45,12 +45,10 @@ import:
   version: master
 - package: github.com/openshift/library-go
   version: master
-# master already branched for 3.11
 - package: github.com/openshift/service-serving-cert-signer
   version: master
-# master already branched for 3.11
 - package: github.com/openshift/source-to-image
-  version: release-3.10
+  version: master
 
 # forks third
 # master

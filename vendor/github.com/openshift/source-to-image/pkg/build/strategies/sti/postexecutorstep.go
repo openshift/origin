@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	dockerpkg "github.com/openshift/source-to-image/pkg/docker"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	s2itar "github.com/openshift/source-to-image/pkg/tar"
@@ -176,7 +177,7 @@ type downloadFilesFromBuilderImageStep struct {
 func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepContext) error {
 	glog.V(3).Info("Executing step: download files from the builder image")
 
-	artifactsDir := filepath.Join(step.builder.config.WorkingDir, api.RuntimeArtifactsDir)
+	artifactsDir := filepath.Join(step.builder.config.WorkingDir, constants.RuntimeArtifactsDir)
 	if err := step.fs.Mkdir(artifactsDir); err != nil {
 		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonFSOperationFailed,
@@ -260,10 +261,10 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
 
-	artifactsDir := filepath.Join(step.builder.config.WorkingDir, api.RuntimeArtifactsDir)
+	artifactsDir := filepath.Join(step.builder.config.WorkingDir, constants.RuntimeArtifactsDir)
 
 	// We copy scripts to a directory with artifacts to upload files in one shot
-	for _, script := range []string{api.AssembleRuntime, api.Run} {
+	for _, script := range []string{constants.AssembleRuntime, constants.Run} {
 		// scripts must be inside of "scripts" subdir, see createCommandForExecutingRunScript()
 		destinationDir := filepath.Join(artifactsDir, "scripts")
 		err = step.copyScriptIfNeeded(script, destinationDir)
@@ -287,7 +288,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	}
 
 	commandBaseDir := filepath.Join(workDir, "scripts")
-	useExternalAssembleScript := step.builder.externalScripts[api.AssembleRuntime]
+	useExternalAssembleScript := step.builder.externalScripts[constants.AssembleRuntime]
 	if !useExternalAssembleScript {
 		// script already inside of the image
 		var scriptsURL string
@@ -313,7 +314,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 		"while [ ! -f %q ]; do sleep 0.5; done; %s/%s; exit $?",
 		lastFileDstPath,
 		commandBaseDir,
-		api.AssembleRuntime,
+		constants.AssembleRuntime,
 	)
 
 	opts := dockerpkg.RunContainerOptions{
@@ -370,7 +371,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 func (step *startRuntimeImageAndUploadFilesStep) copyScriptIfNeeded(script, destinationDir string) error {
 	useExternalScript := step.builder.externalScripts[script]
 	if useExternalScript {
-		src := filepath.Join(step.builder.config.WorkingDir, api.UploadScripts, script)
+		src := filepath.Join(step.builder.config.WorkingDir, constants.UploadScripts, script)
 		dst := filepath.Join(destinationDir, script)
 		glog.V(5).Infof("Copying file %q -> %q", src, dst)
 		if err := step.fs.MkdirAll(destinationDir); err != nil {
@@ -393,7 +394,7 @@ func (step *reportSuccessStep) execute(ctx *postExecutorStepContext) error {
 	step.builder.result.Success = true
 	step.builder.result.ImageID = ctx.imageID
 
-	glog.V(3).Infof("Successfully built %s", firstNonEmpty(step.builder.config.Tag, ctx.imageID))
+	glog.V(3).Infof("Successfully built %s", util.FirstNonEmpty(step.builder.config.Tag, ctx.imageID))
 
 	return nil
 }
@@ -445,7 +446,7 @@ func mergeLabels(labels ...map[string]string) map[string]string {
 }
 
 func createCommandForExecutingRunScript(scriptsURL map[string]string, location string) string {
-	cmd := scriptsURL[api.Run]
+	cmd := scriptsURL[constants.Run]
 	if strings.HasPrefix(cmd, "image://") {
 		// scripts from inside of the image, we need to strip the image part
 		// NOTE: We use path.Join instead of filepath.Join to avoid converting the
@@ -454,7 +455,7 @@ func createCommandForExecutingRunScript(scriptsURL map[string]string, location s
 	} else {
 		// external scripts, in which case we're taking the directory to which they
 		// were extracted and append scripts dir and name
-		cmd = path.Join(location, "scripts", api.Run)
+		cmd = path.Join(location, "scripts", constants.Run)
 	}
 	return cmd
 }

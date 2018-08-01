@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/constants"
 )
 
 type FakeUsageHandler struct {
@@ -63,7 +64,7 @@ func TestUsage(t *testing.T) {
 	if !reflect.DeepEqual(fh.setupOptional, []string{}) {
 		t.Errorf("setup called with unexpected optional scripts: %#v", fh.setupOptional)
 	}
-	if !reflect.DeepEqual(fh.setupRequired, []string{api.Usage}) {
+	if !reflect.DeepEqual(fh.setupRequired, []string{constants.Usage}) {
 		t.Errorf("setup called with unexpected required scripts: %#v", fh.setupRequired)
 	}
 	if fh.executeCommand != "usage" {

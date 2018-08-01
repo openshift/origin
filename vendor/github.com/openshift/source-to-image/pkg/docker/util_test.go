@@ -3,6 +3,7 @@ package docker
 import (
 	"testing"
 
+	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
 
@@ -137,21 +138,21 @@ func TestCheckAllowedUser(t *testing.T) {
 			name:        "AllowedUIDs is set, numeric user, assemble user label ok",
 			allowedUIDs: rangeList("1-"),
 			user:        "200",
-			labels:      map[string]string{AssembleUserLabel: "10"},
+			labels:      map[string]string{constants.AssembleUserLabel: "10"},
 			expectErr:   false,
 		},
 		{
 			name:        "AllowedUIDs is set, numeric user, assemble user label root",
 			allowedUIDs: rangeList("1-"),
 			user:        "200",
-			labels:      map[string]string{AssembleUserLabel: "0"},
+			labels:      map[string]string{constants.AssembleUserLabel: "0"},
 			expectErr:   true,
 		},
 		{
 			name:        "AllowedUIDs is set, root image user, assemble user label ok",
 			allowedUIDs: rangeList("1-"),
 			user:        "0",
-			labels:      map[string]string{AssembleUserLabel: "10"},
+			labels:      map[string]string{constants.AssembleUserLabel: "10"},
 			expectErr:   false,
 		},
 		{
@@ -165,7 +166,7 @@ func TestCheckAllowedUser(t *testing.T) {
 			name:        "AllowedUIDs is set, root image user, onbuild root named user with group, assemble user label ok",
 			allowedUIDs: rangeList("1-"),
 			user:        "0",
-			labels:      map[string]string{AssembleUserLabel: "10"},
+			labels:      map[string]string{constants.AssembleUserLabel: "10"},
 			onbuild:     []string{"RUN echo \"hello world\"", "USER root:wheel", "RUN echo \"i am gROOT\"", "USER 10"},
 			expectErr:   true,
 		},

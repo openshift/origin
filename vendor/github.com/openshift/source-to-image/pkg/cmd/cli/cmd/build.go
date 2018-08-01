@@ -43,7 +43,7 @@ func NewCmdBuild(cfg *api.Config) *cobra.Command {
 # Build a Docker image from a remote Git repository
 $ s2i build https://github.com/openshift/ruby-hello-world centos/ruby-22-centos7 hello-world-app
 
-# Build from a local directory
+# Build from a local directory.  If this directory is a git repo then the current commit will be built.
 $ s2i build . centos/ruby-22-centos7 hello-world-app
 `,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -66,6 +66,17 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 				cfg.BuilderImage = args[1]
 				if len(args) >= 3 {
 					cfg.Tag = args[2]
+				}
+			}
+
+			if len(cfg.AsDockerfile) > 0 {
+				if cfg.RunImage {
+					fmt.Fprintln(os.Stderr, "ERROR: --run cannot be used with --as-dockerfile")
+					return
+				}
+				if len(cfg.RuntimeImage) > 0 {
+					fmt.Fprintln(os.Stderr, "ERROR: --runtime-image cannot be used with --as-dockerfile")
+					return
 				}
 			}
 
@@ -156,7 +167,12 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 				glog.V(0).Infof("Build failed")
 				s2ierr.CheckError(err)
 			} else {
-				glog.V(0).Infof("Build completed successfully")
+				if len(cfg.AsDockerfile) > 0 {
+					glog.V(0).Infof("Application dockerfile generated in %s", cfg.AsDockerfile)
+				} else {
+					glog.V(0).Infof("Build completed successfully")
+
+				}
 			}
 
 			for _, message := range result.Messages {
@@ -180,6 +196,7 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 	buildCmd.Flags().StringVarP(&(cfg.AssembleUser), "assemble-user", "", "", "Specify the user to run assemble with")
 	buildCmd.Flags().StringVarP(&(cfg.ContextDir), "context-dir", "", "", "Specify the sub-directory inside the repository with the application sources")
 	buildCmd.Flags().StringVarP(&(cfg.ExcludeRegExp), "exclude", "", tar.DefaultExclusionPattern.String(), "Regular expression for selecting files from the source tree to exclude from the build, where the default excludes the '.git' directory (see https://golang.org/pkg/regexp for syntax, but note that \"\" will be interpreted as allow all files and exclude no files)")
+	buildCmd.Flags().StringVar(&(cfg.ImageScriptsDir), "image-scripts-dir", "/usr/libexec/s2i", "Specify the absolute path of the directory containing the assemble and run scripts within the builder image")
 	buildCmd.Flags().StringVarP(&(cfg.ScriptsURL), "scripts-url", "s", "", "Specify a URL for the assemble, assemble-runtime and run scripts")
 	buildCmd.Flags().StringVar(&(oldScriptsFlag), "scripts", "", "DEPRECATED: Specify a URL for the assemble and run scripts")
 	buildCmd.Flags().BoolVar(&(useConfig), "use-config", false, "Store command line options to .s2ifile")
@@ -196,5 +213,7 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 	buildCmd.Flags().StringVar(&(cfg.RuntimeImage), "runtime-image", "", "Image that will be used as the base for the runtime image")
 	buildCmd.Flags().VarP(&(cfg.RuntimeArtifacts), "runtime-artifact", "a", "Specify a file or directory to be copied from the builder to the runtime image")
 	buildCmd.Flags().StringVar(&(networkMode), "network", "", "Specify the default Docker Network name to be used in build process")
+	buildCmd.Flags().StringVarP(&(cfg.AsDockerfile), "as-dockerfile", "", "", "EXPERIMENTAL: Output a Dockerfile to this path instead of building a new image")
+	buildCmd.Flags().BoolVarP(&(cfg.KeepSymlinks), "keep-symlinks", "", false, "When using '--copy', copy symlinks as symlinks. Default behavior is to follow symlinks and copy files by content")
 	return buildCmd
 }
