@@ -15,6 +15,7 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	s2iconstants "github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
@@ -196,6 +197,7 @@ func (s *S2IBuilder) Build() error {
 
 	config := &s2iapi.Config{
 		// Save some processing time by not cleaning up (the container will go away anyway)
+		// ImageWorkDir: todo
 		PreserveWorkingDir: true,
 		WorkingDir:         "/tmp",
 		DockerConfig:       &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
@@ -218,17 +220,34 @@ func (s *S2IBuilder) Build() error {
 		ForceCopy:  true,
 		Injections: injections,
 
-		AsDockerfile: "/tmp/dockercontext/Dockerfile",
-		// AssembleUser: todo
-		// ImageWorkDir: todo
-		// ImageScriptsDir: todo
+		AsDockerfile:    "/tmp/dockercontext/Dockerfile",
 		ImageScriptsDir: "/usr/libexec/s2i",
-		// Destination: todo
 
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
 		BlockOnBuild:              true,
 
 		KeepSymlinks: true,
+	}
+
+	// Use builder image labels to override defaults if present
+	labels, err := getImageLabels(s.dockerClient, config.BuilderImage)
+	if err != nil {
+		return err
+	}
+	assembleUser := labels[s2iconstants.AssembleUserLabel]
+	if len(assembleUser) > 0 {
+		glog.V(4).Infof("Using builder image assemble user %s", assembleUser)
+		config.AssembleUser = assembleUser
+	}
+	destination := labels[s2iconstants.DestinationLabel]
+	if len(destination) > 0 {
+		glog.V(4).Infof("Using builder image destination %s", destination)
+		config.Destination = destination
+	}
+	scriptsURL := labels[s2iconstants.ScriptsURLLabel]
+	if len(scriptsURL) > 0 && len(config.ScriptsURL) == 0 {
+		glog.V(4).Infof("Using builder scripts URL %s", destination)
+		config.ScriptsURL = scriptsURL
 	}
 
 	/*
@@ -507,4 +526,12 @@ func copyToVolumeList(artifactsMapping []buildapiv1.ImageSourcePath) (volumeList
 
 func convertS2IFailureType(reason s2iapi.StepFailureReason, message s2iapi.StepFailureMessage) (buildapiv1.StatusReason, string) {
 	return buildapiv1.StatusReason(reason), string(message)
+}
+
+func getImageLabels(docker DockerClient, imageTag string) (map[string]string, error) {
+	image, err := docker.InspectImage(imageTag)
+	if err != nil {
+		return nil, err
+	}
+	return image.ContainerConfig.Labels, nil
 }
