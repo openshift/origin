@@ -338,21 +338,35 @@ function os::build::check_binaries() {
   if [[ "${platform}" != "linux/amd64" && "${platform}" != "darwin/amd64" ]]; then
     return 0
   fi
+  duexe="du"
+
+  # In OSX, the 'du' binary does not provide the --apparent-size flag. However, the homebrew
+  # provide GNU coreutils which provide 'gdu' binary which is equivalent to Linux du.
+  # For now, if the 'gdu' binary is not installed, print annoying warning and don't check the
+  # binary size (the CI will capture possible violation anyway).
+  if [[ "${platform}" == "darwin/amd64" ]]; then
+    duexe=$(which gdu || true)
+    if [[ -z "${duexe}" ]]; then
+        os::log::warning "Unable to locate 'gdu' binary to determine size of the binary. Please install it using: 'brew install coreutils'"
+        return 0
+    fi
+  fi
+
   # enforce that certain binaries don't accidentally grow too large
   # IMPORTANT: contact Clayton or another master team member before altering this code
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
-    ocsize=$(du --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/oc" | cut -f 1)
+    ocsize=$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/oc" | cut -f 1)
     if [[ "${ocsize}" -gt "118" ]]; then
       os::log::fatal "oc binary has grown substantially to ${ocsize}. You must have approval before bumping this limit."
     fi
   fi
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" ]]; then
-    if [[ "$(du --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)" -gt "22" ]]; then
+    if [[ "$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)" -gt "22" ]]; then
       os::log::fatal "openshift-node-config binary has grown substantially. You must have approval before bumping this limit."
     fi
   fi
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/pod" ]]; then
-    if [[ "$(du --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/pod" | cut -f 1)" -gt "2" ]]; then
+    if [[ "$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/pod" | cut -f 1)" -gt "2" ]]; then
       os::log::fatal "pod binary has grown substantially. You must have approval before bumping this limit."
     fi
   fi
