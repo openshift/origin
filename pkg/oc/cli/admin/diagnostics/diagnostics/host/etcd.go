@@ -48,7 +48,12 @@ func (d *EtcdWriteVolume) Requirements() (client bool, host bool) {
 
 func (d *EtcdWriteVolume) AvailableParameters() []types.Parameter {
 	return []types.Parameter{
-		{DurationParam, "How long to perform the write test", &d.durationSpec, DurationDefault},
+		{
+			Name:        DurationParam,
+			Description: "How long to perform the write test",
+			Target:      &d.durationSpec,
+			Default:     DurationDefault,
+		},
 	}
 }
 

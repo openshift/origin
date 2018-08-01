@@ -25,7 +25,7 @@ fix="${2:-""}"
 
 for f in $json_files; do
   tmp_file="${tmp_dir}$(basename $f)"
-  go run ./hack/jsonformat.go ${f} > ${tmp_file}
+  go run ./hack/jsonformat/main.go ${f} > ${tmp_file}
   result=$?
   if [ "${format}" == "--format" ]; then
     if ! diff --brief ${f} ${tmp_file} > /dev/null; then

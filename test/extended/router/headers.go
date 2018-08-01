@@ -24,7 +24,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		configPath = exutil.FixturePath("testdata", "router-http-echo-server.yaml")
 		oc         = exutil.NewCLI("router-headers", exutil.KubeConfigPath())
 
-		routerIP, routerNs string
+		routerIP string
 	)
 
 	g.BeforeEach(func() {
@@ -35,7 +35,6 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		routerIP = svc.Spec.ClusterIP
-		routerNs = oc.KubeFramework().Namespace.Name
 	})
 
 	g.Describe("The HAProxy router", func() {

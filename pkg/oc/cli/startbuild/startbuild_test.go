@@ -27,7 +27,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclientmanual "github.com/openshift/origin/pkg/build/client/v1"
-	"github.com/openshift/origin/pkg/oauth/generated/clientset/scheme"
+	"github.com/openshift/origin/pkg/oauth/generated/internalclientset/scheme"
 )
 
 type FakeClientConfig struct {

@@ -56,11 +56,6 @@ readonly OS_TEST_TARGETS=(
 )
 
 readonly OS_GOVET_BLACKLIST=(
-	"pkg/.*/generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
-	"pkg/.*/generated/clientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
-	"pkg/build/vendor/github.com/docker/docker/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
-	"pkg/build/builder/vendor/.*"
-	"pkg/cmd/server/start/.*"
 )
 
 #If you update this list, be sure to get the images/origin/Dockerfile
@@ -179,7 +174,7 @@ function os::util::list_go_src_files() {
 readonly -f os::util::list_go_src_files
 
 # os::util::list_go_src_dirs lists dirs in origin/ and cmd/ dirs excluding
-# doc.go, useful for tools that iterate over source to provide vetting or 
+# doc.go, useful for tools that iterate over source to provide vetting or
 # linting, or for godep-save etc.
 #
 # Globals:

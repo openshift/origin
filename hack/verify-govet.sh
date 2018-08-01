@@ -23,8 +23,8 @@ function govet_blacklist_contains() {
 	return 1
 }
 
-for test_dir in $(os::util::list_go_src_dirs); do
-	if ! result="$(go tool vet -shadow=false -printfuncs=Info,Infof,Warning,Warningf "${test_dir}" 2>&1)"; then
+for test_dir in $(go list -e ./... | egrep -v "/(third_party|vendor|staging|clientset_generated)/"); do
+	if ! result="$(go vet "${test_dir}" 2>&1)"; then
 		while read -r line; do
 			if ! govet_blacklist_contains "${line}"; then
 				echo "${line}"

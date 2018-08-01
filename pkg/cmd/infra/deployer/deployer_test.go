@@ -141,7 +141,6 @@ func TestDeployer_deployScenarios(t *testing.T) {
 		}
 
 		var actualFrom, actualTo *corev1.ReplicationController
-		var actualDesired int32
 		to := findDeployment(s.toVersion)
 		scaler := &FakeScaler{}
 
@@ -153,7 +152,6 @@ func TestDeployer_deployScenarios(t *testing.T) {
 					deployFunc: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int) error {
 						actualFrom = from
 						actualTo = to
-						actualDesired = int32(desiredReplicas)
 						return nil
 					},
 				}, nil

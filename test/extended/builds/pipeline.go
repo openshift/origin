@@ -1,13 +1,11 @@
 package builds
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -84,8 +82,6 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		oc                                     = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
 		ticker                                 *time.Ticker
 		j                                      *jenkins.JenkinsRef
-		dcLogFollow                            *exec.Cmd
-		dcLogStdOut, dcLogStdErr               *bytes.Buffer
 		pvs                                    = []*v1.PersistentVolume{}
 		nfspod                                 = &v1.Pod{}
 
@@ -210,7 +206,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			// This command will terminate if the Jenkins instance crashes. This
 			// ensures that even if the Jenkins DC restarts, we should capture
 			// logs from the crash.
-			dcLogFollow, dcLogStdOut, dcLogStdErr, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
+			_, _, _, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {

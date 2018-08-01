@@ -257,8 +257,6 @@ func TestHandle_createPodOk(t *testing.T) {
 // TestHandle_createPodFail ensures that an API failure while creating a
 // deployer pod results in a nonfatal error.
 func TestHandle_createPodFail(t *testing.T) {
-	var updatedDeployment *corev1.ReplicationController
-
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		name := action.(clientgotesting.CreateAction).GetObject().(*corev1.Pod).Name
@@ -266,7 +264,6 @@ func TestHandle_createPodFail(t *testing.T) {
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		rc := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
-		updatedDeployment = rc
 		return true, rc, nil
 	})
 
