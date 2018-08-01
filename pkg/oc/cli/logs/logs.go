@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -82,10 +82,8 @@ type LogsOptions struct {
 
 func NewLogsOptions(streams genericclioptions.IOStreams) *LogsOptions {
 	return &LogsOptions{
-		KubeLogOptions: &kcmd.LogsOptions{
-			IOStreams: streams,
-		},
-		IOStreams: streams,
+		KubeLogOptions: kcmd.NewLogsOptions(streams, false),
+		IOStreams:      streams,
 	}
 }
 
@@ -99,7 +97,7 @@ func NewCmdLogs(name, baseName string, f kcmdutil.Factory, streams genericcliopt
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		kcmdutil.CheckErr(o.Complete(f, cmd, args))
-		kcmdutil.CheckErr(o.Validate())
+		kcmdutil.CheckErr(o.Validate(args))
 		kcmdutil.CheckErr(o.RunLog())
 	}
 
@@ -151,7 +149,7 @@ func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 
 // Validate runs the upstream validation for the logs command and then it
 // will validate any OpenShift-specific log options.
-func (o *LogsOptions) Validate() error {
+func (o *LogsOptions) Validate(args []string) error {
 	if err := o.KubeLogOptions.Validate(); err != nil {
 		return err
 	}
@@ -176,7 +174,7 @@ func (o *LogsOptions) Validate() error {
 // RunLog will run the upstream logs command and may use an OpenShift
 // logOptions object.
 func (o *LogsOptions) RunLog() error {
-	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
+	podLogOptions := o.KubeLogOptions.Options.(*corev1.PodLogOptions)
 	infos, err := o.Builder().
 		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
