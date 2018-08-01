@@ -561,7 +561,7 @@ func Test_findReferencedImages(t *testing.T) {
 			if _, err := dockerfile.Parse(strings.NewReader(test.original)); err != nil {
 				t.Fatal(err)
 			}
-			images, multistage, err := findReferencedImages(f.Name())
+			images, _, multistage, err := findReferencedImages(f.Name())
 			got := want{
 				Images:     images,
 				Multistage: multistage,

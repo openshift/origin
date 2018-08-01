@@ -6,13 +6,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	dockercmd "github.com/docker/docker/builder/dockerfile/command"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/openshift/imagebuilder"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
+
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	corev1 "k8s.io/api/core/v1"
@@ -85,14 +88,14 @@ func (d *DockerBuilder) Build() error {
 	buildTag := randomBuildTag(d.build.Namespace, d.build.Name)
 	dockerfilePath := getDockerfilePath(buildDir, d.build)
 
-	imageNames, multiStage, err := findReferencedImages(dockerfilePath)
+	imageNames, stageNames, err := findReferencedImages(dockerfilePath)
 	if err != nil {
 		return err
 	}
-	if len(imageNames) == 0 {
+	if imageNames.Len() == 0 {
 		return fmt.Errorf("no FROM image in Dockerfile")
 	}
-	for _, imageName := range imageNames {
+	for _, imageName := range imageNames.List() {
 		if imageName == "scratch" {
 			glog.V(4).Infof("\nSkipping image \"scratch\"")
 			continue
@@ -103,7 +106,9 @@ func (d *DockerBuilder) Build() error {
 			if err != docker.ErrNoSuchImage {
 				return err
 			}
-			imageExists = false
+			if !stageNames.Has(imageName) {
+				imageExists = false
+			}
 		}
 		// if forcePull or the image does not exist on the node we should pull the image first
 		if d.build.Spec.Strategy.DockerStrategy.ForcePull || !imageExists {
@@ -128,7 +133,7 @@ func (d *DockerBuilder) Build() error {
 		}
 	}
 
-	if s := d.build.Spec.Strategy.DockerStrategy; s != nil && multiStage {
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil && stageNames.Len() > 1 {
 		if s.ImageOptimizationPolicy == nil {
 			policy := buildapiv1.ImageOptimizationSkipLayers
 			s.ImageOptimizationPolicy = &policy
@@ -148,10 +153,6 @@ func (d *DockerBuilder) Build() error {
 		HandleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
-
-	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
-
-	err = execPostCommitHook(ctx, d.dockerClient, d.build.Spec.PostCommit, buildTag, cname)
 
 	if err != nil {
 		d.build.Status.Phase = buildapiv1.BuildPhaseFailed
@@ -435,6 +436,46 @@ func appendLabel(node *parser.Node, m []dockerfile.KeyValue) error {
 		return nil
 	}
 	return appendKeyValueInstruction(dockerfile.Label, node, m)
+}
+
+// appendPostCommit appends a RUN Dockerfile instruction as the last child of node
+// with keys and values from m.
+func appendPostCommit(node *parser.Node, cmd string) error {
+	if len(cmd) == 0 {
+		return nil
+	}
+
+	stages := imagebuilder.NewStages(node, imagebuilder.NewBuilder(nil))
+	last_stage_index := strconv.Itoa(len(stages) - 1)
+
+	if err := appendStringInstruction(dockerfile.From, node, last_stage_index); err != nil {
+		return err
+	}
+
+	if err := appendStringInstruction(dockerfile.Run, node, cmd); err != nil {
+		return err
+	}
+
+	if err := appendStringInstruction(dockerfile.From, node, last_stage_index); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// appendStringInstruction is a primitive used to avoid code duplication.
+// Callers should use a derivative of this such as appendPostCommit.
+// appendStringInstruction appends a Dockerfile instruction with string
+// syntax created by f as the last child of node with the string from cmd.
+func appendStringInstructions(f func(string) (string, error), node *parser.Node, cmd string) error {
+	if node == nil {
+		return nil
+	}
+	instruction, err := f(cmd)
+	if err != nil {
+		return err
+	}
+	return dockerfile.InsertInstructions(node, len(node.Children), instruction)
 }
 
 // appendKeyValueInstruction is a primitive used to avoid code duplication.
