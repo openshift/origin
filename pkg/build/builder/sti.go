@@ -194,13 +194,6 @@ func (s *S2IBuilder) Build() error {
 		}
 	}
 
-	/*
-		networkMode, resolvConfHostPath, err := getContainerNetworkConfig()
-		if err != nil {
-			return err
-		}
-	*/
-
 	config := &s2iapi.Config{
 		// Save some processing time by not cleaning up (the container will go away anyway)
 		PreserveWorkingDir: true,
@@ -211,9 +204,10 @@ func (s *S2IBuilder) Build() error {
 
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
-		BuilderImage: s.build.Spec.Strategy.SourceStrategy.From.Name,
-		Incremental:  incremental,
-		//IncrementalFromTag: pushTag,
+		BuilderImage:       s.build.Spec.Strategy.SourceStrategy.From.Name,
+		BuilderPullPolicy:  s2iapi.PullAlways,
+		Incremental:        incremental,
+		IncrementalFromTag: pushTag,
 
 		Environment: buildEnvVars(s.build, sourceInfo),
 		Labels:      s2iBuildLabels(s.build, sourceInfo),
@@ -248,9 +242,6 @@ func (s *S2IBuilder) Build() error {
 		}
 	*/
 
-	// this value has no effect on s2i since it isn't pulling any images.
-	config.BuilderPullPolicy = s2iapi.PullAlways
-
 	/*
 		if s.build.Spec.Strategy.SourceStrategy.ForcePull {
 			glog.V(4).Infof("With force pull true, setting policies to %s", s2iapi.PullAlways)
@@ -280,7 +271,7 @@ func (s *S2IBuilder) Build() error {
 	*/
 
 	// If DockerCfgPath is provided in buildapiv1.Config, then attempt to read the
-	// dockercfg file and get the authentication for pulling the builder image.
+	// dockercfg file and get the authentication for pulling the images.
 	t, _ := dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
 	config.PullAuthentication = s2iapi.AuthConfig{Username: t.Username, Password: t.Password, Email: t.Email, ServerAddress: t.ServerAddress}
 
@@ -306,7 +297,7 @@ func (s *S2IBuilder) Build() error {
 	*/
 	if glog.Is(4) {
 		redactedConfig := SafeForLoggingS2IConfig(config)
-		glog.V(4).Infof("Creating a new S2I builder with config: %#v\n", describe.Config(redactedConfig))
+		glog.V(4).Infof("Creating a new S2I builder with config: %#v\n", describe.Config(nil, redactedConfig))
 	}
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
@@ -322,7 +313,6 @@ func (s *S2IBuilder) Build() error {
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
 	glog.Infof("Using %s as the s2i builder image", s.build.Spec.Strategy.SourceStrategy.From.Name)
 
-	startTime := metav1.Now()
 	result, err := builder.Build(config)
 
 	for _, stage := range result.BuildInfo.Stages {
@@ -342,6 +332,7 @@ func (s *S2IBuilder) Build() error {
 		return err
 	}
 
+	// BuildArgs not needed - should exist in Dockerfile as ENV
 	opts := dockerclient.BuildImageOptions{
 		Name:                buildTag,
 		RmTmpContainer:      true,
@@ -349,12 +340,12 @@ func (s *S2IBuilder) Build() error {
 		OutputStream:        os.Stdout,
 		Dockerfile:          defaultDockerfilePath,
 		NoCache:             false,
-		Pull:                false,
-		//BuildArgs:           buildArgs,
+		Pull:                s.build.Spec.Strategy.SourceStrategy.ForcePull,
 	}
 
-	//err = buildDirectImage("/tmp/dockercontext", false, &opts)
+	startTime := metav1.Now()
 	err = buildImage(s.dockerClient, "/tmp/dockercontext", tar.New(s2ifs.NewFileSystem()), &opts)
+	timing.RecordNewStep(ctx, buildapiv1.StageBuild, buildapiv1.StepDockerBuild, startTime, metav1.Now())
 	if err != nil {
 		return err
 	}
