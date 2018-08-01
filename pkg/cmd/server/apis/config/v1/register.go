@@ -3,6 +3,10 @@ package v1
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	coreinternalconversions "k8s.io/kubernetes/pkg/apis/core"
+
+	buildinternalconversions "github.com/openshift/origin/pkg/build/apis/build/v1"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 const GroupName = ""
@@ -11,7 +15,15 @@ const GroupName = ""
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs, addDefaultingFuncs)
+	SchemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		config.InstallLegacy,
+		coreinternalconversions.AddToScheme,
+		buildinternalconversions.Install,
+
+		addConversionFuncs,
+		addDefaultingFuncs,
+	)
 	InstallLegacy = SchemeBuilder.AddToScheme
 )
 
@@ -37,6 +49,9 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&LDAPSyncConfig{},
 
 		&DefaultAdmissionConfig{},
+
+		&BuildDefaultsConfig{},
+		&BuildOverridesConfig{},
 	)
 	return nil
 }

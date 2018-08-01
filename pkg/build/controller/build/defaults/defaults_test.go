@@ -10,16 +10,14 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	u "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-
-	_ "github.com/openshift/origin/pkg/api/install"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 func TestProxyDefaults(t *testing.T) {
-	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+	defaultsConfig := &configapi.BuildDefaultsConfig{
 		GitHTTPProxy:  "http",
 		GitHTTPSProxy: "https",
 		GitNoProxy:    "no",
@@ -48,7 +46,7 @@ func TestProxyDefaults(t *testing.T) {
 }
 
 func TestEnvDefaults(t *testing.T) {
-	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+	defaultsConfig := &configapi.BuildDefaultsConfig{
 		Env: []kapi.EnvVar{
 			{
 				Name:  "VAR1",
@@ -116,8 +114,8 @@ func TestEnvDefaults(t *testing.T) {
 
 func TestIncrementalDefaults(t *testing.T) {
 	bool_t := true
-	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
-		SourceStrategyDefaults: &defaultsapi.SourceStrategyDefaultsConfig{
+	defaultsConfig := &configapi.BuildDefaultsConfig{
+		SourceStrategyDefaults: &configapi.SourceStrategyDefaultsConfig{
 			Incremental: &bool_t,
 		},
 	}
@@ -267,7 +265,7 @@ func TestLabelDefaults(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+		defaultsConfig := &configapi.BuildDefaultsConfig{
 			ImageLabels: test.defaultLabels,
 		}
 
@@ -317,7 +315,7 @@ func TestBuildDefaultsNodeSelector(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{NodeSelector: test.defaults}}
+		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{NodeSelector: test.defaults}}
 		pod := u.Pod().WithBuild(t, test.build)
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
@@ -369,7 +367,7 @@ func TestBuildDefaultsAnnotations(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{Annotations: test.defaults}}
+		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{Annotations: test.defaults}}
 		pod := u.Pod().WithBuild(t, test.build)
 		pod.Annotations = test.annotations
 		err := defaults.ApplyDefaults((*v1.Pod)(pod))
@@ -562,7 +560,7 @@ func TestResourceDefaults(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{Resources: test.DefaultResource}}
+		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{Resources: test.DefaultResource}}
 
 		build := u.Build().WithSourceStrategy().AsBuild()
 		build.Spec.Resources = test.BuildResource

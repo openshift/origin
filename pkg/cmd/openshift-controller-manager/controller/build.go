@@ -16,15 +16,6 @@ func RunBuildController(ctx ControllerContext) (bool, error) {
 	imageTemplate.Format = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Format
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Latest
 
-	buildDefaults, err := builddefaults.NewBuildDefaults(ctx.OpenshiftControllerConfig.Build.AdmissionPluginConfig)
-	if err != nil {
-		return true, err
-	}
-	buildOverrides, err := buildoverrides.NewBuildOverrides(ctx.OpenshiftControllerConfig.Build.AdmissionPluginConfig)
-	if err != nil {
-		return true, err
-	}
-
 	kubeClient := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	buildClient := ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	externalKubeClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
@@ -53,8 +44,8 @@ func RunBuildController(ctx ControllerContext) (bool, error) {
 			SecurityClient: securityClient.Security(),
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{},
-		BuildDefaults:       buildDefaults,
-		BuildOverrides:      buildOverrides,
+		BuildDefaults:       builddefaults.BuildDefaults{Config: ctx.OpenshiftControllerConfig.Build.BuildDefaults},
+		BuildOverrides:      buildoverrides.BuildOverrides{Config: ctx.OpenshiftControllerConfig.Build.BuildOverrides},
 	}
 
 	go buildcontroller.NewBuildController(buildControllerParams).Run(5, ctx.Stop)

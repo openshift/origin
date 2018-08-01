@@ -6,19 +6,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 func TestValidateBuildOverridesConfig(t *testing.T) {
 	tests := []struct {
-		config      *overridesapi.BuildOverridesConfig
+		config      *configapi.BuildOverridesConfig
 		errExpected bool
 		errField    string
 		errType     field.ErrorType
 	}{
 		// 0: label: valid
 		{
-			config: &overridesapi.BuildOverridesConfig{
+			config: &configapi.BuildOverridesConfig{
 				ImageLabels: []buildapi.ImageLabel{
 					{
 						Name:  "A",
@@ -30,7 +30,7 @@ func TestValidateBuildOverridesConfig(t *testing.T) {
 		},
 		// 1: label: empty name
 		{
-			config: &overridesapi.BuildOverridesConfig{
+			config: &configapi.BuildOverridesConfig{
 				ImageLabels: []buildapi.ImageLabel{
 					{
 						Name:  "",
@@ -44,7 +44,7 @@ func TestValidateBuildOverridesConfig(t *testing.T) {
 		},
 		// 2: label: bad name
 		{
-			config: &overridesapi.BuildOverridesConfig{
+			config: &configapi.BuildOverridesConfig{
 				ImageLabels: []buildapi.ImageLabel{
 					{
 						Name:  "\tč;",
@@ -58,7 +58,7 @@ func TestValidateBuildOverridesConfig(t *testing.T) {
 		},
 		// 3: duplicate label
 		{
-			config: &overridesapi.BuildOverridesConfig{
+			config: &configapi.BuildOverridesConfig{
 				ImageLabels: []buildapi.ImageLabel{
 					{
 						Name:  "name",
@@ -76,14 +76,14 @@ func TestValidateBuildOverridesConfig(t *testing.T) {
 		},
 		// 4: valid nodeselector
 		{
-			config: &overridesapi.BuildOverridesConfig{
+			config: &configapi.BuildOverridesConfig{
 				NodeSelector: map[string]string{"A": "B"},
 			},
 			errExpected: false,
 		},
 		// 5: invalid nodeselector
 		{
-			config: &overridesapi.BuildOverridesConfig{
+			config: &configapi.BuildOverridesConfig{
 				NodeSelector: map[string]string{"A@B!": "C"},
 			},
 			errExpected: true,
@@ -92,14 +92,14 @@ func TestValidateBuildOverridesConfig(t *testing.T) {
 		},
 		// 6: valid annotation
 		{
-			config: &overridesapi.BuildOverridesConfig{
+			config: &configapi.BuildOverridesConfig{
 				Annotations: map[string]string{"A": "B"},
 			},
 			errExpected: false,
 		},
 		// 7: invalid annotation
 		{
-			config: &overridesapi.BuildOverridesConfig{
+			config: &configapi.BuildOverridesConfig{
 				Annotations: map[string]string{"A B": "C"},
 			},
 			errExpected: true,

@@ -1,19 +1,12 @@
 package defaults
 
 import (
-	"fmt"
-
 	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
-	defaultsv1 "github.com/openshift/origin/pkg/build/controller/build/apis/defaults/v1"
-	"github.com/openshift/origin/pkg/build/controller/build/apis/defaults/validation"
-	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -21,36 +14,12 @@ import (
 )
 
 type BuildDefaults struct {
-	config *defaultsapi.BuildDefaultsConfig
-}
-
-// NewBuildDefaults creates a new BuildDefaults that will apply the defaults specified in the plugin config
-func NewBuildDefaults(pluginConfig map[string]*configapi.AdmissionPluginConfig) (BuildDefaults, error) {
-	scheme := runtime.NewScheme()
-	defaultsv1.InstallLegacy(scheme)
-	uncastConfig, err := pluginconfig.GetPluginConfigObj(pluginConfig, defaultsapi.BuildDefaultsPlugin, scheme)
-	if err != nil {
-		return BuildDefaults{}, err
-	}
-	if uncastConfig == nil {
-		return BuildDefaults{}, nil
-	}
-	config, ok := uncastConfig.(*defaultsapi.BuildDefaultsConfig)
-	if !ok {
-		return BuildDefaults{}, fmt.Errorf("expected BuildDefaultsConfig, not %T", uncastConfig)
-	}
-
-	errs := validation.ValidateBuildDefaultsConfig(config)
-	if len(errs) > 0 {
-		return BuildDefaults{}, errs.ToAggregate()
-	}
-	glog.V(4).Infof("Initialized build defaults plugin with config: %#v", *config)
-	return BuildDefaults{config: config}, nil
+	Config *configapi.BuildDefaultsConfig
 }
 
 // ApplyDefaults applies configured build defaults to a build pod
 func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
-	if b.config == nil {
+	if b.Config == nil {
 		return nil
 	}
 
@@ -109,26 +78,26 @@ func setPodLogLevelFromBuild(pod *v1.Pod, build *buildapi.Build) error {
 }
 
 func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
-	if len(b.config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
+	if len(b.Config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
 		// only apply nodeselector defaults if the pod has no nodeselector labels
 		// already.
 		pod.Spec.NodeSelector = map[string]string{}
-		for k, v := range b.config.NodeSelector {
+		for k, v := range b.Config.NodeSelector {
 			addDefaultNodeSelector(k, v, pod.Spec.NodeSelector)
 		}
 	}
 
-	if len(b.config.Annotations) != 0 {
+	if len(b.Config.Annotations) != 0 {
 		if pod.Annotations == nil {
 			pod.Annotations = map[string]string{}
 		}
-		for k, v := range b.config.Annotations {
+		for k, v := range b.Config.Annotations {
 			addDefaultAnnotation(k, v, pod.Annotations)
 		}
 	}
 
 	// Apply default resources
-	defaultResources := b.config.Resources
+	defaultResources := b.Config.Resources
 	allContainers := make([]*v1.Container, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
 	for i := range pod.Spec.Containers {
 		allContainers = append(allContainers, &pod.Spec.Containers[i])
@@ -138,7 +107,7 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 	}
 
 	for _, c := range allContainers {
-		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.config.Env), &c.Env, false)
+		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.Config.Env), &c.Env, false)
 
 		if c.Resources.Limits == nil {
 			c.Resources.Limits = v1.ResourceList{}
@@ -163,18 +132,18 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 
 func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	// Apply default env
-	for _, envVar := range b.config.Env {
+	for _, envVar := range b.Config.Env {
 		glog.V(5).Infof("Adding default environment variable %s=%s to build %s/%s", envVar.Name, envVar.Value, build.Namespace, build.Name)
 		addDefaultEnvVar(build, envVar)
 	}
 
 	// Apply default labels
-	for _, lbl := range b.config.ImageLabels {
+	for _, lbl := range b.Config.ImageLabels {
 		glog.V(5).Infof("Adding default image label %s=%s to build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
 		addDefaultLabel(lbl, &build.Spec.Output.ImageLabels)
 	}
 
-	sourceDefaults := b.config.SourceStrategyDefaults
+	sourceDefaults := b.Config.SourceStrategyDefaults
 	sourceStrategy := build.Spec.Strategy.SourceStrategy
 	if sourceDefaults != nil && sourceDefaults.Incremental != nil && *sourceDefaults.Incremental &&
 		sourceStrategy != nil && sourceStrategy.Incremental == nil {
@@ -187,32 +156,32 @@ func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	if build.Spec.Source.Git == nil {
 		return
 	}
-	if len(b.config.GitHTTPProxy) != 0 {
+	if len(b.Config.GitHTTPProxy) != 0 {
 		if build.Spec.Source.Git.HTTPProxy == nil {
-			t := b.config.GitHTTPProxy
+			t := b.Config.GitHTTPProxy
 			glog.V(5).Infof("Setting default Git HTTP proxy of build %s/%s to %s", build.Namespace, build.Name, t)
 			build.Spec.Source.Git.HTTPProxy = &t
 		}
 	}
 
-	if len(b.config.GitHTTPSProxy) != 0 {
+	if len(b.Config.GitHTTPSProxy) != 0 {
 		if build.Spec.Source.Git.HTTPSProxy == nil {
-			t := b.config.GitHTTPSProxy
+			t := b.Config.GitHTTPSProxy
 			glog.V(5).Infof("Setting default Git HTTPS proxy of build %s/%s to %s", build.Namespace, build.Name, t)
 			build.Spec.Source.Git.HTTPSProxy = &t
 		}
 	}
 
-	if len(b.config.GitNoProxy) != 0 {
+	if len(b.Config.GitNoProxy) != 0 {
 		if build.Spec.Source.Git.NoProxy == nil {
-			t := b.config.GitNoProxy
+			t := b.Config.GitNoProxy
 			glog.V(5).Infof("Setting default Git no proxy of build %s/%s to %s", build.Namespace, build.Name, t)
 			build.Spec.Source.Git.NoProxy = &t
 		}
 	}
 
 	//Apply default resources
-	defaultResources := b.config.Resources
+	defaultResources := b.Config.Resources
 	if build.Spec.Resources.Limits == nil {
 		build.Spec.Resources.Limits = kapi.ResourceList{}
 	}

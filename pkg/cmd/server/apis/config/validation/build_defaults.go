@@ -5,12 +5,12 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
-	"github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
 	"github.com/openshift/origin/pkg/build/util"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 // ValidateBuildDefaultsConfig tests required fields for a Build.
-func ValidateBuildDefaultsConfig(config *defaults.BuildDefaultsConfig) field.ErrorList {
+func ValidateBuildDefaultsConfig(config *configapi.BuildDefaultsConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validateProxyURL(config.GitHTTPProxy, field.NewPath("gitHTTPProxy"))...)
 	allErrs = append(allErrs, validateProxyURL(config.GitHTTPSProxy, field.NewPath("gitHTTPSProxy"))...)
