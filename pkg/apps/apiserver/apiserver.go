@@ -12,11 +12,11 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	deployconfigetcd "github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/apps/apiserver/registry/deploylog"
 	deployconfiginstantiate "github.com/openshift/origin/pkg/apps/apiserver/registry/instantiate"
 	deployrollback "github.com/openshift/origin/pkg/apps/apiserver/registry/rollback"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 )
 
@@ -97,7 +97,7 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	openshiftInternalAppsClient, err := appsclientinternal.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	openshiftAppsClient, err := appsclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -125,14 +125,14 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		kubeInternalClient,
 		c.GenericConfig.AdmissionControl,
 	)
-	deployConfigRollbackStorage := deployrollback.NewREST(openshiftInternalAppsClient, kubeInternalClient)
+	deployConfigRollbackStorage := deployrollback.NewREST(openshiftAppsClient, kubeInternalClient)
 
 	v1Storage := map[string]rest.Storage{}
 	v1Storage["deploymentConfigs"] = deployConfigStorage
 	v1Storage["deploymentConfigs/scale"] = deployConfigScaleStorage
 	v1Storage["deploymentConfigs/status"] = deployConfigStatusStorage
 	v1Storage["deploymentConfigs/rollback"] = deployConfigRollbackStorage
-	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftInternalAppsClient.Apps(), kubeClient)
+	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftAppsClient.AppsV1(), kubeClient)
 	v1Storage["deploymentConfigs/instantiate"] = dcInstantiateStorage
 	return v1Storage, nil
 }

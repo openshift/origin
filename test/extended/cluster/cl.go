@@ -203,7 +203,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 				// deploymentName is buildName without the -1 suffix
 				deploymentName := buildName[:len(buildName)-2]
 				e2e.Logf("Waiting for deployment: %q", deploymentName)
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), ns, deploymentName, 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), ns, deploymentName, 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				e2e.Logf("Deployment %q completed", deploymentName)
 			}
