@@ -238,7 +238,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 			g.It("jenkins-plugin test trigger build including clone", func() {
 
 				jobName := "test-build-job"
-				data := j.ReadJenkinsJob("build-job.xml", oc.Namespace())
+				data := j.ProcessJenkinsJob("build-job.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 				jmon := j.StartJob(jobName)
 				err := jmon.Await(10 * time.Minute)
@@ -268,7 +268,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				o.Expect(strings.Contains(out, "Jenkins job")).To(o.BeTrue())
 
 				jobName = "test-build-clone-job"
-				data = j.ReadJenkinsJob("build-job-clone.xml", oc.Namespace())
+				data = j.ProcessJenkinsJob("build-job-clone.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 				jmon = j.StartJob(jobName)
 				jmon.Await(10 * time.Minute)
@@ -290,7 +290,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 			g.It("jenkins-plugin test trigger build with slave", func() {
 
 				jobName := "test-build-job-slave"
-				data := j.ReadJenkinsJob("build-job-slave.xml", oc.Namespace())
+				data := j.ProcessJenkinsJob("build-job-slave.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 				jmon := j.StartJob(jobName)
 				err := jmon.Await(10 * time.Minute)
@@ -325,7 +325,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 
 				jobsToCreate := map[string]string{"test-create-obj": "create-job.xml", "test-delete-obj": "delete-job.xml", "test-delete-obj-labels": "delete-job-labels.xml", "test-delete-obj-keys": "delete-job-keys.xml"}
 				for jobName, jobConfig := range jobsToCreate {
-					data := j.ReadJenkinsJob(jobConfig, oc.Namespace())
+					data := j.ProcessJenkinsJob(jobConfig, oc.Namespace())
 					j.CreateItem(jobName, data)
 				}
 
@@ -354,7 +354,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 			g.It("jenkins-plugin test trigger build with envs", func() {
 
 				jobName := "test-build-with-env-job"
-				data := j.ReadJenkinsJob("build-with-env-job.xml", oc.Namespace())
+				data := j.ProcessJenkinsJob("build-with-env-job.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 				jmon := j.StartJob(jobName)
 				err := jmon.Await(10 * time.Minute)
@@ -396,9 +396,12 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 					"openshiftBuild( namespace:'PROJECT_NAME', bldCfg: 'frontend', env: [ [ name : 'a', value : 'b' ], [ name : 'C', value : 'D' ], [ name : 'e', value : '' ] ] )",
 					"}",
 				)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				filename, err := exutil.CreateTempFile(data)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				jobName := "test-build-dsl-job"
-				j.CreateItem(jobName, data)
+				j.CreateItem(jobName, filename)
 				monitor := j.StartJob(jobName)
 				err = monitor.Await(10 * time.Minute)
 				if err != nil {
@@ -443,9 +446,12 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 					fmt.Sprintf("openshiftExec( namespace:'PROJECT_NAME', pod: '%s', container: '%s', command: 'echo', arguments : [ [ value: 'hello' ], [ value : 'world' ], [ value : '6' ] ] )", targetPod.Name, targetContainer.Name),
 					"}",
 				)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				filename, err := exutil.CreateTempFile(data)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				jobName := "test-exec-dsl-job"
-				j.CreateItem(jobName, data)
+				j.CreateItem(jobName, filename)
 				monitor := j.StartJob(jobName)
 				err = monitor.Await(10 * time.Minute)
 				if err != nil {
@@ -471,7 +477,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				targetContainer := targetPod.Spec.Containers[0]
 
 				jobName := "test-build-with-env-steps"
-				data := j.ReadJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
+				data := j.ProcessJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
 					"POD_NAME":       targetPod.Name,
 					"CONTAINER_NAME": targetContainer.Name,
 				})
@@ -488,7 +494,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 
 				// Now run without specifying container
 				jobName = "test-build-with-env-steps-no-container"
-				data = j.ReadJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
+				data = j.ProcessJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
 					"POD_NAME":       targetPod.Name,
 					"CONTAINER_NAME": "",
 				})
@@ -518,7 +524,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				jobName := "test-multitag-job"
-				data := j.ReadJenkinsJob("multitag-job.xml", oc.Namespace())
+				data := j.ProcessJenkinsJob("multitag-job.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 				monitor := j.StartJob(jobName)
 				err = monitor.Await(10 * time.Minute)
@@ -611,9 +617,12 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 					fmt.Sprintf("openshiftTag( namespace:'PROJECT_NAME', destinationNamespace: '%s', srcStream: 'multitag', srcTag: 'orig', destStream: 'multitag5,multitag6', destTag: 'prod5, prod6' )", anotherNamespace),
 					"}",
 				)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				filename, err := exutil.CreateTempFile(data)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				jobName := "test-multitag-dsl-job"
-				j.CreateItem(jobName, data)
+				j.CreateItem(jobName, filename)
 				monitor := j.StartJob(jobName)
 				err = monitor.Await(10 * time.Minute)
 				if err != nil {
@@ -658,7 +667,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 			testImageStreamSCM := func(jobXMLFile string) {
 				jobName := "test-imagestream-scm"
 				g.By("creating a jenkins job with an imagestream SCM")
-				data := j.ReadJenkinsJob(jobXMLFile, oc.Namespace())
+				data := j.ProcessJenkinsJob(jobXMLFile, oc.Namespace())
 				j.CreateItem(jobName, data)
 
 				// Because polling is enabled, a job should start automatically and fail
@@ -699,12 +708,13 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 			g.It("jenkins-plugin test connection test", func() {
 
 				jobName := "test-build-job"
-				data := j.ReadJenkinsJob("build-job.xml", oc.Namespace())
+				data := j.ProcessJenkinsJob("build-job.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 
 				g.By("trigger test connection logic, check for success")
-				testConnectionBody := bytes.NewBufferString("apiURL=&authToken=")
-				result, code, err := j.Post(testConnectionBody, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
+				filename, err := exutil.CreateTempFile("apiURL=&authToken=")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				result, code, err := j.Post(filename, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
 				if code != 200 {
 					err = fmt.Errorf("Expected return code of 200")
 				}
@@ -714,8 +724,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("trigger test connection logic, check for failure")
-				testConnectionBody = bytes.NewBufferString("apiURL=https%3A%2F%2F1.2.3.4&authToken=")
-				result, code, err = j.Post(testConnectionBody, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
+				filename, err = exutil.CreateTempFile("apiURL=https%3A%2F%2F1.2.3.4&authToken=")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				result, code, err = j.Post(filename, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
 				if code != 200 {
 					err = fmt.Errorf("Expected return code of 200")
 				}

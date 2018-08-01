@@ -1317,6 +1317,23 @@ func (r *podExecutor) Exec(script string) (string, error) {
 	return out, waitErr
 }
 
+// CreateTempFile stores the specified data in a temp dir/temp file
+// for the test who calls it
+func CreateTempFile(data string) (string, error) {
+	testDir, err := ioutil.TempDir(util.GetBaseDir(), "test-files")
+	if err != nil {
+		return "", err
+	}
+	testFile, err := ioutil.TempFile(testDir, "test-file")
+	if err != nil {
+		return "", err
+	}
+	if err := ioutil.WriteFile(testFile.Name(), []byte(data), 0666); err != nil {
+		return "", err
+	}
+	return testFile.Name(), nil
+}
+
 type GitRepo struct {
 	baseTempDir  string
 	upstream     git.Repository
