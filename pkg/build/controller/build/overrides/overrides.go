@@ -11,10 +11,12 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
+	overridesv1 "github.com/openshift/origin/pkg/build/controller/build/apis/overrides/v1"
 	"github.com/openshift/origin/pkg/build/controller/build/apis/overrides/validation"
 	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type BuildOverrides struct {
@@ -23,11 +25,20 @@ type BuildOverrides struct {
 
 // NewBuildOverrides creates a new BuildOverrides that will apply the overrides specified in the plugin config
 func NewBuildOverrides(pluginConfig map[string]*configapi.AdmissionPluginConfig) (BuildOverrides, error) {
-	config := &overridesapi.BuildOverridesConfig{}
-	err := pluginconfig.ReadPluginConfig(pluginConfig, overridesapi.BuildOverridesPlugin, config)
+	scheme := runtime.NewScheme()
+	overridesv1.InstallLegacy(scheme)
+	uncastConfig, err := pluginconfig.GetPluginConfigObj(pluginConfig, overridesapi.BuildOverridesPlugin, scheme)
 	if err != nil {
 		return BuildOverrides{}, err
 	}
+	if uncastConfig == nil {
+		return BuildOverrides{}, nil
+	}
+	config, ok := uncastConfig.(*overridesapi.BuildOverridesConfig)
+	if !ok {
+		return BuildOverrides{}, fmt.Errorf("expected BuildDefaultsConfig, not %T", uncastConfig)
+	}
+
 	errs := validation.ValidateBuildOverridesConfig(config)
 	if len(errs) > 0 {
 		return BuildOverrides{}, errs.ToAggregate()
