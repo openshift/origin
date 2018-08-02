@@ -123,10 +123,31 @@ func isPipelineBuild(obj runtime.Object) (bool, *buildv1.BuildConfig, bool, *bui
 // resource a user requested to view its logs and creates the appropriate logOptions
 // object for it.
 func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+	// manually bind all flag values from the upstream command
+	// TODO: once the upstream command supports binding flags
+	// by outside callers, this will no longer be needed.
+	o.KubeLogOptions.AllContainers = kcmdutil.GetFlagBool(cmd, "all-containers")
+	o.KubeLogOptions.Container = kcmdutil.GetFlagString(cmd, "container")
+	o.KubeLogOptions.Selector = kcmdutil.GetFlagString(cmd, "selector")
+	o.KubeLogOptions.Follow = kcmdutil.GetFlagBool(cmd, "follow")
+	o.KubeLogOptions.Previous = kcmdutil.GetFlagBool(cmd, "previous")
+	o.KubeLogOptions.Timestamps = kcmdutil.GetFlagBool(cmd, "timestamps")
+	o.KubeLogOptions.SinceTime = kcmdutil.GetFlagString(cmd, "since-time")
+	o.KubeLogOptions.LimitBytes = kcmdutil.GetFlagInt64(cmd, "limit-bytes")
+	o.KubeLogOptions.Tail = kcmdutil.GetFlagInt64(cmd, "tail")
+	o.KubeLogOptions.SinceSeconds = kcmdutil.GetFlagDuration(cmd, "since")
+	o.KubeLogOptions.ContainerNameSpecified = cmd.Flag("container").Changed
+
 	if err := o.KubeLogOptions.Complete(f, cmd, args); err != nil {
 		return err
 	}
+
 	var err error
+	o.KubeLogOptions.GetPodTimeout, err = kcmdutil.GetPodRunningTimeoutFlag(cmd)
+	if err != nil {
+		return err
+	}
+
 	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
