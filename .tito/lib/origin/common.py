@@ -33,7 +33,7 @@ def get_os_git_vars():
     git_vars = {}
     for var_name in ["OS_GIT_COMMIT", "OS_GIT_VERSION", "OS_GIT_MAJOR", "OS_GIT_MINOR", "OS_GIT_PATCH",
                      "ETCD_GIT_VERSION", "ETCD_GIT_COMMIT",
-                     "KUBE_GIT_VERSION", "KUBE_GIT_COMMIT"]:
+                     "KUBE_GIT_VERSION", "KUBE_GIT_COMMIT", "KUBE_GIT_MAJOR", "KUBE_GIT_MINOR"]:
         git_vars[var_name] = run_command(
             "bash -c 'source ./hack/lib/init.sh; os::build::version::git_vars; echo ${}'".format(var_name)
         )
