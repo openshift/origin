@@ -514,9 +514,15 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 	formatString(w, "Triggered by", desc)
 
 	webHooks := webHooksDescribe(triggers, name, namespace, d.buildClient.RESTClient())
+	seenHookTypes := make(map[string]bool)
 	for webHookType, webHookDesc := range webHooks {
 		fmt.Fprintf(w, "Webhook %s:\n", strings.Title(webHookType))
 		for _, trigger := range webHookDesc {
+			_, seen := seenHookTypes[webHookType]
+			if webHookType != string(buildapi.GenericWebHookBuildTriggerType) && seen {
+				continue
+			}
+			seenHookTypes[webHookType] = true
 			fmt.Fprintf(w, "\tURL:\t%s\n", trigger.URL)
 			if webHookType == string(buildapi.GenericWebHookBuildTriggerType) && trigger.AllowEnv != nil {
 				fmt.Fprintf(w, fmt.Sprintf("\t%s:\t%v\n", "AllowEnv", *trigger.AllowEnv))
