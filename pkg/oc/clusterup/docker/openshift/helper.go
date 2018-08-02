@@ -10,9 +10,9 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
@@ -177,8 +177,8 @@ func (h *Helper) OtherIPs(excludeIP string) ([]string, error) {
 
 // CheckNodes determines if there is more than one node that corresponds to the
 // current machine and removes the one that doesn't match the default node name
-func (h *Helper) CheckNodes(kclient kclientset.Interface) error {
-	nodes, err := kclient.Core().Nodes().List(metav1.ListOptions{})
+func (h *Helper) CheckNodes(kclient kubernetes.Interface) error {
+	nodes, err := kclient.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve nodes").WithCause(err)
 	}
@@ -206,7 +206,7 @@ func (h *Helper) CheckNodes(kclient kclientset.Interface) error {
 
 		for i := 0; i < len(nodesToRemove); i++ {
 			glog.V(2).Infof("Deleting extra node %s", nodesToRemove[i])
-			err = kclient.Core().Nodes().Delete(nodesToRemove[i], nil)
+			err = kclient.CoreV1().Nodes().Delete(nodesToRemove[i], nil)
 			if err != nil {
 				return errors.NewError("cannot delete duplicate node %s", nodesToRemove[i]).WithCause(err)
 			}

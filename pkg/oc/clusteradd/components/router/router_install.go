@@ -11,11 +11,11 @@ import (
 	goruntime "runtime"
 
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -42,11 +42,11 @@ func (c *RouterComponentOptions) Name() string {
 }
 
 func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) error {
-	kubeAdminClient, err := kclientset.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
+	kubeAdminClient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
 	}
-	_, err = kubeAdminClient.Core().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
+	_, err = kubeAdminClient.CoreV1().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
 	if err == nil {
 		glog.V(3).Infof("The %q service is already present, skipping installation", RouterServiceName)
 		// Router service already exists, nothing to do
@@ -60,9 +60,9 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) er
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 
 	// Create service account for router
-	routerSA := &kapi.ServiceAccount{}
+	routerSA := &corev1.ServiceAccount{}
 	routerSA.Name = RouterServiceAccountName
-	_, err = kubeAdminClient.Core().ServiceAccounts(DefaultNamespace).Create(routerSA)
+	_, err = kubeAdminClient.CoreV1().ServiceAccounts(DefaultNamespace).Create(routerSA)
 	if err != nil {
 		return errors.NewError("cannot create router service account").WithCause(err)
 	}
