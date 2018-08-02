@@ -8,8 +8,8 @@ import (
 
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -71,11 +71,11 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...autoscaling.Scale
 		objName := action.(clientgotesting.GetAction).GetName()
 		for _, scale := range scales {
 			if scale.Kind == "DeploymentConfig" && objName == scale.Name {
-				return true, &appsapi.DeploymentConfig{
+				return true, &appsv1.DeploymentConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
-					Spec: appsapi.DeploymentConfigSpec{
+					Spec: appsv1.DeploymentConfigSpec{
 						Replicas: scale.Spec.Replicas,
 					},
 				}, nil
@@ -108,13 +108,13 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...autoscaling.Scale
 	}
 
 	fakeDeployClient.PrependReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		obj := action.(clientgotesting.UpdateAction).GetObject().(*appsapi.DeploymentConfig)
+		obj := action.(clientgotesting.UpdateAction).GetObject().(*appsv1.DeploymentConfig)
 		for _, scale := range scales {
 			if scale.Kind == "DeploymentConfig" && obj.Name == scale.Name {
 				newScale := scale
 				newScale.Spec.Replicas = obj.Spec.Replicas
-				res.resMap[unidlingapi.CrossGroupObjectReference{Name: obj.Name, Kind: "DeploymentConfig", Group: appsapi.GroupName}] = newScale
-				return true, &appsapi.DeploymentConfig{}, nil
+				res.resMap[unidlingapi.CrossGroupObjectReference{Name: obj.Name, Kind: "DeploymentConfig", Group: appsv1.GroupName}] = newScale
+				return true, &appsv1.DeploymentConfig{}, nil
 			}
 		}
 
@@ -137,15 +137,15 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...autoscaling.Scale
 
 	fakeDeployClient.PrependReactor("patch", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		patchAction := action.(clientgotesting.PatchActionImpl)
-		var patch appsapi.DeploymentConfig
+		var patch appsv1.DeploymentConfig
 		json.Unmarshal(patchAction.GetPatch(), &patch)
 
 		for _, scale := range scales {
 			if scale.Kind == "DeploymentConfig" && patchAction.GetName() == scale.Name {
 				newScale := scale
 				newScale.Spec.Replicas = patch.Spec.Replicas
-				res.resMap[unidlingapi.CrossGroupObjectReference{Name: patchAction.GetName(), Kind: "DeploymentConfig", Group: appsapi.GroupName}] = newScale
-				return true, &appsapi.DeploymentConfig{}, nil
+				res.resMap[unidlingapi.CrossGroupObjectReference{Name: patchAction.GetName(), Kind: "DeploymentConfig", Group: appsv1.GroupName}] = newScale
+				return true, &appsv1.DeploymentConfig{}, nil
 			}
 		}
 
@@ -269,7 +269,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 	for _, scale := range baseScales {
 		scaleRef := unidlingapi.CrossGroupObjectReference{Kind: scale.Kind, Name: scale.Name}
 		if scale.Kind == "DeploymentConfig" {
-			scaleRef.Group = appsapi.GroupName
+			scaleRef.Group = appsv1.GroupName
 		}
 		resScale, ok := res.resMap[scaleRef]
 		if scale.Spec.Replicas != 0 {
@@ -307,7 +307,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 	}
 	for _, target := range resTargets {
 		if target.Kind == "DeploymentConfig" {
-			target.CrossGroupObjectReference.Group = appsapi.GroupName
+			target.CrossGroupObjectReference.Group = appsv1.GroupName
 		}
 		if _, ok := stillPresent[target.CrossGroupObjectReference]; !ok {
 			t.Errorf("Expected new target list to contain the unscaled scalables only, but it was %v", resTargets)
@@ -380,7 +380,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 	for _, scale := range baseScales {
 		ref := unidlingapi.CrossGroupObjectReference{Kind: scale.Kind, Name: scale.Name}
 		if scale.Kind == "DeploymentConfig" {
-			ref.Group = appsapi.GroupName
+			ref.Group = appsv1.GroupName
 		}
 		resScale, ok := res.resMap[ref]
 		if !ok {
@@ -438,11 +438,11 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kinternalfake.Clien
 		objName := action.(clientgotesting.GetAction).GetName()
 		for _, scale := range test.scaleGets {
 			if scale.Kind == "DeploymentConfig" && objName == scale.Name {
-				return true, &appsapi.DeploymentConfig{
+				return true, &appsv1.DeploymentConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
-					Spec: appsapi.DeploymentConfigSpec{
+					Spec: appsv1.DeploymentConfigSpec{
 						Replicas: scale.Spec.Replicas,
 					},
 				}, nil
@@ -471,14 +471,14 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kinternalfake.Clien
 	})
 
 	fakeDeployClient.PrependReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		obj := action.(clientgotesting.UpdateAction).GetObject().(*appsapi.DeploymentConfig)
+		obj := action.(clientgotesting.UpdateAction).GetObject().(*appsv1.DeploymentConfig)
 		for i, scale := range test.scaleGets {
 			if scale.Kind == "DeploymentConfig" && obj.Name == scale.Name {
 				if test.scaleUpdatesNotFound != nil && test.scaleUpdatesNotFound[i] {
 					return false, nil, nil
 				}
 
-				return true, &appsapi.DeploymentConfig{}, nil
+				return true, &appsv1.DeploymentConfig{}, nil
 			}
 		}
 
@@ -529,7 +529,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
 				Kind:  "DeploymentConfig",
-				Group: appsapi.GroupName,
+				Group: appsv1.GroupName,
 				Name:  "somedc",
 			},
 			Replicas: 2,
@@ -544,7 +544,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
 				Kind:  "DeploymentConfig",
-				Group: appsapi.GroupName,
+				Group: appsv1.GroupName,
 				Name:  "somedc",
 			},
 			Replicas: 2,

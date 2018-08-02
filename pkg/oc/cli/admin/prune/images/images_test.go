@@ -25,7 +25,7 @@ import (
 
 	restfake "k8s.io/client-go/rest/fake"
 
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune/testutil"

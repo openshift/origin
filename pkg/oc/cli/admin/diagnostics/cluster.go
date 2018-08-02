@@ -12,7 +12,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"

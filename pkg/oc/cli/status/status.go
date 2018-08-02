@@ -13,7 +13,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
@@ -131,7 +131,7 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 	if err != nil {
 		return err
 	}
-	appsClient, err := appsclientinternal.NewForConfig(clientConfig)
+	appsClient, err := appsclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

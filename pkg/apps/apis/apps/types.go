@@ -37,29 +37,6 @@ const (
 	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
 	// to implement the deployment behavior.
 	DeploymentPodAnnotation = "openshift.io/deployer-pod.name"
-	// DeployerPodCreatedAtAnnotation is an annotation on a deployment that
-	// records the time in RFC3339 format of when the deployer pod for this particular
-	// deployment was created.
-	DeployerPodCreatedAtAnnotation = "openshift.io/deployer-pod.created-at"
-	// DeployerPodStartedAtAnnotation is an annotation on a deployment that
-	// records the time in RFC3339 format of when the deployer pod for this particular
-	// deployment was started.
-	DeployerPodStartedAtAnnotation = "openshift.io/deployer-pod.started-at"
-	// DeployerPodCompletedAtAnnotation is an annotation on deployment that records
-	// the time in RFC3339 format of when the deployer pod finished.
-	DeployerPodCompletedAtAnnotation = "openshift.io/deployer-pod.completed-at"
-	// DeploymentIgnorePodAnnotation is an annotation on a deployment config that will bypass creating
-	// a deployment pod with the deployment. The caller is responsible for setting the deployment
-	// status and running the deployment process.
-	DeploymentIgnorePodAnnotation = "deploy.openshift.io/deployer-pod.ignore"
-	// DeploymentPodTypeLabel is a label with which contains a type of deployment pod.
-	DeploymentPodTypeLabel = "openshift.io/deployer-pod.type"
-	// DeployerPodForDeploymentLabel is a label which groups pods related to a
-	// deployment. The value is a deployment name. The deployer pod and hook pods
-	// created by the internal strategies will have this label. Custom
-	// strategies can apply this label to any pods they create, enabling
-	// platform-provided cancellation and garbage collection support.
-	DeployerPodForDeploymentLabel = "openshift.io/deployer-pod-for.name"
 	// DeploymentStatusAnnotation is an annotation name used to retrieve the DeploymentPhase of
 	// a deployment.
 	DeploymentStatusAnnotation = "openshift.io/deployment.phase"
@@ -70,33 +47,12 @@ const (
 	// annotation value is the LatestVersion value of the DeploymentConfig which was the basis for
 	// the deployment.
 	DeploymentVersionAnnotation = "openshift.io/deployment-config.latest-version"
-	// DeploymentLabel is the name of a label used to correlate a deployment with the Pod created
-	// to execute the deployment logic.
-	// TODO: This is a workaround for upstream's lack of annotation support on PodTemplate. Once
-	// annotations are available on PodTemplate, audit this constant with the goal of removing it.
-	DeploymentLabel = "deployment"
-	// DeploymentConfigLabel is the name of a label used to correlate a deployment with the
-	// DeploymentConfigs on which the deployment is based.
-	DeploymentConfigLabel = "deploymentconfig"
-	// DesiredReplicasAnnotation represents the desired number of replicas for a
-	// new deployment.
-	// TODO: This should be made public upstream.
-	DesiredReplicasAnnotation = "kubectl.kubernetes.io/desired-replicas"
 	// DeploymentStatusReasonAnnotation represents the reason for deployment being in a given state
 	// Used for specifying the reason for cancellation or failure of a deployment
 	DeploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
 	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
 	// The annotation value does not matter and its mere presence indicates cancellation
 	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
-	// DeploymentReplicasAnnotation is for internal use only and is for
-	// detecting external modifications to deployment replica counts.
-	DeploymentReplicasAnnotation = "openshift.io/deployment.replicas"
-	// PostHookPodSuffix is the suffix added to all pre hook pods
-	PreHookPodSuffix = "hook-pre"
-	// PostHookPodSuffix is the suffix added to all mid hook pods
-	MidHookPodSuffix = "hook-mid"
-	// PostHookPodSuffix is the suffix added to all post hook pods
-	PostHookPodSuffix = "hook-post"
 )
 
 // These constants represent values used in deployment annotations.
@@ -104,16 +60,6 @@ const (
 	// DeploymentCancelledAnnotationValue represents the value for the DeploymentCancelledAnnotation
 	// annotation that signifies that the deployment should be cancelled
 	DeploymentCancelledAnnotationValue = "true"
-)
-
-// These constants represent the various reasons for cancelling a deployment
-// or for a deployment being placed in a failed state
-const (
-	DeploymentCancelledByUser                 = "cancelled by the user"
-	DeploymentCancelledNewerDeploymentExists  = "newer deployment was found running"
-	DeploymentFailedUnrelatedDeploymentExists = "unrelated pod with the same name as this deployment is already running"
-	DeploymentFailedDeployerPodNoLongerExists = "deployer pod no longer exists"
-	DeploymentFailedUnableToCreateDeployerPod = "unable to create deployer pod"
 )
 
 // DeploymentStatus describes the possible states a deployment can be in.

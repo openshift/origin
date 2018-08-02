@@ -41,9 +41,8 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -59,7 +58,7 @@ type DebugOptions struct {
 
 	CoreClient   coreclient.CoreInterface
 	CoreV1Client corev1client.CoreV1Interface
-	AppsClient   appsclient.AppsInterface
+	AppsClient   appsclient.DeploymentConfigsGetter
 	ImageClient  imageclient.ImageInterface
 
 	Printer       printers.ResourcePrinter
@@ -302,11 +301,11 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 		return err
 	}
 
-	appsClient, err := appsclientinternal.NewForConfig(config)
+	appsClient, err := appsclient.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	o.AppsClient = appsClient.Apps()
+	o.AppsClient = appsClient
 
 	imageClient, err := imageclientinternal.NewForConfig(config)
 	if err != nil {
@@ -492,7 +491,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, conta
 	}
 
 	for _, trigger := range dc.Spec.Triggers {
-		if trigger.Type == appsapi.DeploymentTriggerOnImageChange &&
+		if trigger.Type == appsv1.DeploymentTriggerOnImageChange &&
 			trigger.ImageChangeParams != nil &&
 			trigger.ImageChangeParams.From.Kind == "ImageStreamTag" {
 

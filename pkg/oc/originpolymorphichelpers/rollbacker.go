@@ -7,7 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	oapps "github.com/openshift/api/apps"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	deploymentcmd "github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
 )
 
