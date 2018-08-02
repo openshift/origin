@@ -184,8 +184,7 @@ readonly -f os::util::list_go_src_files
 # Returns:
 #  None
 function os::util::list_go_src_dirs() {
-	os::util::list_go_src_files | cut -d '/' -f 1-2 | grep -v ".go$" | grep -v "^./cmd" | LC_ALL=C sort -u
-	os::util::list_go_src_files | grep "^./cmd/"| cut -d '/' -f 1-3 | grep -v ".go$" | LC_ALL=C sort -u
+    go list -e ./... | grep -Ev "/(third_party|vendor|staging|clientset_generated)/" | LC_ALL=C sort -u
 }
 readonly -f os::util::list_go_src_dirs
 
