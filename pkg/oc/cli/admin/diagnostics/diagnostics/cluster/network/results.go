@@ -106,40 +106,42 @@ func (d *NetworkDiagnostic) getNetworkPodLogs(pod *kapi.Pod) error {
 		LimitBytes: &bytelim,
 	}
 
-	req, err := polymorphichelpers.LogsForObjectFn(d.Factory, pod, opts, 1*time.Minute)
+	requests, err := polymorphichelpers.LogsForObjectFn(d.Factory, pod, opts, 1*time.Minute, false)
 	if err != nil {
 		return fmt.Errorf("Request for network diagnostic pod on node %q failed unexpectedly: %v", pod.Spec.NodeName, err)
 	}
-	readCloser, err := req.Stream()
-	if err != nil {
-		return fmt.Errorf("Logs for network diagnostic pod on node %q failed: %v", pod.Spec.NodeName, err)
-	}
-	defer readCloser.Close()
-
-	scanner := bufio.NewScanner(readCloser)
-	podLogs, nwarnings, nerrors := "", 0, 0
-	errorRegex := regexp.MustCompile(`^\[Note\]\s+Errors\s+seen:\s+(\d+)`)
-	warnRegex := regexp.MustCompile(`^\[Note\]\s+Warnings\s+seen:\s+(\d+)`)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		podLogs += line + "\n"
-		if matches := errorRegex.FindStringSubmatch(line); matches != nil {
-			nerrors, _ = strconv.Atoi(matches[1])
-		} else if matches := warnRegex.FindStringSubmatch(line); matches != nil {
-			nwarnings, _ = strconv.Atoi(matches[1])
+	for _, req := range requests {
+		readCloser, err := req.Stream()
+		if err != nil {
+			return fmt.Errorf("Logs for network diagnostic pod on node %q failed: %v", pod.Spec.NodeName, err)
 		}
-	}
+		defer readCloser.Close()
 
-	if err := scanner.Err(); err != nil { // Scan terminated abnormally
-		return fmt.Errorf("Unexpected error reading network diagnostic pod on node %q: (%T) %[1]v\nLogs are:\n%[3]s", pod.Spec.NodeName, err, podLogs)
-	} else {
-		if nerrors > 0 {
-			return fmt.Errorf("See the errors below in the output from the network diagnostic pod on node %q:\n%s", pod.Spec.NodeName, podLogs)
-		} else if nwarnings > 0 {
-			d.res.Warn("DNet4002", nil, fmt.Sprintf("See the warnings below in the output from the network diagnostic pod on node %q:\n%s", pod.Spec.NodeName, podLogs))
+		scanner := bufio.NewScanner(readCloser)
+		podLogs, nwarnings, nerrors := "", 0, 0
+		errorRegex := regexp.MustCompile(`^\[Note\]\s+Errors\s+seen:\s+(\d+)`)
+		warnRegex := regexp.MustCompile(`^\[Note\]\s+Warnings\s+seen:\s+(\d+)`)
+
+		for scanner.Scan() {
+			line := scanner.Text()
+			podLogs += line + "\n"
+			if matches := errorRegex.FindStringSubmatch(line); matches != nil {
+				nerrors, _ = strconv.Atoi(matches[1])
+			} else if matches := warnRegex.FindStringSubmatch(line); matches != nil {
+				nwarnings, _ = strconv.Atoi(matches[1])
+			}
+		}
+
+		if err := scanner.Err(); err != nil { // Scan terminated abnormally
+			return fmt.Errorf("Unexpected error reading network diagnostic pod on node %q: (%T) %[1]v\nLogs are:\n%[3]s", pod.Spec.NodeName, err, podLogs)
 		} else {
-			d.res.Info("DNet4003", fmt.Sprintf("Output from the network diagnostic pod on node %q:\n%s", pod.Spec.NodeName, podLogs))
+			if nerrors > 0 {
+				return fmt.Errorf("See the errors below in the output from the network diagnostic pod on node %q:\n%s", pod.Spec.NodeName, podLogs)
+			} else if nwarnings > 0 {
+				d.res.Warn("DNet4002", nil, fmt.Sprintf("See the warnings below in the output from the network diagnostic pod on node %q:\n%s", pod.Spec.NodeName, podLogs))
+			} else {
+				d.res.Info("DNet4003", fmt.Sprintf("Output from the network diagnostic pod on node %q:\n%s", pod.Spec.NodeName, podLogs))
+			}
 		}
 	}
 	return nil

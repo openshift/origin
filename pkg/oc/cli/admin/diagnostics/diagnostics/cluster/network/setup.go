@@ -194,17 +194,19 @@ func (d *NetworkDiagnostic) getPodLogs(nsList []string) (string, error) {
 				LimitBytes: &limit,
 			}
 
-			req, err := polymorphichelpers.LogsForObjectFn(d.Factory, &pod, opts, 10*time.Second)
+			requests, err := polymorphichelpers.LogsForObjectFn(d.Factory, &pod, opts, 10*time.Second, false)
 			if err != nil {
 				errList = append(errList, err)
 				continue
 			}
-			data, err := req.DoRaw()
-			if err != nil {
-				errList = append(errList, err)
-				continue
+			for _, req := range requests {
+				data, err := req.DoRaw()
+				if err != nil {
+					errList = append(errList, err)
+					continue
+				}
+				logData.Insert(string(data[:]))
 			}
-			logData.Insert(string(data[:]))
 		}
 	}
 	return strings.Join(logData.List(), ", "), kerrors.NewAggregate(errList)
