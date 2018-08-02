@@ -28,10 +28,14 @@ const (
 var (
 	addSCCToUserExample = templates.Examples(`
 		# Add the 'restricted' security context contraint to user1 and user2
-	  %[1]s restricted user1 user2
+		%[1]s restricted user1 user2
 
-	  # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
-	  %[1]s privileged -z serviceaccount1`)
+		# Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
+		%[1]s privileged -z serviceaccount1`)
+
+	addSCCToGroupExample = templates.Examples(`
+		# Add the 'restricted' security context contraint to group1 and group2
+		%[1]s restricted group1 group2`)
 )
 
 type SCCModificationOptions struct {
@@ -53,9 +57,10 @@ func NewCmdAddSCCToGroup(name, fullName string, f kcmdutil.Factory, out io.Write
 	options := &SCCModificationOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " SCC GROUP [GROUP ...]",
-		Short: "Add groups to a security context constraint",
-		Long:  `Add groups to a security context constraint`,
+		Use:     name + " SCC GROUP [GROUP ...]",
+		Short:   "Add security context constraint to groups",
+		Long:    `Add security context constraint to groups`,
+		Example: fmt.Sprintf(addSCCToGroupExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteGroups(f, cmd, args, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
@@ -78,8 +83,8 @@ func NewCmdAddSCCToUser(name, fullName string, f kcmdutil.Factory, out io.Writer
 
 	cmd := &cobra.Command{
 		Use:     name + " SCC (USER | -z SERVICEACCOUNT) [USER ...]",
-		Short:   "Add users or serviceaccount to a security context constraint",
-		Long:    `Add users or serviceaccount to a security context constraint`,
+		Short:   "Add security context constraint to users or a service account",
+		Long:    `Add security context constraint to users or a service account`,
 		Example: fmt.Sprintf(addSCCToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteUsers(f, cmd, args, saNames, out); err != nil {
