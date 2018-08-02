@@ -11,15 +11,11 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	"github.com/openshift/origin/pkg/oc/cli/project"
+	projectv1 "github.com/openshift/api/project/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	ocproject "github.com/openshift/origin/pkg/oc/cli/project"
 	cliconfig "github.com/openshift/origin/pkg/oc/lib/kubeconfig"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
-
-// RequestProjectRecommendedCommandName is the recommended command name.
-const RequestProjectRecommendedCommandName = "new-project"
 
 // RequestProjectOptions contains all the options for running the RequestProject cli command.
 type RequestProjectOptions struct {
@@ -32,9 +28,9 @@ type RequestProjectOptions struct {
 
 	SkipConfigWrite bool
 
-	Client projectclient.ProjectInterface
+	Client         projectv1client.ProjectV1Interface
+	ProjectOptions *ocproject.ProjectOptions
 
-	ProjectOptions *project.ProjectOptions
 	genericclioptions.IOStreams
 }
 
@@ -50,10 +46,10 @@ var (
 
 	requestProjectExample = templates.Examples(`
 		# Create a new project with minimal information
-	  %[1]s %[2]s web-team-dev
+		%[1]s new-project web-team-dev
 
-	  # Create a new project with a display name and description
-	  %[1]s %[2]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`)
+		# Create a new project with a display name and description
+		%[1]s new-project web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`)
 )
 
 // RequestProject next steps.
@@ -81,23 +77,21 @@ func NewRequestProjectOptions(baseName string, streams genericclioptions.IOStrea
 }
 
 // NewCmdRequestProject implement the OpenShift cli RequestProject command.
-func NewCmdRequestProject(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdRequestProject(baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewRequestProjectOptions(baseName, streams)
-
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
+		Use:     "new-project NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]",
 		Short:   "Request a new project",
 		Long:    requestProjectLong,
-		Example: fmt.Sprintf(requestProjectExample, baseName, name),
+		Example: fmt.Sprintf(requestProjectExample, baseName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
-
-	cmd.Flags().StringVar(&o.DisplayName, "display-name", "", "Project display name")
-	cmd.Flags().StringVar(&o.Description, "description", "", "Project description")
-	cmd.Flags().BoolVar(&o.SkipConfigWrite, "skip-config-write", false, "If true, the project will not be set as a cluster entry in kubeconfig after being created")
+	cmd.Flags().StringVar(&o.DisplayName, "display-name", o.DisplayName, "Project display name")
+	cmd.Flags().StringVar(&o.Description, "description", o.Description, "Project description")
+	cmd.Flags().BoolVar(&o.SkipConfigWrite, "skip-config-write", o.SkipConfigWrite, "If true, the project will not be set as a cluster entry in kubeconfig after being created")
 
 	return cmd
 }
@@ -105,14 +99,13 @@ func NewCmdRequestProject(name, baseName string, f kcmdutil.Factory, streams gen
 // Complete completes all the required options.
 func (o *RequestProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		cmd.Help()
 		return errors.New("must have exactly one argument")
 	}
 
 	o.ProjectName = args[0]
 
 	if !o.SkipConfigWrite {
-		o.ProjectOptions = project.NewProjectOptions(o.IOStreams)
+		o.ProjectOptions = ocproject.NewProjectOptions(o.IOStreams)
 		o.ProjectOptions.PathOptions = cliconfig.NewPathOptions(cmd)
 		if err := o.ProjectOptions.Complete(f, []string{""}); err != nil {
 			return err
@@ -129,8 +122,10 @@ func (o *RequestProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command,
 	if err != nil {
 		return err
 	}
-	projectClient, err := projectclientinternal.NewForConfig(clientConfig)
-	o.Client = projectClient.Project()
+	o.Client, err = projectv1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -141,7 +136,7 @@ func (o *RequestProjectOptions) Run() error {
 		return err
 	}
 
-	projectRequest := &projectapi.ProjectRequest{}
+	projectRequest := &projectv1.ProjectRequest{}
 	projectRequest.Name = o.ProjectName
 	projectRequest.DisplayName = o.DisplayName
 	projectRequest.Description = o.Description
@@ -157,8 +152,7 @@ func (o *RequestProjectOptions) Run() error {
 		o.ProjectOptions.ProjectOnly = true
 		o.ProjectOptions.SkipAccessValidation = true
 		o.ProjectOptions.IOStreams = o.IOStreams
-
-		if err := o.ProjectOptions.RunProject(); err != nil {
+		if err := o.ProjectOptions.Run(); err != nil {
 			return err
 		}
 

@@ -28,6 +28,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	oapi "github.com/openshift/origin/pkg/api"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -52,7 +53,6 @@ import (
 	routeanalysis "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/analysis"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
@@ -700,10 +700,18 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 }
 
 func describeProjectAndServer(f formatter, project *projectapi.Project, server string) string {
-	if len(server) == 0 {
-		return fmt.Sprintf("In project %s on server %s\n", projectapihelpers.DisplayNameAndNameForProject(project), server)
+	projectName := project.Name
+	displayName := project.Annotations[oapi.OpenShiftDisplayName]
+	if len(displayName) == 0 {
+		displayName = project.Annotations["displayName"]
 	}
-	return fmt.Sprintf("In project %s on server %s\n", projectapihelpers.DisplayNameAndNameForProject(project), server)
+	if len(displayName) > 0 && displayName != project.Name {
+		projectName = fmt.Sprintf("%s (%s)", displayName, project.Name)
+	}
+	if len(server) == 0 {
+		return fmt.Sprintf("In project %s\n", projectName)
+	}
+	return fmt.Sprintf("In project %s on server %s\n", projectName, server)
 
 }
 

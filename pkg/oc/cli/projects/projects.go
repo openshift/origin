@@ -7,35 +7,33 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	restclient "k8s.io/client-go/rest"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	projectv1 "github.com/openshift/api/project/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	oapi "github.com/openshift/origin/pkg/api"
 	clientcfg "github.com/openshift/origin/pkg/client/config"
 	ocproject "github.com/openshift/origin/pkg/oc/cli/project"
 	cliconfig "github.com/openshift/origin/pkg/oc/lib/kubeconfig"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
-	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
 type ProjectsOptions struct {
-	Config       clientcmdapi.Config
-	ClientConfig *restclient.Config
-	Client       projectclient.ProjectInterface
-	KubeClient   kclientset.Interface
-	PathOptions  *kclientcmd.PathOptions
+	Config      clientcmdapi.Config
+	RESTConfig  *rest.Config
+	Client      projectv1client.ProjectV1Interface
+	KubeClient  corev1client.CoreV1Interface
+	PathOptions *kclientcmd.PathOptions
 
 	// internal strings
-	CommandName string
-
+	CommandName  string
 	DisplayShort bool
+	Args         []string
 
 	genericclioptions.IOStreams
 }
@@ -48,7 +46,7 @@ func NewProjectsOptions(name string, streams genericclioptions.IOStreams) *Proje
 }
 
 // SortByProjectName is sort
-type SortByProjectName []projectapi.Project
+type SortByProjectName []projectv1.Project
 
 func (p SortByProjectName) Len() int {
 	return len(p)
@@ -71,60 +69,55 @@ var (
 // NewCmdProjects implements the OpenShift cli rollback command
 func NewCmdProjects(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewProjectsOptions(fullName, streams)
-
 	cmd := &cobra.Command{
 		Use:   "projects",
 		Short: "Display existing projects",
 		Long:  projectsLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := o.Complete(f, cmd, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-			kcmdutil.CheckErr(o.Validate(args))
-			kcmdutil.CheckErr(o.RunProjects())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-
 	cmd.Flags().BoolVarP(&o.DisplayShort, "short", "q", false, "If true, display only the project names")
+
 	return cmd
 }
 
 func (o *ProjectsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	o.PathOptions = cliconfig.NewPathOptions(cmd)
+	o.Args = args
 
 	var err error
 	o.Config, err = f.ToRawKubeConfigLoader().RawConfig()
 	if err != nil {
 		return err
 	}
-
-	o.ClientConfig, err = f.ToRESTConfig()
+	o.RESTConfig, err = f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-
-	o.KubeClient, err = f.ClientSet()
+	o.KubeClient, err = corev1client.NewForConfig(o.RESTConfig)
 	if err != nil {
 		return err
 	}
-	projectClient, err := projectclientinternal.NewForConfig(o.ClientConfig)
+	o.Client, err = projectv1client.NewForConfig(o.RESTConfig)
 	if err != nil {
 		return err
 	}
-	o.Client = projectClient.Project()
 
 	return nil
 }
 
-func (o *ProjectsOptions) Validate(args []string) error {
-	if len(args) > 0 {
+func (o *ProjectsOptions) Validate() error {
+	if len(o.Args) > 0 {
 		return fmt.Errorf("no arguments should be passed")
 	}
 	return nil
 }
 
 // RunProjects lists all projects a user belongs to
-func (o ProjectsOptions) RunProjects() error {
+func (o ProjectsOptions) Run() error {
 	config := o.Config
 
 	var currentProject string
@@ -161,7 +154,7 @@ func (o ProjectsOptions) RunProjects() error {
 			if o.DisplayShort {
 				msg += fmt.Sprintf("%s", projects[0].Name)
 			} else {
-				msg += fmt.Sprintf("You have one project on this server: %q.", projectapihelpers.DisplayNameAndNameForProject(&projects[0]))
+				msg += fmt.Sprintf("You have one project on this server: %q.", ocproject.DisplayNameForProject(&projects[0]))
 			}
 		default:
 			asterisk := ""
@@ -208,9 +201,9 @@ func (o ProjectsOptions) RunProjects() error {
 			// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
 			// a context name they didn't choose
 			if config.CurrentContext == defaultContextName {
-				fmt.Fprintf(o.Out, "\nUsing project %q on server %q.\n", currentProject, o.ClientConfig.Host)
+				fmt.Fprintf(o.Out, "\nUsing project %q on server %q.\n", currentProject, o.RESTConfig.Host)
 			} else {
-				fmt.Fprintf(o.Out, "\nUsing project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, o.ClientConfig.Host)
+				fmt.Fprintf(o.Out, "\nUsing project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, o.RESTConfig.Host)
 			}
 		}
 		return nil

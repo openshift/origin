@@ -28,7 +28,7 @@ func TestRequestProjectDefaultFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCmdRequestProject("oc", RequestProjectRecommendedCommandName, nil, genericclioptions.NewTestIOStreamsDiscard())
+	cmd := NewCmdRequestProject("oc", nil, genericclioptions.NewTestIOStreamsDiscard())
 
 	for _, v := range tests {
 		f := cmd.Flag(v.flagName)

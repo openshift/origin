@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -253,15 +254,15 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 	}
 
 	// wait for the project authorization cache to catch the change.  It is on a one second period
-	waitForProject(t, projectclient.NewForConfigOrDie(haroldConfig), "hammer-project", 1*time.Second, 10)
-	waitForProject(t, projectclient.NewForConfigOrDie(markConfig), "mallet-project", 1*time.Second, 10)
+	waitForProject(t, projectv1client.NewForConfigOrDie(haroldConfig), "hammer-project", 1*time.Second, 10)
+	waitForProject(t, projectv1client.NewForConfigOrDie(markConfig), "mallet-project", 1*time.Second, 10)
 }
 
 // waitForProject will execute a client list of projects looking for the project with specified name
 // if not found, it will retry up to numRetries at the specified delayInterval
-func waitForProject(t *testing.T, client projectclient.Interface, projectName string, delayInterval time.Duration, numRetries int) {
+func waitForProject(t *testing.T, client projectv1client.ProjectV1Interface, projectName string, delayInterval time.Duration, numRetries int) {
 	for i := 0; i <= numRetries; i++ {
-		projects, err := client.Project().Projects().List(metav1.ListOptions{})
+		projects, err := client.Projects().List(metav1.ListOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
