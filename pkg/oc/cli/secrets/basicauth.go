@@ -3,19 +3,20 @@ package secrets
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 
 	"github.com/spf13/cobra"
 
-	api "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1 "k8s.io/api/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 // CreateBasicAuthSecretRecommendedCommandName represents name of subcommand for `oc secrets` command
@@ -44,6 +45,10 @@ var (
 
 // CreateBasicAuthSecretOptions holds the credential needed to authenticate against SCM servers.
 type CreateBasicAuthSecretOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	SecretName      string
 	Username        string
 	Password        string
@@ -52,18 +57,21 @@ type CreateBasicAuthSecretOptions struct {
 
 	PromptForPassword bool
 
-	Reader io.Reader
-	Out    io.Writer
+	SecretsInterface corev1client.SecretInterface
 
-	SecretsInterface kcoreclient.SecretInterface
+	genericclioptions.IOStreams
+}
+
+func NewCreateBasicAuthSecretOptions(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
+	return &CreateBasicAuthSecretOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
 }
 
 // NewCmdCreateBasicAuthSecret implements the OpenShift cli secrets new-basicauth subcommand
 func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams, newSecretFullName, ocEditFullName string) *cobra.Command {
-	o := &CreateBasicAuthSecretOptions{
-		Out:    streams.Out,
-		Reader: streams.In,
-	}
+	o := NewCreateBasicAuthSecretOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s SECRET --username=USERNAME --password=PASSWORD [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
@@ -73,25 +81,9 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, stre
 		Deprecated: "use oc create secret",
 		Hidden:     true,
 		Run: func(c *cobra.Command, args []string) {
-			if err := o.Complete(f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if err := o.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if len(kcmdutil.GetFlagString(c, "output")) != 0 {
-				secret, err := o.NewBasicAuthSecret()
-				kcmdutil.CheckErr(err)
-
-				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, streams.Out))
-				return
-			}
-
-			if err := o.CreateBasicAuthSecret(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
@@ -103,13 +95,12 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, stre
 	cmd.MarkFlagFilename("gitconfig")
 	cmd.Flags().BoolVarP(&o.PromptForPassword, "prompt", "", false, "If true, prompt for password or token")
 
-	kcmdutil.AddPrinterFlags(cmd)
-
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
 // CreateBasicAuthSecret saves created Secret structure and prints the secret name to the output on success.
-func (o *CreateBasicAuthSecretOptions) CreateBasicAuthSecret() error {
+func (o *CreateBasicAuthSecretOptions) Run() error {
 	secret, err := o.NewBasicAuthSecret()
 	if err != nil {
 		return err
@@ -119,16 +110,15 @@ func (o *CreateBasicAuthSecretOptions) CreateBasicAuthSecret() error {
 		return err
 	}
 
-	fmt.Fprintf(o.GetOut(), "secret/%s\n", secret.Name)
-	return nil
+	return o.Printer.PrintObj(secret, o.Out)
 }
 
 // NewBasicAuthSecret builds up the Secret structure containing secret name, type and data structure
 // containing desired credentials.
-func (o *CreateBasicAuthSecretOptions) NewBasicAuthSecret() (*api.Secret, error) {
-	secret := &api.Secret{}
+func (o *CreateBasicAuthSecretOptions) NewBasicAuthSecret() (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
 	secret.Name = o.SecretName
-	secret.Type = api.SecretTypeBasicAuth
+	secret.Type = corev1.SecretTypeBasicAuth
 	secret.Data = map[string][]byte{}
 
 	if len(o.Username) != 0 {
@@ -164,32 +154,38 @@ func (o *CreateBasicAuthSecretOptions) Complete(f kcmdutil.Factory, args []strin
 	if len(args) != 1 {
 		return errors.New("must have exactly one argument: secret name")
 	}
+
 	o.SecretName = args[0]
 
 	if o.PromptForPassword {
-		if len(o.Password) != 0 {
-			return errors.New("must provide either --prompt or --password flag")
-		}
-		if !kterm.IsTerminal(o.Reader) {
+		if !kterm.IsTerminal(o.In) {
 			return errors.New("provided reader is not a terminal")
 		}
 
-		o.Password = term.PromptForPasswordString(o.Reader, o.Out, "Password: ")
+		o.Password = term.PromptForPasswordString(o.In, o.Out, "Password: ")
 		if len(o.Password) == 0 {
 			return errors.New("password must be provided")
 		}
 	}
 
-	if f != nil {
-		client, err := f.ClientSet()
-		if err != nil {
-			return err
-		}
-		namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
-		if err != nil {
-			return err
-		}
-		o.SecretsInterface = client.Core().Secrets(namespace)
+	config, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	clientset, err := corev1client.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return err
+	}
+	o.SecretsInterface = clientset.Secrets(namespace)
+
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -205,15 +201,9 @@ func (o CreateBasicAuthSecretOptions) Validate() error {
 		return errors.New("must provide basic authentication credentials")
 	}
 
-	return nil
-}
-
-// GetOut check if the CreateBasicAuthSecretOptions Out Writer is set. Returns it if the Writer
-// is present, if not returns Writer on which all Write calls succeed without doing anything.
-func (o CreateBasicAuthSecretOptions) GetOut() io.Writer {
-	if o.Out == nil {
-		return ioutil.Discard
+	if o.PromptForPassword && len(o.Password) > 0 {
+		return errors.New("must provide either --prompt or --password flag")
 	}
 
-	return o.Out
+	return nil
 }

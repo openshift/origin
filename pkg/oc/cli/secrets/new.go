@@ -3,21 +3,23 @@ package secrets
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 
+	"github.com/spf13/cobra"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
-	"github.com/spf13/cobra"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 const NewSecretRecommendedCommandName = "new"
@@ -48,6 +50,10 @@ var (
 )
 
 type CreateSecretOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	// Name of the resulting secret
 	Name string
 
@@ -58,22 +64,25 @@ type CreateSecretOptions struct {
 	// Directory sources are listed and any direct file children included (but subfolders are not traversed)
 	Sources []string
 
-	SecretsInterface kcoreclient.SecretInterface
-
-	// Writer to write warnings to
-	Stderr io.Writer
-
-	Out io.Writer
+	SecretsInterface corev1client.SecretInterface
 
 	// Controls whether to output warnings
 	Quiet bool
 
 	AllowUnknownTypes bool
+
+	genericclioptions.IOStreams
+}
+
+func NewCreateSecretOptions(streams genericclioptions.IOStreams) *CreateSecretOptions {
+	return &CreateSecretOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
 }
 
 func NewCmdCreateSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := NewCreateSecretOptions()
-	options.Out = streams.Out
+	o := NewCreateSecretOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s NAME [KEY=]SOURCE ...", name),
@@ -83,40 +92,18 @@ func NewCmdCreateSecret(name, fullName string, f kcmdutil.Factory, streams gener
 		Deprecated: "use oc create secret",
 		Hidden:     true,
 		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(args, f); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if err := options.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if len(kcmdutil.GetFlagString(c, "output")) != 0 {
-				secret, err := options.BundleSecret()
-				kcmdutil.CheckErr(err)
-
-				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, streams.Out))
-				return
-			}
-
-			_, err := options.CreateSecret()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(args, f))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", options.Quiet, "If true, suppress warnings")
-	cmd.Flags().BoolVar(&options.AllowUnknownTypes, "confirm", options.AllowUnknownTypes, "If true, allow unknown secret types.")
-	cmd.Flags().StringVar(&options.SecretTypeName, "type", "", "The type of secret")
-	kcmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", o.Quiet, "If true, suppress warnings")
+	cmd.Flags().BoolVar(&o.AllowUnknownTypes, "confirm", o.AllowUnknownTypes, "If true, allow unknown secret types.")
+	cmd.Flags().StringVar(&o.SecretTypeName, "type", "", "The type of secret")
 
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
-}
-
-func NewCreateSecretOptions() *CreateSecretOptions {
-	return &CreateSecretOptions{
-		Stderr:  os.Stderr,
-		Sources: []string{},
-	}
 }
 
 func (o *CreateSecretOptions) Complete(args []string, f kcmdutil.Factory) error {
@@ -130,20 +117,23 @@ func (o *CreateSecretOptions) Complete(args []string, f kcmdutil.Factory) error 
 		o.Sources = append(o.Sources, args[1:]...)
 	}
 
-	if f != nil {
-		clientConfig, err := f.ToRESTConfig()
-		if err != nil {
-			return err
-		}
-		kubeClient, err := kcoreclient.NewForConfig(clientConfig)
-		if err != nil {
-			return err
-		}
-		namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
-		if err != nil {
-			return err
-		}
-		o.SecretsInterface = kubeClient.Secrets(namespace)
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	kubeClient, err := corev1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return err
+	}
+	o.SecretsInterface = kubeClient.Secrets(namespace)
+
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -159,7 +149,7 @@ func (o *CreateSecretOptions) Validate() error {
 
 	if !o.AllowUnknownTypes {
 		switch o.SecretTypeName {
-		case string(kapi.SecretTypeOpaque), "":
+		case string(corev1.SecretTypeOpaque), "":
 			// this is ok
 		default:
 			found := false
@@ -178,21 +168,26 @@ func (o *CreateSecretOptions) Validate() error {
 	return nil
 }
 
-func (o *CreateSecretOptions) CreateSecret() (*kapi.Secret, error) {
+func (o *CreateSecretOptions) Run() error {
 	secret, err := o.BundleSecret()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	persistedSecret, err := o.SecretsInterface.Create(secret)
-	if err == nil {
-		fmt.Fprintf(o.Out, "secret/%s\n", persistedSecret.Name)
+	// TODO: sweep codebase removing implied --dry-run behavior when -o is specified
+	if o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) == 0 {
+		persistedSecret, err := o.SecretsInterface.Create(secret)
+		if err != nil {
+			return err
+		}
+
+		return o.Printer.PrintObj(persistedSecret, o.Out)
 	}
 
-	return persistedSecret, err
+	return o.Printer.PrintObj(secret, o.Out)
 }
 
-func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
+func (o *CreateSecretOptions) BundleSecret() (*corev1.Secret, error) {
 	secretData := make(map[string][]byte)
 
 	for _, source := range o.Sources {
@@ -223,8 +218,8 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 			for _, item := range fileList {
 				itemPath := path.Join(filePath, item.Name())
 				if !item.Mode().IsRegular() {
-					if o.Stderr != nil && o.Quiet != true {
-						fmt.Fprintf(o.Stderr, "Skipping resource %s\n", itemPath)
+					if o.ErrOut != nil && o.Quiet != true {
+						fmt.Fprintf(o.ErrOut, "Skipping resource %s\n", itemPath)
 					}
 				} else {
 					keyName = item.Name()
@@ -247,9 +242,9 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 	}
 
 	// if the secret type isn't specified, attempt to auto-detect likely hit
-	secretType := kapi.SecretType(o.SecretTypeName)
+	secretType := corev1.SecretType(o.SecretTypeName)
 	if len(o.SecretTypeName) == 0 {
-		secretType = kapi.SecretTypeOpaque
+		secretType = corev1.SecretTypeOpaque
 
 		for _, knownSecretType := range KnownSecretTypes {
 			if knownSecretType.Matches(secretData) {
@@ -258,7 +253,7 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 		}
 	}
 
-	secret := &kapi.Secret{
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 		Type:       secretType,
 		Data:       secretData,

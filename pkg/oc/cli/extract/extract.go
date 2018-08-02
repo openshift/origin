@@ -10,15 +10,14 @@ import (
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
-
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 var (
@@ -55,7 +54,11 @@ type ExtractOptions struct {
 	TargetDirectory string
 	Overwrite       bool
 
-	VisitorFn             func(resource.VisitorFunc) error
+	Namespace         string
+	ExplicitNamespace bool
+	Resources         []string
+	Builder           func() *resource.Builder
+
 	ExtractFileContentsFn func(runtime.Object) (map[string][]byte, bool, error)
 
 	genericclioptions.IOStreams
@@ -99,20 +102,15 @@ func NewCmdExtract(fullName string, f kcmdutil.Factory, streams genericclioption
 func (o *ExtractOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	o.ExtractFileContentsFn = extractFileContents
 
-	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
+	var err error
+	o.Namespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	b := f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		ResourceNames("", args...).
-		ContinueOnError().
-		Flatten()
+	o.Resources = args
+	o.Builder = f.NewBuilder
 
-	o.VisitorFn = b.Do().Visit
 	return nil
 }
 
@@ -131,9 +129,21 @@ func name(info *resource.Info) string {
 }
 
 func (o *ExtractOptions) Run() error {
+	r := o.Builder().
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
+		ResourceNames("", o.Resources...).
+		ContinueOnError().
+		Flatten().Do()
+
+	if err := r.Err(); err != nil {
+		return err
+	}
+
 	count := 0
 	contains := sets.NewString(o.OnlyKeys...)
-	err := o.VisitorFn(func(info *resource.Info, err error) error {
+	err := r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return fmt.Errorf("%s: %v", name(info), err)
 		}
@@ -158,7 +168,7 @@ func (o *ExtractOptions) Run() error {
 					}
 				default:
 					target := filepath.Join(o.TargetDirectory, k)
-					if err := writeToDisk(target, v, o.Overwrite, o.Out); err != nil {
+					if err := o.writeToDisk(target, v); err != nil {
 						if os.IsExist(err) {
 							err = fmt.Errorf("file exists, pass --confirm to overwrite")
 						}
@@ -181,8 +191,8 @@ func (o *ExtractOptions) Run() error {
 	return nil
 }
 
-func writeToDisk(path string, data []byte, overwrite bool, out io.Writer) error {
-	if overwrite {
+func (o *ExtractOptions) writeToDisk(path string, data []byte) error {
+	if o.Overwrite {
 		if err := ioutil.WriteFile(path, data, 0600); err != nil {
 			return err
 		}
@@ -199,7 +209,7 @@ func writeToDisk(path string, data []byte, overwrite bool, out io.Writer) error 
 			return err
 		}
 	}
-	fmt.Fprintf(out, "%s\n", path)
+	fmt.Fprintf(o.Out, "%s\n", path)
 	return nil
 }
 
@@ -207,9 +217,9 @@ func writeToDisk(path string, data []byte, overwrite bool, out io.Writer) error 
 // operation, or an error.
 func extractFileContents(obj runtime.Object) (map[string][]byte, bool, error) {
 	switch t := obj.(type) {
-	case *kapi.Secret:
+	case *corev1.Secret:
 		return t.Data, true, nil
-	case *kapi.ConfigMap:
+	case *corev1.ConfigMap:
 		out := make(map[string][]byte)
 		for k, v := range t.Data {
 			out[k] = []byte(v)

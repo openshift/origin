@@ -26,9 +26,9 @@ import (
 	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	coreinternal "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
@@ -38,25 +38,25 @@ func logsForObject(restClientGetter genericclioptions.RESTClientGetter, object, 
 	if err != nil {
 		return nil, err
 	}
-	clientset, err := internalclientset.NewForConfig(clientConfig)
+	externalClientset, err := corev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	return logsForObjectWithClient(clientset, object, options, timeout)
+	return logsForObjectWithClient(externalClientset, object, options, timeout)
 }
 
 // this is split for easy test-ability
-func logsForObjectWithClient(clientset internalclientset.Interface, object, options runtime.Object, timeout time.Duration) (*rest.Request, error) {
-	opts, ok := options.(*coreinternal.PodLogOptions)
+func logsForObjectWithClient(clientset corev1client.CoreV1Interface, object, options runtime.Object, timeout time.Duration) (*rest.Request, error) {
+	opts, ok := options.(*corev1.PodLogOptions)
 	if !ok {
 		return nil, errors.New("provided options object is not a PodLogOptions")
 	}
 
 	switch t := object.(type) {
 	case *coreinternal.Pod:
-		return clientset.Core().Pods(t.Namespace).GetLogs(t.Name, opts), nil
+		return clientset.Pods(t.Namespace).GetLogs(t.Name, opts), nil
 	case *corev1.Pod:
-		return clientset.Core().Pods(t.Namespace).GetLogs(t.Name, opts), nil
+		return clientset.Pods(t.Namespace).GetLogs(t.Name, opts), nil
 	}
 
 	namespace, selector, err := SelectorsForObject(object)
@@ -64,12 +64,12 @@ func logsForObjectWithClient(clientset internalclientset.Interface, object, opti
 		return nil, fmt.Errorf("cannot get the logs from %T: %v", object, err)
 	}
 	sortBy := func(pods []*v1.Pod) sort.Interface { return controller.ByLogging(pods) }
-	pod, numPods, err := GetFirstPod(clientset.Core(), namespace, selector.String(), timeout, sortBy)
+	pod, numPods, err := GetFirstPod(clientset, namespace, selector.String(), timeout, sortBy)
 	if err != nil {
 		return nil, err
 	}
 	if numPods > 1 {
 		fmt.Fprintf(os.Stderr, "Found %v pods, using pod/%v\n", numPods, pod.Name)
 	}
-	return clientset.Core().Pods(pod.Namespace).GetLogs(pod.Name, opts), nil
+	return clientset.Pods(pod.Namespace).GetLogs(pod.Name, opts), nil
 }

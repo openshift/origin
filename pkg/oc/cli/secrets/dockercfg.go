@@ -4,18 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"strings"
 
-	api "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"github.com/spf13/cobra"
+
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	corev1 "k8s.io/api/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-
-	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 )
 
 const CreateDockerConfigSecretRecommendedName = "new-dockercfg"
@@ -50,20 +50,31 @@ var (
 )
 
 type CreateDockerConfigOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	SecretName       string
 	RegistryLocation string
 	Username         string
 	Password         string
 	EmailAddress     string
 
-	SecretsInterface kcoreclient.SecretInterface
+	SecretsInterface corev1client.SecretInterface
 
-	Out io.Writer
+	genericclioptions.IOStreams
+}
+
+func NewCreateDockerConfigOptions(streams genericclioptions.IOStreams) *CreateDockerConfigOptions {
+	return &CreateDockerConfigOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
 }
 
 // NewCmdCreateDockerConfigSecret creates a command object for making a dockercfg secret
 func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams, newSecretFullName, ocEditFullName string) *cobra.Command {
-	o := &CreateDockerConfigOptions{Out: streams.Out}
+	o := NewCreateDockerConfigOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL", name),
@@ -73,25 +84,9 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, s
 		Deprecated: "use oc create secret",
 		Hidden:     true,
 		Run: func(c *cobra.Command, args []string) {
-			if err := o.Complete(f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if err := o.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if len(kcmdutil.GetFlagString(c, "output")) != 0 {
-				secret, err := o.NewDockerSecret()
-				kcmdutil.CheckErr(err)
-
-				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, streams.Out))
-				return
-			}
-
-			if err := o.CreateDockerSecret(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 
 		},
 	}
@@ -100,27 +95,31 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, s
 	cmd.Flags().StringVar(&o.Password, "docker-password", "", "Password for Docker registry authentication")
 	cmd.Flags().StringVar(&o.EmailAddress, "docker-email", "", "Email for Docker registry")
 	cmd.Flags().StringVar(&o.RegistryLocation, "docker-server", "https://index.docker.io/v1/", "Server location for Docker registry")
-	kcmdutil.AddPrinterFlags(cmd)
 
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
-func (o CreateDockerConfigOptions) CreateDockerSecret() error {
+func (o CreateDockerConfigOptions) Run() error {
 	secret, err := o.NewDockerSecret()
 	if err != nil {
 		return err
 	}
 
-	if _, err := o.SecretsInterface.Create(secret); err != nil {
-		return err
+	// TODO: sweep codebase removing implied --dry-run behavior when -o is specified
+	if o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) == 0 {
+		persistedSecret, err := o.SecretsInterface.Create(secret)
+		if err != nil {
+			return err
+		}
+
+		return o.Printer.PrintObj(persistedSecret, o.Out)
 	}
 
-	fmt.Fprintf(o.GetOut(), "secret/%s\n", secret.Name)
-
-	return nil
+	return o.Printer.PrintObj(secret, o.Out)
 }
 
-func (o CreateDockerConfigOptions) NewDockerSecret() (*api.Secret, error) {
+func (o CreateDockerConfigOptions) NewDockerSecret() (*corev1.Secret, error) {
 	dockercfgAuth := credentialprovider.DockerConfigEntry{
 		Username: o.Username,
 		Password: o.Password,
@@ -136,11 +135,11 @@ func (o CreateDockerConfigOptions) NewDockerSecret() (*api.Secret, error) {
 		return nil, err
 	}
 
-	secret := &api.Secret{}
+	secret := &corev1.Secret{}
 	secret.Name = o.SecretName
-	secret.Type = api.SecretTypeDockerConfigJson
+	secret.Type = corev1.SecretTypeDockerConfigJson
 	secret.Data = map[string][]byte{}
-	secret.Data[api.DockerConfigJsonKey] = dockercfgContent
+	secret.Data[corev1.DockerConfigJsonKey] = dockercfgContent
 
 	return secret, nil
 }
@@ -151,7 +150,12 @@ func (o *CreateDockerConfigOptions) Complete(f kcmdutil.Factory, args []string) 
 	}
 	o.SecretName = args[0]
 
-	client, err := f.ClientSet()
+	config, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	client, err := corev1client.NewForConfig(config)
 	if err != nil {
 		return err
 	}
@@ -160,7 +164,12 @@ func (o *CreateDockerConfigOptions) Complete(f kcmdutil.Factory, args []string) 
 		return err
 	}
 
-	o.SecretsInterface = client.Core().Secrets(namespace)
+	o.SecretsInterface = client.Secrets(namespace)
+
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -190,12 +199,4 @@ func (o CreateDockerConfigOptions) Validate() error {
 	}
 
 	return nil
-}
-
-func (o CreateDockerConfigOptions) GetOut() io.Writer {
-	if o.Out == nil {
-		return ioutil.Discard
-	}
-
-	return o.Out
 }

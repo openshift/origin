@@ -4,12 +4,15 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"github.com/spf13/cobra"
+
+	coreapiv1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
-	"github.com/spf13/cobra"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 const UnlinkSecretRecommendedName = "unlink"
@@ -27,11 +30,24 @@ var (
 
 type UnlinkSecretOptions struct {
 	SecretOptions
+
+	PrintFlags *genericclioptions.PrintFlags
+	Printer    printers.ResourcePrinter
+
+	genericclioptions.IOStreams
+}
+
+func NewUnlinkSecretOptions(streams genericclioptions.IOStreams) *UnlinkSecretOptions {
+	return &UnlinkSecretOptions{
+		PrintFlags:    genericclioptions.NewPrintFlags("updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		SecretOptions: SecretOptions{},
+		IOStreams:     streams,
+	}
 }
 
 // NewCmdUnlinkSecret creates a command object for detaching one or more secret references from a service account
 func NewCmdUnlinkSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &UnlinkSecretOptions{SecretOptions{Out: streams.Out}}
+	o := NewUnlinkSecretOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s serviceaccount-name secret-name [another-secret-name] ...", name),
@@ -46,17 +62,32 @@ func NewCmdUnlinkSecret(name, fullName string, f kcmdutil.Factory, streams gener
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
 			}
 
-			if err := o.UnlinkSecrets(); err != nil {
+			if err := o.Run(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 
 		},
 	}
 
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
-func (o UnlinkSecretOptions) UnlinkSecrets() error {
+func (o *UnlinkSecretOptions) Complete(f kcmdutil.Factory, args []string) error {
+	if err := o.SecretOptions.Complete(f, args); err != nil {
+		return err
+	}
+
+	var err error
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o UnlinkSecretOptions) Run() error {
 	serviceaccount, err := o.GetServiceAccount()
 	if err != nil {
 		return err
@@ -66,11 +97,11 @@ func (o UnlinkSecretOptions) UnlinkSecrets() error {
 		return err
 	}
 
-	return nil
+	return o.Printer.PrintObj(serviceaccount, o.Out)
 }
 
 // unlinkSecretsFromServiceAccount detaches pull and mount secrets from the service account.
-func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *kapi.ServiceAccount) error {
+func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *coreapiv1.ServiceAccount) error {
 	// All of the requested secrets must be present in either the Mount or Pull secrets
 	// If any of them are not present, we'll return an error and push no changes.
 	rmSecrets, hasNotFound, err := o.GetSecrets(true)
@@ -79,8 +110,8 @@ func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *kap
 	}
 	rmSecretNames := o.GetSecretNames(rmSecrets)
 
-	newMountSecrets := []kapi.ObjectReference{}
-	newPullSecrets := []kapi.LocalObjectReference{}
+	newMountSecrets := []coreapiv1.ObjectReference{}
+	newPullSecrets := []coreapiv1.LocalObjectReference{}
 	updated := false
 
 	// Check the mount secrets
@@ -107,7 +138,7 @@ func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *kap
 		// Save the updated Secret lists back to the server
 		serviceaccount.Secrets = newMountSecrets
 		serviceaccount.ImagePullSecrets = newPullSecrets
-		_, err = o.KubeCoreClient.ServiceAccounts(o.Namespace).Update(serviceaccount)
+		_, err = o.KubeClient.ServiceAccounts(o.Namespace).Update(serviceaccount)
 		if err != nil {
 			return err
 		}
