@@ -517,6 +517,7 @@
       "vendor/k8s.io/kubernetes/pkg/client",
       "vendor/k8s.io/kubernetes/pkg/kubectl",
       "vendor/k8s.io/kubernetes/pkg/printers",
+      "vendor/k8s.io/kubernetes/pkg/security",
       "vendor/k8s.io/kubernetes/pkg/util",
       "vendor/github.com/davecgh/go-spew/spew",
 
