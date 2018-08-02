@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import sys
+import distutils.spawn
 from shutil import copy, rmtree
 import distutils.dir_util as dir_util
-from subprocess import call
+from subprocess import call, Popen
 from tempfile import mkdtemp
 
 from atexit import register
@@ -52,6 +53,8 @@ Options:
 
 os_image_prefix = getenv("OS_IMAGE_PREFIX", "openshift/origin")
 image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
+single_process = getenv("SINGLE_PROCESS", False)
+imagebuilder_available = distutils.spawn.find_executable("imagebuilder")
 
 # "enable_default: True" can be added to skip the image build
 # with no arguments
@@ -213,20 +216,23 @@ def debug(message):
 os_root = abspath(join(dirname(__file__), ".."))
 os_image_path = join(os_root, "images")
 
-context_dir = mkdtemp()
-register(rmtree, context_dir)
-
-debug("Created temporary context dir at {}".format(context_dir))
-mkdir(join(context_dir, "bin"))
-mkdir(join(context_dir, "src"))
+root_dir = mkdtemp()
+register(rmtree, root_dir)
 
 build_occurred = False
-for image in image_config:
+docker_processes = []
+for count, image in enumerate(image_config):
     if not image_rebuild_requested(image):
         continue
 
     build_occurred = True
-    print "[INFO] Building {}...".format(image)
+    context_dir = join(root_dir, str(count))
+    print "[INFO] Preparing ({}/{}) {}...".format(count+1, len(image_config), image)
+    debug("Created temporary context dir at {}".format(context_dir))
+    mkdir(context_dir)
+    mkdir(join(context_dir, "bin"))
+    mkdir(join(context_dir, "src"))
+
     with open(join(context_dir, "Dockerfile"), "w+") as dockerfile:
         dockerfile.write("FROM {}:{}\n".format(full_name(image), image_config[image]["tag"]))
 
@@ -255,11 +261,24 @@ for image in image_config:
             container_destination=config["files"][file]
         )
 
-    debug("Initiating Docker build with Dockerfile:\n{}".format(open(join(context_dir, "Dockerfile")).read()))
-    call(["docker", "build", "-t", full_name(image), "."], cwd=context_dir)
+    debug("Initiating build with Dockerfile:\n{}".format(open(join(context_dir, "Dockerfile")).read()))
 
-    remove(join(context_dir, "Dockerfile"))
-    rmtree(join(context_dir, "src", image))
+    if imagebuilder_available:
+        build_cmd = ["imagebuilder", "-t", full_name(image), context_dir]
+    else:
+        build_cmd = ["docker", "build", "-t", full_name(image), context_dir]
+
+    if single_process:
+        call(build_cmd)
+    else:
+        docker_processes.append(Popen(build_cmd))
+
+# wait for all builds to complete when multiprocess
+for p in docker_processes:
+    p.wait()
+
+# after all is done, remove context_dir
+rmtree(context_dir)
 
 if not build_occurred and len(sys.argv) > 1:
     print "[ERROR] The provided image names ({}) did not match any buildable images.".format(
