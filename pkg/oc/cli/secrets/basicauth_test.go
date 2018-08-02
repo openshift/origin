@@ -67,18 +67,6 @@ func TestValidateBasicAuth(t *testing.T) {
 			},
 			expErr: true, //"Must provide basic authentication credentials"
 		},
-		{
-			testName: "passwordAndPrompt",
-			options: func(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
-				o := NewCreateBasicAuthSecretOptions(streams)
-				o.Username = "testUser"
-				o.Password = "testPassword"
-				o.SecretName = "testSecret"
-				o.PromptForPassword = true
-				return o
-			},
-			expErr: true, //"Must provide either --prompt or --password flag"
-		},
 	}
 
 	for _, test := range tests {

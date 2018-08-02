@@ -11,8 +11,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
-
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 const UnlinkSecretRecommendedName = "unlink"
@@ -39,7 +38,7 @@ type UnlinkSecretOptions struct {
 
 func NewUnlinkSecretOptions(streams genericclioptions.IOStreams) *UnlinkSecretOptions {
 	return &UnlinkSecretOptions{
-		PrintFlags:    genericclioptions.NewPrintFlags("updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags:    genericclioptions.NewPrintFlags("updated").WithTypeSetter(scheme.Scheme),
 		SecretOptions: SecretOptions{},
 		IOStreams:     streams,
 	}

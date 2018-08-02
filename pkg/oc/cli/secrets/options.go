@@ -14,8 +14,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
-
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 // SecretOptions Structure holding state for processing secret linking and
@@ -155,7 +153,7 @@ func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*corev1.Secret, bool
 
 	for _, secretName := range o.SecretNames {
 		r := o.BuilderFunc().
-			WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+			WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 			NamespaceParam(o.Namespace).
 			ResourceNames("secrets", secretName).
 			SingleResourceType().

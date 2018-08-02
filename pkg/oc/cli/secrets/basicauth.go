@@ -13,10 +13,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 // CreateBasicAuthSecretRecommendedCommandName represents name of subcommand for `oc secrets` command
@@ -64,7 +64,7 @@ type CreateBasicAuthSecretOptions struct {
 
 func NewCreateBasicAuthSecretOptions(streams genericclioptions.IOStreams) *CreateBasicAuthSecretOptions {
 	return &CreateBasicAuthSecretOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }
@@ -105,7 +105,6 @@ func (o *CreateBasicAuthSecretOptions) Run() error {
 	if err != nil {
 		return err
 	}
-
 	if _, err := o.SecretsInterface.Create(secret); err != nil {
 		return err
 	}
@@ -154,10 +153,12 @@ func (o *CreateBasicAuthSecretOptions) Complete(f kcmdutil.Factory, args []strin
 	if len(args) != 1 {
 		return errors.New("must have exactly one argument: secret name")
 	}
-
 	o.SecretName = args[0]
 
 	if o.PromptForPassword {
+		if len(o.Password) > 0 {
+			return errors.New("must provide either --prompt or --password flag")
+		}
 		if !kterm.IsTerminal(o.In) {
 			return errors.New("provided reader is not a terminal")
 		}
@@ -168,16 +169,15 @@ func (o *CreateBasicAuthSecretOptions) Complete(f kcmdutil.Factory, args []strin
 		}
 	}
 
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return err
+	}
 	config, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-
 	clientset, err := corev1client.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -196,13 +196,8 @@ func (o CreateBasicAuthSecretOptions) Validate() error {
 	if len(o.SecretName) == 0 {
 		return errors.New("basic authentication secret name must be present")
 	}
-
 	if len(o.Username) == 0 && len(o.Password) == 0 {
 		return errors.New("must provide basic authentication credentials")
-	}
-
-	if o.PromptForPassword && len(o.Password) > 0 {
-		return errors.New("must provide either --prompt or --password flag")
 	}
 
 	return nil

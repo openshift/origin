@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	corev1 "k8s.io/api/core/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -16,6 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 const CreateDockerConfigSecretRecommendedName = "new-dockercfg"
@@ -67,7 +67,7 @@ type CreateDockerConfigOptions struct {
 
 func NewCreateDockerConfigOptions(streams genericclioptions.IOStreams) *CreateDockerConfigOptions {
 	return &CreateDockerConfigOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }

@@ -589,7 +589,6 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*cor
 
 	// identify the command to be run
 	originalCommand, _ := o.getContainerImageCommand(pod, container)
-	//originalCommand := []string{"<image entrypoint>"}
 	if len(container.Command) > 0 {
 		originalCommand = container.Command
 		originalCommand = append(originalCommand, container.Args...)

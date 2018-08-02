@@ -18,8 +18,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
-
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 const NewSecretRecommendedCommandName = "new"
@@ -76,7 +75,7 @@ type CreateSecretOptions struct {
 
 func NewCreateSecretOptions(streams genericclioptions.IOStreams) *CreateSecretOptions {
 	return &CreateSecretOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }
