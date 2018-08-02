@@ -16,6 +16,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/api/core/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
@@ -53,10 +54,13 @@ func (ut *Tester) Response(test *Test) *Response {
 
 func (ut *Tester) Responses(tests ...*Test) []*Response {
 	if len(ut.podName) == 0 {
-		name, err := createExecPod(ut.client, ut.namespace, "execpod")
-		// exit even on error passthrough
-		o.Expect(err).NotTo(o.HaveOccurred())
-		ut.podName = name
+		_, err := createExecPod(ut.client, ut.namespace, "execpod")
+		if err != nil && !apierrs.IsAlreadyExists(err) {
+			// exit even on error passthrough, unless the exec pod
+			// was already created by a test running in parallel
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+		ut.podName = "execpod"
 	}
 	// testToScript needs to run after creating the pod
 	// in case we need to rsync files for a post body
