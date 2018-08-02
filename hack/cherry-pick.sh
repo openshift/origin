@@ -35,7 +35,7 @@ os::build::require_clean_tree
 remote="${UPSTREAM_REMOTE:-origin}"
 git fetch ${remote}
 
-selector="$(os::build::commit_range $pr ${remote}/master)"
+selector="$(os::build::commit_range $pr ${remote}/${UPSTREAM_BRANCH:-master})"
 
 if [[ -z "${NO_REBASE-}" ]]; then
   echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
