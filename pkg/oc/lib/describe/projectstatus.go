@@ -1557,7 +1557,7 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
-		_, isDeployerPod := meta.GetLabels()[appsapi.DeployerPodForDeploymentLabel]
+		_, isDeployerPod := meta.GetLabels()[appsutil.DeployerPodForDeploymentLabel]
 		_, isBuilderPod := meta.GetAnnotations()[buildapi.BuildAnnotation]
 		isFinished := actualPod.Status.Phase == kapi.PodSucceeded || actualPod.Status.Phase == kapi.PodFailed
 		if isDeployerPod || isBuilderPod || isFinished {
