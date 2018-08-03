@@ -3,12 +3,12 @@ package secrets
 import (
 	"reflect"
 
+	coreapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 type KnownSecretType struct {
-	Type             kapi.SecretType
+	Type             coreapiv1.SecretType
 	RequiredContents sets.String
 }
 
@@ -22,7 +22,7 @@ func (ks KnownSecretType) Matches(secretContent map[string][]byte) bool {
 
 var (
 	KnownSecretTypes = []KnownSecretType{
-		{kapi.SecretTypeDockercfg, sets.NewString(kapi.DockerConfigKey)},
-		{kapi.SecretTypeDockerConfigJson, sets.NewString(kapi.DockerConfigJsonKey)},
+		{coreapiv1.SecretTypeDockercfg, sets.NewString(coreapiv1.DockerConfigKey)},
+		{coreapiv1.SecretTypeDockerConfigJson, sets.NewString(coreapiv1.DockerConfigJsonKey)},
 	}
 )

@@ -29,7 +29,7 @@ import (
 )
 
 func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorphichelpers.LogsForObjectFunc {
-	return func(restClientGetter genericclioptions.RESTClientGetter, object, options runtime.Object, timeout time.Duration) (*rest.Request, error) {
+	return func(restClientGetter genericclioptions.RESTClientGetter, object, options runtime.Object, timeout time.Duration, allContainers bool) ([]*rest.Request, error) {
 		clientConfig, err := restClientGetter.ToRESTConfig()
 		if err != nil {
 			return nil, err
@@ -45,7 +45,8 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-			return appsmanualclient.NewRolloutLogClient(appsClient.AppsV1().RESTClient(), t.Namespace).Logs(t.Name, *dopts), nil
+			// TODO: support allContainers flag
+			return []*rest.Request{appsmanualclient.NewRolloutLogClient(appsClient.AppsV1().RESTClient(), t.Namespace).Logs(t.Name, *dopts)}, nil
 		case *appsv1.DeploymentConfig:
 			dopts, ok := options.(*appsv1.DeploymentLogOptions)
 			if !ok {
@@ -55,7 +56,8 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-			return appsmanualclientv1.NewRolloutLogClient(appsClient.RESTClient(), t.Namespace).Logs(t.Name, *dopts), nil
+			// TODO: support allContainers flag
+			return []*rest.Request{appsmanualclientv1.NewRolloutLogClient(appsClient.RESTClient(), t.Namespace).Logs(t.Name, *dopts)}, nil
 		case *buildv1.Build:
 			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
@@ -68,7 +70,8 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-			return buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts), nil
+			// TODO: support allContainers flag
+			return []*rest.Request{buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
 		case *buildv1.BuildConfig:
 			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
@@ -93,10 +96,12 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if bopts.Version != nil {
 				// If a version has been specified, try to get the logs from that build.
 				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
-				return logClient.Logs(desired, *bopts), nil
+				// TODO: support allContainers flag
+				return []*rest.Request{logClient.Logs(desired, *bopts)}, nil
 			}
 			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestamp(filteredInternalBuildItems)))
-			return logClient.Logs(filteredInternalBuildItems[0].Name, *bopts), nil
+			// TODO: support allContainers flag
+			return []*rest.Request{logClient.Logs(filteredInternalBuildItems[0].Name, *bopts)}, nil
 		case *buildapi.Build:
 			bopts, ok := options.(*buildapi.BuildLogOptions)
 			if !ok {
@@ -109,7 +114,8 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-			return buildmanualclient.NewBuildLogClient(buildClient.Build().RESTClient(), t.Namespace).Logs(t.Name, *bopts), nil
+			// TODO: support allContainers flag
+			return []*rest.Request{buildmanualclient.NewBuildLogClient(buildClient.Build().RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
 		case *buildapi.BuildConfig:
 			bopts, ok := options.(*buildapi.BuildLogOptions)
 			if !ok {
@@ -131,13 +137,15 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if bopts.Version != nil {
 				// If a version has been specified, try to get the logs from that build.
 				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
-				return logClient.Logs(desired, *bopts), nil
+				// TODO: support allContainers flag
+				return []*rest.Request{logClient.Logs(desired, *bopts)}, nil
 			}
 			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestampInternal(builds.Items)))
-			return logClient.Logs(builds.Items[0].Name, *bopts), nil
+			// TODO: support allContainers flag
+			return []*rest.Request{logClient.Logs(builds.Items[0].Name, *bopts)}, nil
 
 		default:
-			return delegate(restClientGetter, object, options, timeout)
+			return delegate(restClientGetter, object, options, timeout, allContainers)
 		}
 	}
 }

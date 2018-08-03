@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -82,10 +82,8 @@ type LogsOptions struct {
 
 func NewLogsOptions(streams genericclioptions.IOStreams) *LogsOptions {
 	return &LogsOptions{
-		KubeLogOptions: &kcmd.LogsOptions{
-			IOStreams: streams,
-		},
-		IOStreams: streams,
+		KubeLogOptions: kcmd.NewLogsOptions(streams, false),
+		IOStreams:      streams,
 	}
 }
 
@@ -99,7 +97,7 @@ func NewCmdLogs(name, baseName string, f kcmdutil.Factory, streams genericcliopt
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		kcmdutil.CheckErr(o.Complete(f, cmd, args))
-		kcmdutil.CheckErr(o.Validate())
+		kcmdutil.CheckErr(o.Validate(args))
 		kcmdutil.CheckErr(o.RunLog())
 	}
 
@@ -125,10 +123,31 @@ func isPipelineBuild(obj runtime.Object) (bool, *buildv1.BuildConfig, bool, *bui
 // resource a user requested to view its logs and creates the appropriate logOptions
 // object for it.
 func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+	// manually bind all flag values from the upstream command
+	// TODO: once the upstream command supports binding flags
+	// by outside callers, this will no longer be needed.
+	o.KubeLogOptions.AllContainers = kcmdutil.GetFlagBool(cmd, "all-containers")
+	o.KubeLogOptions.Container = kcmdutil.GetFlagString(cmd, "container")
+	o.KubeLogOptions.Selector = kcmdutil.GetFlagString(cmd, "selector")
+	o.KubeLogOptions.Follow = kcmdutil.GetFlagBool(cmd, "follow")
+	o.KubeLogOptions.Previous = kcmdutil.GetFlagBool(cmd, "previous")
+	o.KubeLogOptions.Timestamps = kcmdutil.GetFlagBool(cmd, "timestamps")
+	o.KubeLogOptions.SinceTime = kcmdutil.GetFlagString(cmd, "since-time")
+	o.KubeLogOptions.LimitBytes = kcmdutil.GetFlagInt64(cmd, "limit-bytes")
+	o.KubeLogOptions.Tail = kcmdutil.GetFlagInt64(cmd, "tail")
+	o.KubeLogOptions.SinceSeconds = kcmdutil.GetFlagDuration(cmd, "since")
+	o.KubeLogOptions.ContainerNameSpecified = cmd.Flag("container").Changed
+
 	if err := o.KubeLogOptions.Complete(f, cmd, args); err != nil {
 		return err
 	}
+
 	var err error
+	o.KubeLogOptions.GetPodTimeout, err = kcmdutil.GetPodRunningTimeoutFlag(cmd)
+	if err != nil {
+		return err
+	}
+
 	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
@@ -151,7 +170,7 @@ func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 
 // Validate runs the upstream validation for the logs command and then it
 // will validate any OpenShift-specific log options.
-func (o *LogsOptions) Validate() error {
+func (o *LogsOptions) Validate(args []string) error {
 	if err := o.KubeLogOptions.Validate(); err != nil {
 		return err
 	}
@@ -176,7 +195,7 @@ func (o *LogsOptions) Validate() error {
 // RunLog will run the upstream logs command and may use an OpenShift
 // logOptions object.
 func (o *LogsOptions) RunLog() error {
-	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
+	podLogOptions := o.KubeLogOptions.Options.(*corev1.PodLogOptions)
 	infos, err := o.Builder().
 		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
