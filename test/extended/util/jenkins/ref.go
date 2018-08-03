@@ -1,12 +1,10 @@
 package jenkins
 
 import (
-	"bytes"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net/http"
+
 	"net/url"
 	"os"
 	"regexp"
@@ -23,6 +21,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
+	exurl "github.com/openshift/origin/test/extended/util/url"
 )
 
 const (
@@ -38,8 +37,9 @@ type JenkinsRef struct {
 	host string
 	port string
 	// The namespace in which the Jenkins server is running
-	namespace string
-	token     string
+	namespace  string
+	token      string
+	uri_tester *exurl.Tester
 }
 
 // FlowDefinition can be marshalled into XML to represent a Jenkins workflow job definition.
@@ -71,11 +71,12 @@ func NewRef(oc *exutil.CLI) *JenkinsRef {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	j := &JenkinsRef{
-		oc:        oc,
-		host:      serviceIP,
-		port:      port,
-		namespace: oc.Namespace(),
-		token:     token,
+		oc:         oc,
+		host:       serviceIP,
+		port:       port,
+		namespace:  oc.Namespace(),
+		token:      token,
+		uri_tester: exurl.NewTester(oc.AdminKubeClient(), oc.Namespace()),
 	}
 	return j
 }
@@ -96,71 +97,41 @@ func (j *JenkinsRef) BuildURI(resourcePathFormat string, a ...interface{}) strin
 func (j *JenkinsRef) GetResource(resourcePathFormat string, a ...interface{}) (string, int, error) {
 	uri := j.BuildURI(resourcePathFormat, a...)
 	e2e.Logf("Retrieving Jenkins resource: %q", uri)
-	req, err := http.NewRequest("GET", uri, nil)
-	if err != nil {
-		return "", 0, fmt.Errorf("Unable to build request for uri %q: %v", uri, err)
+	response := j.uri_tester.WithErrorPassthrough(true).Response(
+		exurl.Expect("GET", uri).WithToken(j.token),
+	)
+	var err error
+	if len(response.Error) > 0 {
+		err = fmt.Errorf("%s", response.Error)
 	}
-
-	// http://stackoverflow.com/questions/17714494/golang-http-request-results-in-eof-errors-when-making-multiple-requests-successi
-	req.Close = true
-
-	req.Header.Set("Authorization", "Bearer "+j.token)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return "", 0, fmt.Errorf("Unable to GET uri %q: %v", uri, err)
+	rc := -1
+	if response.Response != nil {
+		rc = response.Response.StatusCode
 	}
-
-	defer resp.Body.Close()
-	status := resp.StatusCode
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", 0, fmt.Errorf("Error reading GET response %q: %v", uri, err)
-	}
-
-	return string(body), status, nil
+	return string(response.Body), rc, err
 }
 
 // Post sends a POST to the Jenkins server. Returns response body and status code or an error.
-func (j *JenkinsRef) Post(reqBody io.Reader, resourcePathFormat, contentType string, a ...interface{}) (string, int, error) {
+func (j *JenkinsRef) Post(reqBodyFile, resourcePathFormat, contentType string, a ...interface{}) (string, int, error) {
 	uri := j.BuildURI(resourcePathFormat, a...)
-
-	req, err := http.NewRequest("POST", uri, reqBody)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-
-	// http://stackoverflow.com/questions/17714494/golang-http-request-results-in-eof-errors-when-making-multiple-requests-successi
-	req.Close = true
-
-	if reqBody != nil {
-		req.Header.Set("Content-Type", contentType)
-		req.Header.Del("Expect") // jenkins will return 417 if we have an expect hdr
+	response := j.uri_tester.WithErrorPassthrough(true).Response(
+		exurl.Expect("POST", uri).WithBodyToUpload(reqBodyFile, j.uri_tester.Podname(), j.oc).WithToken(j.token).WithHeader("Content-Type", contentType),
+	)
+	var err error
+	if len(response.Error) > 0 {
+		err = fmt.Errorf("%s", response.Error)
 	}
-	req.Header.Set("Authorization", "Bearer "+j.token)
-
-	client := &http.Client{}
-	e2e.Logf("Posting to Jenkins resource: %q", uri)
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", 0, fmt.Errorf("Error posting request to %q: %v", uri, err)
+	rc := -1
+	if response.Response != nil {
+		rc = response.Response.StatusCode
 	}
-
-	defer resp.Body.Close()
-	status := resp.StatusCode
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", 0, fmt.Errorf("Error reading Post response body %q: %v", uri, err)
-	}
-
-	return string(body), status, nil
+	return string(response.Body), rc, err
 }
 
 // PostXML sends a POST to the Jenkins server. If a body is specified, it should be XML.
 // Returns response body and status code or an error.
-func (j *JenkinsRef) PostXML(reqBody io.Reader, resourcePathFormat string, a ...interface{}) (string, int, error) {
-	return j.Post(reqBody, resourcePathFormat, "application/xml", a...)
+func (j *JenkinsRef) PostXML(reqBodyFile, resourcePathFormat string, a ...interface{}) (string, int, error) {
+	return j.Post(reqBodyFile, resourcePathFormat, "application/xml", a...)
 }
 
 // GetResourceWithStatus repeatedly tries to GET a jenkins resource with an acceptable
@@ -182,7 +153,7 @@ func (j *JenkinsRef) GetResourceWithStatus(validStatusList []int, timeout time.D
 			}
 		}
 		if !found {
-			e2e.Logf("Expected http status [%v] during GET by recevied [%v] for %s with body %s", validStatusList, status, resourcePathFormat, body)
+			e2e.Logf("Expected http status [%v] during GET but received [%v] for %s with body %s", validStatusList, status, resourcePathFormat, body)
 			return false, nil
 		}
 		retBody = body
@@ -234,7 +205,7 @@ func (j *JenkinsRef) WaitForContent(verificationRegEx string, verificationStatus
 // CreateItem submits XML to create a named item on the Jenkins server.
 func (j *JenkinsRef) CreateItem(name string, itemDefXML string) {
 	g.By(fmt.Sprintf("Creating new jenkins item: %s", name))
-	_, status, err := j.PostXML(bytes.NewBufferString(itemDefXML), "createItem?name=%s", name)
+	_, status, err := j.PostXML(itemDefXML, "createItem?name=%s", name)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 	o.ExpectWithOffset(1, status).To(o.Equal(200))
 }
@@ -267,18 +238,18 @@ func (j *JenkinsRef) StartJob(jobName string) *JobMon {
 
 	e2e.Logf("Current timestamp for [%s]: %q", jobName, jmon.lastBuildNumber)
 	g.By(fmt.Sprintf("Starting jenkins job: %s", jobName))
-	_, status, err := j.PostXML(nil, "job/%s/build?delay=0sec", jobName)
+	_, status, err := j.PostXML("", "job/%s/build?delay=0sec", jobName)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 	o.ExpectWithOffset(1, status).To(o.Equal(201))
 
 	return jmon
 }
 
-// ReadJenkinsJobUsingVars returns the content of a Jenkins job XML file. Instances of the
+// ProcessJenkinsJobUsingVars returns the path of the modified Jenkins job XML file. Instances of the
 // string "PROJECT_NAME" are replaced with the specified namespace.
 // Variables named in the vars map will also be replaced with their
 // corresponding value.
-func (j *JenkinsRef) ReadJenkinsJobUsingVars(filename, namespace string, vars map[string]string) string {
+func (j *JenkinsRef) ProcessJenkinsJobUsingVars(filename, namespace string, vars map[string]string) string {
 	pre := exutil.FixturePath("testdata", "jenkins-plugin", filename)
 	post := exutil.ArtifactPath(filename)
 
@@ -291,13 +262,17 @@ func (j *JenkinsRef) ReadJenkinsJobUsingVars(filename, namespace string, vars ma
 
 	data, err := ioutil.ReadFile(post)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-	return string(data)
+
+	newfile, err := exutil.CreateTempFile(string(data))
+	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+	return newfile
+
 }
 
-// ReadJenkinsJob returns the content of a Jenkins job XML file. Instances of the
+// ProcessJenkinsJob returns the path of the modified Jenkins job XML file. Instances of the
 // string "PROJECT_NAME" are replaced with the specified namespace.
-func (j *JenkinsRef) ReadJenkinsJob(filename, namespace string) string {
-	return j.ReadJenkinsJobUsingVars(filename, namespace, nil)
+func (j *JenkinsRef) ProcessJenkinsJob(filename, namespace string) string {
+	return j.ProcessJenkinsJobUsingVars(filename, namespace, nil)
 }
 
 // BuildDSLJob returns an XML string defining a Jenkins workflow/pipeline DSL job. Instances of the

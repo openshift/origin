@@ -894,7 +894,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 						}
 
 						g.By("Approving the current build")
-						_, _, err = j.Post(nil, jenkinsBuildURI+"/input/Approval/proceedEmpty", "")
+						_, _, err = j.Post("", jenkinsBuildURI+"/input/Approval/proceedEmpty", "")
 						if err != nil {
 							errs <- fmt.Errorf("error approving the current build: %s", err)
 						}
