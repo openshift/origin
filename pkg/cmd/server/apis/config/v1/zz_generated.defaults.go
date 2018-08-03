@@ -6,15 +6,30 @@ package v1
 
 import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
 // RegisterDefaults adds defaulters functions to the given scheme.
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
+	scheme.AddTypeDefaultingFunc(&BuildDefaultsConfig{}, func(obj interface{}) { SetObjectDefaults_BuildDefaultsConfig(obj.(*BuildDefaultsConfig)) })
 	scheme.AddTypeDefaultingFunc(&MasterConfig{}, func(obj interface{}) { SetObjectDefaults_MasterConfig(obj.(*MasterConfig)) })
 	scheme.AddTypeDefaultingFunc(&NodeConfig{}, func(obj interface{}) { SetObjectDefaults_NodeConfig(obj.(*NodeConfig)) })
 	return nil
+}
+
+func SetObjectDefaults_BuildDefaultsConfig(in *BuildDefaultsConfig) {
+	for i := range in.Env {
+		a := &in.Env[i]
+		if a.ValueFrom != nil {
+			if a.ValueFrom.FieldRef != nil {
+				core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+			}
+		}
+	}
+	core_v1.SetDefaults_ResourceList(&in.Resources.Limits)
+	core_v1.SetDefaults_ResourceList(&in.Resources.Requests)
 }
 
 func SetObjectDefaults_MasterConfig(in *MasterConfig) {

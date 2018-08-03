@@ -7,19 +7,19 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 func TestValidateBuildDefaultsConfig(t *testing.T) {
 	tests := []struct {
-		config      *defaultsapi.BuildDefaultsConfig
+		config      *configapi.BuildDefaultsConfig
 		errExpected bool
 		errField    string
 		errType     field.ErrorType
 	}{
 		// 0: Valid config
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				GitHTTPProxy:  "http://valid.url",
 				GitHTTPSProxy: "https://valid.url",
 				Env: []kapi.EnvVar{
@@ -37,7 +37,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 1:  invalid HTTP proxy
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				GitHTTPProxy:  "some!@#$%^&*()url",
 				GitHTTPSProxy: "https://valid.url",
 			},
@@ -47,7 +47,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 2:  invalid HTTPS proxy
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				GitHTTPProxy:  "https://valid.url",
 				GitHTTPSProxy: "some!@#$%^&*()url",
 			},
@@ -57,7 +57,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 3: missing Env variable name
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				Env: []kapi.EnvVar{
 					{
 						Name:  "",
@@ -71,7 +71,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 4: invalid Env variable name
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				Env: []kapi.EnvVar{
 					{
 						Name:  " invalid,name",
@@ -85,7 +85,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 5: ResourceFieldRef present in env var
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				Env: []kapi.EnvVar{
 					{
 						Name: "name",
@@ -104,7 +104,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 6: label: empty name
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				ImageLabels: []buildapi.ImageLabel{
 					{
 						Name:  "",
@@ -118,7 +118,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 7: label: bad name
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				ImageLabels: []buildapi.ImageLabel{
 					{
 						Name:  "\tč;",
@@ -132,7 +132,7 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 8: duplicate label
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				ImageLabels: []buildapi.ImageLabel{
 					{
 						Name:  "name",
@@ -150,14 +150,14 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 9: valid nodeselector
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				NodeSelector: map[string]string{"A": "B"},
 			},
 			errExpected: false,
 		},
 		// 10: invalid nodeselector
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				NodeSelector: map[string]string{"A@B!": "C"},
 			},
 			errExpected: true,
@@ -166,14 +166,14 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 		},
 		// 11: valid annotation
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				Annotations: map[string]string{"A": "B"},
 			},
 			errExpected: false,
 		},
 		// 12: invalid annotation
 		{
-			config: &defaultsapi.BuildDefaultsConfig{
+			config: &configapi.BuildDefaultsConfig{
 				Annotations: map[string]string{"A B": "C"},
 			},
 			errExpected: true,

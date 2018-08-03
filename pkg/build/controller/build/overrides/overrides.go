@@ -10,46 +10,17 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
-	overridesv1 "github.com/openshift/origin/pkg/build/controller/build/apis/overrides/v1"
-	"github.com/openshift/origin/pkg/build/controller/build/apis/overrides/validation"
-	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type BuildOverrides struct {
-	config *overridesapi.BuildOverridesConfig
-}
-
-// NewBuildOverrides creates a new BuildOverrides that will apply the overrides specified in the plugin config
-func NewBuildOverrides(pluginConfig map[string]*configapi.AdmissionPluginConfig) (BuildOverrides, error) {
-	scheme := runtime.NewScheme()
-	overridesv1.InstallLegacy(scheme)
-	uncastConfig, err := pluginconfig.GetPluginConfigObj(pluginConfig, overridesapi.BuildOverridesPlugin, scheme)
-	if err != nil {
-		return BuildOverrides{}, err
-	}
-	if uncastConfig == nil {
-		return BuildOverrides{}, nil
-	}
-	config, ok := uncastConfig.(*overridesapi.BuildOverridesConfig)
-	if !ok {
-		return BuildOverrides{}, fmt.Errorf("expected BuildDefaultsConfig, not %T", uncastConfig)
-	}
-
-	errs := validation.ValidateBuildOverridesConfig(config)
-	if len(errs) > 0 {
-		return BuildOverrides{}, errs.ToAggregate()
-	}
-	glog.V(4).Infof("Initialized build overrides plugin with config: %#v", *config)
-	return BuildOverrides{config: config}, nil
+	Config *configapi.BuildOverridesConfig
 }
 
 // ApplyOverrides applies configured overrides to a build in a build pod
 func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
-	if b.config == nil {
+	if b.Config == nil {
 		return nil
 	}
 
@@ -60,7 +31,7 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 
 	glog.V(4).Infof("Applying overrides to build %s/%s", build.Namespace, build.Name)
 
-	if b.config.ForcePull {
+	if b.Config.ForcePull {
 		if build.Spec.Strategy.DockerStrategy != nil {
 			glog.V(5).Infof("Setting docker strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
 			build.Spec.Strategy.DockerStrategy.ForcePull = true
@@ -80,32 +51,32 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 	}
 
 	// Apply label overrides
-	for _, lbl := range b.config.ImageLabels {
+	for _, lbl := range b.Config.ImageLabels {
 		glog.V(5).Infof("Overriding image label %s=%s in build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
 		overrideLabel(lbl, &build.Spec.Output.ImageLabels)
 	}
 
-	if len(b.config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
+	if len(b.Config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
 		pod.Spec.NodeSelector = map[string]string{}
 	}
-	for k, v := range b.config.NodeSelector {
+	for k, v := range b.Config.NodeSelector {
 		glog.V(5).Infof("Adding override nodeselector %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
 		pod.Spec.NodeSelector[k] = v
 	}
 
-	if len(b.config.Annotations) != 0 && pod.Annotations == nil {
+	if len(b.Config.Annotations) != 0 && pod.Annotations == nil {
 		pod.Annotations = map[string]string{}
 	}
-	for k, v := range b.config.Annotations {
+	for k, v := range b.Config.Annotations {
 		glog.V(5).Infof("Adding override annotation %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
 		pod.Annotations[k] = v
 	}
 
 	// Override Tolerations
-	if len(b.config.Tolerations) != 0 {
+	if len(b.Config.Tolerations) != 0 {
 		glog.V(5).Infof("Overriding tolerations for pod %s/%s", pod.Namespace, pod.Name)
 		pod.Spec.Tolerations = []v1.Toleration{}
-		for _, toleration := range b.config.Tolerations {
+		for _, toleration := range b.Config.Tolerations {
 			t := v1.Toleration{}
 
 			if err := kapiv1.Convert_core_Toleration_To_v1_Toleration(&toleration, &t, nil); err != nil {

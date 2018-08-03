@@ -5,10 +5,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
-	"github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
-func ValidateBuildOverridesConfig(config *overrides.BuildOverridesConfig) field.ErrorList {
+func ValidateBuildOverridesConfig(config *configapi.BuildOverridesConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, buildvalidation.ValidateImageLabels(config.ImageLabels, field.NewPath("imageLabels"))...)
 	allErrs = append(allErrs, buildvalidation.ValidateNodeSelector(config.NodeSelector, field.NewPath("nodeSelector"))...)

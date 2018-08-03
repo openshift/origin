@@ -1,9 +1,12 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 type ExtendedArguments map[string][]string
@@ -1449,4 +1452,76 @@ type DefaultAdmissionConfig struct {
 
 	// Disable turns off an admission plugin that is enabled by default.
 	Disable bool `json:"disable"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// BuildDefaultsConfig controls the default information for Builds
+type BuildDefaultsConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// gitHTTPProxy is the location of the HTTPProxy for Git source
+	GitHTTPProxy string `json:"gitHTTPProxy,omitempty"`
+
+	// gitHTTPSProxy is the location of the HTTPSProxy for Git source
+	GitHTTPSProxy string `json:"gitHTTPSProxy,omitempty"`
+
+	// gitNoProxy is the list of domains for which the proxy should not be used
+	GitNoProxy string `json:"gitNoProxy,omitempty"`
+
+	// env is a set of default environment variables that will be applied to the
+	// build if the specified variables do not exist on the build
+	Env []corev1.EnvVar `json:"env,omitempty"`
+
+	// sourceStrategyDefaults are default values that apply to builds using the
+	// source strategy.
+	SourceStrategyDefaults *SourceStrategyDefaultsConfig `json:"sourceStrategyDefaults,omitempty"`
+
+	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// User can override a default label by providing a label with the same name in their
+	// Build/BuildConfig.
+	ImageLabels []buildv1.ImageLabel `json:"imageLabels,omitempty"`
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// annotations are annotations that will be added to the build pod
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// resources defines resource requirements to execute the build.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+// SourceStrategyDefaultsConfig contains values that apply to builds using the
+// source strategy.
+type SourceStrategyDefaultsConfig struct {
+
+	// incremental indicates if s2i build strategies should perform an incremental
+	// build or not
+	Incremental *bool `json:"incremental,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// BuildOverridesConfig controls override settings for builds
+type BuildOverridesConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// forcePull indicates whether the build strategy should always be set to ForcePull=true
+	ForcePull bool `json:"forcePull"`
+
+	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// If user provided a label in their Build/BuildConfig with the same name as one in this
+	// list, the user's label will be overwritten.
+	ImageLabels []buildv1.ImageLabel `json:"imageLabels,omitempty"`
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// annotations are annotations that will be added to the build pod
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// tolerations is a list of Tolerations that will override any existing
+	// tolerations set on a build pod.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
