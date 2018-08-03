@@ -35,5 +35,9 @@ os::cmd::expect_success_and_text "oc get bc -o yaml" "all bc"
 os::cmd::expect_success_and_text "oc set build-hook bc/test-buildconfig --post-commit --remove" "updated"
 os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "args:"
 os::cmd::expect_success "oc delete bc/test-buildconfig"
+# ensure command behaves as expected when an empty file is given
+workingdir=$(mktemp -d)
+touch "${workingdir}/emptyfile.json"
+os::cmd::expect_failure_and_text "oc set build-hook -f ${workingdir}/emptyfile.json --post-commit=true --script=foo" "no resources found"
 echo "set build-hook: ok"
 os::test::junit::declare_suite_end
