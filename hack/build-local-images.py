@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 import sys
 from shutil import copy, rmtree
@@ -11,7 +12,7 @@ from os import getenv, mkdir, remove
 from os.path import abspath, dirname, isdir, join
 
 if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--h', '-help', '--help']:
-    print """Quickly re-build images depending on OpenShift Origin build artifacts.
+    print("""Quickly re-build images depending on OpenShift Origin build artifacts.
 
 This script re-builds OpenShift Origin images quickly. It is intended
 to be used by developers for quick, iterative development of images
@@ -47,7 +48,7 @@ Examples:
 
 Options:
   -h,--h, -help,--help: show this help-text
-"""
+""")
     exit(2)
 
 os_image_prefix = getenv("OS_IMAGE_PREFIX", "openshift/origin")
@@ -207,7 +208,7 @@ def add_to_context(context_dir, source, destination, container_destination):
 
 def debug(message):
     if getenv("OS_DEBUG"):
-        print "[DEBUG] {}".format(message)
+        print("[DEBUG] {}".format(message))
 
 
 os_root = abspath(join(dirname(__file__), ".."))
@@ -226,7 +227,7 @@ for image in image_config:
         continue
 
     build_occurred = True
-    print "[INFO] Building {}...".format(image)
+    print("[INFO] Building {}...".format(image))
     with open(join(context_dir, "Dockerfile"), "w+") as dockerfile:
         dockerfile.write("FROM {}:{}\n".format(full_name(image), image_config[image]["tag"]))
 
@@ -262,10 +263,12 @@ for image in image_config:
     rmtree(join(context_dir, "src", image))
 
 if not build_occurred and len(sys.argv) > 1:
-    print "[ERROR] The provided image names ({}) did not match any buildable images.".format(
-        ", ".join(sys.argv[1:])
+    print(
+        "[ERROR] The provided image names ({}) did not match any buildable images."
+        .format(", ".join(sys.argv[1:]))
     )
-    print "[ERROR] This script knows how to build:\n\t{}".format(
-        "\n\t".join(map(full_name, image_config.keys()))
+    print(
+        "[ERROR] This script knows how to build:\n\t{}"
+        .format("\n\t".join(map(full_name, image_config.keys())))
     )
     exit(1)
