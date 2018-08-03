@@ -162,6 +162,8 @@ os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
 build_name="$(oc start-build -o=name --no-cache test)"
 os::cmd::expect_success_and_text "oc describe ${build_name}" 'No Cache'
 os::cmd::expect_failure_and_text "oc start-build test --incremental" 'Cannot specify Source build specific options'
+# ensure a specific version can be specified for buildconfigs
+os::cmd::expect_failure_and_not_text "oc logs bc/test --version=1" "cannot specify a version and a build"
 os::cmd::expect_success 'oc delete all --selector="name=test"'
 echo "start-build: ok"
 os::test::junit::declare_suite_end
