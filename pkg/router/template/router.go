@@ -598,7 +598,7 @@ func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.
 		return false
 	}
 
-	err := r.dynamicConfigManager.AddRoute(backendKey, route)
+	err := r.dynamicConfigManager.AddRoute(backendKey, backend.RoutingKeyName, route)
 	if err != nil {
 		glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically add route for backend %s: %v", backendKey, err)
 		return false

@@ -286,7 +286,7 @@ func (cm *haproxyConfigManager) Register(id string, route *routeapi.Route) {
 }
 
 // AddRoute adds a new route or updates an existing route.
-func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route) error {
+func (cm *haproxyConfigManager) AddRoute(id, routingKey string, route *routeapi.Route) error {
 	if cm.isReloading() {
 		return fmt.Errorf("Router reload in progress, cannot dynamically add route %s", id)
 	}
@@ -332,6 +332,18 @@ func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route) error
 
 	if err := cm.addMapAssociations(entry.mapAssociations); err != nil {
 		return fmt.Errorf("adding map associations for id %s: %v", id, err)
+	}
+
+	backendName := entry.BackendName()
+	glog.V(4).Infof("Finding backend %s ...", backendName)
+	backend, err := cm.client.FindBackend(backendName)
+	if err != nil {
+		return err
+	}
+
+	glog.V(4).Infof("Setting routing key for backend %s ...", backendName)
+	if err := backend.SetRoutingKey(routingKey); err != nil {
+		return err
 	}
 
 	glog.V(4).Infof("Route %s added using blueprint pool slot %s", id, slotName)

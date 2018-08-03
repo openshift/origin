@@ -2,6 +2,7 @@ package haproxy
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -162,6 +163,38 @@ func (b *Backend) Refresh() error {
 		}
 
 		b.servers[v.Name] = newBackendServer(info)
+	}
+
+	return nil
+}
+
+// SetRoutingKey sets the cookie routing key for the haproxy backend.
+func (b *Backend) SetRoutingKey(k string) error {
+	glog.V(4).Infof("Setting routing key for %s", b.name)
+
+	cmd := fmt.Sprintf("set dynamic-cookie-key backend %s %s", b.name, k)
+	if err := b.executeCommand(cmd); err != nil {
+		return fmt.Errorf("setting routing key for backend %s: %v", b.name, err)
+	}
+
+	cmd = fmt.Sprintf("enable dynamic-cookie backend %s", b.name)
+	if err := b.executeCommand(cmd); err != nil {
+		return fmt.Errorf("enabling routing key for backend %s: %v", b.name, err)
+	}
+
+	return nil
+}
+
+// executeCommand runs a command using the haproxy dynamic config api client.
+func (b *Backend) executeCommand(cmd string) error {
+	responseBytes, err := b.client.Execute(cmd)
+	if err != nil {
+		return err
+	}
+
+	response := strings.TrimSpace(string(responseBytes))
+	if len(response) > 0 {
+		return errors.New(response)
 	}
 
 	return nil
