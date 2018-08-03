@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
@@ -59,34 +57,29 @@ func (d *SCC) Check() types.DiagnosticResult {
 		InfraNamespace: bootstrappolicy.DefaultOpenShiftInfraNamespace,
 	}
 
-	changedSCCs, err := reconcileOptions.ChangedSCCs()
+	newSCCs, changedSCCs, err := reconcileOptions.ChangedSCCs()
 	if err != nil {
 		r.Error("CSD1000", err, fmt.Sprintf("Error inspecting SCCs: %v", err))
 		return r
 	}
+	for _, newSCC := range newSCCs {
+		r.Error("CSD1001", nil, fmt.Sprintf("scc/%s is missing.\n\nUse the `oc adm policy reconcile-sccs` command to recreate sccs.", newSCC.Name))
+	}
 	changedSCCNames := map[string]bool{}
 	for _, changedSCC := range changedSCCs {
-		_, err := d.SCCClient.Get(changedSCC.Name, metav1.GetOptions{})
-		if kerrs.IsNotFound(err) {
-			r.Error("CSD1001", nil, fmt.Sprintf("scc/%s is missing.\n\nUse the `oc adm policy reconcile-sccs` command to recreate sccs.", changedSCC.Name))
-			continue
-		}
-		if err != nil {
-			r.Error("CSD1002", err, fmt.Sprintf("Unable to get scc/%s: %v", changedSCC.Name, err))
-			continue
-		}
 		r.Warn("CSD1003", nil, fmt.Sprintf("scc/%s will be reconciled. Use the `oc adm policy reconcile-sccs` command to check sccs.", changedSCC.Name))
 		changedSCCNames[changedSCC.Name] = true
 	}
 
 	// Including non-additive SCCs, but output messages with debug level.
 	reconcileOptions.Union = false
-	changedSCCs, err = reconcileOptions.ChangedSCCs()
+	_, changedSCCsUnion, err := reconcileOptions.ChangedSCCs()
 	if err != nil {
 		r.Error("CSD1000", err, fmt.Sprintf("Error inspecting SCCs: %v", err))
 		return r
 	}
-	for _, changedSCC := range changedSCCs {
+
+	for _, changedSCC := range changedSCCsUnion {
 		if !changedSCCNames[changedSCC.Name] {
 			r.Debug("CSD1004", fmt.Sprintf("scc/%s does not match defaults. Use the `oc adm policy reconcile-sccs --additive-only=false` command to check sccs.", changedSCC.Name))
 		}

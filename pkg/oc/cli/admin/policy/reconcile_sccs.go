@@ -149,17 +149,20 @@ func (o *ReconcileSCCOptions) Validate() error {
 // previewing changes.
 func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f kcmdutil.Factory) error {
 	// get sccs that need updated
-	changedSCCs, err := o.ChangedSCCs()
+	newSCCs, changedSCCs, err := o.ChangedSCCs()
 	if err != nil {
 		return err
 	}
 
-	if len(changedSCCs) == 0 {
+	if (len(changedSCCs) + len(newSCCs)) == 0 {
 		return nil
 	}
 
 	if !o.Confirmed {
 		list := &kapi.List{}
+		for _, item := range newSCCs {
+			list.Items = append(list.Items, item)
+		}
 		for _, item := range changedSCCs {
 			list.Items = append(list.Items, item)
 		}
@@ -170,15 +173,19 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f kcmdutil.Fa
 	}
 
 	if o.Confirmed {
-		return o.ReplaceChangedSCCs(changedSCCs)
+		return o.ReplaceChangedSCCs(newSCCs, changedSCCs)
 	}
 	return nil
 }
 
-// ChangedSCCs returns the SCCs that must be created and/or updated to match the
+// ChangedSCCs returns the SCCs that must be created and updated to match the
 // recommended bootstrap SCCs.
-func (o *ReconcileSCCOptions) ChangedSCCs() ([]*securityapi.SecurityContextConstraints, error) {
-	changedSCCs := []*securityapi.SecurityContextConstraints{}
+func (o *ReconcileSCCOptions) ChangedSCCs() (
+	[]*securityapi.SecurityContextConstraints,
+	[]*securityapi.SecurityContextConstraints,
+	error) {
+	toUpdateSCCs := []*securityapi.SecurityContextConstraints{}
+	toCreateSCCs := []*securityapi.SecurityContextConstraints{}
 
 	groups, users := bootstrappolicy.GetBoostrapSCCAccess(o.InfraNamespace)
 	bootstrapSCCs := bootstrappolicy.GetBootstrapSecurityContextConstraints(groups, users)
@@ -187,45 +194,41 @@ func (o *ReconcileSCCOptions) ChangedSCCs() ([]*securityapi.SecurityContextConst
 		actualSCC, err := o.SCCClient.Get(expectedSCC.Name, metav1.GetOptions{})
 		// if not found it needs to be created
 		if kapierrors.IsNotFound(err) {
-			changedSCCs = append(changedSCCs, expectedSCC)
+			toCreateSCCs = append(toCreateSCCs, expectedSCC)
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// if found then we need to diff to see if it needs updated
 		if updatedSCC, needsUpdating := o.computeUpdatedSCC(*expectedSCC, *actualSCC); needsUpdating {
-			changedSCCs = append(changedSCCs, updatedSCC)
+			toUpdateSCCs = append(toUpdateSCCs, updatedSCC)
 		}
 	}
-	return changedSCCs, nil
+	return toCreateSCCs, toUpdateSCCs, nil
 }
 
 // ReplaceChangedSCCs persists the changed SCCs.
-func (o *ReconcileSCCOptions) ReplaceChangedSCCs(changedSCCs []*securityapi.SecurityContextConstraints) error {
-	for i := range changedSCCs {
-		_, err := o.SCCClient.Get(changedSCCs[i].Name, metav1.GetOptions{})
-		if err != nil && !kapierrors.IsNotFound(err) {
-			return err
-		}
-
-		if kapierrors.IsNotFound(err) {
-			createdSCC, err := o.SCCClient.Create(changedSCCs[i])
+func (o *ReconcileSCCOptions) ReplaceChangedSCCs(newSCCs, changedSCCs []*securityapi.SecurityContextConstraints) error {
+	applyOnConstraints := func(sccs []*securityapi.SecurityContextConstraints, fn func(*securityapi.SecurityContextConstraints) (*securityapi.SecurityContextConstraints, error)) error {
+		for i := range sccs {
+			updatedSCC, err := fn(sccs[i])
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(o.Out, "securitycontextconstraints/%s\n", createdSCC.Name)
-			continue
+			fmt.Fprintf(o.Out, "securitycontextconstraints/%s\n", updatedSCC.Name)
 		}
-
-		updatedSCC, err := o.SCCClient.Update(changedSCCs[i])
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(o.Out, "securitycontextconstraints/%s\n", updatedSCC.Name)
+		return nil
 	}
-	return nil
+
+	// create the SCCs that need to be created
+	err := applyOnConstraints(newSCCs, o.SCCClient.Create)
+	if err != nil {
+		return err
+	}
+	// update the SCCs that were changed
+	return applyOnConstraints(changedSCCs, o.SCCClient.Update)
 }
 
 // computeUpdatedSCC determines if the expected SCC looks like the actual SCC
