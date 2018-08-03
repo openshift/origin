@@ -22,10 +22,13 @@ import (
 	s2i "github.com/openshift/source-to-image/pkg/build/strategies"
 	"github.com/openshift/source-to-image/pkg/docker"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
+	"github.com/openshift/source-to-image/pkg/tar"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	"github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
@@ -227,6 +230,10 @@ func (s *S2IBuilder) Build() error {
 		KeepSymlinks: true,
 	}
 
+	// if s.build.Spec.Strategy.SourceStrategy.ForcePull {
+	// 	pullImage(s.dockerClient, config.BuilderImage)
+	// }
+
 	// Use builder image labels to override defaults if present
 	labels, err := getImageLabels(s.dockerClient, config.BuilderImage)
 	if err != nil {
@@ -242,10 +249,13 @@ func (s *S2IBuilder) Build() error {
 		glog.V(4).Infof("Using builder image destination %s", destination)
 		config.Destination = destination
 	}
-	scriptsURL := labels[s2iconstants.ScriptsURLLabel]
-	if len(scriptsURL) > 0 && len(config.ScriptsURL) == 0 {
-		glog.V(4).Infof("Using builder scripts URL %s", destination)
-		config.ScriptsURL = scriptsURL
+	if len(config.ScriptsURL) == 0 {
+		scriptsURL := labels[s2iconstants.ScriptsURLLabel]
+		if len(scriptsURL) > 0 {
+			glog.V(4).Infof("Using builder scripts URL %s", destination)
+			// TODO: Refactor to ImageScriptsURL
+			config.ImageScriptsDir = scriptsURL
+		}
 	}
 
 	/*
@@ -332,24 +342,51 @@ func (s *S2IBuilder) Build() error {
 
 	result, err := builder.Build(config)
 
-	for _, stage := range result.BuildInfo.Stages {
-		for _, step := range stage.Steps {
-			timing.RecordNewStep(ctx, buildapiv1.StageName(stage.Name), buildapiv1.StepName(step.Name), metav1.NewTime(step.StartTime), metav1.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
+	// TODO: fix s2i dockerfile to always return a result object
+	if result != nil {
+		for _, stage := range result.BuildInfo.Stages {
+			for _, step := range stage.Steps {
+				timing.RecordNewStep(ctx, buildapiv1.StageName(stage.Name), buildapiv1.StepName(step.Name), metav1.NewTime(step.StartTime), metav1.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
+			}
 		}
 	}
 
 	if err != nil {
 		s.build.Status.Phase = buildapiv1.BuildPhaseFailed
-		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
-			result.BuildInfo.FailureReason.Reason,
-			result.BuildInfo.FailureReason.Message,
-		)
+		if result != nil {
+			s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
+				result.BuildInfo.FailureReason.Reason,
+				result.BuildInfo.FailureReason.Message,
+			)
+		} else {
+			s.build.Status.Reason = buildapiv1.StatusReasonGenericBuildFailed
+			s.build.Status.Message = build.StatusMessageGenericBuildFailed
+		}
 
 		HandleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
 
+	// builderImage := s.build.Spec.Strategy.SourceStrategy.From.Name
+	// pullAuthConfig, _ := dockercfg.NewHelper().GetDockerAuth(builderImage, dockercfg.PullAuthType)
+
+	// err = pullImage(s.dockerClient, builderImage, pullAuthConfig)
+	// if err != nil {
+	// 	s.build.Status.Phase = buildapiv1.BuildPhaseFailed
+	// 	s.build.Status.Reason = buildapiv1.StatusReasonPullBuilderImageFailed
+	// 	s.build.Status.Message = builderutil.StatusMessagePullBuilderImageFailed
+	// 	HandleBuildStatusUpdate(s.build, s.client, nil)
+	// 	return err
+	// }
+
+	pullAuthConfigs, err := s.setupPullSecret()
+
+	if err != nil {
+		return err
+	}
+
 	// BuildArgs not needed - should exist in Dockerfile as ENV
+	// TODO: Why isn't Auth allowing the image to be pulled in?
 	opts := dockerclient.BuildImageOptions{
 		Name:                buildTag,
 		RmTmpContainer:      true,
@@ -360,26 +397,28 @@ func (s *S2IBuilder) Build() error {
 		Pull:                s.build.Spec.Strategy.SourceStrategy.ForcePull,
 	}
 
+	if pullAuthConfigs != nil {
+		opts.AuthConfigs = *pullAuthConfigs
+	}
+
 	startTime := metav1.Now()
-	err = buildDirectImage("/tmp/dockercontext", false, &opts)
-	// err = buildImage(s.dockerClient, "/tmp/dockercontext", tar.New(s2ifs.NewFileSystem()), &opts)
+	err = buildImage(s.dockerClient, "/tmp/dockercontext", tar.New(s2ifs.NewFileSystem()), &opts)
 	timing.RecordNewStep(ctx, buildapiv1.StageBuild, buildapiv1.StepDockerBuild, startTime, metav1.Now())
 	if err != nil {
 		return err
 	}
 
-	/*
-		cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
-		err = execPostCommitHook(ctx, s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
+	// TODO: Use cdaley's post-commit hook change
+	cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
+	err = execPostCommitHook(ctx, s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
 
-		if err != nil {
-			s.build.Status.Phase = buildapiv1.BuildPhaseFailed
-			s.build.Status.Reason = buildapiv1.StatusReasonPostCommitHookFailed
-			s.build.Status.Message = builderutil.StatusMessagePostCommitHookFailed
-			HandleBuildStatusUpdate(s.build, s.client, nil)
-			return err
-		}
-	*/
+	if err != nil {
+		s.build.Status.Phase = buildapiv1.BuildPhaseFailed
+		s.build.Status.Reason = buildapiv1.StatusReasonPostCommitHookFailed
+		s.build.Status.Message = builderutil.StatusMessagePostCommitHookFailed
+		HandleBuildStatusUpdate(s.build, s.client, nil)
+		return err
+	}
 
 	if push {
 		if err = tagImage(s.dockerClient, buildTag, pushTag); err != nil {
@@ -429,6 +468,25 @@ func (s *S2IBuilder) Build() error {
 	//time.Sleep(10 * time.Minute)
 
 	return nil
+}
+
+// setupPullSecret provides a Docker authentication configuration when the
+// PullSecret is specified.
+func (s *S2IBuilder) setupPullSecret() (*dockerclient.AuthConfigurations, error) {
+	if len(os.Getenv(dockercfg.PullAuthType)) == 0 {
+		return nil, nil
+	}
+	glog.V(2).Infof("Checking for Docker config file for %s in path %s", dockercfg.PullAuthType, os.Getenv(dockercfg.PullAuthType))
+	dockercfgPath := dockercfg.GetDockercfgFile(os.Getenv(dockercfg.PullAuthType))
+	if len(dockercfgPath) == 0 {
+		return nil, fmt.Errorf("no docker config file found in '%s'", os.Getenv(dockercfg.PullAuthType))
+	}
+	glog.V(2).Infof("Using Docker config file %s", dockercfgPath)
+	r, err := os.Open(dockercfgPath)
+	if err != nil {
+		return nil, fmt.Errorf("'%s': %s", dockercfgPath, err)
+	}
+	return dockerclient.NewAuthConfigurations(r)
 }
 
 // buildEnvVars returns a map with build metadata to be inserted into Docker

@@ -2,6 +2,7 @@ package builds
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -14,9 +15,10 @@ import (
 )
 
 const (
-	buildPrefixTS = "ruby-sample-build-ts"
-	buildPrefixTD = "ruby-sample-build-td"
-	buildPrefixTC = "ruby-sample-build-tc"
+	buildPrefixTS    = "ruby-sample-build-ts"
+	buildPrefixTD    = "ruby-sample-build-td"
+	buildPrefixTC    = "ruby-sample-build-tc"
+	forcePullPattern = "Pulling (from|image).*%s"
 )
 
 func scrapeLogs(bldPrefix string, oc *exutil.CLI) {
@@ -28,8 +30,9 @@ func scrapeLogs(bldPrefix string, oc *exutil.CLI) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 	lines := strings.Split(out, "\n")
 	found := false
+	pullRegex := regexp.MustCompile(fmt.Sprintf(forcePullPattern, "ruby"))
 	for _, line := range lines {
-		if strings.Contains(line, "Pulling image") && strings.Contains(line, "ruby") {
+		if pullRegex.MatchString(line) {
 			fmt.Fprintf(g.GinkgoWriter, "\n\nfound pull image line %s\n\n", line)
 			found = true
 			break
