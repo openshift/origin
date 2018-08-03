@@ -6,18 +6,19 @@ import (
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
-	imageapiv1 "github.com/openshift/api/image/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/tag"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 )
@@ -43,6 +44,10 @@ var (
 
 // ImageImportOptions contains all the necessary information to perform an import.
 type ImportImageOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	ToPrinter func(string) (printers.ResourcePrinter, error)
+
 	// user set values
 	From                 string
 	Confirm              bool
@@ -61,14 +66,15 @@ type ImportImageOptions struct {
 	ReferencePolicy string
 
 	// helpers
-	imageClient imageclient.ImageInterface
-	isClient    imageclient.ImageStreamInterface
+	imageClient imagev1client.ImageV1Interface
+	isClient    imagev1client.ImageStreamInterface
 
 	genericclioptions.IOStreams
 }
 
 func NewImportImageOptions(name string, streams genericclioptions.IOStreams) *ImportImageOptions {
 	return &ImportImageOptions{
+		PrintFlags:      genericclioptions.NewPrintFlags("imported"),
 		IOStreams:       streams,
 		ReferencePolicy: tag.SourceReferencePolicy,
 	}
@@ -85,10 +91,13 @@ func NewCmdImportImage(fullName string, f kcmdutil.Factory, streams genericcliop
 		Example: fmt.Sprintf(importImageExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
-			kcmdutil.CheckErr(o.Validate(cmd))
+			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
+
+	o.PrintFlags.AddFlags(cmd)
+
 	cmd.Flags().StringVar(&o.From, "from", o.From, "A Docker image repository to import images from")
 	cmd.Flags().BoolVar(&o.Confirm, "confirm", o.Confirm, "If true, allow the image stream import location to be set or changed")
 	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, import all tags from the provided source on creation or if --from is specified")
@@ -112,34 +121,35 @@ func (o *ImportImageOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		o.ReferencePolicy = ""
 	}
 
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return err
-	}
-	o.Namespace = namespace
-
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	client, err := imageclientinternal.NewForConfig(clientConfig)
+
+	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	o.imageClient = client.Image()
-	o.isClient = client.Image().ImageStreams(namespace)
-
-	return nil
-}
-
-// Validate ensures that a ImportImageOptions is valid and can be used to execute
-// an import.
-func (o *ImportImageOptions) Validate(cmd *cobra.Command) error {
-	if len(o.Target) == 0 {
-		return kcmdutil.UsageErrorf(cmd, "you must specify the name of an image stream")
+	o.imageClient, err = imagev1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
 	}
 
+	o.isClient = o.imageClient.ImageStreams(o.Namespace)
+
+	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = operation
+
+		// We assume that the (dry run) message has already been added (if need be)
+		// by the caller of this method.
+		return o.PrintFlags.ToPrinter()
+	}
+
+	return o.parseImageReference()
+}
+
+func (o *ImportImageOptions) parseImageReference() error {
 	targetRef, err := imageapi.ParseDockerImageReference(o.Target)
 	switch {
 	case err != nil:
@@ -159,6 +169,16 @@ func (o *ImportImageOptions) Validate(cmd *cobra.Command) error {
 	return nil
 }
 
+// Validate ensures that a ImportImageOptions is valid and can be used to execute
+// an import.
+func (o *ImportImageOptions) Validate() error {
+	if len(o.Target) == 0 {
+		return fmt.Errorf("you must specify the name of an image stream")
+	}
+
+	return nil
+}
+
 // Run contains all the necessary functionality for the OpenShift cli import-image command.
 func (o *ImportImageOptions) Run() error {
 	stream, isi, err := o.createImageImport()
@@ -171,37 +191,47 @@ func (o *ImportImageOptions) Run() error {
 		return err
 	}
 
-	if o.DryRun {
-		if wasError(result) {
-			fmt.Fprintf(o.ErrOut, "The dry-run import completed with errors.\n\n")
-		} else {
-			fmt.Fprint(o.Out, "The dry-run import completed successfully.\n\n")
-		}
-	} else {
-		if wasError(result) {
-			fmt.Fprintf(o.ErrOut, "The import completed with errors.\n\n")
-		} else {
-			fmt.Fprint(o.Out, "The import completed successfully.\n\n")
-		}
+	message := "imported"
+	if wasError(result) {
+		message = "imported with errors"
 	}
 
+	if o.DryRun {
+		message = fmt.Sprintf("%s (dry run)", message)
+	}
+	message = fmt.Sprintf("%s\n\n", message)
+
 	if result.Status.Import != nil {
+
+		// TODO: remove once we have external describers
+		internalResult := &imageapi.ImageStreamImport{}
+		if legacyscheme.Scheme.Convert(result, internalResult, nil); err != nil {
+			return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
+		}
+
 		// TODO: dry-run doesn't return an image stream, so we have to display partial results
-		info, err := describe.DescribeImageStream(result.Status.Import)
+		info, err := describe.DescribeImageStream(internalResult.Status.Import)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(o.Out, info)
+
+		message += fmt.Sprintln(info)
 	}
 
 	if repo := result.Status.Repository; repo != nil {
 		for _, image := range repo.Images {
 			if image.Image != nil {
-				info, err := describe.DescribeImage(image.Image, imageapi.JoinImageStreamTag(stream.Name, image.Tag))
+				// TODO: remove once we have external describers
+				var internalImage imageapi.Image
+				if legacyscheme.Scheme.Convert(image.Image, &internalImage, nil); err != nil {
+					return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
+				}
+
+				info, err := describe.DescribeImage(&internalImage, imageapi.JoinImageStreamTag(stream.Name, image.Tag))
 				if err != nil {
 					fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 				} else {
-					fmt.Fprintln(o.Out, info)
+					message += fmt.Sprintln(info)
 				}
 			} else {
 				fmt.Fprintf(o.ErrOut, "error: repository tag %s failed: %v\n", image.Tag, image.Status.Message)
@@ -211,11 +241,17 @@ func (o *ImportImageOptions) Run() error {
 
 	for _, image := range result.Status.Images {
 		if image.Image != nil {
-			info, err := describe.DescribeImage(image.Image, imageapi.JoinImageStreamTag(stream.Name, image.Tag))
+			// TODO: remove once we have external describers
+			var internalImage imageapi.Image
+			if legacyscheme.Scheme.Convert(image.Image, &internalImage, nil); err != nil {
+				return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
+			}
+
+			info, err := describe.DescribeImage(&internalImage, imageapi.JoinImageStreamTag(stream.Name, image.Tag))
 			if err != nil {
 				fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 			} else {
-				fmt.Fprintln(o.Out, info)
+				message += fmt.Sprintln(info)
 			}
 		} else {
 			fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, image.Status.Message)
@@ -223,12 +259,18 @@ func (o *ImportImageOptions) Run() error {
 	}
 
 	if r := result.Status.Repository; r != nil && len(r.AdditionalTags) > 0 {
-		fmt.Fprintf(o.Out, "\ninfo: The remote repository contained %d additional tags which were not imported: %s\n", len(r.AdditionalTags), strings.Join(r.AdditionalTags, ", "))
+		message += fmt.Sprintf("\ninfo: The remote repository contained %d additional tags which were not imported: %s\n", len(r.AdditionalTags), strings.Join(r.AdditionalTags, ", "))
 	}
-	return nil
+
+	printer, err := o.ToPrinter(message)
+	if err != nil {
+		return err
+	}
+
+	return printer.PrintObj(stream, o.Out)
 }
 
-func wasError(isi *imageapi.ImageStreamImport) bool {
+func wasError(isi *imagev1.ImageStreamImport) bool {
 	for _, image := range isi.Status.Images {
 		if image.Status.Status == metav1.StatusFailure {
 			return true
@@ -249,8 +291,8 @@ func (e importError) Error() string {
 	return fmt.Sprintf("unable to import image: %s", e.annotation)
 }
 
-func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imageapi.ImageStreamImport, error) {
-	var isi *imageapi.ImageStreamImport
+func (o *ImportImageOptions) createImageImport() (*imagev1.ImageStream, *imagev1.ImageStreamImport, error) {
+	var isi *imagev1.ImageStreamImport
 	stream, err := o.isClient.Get(o.Name, metav1.GetOptions{})
 	// no stream, try creating one
 	if err != nil {
@@ -261,18 +303,6 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 			return nil, nil, fmt.Errorf("no image stream named %q exists, pass --confirm to create and import", o.Name)
 		}
 		stream, isi = o.newImageStream()
-		// ensure defaulting is applied by round trip converting
-		// TODO: convert to using versioned types.
-		external, err := legacyscheme.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
-		if err != nil {
-			return nil, nil, err
-		}
-		legacyscheme.Scheme.Default(external)
-		internal, err := legacyscheme.Scheme.ConvertToVersion(external, imageapi.GroupVersion)
-		if err != nil {
-			return nil, nil, err
-		}
-		stream = internal.(*imageapi.ImageStream)
 		return stream, isi, nil
 	}
 
@@ -290,10 +320,15 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 		}
 	}
 
+	// this is ok because we know exactly how we want to be serialized
+	if stream.GetObjectKind().GroupVersionKind().Empty() {
+		stream.GetObjectKind().SetGroupVersionKind(imagev1.SchemeGroupVersion.WithKind("ImageStream"))
+	}
+
 	return stream, isi, nil
 }
 
-func (o *ImportImageOptions) importAll(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, error) {
+func (o *ImportImageOptions) importAll(stream *imagev1.ImageStream) (*imagev1.ImageStreamImport, error) {
 	from := o.From
 	// update ImageStream appropriately
 	if len(from) == 0 {
@@ -301,9 +336,9 @@ func (o *ImportImageOptions) importAll(stream *imageapi.ImageStream) (*imageapi.
 			from = stream.Spec.DockerImageRepository
 		} else {
 			tags := make(map[string]string)
-			for name, tag := range stream.Spec.Tags {
+			for _, tag := range stream.Spec.Tags {
 				if tag.From != nil && tag.From.Kind == "DockerImage" {
-					tags[name] = tag.From.Name
+					tags[tag.Name] = tag.From.Name
 				}
 			}
 			if len(tags) == 0 {
@@ -326,11 +361,12 @@ func (o *ImportImageOptions) importAll(stream *imageapi.ImageStream) (*imageapi.
 	return o.newImageStreamImportAll(stream, from), nil
 }
 
-func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, error) {
+func (o *ImportImageOptions) importTag(stream *imagev1.ImageStream) (*imagev1.ImageStreamImport, error) {
 	from := o.From
 	tag := o.Tag
+
 	// follow any referential tags to the destination
-	finalTag, existing, multiple, err := imageapi.FollowTagReference(stream, tag)
+	finalTag, existing, multiple, err := followTagReferenceV1(stream, tag)
 	switch err {
 	case imageapi.ErrInvalidReference:
 		return nil, fmt.Errorf("tag %q points to an invalid imagestreamtag", tag)
@@ -348,8 +384,8 @@ func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (*imageapi.
 		if len(from) == 0 {
 			return nil, fmt.Errorf("the tag %q does not exist on the image stream - choose an existing tag to import or use the 'tag' command to create a new tag", tag)
 		}
-		existing = &imageapi.TagReference{
-			From: &kapi.ObjectReference{
+		existing = &imagev1.TagReference{
+			From: &corev1.ObjectReference{
 				Kind: "DockerImage",
 				Name: from,
 			},
@@ -384,39 +420,55 @@ func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (*imageapi.
 		existing.Generation = &zero
 
 	}
-	stream.Spec.Tags[tag] = *existing
+
+	tagFound := false
+	for i := range stream.Spec.Tags {
+		if stream.Spec.Tags[i].Name == tag {
+			stream.Spec.Tags[i] = *existing
+			tagFound = true
+			break
+		}
+	}
+
+	if !tagFound {
+		stream.Spec.Tags = append(stream.Spec.Tags, *existing)
+	}
 
 	// and create accompanying ImageStreamImport
 	return o.newImageStreamImportTags(stream, map[string]string{tag: from}), nil
 }
 
-func (o *ImportImageOptions) newImageStream() (*imageapi.ImageStream, *imageapi.ImageStreamImport) {
+func (o *ImportImageOptions) newImageStream() (*imagev1.ImageStream, *imagev1.ImageStreamImport) {
 	from := o.From
 	tag := o.Tag
 	if len(from) == 0 {
 		from = o.Target
 	}
 	var (
-		stream *imageapi.ImageStream
-		isi    *imageapi.ImageStreamImport
+		stream *imagev1.ImageStream
+		isi    *imagev1.ImageStreamImport
 	)
 	// create new ImageStream and accompanying ImageStreamImport
 	// TODO: this should be removed along with the legacy path, we don't need to
 	// create the IS in the new path, the import mechanism will do that for us,
 	// this is only for the legacy path that we need to create the IS.
 	if o.All {
-		stream = &imageapi.ImageStream{
+		stream = &imagev1.ImageStream{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
 			ObjectMeta: metav1.ObjectMeta{Name: o.Name},
-			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
+			Spec:       imagev1.ImageStreamSpec{DockerImageRepository: from},
 		}
 		isi = o.newImageStreamImportAll(stream, from)
 	} else {
-		stream = &imageapi.ImageStream{
+		stream = &imagev1.ImageStream{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
 			ObjectMeta: metav1.ObjectMeta{Name: o.Name},
-			Spec: imageapi.ImageStreamSpec{
-				Tags: map[string]imageapi.TagReference{
-					tag: {
-						From: &kapi.ObjectReference{
+			Spec: imagev1.ImageStreamSpec{
+				Tags: []imagev1.TagReference{
+					{
+						From: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: from,
 						},
@@ -431,28 +483,28 @@ func (o *ImportImageOptions) newImageStream() (*imageapi.ImageStream, *imageapi.
 	return stream, isi
 }
 
-func (o *ImportImageOptions) getReferencePolicy() imageapi.TagReferencePolicy {
-	ref := imageapi.TagReferencePolicy{}
+func (o *ImportImageOptions) getReferencePolicy() imagev1.TagReferencePolicy {
+	ref := imagev1.TagReferencePolicy{}
 	if len(o.ReferencePolicy) == 0 {
 		return ref
 	}
 	switch o.ReferencePolicy {
 	case tag.SourceReferencePolicy:
-		ref.Type = imageapi.SourceTagReferencePolicy
+		ref.Type = imagev1.SourceTagReferencePolicy
 	case tag.LocalReferencePolicy:
-		ref.Type = imageapi.LocalTagReferencePolicy
+		ref.Type = imagev1.LocalTagReferencePolicy
 	}
 	return ref
 }
 
-func (o *ImportImageOptions) newImageStreamImport(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, bool) {
-	isi := &imageapi.ImageStreamImport{
+func (o *ImportImageOptions) newImageStreamImport(stream *imagev1.ImageStream) (*imagev1.ImageStreamImport, bool) {
+	isi := &imagev1.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            stream.Name,
 			Namespace:       o.Namespace,
 			ResourceVersion: stream.ResourceVersion,
 		},
-		Spec: imageapi.ImageStreamImportSpec{Import: !o.DryRun},
+		Spec: imagev1.ImageStreamImportSpec{Import: !o.DryRun},
 	}
 	insecureAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
 	insecure := insecureAnnotation == "true"
@@ -464,14 +516,14 @@ func (o *ImportImageOptions) newImageStreamImport(stream *imageapi.ImageStream) 
 	return isi, insecure
 }
 
-func (o *ImportImageOptions) newImageStreamImportAll(stream *imageapi.ImageStream, from string) *imageapi.ImageStreamImport {
+func (o *ImportImageOptions) newImageStreamImportAll(stream *imagev1.ImageStream, from string) *imagev1.ImageStreamImport {
 	isi, insecure := o.newImageStreamImport(stream)
-	isi.Spec.Repository = &imageapi.RepositoryImportSpec{
-		From: kapi.ObjectReference{
+	isi.Spec.Repository = &imagev1.RepositoryImportSpec{
+		From: corev1.ObjectReference{
 			Kind: "DockerImage",
 			Name: from,
 		},
-		ImportPolicy: imageapi.TagImportPolicy{
+		ImportPolicy: imagev1.TagImportPolicy{
 			Insecure:  insecure,
 			Scheduled: o.Scheduled,
 		},
@@ -481,23 +533,33 @@ func (o *ImportImageOptions) newImageStreamImportAll(stream *imageapi.ImageStrea
 	return isi
 }
 
-func (o *ImportImageOptions) newImageStreamImportTags(stream *imageapi.ImageStream, tags map[string]string) *imageapi.ImageStreamImport {
+func (o *ImportImageOptions) newImageStreamImportTags(stream *imagev1.ImageStream, tags map[string]string) *imagev1.ImageStreamImport {
 	isi, streamInsecure := o.newImageStreamImport(stream)
 	for tag, from := range tags {
 		insecure := streamInsecure
 		scheduled := o.Scheduled
-		oldTag, ok := stream.Spec.Tags[tag]
-		if ok {
+
+		oldTagFound := false
+		var oldTag imagev1.TagReference
+		for _, t := range stream.Spec.Tags {
+			if t.Name == tag {
+				oldTag = t
+				oldTagFound = true
+				break
+			}
+		}
+
+		if oldTagFound {
 			insecure = insecure || oldTag.ImportPolicy.Insecure
 			scheduled = scheduled || oldTag.ImportPolicy.Scheduled
 		}
-		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
-			From: kapi.ObjectReference{
+		isi.Spec.Images = append(isi.Spec.Images, imagev1.ImageImportSpec{
+			From: corev1.ObjectReference{
 				Kind: "DockerImage",
 				Name: from,
 			},
-			To: &kapi.LocalObjectReference{Name: tag},
-			ImportPolicy: imageapi.TagImportPolicy{
+			To: &corev1.LocalObjectReference{Name: tag},
+			ImportPolicy: imagev1.TagImportPolicy{
 				Insecure:  insecure,
 				Scheduled: scheduled,
 			},
@@ -505,4 +567,60 @@ func (o *ImportImageOptions) newImageStreamImportTags(stream *imageapi.ImageStre
 		})
 	}
 	return isi
+}
+
+// followTagReferenceV1 walks through the defined tags on a stream, following any referential tags in the stream.
+// Will return multiple if the tag had at least reference, and ref and finalTag will be the last tag seen.
+// If an invalid reference is found, err will be returned.
+func followTagReferenceV1(stream *imagev1.ImageStream, tag string) (finalTag string, ref *imagev1.TagReference, multiple bool, err error) {
+	seen := sets.NewString()
+	for {
+		if seen.Has(tag) {
+			// circular reference
+			return tag, nil, multiple, imageapi.ErrCircularReference
+		}
+		seen.Insert(tag)
+
+		tagRefFound := false
+		var tagRef imagev1.TagReference
+		for _, t := range stream.Spec.Tags {
+			if t.Name == tag {
+				tagRef = t
+				tagRefFound = true
+				break
+			}
+		}
+
+		if !tagRefFound {
+			// no tag at the end of the rainbow
+			return tag, nil, multiple, imageapi.ErrNotFoundReference
+		}
+		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
+			// terminating tag
+			return tag, &tagRef, multiple, nil
+		}
+
+		if tagRef.From.Namespace != "" && tagRef.From.Namespace != stream.ObjectMeta.Namespace {
+			return tag, nil, multiple, imageapi.ErrCrossImageStreamReference
+		}
+
+		// The reference needs to be followed with two format patterns:
+		// a) sameis:sometag and b) sometag
+		if strings.Contains(tagRef.From.Name, ":") {
+			name, tagref, ok := imageapi.SplitImageStreamTag(tagRef.From.Name)
+			if !ok {
+				return tag, nil, multiple, imageapi.ErrInvalidReference
+			}
+			if name != stream.ObjectMeta.Name {
+				// anotheris:sometag - this should not happen.
+				return tag, nil, multiple, imageapi.ErrCrossImageStreamReference
+			}
+			// sameis:sometag - follow the reference as sometag
+			tag = tagref
+		} else {
+			// sometag - follow the reference
+			tag = tagRef.From.Name
+		}
+		multiple = true
+	}
 }
