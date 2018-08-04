@@ -10,9 +10,10 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/time/rate"
 
-	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -80,6 +81,9 @@ type MigrateAPIStorageOptions struct {
 	bandwidth int
 	// used to enforce bandwidth value
 	limiter *tokenLimiter
+
+	// unstructured client used to make no-op PUTs
+	client dynamic.Interface
 }
 
 // NewCmdMigrateAPIStorage implements a MigrateStorage command
@@ -231,10 +235,7 @@ func (o *MigrateAPIStorageOptions) Complete(f kcmdutil.Factory, c *cobra.Command
 		func(req *rest.Request) {
 			req.Throttle(always)
 		},
-	).
-		// we use info.Client to directly fetch objects
-		// this is just documentation, it does not really change anything because we fetch and decode lists of all objects regardless
-		RequireObject(false)
+	)
 
 	// bandwidth < 0 means error
 	// bandwidth == 0 means "no limit", we use a nil check to minimize overhead
@@ -247,6 +248,26 @@ func (o *MigrateAPIStorageOptions) Complete(f kcmdutil.Factory, c *cobra.Command
 			o.Builder.RequestChunksOf(0)
 		}
 	}
+
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	// We do not have a way to access the REST client that dynamic.NewForConfig uses
+	// Thus we cannot use resource.NewClientWithOptions with our flowcontrol.NewFakeAlwaysRateLimiter
+	// To avoid any possibility of rate limiting, use an absurdly high burst and QPS
+	// We handle throttling via our own limiter
+	clientConfigCopy := rest.CopyConfig(clientConfig)
+	clientConfigCopy.Burst = 99999
+	clientConfigCopy.QPS = 99999
+
+	client, err := dynamic.NewForConfig(clientConfigCopy)
+	if err != nil {
+		return err
+	}
+
+	o.client = client
 
 	return nil
 }
@@ -267,70 +288,60 @@ func (o MigrateAPIStorageOptions) Run() error {
 // if the input type cannot be saved. It returns migrate.ErrRecalculate if migration should be re-run
 // on the provided object.
 func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Reporter) error {
-	switch info.Object.(type) {
-	// TODO: add any custom mutations necessary
-	default:
-		// load the body and save it back, without transformation to avoid losing fields
-		r := info.Client.Get().
-			Resource(info.Mapping.Resource.Resource).
-			NamespaceIfScoped(info.Namespace, info.Mapping.Scope.Name() == meta.RESTScopeNameNamespace).
-			Name(info.Name)
-		get := r.Do()
-		data, err := get.Raw()
-		if err != nil {
-			// since we have an error, processing the body is safe because we are not going
-			// to send it back to the server.  Thus we can safely call Result.Error().
-			// This is required because we want to make sure we pass an errors.APIStatus so
-			// that DefaultRetriable can correctly determine if the error is safe to retry.
-			return migrate.DefaultRetriable(info, get.Error())
-		}
-
+	switch oldObject := info.Object.(type) {
+	case *unstructured.Unstructured:
 		// a nil limiter means "no limit"
 		if o.limiter != nil {
 			// we rate limit after performing all operations to make us less sensitive to conflicts
-			// use a defer to make sure we always rate limit after a successful GET even if the PUT fails
-			defer func() {
-				// we have to wait until after the GET to determine how much data we will PUT
-				// thus we need to double the amount to account for both operations
-				// we also need to account for the initial list operation which is roughly another GET per object
-				// thus we can amortize the cost of the list by adding another GET to our calculations
-				// so we have 2 GETs + 1 PUT == 3 * size of data
-				// this is a slight overestimate since every retry attempt will still try to account for
-				// the initial list operation.  this should not be an issue since retries are not that common
-				// and the rate limiting is best effort anyway.  going slightly slower is acceptable.
-				latency := o.limiter.take(3 * len(data))
-				// mimic rest.Request.tryThrottle logging logic
-				if latency > longThrottleLatency {
-					glog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, "GET", r.URL().String())
-				}
-			}()
+			// use a defer to make sure we always rate limit even if the PUT fails
+			defer o.rateLimit(oldObject)
 		}
 
-		update := info.Client.Put().
-			Resource(info.Mapping.Resource.Resource).
-			NamespaceIfScoped(info.Namespace, info.Mapping.Scope.Name() == meta.RESTScopeNameNamespace).
-			Name(info.Name).Body(data).
-			Do()
-		if err := update.Error(); err != nil {
+		// we are relying on unstructured types being lossless and unchanging
+		// across a decode and encode round trip (otherwise this command will mutate data)
+		newObject, err := o.client.
+			Resource(info.Mapping.Resource).
+			Namespace(info.Namespace).
+			Update(oldObject)
+		if err != nil {
 			return migrate.DefaultRetriable(info, err)
 		}
-
-		if oldObject, err := get.Get(); err == nil {
-			info.Refresh(oldObject, true)
-			oldVersion := info.ResourceVersion
-			if object, err := update.Get(); err == nil {
-				info.Refresh(object, true)
-				if info.ResourceVersion == oldVersion {
-					return migrate.ErrUnchanged
-				}
-			} else {
-				glog.V(4).Infof("unable to calculate resource version: %v", err)
-			}
-		} else {
-			glog.V(4).Infof("unable to calculate resource version: %v", err)
+		if newObject.GetResourceVersion() == oldObject.GetResourceVersion() {
+			return migrate.ErrUnchanged
 		}
+	default:
+		return fmt.Errorf("invalid type %T passed to storage migration: %v", oldObject, oldObject)
 	}
 	return nil
+}
+
+func (o *MigrateAPIStorageOptions) rateLimit(oldObject *unstructured.Unstructured) {
+	// we need to approximate how many bytes this object was on the wire
+	// the simplest way to do that is to encode it back into bytes
+	// this is wasteful but we are trying to artificially slow down the worker anyway
+	var dataLen int
+	if data, err := oldObject.MarshalJSON(); err != nil {
+		// this should never happen
+		glog.Errorf("failed to marshall %#v: %v", oldObject, err)
+		// but in case it somehow does happen, assume the object was
+		// larger than most objects so we still rate limit "enough"
+		dataLen = 8192
+	} else {
+		dataLen = len(data)
+	}
+
+	// we need to account for the initial list operation which is roughly another PUT per object
+	// thus we amortize the cost of the list by:
+	// (1 LIST) / (N items) + 1 PUT == 2 PUTs == 2 * size of data
+
+	// this is a slight overestimate since every retry attempt will still try to account for
+	// the initial list operation.  this should not be an issue since retries are not that common
+	// and the rate limiting is best effort anyway.  going slightly slower is acceptable.
+	latency := o.limiter.take(2 * dataLen)
+	// mimic rest.Request.tryThrottle logging logic
+	if latency > longThrottleLatency {
+		glog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, "PUT", oldObject.GetSelfLink())
+	}
 }
 
 type tokenLimiter struct {
