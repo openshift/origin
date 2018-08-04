@@ -5,32 +5,31 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/spf13/cobra"
+
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	restclient "k8s.io/client-go/rest"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	projectv1 "github.com/openshift/api/project/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	oapi "github.com/openshift/origin/pkg/api"
 	clientcfg "github.com/openshift/origin/pkg/client/config"
 	cliconfig "github.com/openshift/origin/pkg/oc/lib/kubeconfig"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
-	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
-	projectutil "github.com/openshift/origin/pkg/project/util"
-
-	"github.com/spf13/cobra"
 )
 
 type ProjectOptions struct {
-	Config       clientcmdapi.Config
-	ClientConfig *restclient.Config
-	ClientFn     func() (projectclient.ProjectInterface, kclientset.Interface, error)
-	PathOptions  *kclientcmd.PathOptions
+	Config      clientcmdapi.Config
+	RESTConfig  *rest.Config
+	ClientFn    func() (projectv1client.ProjectV1Interface, corev1client.CoreV1Interface, error)
+	PathOptions *kclientcmd.PathOptions
 
 	ProjectName  string
 	ProjectOnly  bool
@@ -58,10 +57,10 @@ var (
 
 	projectExample = templates.Examples(`
 		# Switch to 'myapp' project
-	  %[1]s myapp
+		%[1]s project myapp
 
-	  # Display the project currently in use
-	  %[1]s`)
+		# Display the project currently in use
+		%[1]s project`)
 )
 
 func NewProjectOptions(streams genericclioptions.IOStreams) *ProjectOptions {
@@ -73,7 +72,6 @@ func NewProjectOptions(streams genericclioptions.IOStreams) *ProjectOptions {
 // NewCmdProject implements the OpenShift cli rollback command
 func NewCmdProject(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewProjectOptions(streams)
-
 	cmd := &cobra.Command{
 		Use:     "project [NAME]",
 		Short:   "Switch to another project",
@@ -81,37 +79,30 @@ func NewCmdProject(fullName string, f kcmdutil.Factory, streams genericclioption
 		Example: fmt.Sprintf(projectExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			o.PathOptions = cliconfig.NewPathOptions(cmd)
-
-			if err := o.Complete(f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := o.RunProject(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-	cmd.Flags().BoolVarP(&o.DisplayShort, "short", "q", false, "If true, display only the project name")
+	cmd.Flags().BoolVarP(&o.DisplayShort, "short", "q", o.DisplayShort, "If true, display only the project name")
+
 	return cmd
 }
 
 func (o *ProjectOptions) Complete(f genericclioptions.RESTClientGetter, args []string) error {
-	var err error
-
-	argsLength := len(args)
-	switch {
+	switch argsLength := len(args); {
 	case argsLength > 1:
 		return errors.New("Only one argument is supported (project name or context name).")
 	case argsLength == 1:
 		o.ProjectName = args[0]
 	}
 
+	var err error
 	o.Config, err = f.ToRawKubeConfigLoader().RawConfig()
 	if err != nil {
 		return err
 	}
 
-	o.ClientConfig, err = f.ToRESTConfig()
+	o.RESTConfig, err = f.ToRESTConfig()
 	if err != nil {
 		contextNameExists := false
 		if _, exists := o.GetContextFromName(o.ProjectName); exists {
@@ -124,43 +115,40 @@ func (o *ProjectOptions) Complete(f genericclioptions.RESTClientGetter, args []s
 
 		// if the argument for o.ProjectName passed by the user is a context name,
 		// prevent local context-switching from failing due to an unreachable
-		// server or an unfetchable ClientConfig.
+		// server or an unfetchable RESTConfig.
 		o.Config.CurrentContext = o.ProjectName
 		if err := kclientcmd.ModifyConfig(o.PathOptions, o.Config, true); err != nil {
 			return err
 		}
 
-		// since we failed to retrieve ClientConfig for the current server,
+		// since we failed to retrieve RESTConfig for the current server,
 		// fetch local OpenShift client config
-		o.ClientConfig, err = f.ToRESTConfig()
+		o.RESTConfig, err = f.ToRESTConfig()
 		if err != nil {
 			return err
 		}
 
 	}
 
-	o.ClientFn = func() (projectclient.ProjectInterface, kclientset.Interface, error) {
-		kc, err := kclientset.NewForConfig(o.ClientConfig)
+	o.ClientFn = func() (projectv1client.ProjectV1Interface, corev1client.CoreV1Interface, error) {
+		kc, err := corev1client.NewForConfig(o.RESTConfig)
 		if err != nil {
 			return nil, nil, err
 		}
-		projectClient, err := projectclientinternal.NewForConfig(o.ClientConfig)
+		projectClient, err := projectv1client.NewForConfig(o.RESTConfig)
 		if err != nil {
 			return nil, nil, err
 		}
-		return projectClient.Project(), kc, nil
+		return projectClient, kc, nil
 	}
 
 	return nil
 }
-func (o ProjectOptions) Validate() error {
-	return nil
-}
 
 // RunProject contains all the necessary functionality for the OpenShift cli project command
-func (o ProjectOptions) RunProject() error {
+func (o ProjectOptions) Run() error {
 	config := o.Config
-	clientCfg := o.ClientConfig
+	clientCfg := o.RESTConfig
 
 	var currentProject string
 	currentContext := config.Contexts[config.CurrentContext]
@@ -171,11 +159,6 @@ func (o ProjectOptions) RunProject() error {
 	// No argument provided, we will just print info
 	if len(o.ProjectName) == 0 {
 		if len(currentProject) > 0 {
-			if o.DisplayShort {
-				fmt.Fprintln(o.Out, currentProject)
-				return nil
-			}
-
 			client, kubeclient, err := o.ClientFn()
 			if err != nil {
 				return err
@@ -190,13 +173,16 @@ func (o ProjectOptions) RunProject() error {
 				return err
 			}
 
-			defaultContextName := clientcfg.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
+			if o.DisplayShort {
+				fmt.Fprintln(o.Out, currentProject)
+				return nil
+			}
 
+			defaultContextName := clientcfg.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
 			// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
 			// a context name they didn't choose
 			if config.CurrentContext == defaultContextName {
 				fmt.Fprintf(o.Out, "Using project %q on server %q.\n", currentProject, clientCfg.Host)
-
 			} else {
 				fmt.Fprintf(o.Out, "Using project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, clientCfg.Host)
 			}
@@ -245,11 +231,11 @@ func (o ProjectOptions) RunProject() error {
 						case 0:
 							msg += "\nYou are not a member of any projects. You can request a project to be created with the 'new-project' command."
 						case 1:
-							msg += fmt.Sprintf("\nYou have one project on this server: %s", projectapihelpers.DisplayNameAndNameForProject(&projects[0]))
+							msg += fmt.Sprintf("\nYou have one project on this server: %s", DisplayNameForProject(&projects[0]))
 						default:
 							msg += "\nYour projects are:"
 							for _, project := range projects {
-								msg += fmt.Sprintf("\n* %s", projectapihelpers.DisplayNameAndNameForProject(&project))
+								msg += fmt.Sprintf("\n* %s", DisplayNameForProject(&project))
 							}
 						}
 					}
@@ -264,7 +250,7 @@ func (o ProjectOptions) RunProject() error {
 		}
 		projectName := argument
 
-		kubeconfig, err := cliconfig.CreateConfig(projectName, o.ClientConfig)
+		kubeconfig, err := cliconfig.CreateConfig(projectName, o.RESTConfig)
 		if err != nil {
 			return err
 		}
@@ -324,14 +310,14 @@ func (o *ProjectOptions) GetContextFromName(contextName string) (*clientcmdapi.C
 	return nil, false
 }
 
-func ConfirmProjectAccess(currentProject string, projectClient projectclient.ProjectInterface, kClient kclientset.Interface) error {
+func ConfirmProjectAccess(currentProject string, projectClient projectv1client.ProjectV1Interface, kClient corev1client.CoreV1Interface) error {
 	_, projectErr := projectClient.Projects().Get(currentProject, metav1.GetOptions{})
 	if !kapierrors.IsNotFound(projectErr) && !kapierrors.IsForbidden(projectErr) {
 		return projectErr
 	}
 
 	// at this point we know the error is a not found or forbidden, but we'll test namespaces just in case we're running on kube
-	if _, err := kClient.Core().Namespaces().Get(currentProject, metav1.GetOptions{}); err == nil {
+	if _, err := kClient.Namespaces().Get(currentProject, metav1.GetOptions{}); err == nil {
 		return nil
 	}
 
@@ -339,7 +325,7 @@ func ConfirmProjectAccess(currentProject string, projectClient projectclient.Pro
 	return projectErr
 }
 
-func GetProjects(projectClient projectclient.ProjectInterface, kClient kclientset.Interface) ([]projectapi.Project, error) {
+func GetProjects(projectClient projectv1client.ProjectV1Interface, kClient corev1client.CoreV1Interface) ([]projectv1.Project, error) {
 	projects, err := projectClient.Projects().List(metav1.ListOptions{})
 	if err == nil {
 		return projects.Items, nil
@@ -349,11 +335,11 @@ func GetProjects(projectClient projectclient.ProjectInterface, kClient kclientse
 		return nil, err
 	}
 
-	namespaces, err := kClient.Core().Namespaces().List(metav1.ListOptions{})
+	namespaces, err := kClient.Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	projects = projectutil.ConvertNamespaceList(namespaces)
+	projects = convertNamespaceList(namespaces)
 	return projects.Items, nil
 }
 
@@ -369,4 +355,31 @@ func hasMultipleServers(config clientcmdapi.Config) bool {
 		}
 	}
 	return false
+}
+
+func convertNamespaceList(namespaceList *corev1.NamespaceList) *projectv1.ProjectList {
+	projects := &projectv1.ProjectList{}
+	for _, ns := range namespaceList.Items {
+		projects.Items = append(projects.Items, projectv1.Project{
+			ObjectMeta: ns.ObjectMeta,
+			Spec: projectv1.ProjectSpec{
+				Finalizers: ns.Spec.Finalizers,
+			},
+			Status: projectv1.ProjectStatus{
+				Phase: ns.Status.Phase,
+			},
+		})
+	}
+	return projects
+}
+
+func DisplayNameForProject(project *projectv1.Project) string {
+	displayName := project.Annotations[oapi.OpenShiftDisplayName]
+	if len(displayName) == 0 {
+		displayName = project.Annotations["displayName"]
+	}
+	if len(displayName) > 0 && displayName != project.Name {
+		return fmt.Sprintf("%s (%s)", displayName, project.Name)
+	}
+	return project.Name
 }

@@ -9,6 +9,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -73,12 +74,12 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
+	valerieProjectClient := projectv1client.NewForConfigOrDie(&valerieClientConfig)
 
 	// confirm that we have access to request the project
 
 	allowed := &metav1.Status{}
-	if err := valerieProjectClient.Project().RESTClient().Get().Resource("projectrequests").Do().Into(allowed); err != nil {
+	if err := valerieProjectClient.RESTClient().Get().Resource("projectrequests").Do().Into(allowed); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if allowed.Status != metav1.StatusSuccess {
@@ -90,7 +91,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 		DisplayName: "display name here",
 		Description: "the special description",
 
-		Client:    valerieProjectClient.Project(),
+		Client:    valerieProjectClient,
 		IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
@@ -100,7 +101,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 	waitForProject(t, valerieProjectClient, "new-project", 5*time.Second, 10)
 
-	actualProject, err := valerieProjectClient.Project().Projects().Get("new-project", metav1.GetOptions{})
+	actualProject, err := valerieProjectClient.Projects().Get("new-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -151,7 +152,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
+	valerieProjectClient := projectv1client.NewForConfigOrDie(&valerieClientConfig)
 
 	if _, err := clusterAdminProjectClient.Project().Projects().Create(&projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -174,7 +175,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		DisplayName: "display name here",
 		Description: "the special description",
 
-		Client:    valerieProjectClient.Project(),
+		Client:    valerieProjectClient,
 		IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
@@ -183,7 +184,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	}
 
 	waitForProject(t, valerieProjectClient, "new-project", 5*time.Second, 10)
-	project, err := valerieProjectClient.Project().Projects().Get("new-project", metav1.GetOptions{})
+	project, err := valerieProjectClient.Projects().Get("new-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
