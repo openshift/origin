@@ -348,7 +348,7 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 
 		IdentityProviders: []configapi.IdentityProvider{},
 		GrantConfig: configapi.GrantConfig{
-			Method: "auto",
+			Method: configapi.GrantHandlerAuto,
 		},
 
 		SessionConfig: &configapi.SessionConfig{
