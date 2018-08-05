@@ -937,12 +937,12 @@ func TestSetBuildCompletionTimestampAndDuration(t *testing.T) {
 			switch test.expected.duration {
 			case &greaterThanZeroLessThanSinceStartTime:
 				sinceStart := now.Rfc3339Copy().Time.Sub(startTime.Rfc3339Copy().Time)
-				if !(*update.duration > 0) || !(*update.duration <= sinceStart) {
+				if *update.duration <= 0 || *update.duration > sinceStart {
 					t.Errorf("%s: duration (%v) not within expected range (%v - %v)", test.name, update.duration, 0, sinceStart)
 					continue
 				}
 			case &atLeastOneHour:
-				if !(*update.duration >= time.Hour) {
+				if *update.duration < time.Hour {
 					t.Errorf("%s: duration (%v) is not at least one hour", test.name, update.duration)
 					continue
 				}
