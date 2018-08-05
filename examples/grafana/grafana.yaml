@@ -120,6 +120,8 @@ objects:
           - '-openshift-sar={"namespace": "${NAMESPACE}", "verb": "list", "resource": "services"}'
           - -tls-cert=/etc/tls/private/tls.crt
           - -tls-key=/etc/tls/private/tls.key
+          - -openshift-ca=/etc/pki/tls/cert.pem
+          - -openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
           - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
           - -cookie-secret-file=/etc/proxy/secrets/session_secret
           - -skip-auth-regex=^/metrics,/api/datasources,/api/dashboards
