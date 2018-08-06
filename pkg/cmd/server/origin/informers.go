@@ -14,6 +14,8 @@ import (
 	"github.com/golang/glog"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsinformer "github.com/openshift/client-go/apps/informers/externalversions"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
+	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
@@ -26,8 +28,6 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
-	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
@@ -236,7 +236,7 @@ func (i *informerHolder) GetInternalOpenshiftImageInformers() imageinformer.Shar
 func (i *informerHolder) GetInternalOpenshiftNetworkInformers() networkinformer.SharedInformerFactory {
 	return i.networkInformers
 }
-func (i *informerHolder) GetInternalOpenshiftOauthInformers() oauthinformer.SharedInformerFactory {
+func (i *informerHolder) GetOpenshiftOauthInformers() oauthinformer.SharedInformerFactory {
 	return i.oauthInformers
 }
 func (i *informerHolder) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
@@ -292,7 +292,7 @@ func (i *informerHolder) ToGenericInformer() GenericResourceInformer {
 			return i.GetInternalOpenshiftNetworkInformers().ForResource(resource)
 		}),
 		genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-			return i.GetInternalOpenshiftOauthInformers().ForResource(resource)
+			return i.GetOpenshiftOauthInformers().ForResource(resource)
 		}),
 		genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
 			return i.GetInternalOpenshiftQuotaInformers().ForResource(resource)
