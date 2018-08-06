@@ -658,11 +658,12 @@ func (cm *haproxyConfigManager) commitRouterConfig() {
 	cm.commitTimer = nil
 	cm.lock.Unlock()
 
-	// [Re]Adding a blueprint pool route triggers a router state change.
-	// And calling Commit ensures that the config gets written out.
+	// Adding (+removing) a new blueprint pool route triggers a router state
+	// change. And calling Commit ensures that the config gets written out.
 	route := createBlueprintRoute(routeapi.TLSTerminationEdge)
-	route.Name = fmt.Sprintf("%v-1", route.Name)
+	route.Name = fmt.Sprintf("%s-temp-%d", route.Name, time.Now().Unix())
 	cm.router.AddRoute(route)
+	cm.router.RemoveRoute(route)
 
 	glog.V(4).Infof("Committing associated template router ... ")
 	cm.router.Commit()
