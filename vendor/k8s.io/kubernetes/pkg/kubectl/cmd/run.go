@@ -548,7 +548,7 @@ func logOpts(restClientGetter genericclioptions.RESTClientGetter, pod *corev1.Po
 		return err
 	}
 	for _, request := range requests {
-		if err := consumeRequest(request, opts.Out); err != nil {
+		if err := DefaultConsumeRequestFn(request, opts.Out); err != nil {
 			return err
 		}
 	}
