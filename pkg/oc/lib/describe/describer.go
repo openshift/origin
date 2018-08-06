@@ -555,6 +555,16 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 		formatString(out, "\nBuild Run Policy", string(buildConfig.Spec.RunPolicy))
 		d.DescribeTriggers(buildConfig, out)
 
+		if buildConfig.Spec.SuccessfulBuildsHistoryLimit != nil || buildConfig.Spec.FailedBuildsHistoryLimit != nil {
+			fmt.Fprintf(out, "Builds History Limit:\n")
+			if buildConfig.Spec.SuccessfulBuildsHistoryLimit != nil {
+				fmt.Fprintf(out, "\tSuccessful:\t%s\n", strconv.Itoa(int(*buildConfig.Spec.SuccessfulBuildsHistoryLimit)))
+			}
+			if buildConfig.Spec.FailedBuildsHistoryLimit != nil {
+				fmt.Fprintf(out, "\tFailed:\t%s\n", strconv.Itoa(int(*buildConfig.Spec.FailedBuildsHistoryLimit)))
+			}
+		}
+
 		if len(buildList.Items) > 0 {
 			fmt.Fprintf(out, "\nBuild\tStatus\tDuration\tCreation Time\n")
 
