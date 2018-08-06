@@ -31,6 +31,7 @@ import (
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	appsinformer "github.com/openshift/client-go/apps/informers/externalversions"
+	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
@@ -43,7 +44,6 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
-	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"
 	_ "github.com/openshift/origin/pkg/printers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -110,6 +110,7 @@ type InformerAccess interface {
 	GetKubernetesInformers() kinformers.SharedInformerFactory
 
 	GetOpenshiftAppInformers() appsinformer.SharedInformerFactory
+	GetOpenshiftOauthInformers() oauthinformer.SharedInformerFactory
 	GetOpenshiftRouteInformers() routeinformer.SharedInformerFactory
 	GetOpenshiftUserInformers() userinformer.SharedInformerFactory
 
@@ -117,7 +118,6 @@ type InformerAccess interface {
 	GetInternalOpenshiftBuildInformers() buildinformer.SharedInformerFactory
 	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
 	GetInternalOpenshiftNetworkInformers() networkinformer.SharedInformerFactory
-	GetInternalOpenshiftOauthInformers() oauthinformer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
 	GetInternalOpenshiftTemplateInformers() templateinformer.SharedInformerFactory

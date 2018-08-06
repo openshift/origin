@@ -1,4 +1,4 @@
-package internaloauth
+package oauth
 
 import (
 	"errors"
@@ -12,16 +12,16 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	clienttesting "k8s.io/client-go/testing"
 
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	userapi "github.com/openshift/api/user/v1"
+	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	userfake "github.com/openshift/client-go/user/clientset/versioned/fake"
-	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthfake "github.com/openshift/origin/pkg/oauth/generated/internalclientset/fake"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 )
 
 func TestAuthenticateTokenInvalidUID(t *testing.T) {
 	fakeOAuthClient := oauthfake.NewSimpleClientset(
-		&oapi.OAuthAccessToken{
+		&oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{Name: "token", CreationTimestamp: metav1.Time{Time: time.Now()}},
 			ExpiresIn:  600, // 10 minutes
 			UserName:   "foo",
@@ -91,18 +91,18 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 	clientTimeout := int32(15)  // 15 seconds
 	minTimeout := int32(10)     // 10 seconds -> 10/3 = a tick per 3 seconds
 
-	testClient := oapi.OAuthClient{
+	testClient := oauthv1.OAuthClient{
 		ObjectMeta:                          metav1.ObjectMeta{Name: "testClient"},
 		AccessTokenInactivityTimeoutSeconds: &clientTimeout,
 	}
-	quickClient := oapi.OAuthClient{
+	quickClient := oauthv1.OAuthClient{
 		ObjectMeta:                          metav1.ObjectMeta{Name: "quickClient"},
 		AccessTokenInactivityTimeoutSeconds: &minTimeout,
 	}
-	slowClient := oapi.OAuthClient{
+	slowClient := oauthv1.OAuthClient{
 		ObjectMeta: metav1.ObjectMeta{Name: "slowClient"},
 	}
-	testToken := oapi.OAuthAccessToken{
+	testToken := oauthv1.OAuthAccessToken{
 		ObjectMeta:               metav1.ObjectMeta{Name: "testToken", CreationTimestamp: metav1.Time{Time: testClock.Now()}},
 		ClientName:               "testClient",
 		ExpiresIn:                600, // 10 minutes
@@ -110,7 +110,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		UserUID:                  string("bar"),
 		InactivityTimeoutSeconds: clientTimeout,
 	}
-	quickToken := oapi.OAuthAccessToken{
+	quickToken := oauthv1.OAuthAccessToken{
 		ObjectMeta:               metav1.ObjectMeta{Name: "quickToken", CreationTimestamp: metav1.Time{Time: testClock.Now()}},
 		ClientName:               "quickClient",
 		ExpiresIn:                600, // 10 minutes
@@ -118,7 +118,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		UserUID:                  string("bar"),
 		InactivityTimeoutSeconds: minTimeout,
 	}
-	slowToken := oapi.OAuthAccessToken{
+	slowToken := oauthv1.OAuthAccessToken{
 		ObjectMeta:               metav1.ObjectMeta{Name: "slowToken", CreationTimestamp: metav1.Time{Time: testClock.Now()}},
 		ClientName:               "slowClient",
 		ExpiresIn:                600, // 10 minutes
@@ -126,7 +126,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		UserUID:                  string("bar"),
 		InactivityTimeoutSeconds: defaultTimeout,
 	}
-	emergToken := oapi.OAuthAccessToken{
+	emergToken := oauthv1.OAuthAccessToken{
 		ObjectMeta:               metav1.ObjectMeta{Name: "emergToken", CreationTimestamp: metav1.Time{Time: testClock.Now()}},
 		ClientName:               "quickClient",
 		ExpiresIn:                600, // 10 minutes
@@ -304,11 +304,11 @@ type fakeOAuthClientLister struct {
 	clients oauthclient.OAuthClientInterface
 }
 
-func (f fakeOAuthClientLister) Get(name string) (*oapi.OAuthClient, error) {
+func (f fakeOAuthClientLister) Get(name string) (*oauthv1.OAuthClient, error) {
 	return f.clients.Get(name, metav1.GetOptions{})
 }
 
-func (f fakeOAuthClientLister) List(selector labels.Selector) ([]*oapi.OAuthClient, error) {
+func (f fakeOAuthClientLister) List(selector labels.Selector) ([]*oauthv1.OAuthClient, error) {
 	panic("not used")
 }
 

@@ -23,14 +23,14 @@ import (
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	oauthclientlister "github.com/openshift/client-go/oauth/listers/oauth/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/apiserver/authentication/internaloauth"
+	"github.com/openshift/origin/pkg/apiserver/authentication/oauth"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	oauthclientlister "github.com/openshift/origin/pkg/oauth/generated/listers/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/request/paramtoken"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
@@ -64,7 +64,7 @@ func NewAuthenticator(
 	return newAuthenticator(
 		options,
 		oauthClient.OAuthAccessTokens(),
-		informers.GetInternalOpenshiftOauthInformers().Oauth().InternalVersion().OAuthClients().Lister(),
+		informers.GetOpenshiftOauthInformers().Oauth().V1().OAuthClients().Lister(),
 		serviceAccountTokenGetter,
 		userClient.User().Users(),
 		apiClientCAs,
@@ -72,7 +72,7 @@ func NewAuthenticator(
 	)
 }
 
-func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper internaloauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper oauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
@@ -98,16 +98,16 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 
 	// OAuth token
 	if config.OAuthConfig != nil {
-		validators := []internaloauth.OAuthTokenValidator{internaloauth.NewExpirationValidator(), internaloauth.NewUIDValidator()}
+		validators := []oauth.OAuthTokenValidator{oauth.NewExpirationValidator(), oauth.NewUIDValidator()}
 		if inactivityTimeout := config.OAuthConfig.TokenConfig.AccessTokenInactivityTimeoutSeconds; inactivityTimeout != nil {
-			timeoutValidator := internaloauth.NewTimeoutValidator(accessTokenGetter, oauthClientLister, *inactivityTimeout, oauthvalidation.MinimumInactivityTimeoutSeconds)
+			timeoutValidator := oauth.NewTimeoutValidator(accessTokenGetter, oauthClientLister, *inactivityTimeout, oauthvalidation.MinimumInactivityTimeoutSeconds)
 			validators = append(validators, timeoutValidator)
 			postStartHooks["openshift.io-TokenTimeoutUpdater"] = func(context genericapiserver.PostStartHookContext) error {
 				go timeoutValidator.Run(context.StopCh)
 				return nil
 			}
 		}
-		oauthTokenAuthenticator := internaloauth.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
+		oauthTokenAuthenticator := oauth.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user

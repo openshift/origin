@@ -1,4 +1,4 @@
-package internaloauth
+package oauth
 
 import (
 	"errors"
@@ -11,10 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
-	"github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	oauthclientlister "github.com/openshift/origin/pkg/oauth/generated/listers/oauth/internalversion"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	oauthclientlister "github.com/openshift/client-go/oauth/listers/oauth/v1"
 	"github.com/openshift/origin/pkg/util/rankedset"
 )
 
@@ -24,7 +24,7 @@ var errTimedout = errors.New("token timed out")
 var _ = rankedset.Item(&tokenData{})
 
 type tokenData struct {
-	token *oauth.OAuthAccessToken
+	token *oauthv1.OAuthAccessToken
 	seen  time.Time
 }
 
@@ -76,7 +76,7 @@ func NewTimeoutValidator(tokens oauthclient.OAuthAccessTokenInterface, oauthClie
 
 // Validate is called with a token when it is seen by an authenticator
 // it touches only the tokenChannel so it is safe to call from other threads
-func (a *TimeoutValidator) Validate(token *oauth.OAuthAccessToken, _ *userv1.User) error {
+func (a *TimeoutValidator) Validate(token *oauthv1.OAuthAccessToken, _ *userv1.User) error {
 	if token.InactivityTimeoutSeconds == 0 {
 		// We care only if the token was created with a timeout to start with
 		return nil

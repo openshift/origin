@@ -1,26 +1,27 @@
-package internaloauth
+package oauth
 
 import (
 	"testing"
 	"time"
 
-	userapi "github.com/openshift/api/user/v1"
-	userfake "github.com/openshift/client-go/user/clientset/versioned/fake"
-	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthfake "github.com/openshift/origin/pkg/oauth/generated/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	userapi "github.com/openshift/api/user/v1"
+	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
+	userfake "github.com/openshift/client-go/user/clientset/versioned/fake"
 )
 
 func TestAuthenticateTokenExpired(t *testing.T) {
 	fakeOAuthClient := oauthfake.NewSimpleClientset(
 		// expired token that had a lifetime of 10 minutes
-		&oapi.OAuthAccessToken{
+		&oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{Name: "token1", CreationTimestamp: metav1.Time{Time: time.Now().Add(-1 * time.Hour)}},
 			ExpiresIn:  600,
 			UserName:   "foo",
 		},
 		// non-expired token that has a lifetime of 10 minutes, but has a non-nil deletion timestamp
-		&oapi.OAuthAccessToken{
+		&oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{Name: "token2", CreationTimestamp: metav1.Time{Time: time.Now()}, DeletionTimestamp: &metav1.Time{}},
 			ExpiresIn:  600,
 			UserName:   "foo",
@@ -46,7 +47,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 
 func TestAuthenticateTokenValidated(t *testing.T) {
 	fakeOAuthClient := oauthfake.NewSimpleClientset(
-		&oapi.OAuthAccessToken{
+		&oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{Name: "token", CreationTimestamp: metav1.Time{Time: time.Now()}},
 			ExpiresIn:  600, // 10 minutes
 			UserName:   "foo",
