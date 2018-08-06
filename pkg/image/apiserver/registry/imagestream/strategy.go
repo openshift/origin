@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
 type ResourceGetter interface {
@@ -35,7 +36,7 @@ type ResourceGetter interface {
 type Strategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
-	registryHostnameRetriever imageapi.RegistryHostnameRetriever
+	registryHostnameRetriever registryhostname.RegistryHostnameRetriever
 	tagVerifier               *TagVerifier
 	limitVerifier             imageadmission.LimitVerifier
 	registryWhitelister       whitelist.RegistryWhitelister
@@ -45,7 +46,7 @@ type Strategy struct {
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
 func NewStrategy(
-	registryHostname imageapi.RegistryHostnameRetriever,
+	registryHostname registryhostname.RegistryHostnameRetriever,
 	subjectAccessReviewClient authorizationclient.SubjectAccessReviewInterface,
 	limitVerifier imageadmission.LimitVerifier,
 	registryWhitelister whitelist.RegistryWhitelister,

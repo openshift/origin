@@ -22,7 +22,6 @@ import (
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
@@ -35,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreamimport"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreamtag"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
@@ -44,7 +44,7 @@ import (
 type ExtraConfig struct {
 	KubeAPIServerClientConfig          *restclient.Config
 	LimitVerifier                      imageadmission.LimitVerifier
-	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
+	RegistryHostnameRetriever          registryhostname.RegistryHostnameRetriever
 	AllowedRegistriesForImport         *configapi.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
 	AdditionalTrustedCA                []byte

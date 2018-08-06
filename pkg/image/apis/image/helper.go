@@ -33,10 +33,6 @@ const (
 
 	// TagReferenceAnnotationTagHidden indicates that a given TagReference is hidden from search results
 	TagReferenceAnnotationTagHidden = "hidden"
-
-	// ImportRegistryNotAllowed indicates that the image tag was not imported due to
-	// untrusted registry.
-	ImportRegistryNotAllowed = "registry is not allowed for import"
 )
 
 var errNoRegistryURLPathAllowed = errors.New("no path after <host>[:<port>] is allowed")
@@ -58,55 +54,6 @@ var ErrCrossImageStreamReference = errors.New("reference tag points to another i
 
 // ErrInvalidReference is an error when reference tag is invalid.
 var ErrInvalidReference = errors.New("reference tag is invalid")
-
-// RegistryHostnameRetriever represents an interface for retrieving the hostname
-// of internal and external registry.
-type RegistryHostnameRetriever interface {
-	InternalRegistryHostname() (string, bool)
-	ExternalRegistryHostname() (string, bool)
-}
-
-// DefaultRegistryHostnameRetriever is a default implementation of
-// RegistryHostnameRetriever.
-// The first argument is a function that lazy-loads the value of
-// OPENSHIFT_DEFAULT_REGISTRY environment variable which should be deprecated in
-// future.
-func DefaultRegistryHostnameRetriever(deprecatedDefaultRegistryEnvFn func() (string, bool), external, internal string) RegistryHostnameRetriever {
-	return &defaultRegistryHostnameRetriever{
-		deprecatedDefaultFn: deprecatedDefaultRegistryEnvFn,
-		externalHostname:    external,
-		internalHostname:    internal,
-	}
-}
-
-type defaultRegistryHostnameRetriever struct {
-	// deprecatedDefaultFn points to a function that will lazy-load the value of
-	// OPENSHIFT_DEFAULT_REGISTRY.
-	deprecatedDefaultFn func() (string, bool)
-	internalHostname    string
-	externalHostname    string
-}
-
-// InternalRegistryHostnameFn returns a function that can be used to lazy-load
-// the internal Docker Registry hostname. If the master configuration properly
-// InternalRegistryHostname is set, it will prefer that over the lazy-loaded
-// environment variable 'OPENSHIFT_DEFAULT_REGISTRY'.
-func (r *defaultRegistryHostnameRetriever) InternalRegistryHostname() (string, bool) {
-	if len(r.internalHostname) > 0 {
-		return r.internalHostname, true
-	}
-	if r.deprecatedDefaultFn != nil {
-		return r.deprecatedDefaultFn()
-	}
-	return "", false
-}
-
-// ExternalRegistryHostnameFn returns a function that can be used to retrieve an
-// external/public hostname of Docker Registry. External location can be
-// configured in master config using 'ExternalRegistryHostname' property.
-func (r *defaultRegistryHostnameRetriever) ExternalRegistryHostname() (string, bool) {
-	return r.externalHostname, len(r.externalHostname) > 0
-}
 
 // ParseImageStreamImageName splits a string into its name component and ID component, and returns an error
 // if the string is not in the right form.

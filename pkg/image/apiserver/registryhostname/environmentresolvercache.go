@@ -1,4 +1,4 @@
-package service
+package registryhostname
 
 import (
 	"fmt"
@@ -7,14 +7,9 @@ import (
 	"strings"
 	"sync"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	api "k8s.io/kubernetes/pkg/apis/core"
 )
-
-// ServiceRetriever is an interface for retrieving services
-type ServiceRetriever interface {
-	Get(name string) (*api.Service, error)
-}
 
 type serviceEntry struct {
 	host string
@@ -22,7 +17,7 @@ type serviceEntry struct {
 }
 
 // ResolverCacheFunc is used for resolving names to services
-type ResolverCacheFunc func(name string, options metav1.GetOptions) (*api.Service, error)
+type ResolverCacheFunc func(name string, options metav1.GetOptions) (*corev1.Service, error)
 
 // ServiceResolverCache is a cache used for resolving names to services
 type ServiceResolverCache struct {
@@ -32,7 +27,7 @@ type ServiceResolverCache struct {
 }
 
 // NewServiceResolverCache returns a new ServiceResolverCache
-func NewServiceResolverCache(fill ResolverCacheFunc) *ServiceResolverCache {
+func newServiceResolverCache(fill ResolverCacheFunc) *ServiceResolverCache {
 	return &ServiceResolverCache{
 		cache: make(map[string]serviceEntry),
 		fill:  fill,

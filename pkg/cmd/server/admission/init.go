@@ -7,7 +7,7 @@ import (
 
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
@@ -21,7 +21,7 @@ type PluginInitializer struct {
 	RESTClientConfig             restclient.Config
 	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
 	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
-	RegistryHostnameRetriever    imageapi.RegistryHostnameRetriever
+	RegistryHostnameRetriever    registryhostname.RegistryHostnameRetriever
 	SecurityInformers            securityinformer.SharedInformerFactory
 	UserInformers                userinformer.SharedInformerFactory
 }
