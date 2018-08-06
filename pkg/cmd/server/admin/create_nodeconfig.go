@@ -456,7 +456,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 	}
 
 	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := configapi.Scheme.ConvertToVersion(config, configv1.SchemeGroupVersion)
+	ext, err := configapi.Scheme.ConvertToVersion(config, configv1.LegacySchemeGroupVersion)
 	if err != nil {
 		return err
 	}
@@ -485,7 +485,7 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	json, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(configv1.SchemeGroupVersion), node)
+	json, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(configv1.LegacySchemeGroupVersion), node)
 	if err != nil {
 		return err
 	}

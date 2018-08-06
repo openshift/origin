@@ -183,7 +183,7 @@ volumeConfig:
 }
 
 func TestMasterConfig(t *testing.T) {
-	internal.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &testtypes.AdmissionPluginTestConfig{})
+	internal.Scheme.AddKnownTypes(v1.LegacySchemeGroupVersion, &testtypes.AdmissionPluginTestConfig{})
 	internal.Scheme.AddKnownTypes(internal.SchemeGroupVersion, &testtypes.AdmissionPluginTestConfig{})
 	config := &internal.MasterConfig{
 		ServingInfo: internal.HTTPServingInfo{
@@ -261,7 +261,7 @@ func TestMasterConfig(t *testing.T) {
 
 func writeYAML(obj runtime.Object) ([]byte, error) {
 	// Round-trip to pick up defaults
-	externalObj, err := internal.Scheme.ConvertToVersion(obj, v1.SchemeGroupVersion)
+	externalObj, err := internal.Scheme.ConvertToVersion(obj, v1.LegacySchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func writeYAML(obj runtime.Object) ([]byte, error) {
 		return nil, err
 	}
 
-	json, err := runtime.Encode(serializer.NewCodecFactory(internal.Scheme).LegacyCodec(v1.SchemeGroupVersion), internalObj)
+	json, err := runtime.Encode(serializer.NewCodecFactory(internal.Scheme).LegacyCodec(v1.LegacySchemeGroupVersion), internalObj)
 	if err != nil {
 		return nil, err
 	}

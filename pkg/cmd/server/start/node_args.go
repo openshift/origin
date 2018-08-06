@@ -229,7 +229,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.MasterCertDir)
 	}
 
-	internal, err := applyDefaults(config, configapiv1.SchemeGroupVersion)
+	internal, err := applyDefaults(config, configapiv1.LegacySchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}

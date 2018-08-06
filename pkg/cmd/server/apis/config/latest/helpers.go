@@ -146,7 +146,7 @@ func getExternalZeroValue(obj runtime.Object) (runtime.Object, error) {
 	if len(gvks) == 0 { // should never happen
 		return nil, fmt.Errorf("no gvks found for %#v", obj)
 	}
-	gvk := configv1.SchemeGroupVersion.WithKind(gvks[0].Kind)
+	gvk := configv1.LegacySchemeGroupVersion.WithKind(gvks[0].Kind)
 	return configapi.Scheme.New(gvk)
 }
 

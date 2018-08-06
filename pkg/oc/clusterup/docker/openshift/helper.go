@@ -8,15 +8,13 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-
+	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
@@ -230,12 +228,8 @@ func (h *Helper) Master(ip string) string {
 func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfig, string, error) {
 	configPath := filepath.Join(configDir, "master-config.yaml")
 	glog.V(1).Infof("Reading master config from %s", configPath)
-	cfg, err := configapilatest.ReadMasterConfig(configPath)
-	if err != nil {
-		glog.V(2).Infof("Could not read master config: %v", err)
-		return nil, "", err
-	}
-	return cfg, configPath, nil
+	masterConfig, err := componentinstall.ReadMasterConfig(configPath)
+	return masterConfig, configPath, err
 }
 
 func checkPortsInUse(data string, ports []int) error {

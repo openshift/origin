@@ -13,7 +13,7 @@ import (
 )
 
 func TestStringSourceUnmarshaling(t *testing.T) {
-	codec := serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(SchemeGroupVersion)
+	codec := serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(LegacySchemeGroupVersion)
 
 	testcases := map[string]struct {
 		JSON           string
@@ -94,7 +94,7 @@ func TestStringSourceUnmarshaling(t *testing.T) {
 }
 
 func TestStringSourceMarshaling(t *testing.T) {
-	codec := serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(SchemeGroupVersion)
+	codec := serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(LegacySchemeGroupVersion)
 
 	testcases := map[string]struct {
 		Object       configapi.StringSource
