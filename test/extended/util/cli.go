@@ -85,7 +85,23 @@ func NewCLI(project, adminConfigPath string) *CLI {
 
 	g.BeforeEach(client.SetupProject)
 
+	ProwGCPSetup(client)
+
 	return client
+}
+
+// ProwGCPSetup makes sure certain required env vars are available in the case
+// that extended tests are invoked directly via calls to ginkgo/extended.test
+func ProwGCPSetup(oc *CLI) {
+	tn := os.Getenv("OS_TEST_NAMESPACE")
+	if len(strings.TrimSpace(tn)) == 0 {
+		os.Setenv("OS_TEST_NAMESPACE", oc.Namespace())
+	}
+	ad := os.Getenv("ARTIFACT_DIR")
+	if len(strings.TrimSpace(ad)) == 0 {
+		os.Setenv("ARTIFACT_DIR", "/tmp/artifacts")
+	}
+
 }
 
 // KubeFramework returns Kubernetes framework which contains helper functions
