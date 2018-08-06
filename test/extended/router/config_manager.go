@@ -50,7 +50,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		}
 		image += "-haproxy-router"
 
-		if dc, err := oc.AdminAppsClient().Apps().DeploymentConfigs("default").Get("router", metav1.GetOptions{}); err == nil {
+		if dc, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{}); err == nil {
 			if len(dc.Spec.Template.Spec.Containers) > 0 && dc.Spec.Template.Spec.Containers[0].Image != "" {
 				image = dc.Spec.Template.Spec.Containers[0].Image
 			}

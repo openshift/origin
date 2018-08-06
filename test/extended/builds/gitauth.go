@@ -89,7 +89,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the deployment of the gitserver to be in the Complete phase")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), gitServerDeploymentConfigName, 1, true, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), gitServerDeploymentConfigName, 1, true, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			sourceSecretName := secretFunc()
