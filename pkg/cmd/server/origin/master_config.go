@@ -77,11 +77,6 @@ type MasterConfig struct {
 	// To apply different access control to a system component, create a client config specifically for that component.
 	PrivilegedLoopbackClientConfig restclient.Config
 
-	// PrivilegedLoopbackKubernetesClientsetInternal is the client used to call Kubernetes APIs from system components,
-	// built from KubeClientConfig. It should only be accessed via the *TestingClient() helper methods. To apply
-	// different access control to a system component, create a separate client/config specifically for
-	// that component.
-	PrivilegedLoopbackKubernetesClientsetInternal kclientsetinternal.Interface
 	// PrivilegedLoopbackKubernetesClientsetExternal is the client used to call Kubernetes APIs from system components,
 	// built from KubeClientConfig. It should only be accessed via the *TestingClient() helper methods. To apply
 	// different access control to a system component, create a separate client/config specifically for
@@ -235,7 +230,6 @@ func BuildMasterConfig(
 		RegistryHostnameRetriever: registryHostnameRetriever,
 
 		PrivilegedLoopbackClientConfig:                *privilegedLoopbackConfig,
-		PrivilegedLoopbackKubernetesClientsetInternal: kubeInternalClient,
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
 
 		InternalKubeInformers:  informers.GetInternalKubernetesInformers(),

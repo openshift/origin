@@ -25,7 +25,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
@@ -77,7 +76,6 @@ import (
 
 type OpenshiftAPIExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
-	KubeClientInternal        kclientsetinternal.Interface
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	KubeInformers             kubeinformers.SharedInformerFactory
 
@@ -119,9 +117,6 @@ type OpenshiftAPIExtraConfig struct {
 func (c *OpenshiftAPIExtraConfig) Validate() error {
 	ret := []error{}
 
-	if c.KubeClientInternal == nil {
-		ret = append(ret, fmt.Errorf("KubeClientInternal is required"))
-	}
 	if c.KubeInternalInformers == nil {
 		ret = append(ret, fmt.Errorf("KubeInternalInformers is required"))
 	}
