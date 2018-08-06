@@ -16,8 +16,8 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	osautil "github.com/openshift/origin/pkg/oc/lib/serviceaccount"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
 
 var ErrExportOmit = fmt.Errorf("object is omitted")
@@ -103,7 +103,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 			return nil
 		}
 
-		dockercfgSecretPrefix := osautil.GetDockercfgSecretNamePrefix(t)
+		dockercfgSecretPrefix := osautil.GetDockercfgSecretNamePrefix(t.Name)
 		newImagePullSecrets := []kapi.LocalObjectReference{}
 		for _, secretRef := range t.ImagePullSecrets {
 			if strings.HasPrefix(secretRef.Name, dockercfgSecretPrefix) {
@@ -113,7 +113,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 		}
 		t.ImagePullSecrets = newImagePullSecrets
 
-		tokenSecretPrefix := osautil.GetTokenSecretNamePrefix(t)
+		tokenSecretPrefix := osautil.GetTokenSecretNamePrefix(t.Name)
 		newMountableSecrets := []kapi.ObjectReference{}
 		for _, secretRef := range t.Secrets {
 			if strings.HasPrefix(secretRef.Name, dockercfgSecretPrefix) ||
