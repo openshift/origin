@@ -305,7 +305,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
 	}
 
-	internal, err := applyDefaults(config, configapiv1.SchemeGroupVersion)
+	internal, err := applyDefaults(config, configapiv1.LegacySchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}

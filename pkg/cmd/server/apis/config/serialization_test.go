@@ -454,8 +454,8 @@ func TestSpecificKind(t *testing.T) {
 	}
 	seed := int64(2703387474910584091) //rand.Int63()
 	for i := 0; i < fuzzIters; i++ {
-		fuzzInternalObject(t, configapiv1.SchemeGroupVersion, item, seed)
-		roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.SchemeGroupVersion), item)
+		fuzzInternalObject(t, configapiv1.LegacySchemeGroupVersion, item, seed)
+		roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.LegacySchemeGroupVersion), item)
 	}
 }
 
@@ -487,8 +487,8 @@ func TestTypes(t *testing.T) {
 			}
 			seed := rand.Int63()
 
-			fuzzInternalObject(t, configapiv1.SchemeGroupVersion, item, seed)
-			roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.SchemeGroupVersion), item)
+			fuzzInternalObject(t, configapiv1.LegacySchemeGroupVersion, item, seed)
+			roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.LegacySchemeGroupVersion), item)
 		}
 	}
 }
@@ -511,7 +511,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 					},
 				},
 			},
-			to: configapiv1.SchemeGroupVersion,
+			to: configapiv1.LegacySchemeGroupVersion,
 			out: &configapiv1.MasterConfig{
 				TypeMeta: metav1.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
 				AdmissionConfig: configapiv1.AdmissionConfig{
@@ -533,7 +533,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 				},
 				VolumeConfig: configapiv1.MasterVolumeConfig{DynamicProvisioningEnabled: &boolFalse},
 			},
-			from: configapiv1.SchemeGroupVersion,
+			from: configapiv1.LegacySchemeGroupVersion,
 		},
 	}
 

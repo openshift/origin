@@ -9,14 +9,12 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
-const GroupName = ""
-
-// SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
-
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(
-		addKnownTypes,
+	// Legacy is the 'v1' apiVersion of config
+	LegacyGroupName          = ""
+	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	legacySchemeBuilder      = runtime.NewSchemeBuilder(
+		addKnownTypesToLegacy,
 		config.InstallLegacy,
 		coreinternalconversions.AddToScheme,
 		buildinternalconversions.Install,
@@ -24,12 +22,12 @@ var (
 		addConversionFuncs,
 		addDefaultingFuncs,
 	)
-	InstallLegacy = SchemeBuilder.AddToScheme
+	InstallLegacy = legacySchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+func addKnownTypesToLegacy(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(LegacySchemeGroupVersion,
 		&MasterConfig{},
 		&NodeConfig{},
 		&SessionSecrets{},
