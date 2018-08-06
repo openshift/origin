@@ -131,26 +131,29 @@ type InformerAccess interface {
 // provided options
 func BuildMasterConfig(
 	options configapi.MasterConfig,
-	informers InformerAccess,
+	kubeAPIServerClientConfig *restclient.Config,
 ) (*MasterConfig, error) {
 	incompleteKubeAPIServerConfig, err := kubernetes.BuildKubernetesMasterConfig(options)
 	if err != nil {
 		return nil, err
 	}
-	if informers == nil {
-		// use the real Kubernetes loopback client (using a secret token and preferibly localhost networking), not
-		// the one provided by options.MasterClients.OpenShiftLoopbackKubeConfig. The latter is meant for out-of-process
-		// components of the master.
-		realLoopbackInformers, err := NewInformers(incompleteKubeAPIServerConfig.LoopbackConfig())
-		if err != nil {
-			return nil, err
-		}
-		if err := realLoopbackInformers.GetOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
-			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
-		}); err != nil {
-			return nil, err
-		}
-		informers = realLoopbackInformers
+
+	// when running an openshift apiserver, this must be passed in because the loopback is different.
+	if kubeAPIServerClientConfig == nil {
+		kubeAPIServerClientConfig = incompleteKubeAPIServerConfig.LoopbackConfig()
+	}
+
+	// use the real Kubernetes loopback client (using a secret token and preferibly localhost networking), not
+	// the one provided by options.MasterClients.OpenShiftLoopbackKubeConfig. The latter is meant for out-of-process
+	// components of the master.
+	informers, err := NewInformers(incompleteKubeAPIServerConfig.InternalKubernetesInformers, incompleteKubeAPIServerConfig.KubernetesInformers, kubeAPIServerClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	if err := informers.GetOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+	}); err != nil {
+		return nil, err
 	}
 
 	restOptsGetter, err := originrest.StorageOptions(options)
@@ -182,7 +185,6 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	authorizer := NewAuthorizer(informers, options.ProjectConfig.ProjectRequestMessage)
 	projectCache, err := newProjectCache(informers, privilegedLoopbackConfig, options.ProjectConfig.DefaultNodeSelector)
 	if err != nil {
 		return nil, err
@@ -190,7 +192,15 @@ func BuildMasterConfig(
 	clusterQuotaMappingController := newClusterQuotaMappingController(informers)
 	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeInternalClient.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	admissionInitializer, err := originadmission.NewPluginInitializer(options, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
+	admissionInitializer, err := originadmission.NewPluginInitializer(
+		options,
+		privilegedLoopbackConfig,
+		informers,
+		incompleteKubeAPIServerConfig.IncompleteConfig.Authorization.Authorizer,
+		projectCache,
+		restMapper,
+		clusterQuotaMappingController,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +223,6 @@ func BuildMasterConfig(
 	kubeAPIServerConfig, err := incompleteKubeAPIServerConfig.Complete(
 		admission,
 		authenticator,
-		authorizer,
 	)
 	if err != nil {
 		return nil, err

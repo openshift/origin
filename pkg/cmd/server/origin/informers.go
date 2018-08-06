@@ -6,9 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kexternalinformers "k8s.io/client-go/informers"
-	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/golang/glog"
@@ -138,16 +136,7 @@ type informerHolder struct {
 }
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
-func NewInformers(clientConfig *rest.Config) (InformerAccess, error) {
-	kubeInternal, err := kclientsetinternal.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	kubeExternal, err := kubeclientgoclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-
+func NewInformers(internalKubernetesInformers kinternalinformers.SharedInformerFactory, kubernetesInformers kexternalinformers.SharedInformerFactory, clientConfig *rest.Config) (InformerAccess, error) {
 	appsClient, err := appsclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
@@ -199,8 +188,8 @@ func NewInformers(clientConfig *rest.Config) (InformerAccess, error) {
 	const defaultInformerResyncPeriod = 10 * time.Minute
 
 	return &informerHolder{
-		internalKubernetesInformers: kinternalinformers.NewSharedInformerFactory(kubeInternal, defaultInformerResyncPeriod),
-		kubernetesInformers:         kexternalinformers.NewSharedInformerFactory(kubeExternal, defaultInformerResyncPeriod),
+		internalKubernetesInformers: internalKubernetesInformers,
+		kubernetesInformers:         kubernetesInformers,
 		appsInformer:                appsinformer.NewSharedInformerFactory(appsClient, defaultInformerResyncPeriod),
 		authorizationInformers:      authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
 		buildInformers:              buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
@@ -257,8 +246,13 @@ func (i *informerHolder) GetOpenshiftUserInformers() userinformer.SharedInformer
 
 // Start initializes all requested informers.
 func (i *informerHolder) Start(stopCh <-chan struct{}) {
-	i.internalKubernetesInformers.Start(stopCh)
-	i.kubernetesInformers.Start(stopCh)
+	if i.internalKubernetesInformers != nil {
+		i.internalKubernetesInformers.Start(stopCh)
+	}
+	if i.kubernetesInformers != nil {
+		i.kubernetesInformers.Start(stopCh)
+	}
+
 	i.appsInformer.Start(stopCh)
 	i.authorizationInformers.Start(stopCh)
 	i.buildInformers.Start(stopCh)

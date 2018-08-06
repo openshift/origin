@@ -43,8 +43,7 @@ func RunOpenShiftKubeAPIServerServer(masterConfig *configapi.MasterConfig) error
 		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
 	}
 
-	informers := origin.InformerAccess(nil) // use real kube-apiserver loopback client with secret token instead of that from masterConfig.MasterClients.OpenShiftLoopbackKubeConfig
-	openshiftConfig, err := origin.BuildMasterConfig(*masterConfig, informers)
+	openshiftConfig, err := origin.BuildMasterConfig(*masterConfig, nil)
 	if err != nil {
 		return err
 	}

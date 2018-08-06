@@ -17,7 +17,6 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -35,7 +34,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -438,24 +436,7 @@ func (m *Master) Start() error {
 			return err
 		}
 
-		// informers are shared amongst all the various api components we build
-		// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
-		clientConfig, err := configapi.GetClientConfig(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-		if err != nil {
-			return err
-		}
-		informers, err := origin.NewInformers(clientConfig)
-		if err != nil {
-			return err
-		}
-
-		if err := informers.GetOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
-			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
-		}); err != nil {
-			return err
-		}
-
-		openshiftConfig, err := origin.BuildMasterConfig(*m.config, informers)
+		openshiftConfig, err := origin.BuildMasterConfig(*m.config, nil)
 		if err != nil {
 			return err
 		}

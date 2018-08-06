@@ -257,7 +257,7 @@ func GetKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *ClientConn
 	if err != nil {
 		return nil, err
 	}
-	applyClientConnectionOverrides(overrides, clientConfig)
+	ApplyClientConnectionOverrides(overrides, clientConfig)
 	clientConfig.WrapTransport = DefaultClientTransport
 
 	return clientConfig, nil
@@ -276,14 +276,14 @@ func GetClientConfig(kubeConfigFile string, overrides *ClientConnectionOverrides
 	if err != nil {
 		return nil, err
 	}
-	applyClientConnectionOverrides(overrides, clientConfig)
+	ApplyClientConnectionOverrides(overrides, clientConfig)
 	clientConfig.WrapTransport = DefaultClientTransport
 
 	return clientConfig, nil
 }
 
 // applyClientConnectionOverrides updates a kubeConfig with the overrides from the config.
-func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeConfig *restclient.Config) {
+func ApplyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeConfig *restclient.Config) {
 	if overrides == nil {
 		return
 	}
