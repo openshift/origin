@@ -10,7 +10,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
@@ -60,7 +59,7 @@ func (opt *installReadyList) Name() string {
 func (opt *installReadyList) Install(dockerClient dockerhelper.Interface) error {
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 
-	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(opt.baseDir, kubeapiserver.KubeAPIServerDirName, "admin.kubeconfig"))
+	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(opt.baseDir, "kube-apiserver", "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}

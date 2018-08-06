@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,12 +13,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
@@ -71,10 +67,8 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) er
 		return err
 	}
 
-	masterConfig, err := getMasterConfig(c.InstallContext.BaseDir())
-	if err != nil {
-		return err
-	}
+	masterConfigPath := path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName, "master-config.yaml")
+	masterConfig, err := componentinstall.ReadMasterConfig(masterConfigPath)
 
 	masterConfigDir := path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
 	// Create router cert
@@ -153,22 +147,6 @@ func catFiles(dest string, src ...string) error {
 		}
 	}
 	return nil
-}
-
-func getMasterConfig(basedir string) (*configapi.MasterConfig, error) {
-	configBytes, err := ioutil.ReadFile(path.Join(basedir, kubeapiserver.KubeAPIServerDirName, "master-config.yaml"))
-	if err != nil {
-		return nil, err
-	}
-	configObj, err := runtime.Decode(configapilatest.Codec, configBytes)
-	if err != nil {
-		return nil, err
-	}
-	masterConfig, ok := configObj.(*configapi.MasterConfig)
-	if !ok {
-		return nil, fmt.Errorf("the %#v is not MasterConfig", configObj)
-	}
-	return masterConfig, nil
 }
 
 func portForwarding() bool {
