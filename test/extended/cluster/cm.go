@@ -81,13 +81,13 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Mirror cluster", func() 
 			e2e.Logf("Listing objects in namespace %v", ns.Name)
 
 			// Check for DeploymentConfigs
-			dcs, err := oc.AdminAppsClient().Apps().DeploymentConfigs(ns.Name).List(metav1.ListOptions{})
+			dcs, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(ns.Name).List(metav1.ListOptions{})
 			if err != nil {
 				e2e.Failf("Error listing DeploymentConfigs: %v\n", err)
 			}
 
 			for _, dc := range dcs.Items {
-				dc, err := oc.AdminAppsClient().Apps().DeploymentConfigs(ns.Name).Get(dc.Name, metav1.GetOptions{})
+				dc, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(ns.Name).Get(dc.Name, metav1.GetOptions{})
 				if err != nil {
 					e2e.Failf("Error DC not found: %v\n", err)
 				}

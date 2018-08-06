@@ -42,7 +42,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	oc = exutil.NewCLI("router-stress", exutil.KubeConfigPath())
 
 	g.BeforeEach(func() {
-		_, err := oc.AdminAppsClient().Apps().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
+		_, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			g.Skip("no router installed on the cluster")
 			return

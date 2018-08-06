@@ -24,7 +24,7 @@ func cliPodWithPullSecret(cli *exutil.CLI, shell string) *kapiv1.Pod {
 	pullSecretName := sa.ImagePullSecrets[0].Name
 
 	// best effort to get the format string for the release
-	router, err := cli.AdminAppsClient().Apps().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
+	router, err := cli.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
 	if err != nil {
 		g.Fail(fmt.Sprintf("Unable to find router in order to query format string: %v", err))
 	}

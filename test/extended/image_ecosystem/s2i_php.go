@@ -59,7 +59,7 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "cakephp-mysql-example", 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "cakephp-mysql-example", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for endpoint")
