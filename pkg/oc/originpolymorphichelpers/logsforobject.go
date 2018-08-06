@@ -77,9 +77,6 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if !ok {
 				return nil, errors.New("provided options object is not a v1.BuildLogOptions")
 			}
-			if bopts.Version != nil {
-				return nil, errors.New("cannot specify a version and a build")
-			}
 			buildClient, err := buildv1client.NewForConfig(clientConfig)
 			if err != nil {
 				return nil, err
