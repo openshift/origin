@@ -58,7 +58,7 @@ type appsCollector struct {
 
 func InitializeMetricsCollector(rcLister kcorelisters.ReplicationControllerLister) {
 	apps.lister = rcLister
-	apps.nowFn = func() time.Time { return time.Now() }
+	apps.nowFn = time.Now
 	if !registered {
 		prometheus.MustRegister(&apps)
 		registered = true
