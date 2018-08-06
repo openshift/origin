@@ -215,8 +215,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("by checking that the second deployment exists"))
-			// TODO when #11016 gets fixed this can be reverted to 30seconds
-			err = wait.PollImmediate(500*time.Millisecond, 5*time.Minute, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
 				_, rcs, _, err := deploymentInfo(oc, dcName)
 				if err != nil {
 					return false, nil
@@ -783,10 +782,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			_, err = updateConfigWithRetries(oc.AppsClient().Apps(), oc.Namespace(), dcName, func(dc *appsv1.DeploymentConfig) {
-				// TODO: oc rollout pause should patch instead of making a full update
-				dc.Spec.Paused = false
-			})
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(dcName, types.StrategicMergePatchType, []byte(`{"spec": {"paused": false}}`))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
@@ -1015,9 +1011,6 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(dc.Spec.Triggers).To(o.BeNil())
-			// FIXME: remove when tests are migrated to the new client
-			// (the old one incorrectly translates nil into an empty array)
-			dc.Spec.Triggers = append(dc.Spec.Triggers, appsv1.DeploymentTriggerPolicy{Type: appsv1.DeploymentTriggerOnConfigChange})
 			// This is the last place we can safely say that the time was taken before replicas became ready
 			startTime := time.Now()
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
