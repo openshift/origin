@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network/common"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +47,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 
 func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 	funcs := common.InformerFuncs(&networkapi.EgressNetworkPolicy{}, plugin.handleAddOrUpdateEgressNetworkPolicy, plugin.handleDeleteEgressNetworkPolicy)
-	plugin.networkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
+	plugin.networkInformers.Network().V1().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
 }
 
 func (plugin *OsdnNode) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {

@@ -13,8 +13,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
 type multiTenantPlugin struct {

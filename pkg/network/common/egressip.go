@@ -13,8 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion/network/internalversion"
+	networkapi "github.com/openshift/api/network/v1"
+	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 

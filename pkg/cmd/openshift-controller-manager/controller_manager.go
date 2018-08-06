@@ -143,7 +143,7 @@ func newControllerContext(
 		InternalAuthorizationInformers: originInformers.GetInternalOpenshiftAuthorizationInformers(),
 		InternalBuildInformers:         originInformers.GetInternalOpenshiftBuildInformers(),
 		InternalImageInformers:         originInformers.GetInternalOpenshiftImageInformers(),
-		InternalNetworkInformers:       originInformers.GetInternalOpenshiftNetworkInformers(),
+		NetworkInformers:               originInformers.GetOpenshiftNetworkInformers(),
 		InternalQuotaInformers:         originInformers.GetInternalOpenshiftQuotaInformers(),
 		InternalSecurityInformers:      originInformers.GetInternalOpenshiftSecurityInformers(),
 		InternalRouteInformers:         originInformers.GetOpenshiftRouteInformers(),

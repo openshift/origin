@@ -493,8 +493,8 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	}
 
 	networkConfig.InternalKubeInformers.Start(stopCh)
-	if networkConfig.InternalNetworkInformers != nil {
-		networkConfig.InternalNetworkInformers.Start(stopCh)
+	if networkConfig.NetworkInformers != nil {
+		networkConfig.NetworkInformers.Start(stopCh)
 	}
 
 	return nil

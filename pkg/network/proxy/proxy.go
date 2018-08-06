@@ -18,11 +18,11 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 
+	networkapi "github.com/openshift/api/network/v1"
+	networkclient "github.com/openshift/client-go/network/clientset/versioned"
+	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
 // EndpointsConfigHandler is an abstract interface of objects which receive update notifications for the set of endpoints.
@@ -115,7 +115,7 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicyLocked(policy networkapi.Egress
 
 func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
 	funcs := common.InformerFuncs(&networkapi.EgressNetworkPolicy{}, proxy.handleAddOrUpdateEgressNetworkPolicy, proxy.handleDeleteEgressNetworkPolicy)
-	proxy.networkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
+	proxy.networkInformers.Network().V1().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
 }
 
 func (proxy *OsdnProxy) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {
@@ -142,7 +142,7 @@ func (proxy *OsdnProxy) handleDeleteEgressNetworkPolicy(obj interface{}) {
 
 func (proxy *OsdnProxy) watchNetNamespaces() {
 	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, proxy.handleAddOrUpdateNetNamespace, proxy.handleDeleteNetNamespace)
-	proxy.networkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
+	proxy.networkInformers.Network().V1().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (proxy *OsdnProxy) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
