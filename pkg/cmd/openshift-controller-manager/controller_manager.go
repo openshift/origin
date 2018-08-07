@@ -7,35 +7,24 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/client-go/restmapper"
-
+	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/version"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	cacheddiscovery "k8s.io/client-go/discovery/cached"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/controller"
-
-	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
-	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/version"
 )
 
 func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, clientConfig *rest.Config) error {
 	util.InitLogrus()
-	kubeExternal, err := kclientsetexternal.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-	openshiftControllerInformers, err := origin.NewInformers(clientConfig)
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -44,29 +33,29 @@ func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, 
 	if config.ServingInfo != nil {
 		glog.Infof("Starting controllers on %s (%s)", config.ServingInfo.BindAddress, version.Get().String())
 
-		if err := origincontrollers.RunControllerServer(*config.ServingInfo, kubeExternal); err != nil {
+		if err := origincontrollers.RunControllerServer(*config.ServingInfo, kubeClient); err != nil {
 			return err
 		}
 	}
 
 	originControllerManager := func(stopCh <-chan struct{}) {
-		if err := waitForHealthyAPIServer(kubeExternal.Discovery().RESTClient()); err != nil {
+		if err := waitForHealthyAPIServer(kubeClient.Discovery().RESTClient()); err != nil {
 			glog.Fatal(err)
 		}
 
-		informersStarted := make(chan struct{})
-		controllerContext := newControllerContext(*config, clientConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
+		controllerContext, err := origincontrollers.NewControllerContext(*config, clientConfig, stopCh)
+		if err != nil {
+			glog.Fatal(err)
+		}
 		if err := startControllers(controllerContext); err != nil {
 			glog.Fatal(err)
 		}
-
-		openshiftControllerInformers.Start(stopCh)
-		close(informersStarted)
+		controllerContext.StartInformers(stopCh)
 	}
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
-	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeExternal.CoreV1().Events("")})
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	eventRecorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "openshift-controller-manager"})
 	id, err := os.Hostname()
 	if err != nil {
@@ -76,7 +65,7 @@ func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, 
 		"configmaps",
 		"kube-system",
 		"openshift-master-controllers", // this matches what ansible used to set
-		kubeExternal.CoreV1(),
+		kubeClient.CoreV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
 			EventRecorder: eventRecorder,
@@ -98,63 +87,6 @@ func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, 
 	})
 
 	return nil
-}
-
-func newControllerContext(
-	config configapi.OpenshiftControllerConfig,
-	inClientConfig *rest.Config,
-	kubeExternal kclientsetexternal.Interface,
-	originInformers origin.InformerAccess,
-	stopCh <-chan struct{},
-	informersStarted chan struct{},
-) origincontrollers.ControllerContext {
-
-	// copy to avoid messing with original
-	clientConfig := rest.CopyConfig(inClientConfig)
-
-	// divide up the QPS since it re-used separately for every client
-	// TODO, eventually make this configurable individually in some way.
-	if clientConfig.QPS > 0 {
-		clientConfig.QPS = clientConfig.QPS/10 + 1
-	}
-	if clientConfig.Burst > 0 {
-		clientConfig.Burst = clientConfig.Burst/10 + 1
-	}
-
-	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeExternal.Discovery())
-	dynamicRestMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	dynamicRestMapper.Reset()
-
-	go wait.Until(dynamicRestMapper.Reset, 30*time.Second, stopCh)
-
-	openshiftControllerContext := origincontrollers.ControllerContext{
-		OpenshiftControllerConfig: config,
-
-		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
-			ControllerClientBuilder: controller.SAControllerClientBuilder{
-				ClientConfig:         rest.AnonymousClientConfig(clientConfig),
-				CoreClient:           kubeExternal.CoreV1(),
-				AuthenticationClient: kubeExternal.AuthenticationV1(),
-				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
-			},
-		},
-		KubernetesInformers:            originInformers.GetKubernetesInformers(),
-		AppsInformers:                  originInformers.GetOpenshiftAppInformers(),
-		InternalAuthorizationInformers: originInformers.GetInternalOpenshiftAuthorizationInformers(),
-		InternalBuildInformers:         originInformers.GetInternalOpenshiftBuildInformers(),
-		InternalImageInformers:         originInformers.GetInternalOpenshiftImageInformers(),
-		NetworkInformers:               originInformers.GetOpenshiftNetworkInformers(),
-		InternalQuotaInformers:         originInformers.GetInternalOpenshiftQuotaInformers(),
-		InternalSecurityInformers:      originInformers.GetInternalOpenshiftSecurityInformers(),
-		InternalRouteInformers:         originInformers.GetOpenshiftRouteInformers(),
-		InternalTemplateInformers:      originInformers.GetInternalOpenshiftTemplateInformers(),
-		GenericResourceInformer:        originInformers.ToGenericInformer(),
-		Stop:             stopCh,
-		InformersStarted: informersStarted,
-		RestMapper:       dynamicRestMapper,
-	}
-
-	return openshiftControllerContext
 }
 
 func waitForHealthyAPIServer(client rest.Interface) error {
@@ -182,7 +114,7 @@ func waitForHealthyAPIServer(client rest.Interface) error {
 
 // startControllers launches the controllers
 // allocation controller is passed in because it wants direct etcd access.  Naughty.
-func startControllers(controllerContext origincontrollers.ControllerContext) error {
+func startControllers(controllerContext *origincontrollers.ControllerContext) error {
 	for controllerName, initFn := range origincontrollers.ControllerInitializers {
 		if !controllerContext.IsControllerEnabled(controllerName) {
 			glog.Warningf("%q is disabled", controllerName)

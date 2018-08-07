@@ -11,7 +11,7 @@ import (
 )
 
 // RunController starts the build sync loop for builds and buildConfig processing.
-func RunBuildController(ctx ControllerContext) (bool, error) {
+func RunBuildController(ctx *ControllerContext) (bool, error) {
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Format
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Latest
@@ -52,7 +52,7 @@ func RunBuildController(ctx ControllerContext) (bool, error) {
 	return true, nil
 }
 
-func RunBuildConfigChangeController(ctx ControllerContext) (bool, error) {
+func RunBuildConfigChangeController(ctx *ControllerContext) (bool, error) {
 	clientName := bootstrappolicy.InfraBuildConfigChangeControllerServiceAccountName
 	kubeExternalClient := ctx.ClientBuilder.ClientOrDie(clientName)
 	buildClient := ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(clientName)

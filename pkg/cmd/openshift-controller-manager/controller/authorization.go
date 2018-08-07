@@ -5,7 +5,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-func RunDefaultRoleBindingController(ctx ControllerContext) (bool, error) {
+func RunDefaultRoleBindingController(ctx *ControllerContext) (bool, error) {
 	kubeClient, err := ctx.ClientBuilder.Client(bootstrappolicy.InfraDefaultRoleBindingsControllerServiceAccountName)
 	if err != nil {
 		return true, err

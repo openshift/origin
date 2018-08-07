@@ -26,7 +26,7 @@ import (
 	triggerdeploymentconfigs "github.com/openshift/origin/pkg/image/trigger/deploymentconfigs"
 )
 
-func RunImageTriggerController(ctx ControllerContext) (bool, error) {
+func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
 
 	buildClient, err := ctx.ClientBuilder.OpenshiftInternalBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
@@ -139,7 +139,7 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 	}
 }
 
-func RunImageSignatureImportController(ctx ControllerContext) (bool, error) {
+func RunImageSignatureImportController(ctx *ControllerContext) (bool, error) {
 	// TODO these should really be configurable
 	resyncPeriod := 1 * time.Hour
 	signatureFetchTimeout := 1 * time.Minute
@@ -157,7 +157,7 @@ func RunImageSignatureImportController(ctx ControllerContext) (bool, error) {
 	return true, nil
 }
 
-func RunImageImportController(ctx ControllerContext) (bool, error) {
+func RunImageImportController(ctx *ControllerContext) (bool, error) {
 	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
 	controller := imagecontroller.NewImageStreamController(
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),

@@ -14,7 +14,7 @@ import (
 	quotainstall "k8s.io/kubernetes/pkg/quota/install"
 )
 
-func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
+func RunResourceQuotaManager(ctx *ControllerContext) (bool, error) {
 	concurrentResourceQuotaSyncs := int(ctx.OpenshiftControllerConfig.ResourceQuota.ConcurrentSyncs)
 	resourceQuotaSyncPeriod := ctx.OpenshiftControllerConfig.ResourceQuota.SyncPeriod.Duration
 	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.OpenshiftControllerConfig.ResourceQuota.MinResyncPeriod.Duration)
@@ -47,7 +47,7 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 	return true, nil
 }
 
-func RunClusterQuotaReconciliationController(ctx ControllerContext) (bool, error) {
+func RunClusterQuotaReconciliationController(ctx *ControllerContext) (bool, error) {
 	defaultResyncPeriod := 5 * time.Minute
 	defaultReplenishmentSyncPeriod := 12 * time.Hour
 

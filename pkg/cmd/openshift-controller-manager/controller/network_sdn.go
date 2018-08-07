@@ -8,7 +8,7 @@ import (
 	sdnmaster "github.com/openshift/origin/pkg/network/master"
 )
 
-func RunSDNController(ctx ControllerContext) (bool, error) {
+func RunSDNController(ctx *ControllerContext) (bool, error) {
 	if !network.IsOpenShiftNetworkPlugin(ctx.OpenshiftControllerConfig.Network.NetworkPluginName) {
 		return false, nil
 	}

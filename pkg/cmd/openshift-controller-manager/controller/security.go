@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
-func RunNamespaceSecurityAllocationController(ctx ControllerContext) (bool, error) {
+func RunNamespaceSecurityAllocationController(ctx *ControllerContext) (bool, error) {
 	uidRange, err := uid.ParseRange(ctx.OpenshiftControllerConfig.SecurityAllocator.UIDAllocatorRange)
 	if err != nil {
 		return true, fmt.Errorf("unable to describe UID range: %v", err)

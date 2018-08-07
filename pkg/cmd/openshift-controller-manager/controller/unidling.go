@@ -9,7 +9,7 @@ import (
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
 
-func RunUnidlingController(ctx ControllerContext) (bool, error) {
+func RunUnidlingController(ctx *ControllerContext) (bool, error) {
 	// TODO this should be configurable
 	resyncPeriod := 2 * time.Hour
 

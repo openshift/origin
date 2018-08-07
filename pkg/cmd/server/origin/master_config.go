@@ -29,13 +29,10 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
-	appsinformer "github.com/openshift/client-go/apps/informers/externalversions"
-	networkinformer "github.com/openshift/client-go/network/informers/externalversions"
 	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
-	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
@@ -47,7 +44,6 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
@@ -107,20 +103,14 @@ type InformerAccess interface {
 	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 	GetKubernetesInformers() kinformers.SharedInformerFactory
 
-	GetOpenshiftAppInformers() appsinformer.SharedInformerFactory
 	GetOpenshiftOauthInformers() oauthinformer.SharedInformerFactory
-	GetOpenshiftNetworkInformers() networkinformer.SharedInformerFactory
 	GetOpenshiftRouteInformers() routeinformer.SharedInformerFactory
 	GetOpenshiftUserInformers() userinformer.SharedInformerFactory
 
 	GetInternalOpenshiftAuthorizationInformers() authorizationinformer.SharedInformerFactory
-	GetInternalOpenshiftBuildInformers() buildinformer.SharedInformerFactory
 	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
-	GetInternalOpenshiftTemplateInformers() templateinformer.SharedInformerFactory
-
-	ToGenericInformer() GenericResourceInformer
 
 	Start(stopCh <-chan struct{})
 }
