@@ -13,6 +13,8 @@ import (
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsinformer "github.com/openshift/client-go/apps/informers/externalversions"
+	networkclientinternal "github.com/openshift/client-go/network/clientset/versioned"
+	networkinformer "github.com/openshift/client-go/network/informers/externalversions"
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
@@ -21,8 +23,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
-	networkclientinternal "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
@@ -41,7 +41,7 @@ type ControllerContext struct {
 
 	InternalBuildInformers         buildinformer.SharedInformerFactory
 	InternalImageInformers         imageinformer.SharedInformerFactory
-	InternalNetworkInformers       networkinformer.SharedInformerFactory
+	NetworkInformers               networkinformer.SharedInformerFactory
 	InternalTemplateInformers      templateinformer.SharedInformerFactory
 	InternalQuotaInformers         quotainformer.SharedInformerFactory
 	InternalAuthorizationInformers authorizationinformer.SharedInformerFactory
@@ -90,8 +90,8 @@ type ControllerClientBuilder interface {
 	OpenshiftInternalQuotaClient(name string) (quotaclient.Interface, error)
 	OpenshiftInternalQuotaClientOrDie(name string) quotaclient.Interface
 
-	OpenshiftInternalNetworkClient(name string) (networkclientinternal.Interface, error)
-	OpenshiftInternalNetworkClientOrDie(name string) networkclientinternal.Interface
+	OpenshiftNetworkClient(name string) (networkclientinternal.Interface, error)
+	OpenshiftNetworkClientOrDie(name string) networkclientinternal.Interface
 
 	OpenshiftInternalSecurityClient(name string) (securityclient.Interface, error)
 	OpenshiftInternalSecurityClientOrDie(name string) securityclient.Interface
@@ -232,10 +232,10 @@ func (b OpenshiftControllerClientBuilder) OpenshiftInternalQuotaClientOrDie(name
 	return client
 }
 
-// OpenshiftInternalNetworkClient provides a REST client for the network API.
+// OpenshiftNetworkClient provides a REST client for the network API.
 // If the client cannot be created because of configuration error, this function
 // will error.
-func (b OpenshiftControllerClientBuilder) OpenshiftInternalNetworkClient(name string) (networkclientinternal.Interface, error) {
+func (b OpenshiftControllerClientBuilder) OpenshiftNetworkClient(name string) (networkclientinternal.Interface, error) {
 	clientConfig, err := b.Config(name)
 	if err != nil {
 		return nil, err
@@ -243,11 +243,11 @@ func (b OpenshiftControllerClientBuilder) OpenshiftInternalNetworkClient(name st
 	return networkclientinternal.NewForConfig(clientConfig)
 }
 
-// OpenshiftInternalNetworkClientOrDie provides a REST client for the network API.
+// OpenshiftNetworkClientOrDie provides a REST client for the network API.
 // If the client cannot be created because of configuration error, this function
 // will panic.
-func (b OpenshiftControllerClientBuilder) OpenshiftInternalNetworkClientOrDie(name string) networkclientinternal.Interface {
-	client, err := b.OpenshiftInternalNetworkClient(name)
+func (b OpenshiftControllerClientBuilder) OpenshiftNetworkClientOrDie(name string) networkclientinternal.Interface {
+	client, err := b.OpenshiftNetworkClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}

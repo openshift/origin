@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	networkv1 "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
@@ -72,7 +73,7 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string, 1)
 	}
-	netns.Annotations[networkapi.MulticastEnabledAnnotation] = "true"
+	netns.Annotations[networkv1.MulticastEnabledAnnotation] = "true"
 	_, err = networkClient.Network().NetNamespaces().Update(netns)
 	expectNoError(err)
 }

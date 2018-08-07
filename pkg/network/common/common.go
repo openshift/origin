@@ -9,9 +9,9 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	networkapi "github.com/openshift/api/network/v1"
+	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 

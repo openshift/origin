@@ -1,17 +1,15 @@
-package network
+package networkapihelpers
 
 import (
 	"fmt"
 	"strings"
+
+	networkv1 "github.com/openshift/api/network/v1"
 )
 
 type PodNetworkAction string
 
 const (
-
-	// ChangePodNetworkAnnotation is an annotation on NetNamespace to request change of pod network
-	ChangePodNetworkAnnotation string = "pod.network.openshift.io/multitenant.change-network"
-
 	// Acceptable values for ChangePodNetworkAnnotation
 	GlobalPodNetwork  PodNetworkAction = "global"
 	JoinPodNetwork    PodNetworkAction = "join"
@@ -23,8 +21,8 @@ var (
 )
 
 // GetChangePodNetworkAnnotation fetches network change intent from NetNamespace
-func GetChangePodNetworkAnnotation(netns *NetNamespace) (PodNetworkAction, string, error) {
-	value, ok := netns.Annotations[ChangePodNetworkAnnotation]
+func GetChangePodNetworkAnnotation(netns *networkv1.NetNamespace) (PodNetworkAction, string, error) {
+	value, ok := netns.Annotations[networkv1.ChangePodNetworkAnnotation]
 	if !ok {
 		return PodNetworkAction(""), "", ErrorPodNetworkAnnotationNotFound
 	}
@@ -47,7 +45,7 @@ func GetChangePodNetworkAnnotation(netns *NetNamespace) (PodNetworkAction, strin
 }
 
 // SetChangePodNetworkAnnotation sets network change intent on NetNamespace
-func SetChangePodNetworkAnnotation(netns *NetNamespace, action PodNetworkAction, params string) {
+func SetChangePodNetworkAnnotation(netns *networkv1.NetNamespace, action PodNetworkAction, params string) {
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string)
 	}
@@ -56,5 +54,10 @@ func SetChangePodNetworkAnnotation(netns *NetNamespace, action PodNetworkAction,
 	if len(params) != 0 {
 		value = fmt.Sprintf("%s:%s", value, params)
 	}
-	netns.Annotations[ChangePodNetworkAnnotation] = value
+	netns.Annotations[networkv1.ChangePodNetworkAnnotation] = value
+}
+
+// DeleteChangePodNetworkAnnotation removes network change intent from NetNamespace
+func DeleteChangePodNetworkAnnotation(netns *networkv1.NetNamespace) {
+	delete(netns.Annotations, networkv1.ChangePodNetworkAnnotation)
 }

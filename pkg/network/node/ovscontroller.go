@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang/glog"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/ovs"
 

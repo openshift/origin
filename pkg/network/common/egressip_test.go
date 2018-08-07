@@ -7,7 +7,7 @@ import (
 
 	ktypes "k8s.io/apimachinery/pkg/types"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/api/network/v1"
 )
 
 type testEIPWatcher struct {

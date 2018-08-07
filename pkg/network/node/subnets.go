@@ -16,9 +16,9 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/api/network/v1"
+	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
 	"github.com/openshift/origin/pkg/network/common"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 )
 
 type hostSubnetWatcher struct {
@@ -41,7 +41,7 @@ func newHostSubnetWatcher(oc *ovsController, localIP string, networkInfo *common
 
 func (hsw *hostSubnetWatcher) Start(networkInformers networkinformers.SharedInformerFactory) {
 	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, hsw.handleAddOrUpdateHostSubnet, hsw.handleDeleteHostSubnet)
-	networkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
+	networkInformers.Network().V1().HostSubnets().Informer().AddEventHandler(funcs)
 }
 
 func (hsw *hostSubnetWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
