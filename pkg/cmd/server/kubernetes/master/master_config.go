@@ -32,7 +32,6 @@ import (
 	"k8s.io/apiserver/pkg/audit"
 	auditpolicy "k8s.io/apiserver/pkg/audit/policy"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authorization/authorizer"
 	apiserverendpointsopenapi "k8s.io/apiserver/pkg/endpoints/openapi"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
@@ -48,6 +47,7 @@ import (
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
+	kinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
@@ -65,6 +65,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/policy"
 	storageapi "k8s.io/kubernetes/pkg/apis/storage"
 	storageapiv1beta1 "k8s.io/kubernetes/pkg/apis/storage/v1beta1"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/kubeapiserver"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -89,6 +91,7 @@ import (
 	// TODO fix this install, it is required for TestPreferredGroupVersions to pass
 	"github.com/openshift/api/security"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
+	"k8s.io/client-go/kubernetes"
 )
 
 // request paths that match this regular expression will be treated as long running
@@ -378,13 +381,16 @@ func buildPublicAddress(masterConfig configapi.MasterConfig) (net.IP, error) {
 	return publicAddress, nil
 }
 
-type incompleteKubeMasterConfig struct {
+type IncompleteKubeMasterConfig struct {
 	options          *kapiserveroptions.ServerRunOptions
-	incompleteConfig *apiserver.Config
+	IncompleteConfig *apiserver.Config
 	masterConfig     configapi.MasterConfig
+
+	InternalKubernetesInformers kinternalinformers.SharedInformerFactory
+	KubernetesInformers         kinformers.SharedInformerFactory
 }
 
-func BuildKubernetesMasterConfig(masterConfig configapi.MasterConfig) (*incompleteKubeMasterConfig, error) {
+func BuildKubernetesMasterConfig(masterConfig configapi.MasterConfig) (*IncompleteKubeMasterConfig, error) {
 	apiserverOptions, err := BuildKubeAPIserverOptions(masterConfig)
 	if err != nil {
 		return nil, err
@@ -395,19 +401,40 @@ func BuildKubernetesMasterConfig(masterConfig configapi.MasterConfig) (*incomple
 		return nil, err
 	}
 
-	return &incompleteKubeMasterConfig{apiserverOptions, genericConfig, masterConfig}, nil
+	configapi.ApplyClientConnectionOverrides(masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides, genericConfig.LoopbackClientConfig)
+	kubeInternalClient, err := kclientsetinternal.NewForConfig(genericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	kubeClient, err := kubernetes.NewForConfig(genericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	const defaultInformerResyncPeriod = 10 * time.Minute
+	internalInformers := kinternalinformers.NewSharedInformerFactory(kubeInternalClient, defaultInformerResyncPeriod)
+	informers := kinformers.NewSharedInformerFactory(kubeClient, defaultInformerResyncPeriod)
+
+	genericConfig.Authorization.Authorizer = NewAuthorizer(internalInformers, informers, masterConfig.ProjectConfig.ProjectRequestMessage)
+
+	return &IncompleteKubeMasterConfig{
+		options:                     apiserverOptions,
+		IncompleteConfig:            genericConfig,
+		masterConfig:                masterConfig,
+		InternalKubernetesInformers: internalInformers,
+		KubernetesInformers:         informers,
+	}, nil
 }
 
-func (rc *incompleteKubeMasterConfig) LoopbackConfig() *rest.Config {
-	return rc.incompleteConfig.LoopbackClientConfig
+func (rc *IncompleteKubeMasterConfig) LoopbackConfig() *rest.Config {
+	return rc.IncompleteConfig.LoopbackClientConfig
 }
 
-func (rc *incompleteKubeMasterConfig) Complete(
+func (rc *IncompleteKubeMasterConfig) Complete(
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
-	kubeAuthorizer authorizer.Authorizer,
 ) (*master.Config, error) {
-	genericConfig, apiserverOptions, masterConfig := rc.incompleteConfig, rc.options, rc.masterConfig
+	genericConfig, apiserverOptions, masterConfig := rc.IncompleteConfig, rc.options, rc.masterConfig
 
 	proxyClientCerts, err := buildProxyClientCerts(masterConfig)
 	if err != nil {
@@ -439,7 +466,6 @@ func (rc *incompleteKubeMasterConfig) Complete(
 	genericConfig.Version = &kubeVersion
 	genericConfig.PublicAddress = publicAddress
 	genericConfig.Authentication.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
-	genericConfig.Authorization.Authorizer = kubeAuthorizer          // this is used to fulfill the kube SAR endpoints
 	genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
 	// This disables the ThirdPartyController which removes handlers from our go-restful containers.  The remove functionality is broken and destroys the serve mux.
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")

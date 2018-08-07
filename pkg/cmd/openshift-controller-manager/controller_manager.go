@@ -7,18 +7,21 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/client-go/restmapper"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/informers"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
@@ -31,11 +34,22 @@ import (
 
 func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, clientConfig *rest.Config) error {
 	util.InitLogrus()
+	configapi.ApplyClientConnectionOverrides(config.ClientConnectionOverrides, clientConfig)
+
 	kubeExternal, err := kclientsetexternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	openshiftControllerInformers, err := origin.NewInformers(clientConfig)
+	kubeInternalClient, err := kclientsetinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	const defaultInformerResyncPeriod = 10 * time.Minute
+	internalInformers := kinternalinformers.NewSharedInformerFactory(kubeInternalClient, defaultInformerResyncPeriod)
+	informers := informers.NewSharedInformerFactory(kubeExternal, defaultInformerResyncPeriod)
+
+	openshiftControllerInformers, err := origin.NewInformers(internalInformers, informers, clientConfig)
 	if err != nil {
 		return err
 	}

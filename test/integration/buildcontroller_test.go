@@ -2,6 +2,7 @@ package integration
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -110,7 +111,15 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	informers, err := origin.NewInformers(clusterAdminClientConfig)
+	kubeExternal, err := kclientsetexternal.NewForConfig(clusterAdminClientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const defaultInformerResyncPeriod = 10 * time.Minute
+	kubeInformers := kinformers.NewSharedInformerFactory(kubeExternal, defaultInformerResyncPeriod)
+
+	informers, err := origin.NewInformers(nil, kubeInformers, clusterAdminClientConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

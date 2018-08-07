@@ -112,8 +112,7 @@ func (o *DebugAPIServerOptions) Run() error {
 }
 
 func (o *DebugAPIServerOptions) StartAPIServer(masterConfig configapi.MasterConfig) error {
-	informers := origin.InformerAccess(nil)
-	openshiftConfig, err := origin.BuildMasterConfig(masterConfig, informers)
+	openshiftConfig, err := origin.BuildMasterConfig(masterConfig, nil)
 	if err != nil {
 		return err
 	}
