@@ -132,6 +132,7 @@ func stripNamespace(obj runtime.Object) {
 	}
 }
 
+// TODO: remove once consumers are switched to deal with external versions
 // DeprecatedGetParameterByNameInternal searches for a Parameter in the Template
 // based on its name.
 func DeprecatedGetParameterByNameInternal(t *templateapi.Template, name string) *templateapi.Parameter {
