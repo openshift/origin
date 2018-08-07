@@ -264,6 +264,17 @@ func (j *JenkinsRef) ProcessJenkinsJobUsingVars(filename, namespace string, vars
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
 	newfile, err := exutil.CreateTempFile(string(data))
+	e2e.Logf("new temp file %s err %v", newfile, err)
+	if err != nil {
+		files, dbgerr := ioutil.ReadDir("/tmp")
+		if dbgerr != nil {
+			e2e.Logf("problem diagnosing /tmp: %v", dbgerr)
+		} else {
+			for _, file := range files {
+				e2e.Logf("found file %s under temp isdir %q mode %s", file.Name(), file.IsDir(), file.Mode().String())
+			}
+		}
+	}
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 	return newfile
 

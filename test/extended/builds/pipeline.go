@@ -3,6 +3,7 @@ package builds
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -810,6 +811,16 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				g.By(fmt.Sprintf("creating git repo %v", envVarsPipelineGitRepoBuildConfig))
 				repo, err := exutil.NewGitRepo(envVarsPipelineGitRepoBuildConfig)
 				defer repo.Remove()
+				if err != nil {
+					files, dbgerr := ioutil.ReadDir("/tmp")
+					if dbgerr != nil {
+						e2e.Logf("problem diagnosing /tmp: %v", dbgerr)
+					} else {
+						for _, file := range files {
+							e2e.Logf("found file %s under temp isdir %q mode %s", file.Name(), file.IsDir(), file.Mode().String())
+						}
+					}
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 				jf := `node() {\necho "FOO1 is ${env.FOO1}"\necho"FOO2is${env.FOO2}"\necho"FOO3is${env.FOO3}"\necho"FOO4is${env.FOO4}"}`
 				err = repo.AddAndCommit("Jenkinsfile", jf)
