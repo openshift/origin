@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -48,7 +49,7 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a new REST.
 func NewREST(
 	optsGetter restoptions.Getter,
-	registryHostname imageapi.RegistryHostnameRetriever,
+	registryHostname registryhostname.RegistryHostnameRetriever,
 	subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface,
 	limitVerifier imageadmission.LimitVerifier,
 	registryWhitelister whitelist.RegistryWhitelister,

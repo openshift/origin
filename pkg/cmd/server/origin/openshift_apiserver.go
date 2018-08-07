@@ -37,9 +37,9 @@ import (
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	networkapiserver "github.com/openshift/origin/pkg/network/apiserver"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	projectapiserver "github.com/openshift/origin/pkg/project/apiserver"
@@ -92,7 +92,7 @@ type OpenshiftAPIExtraConfig struct {
 	LimitVerifier imageadmission.LimitVerifier
 	// RegistryHostnameRetriever retrieves the internal and external hostname of
 	// the integrated registry, or false if no such registry is available.
-	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
+	RegistryHostnameRetriever          registryhostname.RegistryHostnameRetriever
 	AllowedRegistriesForImport         *configapi.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
 	AdditionalTrustedCA                []byte

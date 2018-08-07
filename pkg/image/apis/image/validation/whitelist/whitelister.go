@@ -49,6 +49,13 @@ type RegistryWhitelister interface {
 	Copy() RegistryWhitelister
 }
 
+// RegistryHostnameRetriever represents an interface for retrieving the hostname
+// of internal and external registry.
+type RegistryHostnameRetriever interface {
+	InternalRegistryHostname() (string, bool)
+	ExternalRegistryHostname() (string, bool)
+}
+
 type allowedHostPortGlobs struct {
 	host string
 	port string
@@ -57,7 +64,7 @@ type allowedHostPortGlobs struct {
 type registryWhitelister struct {
 	whitelist             []allowedHostPortGlobs
 	pullSpecs             sets.String
-	registryHostRetriever imageapi.RegistryHostnameRetriever
+	registryHostRetriever RegistryHostnameRetriever
 }
 
 var _ RegistryWhitelister = &registryWhitelister{}
@@ -66,7 +73,7 @@ var _ RegistryWhitelister = &registryWhitelister{}
 // list of allowed registries and the current domain name of the integrated Docker registry.
 func NewRegistryWhitelister(
 	whitelist serverapi.AllowedRegistries,
-	registryHostRetriever imageapi.RegistryHostnameRetriever,
+	registryHostRetriever RegistryHostnameRetriever,
 ) (RegistryWhitelister, error) {
 	errs := []error{}
 	rw := registryWhitelister{

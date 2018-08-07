@@ -1,25 +1,25 @@
-package service
+package registryhostname
 
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestServiceResolverCacheEmpty(t *testing.T) {
-	fakeClient := fake.NewSimpleClientset(&kapi.Service{
+	fakeClient := fake.NewSimpleClientset(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: kapi.ServiceSpec{
-			Ports: []kapi.ServicePort{{Port: 80}},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{{Port: 80}},
 		},
 	})
-	cache := NewServiceResolverCache(fakeClient.Core().Services("default").Get)
+	cache := newServiceResolverCache(fakeClient.Core().Services("default").Get)
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "" || !ok {
 		t.Errorf("unexpected cache item")
 	}
@@ -37,32 +37,32 @@ func TestServiceResolverCacheEmpty(t *testing.T) {
 }
 
 type fakeRetriever struct {
-	service *kapi.Service
+	service *corev1.Service
 	err     error
 }
 
-func (r fakeRetriever) Get(name string, options metav1.GetOptions) (*kapi.Service, error) {
+func (r fakeRetriever) Get(name string, options metav1.GetOptions) (*corev1.Service, error) {
 	return r.service, r.err
 }
 
 func TestServiceResolverCache(t *testing.T) {
 	c := fakeRetriever{
-		err: errors.NewNotFound(kapi.Resource("Service"), "bar"),
+		err: errors.NewNotFound(corev1.Resource("Service"), "bar"),
 	}
-	cache := NewServiceResolverCache(c.Get)
+	cache := newServiceResolverCache(c.Get)
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "" || ok {
 		t.Errorf("unexpected cache item")
 	}
 
 	c = fakeRetriever{
-		service: &kapi.Service{
-			Spec: kapi.ServiceSpec{
+		service: &corev1.Service{
+			Spec: corev1.ServiceSpec{
 				ClusterIP: "127.0.0.1",
-				Ports:     []kapi.ServicePort{{Port: 80}},
+				Ports:     []corev1.ServicePort{{Port: 80}},
 			},
 		},
 	}
-	cache = NewServiceResolverCache(c.Get)
+	cache = newServiceResolverCache(c.Get)
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "127.0.0.1" || !ok {
 		t.Errorf("unexpected cache item")
 	}

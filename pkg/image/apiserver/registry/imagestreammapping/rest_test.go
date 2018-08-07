@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/origin/pkg/util/restoptions"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
 const testDefaultRegistryURL = "defaultregistry:5000"
@@ -59,7 +60,7 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry := imageapi.DefaultRegistryHostnameRetriever(testDefaultRegistry, "", "")
+	registry := registryhostname.TestingRegistryHostnameRetriever(testDefaultRegistry, "", "")
 	imageStreamStorage, _, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), registry, &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, &fake.RegistryWhitelister{}, imagestreametcd.NewEmptyLayerIndex())
 	if err != nil {
 		t.Fatal(err)
@@ -591,7 +592,7 @@ func TestTrackingTags(t *testing.T) {
 // TestCreateRetryUnrecoverable ensures that an attempt to create a mapping
 // using failing registry update calls will return an error.
 func TestCreateRetryUnrecoverable(t *testing.T) {
-	registry := imageapi.DefaultRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)
+	registry := registryhostname.TestingRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)
 	restInstance := &REST{
 		strategy: NewStrategy(registry),
 		imageRegistry: &fakeImageRegistry{
@@ -625,7 +626,7 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 // that result in resource conflicts that do NOT include tag diffs causes the
 // create to be retried successfully.
 func TestCreateRetryConflictNoTagDiff(t *testing.T) {
-	registry := imageapi.DefaultRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)
+	registry := registryhostname.TestingRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)
 	firstUpdate := true
 	restInstance := &REST{
 		strategy: NewStrategy(registry),
@@ -671,7 +672,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 	firstGet := true
 	firstUpdate := true
 	restInstance := &REST{
-		strategy: NewStrategy(imageapi.DefaultRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)),
+		strategy: NewStrategy(registryhostname.TestingRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx context.Context, image *imageapi.Image) error {
 				return nil

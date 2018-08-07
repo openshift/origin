@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/image/util/testutil"
 )
 
@@ -111,7 +112,7 @@ func TestPublicDockerImageRepository(t *testing.T) {
 	}
 
 	for testName, test := range tests {
-		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(nil, test.publicRegistry, ""), &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, nil, nil)
+		strategy := NewStrategy(registryhostname.TestingRegistryHostnameRetriever(nil, test.publicRegistry, ""), &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, nil, nil)
 		value := strategy.publicDockerImageRepository(test.stream)
 		if e, a := test.expected, value; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
@@ -182,7 +183,7 @@ func TestDockerImageRepository(t *testing.T) {
 
 	for testName, test := range tests {
 		fakeRegistry := &fakeDefaultRegistry{test.defaultRegistry}
-		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""), &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, nil, nil)
+		strategy := NewStrategy(registryhostname.TestingRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""), &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, nil, nil)
 		value := strategy.dockerImageRepository(test.stream, true)
 		if e, a := test.expected, value; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
@@ -576,7 +577,7 @@ func TestLimitVerifier(t *testing.T) {
 				ImageStreamEvaluator: tc.isEvaluator,
 			},
 			registryWhitelister:       &fake.RegistryWhitelister{},
-			registryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""),
+			registryHostnameRetriever: registryhostname.TestingRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""),
 		}
 
 		ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
@@ -1140,7 +1141,7 @@ func TestTagsChanged(t *testing.T) {
 
 		fakeRegistry := &fakeDefaultRegistry{}
 		s := &Strategy{
-			registryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""),
+			registryHostnameRetriever: registryhostname.TestingRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""),
 			imageStreamGetter:         &fakeImageStreamGetter{test.otherStream},
 		}
 		err := s.tagsChanged(previousStream, stream)
