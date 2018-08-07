@@ -1,10 +1,14 @@
 package openshift_apiserver
 
 import (
+	"time"
+
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1beta1"
 	"k8s.io/client-go/pkg/version"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -40,15 +44,31 @@ func RunOpenShiftAPIServer(masterConfig *configapi.MasterConfig) error {
 
 	// informers are shared amongst all the various api components we build
 	// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
-	clientConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	kubeapiserverClientConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return err
 	}
 
-	openshiftConfig, err := origin.BuildMasterConfig(*masterConfig, clientConfig)
+	openshiftConfig, err := origin.BuildMasterConfig(*masterConfig, kubeapiserverClientConfig)
 	if err != nil {
 		return err
 	}
+
+	sarClient, err := authorizationclient.NewForConfig(kubeapiserverClientConfig)
+	if err != nil {
+		return err
+	}
+	delegatingAuthorizerConfig := authorizerfactory.DelegatingAuthorizerConfig{
+		SubjectAccessReviewClient: sarClient.SubjectAccessReviews(),
+		// TODO get this from config
+		AllowCacheTTL: 10 * time.Second,
+		DenyCacheTTL:  10 * time.Second,
+	}
+	delegatingAuthorizer, err := delegatingAuthorizerConfig.New()
+	if err != nil {
+		return err
+	}
+	openshiftConfig.KubeAPIServerConfig.GenericConfig.Authorization.Authorizer = delegatingAuthorizer
 
 	glog.Infof("Starting master on %s (%s)", masterConfig.ServingInfo.BindAddress, version.Get().String())
 	glog.Infof("Public master address is %s", masterConfig.MasterPublicURL)

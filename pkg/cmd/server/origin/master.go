@@ -230,7 +230,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig, stopCh)
+	c.KubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.KubeAPIServerConfig.GenericConfig, stopCh)
 	if err != nil {
 		return err
 	}
@@ -241,23 +241,23 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	}
 
 	delegateAPIServer = apiserver.NewEmptyDelegate()
-	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.KubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.KubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withOpenshiftAPI(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, err = c.withOpenshiftAPI(delegateAPIServer, *c.KubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.kubeAPIServerConfig)
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.KubeAPIServerConfig)
 	if err != nil {
 		return err
 	}
-	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.KubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
 	if err != nil {
 		return err
 	}
@@ -302,7 +302,7 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig, stopCh)
+	c.KubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.KubeAPIServerConfig.GenericConfig, stopCh)
 	if err != nil {
 		return err
 	}
@@ -313,19 +313,19 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	}
 
 	delegateAPIServer = apiserver.NewEmptyDelegate()
-	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.KubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.KubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.kubeAPIServerConfig)
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.KubeAPIServerConfig)
 	if err != nil {
 		return err
 	}
-	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.KubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
 	if err != nil {
 		return err
 	}
@@ -362,11 +362,11 @@ func (c *MasterConfig) RunOpenShift(stopCh <-chan struct{}) error {
 	// to handle the distinction between loopback and kube-apiserver
 
 	// the openshift apiserver shouldn't need to host these and they make us crashloop
-	c.kubeAPIServerConfig.GenericConfig.EnableSwaggerUI = false
-	c.kubeAPIServerConfig.GenericConfig.SwaggerConfig = nil
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = openshiftHandlerChain
+	c.KubeAPIServerConfig.GenericConfig.EnableSwaggerUI = false
+	c.KubeAPIServerConfig.GenericConfig.SwaggerConfig = nil
+	c.KubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = openshiftHandlerChain
 
-	openshiftAPIServer, err := c.withOpenshiftAPI(apiserver.NewEmptyDelegate(), *c.kubeAPIServerConfig.GenericConfig)
+	openshiftAPIServer, err := c.withOpenshiftAPI(apiserver.NewEmptyDelegate(), *c.KubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}

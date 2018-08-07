@@ -60,7 +60,7 @@ import (
 type MasterConfig struct {
 	Options configapi.MasterConfig
 
-	kubeAPIServerConfig      *kubeapiserver.Config
+	KubeAPIServerConfig      *kubeapiserver.Config
 	additionalPostStartHooks map[string]genericapiserver.PostStartHookFunc
 
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
@@ -233,7 +233,7 @@ func BuildMasterConfig(
 	config := &MasterConfig{
 		Options: options,
 
-		kubeAPIServerConfig: kubeAPIServerConfig,
+		KubeAPIServerConfig: kubeAPIServerConfig,
 		additionalPostStartHooks: map[string]genericapiserver.PostStartHookFunc{
 			"openshift.io-StartInformers": func(context genericapiserver.PostStartHookContext) error {
 				informers.Start(context.StopCh)
