@@ -9,7 +9,6 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/api/meta"
 
 	"k8s.io/api/core/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
@@ -72,9 +71,13 @@ import (
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/legacy"
+	"k8s.io/client-go/restmapper"
 )
 
 type OpenshiftAPIExtraConfig struct {
+	// we phrase it like this so we can build the post-start-hook, but no one can take more indirect dependencies on informers
+	InformerStart func(stopCh <-chan struct{})
+
 	KubeAPIServerClientConfig *restclient.Config
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	KubeInformers             kubeinformers.SharedInformerFactory
@@ -101,7 +104,7 @@ type OpenshiftAPIExtraConfig struct {
 	ProjectCache              *projectcache.ProjectCache
 	ProjectRequestTemplate    string
 	ProjectRequestMessage     string
-	RESTMapper                meta.RESTMapper
+	RESTMapper                *restmapper.DeferredDiscoveryRESTMapper
 
 	// oauth API server
 	ServiceAccountMethod configapi.GrantHandlerType
@@ -578,6 +581,23 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("security.openshift.io-bootstrapscc", c.bootstrapSCC)
+	s.GenericAPIServer.AddPostStartHookOrDie("openshift.io-startinformers", func(context genericapiserver.PostStartHookContext) error {
+		c.ExtraConfig.InformerStart(context.StopCh)
+		return nil
+	})
+	s.GenericAPIServer.AddPostStartHookOrDie("openshift.io-restmapperupdater", func(context genericapiserver.PostStartHookContext) error {
+		c.ExtraConfig.RESTMapper.Reset()
+		go func() {
+			wait.Until(func() {
+				c.ExtraConfig.RESTMapper.Reset()
+			}, 10*time.Second, context.StopCh)
+		}()
+		return nil
+	})
+	s.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context genericapiserver.PostStartHookContext) error {
+		go c.ExtraConfig.ClusterQuotaMappingController.Run(5, context.StopCh)
+		return nil
+	})
 
 	return s, nil
 }

@@ -1,16 +1,10 @@
 package origin
 
 import (
-	"fmt"
-
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"k8s.io/client-go/restmapper"
 
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/audit"
@@ -18,12 +12,9 @@ import (
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kinformers "k8s.io/client-go/informers"
 	kubeclientgoinformers "k8s.io/client-go/informers"
-	rbacinformers "k8s.io/client-go/informers/rbac/v1"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
@@ -45,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -54,6 +46,8 @@ import (
 type MasterConfig struct {
 	Options configapi.MasterConfig
 
+	// we phrase it like this so we can build the post-start-hook, but no one can take more indirect dependencies on informers
+	InformerStart            func(stopCh <-chan struct{})
 	kubeAPIServerConfig      *kubeapiserver.Config
 	additionalPostStartHooks map[string]genericapiserver.PostStartHookFunc
 
@@ -145,10 +139,6 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, err
-	}
 	privilegedLoopbackKubeClientsetExternal, err := kclientsetexternal.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
 		return nil, err
@@ -164,11 +154,11 @@ func BuildMasterConfig(
 		return nil, err
 	}
 	authorizer := NewAuthorizer(informers, options.ProjectConfig.ProjectRequestMessage)
-	projectCache, err := newProjectCache(informers, privilegedLoopbackConfig, options.ProjectConfig.DefaultNodeSelector)
+	projectCache, err := openshiftapiserver.NewProjectCache(informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(), privilegedLoopbackConfig, options.ProjectConfig.DefaultNodeSelector)
 	if err != nil {
 		return nil, err
 	}
-	clusterQuotaMappingController := newClusterQuotaMappingController(informers)
+	clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(), informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
 	discoveryClient := cacheddiscovery.NewMemCacheClient(privilegedLoopbackKubeClientsetExternal.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
 	admissionInitializer, err := originadmission.NewPluginInitializer(options, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
@@ -200,25 +190,21 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	subjectLocator := NewSubjectLocator(informers.GetKubernetesInformers().Rbac().V1())
+	subjectLocator := openshiftapiserver.NewSubjectLocator(informers.GetKubernetesInformers().Rbac().V1())
 
 	config := &MasterConfig{
 		Options: options,
 
-		kubeAPIServerConfig: kubeAPIServerConfig,
-		additionalPostStartHooks: map[string]genericapiserver.PostStartHookFunc{
-			"openshift.io-StartInformers": func(context genericapiserver.PostStartHookContext) error {
-				informers.Start(context.StopCh)
-				return nil
-			},
-		},
+		InformerStart:            informers.Start,
+		kubeAPIServerConfig:      kubeAPIServerConfig,
+		additionalPostStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 
 		RESTOptionsGetter: restOptsGetter,
 
-		RuleResolver:   NewRuleResolver(informers.GetKubernetesInformers().Rbac().V1()),
+		RuleResolver:   openshiftapiserver.NewRuleResolver(informers.GetKubernetesInformers().Rbac().V1()),
 		SubjectLocator: subjectLocator,
 
-		ProjectAuthorizationCache: newProjectAuthorizationCache(
+		ProjectAuthorizationCache: openshiftapiserver.NewProjectAuthorizationCache(
 			subjectLocator,
 			informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer(),
 			informers.GetKubernetesInformers().Rbac().V1(),
@@ -245,46 +231,7 @@ func BuildMasterConfig(
 	}
 
 	// ensure that the limit range informer will be started
-	informer := config.InternalKubeInformers.Core().InternalVersion().LimitRanges().Informer()
-	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
-		list, err := config.InternalKubeInformers.Core().InternalVersion().LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
-		if err != nil {
-			return nil, err
-		}
-		// the verifier must return an error
-		if len(list) == 0 && len(informer.LastSyncResourceVersion()) == 0 {
-			glog.V(4).Infof("LimitVerifier still waiting for ranges to load: %#v", informer)
-			forbiddenErr := kapierrors.NewForbidden(schema.GroupResource{Resource: "limitranges"}, "", fmt.Errorf("the server is still loading limit information"))
-			forbiddenErr.ErrStatus.Details.RetryAfterSeconds = 1
-			return nil, forbiddenErr
-		}
-		return list, nil
-	}))
+	config.LimitVerifier = openshiftapiserver.ImageLimitVerifier(config.InternalKubeInformers.Core().InternalVersion().LimitRanges())
 
 	return config, nil
-}
-
-func newClusterQuotaMappingController(informers InformerAccess) *clusterquotamapping.ClusterQuotaMappingController {
-	return clusterquotamapping.NewClusterQuotaMappingControllerInternal(
-		informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(),
-		informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
-}
-
-func newProjectCache(informers InformerAccess, privilegedLoopbackConfig *restclient.Config, defaultNodeSelector string) (*projectcache.ProjectCache, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, err
-	}
-	return projectcache.NewProjectCache(
-		informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer(),
-		kubeInternalClient.Core().Namespaces(),
-		defaultNodeSelector), nil
-}
-
-func newProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, namespaces cache.SharedIndexInformer, rbacInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
-	return projectauth.NewAuthorizationCache(
-		namespaces,
-		projectauth.NewAuthorizerReviewer(subjectLocator),
-		rbacInformers,
-	)
 }
