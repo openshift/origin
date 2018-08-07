@@ -876,7 +876,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    `RBAC: allowed by RoleBinding "admin/hammer-project" of ClusterRole "admin" to User "harold"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -890,7 +890,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "harold" cannot get horizontalpodautoscalers in project "hammer-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -904,7 +904,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "harold" cannot get horizontalpodautoscalers.foo in project "hammer-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -918,7 +918,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "harold" cannot get horizontalpodautoscalers.* in project "hammer-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1069,7 +1069,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    `RBAC: allowed by RoleBinding "view/default" of ClusterRole "view" to User "danny"`,
 			Namespace: "default",
 		},
 	}.run(t)
@@ -1080,7 +1080,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "danny" cannot get projects at the cluster scope`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "",
 		},
 	}.run(t)
@@ -1134,7 +1134,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    `RBAC: allowed by RoleBinding "view/hammer-project" of ClusterRole "view" to User "valerie"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1145,7 +1145,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: markSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "valerie" cannot get project "mallet-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1161,7 +1161,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: markSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    `RBAC: allowed by RoleBinding "edit/mallet-project" of ClusterRole "edit" to User "edgar"`,
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1215,7 +1215,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    `RBAC: allowed by RoleBinding "admin/hammer-project" of ClusterRole "admin" to User "harold"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1231,7 +1231,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    `RBAC: allowed by ClusterRoleBinding "cluster-admins" of ClusterRole "cluster-admin" to Group "system:cluster-admins"`,
 			Namespace: "",
 		},
 	}.run(t)
@@ -1254,7 +1254,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    `RBAC: allowed by RoleBinding "admin/hammer-project" of ClusterRole "admin" to User "harold"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1265,7 +1265,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    `RBAC: allowed by RoleBinding "edit/hammer-project" of ClusterRole "edit" to User "system:anonymous"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1278,7 +1278,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "harold" cannot create pods in project "mallet-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1289,7 +1289,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "system:anonymous" cannot create pods in project "mallet-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1303,7 +1303,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "harold" cannot create pods in project "nonexistent-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "nonexistent-project",
 		},
 	}.run(t)
@@ -1314,7 +1314,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "system:anonymous" cannot create pods in project "nonexistent-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "nonexistent-project",
 		},
 	}.run(t)
@@ -1329,7 +1329,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanICreatePolicyBindings,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "harold" cannot create policybindings in project "hammer-project"`,
+			Reason:    `no RBAC policy matched`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1369,8 +1369,8 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 		if errProxy == nil {
 			return false
 		}
-		return strings.Contains(errProxy.Error(), `cannot "unsafeproxy" "pods" with name "podX1:8080" in project "ns"`) ||
-			strings.Contains(errProxy.Error(), `cannot get pods/unsafeproxy in project "ns"`)
+		return strings.Contains(errProxy.Error(), `cannot proxy pods in the namespace "ns": proxy verb changed to unsafeproxy`) ||
+			strings.Contains(errProxy.Error(), `cannot get pods/proxy in the namespace "ns": proxy subresource changed to unsafeproxy`)
 	}
 
 	for _, tc := range []struct {

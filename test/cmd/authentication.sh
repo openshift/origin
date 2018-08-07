@@ -47,21 +47,21 @@ os::cmd::expect_success "oc policy can-i --list"
 whoamitoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=whoami SCOPE=user:info USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
 os::cmd::expect_success_and_text "oc get user/~ --token='${whoamitoken}'" "${username}"
 os::cmd::expect_success_and_text "oc whoami --token='${whoamitoken}'" "${username}"
-os::cmd::expect_failure_and_text "oc get pods --token='${whoamitoken}' -n '${project}'" "prevent this action; User \"scoped-user\" cannot list pods in project \"${project}\""
+os::cmd::expect_failure_and_text "oc get pods --token='${whoamitoken}' -n '${project}'" "pods is forbidden: User \"scoped-user\" cannot list pods in the namespace \"${project}\""
 
 listprojecttoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=listproject SCOPE=user:list-scoped-projects USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
 # this token doesn't have rights to see any projects even though it can hit the list endpoint, so an empty list is correct
 # we'll add another scope that allows listing all known projects even if this token has no other powers in them.
 os::cmd::expect_success_and_not_text "oc get projects --token='${listprojecttoken}'" "${project}"
-os::cmd::expect_failure_and_text "oc get user/~ --token='${listprojecttoken}'" 'prevent this action; User "scoped-user" cannot get users.user.openshift.io at the cluster scope'
-os::cmd::expect_failure_and_text "oc get pods --token='${listprojecttoken}' -n '${project}'" "prevent this action; User \"scoped-user\" cannot list pods in project \"${project}\""
+os::cmd::expect_failure_and_text "oc get user/~ --token='${listprojecttoken}'" 'User "scoped-user" cannot get users.user.openshift.io at the cluster scope'
+os::cmd::expect_failure_and_text "oc get pods --token='${listprojecttoken}' -n '${project}'" "User \"scoped-user\" cannot list pods in the namespace \"${project}\""
 
 listprojecttoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=listallprojects SCOPE=user:list-projects USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
 os::cmd::expect_success_and_text "oc get projects --token='${listprojecttoken}'" "${project}"
 
 adminnonescalatingpowerstoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=admin SCOPE=role:admin:* USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
-os::cmd::expect_failure_and_text "oc get user/~ --token='${adminnonescalatingpowerstoken}'" 'prevent this action; User "scoped-user" cannot get users.user.openshift.io at the cluster scope'
-os::cmd::expect_failure_and_text "oc get secrets --token='${adminnonescalatingpowerstoken}' -n '${project}'" "prevent this action; User \"scoped-user\" cannot list secrets in project \"${project}\""
+os::cmd::expect_failure_and_text "oc get user/~ --token='${adminnonescalatingpowerstoken}'" 'User "scoped-user" cannot get users.user.openshift.io at the cluster scope'
+os::cmd::expect_failure_and_text "oc get secrets --token='${adminnonescalatingpowerstoken}' -n '${project}'" "User \"scoped-user\" cannot list secrets in the namespace \"${project}\""
 os::cmd::expect_success_and_text "oc get 'projects/${project}' --token='${adminnonescalatingpowerstoken}' -n '${project}'" "${project}"
 
 allescalatingpowerstoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=clusteradmin SCOPE='role:cluster-admin:*:!' USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
