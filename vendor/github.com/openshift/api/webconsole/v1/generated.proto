@@ -32,6 +32,10 @@ message ClusterInfo {
   // LogoutPublicURL is an optional, absolute URL to redirect web browsers to after logging out of the web
   // console. If not specified, the built-in logout page is shown.
   optional string logoutPublicURL = 5;
+
+  // AdminConsolePublicURL is an optional, public URL of the OpenShift admin console. If specified, the web
+  // console will add a link to the admin console in a context selector in its masthead.
+  optional string adminConsolePublicURL = 6;
 }
 
 // ExtensionsConfiguration holds custom script, stylesheets, and properties used for web console customization
