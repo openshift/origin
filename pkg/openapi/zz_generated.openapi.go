@@ -13271,8 +13271,15 @@ func schema_openshift_api_webconsole_v1_ClusterInfo(ref common.ReferenceCallback
 							Format:      "",
 						},
 					},
+					"adminConsolePublicURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AdminConsolePublicURL is an optional, public URL of the OpenShift admin console. If specified, the web console will add a link to the admin console in a context selector in its masthead.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"consolePublicURL", "masterPublicURL", "loggingPublicURL", "metricsPublicURL", "logoutPublicURL"},
+				Required: []string{"consolePublicURL", "masterPublicURL", "loggingPublicURL", "metricsPublicURL", "logoutPublicURL", "adminConsolePublicURL"},
 			},
 		},
 		Dependencies: []string{},
