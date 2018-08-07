@@ -4,16 +4,17 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/origin/pkg/oc/cli/create/route"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -59,7 +60,7 @@ type ExposeOptions struct {
 
 	Namespace        string
 	EnforceNamespace bool
-	Clientset        internalclientset.Interface
+	CoreClient       corev1client.CoreV1Interface
 	Builder          func() *resource.Builder
 	Args             []string
 	Generator        string
@@ -112,7 +113,12 @@ func (o *ExposeOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []
 		return err
 	}
 
-	o.Clientset, err = f.ClientSet()
+	config, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	o.CoreClient, err = corev1client.NewForConfig(config)
 	if err != nil {
 		return err
 	}
@@ -131,7 +137,7 @@ func (o *ExposeOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []
 // expose command.
 func (o *ExposeOptions) Validate(cmd *cobra.Command) error {
 	r := o.Builder().
-		WithScheme(ocscheme.ReadingInternalScheme).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		FilenameParam(o.EnforceNamespace, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -169,7 +175,7 @@ func (o *ExposeOptions) Validate(cmd *cobra.Command) error {
 			// The upstream generator will incorrectly chose service.Port instead of service.TargetPort
 			// for the route TargetPort when no port is present.  Passing forcePort=true
 			// causes UnsecuredRoute to always set a Port so the upstream default is not used.
-			route, err := route.UnsecuredRoute(o.Clientset, o.Namespace, info.Name, info.Name, o.Port, true)
+			route, err := route.UnsecuredRoute(o.CoreClient, o.Namespace, info.Name, info.Name, o.Port, true)
 			if err != nil {
 				return err
 			}
