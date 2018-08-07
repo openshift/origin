@@ -1,4 +1,4 @@
-package origin
+package openshiftapiserver
 
 import (
 	"encoding/json"
@@ -572,7 +572,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	addReadinessCheckRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, "/healthz/ready", c.ExtraConfig.ProjectAuthorizationCache.ReadyForAccess)
 
 	// this remains here and separate so that you can check both kube and openshift levels
-	addOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
+	AddOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	// register our poststarthooks
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
@@ -616,7 +616,7 @@ func addReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, readyF
 }
 
 // initVersionRoute initializes an HTTP endpoint for the server's version information.
-func addOpenshiftVersionRoute(container *restful.Container, path string) {
+func AddOpenshiftVersionRoute(container *restful.Container, path string) {
 	// Build version info once
 	versionInfo, err := json.MarshalIndent(version.Get(), "", "  ")
 	if err != nil {
@@ -691,8 +691,8 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 	return nil
 }
 
-// ensureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
-func ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
+// EnsureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
+func EnsureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
 	namespaceName := bootstrappolicy.DefaultOpenShiftInfraNamespace
 
 	var coreClient coreclient.CoreInterface

@@ -17,6 +17,7 @@ import (
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -35,7 +36,7 @@ const (
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
-func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftAPIConfig, error) {
+func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*openshiftapiserver.OpenshiftAPIConfig, error) {
 	// sccStorage must use the upstream RESTOptionsGetter to be in the correct location
 	// this probably creates a duplicate cache, but there are not very many SCCs, so live with it to avoid further linkage
 	sccStorage := sccstorage.NewREST(kubeAPIServerConfig.RESTOptionsGetter)
@@ -56,9 +57,9 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		}
 	}
 
-	ret := &OpenshiftAPIConfig{
+	ret := &openshiftapiserver.OpenshiftAPIConfig{
 		GenericConfig: &apiserver.RecommendedConfig{Config: genericConfig},
-		ExtraConfig: OpenshiftAPIExtraConfig{
+		ExtraConfig: openshiftapiserver.OpenshiftAPIExtraConfig{
 			KubeAPIServerClientConfig:          &c.PrivilegedLoopbackClientConfig,
 			KubeInternalInformers:              c.InternalKubeInformers,
 			KubeInformers:                      c.ClientGoKubeInformers,
@@ -160,7 +161,7 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 
 	// this remains here and separate so that you can check both kube and openshift levels
 	// TODO make this is a proxy at some point
-	addOpenshiftVersionRoute(kubeAPIServer.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
+	openshiftapiserver.AddOpenshiftVersionRoute(kubeAPIServer.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	return preparedKubeAPIServer.GenericAPIServer, nil
 }
@@ -278,7 +279,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", openshiftapiserver.EnsureOpenShiftInfraNamespace)
 	c.AddPostStartHooks(aggregatedAPIServer.GenericAPIServer)
 
 	for name, fn := range c.additionalPostStartHooks {
@@ -337,7 +338,7 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	}
 
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", openshiftapiserver.EnsureOpenShiftInfraNamespace)
 	c.AddPostStartHooks(aggregatedAPIServer.GenericAPIServer)
 
 	// add post-start hooks
