@@ -85,8 +85,6 @@ func NewCLI(project, adminConfigPath string) *CLI {
 
 	g.BeforeEach(client.SetupProject)
 
-	ProwGCPSetup(client)
-
 	return client
 }
 
@@ -94,12 +92,20 @@ func NewCLI(project, adminConfigPath string) *CLI {
 // that extended tests are invoked directly via calls to ginkgo/extended.test
 func ProwGCPSetup(oc *CLI) {
 	tn := os.Getenv("OS_TEST_NAMESPACE")
+	ad := os.Getenv("ARTIFACT_DIR")
+	btd := os.Getenv("BASETMPDIR")
+	e2e.Logf("OS_TEST_NAMESPACE env setting %s, ARTIFACT_DIR env setting %s BASETMPDIR %s", tn, ad, btd)
 	if len(strings.TrimSpace(tn)) == 0 {
 		os.Setenv("OS_TEST_NAMESPACE", oc.Namespace())
+		e2e.Logf("OS_TEST_NAMESPACE env setting now %s", os.Getenv("OS_TEST_NAMESPACE"))
 	}
-	ad := os.Getenv("ARTIFACT_DIR")
 	if len(strings.TrimSpace(ad)) == 0 {
 		os.Setenv("ARTIFACT_DIR", "/tmp/artifacts")
+		e2e.Logf("ARTIFACT_DIR env setting now %s", os.Getenv("ARTIFACT_DIR"))
+	}
+	if len(strings.TrimSpace(btd)) == 0 {
+		os.Setenv("BASETMPDIR", "/tmp/shared")
+		e2e.Logf("BASETMPDIR setting is now %s", os.Getenv("BASETMPDIR"))
 	}
 
 }
@@ -176,6 +182,7 @@ func (c *CLI) SetupProject() {
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
 	e2e.Logf("The user is now %q", c.Username())
+	ProwGCPSetup(c)
 
 	e2e.Logf("Creating project %q", newNamespace)
 	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
