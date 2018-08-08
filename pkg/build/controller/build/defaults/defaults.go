@@ -19,13 +19,14 @@ type BuildDefaults struct {
 
 // ApplyDefaults applies configured build defaults to a build pod
 func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
-	if b.Config == nil {
-		return nil
-	}
-
 	build, err := common.GetBuildFromPod(pod)
 	if err != nil {
 		return nil
+	}
+
+	if b.Config == nil {
+		// even if there's no config for the defaulter, we need to set up the loglevel.
+		return setPodLogLevelFromBuild(pod, build)
 	}
 
 	glog.V(4).Infof("Applying defaults to build %s/%s", build.Namespace, build.Name)
