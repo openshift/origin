@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -235,35 +234,14 @@ func ExtractInputBinary(in io.Reader, source *buildapiv1.BinaryBuildSource, dir 
 
 	glog.V(0).Infof("Receiving source from STDIN as archive ...")
 
-	cmd := exec.Command("bsdtar", "-v", "-x", "-o", "-m", "-f", "-", "-C", dir)
+	cmd := exec.Command("bsdtar", "-x", "-o", "-m", "-f", "-", "-C", dir)
 	cmd.Stdin = in
-	stdout, err := cmd.StdoutPipe()
+	out, err := cmd.CombinedOutput()
+	glog.V(4).Infof("Extracting...\n%s", string(out))
 	if err != nil {
-		return err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-	// combine stdout and stderr
-	cmdReader := io.MultiReader(stdout, stderr)
-	err = cmd.Start()
-	if err != nil {
-		return err
-	}
-	if glog.Is(4) {
-		scanner := bufio.NewScanner(cmdReader)
-		glog.Infof("Extracting...")
-		for scanner.Scan() {
-			glog.Infof(scanner.Text())
-		}
-	}
-	exitStatus := cmd.Wait()
-	if exitStatus != nil {
-		return fmt.Errorf("unable to extract binary build input, must be a zip, tar, or gzipped tar, or specified as a file: %v", exitStatus)
+		return fmt.Errorf("unable to extract binary build input, must be a zip, tar, or gzipped tar, or specified as a file: %v", err)
 	}
 
-	glog.V(4).Infof("Successfuly extracted")
 	return nil
 }
 
