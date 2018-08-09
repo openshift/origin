@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	securityclient "github.com/openshift/client-go/security/clientset/versioned"
 	securitytypedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
@@ -40,6 +41,7 @@ var (
 type SCCModificationOptions struct {
 	SCCName      string
 	SCCInterface securitytypedclient.SecurityContextConstraintsInterface
+	SANames      []string
 
 	DefaultSubjectNamespace string
 	Subjects                []corev1.ObjectReference
@@ -49,25 +51,26 @@ type SCCModificationOptions struct {
 	Output  string
 
 	PrintObj func(runtime.Object) error
-	Out      io.Writer
+
+	genericclioptions.IOStreams
 }
 
-func NewCmdAddSCCToGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &SCCModificationOptions{}
+func NewSCCModificationOptions(streams genericclioptions.IOStreams) *SCCModificationOptions {
+	return &SCCModificationOptions{
+		IOStreams: streams,
+	}
+}
 
+func NewCmdAddSCCToGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewSCCModificationOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name + " SCC GROUP [GROUP ...]",
 		Short:   "Add security context constraint to groups",
 		Long:    `Add security context constraint to groups`,
 		Example: fmt.Sprintf(addSCCToGroupExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteGroups(f, cmd, args, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.AddSCC(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.CompleteGroups(f, cmd, args))
+			kcmdutil.CheckErr(o.AddSCC())
 		},
 	}
 
@@ -76,48 +79,36 @@ func NewCmdAddSCCToGroup(name, fullName string, f kcmdutil.Factory, out io.Write
 	return cmd
 }
 
-func NewCmdAddSCCToUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &SCCModificationOptions{}
-	saNames := []string{}
-
+func NewCmdAddSCCToUser(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewSCCModificationOptions(streams)
+	o.SANames = []string{}
 	cmd := &cobra.Command{
 		Use:     name + " SCC (USER | -z SERVICEACCOUNT) [USER ...]",
 		Short:   "Add security context constraint to users or a service account",
 		Long:    `Add security context constraint to users or a service account`,
 		Example: fmt.Sprintf(addSCCToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUsers(f, cmd, args, saNames, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.AddSCC(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.CompleteUsers(f, cmd, args))
+			kcmdutil.CheckErr(o.AddSCC())
 		},
 	}
 
-	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
+	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
-func NewCmdRemoveSCCFromGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &SCCModificationOptions{}
-
+func NewCmdRemoveSCCFromGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewSCCModificationOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name + " SCC GROUP [GROUP ...]",
 		Short: "Remove group from scc",
 		Long:  `Remove group from scc`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteGroups(f, cmd, args, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.RemoveSCC(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.CompleteGroups(f, cmd, args))
+			kcmdutil.CheckErr(o.RemoveSCC())
 		},
 	}
 
@@ -126,42 +117,35 @@ func NewCmdRemoveSCCFromGroup(name, fullName string, f kcmdutil.Factory, out io.
 	return cmd
 }
 
-func NewCmdRemoveSCCFromUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &SCCModificationOptions{}
-	saNames := []string{}
-
+func NewCmdRemoveSCCFromUser(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewSCCModificationOptions(streams)
+	o.SANames = []string{}
 	cmd := &cobra.Command{
 		Use:   name + " SCC USER [USER ...]",
 		Short: "Remove user from scc",
 		Long:  `Remove user from scc`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUsers(f, cmd, args, saNames, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.RemoveSCC(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.CompleteUsers(f, cmd, args))
+			kcmdutil.CheckErr(o.RemoveSCC())
 		},
 	}
 
-	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
+	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
-func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Command, args []string, saNames []string, out io.Writer) error {
+func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return errors.New("you must specify a scc")
 	}
 
-	o.Out = out
 	o.SCCName = args[0]
 	o.Subjects = buildSubjects(args[1:], []string{})
 
-	if (len(o.Subjects) == 0) && (len(saNames) == 0) {
+	if (len(o.Subjects) == 0) && (len(o.SANames) == 0) {
 		return errors.New("you must specify at least one user or service account")
 	}
 
@@ -169,7 +153,7 @@ func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Co
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
 	o.PrintObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, o.Out)
 	}
 
 	clientConfig, err := f.ToRESTConfig()
@@ -187,23 +171,22 @@ func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Co
 		return err
 	}
 
-	for _, sa := range saNames {
+	for _, sa := range o.SANames {
 		o.Subjects = append(o.Subjects, corev1.ObjectReference{Namespace: o.DefaultSubjectNamespace, Name: sa, Kind: "ServiceAccount"})
 	}
 
 	return nil
 }
 
-func (o *SCCModificationOptions) CompleteGroups(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *SCCModificationOptions) CompleteGroups(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) < 2 {
 		return errors.New("you must specify at least two arguments: <scc> <group> [group]...")
 	}
 
-	o.Out = out
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
 	o.PrintObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, o.Out)
 	}
 
 	o.IsGroup = true

@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -9,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -66,7 +66,7 @@ func TestPolicyCommands(t *testing.T) {
 		BindingNamespace: projectName,
 		Client:           haroldAuthorizationClient,
 		Users:            []string{"valerie"},
-		Out:              ioutil.Discard,
+		IOStreams:        genericclioptions.NewTestIOStreamsDiscard(),
 	}
 	if err := removeValerie.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -88,7 +88,7 @@ func TestPolicyCommands(t *testing.T) {
 		BindingNamespace: projectName,
 		Client:           haroldAuthorizationClient,
 		Groups:           []string{"my-group"},
-		Out:              ioutil.Discard,
+		IOStreams:        genericclioptions.NewTestIOStreamsDiscard(),
 	}
 	if err := removeMyGroup.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

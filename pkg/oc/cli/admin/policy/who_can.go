@@ -3,7 +3,6 @@ package policy
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/openshift/api/authorization/v1"
@@ -16,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -24,7 +24,7 @@ import (
 
 const WhoCanRecommendedName = "who-can"
 
-type whoCanOptions struct {
+type WhoCanOptions struct {
 	allNamespaces    bool
 	bindingNamespace string
 	client           oauthorizationtypedclient.AuthorizationInterface
@@ -34,43 +34,45 @@ type whoCanOptions struct {
 	resourceName string
 
 	output   string
-	out      io.Writer
 	printObj func(runtime.Object) error
+
+	genericclioptions.IOStreams
+}
+
+func NewWhoCanOptions(streams genericclioptions.IOStreams) *WhoCanOptions {
+	return &WhoCanOptions{
+		IOStreams: streams,
+	}
 }
 
 // NewCmdWhoCan implements the OpenShift cli who-can command
-func NewCmdWhoCan(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &whoCanOptions{}
-
+func NewCmdWhoCan(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewWhoCanOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name + " VERB RESOURCE [NAME]",
 		Short: "List who can perform the specified action on a resource",
 		Long:  "List who can perform the specified action on a resource",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.complete(f, cmd, args, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			kcmdutil.CheckErr(options.run())
+			kcmdutil.CheckErr(o.complete(f, cmd, args))
+			kcmdutil.CheckErr(o.run())
 		},
 	}
 
-	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", options.allNamespaces, "If true, list who can perform the specified action in all namespaces.")
+	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "If true, list who can perform the specified action in all namespaces.")
 	kcmdutil.AddPrinterFlags(cmd)
 
 	return cmd
 }
 
-func (o *whoCanOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *WhoCanOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	mapper, err := f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
 
-	o.out = out
 	o.output = kcmdutil.GetFlagString(cmd, "output")
 	o.printObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, o.Out)
 	}
 
 	switch len(args) {
@@ -119,7 +121,7 @@ func ResourceFor(mapper meta.RESTMapper, resourceArg string) schema.GroupVersion
 	return gvr
 }
 
-func (o *whoCanOptions) run() error {
+func (o *WhoCanOptions) run() error {
 	authorizationAttributes := authorizationapi.Action{
 		Verb:         o.verb,
 		Group:        o.resource.Group,
@@ -148,13 +150,13 @@ func (o *whoCanOptions) run() error {
 		switch o.output {
 		case "json":
 			printer := printers.JSONPrinter{}
-			if err := printer.PrintObj(printableResponse, o.out); err != nil {
+			if err := printer.PrintObj(printableResponse, o.Out); err != nil {
 				return err
 			}
 			return nil
 		case "yaml":
 			printer := printers.YAMLPrinter{}
-			if err := printer.PrintObj(printableResponse, o.out); err != nil {
+			if err := printer.PrintObj(printableResponse, o.Out); err != nil {
 				return err
 			}
 			return nil

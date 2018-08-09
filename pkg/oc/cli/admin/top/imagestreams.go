@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 
@@ -35,41 +36,45 @@ var (
   	%[1]s %[2]s`)
 )
 
+type TopImageStreamsOptions struct {
+	// internal values
+	Images  *imageapi.ImageList
+	Streams *imageapi.ImageStreamList
+
+	genericclioptions.IOStreams
+}
+
+func NewTopImageStreamsOptions(streams genericclioptions.IOStreams) *TopImageStreamsOptions {
+	return &TopImageStreamsOptions{
+		IOStreams: streams,
+	}
+}
+
 // NewCmdTopImageStreams implements the OpenShift cli top imagestreams command.
-func NewCmdTopImageStreams(f kcmdutil.Factory, parentName, name string, out io.Writer) *cobra.Command {
-	opts := &TopImageStreamsOptions{}
+func NewCmdTopImageStreams(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewTopImageStreamsOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name,
 		Short:   "Show usage statistics for ImageStreams",
 		Long:    topImageStreamsLong,
 		Example: fmt.Sprintf(topImageStreamsExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
-			kcmdutil.CheckErr(opts.Validate(cmd))
-			kcmdutil.CheckErr(opts.Run())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate(cmd))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
 	return cmd
 }
 
-type TopImageStreamsOptions struct {
-	// internal values
-	Images  *imageapi.ImageList
-	Streams *imageapi.ImageStreamList
-
-	// helpers
-	out io.Writer
-}
-
 // Complete turns a partially defined TopImageStreamsOptions into a solvent structure
 // which can be validated and used for showing limits usage.
-func (o *TopImageStreamsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *TopImageStreamsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	namespace := cmd.Flag("namespace").Value.String()
 	if len(namespace) == 0 {
 		namespace = metav1.NamespaceAll
 	}
-	o.out = out
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
@@ -102,7 +107,7 @@ func (o TopImageStreamsOptions) Validate(cmd *cobra.Command) error {
 // Run contains all the necessary functionality to show current image references.
 func (o TopImageStreamsOptions) Run() error {
 	infos := o.imageStreamsTop()
-	Print(o.out, ImageStreamColumns, infos)
+	Print(o.Out, ImageStreamColumns, infos)
 	return nil
 }
 

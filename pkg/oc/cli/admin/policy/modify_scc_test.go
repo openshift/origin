@@ -1,13 +1,13 @@
 package policy
 
 import (
-	"bytes"
 	"reflect"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	securityapi "github.com/openshift/api/security/v1"
 	securityfakeclient "github.com/openshift/client-go/security/clientset/versioned/fake"
@@ -134,7 +134,7 @@ func TestModifySCC(t *testing.T) {
 			DefaultSubjectNamespace: "",
 			Subjects:                tc.subjects,
 
-			Out: &bytes.Buffer{},
+			IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 		}
 
 		var err error

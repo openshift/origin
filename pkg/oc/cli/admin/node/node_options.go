@@ -3,7 +3,6 @@ package node
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strings"
 
@@ -20,6 +19,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 )
@@ -28,8 +28,6 @@ type NodeOptions struct {
 	DefaultNamespace   string
 	ExternalKubeClient kubernetes.Interface
 	KubeClient         kclientset.Interface
-	Writer             io.Writer
-	ErrWriter          io.Writer
 
 	Mapper  meta.RESTMapper
 	Typer   runtime.ObjectTyper
@@ -45,9 +43,17 @@ type NodeOptions struct {
 	// Common optional params
 	Selector    string
 	PodSelector string
+
+	genericclioptions.IOStreams
 }
 
-func (n *NodeOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
+func NewNodeOptions(streams genericclioptions.IOStreams) *NodeOptions {
+	return &NodeOptions{
+		IOStreams: streams,
+	}
+}
+
+func (n *NodeOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	defaultNamespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
@@ -80,8 +86,6 @@ func (n *NodeOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []stri
 	n.DefaultNamespace = defaultNamespace
 	n.ExternalKubeClient = externalkc
 	n.KubeClient = kc
-	n.Writer = out
-	n.ErrWriter = errout
 	n.Mapper = mapper
 	n.Typer = typer
 	n.NodeNames = []string{}

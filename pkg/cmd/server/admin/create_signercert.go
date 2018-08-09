@@ -2,14 +2,13 @@ package admin
 
 import (
 	"errors"
-	"io"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/library-go/pkg/crypto"
 )
@@ -22,55 +21,57 @@ type CreateSignerCertOptions struct {
 	SerialFile string
 	ExpireDays int
 	Name       string
-	Output     io.Writer
 
 	Overwrite bool
-}
 
-func BindCreateSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.FlagSet, prefix string) {
-	flags.StringVar(&options.CertFile, prefix+"cert", "openshift.local.config/master/ca.crt", "The certificate file.")
-	flags.StringVar(&options.KeyFile, prefix+"key", "openshift.local.config/master/ca.key", "The key file.")
-	flags.StringVar(&options.SerialFile, prefix+"serial", "openshift.local.config/master/ca.serial.txt", "The serial file that keeps track of how many certs have been signed.")
-	flags.StringVar(&options.Name, prefix+"name", DefaultSignerName(), "The name of the signer.")
-	flags.BoolVar(&options.Overwrite, prefix+"overwrite", options.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
-
-	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.")
-
-	// set dynamic value annotation - allows man pages  to be generated and verified
-	flags.SetAnnotation(prefix+"name", "manpage-def-value", []string{"openshift-signer@<current_timestamp>"})
-
-	// autocompletion hints
-	cobra.MarkFlagFilename(flags, prefix+"cert")
-	cobra.MarkFlagFilename(flags, prefix+"key")
-	cobra.MarkFlagFilename(flags, prefix+"serial")
+	genericclioptions.IOStreams
 }
 
 var createSignerLong = templates.LongDesc(`
 	Create a self-signed CA key/cert for signing certificates used by server components.`)
 
-func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateSignerCertOptions{
+func NewCreateSignerCertOptions(streams genericclioptions.IOStreams) *CreateSignerCertOptions {
+	return &CreateSignerCertOptions{
 		ExpireDays: crypto.DefaultCACertificateLifetimeInDays,
-		Output:     out,
 		Overwrite:  true,
+		CertFile:   "openshift.local.config/master/ca.crt",
+		KeyFile:    "openshift.local.config/master/ca.key",
+		SerialFile: "openshift.local.config/master/ca.serial.txt",
+		Name:       DefaultSignerName(),
+		IOStreams:  streams,
 	}
+}
 
+func NewCommandCreateSignerCert(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCreateSignerCertOptions(streams)
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a signer (certificate authority/CA) certificate and key",
 		Long:  createSignerLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if _, err := options.CreateSignerCert(); err != nil {
+			kcmdutil.CheckErr(o.Validate(args))
+			if _, err := o.CreateSignerCert(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
 	}
 
-	BindCreateSignerCertOptions(options, cmd.Flags(), "")
+	prefix := ""
+	cmd.Flags().StringVar(&o.CertFile, prefix+"cert", o.CertFile, "The certificate file.")
+	cmd.Flags().StringVar(&o.KeyFile, prefix+"key", o.KeyFile, "The key file.")
+	cmd.Flags().StringVar(&o.SerialFile, prefix+"serial", o.SerialFile, "The serial file that keeps track of how many certs have been signed.")
+	cmd.Flags().StringVar(&o.Name, prefix+"name", o.Name, "The name of the signer.")
+	cmd.Flags().BoolVar(&o.Overwrite, prefix+"overwrite", o.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
+
+	cmd.Flags().IntVar(&o.ExpireDays, "expire-days", o.ExpireDays, "Validity of the certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.")
+
+	// set dynamic value annotation - allows man pages  to be generated and verified
+	cmd.Flags().SetAnnotation(prefix+"name", "manpage-def-value", []string{"openshift-signer@<current_timestamp>"})
+
+	// autocompletion hints
+	cobra.MarkFlagFilename(cmd.Flags(), prefix+"cert")
+	cobra.MarkFlagFilename(cmd.Flags(), prefix+"key")
+	cobra.MarkFlagFilename(cmd.Flags(), prefix+"serial")
 
 	return cmd
 }

@@ -14,6 +14,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
@@ -86,9 +87,9 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) er
 			// certs will use certs valid for their arbitrary subdomain names.
 			"*." + masterConfig.RoutingConfig.Subdomain,
 		},
-		CertFile: filepath.Join(masterConfigDir, "router.crt"),
-		KeyFile:  filepath.Join(masterConfigDir, "router.key"),
-		Output:   cmdOutput,
+		CertFile:  filepath.Join(masterConfigDir, "router.crt"),
+		KeyFile:   filepath.Join(masterConfigDir, "router.key"),
+		IOStreams: genericclioptions.IOStreams{Out: cmdOutput},
 	}
 	_, err = createCertOptions.CreateServerCert()
 	if err != nil {

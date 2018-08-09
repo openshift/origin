@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	securityclient "github.com/openshift/client-go/security/clientset/versioned"
 	securitytypedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
@@ -75,7 +76,7 @@ function create_pv() {
   local name="${2}"
 
   setup_pv_dir "${basedir}/${name}"
-  if ! oc get pv "${name}" &> /dev/null; then 
+  if ! oc get pv "${name}" &> /dev/null; then
     generate_pv "${basedir}" "${name}" | oc create -f -
   else
     echo "persistentvolume ${name} already exists"
@@ -241,7 +242,7 @@ func addSCCToServiceAccount(securityClient securitytypedclient.SecurityContextCo
 			},
 		},
 
-		Out: out,
+		IOStreams: genericclioptions.IOStreams{Out: out},
 	}
 	return modifySCC.AddSCC()
 }

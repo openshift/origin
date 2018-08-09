@@ -3,7 +3,6 @@ package admin
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -17,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/master/ports"
 
 	"github.com/openshift/library-go/pkg/crypto"
@@ -56,54 +56,49 @@ type CreateNodeConfigOptions struct {
 	NodeClientCAFile  string
 	APIServerCAFiles  []string
 	APIServerURL      string
-	Output            io.Writer
 	NetworkPluginName string
+
+	genericclioptions.IOStreams
 }
 
-func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := NewDefaultCreateNodeConfigOptions()
-	options.Output = out
-
+func NewCommandNodeConfig(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewDefaultCreateNodeConfigOptions()
+	o.IOStreams = streams
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a configuration bundle for a node",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if _, err := options.CreateNodeFolder(); err != nil {
+			kcmdutil.CheckErr(o.Validate(args))
+			if _, err := o.CreateNodeFolder(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
 	}
 
-	flags := cmd.Flags()
+	BindSignerCertOptions(o.SignerCertOptions, cmd.Flags(), "")
 
-	BindSignerCertOptions(options.SignerCertOptions, flags, "")
+	cmd.Flags().StringVar(&o.NodeConfigDir, "node-dir", o.NodeConfigDir, "The client data directory.")
 
-	flags.StringVar(&options.NodeConfigDir, "node-dir", "", "The client data directory.")
+	cmd.Flags().StringVar(&o.NodeName, "node", o.NodeName, "The name of the node as it appears in etcd.")
+	cmd.Flags().StringSliceVar(&o.Hostnames, "hostnames", o.Hostnames, "Every hostname or IP you want server certs to be valid for. Comma delimited list")
+	cmd.Flags().StringVar(&o.VolumeDir, "volume-dir", o.VolumeDir, "The volume storage directory.  This path is not relativized.")
+	cmd.Flags().StringVar(&o.ImageTemplate.Format, "images", o.ImageTemplate.Format, "When fetching the network container image, use this format. The latest release will be used by default.")
+	cmd.Flags().BoolVar(&o.ImageTemplate.Latest, "latest-images", o.ImageTemplate.Latest, "If true, attempt to use the latest images for the cluster instead of the latest release.")
+	cmd.Flags().BoolVar(&o.AllowDisabledDocker, "allow-disabled-docker", o.AllowDisabledDocker, "Allow the node to start without docker being available.")
+	cmd.Flags().StringVar(&o.DNSBindAddress, "dns-bind-address", o.DNSBindAddress, "An address to bind DNS to.")
+	cmd.Flags().StringVar(&o.DNSDomain, "dns-domain", o.DNSDomain, "DNS domain for the cluster.")
+	cmd.Flags().StringVar(&o.DNSIP, "dns-ip", o.DNSIP, "DNS server IP for the cluster.")
+	cmd.Flags().Var(&o.ListenAddr, "listen", "The address to listen for connections on (scheme://host:port).")
 
-	flags.StringVar(&options.NodeName, "node", "", "The name of the node as it appears in etcd.")
-	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP you want server certs to be valid for. Comma delimited list")
-	flags.StringVar(&options.VolumeDir, "volume-dir", options.VolumeDir, "The volume storage directory.  This path is not relativized.")
-	flags.StringVar(&options.ImageTemplate.Format, "images", options.ImageTemplate.Format, "When fetching the network container image, use this format. The latest release will be used by default.")
-	flags.BoolVar(&options.ImageTemplate.Latest, "latest-images", options.ImageTemplate.Latest, "If true, attempt to use the latest images for the cluster instead of the latest release.")
-	flags.BoolVar(&options.AllowDisabledDocker, "allow-disabled-docker", options.AllowDisabledDocker, "Allow the node to start without docker being available.")
-	flags.StringVar(&options.DNSBindAddress, "dns-bind-address", options.DNSBindAddress, "An address to bind DNS to.")
-	flags.StringVar(&options.DNSDomain, "dns-domain", options.DNSDomain, "DNS domain for the cluster.")
-	flags.StringVar(&options.DNSIP, "dns-ip", options.DNSIP, "DNS server IP for the cluster.")
-	flags.Var(&options.ListenAddr, "listen", "The address to listen for connections on (scheme://host:port).")
-
-	flags.StringVar(&options.ClientCertFile, "client-certificate", "", "The client cert file for the node to contact the API.")
-	flags.StringVar(&options.ClientKeyFile, "client-key", "", "The client key file for the node to contact the API.")
-	flags.StringVar(&options.ServerCertFile, "server-certificate", "", "The server cert file for the node to serve secure traffic.")
-	flags.StringVar(&options.ServerKeyFile, "server-key", "", "The server key file for the node to serve secure traffic.")
-	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
-	flags.StringVar(&options.NodeClientCAFile, "node-client-certificate-authority", options.NodeClientCAFile, "The file containing signing authorities to use to verify requests to the node. If empty, all requests will be allowed.")
-	flags.StringVar(&options.APIServerURL, "master", options.APIServerURL, "The API server's URL.")
-	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", options.APIServerCAFiles, "Files containing signing authorities to use to verify the API server's serving certificate.")
-	flags.StringVar(&options.NetworkPluginName, "network-plugin", options.NetworkPluginName, "Name of the network plugin to hook to for pod networking.")
+	cmd.Flags().StringVar(&o.ClientCertFile, "client-certificate", o.ClientCertFile, "The client cert file for the node to contact the API.")
+	cmd.Flags().StringVar(&o.ClientKeyFile, "client-key", o.ClientKeyFile, "The client key file for the node to contact the API.")
+	cmd.Flags().StringVar(&o.ServerCertFile, "server-certificate", o.ServerCertFile, "The server cert file for the node to serve secure traffic.")
+	cmd.Flags().StringVar(&o.ServerKeyFile, "server-key", o.ServerKeyFile, "The server key file for the node to serve secure traffic.")
+	cmd.Flags().IntVar(&o.ExpireDays, "expire-days", o.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
+	cmd.Flags().StringVar(&o.NodeClientCAFile, "node-client-certificate-authority", o.NodeClientCAFile, "The file containing signing authorities to use to verify requests to the node. If empty, all requests will be allowed.")
+	cmd.Flags().StringVar(&o.APIServerURL, "master", o.APIServerURL, "The API server's URL.")
+	cmd.Flags().StringSliceVar(&o.APIServerCAFiles, "certificate-authority", o.APIServerCAFiles, "Files containing signing authorities to use to verify the API server's serving certificate.")
+	cmd.Flags().StringVar(&o.NetworkPluginName, "network-plugin", o.NetworkPluginName, "Name of the network plugin to hook to for pod networking.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("node-dir")
@@ -259,7 +254,7 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() (string, error) {
 	nodeConfigFile := path.Join(o.NodeConfigDir, "node-config.yaml")
 	nodeJSONFile := path.Join(o.NodeConfigDir, "node-registration.json")
 
-	fmt.Fprintf(o.Output, "Generating node credentials ...\n")
+	fmt.Fprintf(o.Out, "Generating node credentials ...\n")
 
 	if err := o.MakeClientCert(clientCertFile, clientKeyFile); err != nil {
 		return "", err
@@ -287,7 +282,7 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() (string, error) {
 		return "", err
 	}
 
-	fmt.Fprintf(o.Output, "Created node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
+	fmt.Fprintf(o.Out, "Created node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
 
 	return nodeConfigFile, nil
 }
@@ -304,7 +299,7 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 
 			User:   "system:node:" + o.NodeName,
 			Groups: []string{bootstrappolicy.NodesGroup},
-			Output: o.Output,
+			Output: o.Out,
 		}
 
 		if err := createNodeClientCert.Validate(nil); err != nil {
@@ -337,7 +332,7 @@ func (o CreateNodeConfigOptions) MakeAndWriteServerCert(serverCertFile, serverKe
 			ExpireDays: o.ExpireDays,
 
 			Hostnames: o.Hostnames,
-			Output:    o.Output,
+			IOStreams: o.IOStreams,
 		}
 
 		if err := nodeServerCertOptions.Validate(nil); err != nil {
@@ -386,7 +381,7 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 		ContextNamespace: metav1.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
-		Output:         o.Output,
+		IOStreams:      o.IOStreams,
 	}
 	if err := createKubeConfigOptions.Validate(nil); err != nil {
 		return err

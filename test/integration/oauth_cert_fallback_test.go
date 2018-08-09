@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -82,7 +83,7 @@ func TestOAuthCertFallback(t *testing.T) {
 		KeyFile:    path.Join(fakecadir, "fakeca.key"),
 		SerialFile: path.Join(fakecadir, "fakeca.serial"),
 		Name:       cacerts[0].Subject.CommonName,
-		Output:     ioutil.Discard,
+		IOStreams:  genericclioptions.NewTestIOStreamsDiscard(),
 		Overwrite:  true,
 	}).CreateSignerCert()
 	if err != nil {

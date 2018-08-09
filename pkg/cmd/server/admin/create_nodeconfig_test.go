@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -107,7 +108,7 @@ func executeNodeConfig(args []string) string {
 		},
 	}
 
-	root.AddCommand(NewCommandNodeConfig("create-node-config", "oc adm", ioutil.Discard))
+	root.AddCommand(NewCommandNodeConfig("create-node-config", "oc adm", genericclioptions.NewTestIOStreamsDiscard()))
 	root.SetArgs(argsToUse)
 	root.Execute()
 

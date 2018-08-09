@@ -3,7 +3,6 @@ package admin
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 
 	"github.com/golang/glog"
@@ -13,6 +12,7 @@ import (
 	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/library-go/pkg/crypto"
 )
@@ -33,7 +33,8 @@ type CreateClientOptions struct {
 	APIServerCAFiles   []string
 	APIServerURL       string
 	PublicAPIServerURL string
-	Output             io.Writer
+
+	genericclioptions.IOStreams
 }
 
 var createClientLong = templates.LongDesc(`
@@ -43,42 +44,40 @@ var createClientLong = templates.LongDesc(`
 	a server certificate authority, and a .kubeconfig file for connecting to the
 	master as the provided user.`)
 
-func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateClientOptions{
+func NewCreateClientOptions(streams genericclioptions.IOStreams) *CreateClientOptions {
+	return &CreateClientOptions{
 		SignerCertOptions: NewDefaultSignerCertOptions(),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
-		Output:            out,
+		APIServerURL:      "https://localhost:8443",
+		APIServerCAFiles:  []string{"openshift.local.config/master/ca.crt"},
+		IOStreams:         streams,
 	}
+}
 
+func NewCommandCreateClient(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCreateClientOptions(streams)
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a config file for connecting to the server as a user",
 		Long:  createClientLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.CreateClientFolder(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.CreateClientFolder())
 		},
 	}
 
-	flags := cmd.Flags()
+	BindSignerCertOptions(o.SignerCertOptions, cmd.Flags(), "")
 
-	BindSignerCertOptions(options.SignerCertOptions, flags, "")
+	cmd.Flags().StringVar(&o.ClientDir, "client-dir", o.ClientDir, "The client data directory.")
+	cmd.Flags().StringVar(&o.BaseName, "basename", o.BaseName, "The base filename to use for the .crt, .key, and .kubeconfig files. Defaults to the username.")
 
-	flags.StringVar(&options.ClientDir, "client-dir", "", "The client data directory.")
-	flags.StringVar(&options.BaseName, "basename", "", "The base filename to use for the .crt, .key, and .kubeconfig files. Defaults to the username.")
+	cmd.Flags().StringVar(&o.User, "user", o.User, "The scope qualified username.")
+	cmd.Flags().StringSliceVar(&o.Groups, "groups", o.Groups, "The list of groups this user belongs to. Comma delimited list")
 
-	flags.StringVar(&options.User, "user", "", "The scope qualified username.")
-	flags.StringSliceVar(&options.Groups, "groups", options.Groups, "The list of groups this user belongs to. Comma delimited list")
-
-	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
-	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
-	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", []string{"openshift.local.config/master/ca.crt"}, "Files containing signing authorities to use to verify the API server's serving certificate.")
-	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
+	cmd.Flags().StringVar(&o.APIServerURL, "master", o.APIServerURL, "The API server's URL.")
+	cmd.Flags().StringVar(&o.PublicAPIServerURL, "public-master", o.PublicAPIServerURL, "The API public facing server's URL (if applicable).")
+	cmd.Flags().StringSliceVar(&o.APIServerCAFiles, "certificate-authority", o.APIServerCAFiles, "Files containing signing authorities to use to verify the API server's serving certificate.")
+	cmd.Flags().IntVar(&o.ExpireDays, "expire-days", o.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("client-dir")
@@ -143,7 +142,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		User:      o.User,
 		Groups:    o.Groups,
 		Overwrite: true,
-		Output:    o.Output,
+		Output:    o.Out,
 	}
 	if err := createClientCertOptions.Validate(nil); err != nil {
 		return err
@@ -170,7 +169,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		ContextNamespace: metav1.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
-		Output:         o.Output,
+		IOStreams:      genericclioptions.IOStreams{Out: o.Out},
 	}
 	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 		return err

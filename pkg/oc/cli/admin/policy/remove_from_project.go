@@ -2,7 +2,6 @@ package policy
 
 import (
 	"fmt"
-	"io"
 	"sort"
 
 	"github.com/spf13/cobra"
@@ -14,6 +13,7 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
@@ -34,29 +34,27 @@ type RemoveFromProjectOptions struct {
 
 	PrintObject func(runtime.Object) error
 	Output      string
-	Out         io.Writer
+
+	genericclioptions.IOStreams
+}
+
+func NewRemoveFromProjectOptions(streams genericclioptions.IOStreams) *RemoveFromProjectOptions {
+	return &RemoveFromProjectOptions{
+		IOStreams: streams,
+	}
 }
 
 // NewCmdRemoveGroupFromProject implements the OpenShift cli remove-group command
-func NewCmdRemoveGroupFromProject(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &RemoveFromProjectOptions{Out: out}
-
+func NewCmdRemoveGroupFromProject(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRemoveFromProjectOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name + " GROUP [GROUP ...]",
 		Short: "Remove group from the current project",
 		Long:  `Remove group from the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group"); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.Validate(f, cmd, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.Run(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
+			kcmdutil.CheckErr(o.Validate(f, cmd, args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
@@ -66,25 +64,16 @@ func NewCmdRemoveGroupFromProject(name, fullName string, f kcmdutil.Factory, out
 }
 
 // NewCmdRemoveUserFromProject implements the OpenShift cli remove-user command
-func NewCmdRemoveUserFromProject(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &RemoveFromProjectOptions{Out: out}
-
+func NewCmdRemoveUserFromProject(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRemoveFromProjectOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name + " USER [USER ...]",
 		Short: "Remove user from the current project",
 		Long:  `Remove user from the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Users, "user"); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.Validate(f, cmd, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.Run(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Users, "user"))
+			kcmdutil.CheckErr(o.Validate(f, cmd, args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 

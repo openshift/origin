@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	rulevalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	"github.com/openshift/origin/pkg/api/install"
@@ -39,7 +40,7 @@ func TestCreateBootstrapPolicyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Remove(f.Name())
-	cmd := admin.NewCommandCreateBootstrapPolicyFile("", "", nil)
+	cmd := admin.NewCommandCreateBootstrapPolicyFile("", "", genericclioptions.NewTestIOStreamsDiscard())
 	cmd.Flag("filename").Value.Set(f.Name())
 	cmd.Run(cmd, nil)
 	data, err := ioutil.ReadFile(f.Name())

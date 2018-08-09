@@ -17,6 +17,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
@@ -53,30 +54,31 @@ var encryptExample = templates.Examples(`
 	# Encrypt the content of secret2.txt with an existing key:
 	%[1]s --key=secret.key < secret2.txt > secret2.encrypted`)
 
-func NewCommandEncrypt(commandName string, fullName string, out io.Writer, errout io.Writer) *cobra.Command {
-	options := &EncryptOptions{
-		CleartextReader: os.Stdin,
-		EncryptedWriter: out,
-		PromptWriter:    errout,
+func NewEncryptOptions(streams genericclioptions.IOStreams) *EncryptOptions {
+	return &EncryptOptions{
+		CleartextReader: streams.In,
+		EncryptedWriter: streams.Out,
+		PromptWriter:    streams.ErrOut,
 	}
+}
 
+func NewCommandEncrypt(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewEncryptOptions(streams)
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Encrypt data with AES-256-CBC encryption",
 		Example: fmt.Sprintf(encryptExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Validate(args))
-			kcmdutil.CheckErr(options.Encrypt())
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.Encrypt())
 		},
 	}
 
-	flags := cmd.Flags()
+	cmd.Flags().StringVar(&o.CleartextFile, "in", o.CleartextFile, "File containing the data to encrypt. Read from stdin if omitted.")
+	cmd.Flags().StringVar(&o.EncryptedFile, "out", o.EncryptedFile, "File to write the encrypted data to. Written to stdout if omitted.")
 
-	flags.StringVar(&options.CleartextFile, "in", options.CleartextFile, "File containing the data to encrypt. Read from stdin if omitted.")
-	flags.StringVar(&options.EncryptedFile, "out", options.EncryptedFile, "File to write the encrypted data to. Written to stdout if omitted.")
-
-	flags.StringVar(&options.KeyFile, "key", options.KeyFile, "File containing the encrypting key from in the format written by --genkey.")
-	flags.StringVar(&options.GenKeyFile, "genkey", options.GenKeyFile, "File to write a randomly generated key to.")
+	cmd.Flags().StringVar(&o.KeyFile, "key", o.KeyFile, "File containing the encrypting key from in the format written by --genkey.")
+	cmd.Flags().StringVar(&o.GenKeyFile, "genkey", o.GenKeyFile, "File to write a randomly generated key to.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("in")

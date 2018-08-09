@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
 	"github.com/openshift/library-go/pkg/crypto"
@@ -308,7 +309,7 @@ func (o MasterOptions) CreateCerts() error {
 		APIServerURL:       masterAddr.String(),
 		APIServerCAFiles:   o.MasterArgs.APIServerCAFiles,
 		PublicAPIServerURL: publicMasterAddr.String(),
-		Output:             cmdutil.NewGLogWriterV(3),
+		IOStreams:          genericclioptions.IOStreams{Out: cmdutil.NewGLogWriterV(3)},
 	}
 	if err := mintAllCertsOptions.Validate(nil); err != nil {
 		return err

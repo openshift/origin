@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
@@ -100,11 +101,6 @@ func (w *syncedWriter) write(p []byte) (int, error) {
 // ResourceOptions assists in performing migrations on any object that
 // can be retrieved via the API.
 type ResourceOptions struct {
-	// To prevent any issues with multiple workers trying
-	// to read from this, the field was simply removed
-	// In       io.Reader
-	Out, ErrOut io.Writer
-
 	Unstructured  bool
 	AllNamespaces bool
 	Include       []string
@@ -135,6 +131,8 @@ type ResourceOptions struct {
 	Workers int
 	// If true, Out and ErrOut will be wrapped to make them goroutine safe.
 	SyncOut bool
+
+	genericclioptions.IOStreams
 }
 
 func (o *ResourceOptions) Bind(c *cobra.Command) {

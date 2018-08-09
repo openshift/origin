@@ -2,10 +2,10 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/api/security"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -52,7 +52,7 @@ func (d *SCC) Check() types.DiagnosticResult {
 	reconcileOptions := &policycmd.ReconcileSCCOptions{
 		Confirmed:      false,
 		Union:          true,
-		Out:            ioutil.Discard,
+		IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
 		SCCClient:      d.SCCClient,
 		InfraNamespace: bootstrappolicy.DefaultOpenShiftInfraNamespace,
 	}
