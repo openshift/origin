@@ -12,9 +12,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
-	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
 	"github.com/openshift/origin/pkg/oc/cli/logs"
 )
 
@@ -37,7 +37,7 @@ type BuildLogsOptions struct {
 
 	Name        string
 	Namespace   string
-	BuildClient buildclientinternal.Interface
+	BuildClient buildv1client.Interface
 
 	genericclioptions.IOStreams
 }
@@ -86,7 +86,7 @@ func (o *BuildLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 	if err != nil {
 		return err
 	}
-	o.BuildClient, err = buildclientinternal.NewForConfig(clientConfig)
+	o.BuildClient, err = buildv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -96,11 +96,11 @@ func (o *BuildLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 
 // RunBuildLogs contains all the necessary functionality for the OpenShift cli build-logs command
 func (o *BuildLogsOptions) RunBuildLogs() error {
-	opts := buildapi.BuildLogOptions{
+	opts := buildv1.BuildLogOptions{
 		Follow: o.Follow,
 		NoWait: o.NoWait,
 	}
-	readCloser, err := buildmanualclient.NewBuildLogClient(o.BuildClient.Build().RESTClient(), o.Namespace).Logs(o.Name, opts).Stream()
+	readCloser, err := buildclientv1.NewBuildLogClient(o.BuildClient.BuildV1().RESTClient(), o.Namespace).Logs(o.Name, opts).Stream()
 	if err != nil {
 		return err
 	}
