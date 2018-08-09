@@ -888,6 +888,13 @@ func (c *AppConfig) Run() (*AppResult, error) {
 			return nil, err
 		}
 	}
+
+	// Ensure that extra tags are not being created
+	objects, err = c.removeRedundantTags(objects)
+	if err != nil {
+		return nil, err
+	}
+
 	// check for circular reference specifically from the newly generated objects, handling new-app vs. new-build nuances as needed
 	err = c.checkCircularReferences(objects)
 	if err != nil {
@@ -1178,6 +1185,51 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 	}
 
 	return c.followRefToDockerImage(target, isContext, objects)
+}
+
+// removeRedundantTags cycles through the supplied list of objects and removes
+// any tags that are already being created in an imagestream
+func (c *AppConfig) removeRedundantTags(objects app.Objects) (app.Objects, error) {
+	objectsToRemove := map[string]struct{}{}
+	for _, obj := range objects {
+		if ist, ok := obj.(*imageapi.ImageStreamTag); ok {
+			istNamespace := ist.Namespace
+			if len(istNamespace) == 0 {
+				istNamespace = c.OriginNamespace
+			}
+			streamName, tagName, ok := imageapi.SplitImageStreamTag(ist.Name)
+			if !ok {
+				return nil, fmt.Errorf("Unable to split ImageStreamTag: %s", ist.Name)
+			}
+			is := c.findImageStreamInObjectList(objects, streamName, istNamespace)
+			if is != nil {
+				for name := range is.Spec.Tags {
+					if name == tagName {
+						objectsToRemove[fmt.Sprintf("%s/%s", istNamespace, ist.Name)] = struct{}{}
+					}
+				}
+			}
+
+		}
+	}
+
+	objectsToKeep := app.Objects{}
+	for _, obj := range objects {
+		if ist, ok := obj.(*imageapi.ImageStreamTag); ok {
+			istNamespace := ist.Namespace
+			if len(istNamespace) == 0 {
+				istNamespace = c.OriginNamespace
+			}
+			istName := fmt.Sprintf("%s/%s", istNamespace, ist.Name)
+			if _, ok := objectsToRemove[istName]; ok {
+				glog.V(4).Infof("Removing duplicate tag from object list: %s", istName)
+				continue
+			}
+		}
+		objectsToKeep = append(objectsToKeep, obj)
+	}
+
+	return objectsToKeep, nil
 }
 
 // checkCircularReferences ensures there are no builds that can trigger themselves

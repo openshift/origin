@@ -14,6 +14,53 @@ trap os::test::junit::reconcile_output EXIT
 os::util::environment::setup_time_vars
 
 os::test::junit::declare_suite_start "cmd/newapp"
+
+#
+# imagestream/tag creation and reuse
+#
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json -n openshift'
+os::cmd::expect_success 'oc delete istag php:latest -n openshift'
+os::cmd::expect_success 'oc new-project test-imagestreams'
+os::cmd::try_until_failure 'oc get istag php:latest -n openshift'
+
+# should fail due to missing php:latest tag
+os::cmd::expect_failure 'oc new-app --image-stream=openshift/php https://github.com/sclorg/cakephp-ex'
+
+# should succeed and create the php:latest tag in the current namespace
+os::cmd::expect_success 'oc new-app --docker-image=library/php https://github.com/sclorg/cakephp-ex --strategy=source'
+os::cmd::try_until_success 'oc get istag php:latest -n test-imagestreams'
+os::cmd::expect_success 'oc create istag php:latest --from=openshift/php:7.1 -n openshift'
+
+# create a new tag for an existing imagestream in the current namespace
+os::cmd::expect_success 'oc create istag perl:5.20 --from=openshift/perl:5.20'
+os::cmd::expect_success 'oc new-app --docker-image=library/perl https://github.com/sclorg/dancer-ex --strategy=source'
+os::cmd::try_until_success 'oc get istag perl:latest -n test-imagestreams'
+
+# remove redundant imagestream tag before creating objects
+os::cmd::expect_success_and_text 'oc new-app  openshift/ruby-22-centos7 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
+
+# create imagestream in the correct namespace
+os::cmd::expect_success 'oc new-app --name=mytest --image-stream=mysql --env=MYSQL_USER=test --env=MYSQL_PASSWORD=redhat --env=MYSQL_DATABASE=testdb -l app=mytest'
+os::cmd::try_until_success 'oc get is mytest -n test-imagestreams'
+
+# don't create an unnecessary imagestream
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/nodejs-ex'
+os::cmd::expect_failure_and_text 'oc get is nodejs -n test-imagestreams' 'not found'
+
+# check reuse imagestreams
+os::cmd::expect_success "oc new-build -D $'FROM node:8\nRUN echo \"Test\"' --name=node8"
+os::cmd::try_until_success 'oc get istag node:8'
+os::cmd::expect_success "oc new-build -D $'FROM node:10\nRUN echo \"Test\"' --name=node10"
+os::cmd::try_until_success 'oc get istag node:10'
+
+# cleanup and reset to default namespace
+os::cmd::expect_success 'oc delete is --all -n openshift'
+os::cmd::expect_success 'oc project cmd-newapp'
+os::cmd::expect_success 'oc delete project test-imagestreams'
+
+# end imagestream/tag creation and reuse
+
+
 # This test validates the new-app command
 os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
 os::cmd::expect_success_and_text 'oc new-app library/php mysql --dry-run' "Image \"library/php\" runs as the 'root' user which may not be permitted by your cluster administrator"
@@ -105,22 +152,6 @@ os::cmd::expect_success 'oc delete all -l app=php'
 os::cmd::expect_failure 'oc get dc/mysql'
 os::cmd::expect_failure 'oc get dc/php'
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-without-app-label.json -o yaml' 'app: ruby-helloworld-sample'
-
-# check reuse imagestreams
-os::cmd::expect_success "oc new-build -D $'FROM node:8\nRUN echo \"Test\"' --name=node8"
-os::cmd::try_until_success 'oc get imagestreamtags node:8'
-os::cmd::expect_success "oc new-build -D $'FROM node:10\nRUN echo \"Test\"' --name=node10"
-os::cmd::try_until_success 'oc get imagestreamtags node:10'
-os::cmd::expect_success 'oc delete is node'
-os::cmd::expect_success 'oc delete is node8'
-os::cmd::expect_success 'oc delete is node10'
-os::cmd::expect_success 'oc delete all -l build=node8'
-os::cmd::expect_success 'oc delete all -l build=node10'
-
-# don't create extra imagestream
-os::cmd::expect_success 'oc new-app https://github.com/sclorg/nodejs-ex'
-os::cmd::expect_failure_and_text 'oc get is nodejs:10' 'not found'
-os::cmd::expect_success 'oc delete all -l app=nodejs-ex'
 
 # check object namespace handling
 # hardcoded values should be stripped
