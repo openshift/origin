@@ -24,6 +24,7 @@ import (
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
@@ -149,11 +150,11 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	authenticator, authenticatorPostStartHooks, err := NewAuthenticator(options, privilegedLoopbackConfig, informers)
+	authenticator, authenticatorPostStartHooks, err := openshiftkubeapiserver.NewAuthenticator(options, privilegedLoopbackConfig, informers.GetOpenshiftOauthInformers().Oauth().V1().OAuthClients().Lister(), informers.GetOpenshiftUserInformers().User().V1().Groups())
 	if err != nil {
 		return nil, err
 	}
-	authorizer := NewAuthorizer(informers, options.ProjectConfig.ProjectRequestMessage)
+	authorizer := openshiftkubeapiserver.NewAuthorizer(informers.GetInternalKubernetesInformers(), informers.GetKubernetesInformers())
 	projectCache, err := openshiftapiserver.NewProjectCache(informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(), privilegedLoopbackConfig, options.ProjectConfig.DefaultNodeSelector)
 	if err != nil {
 		return nil, err

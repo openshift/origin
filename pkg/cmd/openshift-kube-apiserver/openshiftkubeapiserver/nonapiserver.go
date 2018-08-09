@@ -1,12 +1,30 @@
-package origin
+package openshiftkubeapiserver
 
 import (
 	"net/http"
 
-	genericmux "k8s.io/apiserver/pkg/server/mux"
-
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	genericmux "k8s.io/apiserver/pkg/server/mux"
+	"k8s.io/client-go/informers"
 )
+
+func NewOpenshiftNonAPIConfig(generiConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig) (*OpenshiftNonAPIConfig, error) {
+	var err error
+	ret := &OpenshiftNonAPIConfig{
+		GenericConfig: &genericapiserver.RecommendedConfig{
+			Config:                *generiConfig,
+			SharedInformerFactory: kubeInformers,
+		},
+	}
+	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(*kubeAPIServerConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
 
 type NonAPIExtraConfig struct {
 	OAuthMetadata []byte

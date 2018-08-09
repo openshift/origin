@@ -1,4 +1,4 @@
-package origin
+package openshiftkubeapiserver
 
 import (
 	"context"
@@ -90,8 +90,8 @@ type serviceProxyHandler struct {
 	restConfig *restclient.Config
 }
 
-// NewServiceProxyHandler is a simple proxy that doesn't handle upgrades, passes headers directly through, and doesn't assert any identity.
-func NewServiceProxyHandler(serviceName string, serviceNamespace string, serviceResolver ServiceResolver, caBundle []byte, applicationDisplayName string) (*serviceProxyHandler, error) {
+// newServiceProxyHandler is a simple proxy that doesn't handle upgrades, passes headers directly through, and doesn't assert any identity.
+func newServiceProxyHandler(serviceName string, serviceNamespace string, serviceResolver ServiceResolver, caBundle []byte, applicationDisplayName string) (*serviceProxyHandler, error) {
 	restConfig := &restclient.Config{
 		TLSClientConfig: restclient.TLSClientConfig{
 			ServerName: serviceName + "." + serviceNamespace + ".svc",

@@ -1,4 +1,4 @@
-package origin
+package openshiftkubeapiserver
 
 import (
 	"crypto/x509"
@@ -27,6 +27,7 @@ import (
 	oauthclientlister "github.com/openshift/client-go/oauth/listers/oauth/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	userinformer "github.com/openshift/client-go/user/informers/externalversions/user/v1"
 	"github.com/openshift/origin/pkg/apiserver/authentication/oauth"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -38,7 +39,8 @@ import (
 func NewAuthenticator(
 	options configapi.MasterConfig,
 	privilegedLoopbackConfig *rest.Config,
-	informers InformerAccess,
+	oauthClientLister oauthclientlister.OAuthClientLister,
+	groupInformer userinformer.GroupInformer,
 ) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	kubeExternalClient, err := kclientsetexternal.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
@@ -64,11 +66,11 @@ func NewAuthenticator(
 	return newAuthenticator(
 		options,
 		oauthClient.OAuthAccessTokens(),
-		informers.GetOpenshiftOauthInformers().Oauth().V1().OAuthClients().Lister(),
+		oauthClientLister,
 		serviceAccountTokenGetter,
 		userClient.User().Users(),
 		apiClientCAs,
-		usercache.NewGroupCache(informers.GetOpenshiftUserInformers().User().V1().Groups()),
+		usercache.NewGroupCache(groupInformer),
 	)
 }
 
