@@ -11,6 +11,7 @@ import (
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
@@ -50,7 +51,7 @@ func GetImageFixture(filename string) (*imageapi.Image, error) {
 }
 
 func SetAdditionalAllowedRegistries(hostPortGlobs ...string) {
-	os.Setenv(additionalAllowedRegistriesEnvVar, strings.Join(hostPortGlobs, ","))
+	cmdutil.ThreadSafeSetEnv(additionalAllowedRegistriesEnvVar, strings.Join(hostPortGlobs, ","))
 }
 
 func AddAdditionalAllowedRegistries(hostPortGlobs ...string) {

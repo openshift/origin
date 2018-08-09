@@ -18,6 +18,8 @@ import (
 	"github.com/golang/glog"
 
 	dockererrors "github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
+
+	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 const (
@@ -300,7 +302,7 @@ func GetDockerClient() (Interface, error) {
 	dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
 	if len(dockerTLSVerify) > 0 && len(dockerCertPath) == 0 {
 		dockerCertPath = config.Dir()
-		os.Setenv("DOCKER_CERT_PATH", dockerCertPath)
+		util.ThreadSafeSetEnv("DOCKER_CERT_PATH", dockerCertPath)
 	}
 
 	if glog.V(4) {

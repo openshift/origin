@@ -27,6 +27,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/pkg/version"
@@ -63,7 +64,7 @@ func InitTest() {
 	}
 	TestContext.KubectlPath = "kubectl"
 	TestContext.KubeConfig = KubeConfigPath()
-	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
+	cmdutil.ThreadSafeSetEnv("KUBECONFIG", TestContext.KubeConfig)
 
 	// load and set the host variable for kubectl
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: TestContext.KubeConfig}, &clientcmd.ConfigOverrides{})
