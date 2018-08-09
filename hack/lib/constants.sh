@@ -356,7 +356,7 @@ function os::build::check_binaries() {
   fi
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" ]]; then
     size=$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)
-    if [[ "${size}" -gt "30" ]]; then
+    if [[ "${size}" -gt "32" ]]; then
       os::log::fatal "openshift-node-config binary has grown substantially to ${size}. You must have approval before bumping this limit."
     fi
   fi
