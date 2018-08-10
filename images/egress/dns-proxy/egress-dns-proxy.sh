@@ -15,6 +15,9 @@ IPADDR_REGEX="[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"
 PORT_REGEX="[[:digit:]]+"
 DOMAINNAME_REGEX="[[:alnum:]][[:alnum:]-]+?\.[[:alnum:].-]+"
 
+# Fetch nameservers from /etc/resolv.conf
+declare -a NAMESERVERS=($(awk '/^nameserver/ {print $2}' /etc/resolv.conf))
+
 function die() {
     echo "$*" 1>&2
     exit 1
@@ -64,11 +67,8 @@ defaults
 function generate_dns_resolvers() {
     echo "resolvers dns-resolver"
 
-    # Fetch nameservers from /etc/resolv.conf
-    nameservers=()
-    nameservers=$(awk '/^nameserver/ {print $2}' /etc/resolv.conf)
     n=0
-    for ns in ${nameservers[@]}; do
+    for ns in "${NAMESERVERS[@]}"; do
         n=$(($n + 1))
         echo "    nameserver ns$n ${ns}:${NS_PORT}"
     done
@@ -80,12 +80,31 @@ function generate_dns_resolvers() {
     echo ""
 }
 
+function get_num_servers() {
+    local domain=$1
+
+    if [[ "${EGRESS_DNS_PROXY_MODE:-}" == "unit-test" ]]; then
+        echo "${DNS_SERVERS[${domain}]:-1}"
+        return
+    fi
+
+    declare -A servers=()
+    for ns in "${NAMESERVERS[@]}"; do
+        local output=$( dig +noall +answer a "${domain}" @"${ns}" | awk '{ print $5 }' )
+        for ip in $output; do
+            servers[${ip}]=1
+        done
+    done
+    echo "${#servers[@]}"
+}
+
 function generate_haproxy_frontends_backends() {
     local n=0
     declare -A used_ports=()
 
     while read dest; do
         local port target targetport resolvers
+        local num_servers=1
 
         if [[ "${dest}" =~ ^${BLANK_LINE_OR_COMMENT_REGEX}$ ]]; then
             continue
@@ -102,9 +121,11 @@ function generate_haproxy_frontends_backends() {
             read port target <<< "${dest}"
             targetport="${port}"
             resolvers="resolvers dns-resolver resolve-prefer ipv4"
+            num_servers=$( get_num_servers "${target}" )
         elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${DOMAINNAME_REGEX}\ +${PORT_REGEX}$ ]]; then
             read port target targetport <<< "${dest}"
             resolvers="resolvers dns-resolver resolve-prefer ipv4"
+            num_servers=$( get_num_servers "${target}" )
         else
             die "Bad destination '${dest}'"
         fi
@@ -118,13 +139,20 @@ function generate_haproxy_frontends_backends() {
             die "Proxy port $port already used, must be unique for each destination"
         fi
 
+        local server_str=""
+        if [[ "${num_servers}" -gt "1" ]]; then
+            server_str="server-template dest ${num_servers}"
+        else
+            server_str="server dest1"
+        fi
+
         echo "
 frontend fe$n
     bind :${port}
     default_backend be$n
 
 backend be$n
-    server dest$n ${target}:${targetport} check $resolvers
+    ${server_str} ${target}:${targetport} check $resolvers
 "
     done <<< "${EGRESS_DNS_PROXY_DESTINATION}"
 }
@@ -170,6 +198,19 @@ function run() {
  }
 
 if [[ "${EGRESS_DNS_PROXY_MODE:-}" == "unit-test" ]]; then
+
+    declare -A DNS_SERVERS=()
+    if [[ "${EGRESS_DNS_SERVERS:-}" != "" ]]; then
+        servers=(${EGRESS_DNS_SERVERS//;/ })
+        for server in "${servers[@]}"; do
+            si=(${server//:/ })
+            if [[ "${#si[@]}" -ne "2" ]]; then
+                die "Invalid server entry in EGRESS_DNS_SERVERS: ${server}"
+            fi
+            DNS_SERVERS[${si[0]}]=${si[1]}
+        done
+    fi
+
     check_prereqs
     setup_haproxy_config
     exit 0
