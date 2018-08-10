@@ -1,6 +1,9 @@
+// +build !containers_image_storage_stub
+
 package storage
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -11,9 +14,12 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/opencontainers/go-digest"
-	ddigest "github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	minimumTruncatedIDLength = 3
 )
 
 func init() {
@@ -100,70 +106,74 @@ func (s *storageTransport) DefaultGIDMap() []idtools.IDMap {
 // ParseStoreReference takes a name or an ID, tries to figure out which it is
 // relative to the given store, and returns it in a reference object.
 func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (*storageReference, error) {
-	var name reference.Named
-	var sum digest.Digest
-	var err error
 	if ref == "" {
-		return nil, ErrInvalidReference
+		return nil, errors.Wrapf(ErrInvalidReference, "%q is an empty reference")
 	}
 	if ref[0] == '[' {
 		// Ignore the store specifier.
 		closeIndex := strings.IndexRune(ref, ']')
 		if closeIndex < 1 {
-			return nil, ErrInvalidReference
+			return nil, errors.Wrapf(ErrInvalidReference, "store specifier in %q did not end", ref)
 		}
 		ref = ref[closeIndex+1:]
 	}
-	refInfo := strings.SplitN(ref, "@", 2)
-	if len(refInfo) == 1 {
-		// A name.
-		name, err = reference.ParseNormalizedNamed(refInfo[0])
-		if err != nil {
-			return nil, err
-		}
-	} else if len(refInfo) == 2 {
-		// An ID, possibly preceded by a name.
-		if refInfo[0] != "" {
-			name, err = reference.ParseNormalizedNamed(refInfo[0])
-			if err != nil {
-				return nil, err
-			}
-		}
-		sum, err = digest.Parse(refInfo[1])
-		if err != nil || sum.Validate() != nil {
-			sum, err = digest.Parse("sha256:" + refInfo[1])
-			if err != nil || sum.Validate() != nil {
-				return nil, err
-			}
-		}
-	} else { // Coverage: len(refInfo) is always 1 or 2
-		// Anything else: store specified in a form we don't
-		// recognize.
-		return nil, ErrInvalidReference
-	}
-	optionsList := ""
-	options := store.GraphOptions()
-	if len(options) > 0 {
-		optionsList = ":" + strings.Join(options, ",")
-	}
-	storeSpec := "[" + store.GraphDriverName() + "@" + store.GraphRoot() + "+" + store.RunRoot() + optionsList + "]"
+
+	// The reference may end with an image ID.  Image IDs and digests use the same "@" separator;
+	// here we only peel away an image ID, and leave digests alone.
+	split := strings.LastIndex(ref, "@")
 	id := ""
-	if sum.Validate() == nil {
-		id = sum.Hex()
+	if split != -1 {
+		possibleID := ref[split+1:]
+		if possibleID == "" {
+			return nil, errors.Wrapf(ErrInvalidReference, "empty trailing digest or ID in %q", ref)
+		}
+		// If it looks like a digest, leave it alone for now.
+		if _, err := digest.Parse(possibleID); err != nil {
+			// Otherwise…
+			if idSum, err := digest.Parse("sha256:" + possibleID); err == nil && idSum.Validate() == nil {
+				id = possibleID // … it is a full ID
+			} else if img, err := store.Image(possibleID); err == nil && img != nil && len(possibleID) >= minimumTruncatedIDLength && strings.HasPrefix(img.ID, possibleID) {
+				// … it is a truncated version of the ID of an image that's present in local storage,
+				// so we might as well use the expanded value.
+				id = img.ID
+			} else {
+				return nil, errors.Wrapf(ErrInvalidReference, "%q does not look like an image ID or digest", possibleID)
+			}
+			// We have recognized an image ID; peel it off.
+			ref = ref[:split]
+		}
 	}
-	refname := ""
-	if name != nil {
-		name = reference.TagNameOnly(name)
-		refname = verboseName(name)
+
+	// If we only have one @-delimited portion, then _maybe_ it's a truncated image ID.  Only check on that if it's
+	// at least of what we guess is a reasonable minimum length, because we don't want a really short value
+	// like "a" matching an image by ID prefix when the input was actually meant to specify an image name.
+	if id == "" && len(ref) >= minimumTruncatedIDLength && !strings.ContainsAny(ref, "@:") {
+		if img, err := store.Image(ref); err == nil && img != nil && strings.HasPrefix(img.ID, ref) {
+			// It's a truncated version of the ID of an image that's present in local storage;
+			// we need to expand it.
+			id = img.ID
+			ref = ""
+		}
 	}
-	if refname == "" {
-		logrus.Debugf("parsed reference into %q", storeSpec+"@"+id)
-	} else if id == "" {
-		logrus.Debugf("parsed reference into %q", storeSpec+refname)
-	} else {
-		logrus.Debugf("parsed reference into %q", storeSpec+refname+"@"+id)
+
+	var named reference.Named
+	// Unless we have an un-named "ID" or "@ID" reference (where ID might only have been a prefix), which has been
+	// completely parsed above, the initial portion should be a name, possibly with a tag and/or a digest..
+	if ref != "" {
+		var err error
+		named, err = reference.ParseNormalizedNamed(ref)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing named reference %q", ref)
+		}
+		named = reference.TagNameOnly(named)
 	}
-	return newReference(storageTransport{store: store, defaultUIDMap: s.defaultUIDMap, defaultGIDMap: s.defaultGIDMap}, refname, id, name), nil
+
+	result, err := newReference(storageTransport{store: store, defaultUIDMap: s.defaultUIDMap, defaultGIDMap: s.defaultGIDMap}, named, id)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("parsed reference into %q", result.StringWithinTransport())
+	return result, nil
 }
 
 func (s *storageTransport) GetStore() (storage.Store, error) {
@@ -182,11 +192,14 @@ func (s *storageTransport) GetStore() (storage.Store, error) {
 	return s.store, nil
 }
 
-// ParseReference takes a name and/or an ID ("_name_"/"@_id_"/"_name_@_id_"),
+// ParseReference takes a name and a tag or digest and/or ID
+// ("_name_"/"@_id_"/"_name_:_tag_"/"_name_:_tag_@_id_"/"_name_@_digest_"/"_name_@_digest_@_id_"/"_name_:_tag_@_digest_"/"_name_:_tag_@_digest_@_id_"),
 // possibly prefixed with a store specifier in the form "[_graphroot_]" or
 // "[_driver_@_graphroot_]" or "[_driver_@_graphroot_+_runroot_]" or
 // "[_driver_@_graphroot_:_options_]" or "[_driver_@_graphroot_+_runroot_:_options_]",
 // tries to figure out which it is, and returns it in a reference object.
+// If _id_ is the ID of an image that's present in local storage, it can be truncated, and
+// even be specified as if it were a _name_, value.
 func (s *storageTransport) ParseReference(reference string) (types.ImageReference, error) {
 	var store storage.Store
 	// Check if there's a store location prefix.  If there is, then it
@@ -265,17 +278,23 @@ func (s *storageTransport) ParseReference(reference string) (types.ImageReferenc
 
 func (s storageTransport) GetStoreImage(store storage.Store, ref types.ImageReference) (*storage.Image, error) {
 	dref := ref.DockerReference()
-	if dref == nil {
-		if sref, ok := ref.(*storageReference); ok {
-			if sref.id != "" {
-				if img, err := store.Image(sref.id); err == nil {
-					return img, nil
-				}
+	if dref != nil {
+		if img, err := store.Image(dref.String()); err == nil {
+			return img, nil
+		}
+	}
+	if sref, ok := ref.(*storageReference); ok {
+		if sref.id != "" {
+			if img, err := store.Image(sref.id); err == nil {
+				return img, nil
 			}
 		}
-		return nil, ErrInvalidReference
+		tmpRef := *sref
+		if img, err := tmpRef.resolveImage(); err == nil {
+			return img, nil
+		}
 	}
-	return store.Image(verboseName(dref))
+	return nil, storage.ErrImageUnknown
 }
 
 func (s *storageTransport) GetImage(ref types.ImageReference) (*storage.Image, error) {
@@ -321,35 +340,29 @@ func (s storageTransport) ValidatePolicyConfigurationScope(scope string) error {
 	if scope == "" {
 		return nil
 	}
-	// But if there is anything left, it has to be a name, with or without
-	// a tag, with or without an ID, since we don't return namespace values
-	// that are just bare IDs.
-	scopeInfo := strings.SplitN(scope, "@", 2)
-	if len(scopeInfo) == 1 && scopeInfo[0] != "" {
-		_, err := reference.ParseNormalizedNamed(scopeInfo[0])
-		if err != nil {
-			return err
-		}
-	} else if len(scopeInfo) == 2 && scopeInfo[0] != "" && scopeInfo[1] != "" {
-		_, err := reference.ParseNormalizedNamed(scopeInfo[0])
-		if err != nil {
-			return err
-		}
-		_, err = ddigest.Parse("sha256:" + scopeInfo[1])
-		if err != nil {
-			return err
-		}
-	} else {
-		return ErrInvalidReference
-	}
-	return nil
-}
 
-func verboseName(name reference.Named) string {
-	name = reference.TagNameOnly(name)
-	tag := ""
-	if tagged, ok := name.(reference.NamedTagged); ok {
-		tag = ":" + tagged.Tag()
+	fields := strings.SplitN(scope, "@", 3)
+	switch len(fields) {
+	case 1: // name only
+	case 2: // name:tag@ID or name[:tag]@digest
+		if _, idErr := digest.Parse("sha256:" + fields[1]); idErr != nil {
+			if _, digestErr := digest.Parse(fields[1]); digestErr != nil {
+				return fmt.Errorf("%v is neither a valid digest(%s) nor a valid ID(%s)", fields[1], digestErr.Error(), idErr.Error())
+			}
+		}
+	case 3: // name[:tag]@digest@ID
+		if _, err := digest.Parse(fields[1]); err != nil {
+			return err
+		}
+		if _, err := digest.Parse("sha256:" + fields[2]); err != nil {
+			return err
+		}
+	default: // Coverage: This should never happen
+		return errors.New("Internal error: unexpected number of fields form strings.SplitN")
 	}
-	return name.Name() + tag
+	// As for field[0], if it is non-empty at all:
+	// FIXME? We could be verifying the various character set and length restrictions
+	// from docker/distribution/reference.regexp.go, but other than that there
+	// are few semantically invalid strings.
+	return nil
 }

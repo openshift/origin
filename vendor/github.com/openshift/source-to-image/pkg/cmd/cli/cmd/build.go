@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -8,9 +9,13 @@ import (
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/containers/storage"
+	"github.com/projectatomic/buildah"
+
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
+	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies"
 	cmdutil "github.com/openshift/source-to-image/pkg/cmd/cli/util"
 	"github.com/openshift/source-to-image/pkg/config"
@@ -32,6 +37,8 @@ func NewCmdBuild(cfg *api.Config) *cobra.Command {
 	useConfig := false
 	oldScriptsFlag := ""
 	oldDestination := ""
+	remote := true
+	storeOptions := storage.DefaultStoreOptions
 
 	var networkMode string
 
@@ -147,20 +154,41 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 				cfg.DockerNetworkMode = api.DockerNetworkMode(networkMode)
 			}
 
-			client, err := docker.NewEngineAPIClient(cfg.DockerConfig)
+			var newEngine func(api.AuthConfig) (docker.Docker, error)
+			if remote {
+				client, err := docker.NewEngineAPIClient(cfg.DockerConfig)
+				if err != nil {
+					glog.Fatal(err)
+				}
+				newEngine = func(authConfig api.AuthConfig) (docker.Docker, error) {
+					return docker.New(client, authConfig), nil
+				}
+			} else {
+				store, err := storage.GetStore(storeOptions)
+				if err != nil {
+					glog.Fatal(err)
+				}
+				defer func() {
+					if _, err = store.Shutdown(false); err != nil {
+						glog.Error(err)
+					}
+				}()
+				newEngine = func(authConfig api.AuthConfig) (docker.Docker, error) {
+					return docker.NewBuildah(context.TODO(), store, nil, buildah.IsolationDefault, authConfig)
+				}
+			}
+			d, err := newEngine(cfg.PullAuthentication)
 			if err != nil {
 				glog.Fatal(err)
 			}
-
-			d := docker.New(client, cfg.PullAuthentication)
 			err = d.CheckReachable()
 			if err != nil {
 				glog.Fatal(err)
 			}
 
-			glog.V(2).Infof("\n%s\n", describe.Config(client, cfg))
+			glog.V(2).Infof("\n%s\n", describe.ConfigWithNewEngine(newEngine, cfg))
 
-			builder, _, err := strategies.GetStrategy(client, cfg)
+			builder, _, err := strategies.StrategyWithNewEngine(newEngine, cfg, build.Overrides{})
 			s2ierr.CheckError(err)
 			result, err := builder.Build(cfg)
 			if err != nil {
@@ -180,7 +208,8 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 			}
 
 			if cfg.RunImage {
-				runner := run.New(client, cfg)
+				runner, err := run.NewWithNewEngine(newEngine, cfg)
+				s2ierr.CheckError(err)
 				err = runner.Run(cfg)
 				s2ierr.CheckError(err)
 			}
@@ -215,5 +244,10 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 	buildCmd.Flags().StringVar(&(networkMode), "network", "", "Specify the default Docker Network name to be used in build process")
 	buildCmd.Flags().StringVarP(&(cfg.AsDockerfile), "as-dockerfile", "", "", "EXPERIMENTAL: Output a Dockerfile to this path instead of building a new image")
 	buildCmd.Flags().BoolVarP(&(cfg.KeepSymlinks), "keep-symlinks", "", false, "When using '--copy', copy symlinks as symlinks. Default behavior is to follow symlinks and copy files by content")
+	buildCmd.Flags().BoolVarP(&(remote), "remote", "", true, "Use a container engine to build and run images")
+	buildCmd.Flags().StringVarP(&(storeOptions.GraphRoot), "local-storage-root", "", storage.DefaultStoreOptions.GraphRoot, "Top level of non-remote storage")
+	buildCmd.Flags().StringVarP(&(storeOptions.RunRoot), "local-storage-runroot", "", storage.DefaultStoreOptions.RunRoot, "Top level of volatile non-remote storage")
+	buildCmd.Flags().StringVarP(&(storeOptions.GraphDriverName), "local-storage-driver", "", storage.DefaultStoreOptions.GraphDriverName, "Storage method for non-remote storage")
+	buildCmd.Flags().StringSliceVarP(&(storeOptions.GraphDriverOptions), "local-storage-driver-options", "", storage.DefaultStoreOptions.GraphDriverOptions, "Options for non-remote storage")
 	return buildCmd
 }

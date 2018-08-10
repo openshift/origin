@@ -10,7 +10,7 @@ import (
 
 // prepareTempFile creates a temporary file in a temporary directory.
 func prepareTempFile(t *testing.T) (string, string) {
-	dir, err := ioutil.TempDir("", "docker-system-test")
+	dir, err := ioutil.TempDir("", "storage-system-test")
 	if err != nil {
 		t.Fatal(err)
 	}

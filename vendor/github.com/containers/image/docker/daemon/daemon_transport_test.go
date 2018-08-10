@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"testing"
 
 	"github.com/containers/image/docker/reference"
@@ -24,16 +25,22 @@ func TestTransportParseReference(t *testing.T) {
 }
 
 func TestTransportValidatePolicyConfigurationScope(t *testing.T) {
-	for _, scope := range []string{ // A semi-representative assortment of values; everything is rejected.
-		sha256digestHex,
-		sha256digest,
-		"docker.io/library/busybox:latest",
-		"docker.io",
-		"",
+	// docker/policyconfiguation-accepted identities and scopes are accepted
+	for _, scope := range []string{
+		"registry.example.com/ns/stream" + sha256digest,
+		"registry.example.com/ns/stream:notlatest",
+		"registry.example.com/ns/stream",
+		"registry.example.com/ns",
+		"registry.example.com",
+		sha256digestHex, // Accept also unqualified hexdigest valies, they are in principle possible host names.
 	} {
 		err := Transport.ValidatePolicyConfigurationScope(scope)
-		assert.Error(t, err, scope)
+		assert.NoError(t, err, scope)
 	}
+
+	// Hexadecimal IDs are rejected. algo:hexdigest is clearly an invalid host:port value.
+	err := Transport.ValidatePolicyConfigurationScope(sha256digest)
+	assert.Error(t, err)
 }
 
 func TestParseReference(t *testing.T) {
@@ -187,27 +194,30 @@ func TestReferenceDockerReference(t *testing.T) {
 }
 
 func TestReferencePolicyConfigurationIdentity(t *testing.T) {
+	// id-only references have no identity.
 	ref, err := ParseReference(sha256digest)
 	require.NoError(t, err)
 	assert.Equal(t, "", ref.PolicyConfigurationIdentity())
 
-	for _, c := range validNamedReferenceTestCases {
-		ref, err := ParseReference(c.input)
-		require.NoError(t, err, c.input)
-		assert.Equal(t, "", ref.PolicyConfigurationIdentity(), c.input)
-	}
+	// Just a smoke test, the substance is tested in policyconfiguration.TestDockerReference.
+	ref, err = ParseReference("busybox:notlatest")
+	require.NoError(t, err)
+	assert.Equal(t, "docker.io/library/busybox:notlatest", ref.PolicyConfigurationIdentity())
 }
 
 func TestReferencePolicyConfigurationNamespaces(t *testing.T) {
+	// id-only references have no identity.
 	ref, err := ParseReference(sha256digest)
 	require.NoError(t, err)
 	assert.Empty(t, ref.PolicyConfigurationNamespaces())
 
-	for _, c := range validNamedReferenceTestCases {
-		ref, err := ParseReference(c.input)
-		require.NoError(t, err, c.input)
-		assert.Empty(t, ref.PolicyConfigurationNamespaces(), c.input)
-	}
+	// Just a smoke test, the substance is tested in policyconfiguration.TestDockerReference.
+	ref, err = ParseReference("busybox:notlatest")
+	assert.Equal(t, []string{
+		"docker.io/library/busybox",
+		"docker.io/library",
+		"docker.io",
+	}, ref.PolicyConfigurationNamespaces())
 }
 
 // daemonReference.NewImage, daemonReference.NewImageSource, openshiftReference.NewImageDestination
@@ -216,13 +226,13 @@ func TestReferencePolicyConfigurationNamespaces(t *testing.T) {
 func TestReferenceDeleteImage(t *testing.T) {
 	ref, err := ParseReference(sha256digest)
 	require.NoError(t, err)
-	err = ref.DeleteImage(nil)
+	err = ref.DeleteImage(context.Background(), nil)
 	assert.Error(t, err)
 
 	for _, c := range validNamedReferenceTestCases {
 		ref, err := ParseReference(c.input)
 		require.NoError(t, err, c.input)
-		err = ref.DeleteImage(nil)
+		err = ref.DeleteImage(context.Background(), nil)
 		assert.Error(t, err, c.input)
 	}
 }

@@ -15,8 +15,8 @@ import:
   - reference
 # close-write carry
 - package: github.com/docker/docker
-  repo:    https://github.com/openshift/moby-moby.git
-  version: openshift-3.10-docker-b68221c
+  repo:    https://github.com/nalind/docker.git
+  version: b68221c37e+SIGUNUSED
   subpackages:
   - api
   - api/types
@@ -60,6 +60,8 @@ import:
   version: 9e638d38cf6977a37a8ea0078f3ee75a7cdb2dd1
 - package: github.com/docker/libtrust
   version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
+- package: github.com/fsouza/go-dockerclient
+  version: 29c1814d12c072344bb91aac5d2ff719db39c523
 - package: github.com/gogo/protobuf
   version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
   subpackages:
@@ -80,7 +82,9 @@ import:
   subpackages:
   - libcontainer/user
 - package: github.com/pkg/errors
-  version: a22138067af1c4942683050411a841ade67fe1eb
+  version: 816c9085562cd7ee03e7f8188a1cfd942858cded
+- package: github.com/projectatomic/buildah
+  version: master
 - package: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - package: github.com/spf13/cobra
@@ -98,7 +102,4 @@ import:
   - context/ctxhttp
   - proxy
 - package: golang.org/x/sys
-  version: 7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce
-  subpackages:
-  - unix
-  - windows
+  version: 4910a1d54f876d7b22162a85f4d066d3ee649450

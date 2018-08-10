@@ -4,7 +4,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-readonly S2I_ROOT=$(dirname "${BASH_SOURCE}")/..
+S2I_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${S2I_ROOT}/hack/common.sh"
 
 s2i::cleanup() {
   echo
@@ -24,4 +25,4 @@ echo
 echo "Running integration tests ..."
 echo
 
-S2I_TIMEOUT="-timeout 600s" "${S2I_ROOT}/hack/test-go.sh" test/integration -v -tags 'integration' "${@:1}"
+S2I_GOTAGS="${S2I_GOTAGS} integration" S2I_TIMEOUT="-timeout 600s" "${S2I_ROOT}/hack/test-go.sh" test/integration -v "${@:1}"

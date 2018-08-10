@@ -41,7 +41,15 @@ type onBuildSourceHandler struct {
 
 // New returns a new instance of OnBuild builder
 func New(client docker.Client, config *api.Config, fs fs.FileSystem, overrides build.Overrides) (*OnBuild, error) {
-	dockerHandler := docker.New(client, config.PullAuthentication)
+	newEngine := func(authConfig api.AuthConfig) (docker.Docker, error) {
+		return docker.New(client, authConfig), nil
+	}
+	return NewWithNewEngine(newEngine, config, fs, overrides)
+}
+
+// NewWithNewEngine returns a new instance of OnBuild builder
+func NewWithNewEngine(newEngine func(api.AuthConfig) (docker.Docker, error), config *api.Config, fs fs.FileSystem, overrides build.Overrides) (*OnBuild, error) {
+	dockerHandler, err := newEngine(config.PullAuthentication)
 	builder := &OnBuild{
 		docker: dockerHandler,
 		git:    git.New(fs, cmd.NewCommandRunner()),
@@ -49,7 +57,7 @@ func New(client docker.Client, config *api.Config, fs fs.FileSystem, overrides b
 		tar:    tar.New(fs),
 	}
 	// Use STI Prepare() and download the 'run' script optionally.
-	s, err := sti.New(client, config, fs, overrides)
+	s, err := sti.NewWithNewEngine(newEngine, config, fs, overrides)
 	if err != nil {
 		return nil, err
 	}

@@ -30,6 +30,10 @@ func TestZfsSetQuota(t *testing.T) {
 	graphtest.DriverTestSetQuota(t, "zfs")
 }
 
+func TestZfsEcho(t *testing.T) {
+	graphtest.DriverTestEcho(t, "zfs")
+}
+
 func TestZfsTeardown(t *testing.T) {
 	graphtest.PutDriver(t)
 }

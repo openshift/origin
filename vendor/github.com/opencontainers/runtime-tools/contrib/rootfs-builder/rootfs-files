@@ -1,0 +1,6 @@
+./bin/busybox
+./dev
+./etc/group
+./etc/passwd
+./proc
+./sys

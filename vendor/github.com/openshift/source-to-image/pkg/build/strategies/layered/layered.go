@@ -43,12 +43,23 @@ type Layered struct {
 
 // New creates a Layered builder.
 func New(client docker.Client, config *api.Config, fs fs.FileSystem, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
+	newEngine := func(authConfig api.AuthConfig) (docker.Docker, error) {
+		return docker.New(client, authConfig), nil
+	}
+	return NewWithNewEngine(newEngine, config, fs, scripts, overrides)
+}
+
+// NewWithNewEngine creates a Layered builder.
+func NewWithNewEngine(newEngine func(api.AuthConfig) (docker.Docker, error), config *api.Config, fs fs.FileSystem, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
 	excludePattern, err := regexp.Compile(config.ExcludeRegExp)
 	if err != nil {
 		return nil, err
 	}
 
-	d := docker.New(client, config.PullAuthentication)
+	d, err := newEngine(config.PullAuthentication)
+	if err != nil {
+		return nil, err
+	}
 	tarHandler := tar.New(fs)
 	tarHandler.SetExclusionPattern(excludePattern)
 

@@ -4,6 +4,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+S2I_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${S2I_ROOT}/hack/common.sh"
+
 export PATH="$PWD/_output/local/bin/$(go env GOHOSTOS)/$(go env GOHOSTARCH):$PATH"
 
 function time_now()
