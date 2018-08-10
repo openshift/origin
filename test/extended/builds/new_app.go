@@ -64,6 +64,9 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 			g.By("waiting for the deployment to complete")
 			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), a58, 1, true, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// fail the test
+			o.Expect(err).To(o.HaveOccurred())
 		})
 
 		g.It("should fail with a --name longer than 58 characters", func() {
