@@ -5,9 +5,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"syscall"
 
 	"github.com/containers/storage/pkg/mount"
+	"github.com/syndtr/gocapability/capability"
+	"golang.org/x/sys/unix"
 )
 
 // chroot on linux uses pivot_root instead of chroot
@@ -17,12 +18,29 @@ import (
 // Old root is removed after the call to pivot_root so it is no longer available under the new root.
 // This is similar to how libcontainer sets up a container's rootfs
 func chroot(path string) (err error) {
-	if err := syscall.Unshare(syscall.CLONE_NEWNS); err != nil {
+	caps, err := capability.NewPid(0)
+	if err != nil {
+		return err
+	}
+
+	// if the process doesn't have CAP_SYS_ADMIN, but does have CAP_SYS_CHROOT, we need to use the actual chroot
+	if !caps.Get(capability.EFFECTIVE, capability.CAP_SYS_ADMIN) && caps.Get(capability.EFFECTIVE, capability.CAP_SYS_CHROOT) {
+		return realChroot(path)
+	}
+
+	if err := unix.Unshare(unix.CLONE_NEWNS); err != nil {
 		return fmt.Errorf("Error creating mount namespace before pivot: %v", err)
 	}
 
-	if err := mount.MakeRPrivate(path); err != nil {
+	// make everything in new ns private
+	if err := mount.MakeRPrivate("/"); err != nil {
 		return err
+	}
+
+	if mounted, _ := mount.Mounted(path); !mounted {
+		if err := mount.Mount(path, path, "bind", "rbind,rw"); err != nil {
+			return realChroot(path)
+		}
 	}
 
 	// setup oldRoot for pivot_root
@@ -35,7 +53,7 @@ func chroot(path string) (err error) {
 	defer func() {
 		if mounted {
 			// make sure pivotDir is not mounted before we try to remove it
-			if errCleanup := syscall.Unmount(pivotDir, syscall.MNT_DETACH); errCleanup != nil {
+			if errCleanup := unix.Unmount(pivotDir, unix.MNT_DETACH); errCleanup != nil {
 				if err == nil {
 					err = errCleanup
 				}
@@ -52,16 +70,9 @@ func chroot(path string) (err error) {
 				err = errCleanup
 			}
 		}
-
-		if errCleanup := syscall.Unmount("/", syscall.MNT_DETACH); errCleanup != nil {
-			if err == nil {
-				err = fmt.Errorf("error unmounting root: %v", errCleanup)
-			}
-			return
-		}
 	}()
 
-	if err := syscall.PivotRoot(path, pivotDir); err != nil {
+	if err := unix.PivotRoot(path, pivotDir); err != nil {
 		// If pivot fails, fall back to the normal chroot after cleaning up temp dir
 		if err := os.Remove(pivotDir); err != nil {
 			return fmt.Errorf("Error cleaning up after failed pivot: %v", err)
@@ -74,17 +85,17 @@ func chroot(path string) (err error) {
 	// This dir contains the rootfs of the caller, which we need to remove so it is not visible during extraction
 	pivotDir = filepath.Join("/", filepath.Base(pivotDir))
 
-	if err := syscall.Chdir("/"); err != nil {
+	if err := unix.Chdir("/"); err != nil {
 		return fmt.Errorf("Error changing to new root: %v", err)
 	}
 
 	// Make the pivotDir (where the old root lives) private so it can be unmounted without propagating to the host
-	if err := syscall.Mount("", pivotDir, "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
+	if err := unix.Mount("", pivotDir, "", unix.MS_PRIVATE|unix.MS_REC, ""); err != nil {
 		return fmt.Errorf("Error making old root private after pivot: %v", err)
 	}
 
 	// Now unmount the old root so it's no longer visible from the new root
-	if err := syscall.Unmount(pivotDir, syscall.MNT_DETACH); err != nil {
+	if err := unix.Unmount(pivotDir, unix.MNT_DETACH); err != nil {
 		return fmt.Errorf("Error while unmounting old root after pivot: %v", err)
 	}
 	mounted = false
@@ -93,10 +104,10 @@ func chroot(path string) (err error) {
 }
 
 func realChroot(path string) error {
-	if err := syscall.Chroot(path); err != nil {
+	if err := unix.Chroot(path); err != nil {
 		return fmt.Errorf("Error after fallback to chroot: %v", err)
 	}
-	if err := syscall.Chdir("/"); err != nil {
+	if err := unix.Chdir("/"); err != nil {
 		return fmt.Errorf("Error changing to new root after chroot: %v", err)
 	}
 	return nil

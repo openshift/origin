@@ -661,6 +661,21 @@ const (
 	// warn to the build output instead of failing when unsupported syntax is detected. This
 	// policy is experimental.
 	ImageOptimizationSkipLayersAndWarn ImageOptimizationPolicy = "SkipLayersAndWarn"
+
+	// ImageOptimizationDaemonless is an experimental policy which builds an image without
+	// using a docker engine, typically by running a build tool directly inside of the
+	// builder container, using a single layer for all content changes relative to the base
+	// image.
+	ImageOptimizationDaemonless ImageOptimizationPolicy = "Daemonless"
+
+	// ImageOptimizationDaemonlessWithLayers is the same as ImageOptimizationDaemonless, but
+	// producing a separate layer for each instruction in the Dockerfile.
+	ImageOptimizationDaemonlessWithLayers ImageOptimizationPolicy = "DaemonlessWithLayers"
+
+	// ImageOptimizationDaemonlessSquashed is the same as ImageOptimizationDaemonless, but
+	// uses a single layer to hold all of the resulting image's contents, including any
+	// contents which may have been inherited from a base image's layer or layers.
+	ImageOptimizationDaemonlessSquashed ImageOptimizationPolicy = "DaemonlessSquashed"
 )
 
 // DockerBuildStrategy defines input parameters specific to Docker build.

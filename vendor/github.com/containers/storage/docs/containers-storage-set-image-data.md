@@ -18,5 +18,7 @@ Read the data contents from a file instead of stdin.
 **containers-storage set-image-data -f ./manifest.json my-image manifest**
 
 ## SEE ALSO
-containers-storage-get-image-data(1)
 containers-storage-list-image-data(1)
+containers-storage-get-image-data(1)
+containers-storage-get-image-data-size(1)
+containers-storage-get-image-data-digest(1)

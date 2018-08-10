@@ -1,14 +1,17 @@
+// +build !containers_image_ostree_stub
+
 package ostree
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
-	"path/filepath"
-
+	_ "github.com/containers/image/internal/testing/explicitfilepath-tmpdir"
 	"github.com/containers/image/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,11 +45,12 @@ var imageNameTestcases = []struct{ input, normalized, branchName string }{
 	{"busybox:notlatest", "busybox:notlatest", "busybox_3Anotlatest"},                                                  // Explicit tag
 	{"busybox", "busybox:latest", "busybox_3Alatest"},                                                                  // Default tag
 	{"docker.io/library/busybox:latest", "docker.io/library/busybox:latest", "docker.io_2Flibrary_2Fbusybox_3Alatest"}, // A hierarchical name
-	{"UPPERCASEISINVALID", "", ""},                                                                                     // Invalid input
-	{"busybox" + sha256digest, "", ""},                                                                                 // Digested references are not supported (parsed as invalid repository name)
-	{"busybox:invalid+tag", "", ""},                                                                                    // Invalid tag value
-	{"busybox:tag:with:colons", "", ""},                                                                                // Multiple colons - treated as a tag which contains a colon, which is invalid
-	{"", "", ""},                                                                                                       // Empty input is rejected (invalid repository.Named)
+	{"127.0.0.1:5000/busybox:latest", "127.0.0.1:5000/busybox:latest", "127.0.0.1_3A5000_2Fbusybox_3Alatest"},          // Port usage
+	{"busybox" + sha256digest, "busybox" + sha256digest, "busybox_40sha256_3A0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},
+	{"UPPERCASEISINVALID", "", ""},      // Invalid input
+	{"busybox:invalid+tag", "", ""},     // Invalid tag value
+	{"busybox:tag:with:colons", "", ""}, // Multiple colons - treated as a tag which contains a colon, which is invalid
+	{"", "", ""},                        // Empty input is rejected (invalid repository.Named)
 }
 
 func TestTransportParseReference(t *testing.T) {
@@ -240,15 +244,15 @@ func TestReferencePolicyConfigurationNamespaces(t *testing.T) {
 func TestReferenceNewImage(t *testing.T) {
 	ref, err := Transport.ParseReference("busybox")
 	require.NoError(t, err)
-	_, err = ref.NewImage(nil)
+	_, err = ref.NewImage(context.Background(), nil)
 	assert.Error(t, err)
 }
 
 func TestReferenceNewImageSource(t *testing.T) {
 	ref, err := Transport.ParseReference("busybox")
 	require.NoError(t, err)
-	_, err = ref.NewImageSource(nil, nil)
-	assert.Error(t, err)
+	_, err = ref.NewImageSource(context.Background(), nil)
+	require.NoError(t, err)
 }
 
 func TestReferenceNewImageDestination(t *testing.T) {
@@ -257,7 +261,7 @@ func TestReferenceNewImageDestination(t *testing.T) {
 	defer os.RemoveAll(otherTmpDir)
 
 	for _, c := range []struct {
-		ctx    *types.SystemContext
+		sys    *types.SystemContext
 		tmpDir string
 	}{
 		{nil, os.TempDir()},
@@ -266,7 +270,7 @@ func TestReferenceNewImageDestination(t *testing.T) {
 	} {
 		ref, err := Transport.ParseReference("busybox")
 		require.NoError(t, err)
-		dest, err := ref.NewImageDestination(c.ctx)
+		dest, err := ref.NewImageDestination(context.Background(), c.sys)
 		require.NoError(t, err)
 		ostreeDest, ok := dest.(*ostreeImageDestination)
 		require.True(t, ok)
@@ -282,7 +286,7 @@ func TestReferenceDeleteImage(t *testing.T) {
 
 	ref, err := Transport.ParseReference(withTmpDir("busybox@$TMP/this-repo-does-not-exist", tmpDir))
 	require.NoError(t, err)
-	err = ref.DeleteImage(nil)
+	err = ref.DeleteImage(context.Background(), nil)
 	assert.Error(t, err)
 }
 

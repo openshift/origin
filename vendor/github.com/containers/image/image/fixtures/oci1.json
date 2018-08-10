@@ -3,7 +3,10 @@
    "config": {
       "mediaType": "application/vnd.oci.image.config.v1+json",
       "size": 5940,
-      "digest": "sha256:9ca4bda0a6b3727a6ffcc43e981cad0f24e2ec79d338f6ba325b4dfd0756fb8f"
+      "digest": "sha256:9ca4bda0a6b3727a6ffcc43e981cad0f24e2ec79d338f6ba325b4dfd0756fb8f",
+      "annotations": {
+         "test-annotation-1": "one"
+      }
    },
    "layers": [
       {
@@ -19,12 +22,16 @@
       {
          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
          "size": 11739507,
-         "digest": "sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9"
+         "digest": "sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9",
+         "urls": ["https://layer.url"]
       },
       {
          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
          "size": 8841833,
-         "digest": "sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909"
+         "digest": "sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
+         "annotations": {
+            "test-annotation-2": "two"
+         }
       },
       {
          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",

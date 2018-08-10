@@ -62,11 +62,12 @@ or use the build tags described below to avoid the dependencies (e.g. using `go 
 
 - `containers_image_openpgp`: Use a Golang-only OpenPGP implementation for signature verification instead of the default cgo/gpgme-based implementation;
 the primary downside is that creating new signatures with the Golang-only implementation is not supported.
-- `containers_image_ostree_stub`: Instead of importing `ostree:` transport in `github.com/containers/image/transports/alltransports`, use a stub which reports that the transport is not supported. This allows building the library without requiring the `libostree` development libraries.
+- `containers_image_ostree_stub`: Instead of importing `ostree:` transport in `github.com/containers/image/transports/alltransports`, use a stub which reports that the transport is not supported. This allows building the library without requiring the `libostree` development libraries. The `github.com/containers/image/ostree` package is completely disabled
+and impossible to import when this build tag is in use.
 
-  (Note that explicitly importing `github.com/containers/image/ostree` will still depend on the `libostree` library, this build tag only affects generic users of …`/alltransports`.)
+## [Contributing](CONTRIBUTING.md)**
 
-## Contributing
+Information about contributing to this project.
 
 When developing this library, please use `make` (or `make … BUILDTAGS=…`) to take advantage of the tests and validation.
 
