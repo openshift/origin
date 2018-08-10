@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"io"
 
 	"github.com/containers/image/docker/reference"
@@ -9,11 +10,11 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 type daemonImageDestination struct {
 	ref                  daemonReference
+	mustMatchRuntimeOS   bool
 	*tarfile.Destination // Implements most of types.ImageDestination
 	// For talking to imageLoadGoroutine
 	goroutineCancel context.CancelFunc
@@ -24,7 +25,7 @@ type daemonImageDestination struct {
 }
 
 // newImageDestination returns a types.ImageDestination for the specified image reference.
-func newImageDestination(systemCtx *types.SystemContext, ref daemonReference) (types.ImageDestination, error) {
+func newImageDestination(ctx context.Context, sys *types.SystemContext, ref daemonReference) (types.ImageDestination, error) {
 	if ref.ref == nil {
 		return nil, errors.Errorf("Invalid destination docker-daemon:%s: a destination must be a name:tag", ref.StringWithinTransport())
 	}
@@ -33,7 +34,12 @@ func newImageDestination(systemCtx *types.SystemContext, ref daemonReference) (t
 		return nil, errors.Errorf("Invalid destination docker-daemon:%s: a destination must be a name:tag", ref.StringWithinTransport())
 	}
 
-	c, err := client.NewClient(client.DefaultDockerHost, "1.22", nil, nil) // FIXME: overridable host
+	var mustMatchRuntimeOS = true
+	if sys != nil && sys.DockerDaemonHost != client.DefaultDockerHost {
+		mustMatchRuntimeOS = false
+	}
+
+	c, err := newDockerClient(sys)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error initializing docker engine client")
 	}
@@ -42,16 +48,17 @@ func newImageDestination(systemCtx *types.SystemContext, ref daemonReference) (t
 	// Commit() may never be called, so we may never read from this channel; so, make this buffered to allow imageLoadGoroutine to write status and terminate even if we never read it.
 	statusChannel := make(chan error, 1)
 
-	ctx, goroutineCancel := context.WithCancel(context.Background())
-	go imageLoadGoroutine(ctx, c, reader, statusChannel)
+	goroutineContext, goroutineCancel := context.WithCancel(ctx)
+	go imageLoadGoroutine(goroutineContext, c, reader, statusChannel)
 
 	return &daemonImageDestination{
-		ref:             ref,
-		Destination:     tarfile.NewDestination(writer, namedTaggedRef),
-		goroutineCancel: goroutineCancel,
-		statusChannel:   statusChannel,
-		writer:          writer,
-		committed:       false,
+		ref:                ref,
+		mustMatchRuntimeOS: mustMatchRuntimeOS,
+		Destination:        tarfile.NewDestination(writer, namedTaggedRef),
+		goroutineCancel:    goroutineCancel,
+		statusChannel:      statusChannel,
+		writer:             writer,
+		committed:          false,
 	}, nil
 }
 
@@ -78,9 +85,14 @@ func imageLoadGoroutine(ctx context.Context, c *client.Client, reader *io.PipeRe
 	defer resp.Body.Close()
 }
 
+// DesiredLayerCompression indicates if layers must be compressed, decompressed or preserved
+func (d *daemonImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return types.PreserveOriginal
+}
+
 // MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
 func (d *daemonImageDestination) MustMatchRuntimeOS() bool {
-	return true
+	return d.mustMatchRuntimeOS
 }
 
 // Close removes resources associated with an initialized ImageDestination, if any.
@@ -112,9 +124,9 @@ func (d *daemonImageDestination) Reference() types.ImageReference {
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-func (d *daemonImageDestination) Commit() error {
+func (d *daemonImageDestination) Commit(ctx context.Context) error {
 	logrus.Debugf("docker-daemon: Closing tar stream")
-	if err := d.Destination.Commit(); err != nil {
+	if err := d.Destination.Commit(ctx); err != nil {
 		return err
 	}
 	if err := d.writer.Close(); err != nil {
@@ -123,6 +135,10 @@ func (d *daemonImageDestination) Commit() error {
 	d.committed = true // We may still fail, but we are done sending to imageLoadGoroutine.
 
 	logrus.Debugf("docker-daemon: Waiting for status")
-	err := <-d.statusChannel
-	return err
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-d.statusChannel:
+		return err
+	}
 }

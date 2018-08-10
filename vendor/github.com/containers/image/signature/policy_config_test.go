@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/image/directory"
 	"github.com/containers/image/docker"
+	"github.com/pkg/errors"
 	// this import is needed  where we use the "atomic" transport in TestPolicyUnmarshalJSON
 	_ "github.com/containers/image/openshift"
 	"github.com/containers/image/types"
@@ -93,7 +94,7 @@ func TestDefaultPolicyPath(t *testing.T) {
 	const rootPrefix = "/root/prefix"
 
 	for _, c := range []struct {
-		ctx      *types.SystemContext
+		sys      *types.SystemContext
 		expected string
 	}{
 		// The common case
@@ -118,7 +119,7 @@ func TestDefaultPolicyPath(t *testing.T) {
 		// No environment expansion happens in the overridden paths
 		{&types.SystemContext{SignaturePolicyPath: variableReference}, variableReference},
 	} {
-		path := defaultPolicyPath(c.ctx)
+		path := defaultPolicyPath(c.sys)
 		assert.Equal(t, c.expected, path)
 	}
 }
@@ -136,7 +137,7 @@ func TestNewPolicyFromFile(t *testing.T) {
 	// A failure case; most are tested in the individual method unit tests.
 	_, err = NewPolicyFromFile("/dev/null")
 	require.Error(t, err)
-	assert.IsType(t, InvalidPolicyFormatError(""), err)
+	assert.IsType(t, InvalidPolicyFormatError(""), errors.Cause(err))
 }
 
 func TestNewPolicyFromBytes(t *testing.T) {

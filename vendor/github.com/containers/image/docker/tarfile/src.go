@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/containers/image/internal/tmpdir"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/pkg/compression"
 	"github.com/containers/image/types"
@@ -19,13 +20,14 @@ import (
 
 // Source is a partial implementation of types.ImageSource for reading from tarPath.
 type Source struct {
-	tarPath string
+	tarPath              string
+	removeTarPathOnClose bool // Remove temp file on close if true
 	// The following data is only available after ensureCachedDataIsPresent() succeeds
 	tarManifest       *ManifestItem // nil if not available yet.
 	configBytes       []byte
 	configDigest      digest.Digest
-	orderedDiffIDList []diffID
-	knownLayers       map[diffID]*layerInfo
+	orderedDiffIDList []digest.Digest
+	knownLayers       map[digest.Digest]*layerInfo
 	// Other state
 	generatedManifest []byte // Private cache for GetManifest(), nil if not set yet.
 }
@@ -35,14 +37,75 @@ type layerInfo struct {
 	size int64
 }
 
-// NewSource returns a tarfile.Source for the specified path.
-func NewSource(path string) *Source {
-	// TODO: We could add support for multiple images in a single archive, so
-	//       that people could use docker-archive:opensuse.tar:opensuse:leap as
-	//       the source of an image.
-	return &Source{
-		tarPath: path,
+// TODO: We could add support for multiple images in a single archive, so
+//       that people could use docker-archive:opensuse.tar:opensuse:leap as
+//       the source of an image.
+// 	To do for both the NewSourceFromFile and NewSourceFromStream functions
+
+// NewSourceFromFile returns a tarfile.Source for the specified path.
+func NewSourceFromFile(path string) (*Source, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error opening file %q", path)
 	}
+	defer file.Close()
+
+	// If the file is already not compressed we can just return the file itself
+	// as a source. Otherwise we pass the stream to NewSourceFromStream.
+	stream, isCompressed, err := compression.AutoDecompress(file)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error detecting compression for file %q", path)
+	}
+	defer stream.Close()
+	if !isCompressed {
+		return &Source{
+			tarPath: path,
+		}, nil
+	}
+	return NewSourceFromStream(stream)
+}
+
+// NewSourceFromStream returns a tarfile.Source for the specified inputStream,
+// which can be either compressed or uncompressed. The caller can close the
+// inputStream immediately after NewSourceFromFile returns.
+func NewSourceFromStream(inputStream io.Reader) (*Source, error) {
+	// FIXME: use SystemContext here.
+	// Save inputStream to a temporary file
+	tarCopyFile, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(), "docker-tar")
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating temporary file")
+	}
+	defer tarCopyFile.Close()
+
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			os.Remove(tarCopyFile.Name())
+		}
+	}()
+
+	// In order to be compatible with docker-load, we need to support
+	// auto-decompression (it's also a nice quality-of-life thing to avoid
+	// giving users really confusing "invalid tar header" errors).
+	uncompressedStream, _, err := compression.AutoDecompress(inputStream)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error auto-decompressing input")
+	}
+	defer uncompressedStream.Close()
+
+	// Copy the plain archive to the temporary file.
+	//
+	// TODO: This can take quite some time, and should ideally be cancellable
+	//       using a context.Context.
+	if _, err := io.Copy(tarCopyFile, uncompressedStream); err != nil {
+		return nil, errors.Wrapf(err, "error copying contents to temporary file %q", tarCopyFile.Name())
+	}
+	succeeded = true
+
+	return &Source{
+		tarPath:              tarCopyFile.Name(),
+		removeTarPathOnClose: true,
+	}, nil
 }
 
 // tarReadCloser is a way to close the backing file of a tar.Reader when the user no longer needs the tar component.
@@ -156,7 +219,7 @@ func (s *Source) ensureCachedDataIsPresent() error {
 	if err != nil {
 		return err
 	}
-	var parsedConfig image // Most fields ommitted, we only care about layer DiffIDs.
+	var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
 	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
 		return errors.Wrapf(err, "Error decoding tar config %s", tarManifest[0].Config)
 	}
@@ -189,17 +252,25 @@ func (s *Source) loadTarManifest() ([]ManifestItem, error) {
 	return items, nil
 }
 
+// Close removes resources associated with an initialized Source, if any.
+func (s *Source) Close() error {
+	if s.removeTarPathOnClose {
+		return os.Remove(s.tarPath)
+	}
+	return nil
+}
+
 // LoadTarManifest loads and decodes the manifest.json
 func (s *Source) LoadTarManifest() ([]ManifestItem, error) {
 	return s.loadTarManifest()
 }
 
-func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *image) (map[diffID]*layerInfo, error) {
+func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manifest.Schema2Image) (map[digest.Digest]*layerInfo, error) {
 	// Collect layer data available in manifest and config.
 	if len(tarManifest.Layers) != len(parsedConfig.RootFS.DiffIDs) {
 		return nil, errors.Errorf("Inconsistent layer count: %d in manifest, %d in config", len(tarManifest.Layers), len(parsedConfig.RootFS.DiffIDs))
 	}
-	knownLayers := map[diffID]*layerInfo{}
+	knownLayers := map[digest.Digest]*layerInfo{}
 	unknownLayerSizes := map[string]*layerInfo{} // Points into knownLayers, a "to do list" of items with unknown sizes.
 	for i, diffID := range parsedConfig.RootFS.DiffIDs {
 		if _, ok := knownLayers[diffID]; ok {
@@ -236,7 +307,25 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *image
 			return nil, err
 		}
 		if li, ok := unknownLayerSizes[h.Name]; ok {
-			li.size = h.Size
+			// Since GetBlob will decompress layers that are compressed we need
+			// to do the decompression here as well, otherwise we will
+			// incorrectly report the size. Pretty critical, since tools like
+			// umoci always compress layer blobs. Obviously we only bother with
+			// the slower method of checking if it's compressed.
+			uncompressedStream, isCompressed, err := compression.AutoDecompress(t)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Error auto-decompressing %s to determine its size", h.Name)
+			}
+			defer uncompressedStream.Close()
+
+			uncompressedSize := h.Size
+			if isCompressed {
+				uncompressedSize, err = io.Copy(ioutil.Discard, uncompressedStream)
+				if err != nil {
+					return nil, errors.Wrapf(err, "Error reading %s to find its size", h.Name)
+				}
+			}
+			li.size = uncompressedSize
 			delete(unknownLayerSizes, h.Name)
 		}
 	}
@@ -249,28 +338,34 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *image
 
 // GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
 // It may use a remote (= slow) service.
-func (s *Source) GetManifest() ([]byte, string, error) {
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
+// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+func (s *Source) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
+	if instanceDigest != nil {
+		// How did we even get here? GetManifest(ctx, nil) has returned a manifest.DockerV2Schema2MediaType.
+		return nil, "", errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
+	}
 	if s.generatedManifest == nil {
 		if err := s.ensureCachedDataIsPresent(); err != nil {
 			return nil, "", err
 		}
-		m := schema2Manifest{
+		m := manifest.Schema2{
 			SchemaVersion: 2,
 			MediaType:     manifest.DockerV2Schema2MediaType,
-			Config: distributionDescriptor{
+			ConfigDescriptor: manifest.Schema2Descriptor{
 				MediaType: manifest.DockerV2Schema2ConfigMediaType,
 				Size:      int64(len(s.configBytes)),
 				Digest:    s.configDigest,
 			},
-			Layers: []distributionDescriptor{},
+			LayersDescriptors: []manifest.Schema2Descriptor{},
 		}
 		for _, diffID := range s.orderedDiffIDList {
 			li, ok := s.knownLayers[diffID]
 			if !ok {
 				return nil, "", errors.Errorf("Internal inconsistency: Information about layer %s missing", diffID)
 			}
-			m.Layers = append(m.Layers, distributionDescriptor{
-				Digest:    digest.Digest(diffID), // diffID is a digest of the uncompressed tarball
+			m.LayersDescriptors = append(m.LayersDescriptors, manifest.Schema2Descriptor{
+				Digest:    diffID, // diffID is a digest of the uncompressed tarball
 				MediaType: manifest.DockerV2Schema2LayerMediaType,
 				Size:      li.size,
 			})
@@ -284,27 +379,26 @@ func (s *Source) GetManifest() ([]byte, string, error) {
 	return s.generatedManifest, manifest.DockerV2Schema2MediaType, nil
 }
 
-// GetTargetManifest returns an image's manifest given a digest. This is mainly used to retrieve a single image's manifest
-// out of a manifest list.
-func (s *Source) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
-	// How did we even get here? GetManifest() above has returned a manifest.DockerV2Schema2MediaType.
-	return nil, "", errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
-}
-
-type readCloseWrapper struct {
+// uncompressedReadCloser is an io.ReadCloser that closes both the uncompressed stream and the underlying input.
+type uncompressedReadCloser struct {
 	io.Reader
-	closeFunc func() error
+	underlyingCloser   func() error
+	uncompressedCloser func() error
 }
 
-func (r readCloseWrapper) Close() error {
-	if r.closeFunc != nil {
-		return r.closeFunc()
+func (r uncompressedReadCloser) Close() error {
+	var res error
+	if err := r.uncompressedCloser(); err != nil {
+		res = err
 	}
-	return nil
+	if err := r.underlyingCloser(); err != nil && res == nil {
+		res = err
+	}
+	return res
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
-func (s *Source) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
+func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
 	if err := s.ensureCachedDataIsPresent(); err != nil {
 		return nil, 0, err
 	}
@@ -313,11 +407,17 @@ func (s *Source) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
 		return ioutil.NopCloser(bytes.NewReader(s.configBytes)), int64(len(s.configBytes)), nil
 	}
 
-	if li, ok := s.knownLayers[diffID(info.Digest)]; ok { // diffID is a digest of the uncompressed tarball,
-		stream, err := s.openTarComponent(li.path)
+	if li, ok := s.knownLayers[info.Digest]; ok { // diffID is a digest of the uncompressed tarball,
+		underlyingStream, err := s.openTarComponent(li.path)
 		if err != nil {
 			return nil, 0, err
 		}
+		closeUnderlyingStream := true
+		defer func() {
+			if closeUnderlyingStream {
+				underlyingStream.Close()
+			}
+		}()
 
 		// In order to handle the fact that digests != diffIDs (and thus that a
 		// caller which is trying to verify the blob will run into problems),
@@ -331,22 +431,17 @@ func (s *Source) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
 		// be verifing a "digest" which is not the actual layer's digest (but
 		// is instead the DiffID).
 
-		decompressFunc, reader, err := compression.DetectCompression(stream)
+		uncompressedStream, _, err := compression.AutoDecompress(underlyingStream)
 		if err != nil {
-			return nil, 0, errors.Wrapf(err, "Detecting compression in blob %s", info.Digest)
+			return nil, 0, errors.Wrapf(err, "Error auto-decompressing blob %s", info.Digest)
 		}
 
-		if decompressFunc != nil {
-			reader, err = decompressFunc(reader)
-			if err != nil {
-				return nil, 0, errors.Wrapf(err, "Decompressing blob %s stream", info.Digest)
-			}
+		newStream := uncompressedReadCloser{
+			Reader:             uncompressedStream,
+			underlyingCloser:   underlyingStream.Close,
+			uncompressedCloser: uncompressedStream.Close,
 		}
-
-		newStream := readCloseWrapper{
-			Reader:    reader,
-			closeFunc: stream.Close,
-		}
+		closeUnderlyingStream = false
 
 		return newStream, li.size, nil
 	}
@@ -355,6 +450,13 @@ func (s *Source) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
 }
 
 // GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-func (s *Source) GetSignatures(ctx context.Context) ([][]byte, error) {
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (s *Source) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+	if instanceDigest != nil {
+		// How did we even get here? GetManifest(ctx, nil) has returned a manifest.DockerV2Schema2MediaType.
+		return nil, errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
+	}
 	return [][]byte{}, nil
 }
