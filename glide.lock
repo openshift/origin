@@ -1,5 +1,5 @@
 hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
-updated: 2018-08-07T10:10:17.646090503-04:00
+updated: 2018-08-10T13:17:19.670164-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -995,7 +995,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: 07504a741f38de3ea7953e36d13f4806b0b8eed6
+  version: a6f9beadd289fb336c17c33991cb48c10d62c2de
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1034,7 +1034,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: 5b67d428864e92711fcbd2f8629456121a56d91f
+  version: 057bc52a47ec3c79498dda63f4a6f8298725e976
 - name: github.com/pkg/sftp
   version: 4d0e916071f68db74f8a73926335f809396d6b42
 - name: github.com/pmezard/go-difflib
@@ -1622,7 +1622,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 3012c522510f8dbddc2d4d0123a01c3c34c3a4ac
+  version: 39be5e70007120031a1996249f75118bd7eb31d7
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1864,7 +1864,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: fec1593a1a0018b8e1e56ea11afa8942f9f722fc
+  version: 533fb4198e847c4d5b3413558e82afa226d25543
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
