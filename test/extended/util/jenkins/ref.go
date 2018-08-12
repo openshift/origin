@@ -356,6 +356,20 @@ func FindJenkinsPod(oc *exutil.CLI) *kapiv1.Pod {
 	return &pods.Items[0]
 }
 
+// OverridePodTemplateImages sees if this is a prow-gcp e2e test invocation, and we want to override the agent image for the default pod templates;
+// the jenkins image will pick up the env vars passed to new-app and update the image field of the pod templates with the values
+func OverridePodTemplateImages(newAppArgs []string) []string {
+	nodejsAgent := os.Getenv("IMAGE_NODEJS_AGENT")
+	if len(strings.TrimSpace(nodejsAgent)) > 0 {
+		newAppArgs = append(newAppArgs, "-e", fmt.Sprintf("NODEJS_SLAVE_IMAGE=%s", nodejsAgent))
+	}
+	mavenAgent := os.Getenv("IMAGE_MAVEN_AGENT")
+	if len(strings.TrimSpace(mavenAgent)) > 0 {
+		newAppArgs = append(newAppArgs, "-e", fmt.Sprintf("MAVEN_SLAVE_IMAGE=%s", mavenAgent))
+	}
+	return newAppArgs
+}
+
 // pulls in a jenkins image built from a PR change for one of our plugins
 func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, newAppArgs []string, oc *exutil.CLI) ([]string, bool) {
 	tag := []string{localImageName}
