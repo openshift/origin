@@ -12,13 +12,14 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace test", func() {
@@ -107,6 +108,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		framework.Logf("Template Instance object: %#v", templateinstance)
 		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("secret1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
