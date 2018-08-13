@@ -1,6 +1,8 @@
 package automation_service_broker
 
 import (
+	"strings"
+
 	"github.com/golang/glog"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
@@ -10,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/manifests"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
+	"github.com/openshift/origin/pkg/version"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -33,6 +36,7 @@ func (c *AutomationServiceBrokerComponentOptions) Install(dockerClient dockerhel
 
 	params := map[string]string{
 		"NAMESPACE": asbNamespace,
+		"TAG":       strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+"),
 	}
 	glog.V(2).Infof("instantiating automation service broker template with parameters %v", params)
 
