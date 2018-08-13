@@ -10,7 +10,7 @@ import (
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
-func RunServiceAccountController(ctx ControllerContext) (bool, error) {
+func RunServiceAccountController(ctx *ControllerContext) (bool, error) {
 	if len(ctx.OpenshiftControllerConfig.ServiceAccount.ManagedNames) == 0 {
 		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
 		return false, nil
@@ -43,7 +43,7 @@ func RunServiceAccountController(ctx ControllerContext) (bool, error) {
 	return true, nil
 }
 
-func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error) {
+func RunServiceAccountPullSecretsController(ctx *ControllerContext) (bool, error) {
 	kc := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountPullSecretsControllerServiceAccountName)
 
 	go serviceaccountcontrollers.NewDockercfgDeletedController(

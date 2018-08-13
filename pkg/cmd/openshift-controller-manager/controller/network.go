@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/service/controller/ingressip"
 )
 
-func RunIngressIPController(ctx ControllerContext) (bool, error) {
+func RunIngressIPController(ctx *ControllerContext) (bool, error) {
 	// TODO configurable?
 	resyncPeriod := 10 * time.Minute
 

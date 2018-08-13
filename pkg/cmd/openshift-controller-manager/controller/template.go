@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
+func RunTemplateInstanceController(ctx *ControllerContext) (bool, error) {
 	saName := bootstrappolicy.InfraTemplateInstanceControllerServiceAccountName
 
 	restConfig, err := ctx.ClientBuilder.Config(saName)
@@ -31,7 +31,7 @@ func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
 	return true, nil
 }
 
-func RunTemplateInstanceFinalizerController(ctx ControllerContext) (bool, error) {
+func RunTemplateInstanceFinalizerController(ctx *ControllerContext) (bool, error) {
 	saName := bootstrappolicy.InfraTemplateInstanceFinalizerControllerServiceAccountName
 
 	restConfig, err := ctx.ClientBuilder.Config(saName)
