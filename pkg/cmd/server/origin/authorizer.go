@@ -5,9 +5,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
-	rbacinformers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
-	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
@@ -50,23 +48,4 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 	)
 
 	return openshiftAuthorizer
-}
-
-func NewRuleResolver(informers rbacinformers.Interface) rbacregistryvalidation.AuthorizationRuleResolver {
-	return rbacregistryvalidation.NewDefaultRuleResolver(
-		&rbacauthorizer.RoleGetter{Lister: informers.Roles().Lister()},
-		&rbacauthorizer.RoleBindingLister{Lister: informers.RoleBindings().Lister()},
-		&rbacauthorizer.ClusterRoleGetter{Lister: informers.ClusterRoles().Lister()},
-		&rbacauthorizer.ClusterRoleBindingLister{Lister: informers.ClusterRoleBindings().Lister()},
-	)
-}
-
-func NewSubjectLocator(informers rbacinformers.Interface) rbacauthorizer.SubjectLocator {
-	return rbacauthorizer.NewSubjectAccessEvaluator(
-		&rbacauthorizer.RoleGetter{Lister: informers.Roles().Lister()},
-		&rbacauthorizer.RoleBindingLister{Lister: informers.RoleBindings().Lister()},
-		&rbacauthorizer.ClusterRoleGetter{Lister: informers.ClusterRoles().Lister()},
-		&rbacauthorizer.ClusterRoleBindingLister{Lister: informers.ClusterRoleBindings().Lister()},
-		"",
-	)
 }

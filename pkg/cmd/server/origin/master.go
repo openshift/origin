@@ -17,13 +17,13 @@ import (
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
-	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
-	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
@@ -35,7 +35,7 @@ const (
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
-func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftAPIConfig, error) {
+func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*openshiftapiserver.OpenshiftAPIConfig, error) {
 	// sccStorage must use the upstream RESTOptionsGetter to be in the correct location
 	// this probably creates a duplicate cache, but there are not very many SCCs, so live with it to avoid further linkage
 	sccStorage := sccstorage.NewREST(kubeAPIServerConfig.RESTOptionsGetter)
@@ -56,11 +56,16 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		}
 	}
 
-	ret := &OpenshiftAPIConfig{
+	routeAllocator, err := configprocessing.RouteAllocator(c.Options)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &openshiftapiserver.OpenshiftAPIConfig{
 		GenericConfig: &apiserver.RecommendedConfig{Config: genericConfig},
-		ExtraConfig: OpenshiftAPIExtraConfig{
+		ExtraConfig: openshiftapiserver.OpenshiftAPIExtraConfig{
+			InformerStart:                      c.InformerStart,
 			KubeAPIServerClientConfig:          &c.PrivilegedLoopbackClientConfig,
-			KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
 			KubeInternalInformers:              c.InternalKubeInformers,
 			KubeInformers:                      c.ClientGoKubeInformers,
 			QuotaInformers:                     c.QuotaInformers,
@@ -72,7 +77,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 			AllowedRegistriesForImport:         c.Options.ImagePolicyConfig.AllowedRegistriesForImport,
 			MaxImagesBulkImportedPerRepository: c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
 			AdditionalTrustedCA:                caData,
-			RouteAllocator:                     c.RouteAllocator(),
+			RouteAllocator:                     routeAllocator,
 			ProjectAuthorizationCache:          c.ProjectAuthorizationCache,
 			ProjectCache:                       c.ProjectCache,
 			ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
@@ -161,7 +166,7 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 
 	// this remains here and separate so that you can check both kube and openshift levels
 	// TODO make this is a proxy at some point
-	addOpenshiftVersionRoute(kubeAPIServer.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
+	openshiftapiserver.AddOpenshiftVersionRoute(kubeAPIServer.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	return preparedKubeAPIServer.GenericAPIServer, nil
 }
@@ -279,8 +284,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
-	c.AddPostStartHooks(aggregatedAPIServer.GenericAPIServer)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", openshiftapiserver.EnsureOpenShiftInfraNamespace)
 
 	for name, fn := range c.additionalPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
@@ -338,8 +342,24 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	}
 
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
-	c.AddPostStartHooks(aggregatedAPIServer.GenericAPIServer)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", openshiftapiserver.EnsureOpenShiftInfraNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("openshift.io-startinformers", func(context apiserver.PostStartHookContext) error {
+		c.InformerStart(context.StopCh)
+		return nil
+	})
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("openshift.io-restmapperupdater", func(context apiserver.PostStartHookContext) error {
+		c.RESTMapper.Reset()
+		go func() {
+			wait.Until(func() {
+				c.RESTMapper.Reset()
+			}, 10*time.Second, context.StopCh)
+		}()
+		return nil
+	})
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context apiserver.PostStartHookContext) error {
+		go c.ClusterQuotaMappingController.Run(5, context.StopCh)
+		return nil
+	})
 
 	// add post-start hooks
 	for name, fn := range c.additionalPostStartHooks {
@@ -350,41 +370,6 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	}
 
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
-
-	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-}
-
-func (c *MasterConfig) RunOpenShift(stopCh <-chan struct{}) error {
-	// TODO rewrite the authenticator and authorizer here to use the webhooks.  I think we'll be able to manage this
-	// using the existing client connections since they'll all point to the kube-apiserver, but some new separation may be required
-	// to handle the distinction between loopback and kube-apiserver
-
-	// the openshift apiserver shouldn't need to host these and they make us crashloop
-	c.kubeAPIServerConfig.GenericConfig.EnableSwaggerUI = false
-	c.kubeAPIServerConfig.GenericConfig.SwaggerConfig = nil
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = openshiftHandlerChain
-
-	openshiftAPIServer, err := c.withOpenshiftAPI(apiserver.NewEmptyDelegate(), *c.kubeAPIServerConfig.GenericConfig)
-	if err != nil {
-		return err
-	}
-
-	// Start the audit backend before any request comes in. This means we cannot turn it into a
-	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
-	if c.AuditBackend != nil {
-		if err := c.AuditBackend.Run(stopCh); err != nil {
-			return fmt.Errorf("failed to run the audit backend: %v", err)
-		}
-	}
-
-	// add post-start hooks
-	c.AddPostStartHooks(openshiftAPIServer)
-	for name, fn := range c.additionalPostStartHooks {
-		openshiftAPIServer.AddPostStartHookOrDie(name, fn)
-	}
-
-	go openshiftAPIServer.PrepareRun().Run(stopCh)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
@@ -413,7 +398,7 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config, stopCh
 
 			// these handlers are all before the normal kube chain
 			handler = translateLegacyScopeImpersonation(handler)
-			handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
+			handler = configprocessing.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 			// redirects from / to /console if you're using a browser
 			handler = withAssetServerRedirect(handler, accessor)
@@ -429,15 +414,6 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config, stopCh
 		nil
 }
 
-func openshiftHandlerChain(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
-	// this is the normal kube handler chain
-	handler := apiserver.DefaultBuildHandlerChain(apiHandler, genericConfig)
-
-	handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
-
-	return handler
-}
-
 func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Handler) http.Handler {
 	if c.Options.OAuthConfig == nil {
 		return handler
@@ -445,20 +421,6 @@ func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Han
 
 	glog.Infof("Starting OAuth2 API at %s", urls.OpenShiftOAuthAPIPrefix)
 	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftOAuthCallbackPrefix)
-}
-
-// RouteAllocator returns a route allocation controller.
-func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
-	factory := routeallocationcontroller.RouteAllocationControllerFactory{
-		KubeClient: c.PrivilegedLoopbackKubernetesClientsetInternal,
-	}
-
-	plugin, err := routeplugin.NewSimpleAllocationPlugin(c.Options.RoutingConfig.Subdomain)
-	if err != nil {
-		glog.Fatalf("Route plugin initialization failed: %v", err)
-	}
-
-	return factory.Create(plugin)
 }
 
 func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler, prefixes ...string) http.Handler {
@@ -471,26 +433,6 @@ func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler,
 		}
 		handler.ServeHTTP(w, req)
 	})
-}
-
-func (c *MasterConfig) AddPostStartHooks(server *apiserver.GenericAPIServer) {
-	server.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
-	server.AddPostStartHookOrDie("openshift.io-RESTMapper", c.startRESTMapper)
-}
-
-func (c *MasterConfig) startClusterQuotaMapping(context apiserver.PostStartHookContext) error {
-	go c.ClusterQuotaMappingController.Run(5, context.StopCh)
-	return nil
-}
-
-func (c *MasterConfig) startRESTMapper(context apiserver.PostStartHookContext) error {
-	c.RESTMapper.Reset()
-	go func() {
-		wait.Until(func() {
-			c.RESTMapper.Reset()
-		}, 10*time.Second, context.StopCh)
-	}()
-	return nil
 }
 
 // bootstrapData casts our policy data to the rbacrest helper that can

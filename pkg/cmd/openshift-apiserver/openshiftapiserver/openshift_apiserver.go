@@ -1,4 +1,4 @@
-package origin
+package openshiftapiserver
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/api/meta"
 
 	"k8s.io/api/core/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
@@ -25,7 +24,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
@@ -73,11 +71,14 @@ import (
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/legacy"
+	"k8s.io/client-go/restmapper"
 )
 
 type OpenshiftAPIExtraConfig struct {
+	// we phrase it like this so we can build the post-start-hook, but no one can take more indirect dependencies on informers
+	InformerStart func(stopCh <-chan struct{})
+
 	KubeAPIServerClientConfig *restclient.Config
-	KubeClientInternal        kclientsetinternal.Interface
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	KubeInformers             kubeinformers.SharedInformerFactory
 
@@ -103,7 +104,7 @@ type OpenshiftAPIExtraConfig struct {
 	ProjectCache              *projectcache.ProjectCache
 	ProjectRequestTemplate    string
 	ProjectRequestMessage     string
-	RESTMapper                meta.RESTMapper
+	RESTMapper                *restmapper.DeferredDiscoveryRESTMapper
 
 	// oauth API server
 	ServiceAccountMethod configapi.GrantHandlerType
@@ -119,9 +120,6 @@ type OpenshiftAPIExtraConfig struct {
 func (c *OpenshiftAPIExtraConfig) Validate() error {
 	ret := []error{}
 
-	if c.KubeClientInternal == nil {
-		ret = append(ret, fmt.Errorf("KubeClientInternal is required"))
-	}
 	if c.KubeInternalInformers == nil {
 		ret = append(ret, fmt.Errorf("KubeInternalInformers is required"))
 	}
@@ -577,12 +575,29 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	addReadinessCheckRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, "/healthz/ready", c.ExtraConfig.ProjectAuthorizationCache.ReadyForAccess)
 
 	// this remains here and separate so that you can check both kube and openshift levels
-	addOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
+	AddOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	// register our poststarthooks
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("security.openshift.io-bootstrapscc", c.bootstrapSCC)
+	s.GenericAPIServer.AddPostStartHookOrDie("openshift.io-startinformers", func(context genericapiserver.PostStartHookContext) error {
+		c.ExtraConfig.InformerStart(context.StopCh)
+		return nil
+	})
+	s.GenericAPIServer.AddPostStartHookOrDie("openshift.io-restmapperupdater", func(context genericapiserver.PostStartHookContext) error {
+		c.ExtraConfig.RESTMapper.Reset()
+		go func() {
+			wait.Until(func() {
+				c.ExtraConfig.RESTMapper.Reset()
+			}, 10*time.Second, context.StopCh)
+		}()
+		return nil
+	})
+	s.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context genericapiserver.PostStartHookContext) error {
+		go c.ExtraConfig.ClusterQuotaMappingController.Run(5, context.StopCh)
+		return nil
+	})
 
 	return s, nil
 }
@@ -621,7 +636,7 @@ func addReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, readyF
 }
 
 // initVersionRoute initializes an HTTP endpoint for the server's version information.
-func addOpenshiftVersionRoute(container *restful.Container, path string) {
+func AddOpenshiftVersionRoute(container *restful.Container, path string) {
 	// Build version info once
 	versionInfo, err := json.MarshalIndent(version.Get(), "", "  ")
 	if err != nil {
@@ -696,8 +711,8 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 	return nil
 }
 
-// ensureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
-func ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
+// EnsureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
+func EnsureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
 	namespaceName := bootstrappolicy.DefaultOpenShiftInfraNamespace
 
 	var coreClient coreclient.CoreInterface

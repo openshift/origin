@@ -1,4 +1,4 @@
-package origin
+package openshiftapiserver
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
