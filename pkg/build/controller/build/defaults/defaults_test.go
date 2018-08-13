@@ -110,6 +110,41 @@ func TestEnvDefaults(t *testing.T) {
 		t.Errorf("GIT_SSL_NO_VERIFY key not found")
 	}
 
+	// custom builds should have the defaulted env vars applied to the build pod
+	pod = u.Pod().WithBuild(t, u.Build().WithCustomStrategy().AsBuild())
+	err = admitter.ApplyDefaults((*v1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var1found, var2found, gitSSL = false, false, false
+	for _, ev := range pod.Spec.Containers[0].Env {
+		if ev.Name == "VAR1" {
+			if ev.Value != "VALUE1" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			var1found = true
+		}
+		if ev.Name == "VAR2" {
+			if ev.Value != "VALUE2" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			var2found = true
+		}
+		if ev.Name == "GIT_SSL_NO_VERIFY" {
+			gitSSL = true
+		}
+	}
+
+	if !var1found {
+		t.Errorf("VAR1 not found")
+	}
+	if !var2found {
+		t.Errorf("VAR2 not found")
+	}
+	if !gitSSL {
+		t.Errorf("GIT_SSL_NO_VERIFY key not found")
+	}
 }
 
 func TestIncrementalDefaults(t *testing.T) {

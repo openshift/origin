@@ -32,7 +32,7 @@ func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
 	b.applyBuildDefaults(build)
 
 	glog.V(4).Infof("Applying defaults to pod %s/%s", pod.Namespace, pod.Name)
-	b.applyPodDefaults(pod)
+	b.applyPodDefaults(pod, build.Spec.Strategy.CustomStrategy != nil)
 
 	err = setPodLogLevelFromBuild(pod, build)
 	if err != nil {
@@ -77,7 +77,7 @@ func setPodLogLevelFromBuild(pod *v1.Pod, build *buildapi.Build) error {
 	return nil
 }
 
-func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
+func (b BuildDefaults) applyPodDefaults(pod *v1.Pod, isCustomBuild bool) {
 	if len(b.Config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
 		// only apply nodeselector defaults if the pod has no nodeselector labels
 		// already.
@@ -107,7 +107,13 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 	}
 
 	for _, c := range allContainers {
-		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.Config.Env), &c.Env, false)
+		// All env vars are allowed to be set in a custom build pod, the user already has
+		// total control over the env+logic in a custom build pod anyway.
+		if isCustomBuild {
+			util.MergeEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.Config.Env), &c.Env, false, []string{})
+		} else {
+			util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.Config.Env), &c.Env, false)
+		}
 
 		if c.Resources.Limits == nil {
 			c.Resources.Limits = v1.ResourceList{}
