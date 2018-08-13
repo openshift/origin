@@ -132,7 +132,11 @@ func (c *RouterController) processNamespace(eventType watch.EventType, ns *kapi.
 }
 
 func (c *RouterController) UpdateNamespaces() {
-	namespaces := c.FilteredNamespaceNames
+	// Note: Need to clone the filtered namespace names or else any updates
+	//       we make locally in processNamespace() will be immediately
+	//       reflected to plugins in the chain beneath us. This creates
+	//       cleanup issues as old == new in Plugin.HandleNamespaces().
+	namespaces := sets.NewString(c.FilteredNamespaceNames.List()...)
 
 	glog.V(4).Infof("Updating watched namespaces: %v", namespaces)
 	if err := c.Plugin.HandleNamespaces(namespaces); err != nil {

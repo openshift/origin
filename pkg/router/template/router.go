@@ -351,8 +351,8 @@ func (r *templateRouter) commitAndReload() error {
 		}
 
 		r.stateChanged = false
-		r.dynamicallyConfigured = true
 		if r.dynamicConfigManager != nil {
+			r.dynamicallyConfigured = true
 			r.dynamicConfigManager.Notify(RouterEventReloadStart)
 		}
 
@@ -509,6 +509,10 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 		}
 		delete(r.state, k)
 		r.stateChanged = true
+	}
+
+	if r.stateChanged {
+		r.dynamicallyConfigured = false
 	}
 }
 
