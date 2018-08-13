@@ -265,6 +265,10 @@ func handleImageStream(
 			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
 		}
 	}
+	if isi.Spec.Repository == nil && len(isi.Spec.Images) == 0 {
+		glog.V(4).Infof("Did not find any tags or repository needing import")
+		return nil, nil
+	}
 	result, err := client.ImageStreamImports(stream.Namespace).CreateWithoutTimeout(isi)
 	if err != nil {
 		if apierrs.IsNotFound(err) && isStatusErrorKind(err, "imageStream") {
