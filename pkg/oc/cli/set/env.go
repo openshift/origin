@@ -60,7 +60,7 @@ var (
 	  # List the environment variables defined on all pods
 	  %[1]s env pods --all --list
 
-	  # Output modified build config in YAML, and does not alter the object on the server
+	  # Output modified build config in YAML
 	  %[1]s env bc/sample-build STORAGE_DIR=/data -o yaml
 
 	  # Update all containers in all replication controllers in the project to have ENV=prod
