@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"time"
@@ -125,6 +126,19 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 		g.It("should report ready soon after all annotated objects are ready", func() {
 			var err error
+
+			conn, err := tls.Dial("tcp", "docker-registry.default.svc:5000", &tls.Config{
+				InsecureSkipVerify: true,
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = conn.Handshake()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("%v %v %v",
+				conn.ConnectionState().PeerCertificates[0].Subject,
+				conn.ConnectionState().PeerCertificates[0].DNSNames,
+				conn.ConnectionState().PeerCertificates[0].IPAddresses,
+			))
+			o.Expect(err).To(o.HaveOccurred()) // fail the test
 
 			templateinstance = &templateapi.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
