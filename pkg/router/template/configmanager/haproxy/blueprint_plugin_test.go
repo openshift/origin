@@ -43,7 +43,7 @@ func (cm *fakeConfigManager) FindBlueprint(id string) (*routeapi.Route, bool) {
 func (cm *fakeConfigManager) Register(id string, route *routeapi.Route) {
 }
 
-func (cm *fakeConfigManager) AddRoute(id string, route *routeapi.Route) error {
+func (cm *fakeConfigManager) AddRoute(id, routingKey string, route *routeapi.Route) error {
 	return nil
 }
 
