@@ -230,7 +230,7 @@ func (eit *EgressIPTracker) UpdateHostSubnetEgress(hs *networkapi.HostSubnet) {
 		movedEgressIPs := make([]string, 0, node.requestedIPs.Len())
 		for _, ip := range node.requestedIPs.UnsortedList() {
 			eg := eit.egressIPs[ip]
-			if eg.assignedNodeIP == node.nodeIP {
+			if eg != nil && eg.assignedNodeIP == node.nodeIP {
 				movedEgressIPs = append(movedEgressIPs, ip)
 				eit.deleteNodeEgressIP(node, ip)
 			}
@@ -308,7 +308,9 @@ func (eit *EgressIPTracker) UpdateNetNamespaceEgress(netns *networkapi.NetNamesp
 	// Even IPs that weren't added/removed need to be considered "changed", to
 	// ensure we correctly process reorderings, duplicates added/removed, etc.
 	for _, ip := range newRequestedIPs.Intersection(oldRequestedIPs).UnsortedList() {
-		eit.egressIPChanged(eit.egressIPs[ip])
+		if eg := eit.egressIPs[ip]; eg != nil {
+			eit.egressIPChanged(eg)
+		}
 	}
 
 	eit.syncEgressIPs()
@@ -332,7 +334,7 @@ func (eit *EgressIPTracker) egressIPActive(eg *egressIPInfo) (bool, error) {
 	}
 	for _, ip := range eg.namespaces[0].requestedIPs {
 		eg2 := eit.egressIPs[ip]
-		if eg2 != eg && len(eg2.nodes) == 1 && eg2.nodes[0] == eg.nodes[0] {
+		if eg2 != nil && eg2 != eg && len(eg2.nodes) == 1 && eg2.nodes[0] == eg.nodes[0] {
 			return false, fmt.Errorf("Multiple EgressIPs (%s, %s) for VNID %d on node %s", eg.ip, eg2.ip, eg.namespaces[0].vnid, eg.nodes[0].nodeIP)
 		}
 	}
@@ -356,6 +358,12 @@ func (eit *EgressIPTracker) syncEgressIPs() {
 
 	for ns := range changedNamespaces {
 		eit.syncEgressNamespaceState(ns)
+	}
+
+	for eg := range changedEgressIPs {
+		if len(eg.namespaces) == 0 && len(eg.nodes) == 0 {
+			delete(eit.egressIPs, eg.ip)
+		}
 	}
 
 	if eit.updateEgressCIDRs {
@@ -539,7 +547,7 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 
 	// Allocate pending egress IPs that can only go to a single node
 	for egressIP, eip := range eit.egressIPs {
-		if alreadyAllocated[egressIP] {
+		if alreadyAllocated[egressIP] || len(eip.namespaces) == 0 {
 			continue
 		}
 		nodeName, otherNodes := eit.findEgressIPAllocation(eip.parsed, allocation)
@@ -551,7 +559,7 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 	}
 	// Allocate any other pending egress IPs that we can
 	for egressIP, eip := range eit.egressIPs {
-		if alreadyAllocated[egressIP] {
+		if alreadyAllocated[egressIP] || len(eip.namespaces) == 0 {
 			continue
 		}
 		nodeName, _ := eit.findEgressIPAllocation(eip.parsed, allocation)
