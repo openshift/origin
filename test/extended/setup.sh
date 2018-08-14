@@ -140,7 +140,7 @@ function os::test::extended::setup () {
 	if [[ -z "${SKIP_NODE:-}" ]]; then
 		oc rollout status dc/docker-registry
 	fi
-	DROP_SYN_DURING_RESTART=true CREATE_ROUTER_CERT=true os::start::router
+	CREATE_ROUTER_CERT=true os::start::router
 
 	os::log::info "Creating image streams"
 	oc create -n openshift -f "${OS_ROOT}/examples/image-streams/image-streams-centos7.json" --config="${ADMIN_KUBECONFIG}"
