@@ -5,8 +5,12 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/watch"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -100,7 +104,7 @@ This may be a transient error. Check the master API logs for anomalies near this
 	}
 	defer stopWatcher(watcher)
 	for event := range watcher.ResultChan() {
-		running, err := kubectl.PodContainerRunning(d.appName)(event)
+		running, err := podContainerRunning(d.appName)(event)
 		if err != nil {
 			d.out.Error("DCluAC009", err, fmt.Sprintf(`
 %s: Error while watching for app pod to deploy:
@@ -123,4 +127,45 @@ There are many reasons why this can occur; for example:
   * The node container runtime may be malfunctioning (check node and docker/cri-o logs)
 	`, now(), d.deployTimeout))
 	return false
+}
+
+// podContainerRunning returns false until the named container has ContainerStatus running (at least once),
+// and will return an error if the pod is deleted, runs to completion, or the container pod is not available.
+func podContainerRunning(containerName string) watch.ConditionFunc {
+	return func(event watch.Event) (bool, error) {
+		switch event.Type {
+		case watch.Deleted:
+			return false, errors.NewNotFound(schema.GroupResource{Resource: "pods"}, "")
+		}
+		switch t := event.Object.(type) {
+		case *api.Pod:
+			switch t.Status.Phase {
+			case api.PodRunning, api.PodPending:
+			case api.PodFailed, api.PodSucceeded:
+				return false, kubectl.ErrPodCompleted
+			default:
+				return false, nil
+			}
+			for _, s := range t.Status.ContainerStatuses {
+				if s.Name != containerName {
+					continue
+				}
+				if s.State.Terminated != nil {
+					return false, kubectl.ErrContainerTerminated
+				}
+				return s.State.Running != nil, nil
+			}
+			for _, s := range t.Status.InitContainerStatuses {
+				if s.Name != containerName {
+					continue
+				}
+				if s.State.Terminated != nil {
+					return false, kubectl.ErrContainerTerminated
+				}
+				return s.State.Running != nil, nil
+			}
+			return false, nil
+		}
+		return false, nil
+	}
 }

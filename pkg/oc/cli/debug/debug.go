@@ -46,6 +46,7 @@ import (
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
+	conditions "github.com/openshift/origin/pkg/oc/lib/conditions"
 	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
@@ -103,8 +104,9 @@ type DebugOptions struct {
 	AppsClient  appsv1client.AppsV1Interface
 	ImageClient imagev1client.ImageV1Interface
 
-	Printer       printers.ResourcePrinter
-	LogsForObject polymorphichelpers.LogsForObjectFunc
+	Printer          printers.ResourcePrinter
+	LogsForObject    polymorphichelpers.LogsForObjectFunc
+	RESTClientGetter genericclioptions.RESTClientGetter
 
 	NoStdin    bool
 	ForceTTY   bool
@@ -211,6 +213,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
 	}
 	o.Resources = resources
+	o.RESTClientGetter = f
 
 	switch {
 	case o.ForceTTY && o.NoStdin:
@@ -432,7 +435,7 @@ func (o *DebugOptions) RunDebug() error {
 		}
 		fmt.Fprintf(o.ErrOut, "Waiting for pod to start ...\n")
 
-		switch containerRunningEvent, err := watch.Until(o.Timeout, w, kubectl.PodContainerRunning(o.Attach.ContainerName)); {
+		switch containerRunningEvent, err := watch.Until(o.Timeout, w, conditions.PodContainerRunning(o.Attach.ContainerName)); {
 		// api didn't error right away but the pod wasn't even created
 		case kapierrors.IsNotFound(err):
 			msg := fmt.Sprintf("unable to create the debug pod %q", pod.Name)
@@ -444,12 +447,14 @@ func (o *DebugOptions) RunDebug() error {
 		case err == kubectl.ErrPodCompleted, err == kubectl.ErrContainerTerminated, !o.Attach.Stdin:
 			return kcmd.LogsOptions{
 				Object: pod,
-				Options: &kapi.PodLogOptions{
+				Options: &corev1.PodLogOptions{
 					Container: o.Attach.ContainerName,
 					Follow:    true,
 				},
-				IOStreams:     o.IOStreams,
-				LogsForObject: o.LogsForObject,
+				RESTClientGetter: o.RESTClientGetter,
+				ConsumeRequestFn: kcmd.DefaultConsumeRequestFn,
+				IOStreams:        o.IOStreams,
+				LogsForObject:    o.LogsForObject,
 			}.RunLogs()
 		case err != nil:
 			return err

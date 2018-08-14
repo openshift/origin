@@ -162,8 +162,11 @@ type ObjectGeneratorOptions struct {
 }
 
 type AppOptions struct {
-	genericclioptions.IOStreams
 	*ObjectGeneratorOptions
+
+	RESTClientGetter genericclioptions.RESTClientGetter
+
+	genericclioptions.IOStreams
 }
 
 type versionedPrintObj struct {
@@ -368,6 +371,8 @@ func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, streams gen
 
 // Complete sets any default behavior for the command
 func (o *AppOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string) error {
+	o.RESTClientGetter = f
+
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.ObjectGeneratorOptions.Config.TemplateParameters, "--param")
 	err := o.ObjectGeneratorOptions.Complete(baseName, commandName, f, c, args)
 	if err != nil {
@@ -526,7 +531,7 @@ func (o *AppOptions) RunNewApp() error {
 	}
 	switch {
 	case len(installing) == 1:
-		return followInstallation(config, installing[0], o.LogsForObject)
+		return followInstallation(config, o.RESTClientGetter, installing[0], o.LogsForObject)
 	case len(installing) > 1:
 		for i := range installing {
 			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, o.BaseName, installing[i].Name)
@@ -570,7 +575,7 @@ func getServices(items []runtime.Object) []*corev1.Service {
 	return svc
 }
 
-func followInstallation(config *newcmd.AppConfig, pod *corev1.Pod, logsForObjectFn polymorphichelpers.LogsForObjectFunc) error {
+func followInstallation(config *newcmd.AppConfig, clientGetter genericclioptions.RESTClientGetter, pod *corev1.Pod, logsForObjectFn polymorphichelpers.LogsForObjectFunc) error {
 	fmt.Fprintf(config.Out, "--> Installing ...\n")
 
 	// we cannot retrieve logs until the pod is out of pending
@@ -583,12 +588,14 @@ func followInstallation(config *newcmd.AppConfig, pod *corev1.Pod, logsForObject
 	opts := &kcmd.LogsOptions{
 		Namespace:   pod.Namespace,
 		ResourceArg: pod.Name,
-		Options: &kapi.PodLogOptions{
+		Options: &corev1.PodLogOptions{
 			Follow:    true,
 			Container: pod.Spec.Containers[0].Name,
 		},
-		LogsForObject: logsForObjectFn,
-		IOStreams:     genericclioptions.IOStreams{Out: config.Out},
+		RESTClientGetter: clientGetter,
+		ConsumeRequestFn: kcmd.DefaultConsumeRequestFn,
+		LogsForObject:    logsForObjectFn,
+		IOStreams:        genericclioptions.IOStreams{Out: config.Out},
 	}
 	logErr := opts.RunLogs()
 

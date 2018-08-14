@@ -212,7 +212,7 @@ func (o *LogsOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []str
 		return err
 	}
 
-	o.ConsumeRequestFn = consumeRequest
+	o.ConsumeRequestFn = DefaultConsumeRequestFn
 
 	o.GetPodTimeout, err = cmdutil.GetPodRunningTimeoutFlag(cmd)
 	if err != nil {
@@ -303,7 +303,7 @@ func (o LogsOptions) RunLogs() error {
 	return nil
 }
 
-func consumeRequest(request *rest.Request, out io.Writer) error {
+func DefaultConsumeRequestFn(request *rest.Request, out io.Writer) error {
 	readCloser, err := request.Stream()
 	if err != nil {
 		return err
