@@ -9,14 +9,12 @@ import (
 )
 
 func TestTLSDefaults(t *testing.T) {
-	t.Skip("skipping because it can't seem to run in a container")
-
-	master, node, components, err := testserver.DefaultAllInOneOptions()
+	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer testserver.CleanupMasterEtcd(t, master)
-	_, err = testserver.StartConfiguredAllInOne(master, node, components)
+	_, err = testserver.StartConfiguredMaster(master)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,15 +32,6 @@ func TestTLSDefaults(t *testing.T) {
 			}
 			if success := err == nil; success != expectSuccess {
 				t.Errorf("Expected success %v, got %v with TLS version %s dialing master", expectSuccess, success, tlsVersionName)
-			}
-		}
-		{
-			conn, err := tls.Dial(node.ServingInfo.BindNetwork, node.ServingInfo.BindAddress, config)
-			if err == nil {
-				conn.Close()
-			}
-			if success := err == nil; success != expectSuccess {
-				t.Errorf("Expected success %v, got %v with TLS version %s dialing node", expectSuccess, success, tlsVersionName)
 			}
 		}
 	}
@@ -70,22 +59,11 @@ func TestTLSDefaults(t *testing.T) {
 				}
 			}
 		}
-		{
-			conn, err := tls.Dial(node.ServingInfo.BindNetwork, node.ServingInfo.BindAddress, config)
-			if err == nil {
-				conn.Close()
-				if expectFailure {
-					t.Errorf("Expected failure on cipher %s, got success dialing node", cipherName)
-				}
-			}
-		}
 	}
 }
 
 func TestTLSOverrides(t *testing.T) {
-	t.Skip("skipping because it can't seem to run in a container")
-
-	master, node, components, err := testserver.DefaultAllInOneOptions()
+	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,10 +72,8 @@ func TestTLSOverrides(t *testing.T) {
 	// Pick these ciphers because the first is http2 compatible, and the second works with TLS10
 	master.ServingInfo.MinTLSVersion = "VersionTLS10"
 	master.ServingInfo.CipherSuites = []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA"}
-	node.ServingInfo.MinTLSVersion = "VersionTLS10"
-	node.ServingInfo.CipherSuites = []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA"}
 
-	_, err = testserver.StartConfiguredAllInOne(master, node, components)
+	_, err = testserver.StartConfiguredMaster(master)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,15 +91,6 @@ func TestTLSOverrides(t *testing.T) {
 			}
 			if success := err == nil; success != expectSuccess {
 				t.Errorf("Expected success %v, got %v with TLS version %s dialing master", expectSuccess, success, tlsVersionName)
-			}
-		}
-		{
-			conn, err := tls.Dial(node.ServingInfo.BindNetwork, node.ServingInfo.BindAddress, config)
-			if err == nil {
-				conn.Close()
-			}
-			if success := err == nil; success != expectSuccess {
-				t.Errorf("Expected success %v, got %v with TLS version %s dialing node", expectSuccess, success, tlsVersionName)
 			}
 		}
 	}
@@ -155,15 +122,6 @@ func TestTLSOverrides(t *testing.T) {
 				conn.Close()
 				if expectFailure {
 					t.Errorf("Expected failure on cipher %s, got success dialing master", cipherName)
-				}
-			}
-		}
-		{
-			conn, err := tls.Dial(node.ServingInfo.BindNetwork, node.ServingInfo.BindAddress, config)
-			if err == nil {
-				conn.Close()
-				if expectFailure {
-					t.Errorf("Expected failure on cipher %s, got success dialing node", cipherName)
 				}
 			}
 		}

@@ -43,6 +43,7 @@ import (
 type MasterOptions struct {
 	MasterArgs *MasterArgs
 
+	PrintIP            bool
 	CreateCertificates bool
 	ExpireDays         int
 	SignerExpireDays   int
@@ -84,6 +85,19 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 		Long:  fmt.Sprintf(masterLong, basename),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete())
+
+			if options.PrintIP {
+				u, err := options.MasterArgs.GetMasterAddress()
+				if err != nil {
+					glog.Fatal(err)
+				}
+				host, _, err := net.SplitHostPort(u.Host)
+				if err != nil {
+					glog.Fatal(err)
+				}
+				fmt.Fprintf(out, "%s\n", host)
+				return
+			}
 			kcmdutil.CheckErr(options.Validate(args))
 
 			origin.StartProfiler()
@@ -123,6 +137,7 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 	flags.BoolVar(&options.CreateCertificates, "create-certs", true, "Indicates whether missing certs should be created")
 	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
 	flags.IntVar(&options.SignerExpireDays, "signer-expire-days", options.SignerExpireDays, "Validity of the CA certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.")
+	flags.BoolVar(&options.PrintIP, "print-ip", false, "Print the IP that would be used if no master IP is specified and exit.")
 
 	BindMasterArgs(options.MasterArgs, flags, "")
 	BindListenArg(options.MasterArgs.ListenArg, flags, "")

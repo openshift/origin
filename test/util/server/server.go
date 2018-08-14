@@ -37,10 +37,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	"github.com/openshift/origin/test/util"
+
 	// install all APIs
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -114,13 +114,10 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 	return "", fmt.Errorf("Could not find available port in the range %d-%d", lowPort, highPort)
 }
 
-func setupStartOptions(useDefaultPort bool) (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {
-	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs := start.GetAllInOneArgs()
+func setupStartOptions(useDefaultPort bool) *start.MasterArgs {
+	masterArgs := start.NewDefaultMasterArgs()
 
 	basedir := util.GetBaseDir()
-
-	nodeArgs.NodeName = "127.0.0.1"
-	nodeArgs.VolumeDir = path.Join(basedir, "volume")
 
 	// Allows to override the default etcd directory from the shell script.
 	etcdDir := os.Getenv("TEST_ETCD_DIR")
@@ -130,11 +127,6 @@ func setupStartOptions(useDefaultPort bool) (*start.MasterArgs, *start.NodeArgs,
 
 	masterArgs.EtcdDir = etcdDir
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
-	nodeArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", nodeArgs.NodeName))
-	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()
-
-	// give the nodeArgs a separate listen argument
-	nodeArgs.ListenArg = start.NewDefaultListenArg()
 
 	if !useDefaultPort {
 		// don't wait for nodes to come up
@@ -147,13 +139,7 @@ func setupStartOptions(useDefaultPort bool) (*start.MasterArgs, *start.NodeArgs,
 			}
 		}
 		masterArgs.MasterAddr.Set(masterAddr)
-		listenArg.ListenAddr.Set(masterAddr)
-
-		nodeAddr, err := FindAvailableBindAddress(10000, 29999)
-		if err != nil {
-			glog.Fatalf("couldn't find free port for node: %v", err)
-		}
-		nodeArgs.ListenArg.ListenAddr.Set(nodeAddr)
+		masterArgs.ListenArg.ListenAddr.Set(masterAddr)
 	}
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
@@ -166,7 +152,7 @@ func setupStartOptions(useDefaultPort bool) (*start.MasterArgs, *start.NodeArgs,
 	}
 	masterArgs.DNSBindAddr.Set(dnsAddr)
 
-	return masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs
+	return masterArgs
 }
 
 func DefaultMasterOptions() (*configapi.MasterConfig, error) {
@@ -175,7 +161,7 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 
 func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfig, error) {
 	startOptions := start.MasterOptions{}
-	startOptions.MasterArgs, _, _, _, _ = setupStartOptions(useDefaultPort)
+	startOptions.MasterArgs = setupStartOptions(useDefaultPort)
 	startOptions.Complete()
 	// reset, since Complete alters the default
 	startOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
@@ -310,87 +296,6 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 	return nil
 }
 
-func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *utilflags.ComponentFlag, error) {
-	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
-	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(false)
-	startOptions.NodeArgs.AllowDisabledDocker = true
-	startOptions.NodeArgs.Components.Disable("plugins", "proxy", "dns")
-	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
-	if err := startOptions.Complete(); err != nil {
-		return nil, nil, nil, err
-	}
-	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
-	startOptions.NodeArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
-	startOptions.NodeArgs.MasterCertDir = startOptions.MasterOptions.MasterArgs.ConfigDir.Value()
-
-	if err := CreateMasterCerts(startOptions.MasterOptions.MasterArgs); err != nil {
-		return nil, nil, nil, err
-	}
-	if err := CreateNodeCerts(startOptions.NodeArgs, startOptions.MasterOptions.MasterArgs.MasterAddr.String()); err != nil {
-		return nil, nil, nil, err
-	}
-
-	masterConfig, err := startOptions.MasterOptions.MasterArgs.BuildSerializeableMasterConfig()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	if masterConfig.EtcdConfig != nil {
-		addr, err := FindAvailableBindAddress(10000, 29999)
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("can't setup etcd address: %v", err)
-		}
-		peerAddr, err := FindAvailableBindAddress(10000, 29999)
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("can't setup etcd address: %v", err)
-		}
-		masterConfig.EtcdConfig.Address = addr
-		masterConfig.EtcdConfig.ServingInfo.BindAddress = masterConfig.EtcdConfig.Address
-		masterConfig.EtcdConfig.PeerAddress = peerAddr
-		masterConfig.EtcdConfig.PeerServingInfo.BindAddress = masterConfig.EtcdConfig.PeerAddress
-		masterConfig.EtcdClientInfo.URLs = []string{"https://" + masterConfig.EtcdConfig.Address}
-	}
-
-	if fn := startOptions.MasterOptions.MasterArgs.OverrideConfig; fn != nil {
-		if err := fn(masterConfig); err != nil {
-			return nil, nil, nil, err
-		}
-	}
-
-	nodeConfig, err := startOptions.NodeArgs.BuildSerializeableNodeConfig()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	nodeConfig.DockerConfig.DockerShimSocket = "unix://" + path.Join(util.GetBaseDir(), "dockershim.sock")
-	nodeConfig.DockerConfig.DockershimRootDirectory = path.Join(util.GetBaseDir(), "dockershim")
-
-	return masterConfig, nodeConfig, startOptions.NodeArgs.Components, nil
-}
-
-func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) (string, error) {
-	adminKubeConfigFile, err := StartConfiguredMaster(masterConfig)
-	if err != nil {
-		return "", err
-	}
-
-	if err := StartConfiguredNode(nodeConfig, components); err != nil {
-		return "", err
-	}
-
-	return adminKubeConfigFile, nil
-}
-
-func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string, error) {
-	master, node, components, err := DefaultAllInOneOptions()
-	if err != nil {
-		return nil, nil, "", err
-	}
-
-	adminKubeConfigFile, err := StartConfiguredAllInOne(master, node, components)
-	return master, node, adminKubeConfigFile, err
-}
-
 func MasterEtcdClients(config *configapi.MasterConfig) (*etcdclientv3.Client, error) {
 	etcd3, err := etcd.MakeEtcdClientV3(config.EtcdClientInfo)
 	if err != nil {
@@ -412,26 +317,6 @@ func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
 			}
 		}
 	}
-}
-
-func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	guardNode()
-
-	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
-	if err != nil {
-		return err
-	}
-
-	if err := start.StartNode(*nodeConfig, components, wait.NeverStop); err != nil {
-		return err
-	}
-
-	// wait for the server to come up for 30 seconds (average time on desktop is 2 seconds, but Jenkins timed out at 10 seconds)
-	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", net.JoinHostPort(nodeConfig.NodeName, nodePort), 100*time.Millisecond, 1*time.Second, 30); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error) {

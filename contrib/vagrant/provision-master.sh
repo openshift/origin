@@ -44,19 +44,3 @@ cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
  --network-plugin=${NETWORK_PLUGIN}"
 os::provision::start-os-service "openshift-master" "OpenShift Master" \
     "${cmd}" "${DEPLOYED_CONFIG_ROOT}"
-
-if [[ "${SDN_NODE}" = "true" ]]; then
-  os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" \
-      "${SDN_NODE_NAME}"
-
-  # Disable scheduling for the sdn node - its purpose is only to ensure
-  # pod network connectivity on the master.
-  #
-  # This will be performed separately for dind to allow as much time
-  # as possible for the node to register itself.  Vagrant can deploy
-  # in parallel but dind deploys serially for simplicity.
-  if ! os::provision::in-container; then
-    os::provision::disable-node "${OS_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
-        "${SDN_NODE_NAME}"
-  fi
-fi
