@@ -2,11 +2,16 @@ package dockerhelper
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/url"
+	"os"
+	"os/user"
+	"path/filepath"
 	"regexp"
 	"strconv"
 
@@ -14,6 +19,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/golang/glog"
+
+	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	"github.com/openshift/imagebuilder/imageprogress"
 	starterrors "github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
@@ -160,7 +167,39 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 		return err
 	}
 
-	err = h.client.ImagePull(normalized.String(), types.ImagePullOptions{}, outputStream)
+	auth := ""
+	var cfgPath string
+	if os.Getenv("DOCKERCFG_PATH") != "" {
+		cfgPath = os.Getenv("DOCKERCFG_PATH")
+	} else if currentUser, err := user.Current(); err == nil {
+		cfgPath = filepath.Join(currentUser.HomeDir, ".docker", "config.json")
+	}
+	cfg, err := credentialprovider.ReadSpecificDockerConfigJsonFile(cfgPath)
+	if err != nil {
+		glog.Errorf("Reading docker config from %v failed: %v, will attempt to pull image %s anonymously", cfgPath, err, normalized.String())
+	}
+
+	keyring := credentialprovider.BasicDockerKeyring{}
+	keyring.Add(cfg)
+	authConfs, found := keyring.Lookup(normalized.String())
+	if found && len(authConfs) > 0 {
+		glog.V(3).Infof("Using %s user for Docker authentication for image %s", authConfs[0].Username, normalized.String())
+		authConfig := types.AuthConfig{
+			Username:      authConfs[0].Username,
+			Password:      authConfs[0].Password,
+			ServerAddress: authConfs[0].ServerAddress,
+			IdentityToken: authConfs[0].IdentityToken,
+			RegistryToken: authConfs[0].RegistryToken,
+		}
+
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(authConfig); err != nil {
+			return starterrors.NewError("error encoding docker credentials").WithCause(err)
+		}
+		auth = base64.URLEncoding.EncodeToString(buf.Bytes())
+	}
+
+	err = h.client.ImagePull(normalized.String(), types.ImagePullOptions{RegistryAuth: auth}, outputStream)
 	if err != nil {
 		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
 	}
