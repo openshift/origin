@@ -71,9 +71,9 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 				l, ok := layers.Images[image.Image.Name]
 				o.Expect(ok).To(o.BeTrue())
 				o.Expect(len(l.Layers)).To(o.BeNumerically(">", 0))
-				o.Expect(l.Manifest).ToNot(o.BeNil())
-				o.Expect(layers.Blobs[*l.Manifest]).ToNot(o.BeNil())
-				o.Expect(layers.Blobs[*l.Manifest].MediaType).To(o.Equal("application/vnd.docker.container.image.v1+json"))
+				o.Expect(l.Config).ToNot(o.BeNil())
+				o.Expect(layers.Blobs[*l.Config]).ToNot(o.BeNil())
+				o.Expect(layers.Blobs[*l.Config].MediaType).To(o.Equal("application/vnd.docker.container.image.v1+json"))
 				for _, layerID := range l.Layers {
 					o.Expect(layers.Blobs).To(o.HaveKey(layerID))
 					o.Expect(layers.Blobs[layerID].MediaType).NotTo(o.BeEmpty())
