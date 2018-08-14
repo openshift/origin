@@ -228,7 +228,7 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 					Dst: dst,
 					Gw:  defaultGW,
 				}
-				if err := netlink.RouteAdd(route); err != nil {
+				if err := netlink.RouteAdd(route); err != nil && !os.IsExist(err) {
 					return fmt.Errorf("failed to add route to dst: %v via SDN: %v", dst, err)
 				}
 			}
