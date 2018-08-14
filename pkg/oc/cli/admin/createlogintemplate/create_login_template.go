@@ -8,6 +8,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/oauthserver/server/login"
 )
@@ -30,24 +31,25 @@ var longDescription = templates.LongDesc(`
 	        login: templates/login.html
 	`)
 
-type CreateLoginTemplateOptions struct{}
+type CreateLoginTemplateOptions struct {
+	genericclioptions.IOStreams
+}
 
-func NewCommandCreateLoginTemplate(f kcmdutil.Factory, commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateLoginTemplateOptions{}
+func NewCreateLoginTemplateOptions(streams genericclioptions.IOStreams) *CreateLoginTemplateOptions {
+	return &CreateLoginTemplateOptions{
+		IOStreams: streams,
+	}
+}
 
+func NewCommandCreateLoginTemplate(f kcmdutil.Factory, commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCreateLoginTemplateOptions(streams)
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a login template",
 		Long:  longDescription,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			_, err := io.WriteString(out, login.LoginTemplateExample)
-			if err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
@@ -60,4 +62,9 @@ func (o CreateLoginTemplateOptions) Validate(args []string) error {
 	}
 
 	return nil
+}
+
+func (o *CreateLoginTemplateOptions) Run() error {
+	_, err := io.WriteString(o.Out, login.LoginTemplateExample)
+	return err
 }

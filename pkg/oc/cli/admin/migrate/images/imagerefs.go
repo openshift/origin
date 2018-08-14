@@ -3,7 +3,6 @@ package images
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/url"
 	"strings"
 
@@ -16,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -81,28 +81,31 @@ type MigrateImageReferenceOptions struct {
 	UpdatePodSpecFn func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
 }
 
-// NewCmdMigrateImageReferences implements a MigrateImages command
-func NewCmdMigrateImageReferences(name, fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	options := &MigrateImageReferenceOptions{
+func NewMigrateImageReferenceOptions(streams genericclioptions.IOStreams) *MigrateImageReferenceOptions {
+	return &MigrateImageReferenceOptions{
 		ResourceOptions: migrate.ResourceOptions{
-			Out:     out,
-			ErrOut:  errout,
-			Include: []string{"imagestream", "image", "secrets"},
+			IOStreams: streams,
+			Include:   []string{"imagestream", "image", "secrets"},
 		},
 	}
+}
+
+// NewCmdMigrateImageReferences implements a MigrateImages command
+func NewCmdMigrateImageReferences(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewMigrateImageReferenceOptions(streams)
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s REGISTRY/NAME=REGISTRY/NAME [...]", name),
 		Short:   "Update embedded Docker image references",
 		Long:    internalMigrateImagesLong,
 		Example: fmt.Sprintf(internalMigrateImagesExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			kcmdutil.CheckErr(options.Run())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	options.ResourceOptions.Bind(cmd)
+	o.ResourceOptions.Bind(cmd)
 
 	return cmd
 }

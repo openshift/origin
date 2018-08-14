@@ -23,6 +23,7 @@ import (
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
@@ -59,12 +60,12 @@ var nodeLong = templates.LongDesc(`
 
 	will start a node with given configuration file. The node will run in the
 	foreground until you terminate the process.
-	
-	The --bootstrap-config-name flag instructs the node to use the provided 
+
+	The --bootstrap-config-name flag instructs the node to use the provided
 	kubeconfig file to contact the master and request a client cert (its identity) and
-	a serving cert, and then downloads node-config.yaml from the named config map. 
+	a serving cert, and then downloads node-config.yaml from the named config map.
 	If no config map exists in the openshift-node namespace the node will exit with
-	an error. In this mode --config will be location of the downloaded config. 
+	an error. In this mode --config will be location of the downloaded config.
 	Turning	on bootstrapping will always use certificate rotation by default at the
 	master's preferred rotation interval.
 	`)
@@ -383,7 +384,7 @@ func (o NodeOptions) createNodeConfig() (string, error) {
 
 		NodeClientCAFile: getSignerOptions.CertFile,
 		ExpireDays:       o.ExpireDays,
-		Output:           cmdutil.NewGLogWriterV(3),
+		IOStreams:        genericclioptions.IOStreams{Out: cmdutil.NewGLogWriterV(3)},
 	}
 
 	if err := createNodeConfigOptions.Validate(nil); err != nil {

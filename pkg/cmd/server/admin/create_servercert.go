@@ -3,7 +3,6 @@ package admin
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -11,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/library-go/pkg/crypto"
 )
@@ -27,7 +27,8 @@ type CreateServerCertOptions struct {
 
 	Hostnames []string
 	Overwrite bool
-	Output    io.Writer
+
+	genericclioptions.IOStreams
 }
 
 var createServerLong = templates.LongDesc(`
@@ -47,38 +48,38 @@ var createServerLong = templates.LongDesc(`
 	    cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
 	`)
 
-func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{
+func NewCreateServerCertOptions(streams genericclioptions.IOStreams) *CreateServerCertOptions {
+	return &CreateServerCertOptions{
 		SignerCertOptions: NewDefaultSignerCertOptions(),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
-		Output:            out,
+		Overwrite:         true,
+		IOStreams:         streams,
 	}
+}
 
+func NewCommandCreateServerCert(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCreateServerCertOptions(streams)
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a signed server certificate and key",
 		Long:  fmt.Sprintf(createServerLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if _, err := options.CreateServerCert(); err != nil {
+			kcmdutil.CheckErr(o.Validate(args))
+			if _, err := o.CreateServerCert(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
 	}
 
-	flags := cmd.Flags()
-	BindSignerCertOptions(options.SignerCertOptions, flags, "")
+	BindSignerCertOptions(o.SignerCertOptions, cmd.Flags(), "")
 
-	flags.StringVar(&options.CertFile, "cert", "", "The certificate file. Choose a name that indicates what the service is.")
-	flags.StringVar(&options.KeyFile, "key", "", "The key file. Choose a name that indicates what the service is.")
+	cmd.Flags().StringVar(&o.CertFile, "cert", o.CertFile, "The certificate file. Choose a name that indicates what the service is.")
+	cmd.Flags().StringVar(&o.KeyFile, "key", o.KeyFile, "The key file. Choose a name that indicates what the service is.")
 
-	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP you want server certs to be valid for. Comma delimited list")
-	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
+	cmd.Flags().StringSliceVar(&o.Hostnames, "hostnames", o.Hostnames, "Every hostname or IP you want server certs to be valid for. Comma delimited list")
+	cmd.Flags().BoolVar(&o.Overwrite, "overwrite", o.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 
-	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificate in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
+	cmd.Flags().IntVar(&o.ExpireDays, "expire-days", o.ExpireDays, "Validity of the certificate in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("cert")

@@ -3,7 +3,6 @@ package network
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strings"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/network"
@@ -31,7 +31,6 @@ type ProjectOptions struct {
 	DefaultNamespace string
 	Oclient          networkclientinternal.Interface
 	Kclient          kclientset.Interface
-	Out              io.Writer
 
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 
@@ -42,9 +41,17 @@ type ProjectOptions struct {
 	// Common optional params
 	Selector      string
 	CheckSelector bool
+
+	genericclioptions.IOStreams
 }
 
-func (p *ProjectOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string, out io.Writer) error {
+func NewProjectOptions(streams genericclioptions.IOStreams) *ProjectOptions {
+	return &ProjectOptions{
+		IOStreams: streams,
+	}
+}
+
+func (p *ProjectOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	defaultNamespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
@@ -66,7 +73,6 @@ func (p *ProjectOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []s
 	p.DefaultNamespace = defaultNamespace
 	p.Oclient = networkClient
 	p.Kclient = kc
-	p.Out = out
 	p.RESTClientFactory = f.ClientForMapping
 	p.ProjectNames = []string{}
 	if len(args) != 0 {

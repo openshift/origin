@@ -2,13 +2,13 @@ package network
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -34,45 +34,52 @@ type MakeGlobalOptions struct {
 	Options *ProjectOptions
 }
 
-func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	opts := &ProjectOptions{}
-	makeGlobalOp := &MakeGlobalOptions{Options: opts}
+func NewMakeGlobalOptions(streams genericclioptions.IOStreams) *MakeGlobalOptions {
+	return &MakeGlobalOptions{
+		Options: NewProjectOptions(streams),
+	}
+}
 
+func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewMakeGlobalOptions(streams)
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Make project network global",
 		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, network.MultiTenantPluginName),
 		Example: fmt.Sprintf(makeGlobalProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			if err := opts.Complete(f, c, args, out); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-			opts.CheckSelector = c.Flag("selector").Changed
-			if err := opts.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			err := makeGlobalOp.Run()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, c, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-	flags := cmd.Flags()
 
 	// Common optional params
-	flags.StringVar(&opts.Selector, "selector", "", "Label selector to filter projects. Either pass one/more projects as arguments or use this project selector")
+	cmd.Flags().StringVar(&o.Options.Selector, "selector", o.Options.Selector, "Label selector to filter projects. Either pass one/more projects as arguments or use this project selector")
 
 	return cmd
 }
+func (o *MakeGlobalOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string) error {
+	if err := o.Options.Complete(f, c, args); err != nil {
+		return err
+	}
+	o.Options.CheckSelector = c.Flag("selector").Changed
+	return nil
+}
 
-func (m *MakeGlobalOptions) Run() error {
-	projects, err := m.Options.GetProjects()
+func (o *MakeGlobalOptions) Validate() error {
+	return o.Options.Validate()
+}
+
+func (o *MakeGlobalOptions) Run() error {
+	projects, err := o.Options.GetProjects()
 	if err != nil {
 		return err
 	}
 
 	errList := []error{}
 	for _, project := range projects {
-		if err = m.Options.UpdatePodNetwork(project.Name, networkapi.GlobalPodNetwork, ""); err != nil {
+		if err = o.Options.UpdatePodNetwork(project.Name, networkapi.GlobalPodNetwork, ""); err != nil {
 			errList = append(errList, fmt.Errorf("removing network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}

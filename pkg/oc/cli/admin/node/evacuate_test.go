@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 func TestEvacuateFlags(t *testing.T) {
@@ -28,7 +30,7 @@ func TestEvacuateFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCommandManageNode(nil, ManageNodeCommandName, ManageNodeCommandName, nil, nil)
+	cmd := NewCommandManageNode(nil, ManageNodeCommandName, ManageNodeCommandName, genericclioptions.NewTestIOStreamsDiscard())
 	for _, v := range tests {
 		testFlag(cmd, v.flagName, v.defaultVal, t)
 	}

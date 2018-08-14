@@ -95,7 +95,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		return err
 	}
 	if len(pods.Items) == 0 {
-		fmt.Fprint(e.Options.ErrWriter, "\nNo pods found on node: ", node.ObjectMeta.Name, "\n\n")
+		fmt.Fprint(e.Options.ErrOut, "\nNo pods found on node: ", node.ObjectMeta.Name, "\n\n")
 		return nil
 	}
 	rcs, err := e.Options.KubeClient.Core().ReplicationControllers(metav1.NamespaceAll).List(metav1.ListOptions{})
@@ -167,11 +167,11 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		}
 
 		if firstPod {
-			fmt.Fprint(e.Options.ErrWriter, "\nMigrating these pods on node: ", node.ObjectMeta.Name, "\n\n")
+			fmt.Fprint(e.Options.ErrOut, "\nMigrating these pods on node: ", node.ObjectMeta.Name, "\n\n")
 			firstPod = false
 		}
 
-		printer.PrintObj(&pod, e.Options.Writer)
+		printer.PrintObj(&pod, e.Options.Out)
 
 		if isManaged || e.Force {
 			if err := e.Options.KubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, deleteOptions); err != nil {

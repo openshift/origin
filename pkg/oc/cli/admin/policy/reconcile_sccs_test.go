@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -130,7 +131,7 @@ func TestComputeDefinitions(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		cmd := NewDefaultReconcileSCCOptions()
+		cmd := NewDefaultReconcileSCCOptions(genericclioptions.NewTestIOStreamsDiscard())
 
 		computedSCC, needsUpdate := cmd.computeUpdatedSCC(v.expected, v.actual)
 		// ensure we got an update
@@ -335,7 +336,7 @@ func TestComputeMetadata(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		cmd := NewDefaultReconcileSCCOptions()
+		cmd := NewDefaultReconcileSCCOptions(genericclioptions.NewTestIOStreamsDiscard())
 		cmd.Union = v.union
 
 		desiredSCC := goodSCC()
@@ -419,7 +420,7 @@ func TestComputeUnioningUsersAndGroups(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		cmd := NewDefaultReconcileSCCOptions()
+		cmd := NewDefaultReconcileSCCOptions(genericclioptions.NewTestIOStreamsDiscard())
 		cmd.Union = v.union
 
 		computedSCC, needsUpdate := cmd.computeUpdatedSCC(v.expected, v.actual)
@@ -536,7 +537,7 @@ func TestComputeUnioningPriorities(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		cmd := NewDefaultReconcileSCCOptions()
+		cmd := NewDefaultReconcileSCCOptions(genericclioptions.NewTestIOStreamsDiscard())
 		cmd.Union = v.union
 
 		computedSCC, needsUpdate := cmd.computeUpdatedSCC(v.expected, v.actual)

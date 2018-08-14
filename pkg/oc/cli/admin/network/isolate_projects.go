@@ -2,7 +2,6 @@ package network
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
@@ -10,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -35,38 +35,46 @@ type IsolateOptions struct {
 	Options *ProjectOptions
 }
 
-func NewCmdIsolateProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	opts := &ProjectOptions{}
-	isolateOp := &IsolateOptions{Options: opts}
+func NewIsolateOptions(streams genericclioptions.IOStreams) *IsolateOptions {
+	return &IsolateOptions{
+		Options: NewProjectOptions(streams),
+	}
+}
 
+func NewCmdIsolateProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewIsolateOptions(streams)
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Isolate project network",
 		Long:    fmt.Sprintf(isolateProjectsNetworkLong, network.MultiTenantPluginName),
 		Example: fmt.Sprintf(isolateProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			if err := opts.Complete(f, c, args, out); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-			opts.CheckSelector = c.Flag("selector").Changed
-			if err := opts.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			err := isolateOp.Run()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, c, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-	flags := cmd.Flags()
 
 	// Common optional params
-	flags.StringVar(&opts.Selector, "selector", "", "Label selector to filter projects. Either pass one/more projects as arguments or use this project selector")
+	cmd.Flags().StringVar(&o.Options.Selector, "selector", o.Options.Selector, "Label selector to filter projects. Either pass one/more projects as arguments or use this project selector")
 
 	return cmd
 }
 
-func (i *IsolateOptions) Run() error {
-	projects, err := i.Options.GetProjects()
+func (o *IsolateOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string) error {
+	if err := o.Options.Complete(f, c, args); err != nil {
+		return err
+	}
+	o.Options.CheckSelector = c.Flag("selector").Changed
+	return nil
+}
+
+func (o *IsolateOptions) Validate() error {
+	return o.Options.Validate()
+}
+
+func (o *IsolateOptions) Run() error {
+	projects, err := o.Options.GetProjects()
 	if err != nil {
 		return err
 	}
@@ -77,7 +85,7 @@ func (i *IsolateOptions) Run() error {
 			errList = append(errList, fmt.Errorf("network isolation for project %q is forbidden", project.Name))
 			continue
 		}
-		if err = i.Options.UpdatePodNetwork(project.Name, networkapi.IsolatePodNetwork, ""); err != nil {
+		if err = o.Options.UpdatePodNetwork(project.Name, networkapi.IsolatePodNetwork, ""); err != nil {
 			errList = append(errList, fmt.Errorf("network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}

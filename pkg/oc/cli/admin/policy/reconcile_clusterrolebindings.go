@@ -3,7 +3,6 @@ package policy
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -18,6 +17,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	authorization "github.com/openshift/api/authorization"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
@@ -38,13 +38,16 @@ type ReconcileClusterRoleBindingsOptions struct {
 	Confirmed bool
 	Union     bool
 
+	ExcludeUsers  []string
+	ExcludeGroups []string
+
 	ExcludeSubjects []rbacv1.Subject
 
-	Out    io.Writer
-	Err    io.Writer
 	Output string
 
 	RoleBindingClient rbacv1client.ClusterRoleBindingInterface
+
+	genericclioptions.IOStreams
 }
 
 var (
@@ -74,42 +77,35 @@ var (
 	  %[1]s --confirm --additive-only=false`)
 )
 
-// NewCmdReconcileClusterRoleBindings implements the OpenShift cli reconcile-cluster-role-bindings command
-func NewCmdReconcileClusterRoleBindings(name, fullName string, f kcmdutil.Factory, out, err io.Writer) *cobra.Command {
-	o := &ReconcileClusterRoleBindingsOptions{
-		Out:   out,
-		Err:   err,
-		Union: true,
+func NewReconcileClusterRoleBindingsOptions(streams genericclioptions.IOStreams) *ReconcileClusterRoleBindingsOptions {
+	return &ReconcileClusterRoleBindingsOptions{
+		Union:         true,
+		ExcludeUsers:  []string{},
+		ExcludeGroups: []string{},
+		IOStreams:     streams,
 	}
+}
 
-	excludeUsers := []string{}
-	excludeGroups := []string{}
-
+// NewCmdReconcileClusterRoleBindings implements the OpenShift cli reconcile-cluster-role-bindings command
+func NewCmdReconcileClusterRoleBindings(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewReconcileClusterRoleBindingsOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name + " [ClusterRoleName]...",
 		Short:   "Update cluster role bindings to match the recommended bootstrap policy",
 		Long:    reconcileBindingsLong,
 		Example: fmt.Sprintf(reconcileBindingsExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := o.Complete(cmd, f, args, excludeUsers, excludeGroups); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			if err := o.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := o.RunReconcileClusterRoleBindings(cmd, f); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(cmd, f, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.RunReconcileClusterRoleBindings(cmd, f))
 		},
 		Deprecated: "use 'oc auth reconcile'",
 	}
 
 	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "If true, specify that cluster role bindings should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
 	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves extra subjects in cluster role bindings.")
-	cmd.Flags().StringSliceVar(&excludeUsers, "exclude-users", excludeUsers, "Do not add cluster role bindings for these user names.")
-	cmd.Flags().StringSliceVar(&excludeGroups, "exclude-groups", excludeGroups, "Do not add cluster role bindings for these group names.")
+	cmd.Flags().StringSliceVar(&o.ExcludeUsers, "exclude-users", o.ExcludeUsers, "Do not add cluster role bindings for these user names.")
+	cmd.Flags().StringSliceVar(&o.ExcludeGroups, "exclude-groups", o.ExcludeGroups, "Do not add cluster role bindings for these group names.")
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
 	cmd.Flags().Lookup("output").Value.Set("yaml")
@@ -117,7 +113,7 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f kcmdutil.Factor
 	return cmd
 }
 
-func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string, excludeUsers, excludeGroups []string) error {
+func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
@@ -130,7 +126,7 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcm
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
-	o.ExcludeSubjects = authorizationutil.BuildRBACSubjects(excludeUsers, excludeGroups)
+	o.ExcludeSubjects = authorizationutil.BuildRBACSubjects(o.ExcludeUsers, o.ExcludeGroups)
 
 	mapper, err := f.ToRESTMapper()
 	if err != nil {
@@ -169,9 +165,9 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 	}
 
 	if len(skippedClusterRoleBindings) > 0 {
-		fmt.Fprintf(o.Err, "Skipped reconciling roles with the annotation %s=false\n", rbacv1.AutoUpdateAnnotationKey)
+		fmt.Fprintf(o.ErrOut, "Skipped reconciling roles with the annotation %s=false\n", rbacv1.AutoUpdateAnnotationKey)
 		for _, role := range skippedClusterRoleBindings {
-			fmt.Fprintf(o.Err, "skipped: clusterrolebinding/%s\n", role.Name)
+			fmt.Fprintf(o.ErrOut, "skipped: clusterrolebinding/%s\n", role.Name)
 		}
 	}
 

@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/library-go/pkg/crypto"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -268,7 +269,7 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 		APIServerURL:       masterURL.String(),
 		PublicAPIServerURL: publicMasterURL.String(),
 
-		Output: os.Stderr,
+		IOStreams: genericclioptions.IOStreams{Out: os.Stderr},
 	}
 
 	if err := createMasterCerts.Validate(nil); err != nil {
@@ -289,7 +290,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 	}
 
 	createNodeConfig := admin.NewDefaultCreateNodeConfigOptions()
-	createNodeConfig.Output = os.Stdout
+	createNodeConfig.IOStreams = genericclioptions.IOStreams{Out: os.Stdout}
 	createNodeConfig.SignerCertOptions = getSignerOptions
 	createNodeConfig.NodeConfigDir = nodeArgs.ConfigDir.Value()
 	createNodeConfig.NodeName = nodeArgs.NodeName
@@ -675,15 +676,17 @@ func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser st
 	authorizationInterface := authorizationClient.Authorization()
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		ProjectClient: projectClient,
-		RbacClient:    kubeExternalClient.RbacV1(),
-		SARClient:     authorizationInterface.SubjectAccessReviews(),
-		ProjectName:   projectName,
-		AdminRole:     bootstrappolicy.AdminRoleName,
-		AdminUser:     adminUser,
+		ProjectClient:   projectClient,
+		RbacClient:      kubeExternalClient.RbacV1(),
+		SARClient:       authorizationInterface.SubjectAccessReviews(),
+		ProjectName:     projectName,
+		AdminRole:       bootstrappolicy.AdminRoleName,
+		AdminUser:       adminUser,
+		UseNodeSelector: false,
+		IOStreams:       genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
-	if err := newProjectOptions.Run(false); err != nil {
+	if err := newProjectOptions.Run(); err != nil {
 		return nil, nil, err
 	}
 

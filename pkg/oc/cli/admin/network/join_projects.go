@@ -3,13 +3,13 @@ package network
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -37,61 +37,64 @@ type JoinOptions struct {
 	joinProjectName string
 }
 
-func NewCmdJoinProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	opts := &ProjectOptions{}
-	joinOp := &JoinOptions{Options: opts}
+func NewJoinOptions(streams genericclioptions.IOStreams) *JoinOptions {
+	return &JoinOptions{
+		Options: NewProjectOptions(streams),
+	}
+}
 
+func NewCmdJoinProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewJoinOptions(streams)
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Join project network",
 		Long:    fmt.Sprintf(joinProjectsNetworkLong, network.MultiTenantPluginName),
 		Example: fmt.Sprintf(joinProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			if err := opts.Complete(f, c, args, out); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-			opts.CheckSelector = c.Flag("selector").Changed
-			if err := joinOp.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			err := joinOp.Run()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, c, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-	flags := cmd.Flags()
-
 	// Supported operations
-	flags.StringVar(&joinOp.joinProjectName, "to", "", "Join network of the given project name")
+	cmd.Flags().StringVar(&o.joinProjectName, "to", o.joinProjectName, "Join network of the given project name")
 
 	// Common optional params
-	flags.StringVar(&opts.Selector, "selector", "", "Label selector to filter projects. Either pass one/more projects as arguments or use this project selector")
+	cmd.Flags().StringVar(&o.Options.Selector, "selector", o.Options.Selector, "Label selector to filter projects. Either pass one/more projects as arguments or use this project selector")
 
 	return cmd
 }
 
-func (j *JoinOptions) Validate() error {
+func (o *JoinOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string) error {
+	if err := o.Options.Complete(f, c, args); err != nil {
+		return err
+	}
+	o.Options.CheckSelector = c.Flag("selector").Changed
+	return nil
+}
+
+func (o *JoinOptions) Validate() error {
 	errList := []error{}
-	if err := j.Options.Validate(); err != nil {
+	if err := o.Options.Validate(); err != nil {
 		errList = append(errList, err)
 	}
-	if len(j.joinProjectName) == 0 {
+	if len(o.joinProjectName) == 0 {
 		errList = append(errList, errors.New("must provide --to=<project_name>"))
 	}
 	return kerrors.NewAggregate(errList)
 }
 
-func (j *JoinOptions) Run() error {
-	projects, err := j.Options.GetProjects()
+func (o *JoinOptions) Run() error {
+	projects, err := o.Options.GetProjects()
 	if err != nil {
 		return err
 	}
 
 	errList := []error{}
 	for _, project := range projects {
-		if project.Name != j.joinProjectName {
-			if err = j.Options.UpdatePodNetwork(project.Name, networkapi.JoinPodNetwork, j.joinProjectName); err != nil {
-				errList = append(errList, fmt.Errorf("project %q failed to join %q, error: %v", project.Name, j.joinProjectName, err))
+		if project.Name != o.joinProjectName {
+			if err = o.Options.UpdatePodNetwork(project.Name, networkapi.JoinPodNetwork, o.joinProjectName); err != nil {
+				errList = append(errList, fmt.Errorf("project %q failed to join %q, error: %v", project.Name, o.joinProjectName, err))
 			}
 		}
 	}

@@ -3,7 +3,6 @@ package policy
 import (
 	"errors"
 	"fmt"
-	"io"
 	"sort"
 
 	"github.com/spf13/cobra"
@@ -17,6 +16,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/print"
@@ -39,11 +39,12 @@ type ReconcileSCCOptions struct {
 	// the command doesn't need to try and parse the policy config.
 	InfraNamespace string
 
-	Out    io.Writer
 	Output string
 
 	SCCClient securitytypedclient.SecurityContextConstraintsInterface
 	NSClient  kcoreclient.NamespaceInterface
+
+	genericclioptions.IOStreams
 }
 
 var (
@@ -72,33 +73,26 @@ var (
 )
 
 // NewDefaultReconcileSCCOptions provides a ReconcileSCCOptions with default settings.
-func NewDefaultReconcileSCCOptions() *ReconcileSCCOptions {
+func NewDefaultReconcileSCCOptions(streams genericclioptions.IOStreams) *ReconcileSCCOptions {
 	return &ReconcileSCCOptions{
 		Union:          true,
 		InfraNamespace: bootstrappolicy.DefaultOpenShiftInfraNamespace,
+		IOStreams:      streams,
 	}
 }
 
 // NewCmdReconcileSCC implements the OpenShift cli reconcile-sccs command.
-func NewCmdReconcileSCC(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	o := NewDefaultReconcileSCCOptions()
-	o.Out = out
-
+func NewCmdReconcileSCC(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewDefaultReconcileSCCOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name,
 		Short:   "Replace cluster SCCs to match the recommended bootstrap policy",
 		Long:    reconcileSCCLong,
 		Example: fmt.Sprintf(reconcileSCCExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := o.Complete(cmd, f, args); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-			if err := o.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-			if err := o.RunReconcileSCCs(cmd, f); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(cmd, f, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.RunReconcileSCCs(cmd, f))
 		},
 	}
 

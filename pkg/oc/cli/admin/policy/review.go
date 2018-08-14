@@ -17,6 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
@@ -38,13 +39,13 @@ var (
 	reviewExamples = templates.Examples(`# Check whether Service Accounts sa1 and sa2 can admit a Pod with TemplatePodSpec specified in my_resource.yaml
 	# Service Account specified in myresource.yaml file is ignored
 	$ %[1]s -z sa1,sa2 -f my_resource.yaml
-	
+
 	# Check whether Service Accounts system:serviceaccount:bob:default can admit a Pod with TemplatePodSpec specified in my_resource.yaml
 	$  %[1]s -z system:serviceaccount:bob:default -f my_resource.yaml
 
 	# Check whether Service Account specified in my_resource_with_sa.yaml can admit the Pod
 	$ %[1]s -f my_resource_with_sa.yaml
-	
+
 	# Check whether default Service Account can admit the Pod, default is taken since no Service Account is defined in myresource_with_no_sa.yaml
 	$  %[1]s -f myresource_with_no_sa.yaml
 	`)
@@ -52,28 +53,35 @@ var (
 
 const ReviewRecommendedName = "scc-review"
 
-type sccReviewOptions struct {
+type SCCReviewOptions struct {
 	client                   securitytypedclient.PodSecurityPolicyReviewsGetter
 	namespace                string
 	enforceNamespace         bool
-	out                      io.Writer
 	builder                  *resource.Builder
 	RESTClientFactory        func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	printer                  sccReviewPrinter
 	FilenameOptions          resource.FilenameOptions
 	serviceAccountNames      []string // it contains user inputs it could be long sa name like system:serviceaccount:bob:default or short one
 	shortServiceAccountNames []string // it contains only short sa name for example 'bob'
+
+	genericclioptions.IOStreams
 }
 
-func NewCmdSccReview(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	o := &sccReviewOptions{}
+func NewSCCReviewOptions(streams genericclioptions.IOStreams) *SCCReviewOptions {
+	return &SCCReviewOptions{
+		IOStreams: streams,
+	}
+}
+
+func NewCmdSccReview(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewSCCReviewOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name,
 		Short:   "Checks which ServiceAccount can create a Pod",
 		Long:    reviewLong,
 		Example: fmt.Sprintf(reviewExamples, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, args, cmd, out))
+			kcmdutil.CheckErr(o.Complete(f, args, cmd))
 			kcmdutil.CheckErr(o.Run(args))
 		},
 	}
@@ -84,7 +92,7 @@ func NewCmdSccReview(name, fullName string, f kcmdutil.Factory, out io.Writer) *
 	return cmd
 }
 
-func (o *sccReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
+func (o *SCCReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobra.Command) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified")
 	}
@@ -128,11 +136,10 @@ func (o *sccReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobr
 	} else {
 		o.printer = &sccReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
 	}
-	o.out = out
 	return nil
 }
 
-func (o *sccReviewOptions) Run(args []string) error {
+func (o *SCCReviewOptions) Run(args []string) error {
 	r := o.builder.
 		WithScheme(ocscheme.ReadingInternalScheme).
 		NamespaceParam(o.namespace).
@@ -169,7 +176,7 @@ func (o *sccReviewOptions) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("unable to compute Pod Security Policy Review for %q: %v", objectName, err)
 		}
-		if err = o.printer.print(info, unversionedObj, o.out); err != nil {
+		if err = o.printer.print(info, unversionedObj, o.Out); err != nil {
 			allErrs = append(allErrs, err)
 		}
 		return nil

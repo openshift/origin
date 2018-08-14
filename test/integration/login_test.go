@@ -51,14 +51,16 @@ func TestLogin(t *testing.T) {
 	authorizationInterface := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		ProjectClient: projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project(),
-		RbacClient:    rbacClient,
-		SARClient:     authorizationInterface.SubjectAccessReviews(),
-		ProjectName:   project,
-		AdminRole:     bootstrappolicy.AdminRoleName,
-		AdminUser:     username,
+		ProjectClient:   projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project(),
+		RbacClient:      rbacClient,
+		SARClient:       authorizationInterface.SubjectAccessReviews(),
+		ProjectName:     project,
+		AdminRole:       bootstrappolicy.AdminRoleName,
+		AdminUser:       username,
+		UseNodeSelector: false,
+		IOStreams:       genericclioptions.NewTestIOStreamsDiscard(),
 	}
-	if err := newProjectOptions.Run(false); err != nil {
+	if err := newProjectOptions.Run(); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)
 	}
 
