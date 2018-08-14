@@ -206,6 +206,9 @@ func addImageStreamLayersFromCache(isl *imageapi.ImageStreamLayers, is *imageapi
 			obj, _, _ := index.GetByKey(item.Image)
 			entry, ok := obj.(*ImageLayers)
 			if !ok {
+				if _, ok := isl.Images[item.Image]; !ok {
+					isl.Images[item.Image] = imageapi.ImageBlobReferences{ImageMissing: true}
+				}
 				missing = append(missing, item.Image)
 				continue
 			}
