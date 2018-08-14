@@ -129,16 +129,14 @@ function os::start::internal::configure_master() {
 	openshift_executable="$(os::start::internal::openshift_executable "${version}")"
 
 	os::log::debug "Creating master configuration for the OpenShift server"
-	${openshift_executable} start                                                   \
+	${openshift_executable} start master                                            \
 	                        --create-certs=false                                    \
 	                        --images="${USE_IMAGES}"                                \
 	                        --master="${MASTER_ADDR}"                               \
-	                        --dns="tcp://${API_HOST}:53"                            \
-	                        --hostname="${KUBELET_HOST}"                            \
-	                        --volume-dir="${VOLUME_DIR}"                            \
+	                        --dns="tcp://${API_HOST}:8053"                          \
 	                        --etcd-dir="${ETCD_DATA_DIR}"                           \
 	                        --network-plugin="${NETWORK_PLUGIN:-}"                  \
-	                        --write-config="${SERVER_CONFIG_DIR}"                   \
+	                        --write-config="${SERVER_CONFIG_DIR}/master"            \
 	                        --listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
 	                        --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
 

@@ -37,7 +37,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	"github.com/openshift/origin/test/util"
@@ -318,26 +317,6 @@ func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
 			}
 		}
 	}
-}
-
-func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	guardNode()
-
-	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
-	if err != nil {
-		return err
-	}
-
-	if err := start.StartNode(*nodeConfig, components); err != nil {
-		return err
-	}
-
-	// wait for the server to come up for 30 seconds (average time on desktop is 2 seconds, but Jenkins timed out at 10 seconds)
-	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", net.JoinHostPort(nodeConfig.NodeName, nodePort), 100*time.Millisecond, 1*time.Second, 30); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error) {
