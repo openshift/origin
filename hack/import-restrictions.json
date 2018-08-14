@@ -569,8 +569,6 @@
       "github.com/openshift/origin/pkg/security/apis/security",
       "github.com/openshift/origin/pkg/security/securitycontextconstraints",
       "github.com/openshift/origin/pkg/security/securitycontextconstraints/util",
-      "github.com/openshift/origin/pkg/serviceaccounts",
-      "github.com/openshift/origin/pkg/serviceaccounts/util",
       "github.com/openshift/origin/pkg/service/admission",
       "github.com/openshift/origin/pkg/template/apis/template",
       "github.com/openshift/origin/pkg/template/apis/template/validation",

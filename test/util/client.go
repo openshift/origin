@@ -21,12 +21,12 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
+	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/serviceaccounts"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
@@ -180,7 +180,7 @@ func GetClientForServiceAccount(adminClient kclientset.Interface, clientConfig r
 			return false, err
 		}
 		for _, secret := range secrets.Items {
-			if serviceaccounts.IsValidServiceAccountToken(sa, &secret) {
+			if sautil.InternalIsServiceAccountToken(&secret, sa) {
 				token = string(secret.Data[kapi.ServiceAccountTokenKey])
 				return true, nil
 			}
