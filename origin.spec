@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3e1d50593d893e7befb91b8f2e9e1165a0285805
+%global commit 095fe4e383feab6ea067edc8add8cb1dfe779ebf
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.26 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=26 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=c8e7a31 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.27 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=27 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=60ff6ea KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -64,7 +64,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.10.27
+Version:        3.10.28
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -487,6 +487,20 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue Aug 14 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.10.28-1
+- Revert "Provide feedback on progression for extracting of binary build"
+  (bparees@redhat.com)
+- Change logo, favicon, name on login page (rhamilto@redhat.com)
+- set full user info for SAR check on template readiness checks
+  (bparees@redhat.com)
+- UPSTREAM: 64971: Cherry pick of #64255 fix field removal in mutating
+  admission webhooks (pmorie@redhat.com)
+- Correct quoting issue with Forwarded field in HAproxy 1.8
+  (alberto.rodriguez.peon@cern.ch)
+- Injecting new required vars into origin.spec file (jupierce@redhat.com)
+- UPSTREAM: 64860:checkLimitsForResolvConf for the pod create and update events
+  instead of checking periodically (ravisantoshgudimetla@gmail.com)
+
 * Mon Jul 30 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.10.27-1
 - 
 
