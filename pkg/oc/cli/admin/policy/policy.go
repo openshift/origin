@@ -297,3 +297,11 @@ func (r roleBindingAbstraction) Delete() error {
 	}
 	return err
 }
+
+func (r roleBindingAbstraction) Type() string {
+	if r.roleBinding != nil {
+		return "rolebinding"
+	} else {
+		return "clusterrolebinding"
+	}
+}

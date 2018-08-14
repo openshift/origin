@@ -595,6 +595,18 @@ subjectCheck:
 	return newSubjects
 }
 
+func (o *RoleModificationOptions) checkRolebindingAutoupdate(roleBinding *roleBindingAbstraction) {
+	if roleBinding.Annotation(rbacv1.AutoUpdateAnnotationKey) == "true" {
+		if o.PrintErrf != nil {
+			o.PrintErrf("Warning: Your changes may get lost whenever a master"+
+				" is restarted, unless you prevent reconciliation of this"+
+				" rolebinding using the following command: oc annotate"+
+				" %s.rbac %s '%s=false' --overwrite", roleBinding.Type(),
+				roleBinding.Name(), rbacv1.AutoUpdateAnnotationKey)
+		}
+	}
+}
+
 func (o *RoleModificationOptions) RemoveRole() error {
 	var roleBindings []*roleBindingAbstraction
 	var err error
@@ -684,6 +696,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		if err != nil {
 			return err
 		}
+		o.checkRolebindingAutoupdate(roleBinding)
 	}
 	if found == 0 {
 		return fmt.Errorf("unable to find target %v", o.Targets)

@@ -172,6 +172,11 @@ os::cmd::expect_success 'oc adm policy add-role-to-user view baz --rolebinding-n
 os::cmd::expect_success_and_text 'oc get rolebinding/view -o jsonpath="{.metadata.name},{.roleRef.name},{.userNames[*]}"' '^view,view,foo$'
 os::cmd::expect_success_and_text 'oc get rolebinding/custom -o jsonpath="{.metadata.name},{.roleRef.name},{.userNames[*]}"' '^custom,view,bar baz$'
 os::cmd::expect_failure_and_text 'oc adm policy add-role-to-user other fuz --rolebinding-name=custom' '^error: rolebinding custom found for role view, not other$'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth' "Warning: Your changes may get lost whenever a master is restarted, unless you prevent reconciliation of this rolebinding using the following command: oc annotate clusterrolebinding.rbac self-provisioners 'rbac.authorization.kubernetes.io/autoupdate=false' --overwrite"
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=self-provisioners self-provisioner system:authenticated:oauth'
+os::cmd::expect_success 'oc annotate clusterrolebinding.rbac self-provisioners "rbac.authorization.kubernetes.io/autoupdate=false" --overwrite'
+os::cmd::expect_success_and_not_text 'oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth' "Warning"
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=self-provisioners self-provisioner system:authenticated:oauth'
 
 os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
 os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-user'
