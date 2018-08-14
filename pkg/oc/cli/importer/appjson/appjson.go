@@ -13,25 +13,29 @@ import (
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	configcmd "github.com/openshift/origin/pkg/bulk"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/appjson"
 	appcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
-	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
-	templateclientinternal "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
+	templatev1client "github.com/openshift/origin/pkg/template/client/v1"
 )
 
 const AppJSONV1GeneratorName = "app-json/v1"
@@ -63,8 +67,6 @@ type AppJSONOptions struct {
 
 	Printer printers.ResourcePrinter
 
-	bulkAction configcmd.BulkAction
-
 	BaseImage        string
 	Generator        string
 	AsTemplate       string
@@ -72,8 +74,10 @@ type AppJSONOptions struct {
 
 	OutputVersions []schema.GroupVersion
 
-	Namespace string
-	Client    templateclient.TemplateInterface
+	Namespace     string
+	RESTMapper    meta.RESTMapper
+	DynamicClient dynamic.Interface
+	Client        rest.Interface
 
 	genericclioptions.IOStreams
 	resource.FilenameOptions
@@ -81,9 +85,6 @@ type AppJSONOptions struct {
 
 func NewAppJSONOptions(streams genericclioptions.IOStreams) *AppJSONOptions {
 	return &AppJSONOptions{
-		bulkAction: configcmd.BulkAction{
-			IOStreams: streams,
-		},
 		IOStreams:  streams,
 		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
 		Generator:  AppJSONV1GeneratorName,
@@ -112,10 +113,40 @@ func NewCmdAppJSON(fullName string, f kcmdutil.Factory, streams genericclioption
 	cmd.Flags().StringVar(&o.Generator, "generator", o.Generator, "The name of the generator strategy to use - specify this value to for backwards compatibility.")
 	cmd.Flags().StringVar(&o.AsTemplate, "as-template", o.AsTemplate, "If set, generate a template with the provided name")
 	cmd.Flags().StringVar(&o.OutputVersionStr, "output-version", o.OutputVersionStr, "The preferred API versions of the output objects")
-	o.bulkAction.BindForOutput(cmd.Flags(), "output", "template")
-	o.PrintFlags.AddFlags(cmd)
 
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
+}
+
+func (o *AppJSONOptions) createResources(list *corev1.List) (*corev1.List, []error) {
+	errors := []error{}
+	created := &corev1.List{}
+
+	for i, item := range list.Items {
+		var err error
+		unstructuredObj := &unstructured.Unstructured{}
+		unstructuredObj.Object, err = runtime.DefaultUnstructuredConverter.ToUnstructured(item)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+
+		mapping, err := o.RESTMapper.RESTMapping(unstructuredObj.GroupVersionKind().GroupKind(), unstructuredObj.GroupVersionKind().Version)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+
+		_, err = o.DynamicClient.Resource(mapping.Resource).Namespace(o.Namespace).Create(unstructuredObj)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+
+		created.Items = append(created.Items, list.Items[i])
+	}
+
+	return created, errors
 }
 
 func (o *AppJSONOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -126,22 +157,19 @@ func (o *AppJSONOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 		}
 		o.OutputVersions = append(o.OutputVersions, gv)
 	}
-	o.OutputVersions = append(o.OutputVersions, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
+	o.OutputVersions = append(o.OutputVersions, scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
-	restMapper, err := f.ToRESTMapper()
-	if err != nil {
-		return err
-	}
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	dynamicClient, err := dynamic.NewForConfig(clientConfig)
-	o.bulkAction.Bulk.Scheme = legacyscheme.Scheme
-	o.bulkAction.Bulk.Op = configcmd.Creator{
-		Client:     dynamicClient,
-		RESTMapper: restMapper,
-	}.Create
+
+	o.RESTMapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+
+	o.DynamicClient, err = dynamic.NewForConfig(clientConfig)
 
 	o.Printer, err = o.PrintFlags.ToPrinter()
 	if err != nil {
@@ -153,11 +181,15 @@ func (o *AppJSONOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 		return err
 	}
 
-	templateClient, err := templateclientinternal.NewForConfig(clientConfig)
+	clientset, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.Client = templateClient.Template()
+
+	o.Client = clientset.CoreV1().RESTClient()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -201,40 +233,50 @@ func (o *AppJSONOptions) Run() error {
 		return err
 	}
 
-	template.ObjectLabels = map[string]string{"app.json": template.Name}
-
-	// all the types generated into the template should be known
-	if errs := app.AsVersionedObjects(template.Objects, legacyscheme.Scheme, legacyscheme.Scheme, o.OutputVersions...); len(errs) > 0 {
-		for _, err := range errs {
-			fmt.Fprintf(o.bulkAction.ErrOut, "error: %v\n", err)
-		}
+	externalTemplate := &templatev1.Template{}
+	if err := templateapiv1.Convert_template_Template_To_v1_Template(template, externalTemplate, nil); err != nil {
+		return err
 	}
 
-	if o.bulkAction.ShouldPrint() || (o.bulkAction.Output == "name" && len(o.AsTemplate) > 0) {
+	externalTemplate.ObjectLabels = map[string]string{"app.json": externalTemplate.Name}
+
+	// TODO: stop implying --dry-run behavior when an --output value is provided
+	if o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) > 0 || len(o.AsTemplate) > 0 {
 		var obj runtime.Object
 		if len(o.AsTemplate) > 0 {
-			template.Name = o.AsTemplate
-			obj = template
+			externalTemplate.Name = o.AsTemplate
+			obj = externalTemplate
 		} else {
-			obj = &kapi.List{Items: template.Objects}
+			obj = &corev1.List{Items: externalTemplate.Objects}
 		}
 		return o.Printer.PrintObj(obj, o.Out)
 	}
 
-	templateProcessor := templateinternalclient.NewTemplateProcessorClient(o.Client.RESTClient(), o.Namespace)
-	result, err := appcmd.TransformTemplate(template, templateProcessor, o.Namespace, nil, false)
+	templateProcessor := templatev1client.NewTemplateProcessorClient(o.Client, o.Namespace)
+	result, err := appcmd.TransformTemplate(externalTemplate, templateProcessor, o.Namespace, nil, false)
 	if err != nil {
 		return err
 	}
 
-	if o.bulkAction.Verbose() {
-		appcmd.DescribeGeneratedTemplate(o.bulkAction.Out, "", result, o.Namespace)
+	// TODO(juanvallejo): remove once we have external version describers
+	describableResult := &templateapi.Template{}
+	if err := templateapiv1.Convert_v1_Template_To_template_Template(result, describableResult, nil); err != nil {
+		return err
 	}
 
-	if errs := o.bulkAction.WithMessage("Importing app.json", "creating").Run(&kapi.List{Items: result.Objects}, o.Namespace); len(errs) > 0 {
-		return kcmdutil.ErrExit
+	appcmd.DescribeGeneratedTemplate(o.Out, "", describableResult, o.Namespace)
+
+	objs := &corev1.List{Items: result.Objects}
+
+	// actually create the objects
+	created, errs := o.createResources(objs)
+
+	// print what we have created first, then return a potential set of errors
+	if err := o.Printer.PrintObj(created, o.Out); err != nil {
+		errs = append(errs, err)
 	}
-	return nil
+
+	return kerrors.NewAggregate(errs)
 }
 
 func contentsForPathOrURL(s string, in io.Reader, subpaths ...string) (string, []byte, error) {
