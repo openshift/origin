@@ -6,6 +6,8 @@
 #
 FROM openshift/origin-base
 
+COPY scripts/* /usr/local/bin/
+
 RUN INSTALL_PKGS="origin-hyperkube" && \
     yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \

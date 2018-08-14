@@ -144,6 +144,7 @@ func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *K
 	masterArgs := NewDefaultMasterArgs()
 	masterArgs.StartAPI = true
 	masterArgs.StartControllers = true
+	masterArgs.StartScheduler = true
 	masterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
 		// use node DNS
 		// config.DNSConfig = nil

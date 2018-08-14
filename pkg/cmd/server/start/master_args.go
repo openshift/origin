@@ -50,6 +50,9 @@ type MasterArgs struct {
 	// StartControllers controls whether the controller component of the master is started (to support
 	// the controller role)
 	StartControllers bool
+	// StartScheduler controls whether the scheduler component of the master is started (to support
+	// the scheduler role)
+	StartScheduler bool
 
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr

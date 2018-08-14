@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
+	restclient "k8s.io/client-go/rest"
 )
 
 type MasterOptions struct {
@@ -106,6 +107,7 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 	options.MasterArgs = NewDefaultMasterArgs()
 	options.MasterArgs.StartAPI = true
 	options.MasterArgs.StartControllers = true
+	options.MasterArgs.StartScheduler = true
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
 		if options.MasterArgs.MasterAddr.Provided {
 			if ip := net.ParseIP(options.MasterArgs.MasterAddr.Host); ip != nil {
@@ -136,8 +138,10 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 
 	startControllers, _ := NewCommandStartMasterControllers("controllers", basename, out, errout)
 	startAPI, _ := NewCommandStartMasterAPI("api", basename, out, errout)
+	startScheduler, _ := NewCommandStartMasterScheduler("scheduler", basename, out, errout)
 	cmd.AddCommand(startAPI)
 	cmd.AddCommand(startControllers)
+	cmd.AddCommand(startScheduler)
 
 	return cmd, options
 }
@@ -281,6 +285,7 @@ func (o MasterOptions) RunMaster() error {
 		config:      masterConfig,
 		api:         o.MasterArgs.StartAPI,
 		controllers: o.MasterArgs.StartControllers,
+		scheduler:   o.MasterArgs.StartScheduler,
 	}
 	return m.Start()
 }
@@ -326,14 +331,16 @@ type Master struct {
 	config      *configapi.MasterConfig
 	controllers bool
 	api         bool
+	scheduler   bool
 }
 
 // NewMaster create a master launcher
-func NewMaster(config *configapi.MasterConfig, controllers, api bool) *Master {
+func NewMaster(config *configapi.MasterConfig, controllers, api, scheduler bool) *Master {
 	return &Master{
 		config:      config,
 		controllers: controllers,
 		api:         api,
+		scheduler:   scheduler,
 	}
 }
 
@@ -357,12 +364,15 @@ func (m *Master) Start() error {
 	aggregatorinstall.Install(legacyscheme.Scheme)
 
 	controllersEnabled := m.controllers && len(m.config.ControllerConfig.Controllers) > 0
-	if controllersEnabled {
-		privilegedLoopbackConfig, err := configapi.GetClientConfig(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	var privilegedLoopbackConfig *restclient.Config
+	var err error
+	if m.scheduler || controllersEnabled {
+		privilegedLoopbackConfig, err = configapi.GetClientConfig(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
 			return err
 		}
-
+	}
+	if m.scheduler {
 		go runEmbeddedScheduler(
 			m.config.MasterClients.OpenShiftLoopbackKubeConfig,
 			m.config.KubernetesMasterConfig.SchedulerConfigFile,
@@ -370,7 +380,9 @@ func (m *Master) Start() error {
 			privilegedLoopbackConfig.Burst,
 			m.config.KubernetesMasterConfig.SchedulerArguments,
 		)
+	}
 
+	if controllersEnabled {
 		go func() {
 			kubeControllerConfigShallowCopy := *m.config
 			// this creates using 0700
