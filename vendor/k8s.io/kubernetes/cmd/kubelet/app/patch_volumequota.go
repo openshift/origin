@@ -83,6 +83,10 @@ func PatchVolumePluginsForLocalQuota(rootdir string, plugins *[]volume.VolumePlu
 		return fmt.Errorf("unable to parse \"%s\" as a quantity", volumeConfig.LocalQuota.PerFSGroup)
 	}
 
+	if quota.Value() <= 0 {
+		return fmt.Errorf("perFSGroup must be a positive quantity")
+	}
+
 	glog.V(2).Info("replacing empty-dir volume plugin with quota wrapper")
 
 	quotaApplicator, err := emptydirquota.NewQuotaApplicator(rootdir)
