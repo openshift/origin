@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
 	"github.com/openshift/origin/pkg/util/restoptions"
+	authorizationapi "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -16,11 +17,11 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
 const (
@@ -52,7 +53,7 @@ func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizat
 func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.EtcdTestServer) {
 	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
 	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "image.openshift.io", Version: "v1"})
-	registry := imageapi.DefaultRegistryHostnameRetriever(noDefaultRegistry, "", "")
+	registry := registryhostname.TestingRegistryHostnameRetriever(noDefaultRegistry, "", "")
 	imageStorage, _, statusStorage, internalStorage, err := NewREST(
 		restoptions.NewSimpleGetter(etcdStorage),
 		registry,

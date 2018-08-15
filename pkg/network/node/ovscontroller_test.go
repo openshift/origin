@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/util/ovs"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

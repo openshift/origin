@@ -29,9 +29,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
@@ -579,7 +579,7 @@ func (o *IdleOptions) RunIdle() error {
 		fmt.Fprintf(o.ErrOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	appClient, err := appsclientinternal.NewForConfig(o.ClientConfig)
+	appClient, err := appsclient.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}

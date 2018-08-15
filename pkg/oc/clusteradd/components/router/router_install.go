@@ -4,22 +4,19 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
 
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
@@ -42,11 +39,11 @@ func (c *RouterComponentOptions) Name() string {
 }
 
 func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) error {
-	kubeAdminClient, err := kclientset.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
+	kubeAdminClient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
 	}
-	_, err = kubeAdminClient.Core().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
+	_, err = kubeAdminClient.CoreV1().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
 	if err == nil {
 		glog.V(3).Infof("The %q service is already present, skipping installation", RouterServiceName)
 		// Router service already exists, nothing to do
@@ -60,9 +57,9 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) er
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 
 	// Create service account for router
-	routerSA := &kapi.ServiceAccount{}
+	routerSA := &corev1.ServiceAccount{}
 	routerSA.Name = RouterServiceAccountName
-	_, err = kubeAdminClient.Core().ServiceAccounts(DefaultNamespace).Create(routerSA)
+	_, err = kubeAdminClient.CoreV1().ServiceAccounts(DefaultNamespace).Create(routerSA)
 	if err != nil {
 		return errors.NewError("cannot create router service account").WithCause(err)
 	}
@@ -71,10 +68,8 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) er
 		return err
 	}
 
-	masterConfig, err := getMasterConfig(c.InstallContext.BaseDir())
-	if err != nil {
-		return err
-	}
+	masterConfigPath := path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName, "master-config.yaml")
+	masterConfig, err := componentinstall.ReadMasterConfig(masterConfigPath)
 
 	masterConfigDir := path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
 	// Create router cert
@@ -92,9 +87,9 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) er
 			// certs will use certs valid for their arbitrary subdomain names.
 			"*." + masterConfig.RoutingConfig.Subdomain,
 		},
-		CertFile: filepath.Join(masterConfigDir, "router.crt"),
-		KeyFile:  filepath.Join(masterConfigDir, "router.key"),
-		Output:   cmdOutput,
+		CertFile:  filepath.Join(masterConfigDir, "router.crt"),
+		KeyFile:   filepath.Join(masterConfigDir, "router.key"),
+		IOStreams: genericclioptions.IOStreams{Out: cmdOutput},
 	}
 	_, err = createCertOptions.CreateServerCert()
 	if err != nil {
@@ -153,22 +148,6 @@ func catFiles(dest string, src ...string) error {
 		}
 	}
 	return nil
-}
-
-func getMasterConfig(basedir string) (*configapi.MasterConfig, error) {
-	configBytes, err := ioutil.ReadFile(path.Join(basedir, kubeapiserver.KubeAPIServerDirName, "master-config.yaml"))
-	if err != nil {
-		return nil, err
-	}
-	configObj, err := runtime.Decode(configapilatest.Codec, configBytes)
-	if err != nil {
-		return nil, err
-	}
-	masterConfig, ok := configObj.(*configapi.MasterConfig)
-	if !ok {
-		return nil, fmt.Errorf("the %#v is not MasterConfig", configObj)
-	}
-	return masterConfig, nil
 }
 
 func portForwarding() bool {

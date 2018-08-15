@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -153,7 +154,7 @@ func scaleFromConfig(dc *appsapi.DeploymentConfig) *autoscaling.Scale {
 	for k, v := range dc.Spec.Selector {
 		selector[k] = v
 	}
-	selector[appsapi.DeploymentConfigLabel] = dc.Name
+	selector[appsutil.DeploymentConfigLabel] = dc.Name
 
 	return &autoscaling.Scale{
 		ObjectMeta: metav1.ObjectMeta{

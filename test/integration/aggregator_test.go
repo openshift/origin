@@ -8,6 +8,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiregistrationclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	projectclientset "github.com/openshift/client-go/project/clientset/versioned"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -36,7 +37,7 @@ func TestAggregator(t *testing.T) {
 		CertFile:   filepath.Join(caDir, "aggregator-proxy-ca.crt"),
 		KeyFile:    filepath.Join(caDir, "aggregator-proxy-ca.key"),
 		SerialFile: filepath.Join(caDir, "aggregator-proxy-ca.serial"),
-		Output:     ioutil.Discard,
+		IOStreams:  genericclioptions.NewTestIOStreamsDiscard(),
 	}
 	if _, err := signerOptions.CreateSignerCert(); err != nil {
 		t.Fatal(err)

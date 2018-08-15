@@ -132,40 +132,54 @@ func CopyApiEnvVarToV1EnvVar(in []kapi.EnvVar) []corev1.EnvVar {
 // output list.  If sourcePrecedence is true, keys in the source list
 // will override keys in the output list.
 func MergeTrustedEnvWithoutDuplicates(source []corev1.EnvVar, output *[]corev1.EnvVar, sourcePrecedence bool) {
+	MergeEnvWithoutDuplicates(source, output, sourcePrecedence, buildapi.WhitelistEnvVarNames)
+}
+
+// MergeEnvWithoutDuplicates merges two environment lists without having
+// duplicate items in the output list.  If sourcePrecedence is true, keys in the source list
+// will override keys in the output list.
+func MergeEnvWithoutDuplicates(source []corev1.EnvVar, output *[]corev1.EnvVar, sourcePrecedence bool, whitelist []string) {
 	// filter out all environment variables except trusted/well known
 	// values, because we do not want random environment variables being
 	// fed into the privileged STI container via the BuildConfig definition.
-	type sourceMapItem struct {
-		index int
-		value string
-	}
 
-	index := 0
-	filteredSourceMap := make(map[string]sourceMapItem)
-	filteredSource := []corev1.EnvVar{}
+	filteredSourceMap := make(map[string]corev1.EnvVar)
 	for _, env := range source {
-		for _, acceptable := range buildapi.WhitelistEnvVarNames {
-			if env.Name == acceptable {
-				filteredSource = append(filteredSource, env)
-				filteredSourceMap[env.Name] = sourceMapItem{index, env.Value}
-				index++
-				break
+		allowed := false
+		if len(whitelist) == 0 {
+			allowed = true
+		} else {
+			for _, acceptable := range buildapi.WhitelistEnvVarNames {
+				if env.Name == acceptable {
+					allowed = true
+					break
+				}
 			}
 		}
+		if allowed {
+			filteredSourceMap[env.Name] = env
+		}
 	}
-
 	result := *output
 	for i, env := range result {
-		// If the value exists in output, override it and remove it
+		// If the value exists in output, optionally override it and remove it
 		// from the source list
 		if v, found := filteredSourceMap[env.Name]; found {
 			if sourcePrecedence {
-				result[i].Value = v.value
+				result[i].Value = v.Value
 			}
-			filteredSource = append(filteredSource[:v.index], filteredSource[v.index+1:]...)
+			delete(filteredSourceMap, env.Name)
 		}
 	}
-	*output = append(result, filteredSource...)
+
+	// iterate the original list so we retain the order of the inputs
+	// when we append them to the output.
+	for _, v := range source {
+		if v, ok := filteredSourceMap[v.Name]; ok {
+			result = append(result, v)
+		}
+	}
+	*output = result
 }
 
 // GetBuildEnv gets the build strategy environment

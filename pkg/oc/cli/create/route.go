@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -58,7 +58,7 @@ type CreateRouteSubcommandOptions struct {
 	Printer printers.ResourcePrinter
 
 	Client     routev1client.RoutesGetter
-	KubeClient kclientset.Interface
+	CoreClient corev1client.CoreV1Interface
 
 	genericclioptions.IOStreams
 }
@@ -77,14 +77,16 @@ func (o *CreateRouteSubcommandOptions) Complete(f kcmdutil.Factory, cmd *cobra.C
 		return err
 	}
 
-	o.KubeClient, err = f.ClientSet()
-	if err != nil {
-		return err
-	}
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
+
+	o.CoreClient, err = corev1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
 	o.Client, err = routev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err

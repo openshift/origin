@@ -13,8 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	kexternalclientset "k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -35,11 +35,11 @@ type RetryOptions struct {
 	Builder           func() *resource.Builder
 	Mapper            meta.RESTMapper
 	Encoder           runtime.Encoder
-	Clientset         kclientset.Interface
+	Clientset         kexternalclientset.Interface
 	Namespace         string
 	ExplicitNamespace bool
 
-	Printer func(string) (printers.ResourcePrinter, error)
+	ToPrinter func(string) (printers.ResourcePrinter, error)
 
 	resource.FilenameOptions
 	genericclioptions.IOStreams
@@ -108,16 +108,18 @@ func (o *RetryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 		return err
 	}
 
-	o.Clientset, err = f.ClientSet()
+	config, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
 
-	o.Printer = func(msg string) (printers.ResourcePrinter, error) {
-		if err := o.PrintFlags.Complete(msg); err != nil {
-			return nil, err
-		}
+	o.Clientset, err = kexternalclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
 
+	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = operation
 		return o.PrintFlags.ToPrinter()
 	}
 
@@ -217,7 +219,7 @@ func (o RetryOptions) Run() error {
 		})
 
 		if len(patches) == 0 {
-			printer, err := o.Printer("already retried")
+			printer, err := o.ToPrinter("already retried")
 			if err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
 				continue
@@ -228,11 +230,11 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		if _, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType, patches[0].Patch); err != nil {
+		if _, err := o.Clientset.CoreV1().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType, patches[0].Patch); err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
 			continue
 		}
-		printer, err := o.Printer(fmt.Sprintf("retried rollout #%d", config.Status.LatestVersion))
+		printer, err := o.ToPrinter(fmt.Sprintf("retried rollout #%d", config.Status.LatestVersion))
 		if err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
 			continue

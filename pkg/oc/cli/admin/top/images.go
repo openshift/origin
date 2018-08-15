@@ -15,6 +15,7 @@ import (
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -42,37 +43,42 @@ var (
   	%[1]s %[2]s`)
 )
 
-// NewCmdTopImages implements the OpenShift cli top images command.
-func NewCmdTopImages(f kcmdutil.Factory, parentName, name string, out io.Writer) *cobra.Command {
-	opts := &TopImagesOptions{}
-	cmd := &cobra.Command{
-		Use:     name,
-		Short:   "Show usage statistics for Images",
-		Long:    topImagesLong,
-		Example: fmt.Sprintf(topImagesExample, parentName, name),
-		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
-			kcmdutil.CheckErr(opts.Validate(cmd))
-			kcmdutil.CheckErr(opts.Run())
-		},
-	}
-
-	return cmd
-}
-
 type TopImagesOptions struct {
 	// internal values
 	Images  *imageapi.ImageList
 	Streams *imageapi.ImageStreamList
 	Pods    *kapi.PodList
 
-	// helpers
-	out io.Writer
+	genericclioptions.IOStreams
+}
+
+func NewTopImagesOptions(streams genericclioptions.IOStreams) *TopImagesOptions {
+	return &TopImagesOptions{
+		IOStreams: streams,
+	}
+}
+
+// NewCmdTopImages implements the OpenShift cli top images command.
+func NewCmdTopImages(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewTopImagesOptions(streams)
+	cmd := &cobra.Command{
+		Use:     name,
+		Short:   "Show usage statistics for Images",
+		Long:    topImagesLong,
+		Example: fmt.Sprintf(topImagesExample, parentName, name),
+		Run: func(cmd *cobra.Command, args []string) {
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate(cmd))
+			kcmdutil.CheckErr(o.Run())
+		},
+	}
+
+	return cmd
 }
 
 // Complete turns a partially defined TopImagesOptions into a solvent structure
 // which can be validated and used for showing limits usage.
-func (o *TopImagesOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *TopImagesOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
@@ -90,7 +96,6 @@ func (o *TopImagesOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 	if len(namespace) == 0 {
 		namespace = metav1.NamespaceAll
 	}
-	o.out = out
 
 	allImages, err := imageClient.Image().Images().List(metav1.ListOptions{})
 	if err != nil {
@@ -121,7 +126,7 @@ func (o TopImagesOptions) Validate(cmd *cobra.Command) error {
 // Run contains all the necessary functionality to show current image references.
 func (o TopImagesOptions) Run() error {
 	infos := o.imagesTop()
-	Print(o.out, ImageColumns, infos)
+	Print(o.Out, ImageColumns, infos)
 	return nil
 }
 

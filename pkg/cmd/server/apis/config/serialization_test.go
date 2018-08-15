@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
+	kubeapitesting "k8s.io/kubernetes/pkg/api/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
@@ -26,10 +27,11 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
+	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
 )
 
 func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {
-	f := fuzzerFor(t, forVersion, rand.NewSource(seed))
+	f := fuzzerFor(rand.NewSource(seed))
 	f.Funcs(
 		// these follow defaulting rules
 		func(obj *configapi.MasterConfig, c fuzz.Continue) {
@@ -452,8 +454,8 @@ func TestSpecificKind(t *testing.T) {
 	}
 	seed := int64(2703387474910584091) //rand.Int63()
 	for i := 0; i < fuzzIters; i++ {
-		fuzzInternalObject(t, configapiv1.SchemeGroupVersion, item, seed)
-		roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.SchemeGroupVersion), item)
+		fuzzInternalObject(t, configapiv1.LegacySchemeGroupVersion, item, seed)
+		roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.LegacySchemeGroupVersion), item)
 	}
 }
 
@@ -467,13 +469,26 @@ func TestTypes(t *testing.T) {
 				t.Errorf("Couldn't make a %v? %v", kind, err)
 				continue
 			}
+
+			found := false
+			itemType := reflect.TypeOf(item)
+			for _, obj := range configapi.KnownTypes {
+				t := reflect.TypeOf(obj)
+				if itemType.String() == t.String() {
+					found = true
+				}
+			}
+			if !found {
+				continue
+			}
+
 			if _, err := meta.TypeAccessor(item); err != nil {
 				t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
 			}
 			seed := rand.Int63()
 
-			fuzzInternalObject(t, configapiv1.SchemeGroupVersion, item, seed)
-			roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.SchemeGroupVersion), item)
+			fuzzInternalObject(t, configapiv1.LegacySchemeGroupVersion, item, seed)
+			roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.LegacySchemeGroupVersion), item)
 		}
 	}
 }
@@ -496,7 +511,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 					},
 				},
 			},
-			to: configapiv1.SchemeGroupVersion,
+			to: configapiv1.LegacySchemeGroupVersion,
 			out: &configapiv1.MasterConfig{
 				TypeMeta: metav1.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
 				AdmissionConfig: configapiv1.AdmissionConfig{
@@ -518,7 +533,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 				},
 				VolumeConfig: configapiv1.MasterVolumeConfig{DynamicProvisioningEnabled: &boolFalse},
 			},
-			from: configapiv1.SchemeGroupVersion,
+			from: configapiv1.LegacySchemeGroupVersion,
 		},
 	}
 
@@ -550,12 +565,17 @@ func TestSpecificRoundTrips(t *testing.T) {
 	}
 }
 
-func fuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz.Fuzzer {
-	f := fuzz.New().NilChance(.5).NumElements(1, 1)
-	if src != nil {
-		f.RandSource(src)
-	}
-	f.Funcs(
+func fuzzerFor(src rand.Source) *fuzz.Fuzzer {
+	f := fuzzer.FuzzerFor(fuzzer.MergeFuzzerFuncs(
+		kubeapitesting.FuzzerFuncs,
+		Funcs,
+	), src, serializer.NewCodecFactory(configapi.Scheme))
+
+	return f
+}
+
+var Funcs = func(codecs serializer.CodecFactory) []interface{} {
+	return []interface{}{
 		func(j *runtime.TypeMeta, c fuzz.Continue) {
 			// We have to customize the randomization of TypeMetas because their
 			// APIVersion and Kind must remain blank in memory.
@@ -600,6 +620,5 @@ func fuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 			j.FieldPath = c.RandString()
 		},
-	)
-	return f
+	}
 }

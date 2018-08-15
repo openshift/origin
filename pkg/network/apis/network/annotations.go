@@ -58,8 +58,3 @@ func SetChangePodNetworkAnnotation(netns *NetNamespace, action PodNetworkAction,
 	}
 	netns.Annotations[ChangePodNetworkAnnotation] = value
 }
-
-// DeleteChangePodNetworkAnnotation removes network change intent from NetNamespace
-func DeleteChangePodNetworkAnnotation(netns *NetNamespace) {
-	delete(netns.Annotations, ChangePodNetworkAnnotation)
-}

@@ -11,19 +11,10 @@ import (
 )
 
 // RunController starts the build sync loop for builds and buildConfig processing.
-func RunBuildController(ctx ControllerContext) (bool, error) {
+func RunBuildController(ctx *ControllerContext) (bool, error) {
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Format
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Latest
-
-	buildDefaults, err := builddefaults.NewBuildDefaults(ctx.OpenshiftControllerConfig.Build.AdmissionPluginConfig)
-	if err != nil {
-		return true, err
-	}
-	buildOverrides, err := buildoverrides.NewBuildOverrides(ctx.OpenshiftControllerConfig.Build.AdmissionPluginConfig)
-	if err != nil {
-		return true, err
-	}
 
 	kubeClient := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	buildClient := ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
@@ -53,15 +44,15 @@ func RunBuildController(ctx ControllerContext) (bool, error) {
 			SecurityClient: securityClient.Security(),
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{},
-		BuildDefaults:       buildDefaults,
-		BuildOverrides:      buildOverrides,
+		BuildDefaults:       builddefaults.BuildDefaults{Config: ctx.OpenshiftControllerConfig.Build.BuildDefaults},
+		BuildOverrides:      buildoverrides.BuildOverrides{Config: ctx.OpenshiftControllerConfig.Build.BuildOverrides},
 	}
 
 	go buildcontroller.NewBuildController(buildControllerParams).Run(5, ctx.Stop)
 	return true, nil
 }
 
-func RunBuildConfigChangeController(ctx ControllerContext) (bool, error) {
+func RunBuildConfigChangeController(ctx *ControllerContext) (bool, error) {
 	clientName := bootstrappolicy.InfraBuildConfigChangeControllerServiceAccountName
 	kubeExternalClient := ctx.ClientBuilder.ClientOrDie(clientName)
 	buildClient := ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(clientName)

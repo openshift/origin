@@ -3,20 +3,17 @@ package secrets
 import (
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
-
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 // SecretOptions Structure holding state for processing secret linking and
@@ -28,10 +25,8 @@ type SecretOptions struct {
 
 	Namespace string
 
-	BuilderFunc    func() *resource.Builder
-	KubeCoreClient kcoreclient.CoreInterface
-
-	Out io.Writer
+	BuilderFunc func() *resource.Builder
+	KubeClient  corev1client.CoreV1Interface
 }
 
 // Complete Parses the command line arguments and populates SecretOptions
@@ -49,11 +44,10 @@ func (o *SecretOptions) Complete(f kcmdutil.Factory, args []string) error {
 	if err != nil {
 		return err
 	}
-	kubeClient, err := kcoreclient.NewForConfig(clientConfig)
+	o.KubeClient, err = corev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.KubeCoreClient = kubeClient
 	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
@@ -70,8 +64,8 @@ func (o SecretOptions) Validate() error {
 	if len(o.SecretNames) == 0 {
 		return errors.New("secret name must be present")
 	}
-	if o.KubeCoreClient == nil {
-		return errors.New("KubeCoreClient must be present")
+	if o.KubeClient == nil {
+		return errors.New("KubeClient must be present")
 	}
 
 	// if any secret names are of the form <resource>/<name>,
@@ -88,9 +82,9 @@ func (o SecretOptions) Validate() error {
 }
 
 // GetServiceAccount Retrieve the service account object specified by the command
-func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
+func (o SecretOptions) GetServiceAccount() (*corev1.ServiceAccount, error) {
 	r := o.BuilderFunc().
-		WithScheme(ocscheme.ReadingInternalScheme).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).
 		ResourceNames("serviceaccounts", o.TargetName).
 		SingleResourceType().
@@ -104,7 +98,7 @@ func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
 	}
 
 	switch t := obj.(type) {
-	case *kapi.ServiceAccount:
+	case *corev1.ServiceAccount:
 		return t, nil
 	default:
 		return nil, fmt.Errorf("unhandled object: %#v", t)
@@ -112,7 +106,7 @@ func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
 }
 
 // GetSecretNames Get a list of the names of the secrets in a set of them
-func (o SecretOptions) GetSecretNames(secrets []*kapi.Secret) sets.String {
+func (o SecretOptions) GetSecretNames(secrets []*corev1.Secret) sets.String {
 	names := sets.String{}
 	for _, secret := range secrets {
 		names.Insert(parseSecretName(secret.Name))
@@ -133,7 +127,7 @@ func parseSecretName(name string) string {
 
 // GetMountSecretNames Get a list of the names of the mount secrets associated
 // with a service account
-func (o SecretOptions) GetMountSecretNames(serviceaccount *kapi.ServiceAccount) sets.String {
+func (o SecretOptions) GetMountSecretNames(serviceaccount *corev1.ServiceAccount) sets.String {
 	names := sets.String{}
 	for _, secret := range serviceaccount.Secrets {
 		names.Insert(secret.Name)
@@ -143,7 +137,7 @@ func (o SecretOptions) GetMountSecretNames(serviceaccount *kapi.ServiceAccount) 
 
 // GetPullSecretNames Get a list of the names of the pull secrets associated
 // with a service account.
-func (o SecretOptions) GetPullSecretNames(serviceaccount *kapi.ServiceAccount) sets.String {
+func (o SecretOptions) GetPullSecretNames(serviceaccount *corev1.ServiceAccount) sets.String {
 	names := sets.String{}
 	for _, secret := range serviceaccount.ImagePullSecrets {
 		names.Insert(secret.Name)
@@ -151,24 +145,15 @@ func (o SecretOptions) GetPullSecretNames(serviceaccount *kapi.ServiceAccount) s
 	return names
 }
 
-// GetOut Retrieve the output writer
-func (o SecretOptions) GetOut() io.Writer {
-	if o.Out == nil {
-		return ioutil.Discard
-	}
-
-	return o.Out
-}
-
 // GetSecrets Return a list of secret objects in the default namespace
 // If allowNonExisting is set to true, we will return the non-existing secrets as well.
-func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*kapi.Secret, bool, error) {
-	secrets := []*kapi.Secret{}
+func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*corev1.Secret, bool, error) {
+	secrets := []*corev1.Secret{}
 	hasNotFound := false
 
 	for _, secretName := range o.SecretNames {
 		r := o.BuilderFunc().
-			WithScheme(ocscheme.ReadingInternalScheme).
+			WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 			NamespaceParam(o.Namespace).
 			ResourceNames("secrets", secretName).
 			SingleResourceType().
@@ -184,7 +169,7 @@ func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*kapi.Secret, bool, 
 				fmt.Fprintf(os.Stderr, "secret %q not found\n", secretName)
 				hasNotFound = true
 				if allowNonExisting {
-					obj = &kapi.Secret{
+					obj = &corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: secretName,
 						},
@@ -197,7 +182,7 @@ func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*kapi.Secret, bool, 
 			}
 		}
 		switch t := obj.(type) {
-		case *kapi.Secret:
+		case *corev1.Secret:
 			secrets = append(secrets, t)
 		default:
 			return nil, false, fmt.Errorf("unhandled object: %#v", t)

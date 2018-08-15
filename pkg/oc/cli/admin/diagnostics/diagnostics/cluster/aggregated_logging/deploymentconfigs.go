@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
@@ -91,7 +92,7 @@ func checkDeploymentConfigs(r diagnosticReporter, adapter deploymentConfigAdapte
 	checkDeploymentConfigPods(r, adapter, *dcList, project)
 }
 
-func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAdapter, dcs appsapi.DeploymentConfigList, project string) {
+func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAdapter, dcs appsv1.DeploymentConfigList, project string) {
 	compReq, _ := labels.NewRequirement(componentKey, selection.In, loggingComponents.List())
 	provReq, _ := labels.NewRequirement(providerKey, selection.Equals, []string{openshiftValue})
 	podSelector := labels.NewSelector().Add(*compReq, *provReq)

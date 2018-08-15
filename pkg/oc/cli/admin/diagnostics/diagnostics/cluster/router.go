@@ -15,8 +15,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/util"
 	"k8s.io/kubernetes/pkg/apis/authorization"
@@ -103,7 +103,7 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 	can, err := util.UserCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Namespace: metav1.NamespaceDefault,
 		Verb:      "get",
-		Group:     appsapi.GroupName,
+		Group:     appsv1.GroupName,
 		Resource:  "deploymentconfigs",
 		Name:      routerName,
 	})
@@ -129,7 +129,7 @@ func (d *ClusterRouter) Check() types.DiagnosticResult {
 	return r
 }
 
-func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *appsapi.DeploymentConfig {
+func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *appsv1.DeploymentConfig {
 	dc, err := d.DCClient.DeploymentConfigs(metav1.NamespaceDefault).Get(routerName, metav1.GetOptions{})
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
 		r.Warn("DClu2001", err, fmt.Sprintf(clGetRtNone, routerName))
@@ -142,7 +142,7 @@ func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *appsapi.Deploymen
 	return dc
 }
 
-func (d *ClusterRouter) getRouterPods(dc *appsapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
+func (d *ClusterRouter) getRouterPods(dc *appsv1.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
 	pods, err := d.KubeClient.Core().Pods(metav1.NamespaceDefault).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector).String()})
 	if err != nil {
 		r.Error("DClu2004", err, fmt.Sprintf("Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err))

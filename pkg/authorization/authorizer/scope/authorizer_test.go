@@ -8,7 +8,6 @@ import (
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
 func TestAuthorize(t *testing.T) {
@@ -63,7 +62,7 @@ func TestAuthorize(t *testing.T) {
 				Namespace:       "ns",
 			},
 			expectedAllowed: kauthorizer.DecisionDeny,
-			expectedMsg:     `scopes [does-not-exist] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
+			expectedMsg:     `scopes [does-not-exist] prevent this action`,
 			expectedErr:     `no scope evaluator found for "does-not-exist"`,
 		},
 		{
@@ -74,7 +73,7 @@ func TestAuthorize(t *testing.T) {
 				Namespace:       "ns",
 			},
 			expectedAllowed: kauthorizer.DecisionDeny,
-			expectedMsg:     `scopes [user:dne] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
+			expectedMsg:     `scopes [user:dne] prevent this action`,
 			expectedErr:     `unrecognized scope: user:dne`,
 		},
 		{
@@ -85,7 +84,7 @@ func TestAuthorize(t *testing.T) {
 				Namespace:       "ns",
 				Verb:            "get", Resource: "users", Name: "harold"},
 			expectedAllowed: kauthorizer.DecisionDeny,
-			expectedMsg:     `scopes [user:info] prevent this action; User "" cannot get users in project "ns"`,
+			expectedMsg:     `scopes [user:info] prevent this action`,
 		},
 		{
 			name: "scope covers",
@@ -127,7 +126,7 @@ func TestAuthorize(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			authorizer := NewAuthorizer(nil, defaultauthorizer.NewForbiddenMessageResolver(""))
+			authorizer := NewAuthorizer(nil)
 
 			actualAllowed, actualMsg, actualErr := authorizer.Authorize(tc.attributes)
 			switch {

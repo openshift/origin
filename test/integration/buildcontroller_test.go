@@ -3,26 +3,15 @@ package integration
 import (
 	"testing"
 
-	"github.com/golang/glog"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	kinformers "k8s.io/client-go/informers"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
-	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
-	kubecontrollerconfig "k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller"
 
 	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
@@ -110,73 +99,11 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	informers, err := origin.NewInformers(clusterAdminClientConfig)
+	openshiftControllerContext, err := origincontrollers.NewControllerContext(configapi.OpenshiftControllerConfig{}, clusterAdminClientConfig, utilwait.NeverStop)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	externalKubeClient := kclientsetexternal.NewForConfigOrDie(clusterAdminClientConfig)
-
-	// this test wants to duplicate the controllers, so it needs to duplicate the wiring.
-	// TODO have this simply start the particular controller it wants multiple times
-	rootClientBuilder := controller.SimpleControllerClientBuilder{
-		ClientConfig: clusterAdminClientConfig,
-	}
-	saClientBuilder := controller.SAControllerClientBuilder{
-		ClientConfig:         restclient.AnonymousClientConfig(clusterAdminClientConfig),
-		CoreClient:           externalKubeClient.Core(),
-		AuthenticationClient: externalKubeClient.Authentication(),
-		Namespace:            "kube-system",
-	}
-	availableResources, err := kctrlmgr.GetAvailableResources(rootClientBuilder)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	go func() {
-		informers.GetInternalOpenshiftBuildInformers().Start(utilwait.NeverStop)
-		informers.GetInternalOpenshiftImageInformers().Start(utilwait.NeverStop)
-		informers.GetOpenshiftAppInformers().Start(utilwait.NeverStop)
-		informers.GetInternalOpenshiftSecurityInformers().Start(utilwait.NeverStop)
-	}()
-
-	controllerContext := kctrlmgr.ControllerContext{
-		ClientBuilder: saClientBuilder,
-		InformerFactory: genericInformers{
-			SharedInformerFactory: informers.GetKubernetesInformers(),
-			generic: []GenericResourceInformer{
-				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetInternalOpenshiftImageInformers().ForResource(resource)
-				}),
-				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetInternalOpenshiftBuildInformers().ForResource(resource)
-				}),
-				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetOpenshiftAppInformers().ForResource(resource)
-				}),
-				informers.GetKubernetesInformers(),
-			},
-		},
-		ComponentConfig:    kubecontrollerconfig.Config{}.ComponentConfig,
-		AvailableResources: availableResources,
-		Stop:               wait.NeverStop,
-	}
-	openshiftControllerContext := origincontrollers.ControllerContext{
-		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
-			ControllerClientBuilder: controller.SAControllerClientBuilder{
-				ClientConfig:         restclient.AnonymousClientConfig(clusterAdminClientConfig),
-				CoreClient:           externalKubeClient.Core(),
-				AuthenticationClient: externalKubeClient.Authentication(),
-				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
-			},
-		},
-		KubernetesInformers:       informers.GetKubernetesInformers(),
-		AppsInformers:             informers.GetOpenshiftAppInformers(),
-		InternalBuildInformers:    informers.GetInternalOpenshiftBuildInformers(),
-		InternalImageInformers:    informers.GetInternalOpenshiftImageInformers(),
-		InternalSecurityInformers: informers.GetInternalOpenshiftSecurityInformers(),
-		Stop: controllerContext.Stop,
-	}
+	openshiftControllerContext.StartInformers(openshiftControllerContext.Stop)
 
 	for i := 0; i < counts.BuildControllers; i++ {
 		_, err := origincontrollers.ControllerInitializers["openshift.io/build"](openshiftControllerContext)
@@ -202,37 +129,4 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 		func() {
 			testserver.CleanupMasterEtcd(t, master)
 		}
-}
-
-type GenericResourceInformer interface {
-	ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
-}
-
-// genericInternalResourceInformerFunc will return an internal informer for any resource matching
-// its group resource, instead of the external version. Only valid for use where the type is accessed
-// via generic interfaces, such as the garbage collector with ObjectMeta.
-type genericInternalResourceInformerFunc func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
-
-func (fn genericInternalResourceInformerFunc) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-	resource.Version = runtime.APIVersionInternal
-	return fn(resource)
-}
-
-type genericInformers struct {
-	kinformers.SharedInformerFactory
-	generic []GenericResourceInformer
-}
-
-func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-	informer, firstErr := i.SharedInformerFactory.ForResource(resource)
-	if firstErr == nil {
-		return informer, nil
-	}
-	for _, generic := range i.generic {
-		if informer, err := generic.ForResource(resource); err == nil {
-			return informer, nil
-		}
-	}
-	glog.V(4).Infof("Couldn't find informer for %v", resource)
-	return nil, firstErr
 }

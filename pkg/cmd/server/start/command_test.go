@@ -1,8 +1,6 @@
 package start
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -13,9 +11,6 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
-
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -204,50 +199,4 @@ func executeMasterCommand(args []string) *MasterArgs {
 	root.Execute()
 
 	return cfg.MasterArgs
-}
-
-func executeAllInOneCommand(args []string) (*MasterArgs, *NodeArgs) {
-	masterArgs, _, _, nodeArgs, _, _ := executeAllInOneCommandWithConfigs(args)
-	return masterArgs, nodeArgs
-}
-
-func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.MasterConfig, error, *NodeArgs, *configapi.NodeConfig, error) {
-	argsToUse := make([]string, 0, 4+len(args))
-	argsToUse = append(argsToUse, "start")
-	argsToUse = append(argsToUse, args...)
-	argsToUse = append(argsToUse, "--write-config="+getCleanAllInOneConfigDir())
-	argsToUse = append(argsToUse, "--create-certs=false")
-
-	root := &cobra.Command{
-		Use:   "openshift",
-		Short: "test",
-		Long:  "",
-		Run: func(c *cobra.Command, args []string) {
-			c.Help()
-		},
-	}
-
-	openshiftStartCommand, cfg := NewCommandStartAllInOne("openshift start", os.Stdout, os.Stderr)
-	root.AddCommand(openshiftStartCommand)
-	root.SetArgs(argsToUse)
-	root.Execute()
-
-	masterCfg, masterErr := configapilatest.ReadAndResolveMasterConfig(path.Join(getAllInOneConfigDir(), "master", "master-config.yaml"))
-
-	var nodeCfg *configapi.NodeConfig
-	var nodeErr error
-
-	nodeConfigs, nodeErr := filepath.Glob(getNodeConfigGlob())
-	if nodeErr == nil {
-		if len(nodeConfigs) != 1 {
-			nodeErr = fmt.Errorf("found wrong number of node configs: %v", nodeConfigs)
-		} else {
-			nodeCfg, nodeErr = configapilatest.ReadAndResolveNodeConfig(nodeConfigs[0])
-		}
-	}
-
-	if nodeCfg == nil && nodeErr == nil {
-		nodeErr = errors.New("did not find node config")
-	}
-	return cfg.MasterOptions.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
 }

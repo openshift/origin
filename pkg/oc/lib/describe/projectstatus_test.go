@@ -8,6 +8,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
@@ -20,9 +22,8 @@ import (
 	kubefakeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
 
+	appsfakeclient "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	oapi "github.com/openshift/origin/pkg/api"
-	appsfakeclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
 	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
 	imagefakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
@@ -463,6 +464,10 @@ func TestProjectStatus(t *testing.T) {
 	}
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()
+
+	appsScheme := runtime.NewScheme()
+	appsapi.Install(appsScheme)
+
 	for k, test := range testCases {
 		t.Run(k, func(t *testing.T) {
 			timeNowFn = func() time.Time {
@@ -475,7 +480,8 @@ func TestProjectStatus(t *testing.T) {
 			if len(test.File) > 0 {
 				// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
 				var err error
-				objs, err = readObjectsFromPath("../../../../pkg/oc/lib/graph/genericgraph/test/"+test.File, "example", legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
+				objs, err = readObjectsFromPath("../../../../pkg/oc/lib/graph/genericgraph/test/"+test.File, "example",
+					legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...), legacyscheme.Scheme)
 				if err != nil {
 					t.Errorf("%s: unexpected error: %v", k, err)
 				}
@@ -488,7 +494,22 @@ func TestProjectStatus(t *testing.T) {
 			projectClient := projectfakeclient.NewSimpleClientset(filterByScheme(projectclientscheme.Scheme, objs...)...)
 			buildClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
 			imageClient := imagefakeclient.NewSimpleClientset(filterByScheme(imageclientscheme.Scheme, objs...)...)
-			appsClient := appsfakeclient.NewSimpleClientset(filterByScheme(appsclientscheme.Scheme, objs...)...)
+
+			appsInternalObjects := filterByScheme(appsScheme, objs...)
+			appsExternalObjects := []runtime.Object{}
+			for _, obj := range appsInternalObjects {
+				dcExternal := &appsv1.DeploymentConfig{}
+				_, ok := obj.(*appsapi.DeploymentConfig)
+				if !ok {
+					continue
+				}
+				if err := legacyscheme.Scheme.Convert(obj, dcExternal, nil); err != nil {
+					panic(err)
+				}
+				appsExternalObjects = append(appsExternalObjects, dcExternal)
+			}
+			appsClient := appsfakeclient.NewSimpleClientset(appsExternalObjects...)
+
 			routeClient := routefakeclient.NewSimpleClientset(filterByScheme(routeclientscheme.Scheme, objs...)...)
 
 			d := ProjectStatusDescriber{

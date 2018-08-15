@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -27,10 +28,7 @@ var (
 	openshiftLong = ktemplates.LongDesc(`
 		%[2]s
 
-		The %[3]s helps you build, deploy, and manage your applications on top of
-		Docker containers. To start an all-in-one server with the default configuration, run:
-
-		    $ %[1]s start &`)
+		The %[3]s helps you build, deploy, and manage containerized applications.`)
 )
 
 // CommandFor returns the appropriate command for this base name,
@@ -68,8 +66,8 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
-	root.AddCommand(startAllInOne)
+	root.AddCommand(start.NewCommandStart(name, out, errout, wait.NeverStop))
+
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmdversion.NewCmdVersion(name, osversion.Get(), os.Stdout))
 	root.AddCommand(newCmdOptions())
@@ -125,6 +123,7 @@ var (
 	  * zsh completions are only supported in versions of zsh >= 5.2`)
 )
 
+// NewCmdCompletion creates a completion command.
 func NewCmdCompletion(fullName string, out io.Writer) *cobra.Command {
 	cmdHelpName := fullName
 

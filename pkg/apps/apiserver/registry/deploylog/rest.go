@@ -26,10 +26,10 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/api/apps"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 

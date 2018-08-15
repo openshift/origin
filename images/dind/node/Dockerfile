@@ -28,7 +28,8 @@ RUN dnf -y update && dnf -y install\
  python2-pyroute2\
  python2-requests\
  PyYAML\
- cri-o
+ cri-o\
+ cri-tools
 
 # Remove the CRI-O CNI network configs so openshift-sdn's will be used instead
 RUN rm -f /etc/cni/net.d/*

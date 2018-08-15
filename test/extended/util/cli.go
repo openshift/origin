@@ -31,7 +31,6 @@ import (
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	_ "github.com/openshift/origin/pkg/api/install"
-	appsinternalclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -87,6 +86,28 @@ func NewCLI(project, adminConfigPath string) *CLI {
 	g.BeforeEach(client.SetupProject)
 
 	return client
+}
+
+// ProwGCPSetup makes sure certain required env vars are available in the case
+// that extended tests are invoked directly via calls to ginkgo/extended.test
+func ProwGCPSetup(oc *CLI) {
+	tn := os.Getenv("OS_TEST_NAMESPACE")
+	ad := os.Getenv("ARTIFACT_DIR")
+	btd := os.Getenv("BASETMPDIR")
+	e2e.Logf("OS_TEST_NAMESPACE env setting %s, ARTIFACT_DIR env setting %s BASETMPDIR %s", tn, ad, btd)
+	if len(strings.TrimSpace(tn)) == 0 {
+		os.Setenv("OS_TEST_NAMESPACE", oc.Namespace())
+		e2e.Logf("OS_TEST_NAMESPACE env setting now %s", os.Getenv("OS_TEST_NAMESPACE"))
+	}
+	if len(strings.TrimSpace(ad)) == 0 {
+		os.Setenv("ARTIFACT_DIR", "/tmp/artifacts")
+		e2e.Logf("ARTIFACT_DIR env setting now %s", os.Getenv("ARTIFACT_DIR"))
+	}
+	if len(strings.TrimSpace(btd)) == 0 {
+		os.Setenv("BASETMPDIR", "/tmp/shared")
+		e2e.Logf("BASETMPDIR setting is now %s", os.Getenv("BASETMPDIR"))
+	}
+
 }
 
 // KubeFramework returns Kubernetes framework which contains helper functions
@@ -161,6 +182,7 @@ func (c *CLI) SetupProject() {
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
 	e2e.Logf("The user is now %q", c.Username())
+	ProwGCPSetup(c)
 
 	e2e.Logf("Creating project %q", newNamespace)
 	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
@@ -248,15 +270,6 @@ func (c *CLI) AppsClient() appsclient.Interface {
 	return client
 }
 
-// DEPRECATED: Use the external client instead
-func (c *CLI) AppsInternalClient() appsinternalclient.Interface {
-	client, err := appsinternalclient.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
 func (c *CLI) AuthorizationClient() authorizationclientset.Interface {
 	client, err := authorizationclientset.NewForConfig(c.UserConfig())
 	if err != nil {
@@ -317,14 +330,6 @@ func (c *CLI) UserClient() userclientset.Interface {
 
 func (c *CLI) AdminAppsClient() appsclient.Interface {
 	client, err := appsclient.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-func (c *CLI) AdminInternalAppsClient() appsinternalclient.Interface {
-	client, err := appsinternalclient.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}

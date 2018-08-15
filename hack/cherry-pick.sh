@@ -35,7 +35,14 @@ os::build::require_clean_tree
 remote="${UPSTREAM_REMOTE:-origin}"
 git fetch ${remote}
 
-selector="$(os::build::commit_range $pr ${remote}/master)"
+if [[ -n "${APPLY_PR_COMMITS-}" ]]; then
+    selector="$(os::build::commit_range $pr ${remote}/${UPSTREAM_BRANCH:-master})"
+else
+    pr_commit="$(git rev-parse ${remote}/pr/$1)"
+    merge="$(git merge-base ${pr_commit} ${remote}/${UPSTREAM_BRANCH:-master})"
+    echo "++ Will apply merge ${merge} as one commit ..."
+    selector="$(git rev-parse ${merge}^1)..${merge}"
+fi
 
 if [[ -z "${NO_REBASE-}" ]]; then
   echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1

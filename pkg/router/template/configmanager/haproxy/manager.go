@@ -214,7 +214,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 			newRoute.Spec.Host = r.Spec.Host
 			if !reflect.DeepEqual(r, newRoute) {
 				updated = true
-				blueprints = append(blueprints, route.DeepCopy())
+				blueprints = append(blueprints, newRoute)
 				continue
 			}
 		}
@@ -222,7 +222,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 	}
 
 	if !routeExists {
-		blueprints = append(blueprints, route.DeepCopy())
+		blueprints = append(blueprints, newRoute)
 		updated = true
 	}
 
@@ -234,7 +234,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 	cm.blueprintRoutes = blueprints
 	cm.lock.Unlock()
 
-	cm.provisionRoutePool(route)
+	cm.provisionRoutePool(newRoute)
 }
 
 // RemoveBlueprint removes a route blueprint.
@@ -264,7 +264,7 @@ func (cm *haproxyConfigManager) RemoveBlueprint(route *routeapi.Route) {
 	cm.blueprintRoutes = blueprints
 	cm.lock.Unlock()
 
-	cm.removeRoutePool(route)
+	cm.removeRoutePool(deletedRoute)
 }
 
 // Register registers an id with an expected haproxy backend for a route.
@@ -286,7 +286,7 @@ func (cm *haproxyConfigManager) Register(id string, route *routeapi.Route) {
 }
 
 // AddRoute adds a new route or updates an existing route.
-func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route) error {
+func (cm *haproxyConfigManager) AddRoute(id, routingKey string, route *routeapi.Route) error {
 	if cm.isReloading() {
 		return fmt.Errorf("Router reload in progress, cannot dynamically add route %s", id)
 	}
@@ -332,6 +332,18 @@ func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route) error
 
 	if err := cm.addMapAssociations(entry.mapAssociations); err != nil {
 		return fmt.Errorf("adding map associations for id %s: %v", id, err)
+	}
+
+	backendName := entry.BackendName()
+	glog.V(4).Infof("Finding backend %s ...", backendName)
+	backend, err := cm.client.FindBackend(backendName)
+	if err != nil {
+		return err
+	}
+
+	glog.V(4).Infof("Setting routing key for backend %s ...", backendName)
+	if err := backend.SetRoutingKey(routingKey); err != nil {
+		return err
 	}
 
 	glog.V(4).Infof("Route %s added using blueprint pool slot %s", id, slotName)
@@ -658,11 +670,12 @@ func (cm *haproxyConfigManager) commitRouterConfig() {
 	cm.commitTimer = nil
 	cm.lock.Unlock()
 
-	// [Re]Adding a blueprint pool route triggers a router state change.
-	// And calling Commit ensures that the config gets written out.
+	// Adding (+removing) a new blueprint pool route triggers a router state
+	// change. And calling Commit ensures that the config gets written out.
 	route := createBlueprintRoute(routeapi.TLSTerminationEdge)
-	route.Name = fmt.Sprintf("%v-1", route.Name)
+	route.Name = fmt.Sprintf("%s-temp-%d", route.Name, time.Now().Unix())
 	cm.router.AddRoute(route)
+	cm.router.RemoveRoute(route)
 
 	glog.V(4).Infof("Committing associated template router ... ")
 	cm.router.Commit()

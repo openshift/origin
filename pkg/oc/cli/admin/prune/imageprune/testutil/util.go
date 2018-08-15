@@ -7,12 +7,13 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -127,7 +128,7 @@ func AgedPod(namespace, name string, phase kapi.PodPhase, ageInMinutes int64, co
 			Name:      name,
 			SelfLink:  "/pod/" + name,
 		},
-		Spec: PodSpec(containerImages...),
+		Spec: PodSpecInternal(containerImages...),
 		Status: kapi.PodStatus{
 			Phase: phase,
 		},
@@ -140,13 +141,27 @@ func AgedPod(namespace, name string, phase kapi.PodPhase, ageInMinutes int64, co
 	return pod
 }
 
-// PodSpec creates a pod specification having the given docker image references.
-func PodSpec(containerImages ...string) kapi.PodSpec {
+// PodSpecInternal creates a pod specification having the given docker image references.
+func PodSpecInternal(containerImages ...string) kapi.PodSpec {
 	spec := kapi.PodSpec{
 		Containers: []kapi.Container{},
 	}
 	for _, image := range containerImages {
 		container := kapi.Container{
+			Image: image,
+		}
+		spec.Containers = append(spec.Containers, container)
+	}
+	return spec
+}
+
+// PodSpec creates a pod specification having the given docker image references.
+func PodSpec(containerImages ...string) corev1.PodSpec {
+	spec := corev1.PodSpec{
+		Containers: []corev1.Container{},
+	}
+	for _, image := range containerImages {
+		container := corev1.Container{
 			Image: image,
 		}
 		spec.Containers = append(spec.Containers, container)
@@ -250,7 +265,7 @@ func RC(namespace, name string, containerImages ...string) kapi.ReplicationContr
 		},
 		Spec: kapi.ReplicationControllerSpec{
 			Template: &kapi.PodTemplateSpec{
-				Spec: PodSpec(containerImages...),
+				Spec: PodSpecInternal(containerImages...),
 			},
 		},
 	}
@@ -273,7 +288,7 @@ func DS(namespace, name string, containerImages ...string) kapisext.DaemonSet {
 		},
 		Spec: kapisext.DaemonSetSpec{
 			Template: kapi.PodTemplateSpec{
-				Spec: PodSpec(containerImages...),
+				Spec: PodSpecInternal(containerImages...),
 			},
 		},
 	}
@@ -296,29 +311,29 @@ func Deployment(namespace, name string, containerImages ...string) kapisext.Depl
 		},
 		Spec: kapisext.DeploymentSpec{
 			Template: kapi.PodTemplateSpec{
-				Spec: PodSpec(containerImages...),
+				Spec: PodSpecInternal(containerImages...),
 			},
 		},
 	}
 }
 
 // DCList turns the given deployment configs into DeploymentConfigList.
-func DCList(dcs ...appsapi.DeploymentConfig) appsapi.DeploymentConfigList {
-	return appsapi.DeploymentConfigList{
+func DCList(dcs ...appsv1.DeploymentConfig) appsv1.DeploymentConfigList {
+	return appsv1.DeploymentConfigList{
 		Items: dcs,
 	}
 }
 
 // DC creates and returns a DeploymentConfig object.
-func DC(namespace, name string, containerImages ...string) appsapi.DeploymentConfig {
-	return appsapi.DeploymentConfig{
+func DC(namespace, name string, containerImages ...string) appsv1.DeploymentConfig {
+	return appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 			SelfLink:  "/dc/" + name,
 		},
-		Spec: appsapi.DeploymentConfigSpec{
-			Template: &kapi.PodTemplateSpec{
+		Spec: appsv1.DeploymentConfigSpec{
+			Template: &corev1.PodTemplateSpec{
 				Spec: PodSpec(containerImages...),
 			},
 		},
@@ -342,7 +357,7 @@ func RS(namespace, name string, containerImages ...string) kapisext.ReplicaSet {
 		},
 		Spec: kapisext.ReplicaSetSpec{
 			Template: kapi.PodTemplateSpec{
-				Spec: PodSpec(containerImages...),
+				Spec: PodSpecInternal(containerImages...),
 			},
 		},
 	}

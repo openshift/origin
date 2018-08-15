@@ -98,7 +98,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "valerie" cannot create policybindings in project "openshift"`,
+			Reason:    ``,
 			Namespace: "openshift",
 		},
 	}.run(t)
@@ -148,7 +148,7 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "valerie" cannot create pods in project "foo"`,
+			Reason:    ``,
 			Namespace: "foo",
 		},
 	}.run(t)

@@ -1,13 +1,12 @@
 package builds
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -84,8 +83,6 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		oc                                     = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
 		ticker                                 *time.Ticker
 		j                                      *jenkins.JenkinsRef
-		dcLogFollow                            *exec.Cmd
-		dcLogStdOut, dcLogStdErr               *bytes.Buffer
 		pvs                                    = []*v1.PersistentVolume{}
 		nfspod                                 = &v1.Pod{}
 
@@ -148,6 +145,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 			// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
 			newAppArgs := []string{"--template", fmt.Sprintf("%s/%s", oc.Namespace(), jenkinsTemplateName), "-p", "MEMORY_LIMIT=2Gi", "-p", "DISABLE_ADMINISTRATIVE_MONITORS=true"}
+			newAppArgs = jenkins.OverridePodTemplateImages(newAppArgs)
 			clientPluginNewAppArgs, useClientPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
 			syncPluginNewAppArgs, useSyncPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
 
@@ -182,7 +180,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsInternalClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "jenkins", 1, false, oc)
 			if err != nil {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 			}
@@ -210,7 +208,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			// This command will terminate if the Jenkins instance crashes. This
 			// ensures that even if the Jenkins DC restarts, we should capture
 			// logs from the crash.
-			dcLogFollow, dcLogStdOut, dcLogStdErr, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
+			_, _, _, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
@@ -814,6 +812,16 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				g.By(fmt.Sprintf("creating git repo %v", envVarsPipelineGitRepoBuildConfig))
 				repo, err := exutil.NewGitRepo(envVarsPipelineGitRepoBuildConfig)
 				defer repo.Remove()
+				if err != nil {
+					files, dbgerr := ioutil.ReadDir("/tmp")
+					if dbgerr != nil {
+						e2e.Logf("problem diagnosing /tmp: %v", dbgerr)
+					} else {
+						for _, file := range files {
+							e2e.Logf("found file %s under temp isdir %q mode %s", file.Name(), file.IsDir(), file.Mode().String())
+						}
+					}
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 				jf := `node() {\necho "FOO1 is ${env.FOO1}"\necho"FOO2is${env.FOO2}"\necho"FOO3is${env.FOO3}"\necho"FOO4is${env.FOO4}"}`
 				err = repo.AddAndCommit("Jenkinsfile", jf)
@@ -898,7 +906,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 						}
 
 						g.By("Approving the current build")
-						_, _, err = j.Post(nil, jenkinsBuildURI+"/input/Approval/proceedEmpty", "")
+						_, _, err = j.Post("", jenkinsBuildURI+"/input/Approval/proceedEmpty", "")
 						if err != nil {
 							errs <- fmt.Errorf("error approving the current build: %s", err)
 						}

@@ -6,19 +6,22 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/template/templateprocessing"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 )
 
+// TODO: remove this helper once all consumers are switched to external versions
 // TransformTemplate processes a template with the provided parameters, returning an error if transformation fails.
-func TransformTemplate(tpl *templateapi.Template, templateProcessor templateinternalclient.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templateapi.Template, error) {
+func TransformTemplateInternal(tpl *templateapi.Template, templateProcessor templateinternalclient.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templateapi.Template, error) {
 	// only set values that match what's expected by the template.
 	for k, value := range parameters {
 		v := templateprocessing.DeprecatedGetParameterByNameInternal(tpl, k)
@@ -66,6 +69,30 @@ func TransformTemplate(tpl *templateapi.Template, templateProcessor templateinte
 	}
 
 	result.Objects = append(decoded, needToDecode...)
+	return result, nil
+}
+
+// TransformTemplateV1 processes a template with the provided parameters, returning an error if transformation fails.
+func TransformTemplate(tpl *templatev1.Template, templateProcessor templateclientv1.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templatev1.Template, error) {
+	// only set values that match what's expected by the template.
+	for k, value := range parameters {
+		v := templateprocessing.GetParameterByName(tpl, k)
+		if v != nil {
+			v.Value = value
+			v.Generate = ""
+		} else if !ignoreUnknownParameters {
+			return nil, fmt.Errorf("unexpected parameter name %q", k)
+		}
+	}
+
+	name := localOrRemoteName(tpl.ObjectMeta, namespace)
+
+	// transform the template
+	result, err := templateProcessor.Process(tpl)
+	if err != nil {
+		return nil, fmt.Errorf("error processing template %q: %v", name, err)
+	}
+
 	return result, nil
 }
 

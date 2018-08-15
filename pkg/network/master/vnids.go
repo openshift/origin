@@ -12,10 +12,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 
+	networkapi "github.com/openshift/api/network/v1"
+	networkclient "github.com/openshift/client-go/network/clientset/versioned"
+	"github.com/openshift/library-go/pkg/network/networkapihelpers"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	pnetid "github.com/openshift/origin/pkg/network/master/netid"
 )
 
@@ -140,7 +141,7 @@ func (vmap *masterVNIDMap) releaseNetID(nsName string) error {
 	return nil
 }
 
-func (vmap *masterVNIDMap) updateNetID(nsName string, action networkapi.PodNetworkAction, args string) (uint32, error) {
+func (vmap *masterVNIDMap) updateNetID(nsName string, action networkapihelpers.PodNetworkAction, args string) (uint32, error) {
 	var netid uint32
 	allocated := false
 
@@ -152,15 +153,15 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action networkapi.PodNetwo
 
 	// Determine new network ID
 	switch action {
-	case networkapi.GlobalPodNetwork:
+	case networkapihelpers.GlobalPodNetwork:
 		netid = network.GlobalVNID
-	case networkapi.JoinPodNetwork:
+	case networkapihelpers.JoinPodNetwork:
 		joinNsName := args
 		var found bool
 		if netid, found = vmap.getVNID(joinNsName); !found {
 			return 0, fmt.Errorf("netid not found for namespace %q", joinNsName)
 		}
-	case networkapi.IsolatePodNetwork:
+	case networkapihelpers.IsolatePodNetwork:
 		if nsName == kapi.NamespaceDefault {
 			return 0, fmt.Errorf("network isolation for namespace %q is not allowed", nsName)
 		}
@@ -240,12 +241,12 @@ func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, ori
 	// Informer cache should not be mutated, so get a copy of the object
 	netns := origNetns.DeepCopy()
 
-	action, args, err := networkapi.GetChangePodNetworkAnnotation(netns)
-	if err == networkapi.ErrorPodNetworkAnnotationNotFound {
+	action, args, err := networkapihelpers.GetChangePodNetworkAnnotation(netns)
+	if err == networkapihelpers.ErrorPodNetworkAnnotationNotFound {
 		// Nothing to update
 		return nil
 	} else if !vmap.allowRenumbering {
-		networkapi.DeleteChangePodNetworkAnnotation(netns)
+		networkapihelpers.DeleteChangePodNetworkAnnotation(netns)
 		_, _ = networkClient.Network().NetNamespaces().Update(netns)
 		return fmt.Errorf("network plugin does not allow NetNamespace renumbering")
 	}
@@ -258,7 +259,7 @@ func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, ori
 		return err
 	}
 	netns.NetID = netid
-	networkapi.DeleteChangePodNetworkAnnotation(netns)
+	networkapihelpers.DeleteChangePodNetworkAnnotation(netns)
 
 	if _, err := networkClient.Network().NetNamespaces().Update(netns); err != nil {
 		return err

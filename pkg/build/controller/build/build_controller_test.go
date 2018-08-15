@@ -326,14 +326,12 @@ func TestHandleBuild(t *testing.T) {
 			} else {
 				kubeClient = fakeKubeExternalClientSet()
 			}
-			podDeleted := false
 			podCreated := false
 			kubeClient.(*kexternalclientfake.Clientset).PrependReactor("delete", "pods",
 				func(action clientgotesting.Action) (bool, runtime.Object, error) {
 					if tc.errorOnPodDelete {
 						return true, nil, fmt.Errorf("error")
 					}
-					podDeleted = true
 					return true, nil, nil
 				})
 			kubeClient.(*kexternalclientfake.Clientset).PrependReactor("create", "pods",
@@ -939,12 +937,12 @@ func TestSetBuildCompletionTimestampAndDuration(t *testing.T) {
 			switch test.expected.duration {
 			case &greaterThanZeroLessThanSinceStartTime:
 				sinceStart := now.Rfc3339Copy().Time.Sub(startTime.Rfc3339Copy().Time)
-				if !(*update.duration > 0) || !(*update.duration <= sinceStart) {
+				if *update.duration <= 0 || *update.duration > sinceStart {
 					t.Errorf("%s: duration (%v) not within expected range (%v - %v)", test.name, update.duration, 0, sinceStart)
 					continue
 				}
 			case &atLeastOneHour:
-				if !(*update.duration >= time.Hour) {
+				if *update.duration < time.Hour {
 					t.Errorf("%s: duration (%v) is not at least one hour", test.name, update.duration)
 					continue
 				}

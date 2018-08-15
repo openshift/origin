@@ -3,7 +3,6 @@ package admin
 import (
 	"bytes"
 	"errors"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -12,13 +11,14 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -28,28 +28,29 @@ const (
 
 type CreateBootstrapPolicyFileOptions struct {
 	File string
+
+	genericclioptions.IOStreams
 }
 
-func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateBootstrapPolicyFileOptions{}
+func NewCreateBootstrapPolicyFileOptions(streams genericclioptions.IOStreams) *CreateBootstrapPolicyFileOptions {
+	return &CreateBootstrapPolicyFileOptions{
+		File:      DefaultPolicyFile,
+		IOStreams: streams,
+	}
+}
 
+func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCreateBootstrapPolicyFileOptions(streams)
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create the default bootstrap policy",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.CreateBootstrapPolicyFile(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	flags := cmd.Flags()
-
-	flags.StringVar(&options.File, "filename", DefaultPolicyFile, "The policy template file that will be written with roles and bindings.")
+	cmd.Flags().StringVar(&o.File, "filename", o.File, "The policy template file that will be written with roles and bindings.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("filename")
@@ -68,7 +69,7 @@ func (o CreateBootstrapPolicyFileOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
+func (o CreateBootstrapPolicyFileOptions) Run() error {
 	if err := os.MkdirAll(path.Dir(o.File), os.FileMode(0755)); err != nil {
 		return err
 	}

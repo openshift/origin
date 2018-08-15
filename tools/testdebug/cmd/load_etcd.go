@@ -16,15 +16,15 @@ import (
 	"golang.org/x/net/context"
 
 	knet "k8s.io/apimachinery/pkg/util/net"
+	etcdutil "k8s.io/apiserver/pkg/storage/etcd/util"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	restclient "k8s.io/client-go/rest"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
-	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -100,7 +100,7 @@ func (o *DebugAPIServerOptions) Run() error {
 		addClusterAdmin := &policy.RoleModificationOptions{
 			RoleName:   bootstrappolicy.ClusterAdminRoleName,
 			RoleKind:   "ClusterRole",
-			RbacClient: rbacclient.NewForConfigOrDie(clientConfig),
+			RbacClient: rbacv1client.NewForConfigOrDie(clientConfig),
 			Groups:     []string{"system:authenticated"},
 		}
 		if err := addClusterAdmin.AddRole(); err != nil {
@@ -112,24 +112,15 @@ func (o *DebugAPIServerOptions) Run() error {
 }
 
 func (o *DebugAPIServerOptions) StartAPIServer(masterConfig configapi.MasterConfig) error {
-	openshiftConfig, err := origin.BuildMasterConfig(masterConfig)
-	if err != nil {
-		return err
-	}
-
-	kubeMasterConfig, err := kubernetes.BuildKubernetesMasterConfig(
-		openshiftConfig.Options,
-		openshiftConfig.KubeAdmissionControl,
-		openshiftConfig.Authenticator,
-		openshiftConfig.Authorizer,
-	)
+	informers := origin.InformerAccess(nil)
+	openshiftConfig, err := origin.BuildMasterConfig(masterConfig, informers)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("Starting master on %s\n", masterConfig.ServingInfo.BindAddress)
-	fmt.Printf("Public master address is %s\n", masterConfig.AssetConfig.MasterPublicURL)
-	return start.StartAPI(openshiftConfig, kubeMasterConfig)
+	fmt.Printf("Public master address is %s\n", masterConfig.MasterPublicURL)
+	return start.StartAPI(openshiftConfig)
 }
 
 // getAndTestEtcdClient creates an etcd client based on the provided config. It will attempt to

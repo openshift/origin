@@ -3,7 +3,6 @@ package cani
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -15,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/printers"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -25,7 +25,7 @@ import (
 
 const CanIRecommendedName = "can-i"
 
-type canIOptions struct {
+type CanIOptions struct {
 	AllNamespaces         bool
 	ListAll               bool
 	Quiet                 bool
@@ -44,14 +44,17 @@ type canIOptions struct {
 	Resource     schema.GroupVersionResource
 	ResourceName string
 
-	Out io.Writer
+	genericclioptions.IOStreams
 }
 
-func NewCmdCanI(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	o := &canIOptions{
-		Out: out,
+func NewCanIOptions(streams genericclioptions.IOStreams) *CanIOptions {
+	return &CanIOptions{
+		IOStreams: streams,
 	}
+}
 
+func NewCmdCanI(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCanIOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name + " VERB RESOURCE [NAME]",
 		Short: "Check whether an action is allowed",
@@ -95,7 +98,7 @@ const (
 	tabwriterFlags    = 0
 )
 
-func (o *canIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
+func (o *CanIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	if o.ListAll && o.AllNamespaces {
 		return errors.New("--list and --all-namespaces are mutually exclusive")
 	}
@@ -158,7 +161,7 @@ func (o *canIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []st
 	return nil
 }
 
-func (o *canIOptions) Run() (bool, error) {
+func (o *CanIOptions) Run() (bool, error) {
 	if o.ListAll {
 		return true, o.listAllPermissions()
 	}
@@ -199,7 +202,7 @@ func (o *canIOptions) Run() (bool, error) {
 	return response.Allowed, nil
 }
 
-func (o *canIOptions) listAllPermissions() error {
+func (o *CanIOptions) listAllPermissions() error {
 	var rulesReviewResult runtime.Object
 
 	if len(o.User) == 0 && len(o.Groups) == 0 {

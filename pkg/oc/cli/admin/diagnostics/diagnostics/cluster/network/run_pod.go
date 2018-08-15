@@ -77,11 +77,36 @@ func (d *NetworkDiagnostic) Requirements() (client bool, host bool) {
 
 func (d *NetworkDiagnostic) AvailableParameters() []types.Parameter {
 	return []types.Parameter{
-		{FlagNetworkDiagLogDir, "Path to store diagnostic results in case of errors", &d.LogDir, util.NetworkDiagDefaultLogDir},
-		{FlagNetworkDiagPodImage, "Image to use for diagnostic pod", &d.PodImage, util.GetNetworkDiagDefaultPodImage()},
-		{FlagNetworkDiagTestPodImage, "Image to use for diagnostic test pod", &d.TestPodImage, util.GetNetworkDiagDefaultTestPodImage()},
-		{FlagNetworkDiagTestPodProtocol, "Protocol used to connect to diagnostic test pod", &d.TestPodProtocol, util.NetworkDiagDefaultTestPodProtocol},
-		{FlagNetworkDiagTestPodPort, "Serving port on the diagnostic test pod", &d.TestPodPort, util.NetworkDiagDefaultTestPodPort},
+		{
+			Name:        FlagNetworkDiagLogDir,
+			Description: "Path to store diagnostic results in case of errors",
+			Target:      &d.LogDir,
+			Default:     util.NetworkDiagDefaultLogDir,
+		},
+		{
+			Name:        FlagNetworkDiagPodImage,
+			Description: "Image to use for diagnostic pod",
+			Target:      &d.PodImage,
+			Default:     util.GetNetworkDiagDefaultPodImage(),
+		},
+		{
+			Name:        FlagNetworkDiagTestPodImage,
+			Description: "Image to use for diagnostic test pod",
+			Target:      &d.TestPodImage,
+			Default:     util.GetNetworkDiagDefaultTestPodImage(),
+		},
+		{
+			Name:        FlagNetworkDiagTestPodProtocol,
+			Description: "Protocol used to connect to diagnostic test pod",
+			Target:      &d.TestPodProtocol,
+			Default:     util.NetworkDiagDefaultTestPodProtocol,
+		},
+		{
+			Name:        FlagNetworkDiagTestPodPort,
+			Description: "Serving port on the diagnostic test pod",
+			Target:      &d.TestPodPort,
+			Default:     util.NetworkDiagDefaultTestPodPort,
+		},
 	}
 }
 
@@ -214,11 +239,10 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 		// Do not bail out here, collect what ever info is available from all valid nodes
 	}
 
-	if err := d.CollectNetworkInfo(diagsFailed); err != nil {
-		d.res.Error("DNet2011", err, err.Error())
-	}
-
 	if diagsFailed {
+		if err := d.CollectNetworkInfo(); err != nil {
+			d.res.Error("DNet2011", err, err.Error())
+		}
 		d.res.Info("DNet2012", fmt.Sprintf("Additional info collected under %q for further analysis", d.LogDir))
 	}
 	return

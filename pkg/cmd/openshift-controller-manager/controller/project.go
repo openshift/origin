@@ -5,7 +5,7 @@ import (
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 )
 
-func RunOriginNamespaceController(ctx ControllerContext) (bool, error) {
+func RunOriginNamespaceController(ctx *ControllerContext) (bool, error) {
 	controller := projectcontroller.NewProjectFinalizerController(
 		ctx.KubernetesInformers.Core().V1().Namespaces(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraOriginNamespaceServiceAccountName),

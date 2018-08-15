@@ -13,6 +13,7 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 
 		expectedVerb        string
 		expectedSubresource string
+		expectedReason      string
 	}{
 		"non-resource": {
 			attributes:   authorizer.AttributesRecord{ResourceRequest: false, Verb: "GET"},
@@ -29,15 +30,18 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 			attributes:          authorizer.AttributesRecord{ResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
 			expectedVerb:        "get",
 			expectedSubresource: "unsafeproxy",
+			expectedReason:      "proxy subresource changed to unsafeproxy",
 		},
 		"unsafe proxy verb": {
-			attributes:   authorizer.AttributesRecord{ResourceRequest: true, Verb: "proxy", Resource: "nodes"},
-			expectedVerb: "unsafeproxy",
+			attributes:     authorizer.AttributesRecord{ResourceRequest: true, Verb: "proxy", Resource: "nodes"},
+			expectedVerb:   "unsafeproxy",
+			expectedReason: "proxy verb changed to unsafeproxy",
 		},
 		"unsafe proxy verb anonymous": {
 			attributes: authorizer.AttributesRecord{ResourceRequest: true, Verb: "proxy", Resource: "nodes",
 				User: &user.DefaultInfo{Name: "system:anonymous", Groups: []string{"system:unauthenticated"}}},
-			expectedVerb: "unsafeproxy",
+			expectedVerb:   "unsafeproxy",
+			expectedReason: "proxy verb changed to unsafeproxy",
 		},
 
 		"proxy subresource authenticated": {
@@ -51,7 +55,7 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 		safeAuthorizer := NewBrowserSafeAuthorizer(delegateAuthorizer, "system:authenticated")
 
 		authorized, reason, err := safeAuthorizer.Authorize(tc.attributes)
-		if authorized == authorizer.DecisionAllow || len(reason) != 0 || err != nil {
+		if authorized == authorizer.DecisionAllow || reason != tc.expectedReason || err != nil {
 			t.Errorf("%s: unexpected output: %v %s %v", name, authorized, reason, err)
 			continue
 		}

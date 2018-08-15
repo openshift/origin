@@ -15,6 +15,7 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kerrapi "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -27,6 +28,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
@@ -170,7 +172,7 @@ type PrunerOptions struct {
 	// Deployments is the entire list of kube's deployments across all namespaces in the cluster.
 	Deployments *kapisext.DeploymentList
 	// DCs is the entire list of deployment configs across all namespaces in the cluster.
-	DCs *appsapi.DeploymentConfigList
+	DCs *appsv1.DeploymentConfigList
 	// RSs is the entire list of replica sets across all namespaces in the cluster.
 	RSs *kapisext.ReplicaSetList
 	// LimitRanges is a map of LimitRanges across namespaces, being keys in this map.
@@ -656,15 +658,20 @@ func (p *pruner) addDeploymentsToGraph(dmnts *kapisext.DeploymentList) []error {
 // Edges are added to the graph from each deployment config to the images
 // specified by its pod spec's list of containers, as long as the image is
 // managed by OpenShift.
-func (p *pruner) addDeploymentConfigsToGraph(dcs *appsapi.DeploymentConfigList) []error {
+func (p *pruner) addDeploymentConfigsToGraph(dcs *appsv1.DeploymentConfigList) []error {
 	var errs []error
 
 	for i := range dcs.Items {
 		dc := &dcs.Items[i]
 		ref := getRef(dc)
 		glog.V(4).Infof("Examining %s", getKindName(ref))
-		dcNode := appsgraph.EnsureDeploymentConfigNode(p.g, dc)
-		errs = append(errs, p.addPodSpecToGraph(getRef(dc), &dc.Spec.Template.Spec, dcNode)...)
+		internalDc := &appsapi.DeploymentConfig{}
+		if err := legacyscheme.Scheme.Convert(dc, internalDc, nil); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		dcNode := appsgraph.EnsureDeploymentConfigNode(p.g, internalDc)
+		errs = append(errs, p.addPodSpecToGraph(getRef(dc), &internalDc.Spec.Template.Spec, dcNode)...)
 	}
 
 	return errs

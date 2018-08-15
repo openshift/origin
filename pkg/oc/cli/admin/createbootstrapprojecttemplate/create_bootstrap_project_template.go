@@ -2,58 +2,68 @@ package createbootstrapprojecttemplate
 
 import (
 	"errors"
-	"io"
 
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	"k8s.io/kubernetes/pkg/printers"
 
-	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 )
 
 const CreateBootstrapProjectTemplateCommand = "create-bootstrap-project-template"
 
 type CreateBootstrapProjectTemplateOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
 	Name string
+	Args []string
+
+	Printer printers.ResourcePrinter
+
+	genericclioptions.IOStreams
 }
 
-func NewCommandCreateBootstrapProjectTemplate(f kcmdutil.Factory, commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateBootstrapProjectTemplateOptions{}
+func NewCreateBootstrapProjectTemplateOptions(streams genericclioptions.IOStreams) *CreateBootstrapProjectTemplateOptions {
+	return &CreateBootstrapProjectTemplateOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(scheme.Scheme).WithDefaultOutput("json"),
+		Name:       delegated.DefaultTemplateName,
+		IOStreams:  streams,
+	}
+}
 
+func NewCommandCreateBootstrapProjectTemplate(f kcmdutil.Factory, commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCreateBootstrapProjectTemplateOptions(streams)
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a bootstrap project template",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			template, err := options.CreateBootstrapProjectTemplate()
-			if err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			err = kcmdutil.PrintObject(cmd, template, out)
-			if err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().StringVar(&options.Name, "name", delegated.DefaultTemplateName, "The name of the template to output.")
-	kcmdutil.AddPrinterFlags(cmd)
-
-	// Default to JSON
-	if flag := cmd.Flags().Lookup("output"); flag != nil {
-		flag.Value.Set("json")
-	}
+	cmd.Flags().StringVar(&o.Name, "name", o.Name, "The name of the template to output.")
+	o.PrintFlags.AddFlags(cmd)
 
 	return cmd
 }
 
-func (o CreateBootstrapProjectTemplateOptions) Validate(args []string) error {
-	if len(args) != 0 {
+func (o *CreateBootstrapProjectTemplateOptions) Complete(args []string) error {
+	o.Args = args
+	var err error
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (o *CreateBootstrapProjectTemplateOptions) Validate() error {
+	if len(o.Args) != 0 {
 		return errors.New("no arguments are supported")
 	}
 	if len(o.Name) == 0 {
@@ -63,8 +73,9 @@ func (o CreateBootstrapProjectTemplateOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o CreateBootstrapProjectTemplateOptions) CreateBootstrapProjectTemplate() (*templatev1.Template, error) {
+func (o *CreateBootstrapProjectTemplateOptions) Run() error {
 	template := delegated.DefaultTemplate()
 	template.Name = o.Name
-	return template, nil
+
+	return o.Printer.PrintObj(template, o.Out)
 }

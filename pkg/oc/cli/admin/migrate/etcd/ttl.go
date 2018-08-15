@@ -2,19 +2,18 @@ package etcd
 
 import (
 	"fmt"
-	"io"
 	"strings"
 	"time"
-
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
+
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 var (
@@ -26,7 +25,7 @@ var (
 		on keys migrated from the etcd v2 schema to etcd v3 is intended to be used after that upgrade
 		is complete on events and access tokens. Keys that are already attached to a lease will be
 		ignored. If another user modifies a key while this command is running you will need to re-run.
-		
+
 		Any resource impacted by this command will be removed from etcd after the lease-duration
 		expires. Be VERY CAREFUL in which values you place to --ttl-keys-prefix, and ensure you
 		have an up to date backup of your etcd database.`)
@@ -37,44 +36,43 @@ var (
 )
 
 type MigrateTTLReferenceOptions struct {
-	Out, ErrOut io.Writer
-
 	etcdAddress   string
 	ttlKeysPrefix string
 	leaseDuration time.Duration
 	certFile      string
 	keyFile       string
 	caFile        string
+
+	genericclioptions.IOStreams
+}
+
+func NewMigrateTTLReferenceOptions(streams genericclioptions.IOStreams) *MigrateTTLReferenceOptions {
+	return &MigrateTTLReferenceOptions{
+		IOStreams: streams,
+	}
 }
 
 // NewCmdMigrateTTLs helps move etcd v2 TTL keys to etcd v3 lease keys.
-func NewCmdMigrateTTLs(name, fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	options := &MigrateTTLReferenceOptions{
-		Out:    out,
-		ErrOut: errout,
-	}
+func NewCmdMigrateTTLs(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewMigrateTTLReferenceOptions(streams)
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s --etcd-address=HOST --ttl-keys-prefix=PATH", name),
 		Short:   "Attach keys to etcd v3 leases to assist in etcd v2 migrations",
 		Long:    internalMigrateTTLLong,
 		Example: fmt.Sprintf(internalMigrateTTLExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Run())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	options.Bind(cmd.Flags())
+	cmd.Flags().StringVar(&o.etcdAddress, "etcd-address", o.etcdAddress, "Etcd address")
+	cmd.Flags().StringVar(&o.ttlKeysPrefix, "ttl-keys-prefix", o.ttlKeysPrefix, "Prefix for TTL keys")
+	cmd.Flags().DurationVar(&o.leaseDuration, "lease-duration", o.leaseDuration, "Lease duration (format: '2h', '120m', etc)")
+	cmd.Flags().StringVar(&o.certFile, "cert", o.certFile, "identify secure client using this TLS certificate file")
+	cmd.Flags().StringVar(&o.keyFile, "key", o.keyFile, "identify secure client using this TLS key file")
+	cmd.Flags().StringVar(&o.caFile, "cacert", o.caFile, "verify certificates of TLS-enabled secure servers using this CA bundle")
 
 	return cmd
-}
-
-func (o *MigrateTTLReferenceOptions) Bind(flag *pflag.FlagSet) {
-	flag.StringVar(&o.etcdAddress, "etcd-address", "", "Etcd address")
-	flag.StringVar(&o.ttlKeysPrefix, "ttl-keys-prefix", "", "Prefix for TTL keys")
-	flag.DurationVar(&o.leaseDuration, "lease-duration", 0, "Lease duration (format: '2h', '120m', etc)")
-	flag.StringVar(&o.certFile, "cert", "", "identify secure client using this TLS certificate file")
-	flag.StringVar(&o.keyFile, "key", "", "identify secure client using this TLS key file")
-	flag.StringVar(&o.caFile, "cacert", "", "verify certificates of TLS-enabled secure servers using this CA bundle")
 }
 
 func generateClientConfig(o *MigrateTTLReferenceOptions) (*clientv3.Config, error) {

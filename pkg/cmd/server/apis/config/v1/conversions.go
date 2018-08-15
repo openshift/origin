@@ -249,7 +249,7 @@ func SetDefaults_IdentityProvider(obj *IdentityProvider) {
 }
 func SetDefaults_GrantConfig(obj *GrantConfig) {
 	if len(obj.ServiceAccountMethod) == 0 {
-		obj.ServiceAccountMethod = "prompt"
+		obj.ServiceAccountMethod = GrantHandlerPrompt
 	}
 }
 

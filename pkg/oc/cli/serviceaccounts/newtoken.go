@@ -3,25 +3,24 @@ package serviceaccounts
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
-	"github.com/openshift/origin/pkg/serviceaccounts"
-	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
+	osautil "github.com/openshift/origin/pkg/oc/lib/serviceaccount"
 )
 
 const (
@@ -51,25 +50,27 @@ var (
     # %[1]s 'default' --labels foo=foo-value,bar=bar-value`)
 )
 
-type NewServiceAccountTokenOptions struct {
+type ServiceAccountTokenOptions struct {
 	SAName        string
-	SAClient      kcoreclient.ServiceAccountInterface
-	SecretsClient kcoreclient.SecretInterface
+	SAClient      corev1client.ServiceAccountInterface
+	SecretsClient corev1client.SecretInterface
 
 	Labels map[string]string
 
 	Timeout time.Duration
 
-	Out io.Writer
-	Err io.Writer
+	genericclioptions.IOStreams
 }
 
-func NewCommandNewServiceAccountToken(name, fullname string, f cmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &NewServiceAccountTokenOptions{
-		Out:    out,
-		Err:    os.Stderr,
-		Labels: map[string]string{},
+func NewServiceAccountTokenOptions(streams genericclioptions.IOStreams) *ServiceAccountTokenOptions {
+	return &ServiceAccountTokenOptions{
+		IOStreams: streams,
+		Labels:    map[string]string{},
 	}
+}
+
+func NewCommandNewServiceAccountToken(name, fullname string, f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	options := NewServiceAccountTokenOptions(streams)
 
 	var requestedLabels string
 	newServiceAccountTokenCommand := &cobra.Command{
@@ -89,7 +90,7 @@ func NewCommandNewServiceAccountToken(name, fullname string, f cmdutil.Factory, 
 	return newServiceAccountTokenCommand
 }
 
-func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels string, f cmdutil.Factory, cmd *cobra.Command) error {
+func (o *ServiceAccountTokenOptions) Complete(args []string, requestedLabels string, f cmdutil.Factory, cmd *cobra.Command) error {
 	if len(args) != 1 {
 		return cmdutil.UsageErrorf(cmd, fmt.Sprintf("expected one service account name as an argument, got %q", args))
 	}
@@ -108,7 +109,7 @@ func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels 
 	if err != nil {
 		return err
 	}
-	client, err := kcoreclient.NewForConfig(clientConfig)
+	client, err := corev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -123,7 +124,7 @@ func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels 
 	return nil
 }
 
-func (o *NewServiceAccountTokenOptions) Validate() error {
+func (o *ServiceAccountTokenOptions) Validate() error {
 	if o.SAName == "" {
 		return errors.New("service account name cannot be empty")
 	}
@@ -136,7 +137,7 @@ func (o *NewServiceAccountTokenOptions) Validate() error {
 		return errors.New("a positive amount of time must be allotted for the timeout")
 	}
 
-	if o.Out == nil || o.Err == nil {
+	if o.Out == nil || o.ErrOut == nil {
 		return errors.New("cannot proceed if output or error writers are nil")
 	}
 
@@ -144,22 +145,22 @@ func (o *NewServiceAccountTokenOptions) Validate() error {
 }
 
 // Run creates a new token secret, waits for the service account token controller to fulfill it, then adds the token to the service account
-func (o *NewServiceAccountTokenOptions) Run() error {
+func (o *ServiceAccountTokenOptions) Run() error {
 	serviceAccount, err := o.SAClient.Get(o.SAName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	tokenSecret := &api.Secret{
+	tokenSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: osautil.GetTokenSecretNamePrefix(serviceAccount),
+			GenerateName: osautil.GetTokenSecretNamePrefix(serviceAccount.Name),
 			Namespace:    serviceAccount.Namespace,
 			Labels:       o.Labels,
 			Annotations: map[string]string{
-				api.ServiceAccountNameKey: serviceAccount.Name,
+				corev1.ServiceAccountNameKey: serviceAccount.Name,
 			},
 		},
-		Type: api.SecretTypeServiceAccountToken,
+		Type: corev1.SecretTypeServiceAccountToken,
 		Data: map[string][]byte{},
 	}
 
@@ -174,7 +175,7 @@ func (o *NewServiceAccountTokenOptions) Run() error {
 		return err
 	}
 
-	token, exists := tokenSecret.Data[api.ServiceAccountTokenKey]
+	token, exists := tokenSecret.Data[corev1.ServiceAccountTokenKey]
 	if !exists {
 		return fmt.Errorf("service account token %q did not contain token data", tokenSecret.Name)
 	}
@@ -188,7 +189,7 @@ func (o *NewServiceAccountTokenOptions) Run() error {
 }
 
 // waitForToken uses `cmd.Until` to wait for the service account controller to fulfill the token request
-func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout time.Duration, client kcoreclient.SecretInterface) (*api.Secret, error) {
+func waitForToken(token *corev1.Secret, serviceAccount *corev1.ServiceAccount, timeout time.Duration, client corev1client.SecretInterface) (*corev1.Secret, error) {
 	// there is no provided rounding function, so we use Round(x) === Floor(x + 0.5)
 	timeoutSeconds := int64(math.Floor(timeout.Seconds() + 0.5))
 
@@ -209,7 +210,7 @@ func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout
 			return false, fmt.Errorf("encountered error while watching for token: %v", event.Object)
 		}
 
-		eventToken, ok := event.Object.(*api.Secret)
+		eventToken, ok := event.Object.(*corev1.Secret)
 		if !ok {
 			return false, nil
 		}
@@ -220,7 +221,7 @@ func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout
 
 		switch event.Type {
 		case watch.Modified:
-			if serviceaccounts.IsValidServiceAccountToken(serviceAccount, eventToken) {
+			if sautil.IsServiceAccountToken(eventToken, serviceAccount) {
 				return true, nil
 			}
 		case watch.Deleted:
@@ -234,5 +235,5 @@ func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout
 		return nil, err
 	}
 
-	return event.Object.(*api.Secret), nil
+	return event.Object.(*corev1.Secret), nil
 }

@@ -2,13 +2,13 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
@@ -59,7 +59,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 	reconcileOptions := &policycmd.ReconcileClusterRoleBindingsOptions{
 		Confirmed:         false,
 		Union:             false,
-		Out:               ioutil.Discard,
+		IOStreams:         genericclioptions.NewTestIOStreamsDiscard(),
 		RoleBindingClient: d.ClusterRoleBindingsClient,
 	}
 

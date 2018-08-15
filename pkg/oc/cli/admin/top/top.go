@@ -1,8 +1,6 @@
 package top
 
 import (
-	"io"
-
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
@@ -25,13 +23,13 @@ var topLong = templates.LongDesc(`
 	This command analyzes resources managed by the platform and presents current
 	usage statistics.`)
 
-func NewCommandTop(name, fullName string, f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCommandTop(name, fullName string, f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Show usage statistics of resources on the server",
 		Long:  topLong,
-		Run:   cmdutil.DefaultSubCommandRun(errOut),
+		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
 	ocHeapsterTopOpts := kcmd.HeapsterTopOptions{
@@ -43,15 +41,15 @@ func NewCommandTop(name, fullName string, f cmdutil.Factory, out, errOut io.Writ
 	cmdTopNodeOpts := &kcmd.TopNodeOptions{
 		HeapsterOptions: ocHeapsterTopOpts,
 	}
-	cmdTopNode := kcmd.NewCmdTopNode(f, cmdTopNodeOpts, genericclioptions.IOStreams{Out: out, ErrOut: errOut})
+	cmdTopNode := kcmd.NewCmdTopNode(f, cmdTopNodeOpts, streams)
 
 	cmdTopPodOpts := &kcmd.TopPodOptions{
 		HeapsterOptions: ocHeapsterTopOpts,
 	}
-	cmdTopPod := kcmd.NewCmdTopPod(f, cmdTopPodOpts, genericclioptions.IOStreams{Out: out, ErrOut: errOut})
+	cmdTopPod := kcmd.NewCmdTopPod(f, cmdTopPodOpts, streams)
 
-	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, out))
-	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, out))
+	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, streams))
+	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, streams))
 	cmdTopNode.Long = templates.LongDesc(cmdTopNode.Long)
 	cmdTopNode.Example = templates.Examples(cmdTopNode.Example)
 	cmdTopPod.Long = templates.LongDesc(cmdTopPod.Long)

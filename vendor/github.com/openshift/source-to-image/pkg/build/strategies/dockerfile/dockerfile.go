@@ -25,7 +25,10 @@ import (
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
 
-const defaultDestination = "/tmp"
+const (
+	defaultDestination = "/tmp"
+	defaultScriptsDir  = "/usr/libexec/s2i"
+)
 
 var (
 	glog = utilglog.StderrLog
@@ -128,25 +131,11 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 	sourceDestDir := filepath.Join(getDestination(config), "src")
 	artifactsDestDir := filepath.Join(getDestination(config), "artifacts")
 	artifactsTar := sanitize(filepath.ToSlash(filepath.Join(defaultDestination, "artifacts.tar")))
-
-	// only COPY scripts dir if required scripts are present, i.e. the dir is not empty;
-	// even if the "scripts" dir exists, the COPY would fail if it was empty
-	scriptsProvided, fileNames := checkValidDirWithContents(filepath.Join(config.WorkingDir, builder.uploadScriptsDir))
-	assembleProvided := false
-	runProvided := false
-	saveArtifactsProvided := false
-	for _, f := range fileNames {
-		glog.V(2).Infof("found override script file %s", f.Name())
-		if f.Name() == "run" {
-			runProvided = true
-		} else if f.Name() == "assemble" {
-			assembleProvided = true
-		} else if f.Name() == "save-artifacts" {
-			saveArtifactsProvided = true
-		}
-		if runProvided && assembleProvided && saveArtifactsProvided {
-			break
-		}
+	// hasAllScripts indicates that we blindly trust all scripts are provided in the image scripts dir
+	imageScriptsDir, hasAllScripts := getImageScriptsDir(config)
+	var providedScripts map[string]bool
+	if !hasAllScripts {
+		providedScripts = scanScripts(filepath.Join(config.WorkingDir, builder.uploadScriptsDir))
 	}
 
 	if config.Incremental {
@@ -159,7 +148,7 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 			buffer.WriteString(fmt.Sprintf("USER %s\n", imageUser))
 		}
 		var artifactsScript string
-		if saveArtifactsProvided {
+		if _, provided := providedScripts[constants.SaveArtifacts]; provided {
 			glog.V(2).Infof("Override save-artifacts script is included in directory %q", builder.uploadScriptsDir)
 			buffer.WriteString("# Copying in override save-artifacts script\n")
 			artifactsScript = sanitize(filepath.ToSlash(filepath.Join(scriptsDestDir, "save-artifacts")))
@@ -167,7 +156,7 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 			buffer.WriteString(fmt.Sprintf("COPY --chown=%s:0 %s %s\n", sanitize(imageUser), uploadScript, artifactsScript))
 		} else {
 			buffer.WriteString(fmt.Sprintf("# Save-artifacts script sourced from builder image based on user input or image metadata.\n"))
-			artifactsScript = sanitize(filepath.ToSlash(filepath.Join(config.ImageScriptsDir, "save-artifacts")))
+			artifactsScript = sanitize(filepath.ToSlash(filepath.Join(imageScriptsDir, "save-artifacts")))
 		}
 		buffer.WriteString(fmt.Sprintf("RUN if [ -s %[1]s ]; then %[1]s > %[2]s; else touch %[2]s; fi\n", artifactsScript, artifactsTar))
 	}
@@ -209,7 +198,9 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 	env := createBuildEnvironment(config.WorkingDir, config.Environment)
 	buffer.WriteString(fmt.Sprintf("%s", env))
 
-	if scriptsProvided {
+	if len(providedScripts) > 0 {
+		// Only COPY scripts dir if required scripts are present and needed.
+		// Even if the "scripts" dir exists, the COPY would fail if it was empty.
 		glog.V(2).Infof("Override scripts are included in directory %q", builder.uploadScriptsDir)
 		buffer.WriteString("# Copying in override assemble/run scripts\n")
 		buffer.WriteString(fmt.Sprintf("COPY --chown=%s:0 %s %s\n", sanitize(imageUser), sanitize(filepath.ToSlash(builder.uploadScriptsDir)), sanitize(filepath.ToSlash(scriptsDestDir))))
@@ -231,12 +222,12 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 		buffer.WriteString(fmt.Sprintf("COPY --chown=%s:0 %s %s\n", sanitize(imageUser), sanitize(filepath.ToSlash(src)), sanitize(filepath.ToSlash(injection.Destination))))
 	}
 
-	if assembleProvided {
+	if _, provided := providedScripts[constants.Assemble]; provided {
 		buffer.WriteString(fmt.Sprintf("RUN %s\n", sanitize(filepath.ToSlash(filepath.Join(scriptsDestDir, "assemble")))))
 	} else {
 		buffer.WriteString(fmt.Sprintf("# Assemble script sourced from builder image based on user input or image metadata.\n"))
 		buffer.WriteString(fmt.Sprintf("# If this file does not exist in the image, the build will fail.\n"))
-		buffer.WriteString(fmt.Sprintf("RUN %s\n", sanitize(filepath.ToSlash(filepath.Join(config.ImageScriptsDir, "assemble")))))
+		buffer.WriteString(fmt.Sprintf("RUN %s\n", sanitize(filepath.ToSlash(filepath.Join(imageScriptsDir, "assemble")))))
 	}
 
 	// Remove any secrets that were copied into the image,
@@ -259,12 +250,12 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 		buffer.WriteString("\n")
 	}
 
-	if runProvided {
+	if _, provided := providedScripts[constants.Run]; provided {
 		buffer.WriteString(fmt.Sprintf("CMD %s\n", sanitize(filepath.ToSlash(filepath.Join(scriptsDestDir, "run")))))
 	} else {
 		buffer.WriteString(fmt.Sprintf("# Run script sourced from builder image based on user input or image metadata.\n"))
 		buffer.WriteString(fmt.Sprintf("# If this file does not exist in the image, the build will fail.\n"))
-		buffer.WriteString(fmt.Sprintf("CMD %s\n", sanitize(filepath.ToSlash(filepath.Join(config.ImageScriptsDir, "run")))))
+		buffer.WriteString(fmt.Sprintf("CMD %s\n", sanitize(filepath.ToSlash(filepath.Join(imageScriptsDir, "run")))))
 	}
 
 	if err := builder.fs.WriteFile(filepath.Join(config.AsDockerfile), buffer.Bytes()); err != nil {
@@ -303,7 +294,12 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 		}
 	}
 
-	// fetch sources, since their .s2i/bin might contain s2i scripts
+	// Default - install scripts specified by image metadata.
+	// Typically this will point to an image:// URL, and no scripts are downloaded.
+	// However, this is not guaranteed.
+	builder.installScripts(config.ImageScriptsURL, config)
+
+	// Fetch sources, since their .s2i/bin might contain s2i scripts which override defaults.
 	if config.Source != nil {
 		downloader, err := scm.DownloaderForSource(builder.fs, config.Source, config.ForceCopy)
 		if err != nil {
@@ -325,18 +321,9 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 		}
 	}
 
-	scriptInstaller := scripts.NewInstaller(
-		"",
-		config.ScriptsURL,
-		config.ScriptDownloadProxyConfig,
-		nil,
-		api.AuthConfig{},
-		builder.fs,
-	)
-
-	// all scripts are optional, we assume/hope the image contains scripts if we don't find them
-	// in the source repo.
-	scriptInstaller.InstallOptional(append(scripts.RequiredScripts, scripts.OptionalScripts...), config.WorkingDir)
+	// Install scripts provided by user, overriding all others.
+	// This _could_ be an image:// URL, which would override any scripts above.
+	builder.installScripts(config.ScriptsURL, config)
 
 	// Stage any injection(secrets) content into the working dir so the dockerfile can reference it.
 	for i, injection := range config.Injections {
@@ -356,6 +343,22 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 	return builder.ignorer.Ignore(config)
 }
 
+// installScripts installs scripts at the provided URL to the Dockerfile context
+func (builder *Dockerfile) installScripts(scriptsURL string, config *api.Config) []api.InstallResult {
+	scriptInstaller := scripts.NewInstaller(
+		"",
+		scriptsURL,
+		config.ScriptDownloadProxyConfig,
+		nil,
+		api.AuthConfig{},
+		builder.fs,
+	)
+
+	// all scripts are optional, we trust the image contains scripts if we don't find them
+	// in the source repo.
+	return scriptInstaller.InstallOptional(append(scripts.RequiredScripts, scripts.OptionalScripts...), config.WorkingDir)
+}
+
 // getDestination returns the destination directory from the config.
 func getDestination(config *api.Config) string {
 	destination := config.Destination
@@ -365,14 +368,49 @@ func getDestination(config *api.Config) string {
 	return destination
 }
 
-// checkValidDirWithContents returns true if the parameter provided is a valid,
-// accessible and non-empty directory.
-func checkValidDirWithContents(name string) (bool, []os.FileInfo) {
+// getImageScriptsDir returns the directory containing the builder image scripts and a bool
+// indicating that the directory is expected to contain all s2i scripts
+func getImageScriptsDir(config *api.Config) (string, bool) {
+	if strings.HasPrefix(config.ScriptsURL, "image://") {
+		return strings.TrimPrefix(config.ScriptsURL, "image://"), true
+	}
+	if strings.HasPrefix(config.ImageScriptsURL, "image://") {
+		return strings.TrimPrefix(config.ImageScriptsURL, "image://"), false
+	}
+	return defaultScriptsDir, false
+}
+
+// scanScripts returns a map of provided s2i scripts
+func scanScripts(name string) map[string]bool {
+	scriptsMap := make(map[string]bool)
 	items, err := ioutil.ReadDir(name)
 	if os.IsNotExist(err) {
 		glog.Warningf("Unable to access directory %q: %v", name, err)
 	}
-	return !(err != nil || len(items) == 0), items
+	if err != nil || len(items) == 0 {
+		return scriptsMap
+	}
+
+	assembleProvided := false
+	runProvided := false
+	saveArtifactsProvided := false
+	for _, f := range items {
+		glog.V(2).Infof("found override script file %s", f.Name())
+		if f.Name() == constants.Run {
+			runProvided = true
+			scriptsMap[constants.Run] = true
+		} else if f.Name() == constants.Assemble {
+			assembleProvided = true
+			scriptsMap[constants.Assemble] = true
+		} else if f.Name() == constants.SaveArtifacts {
+			saveArtifactsProvided = true
+			scriptsMap[constants.SaveArtifacts] = true
+		}
+		if runProvided && assembleProvided && saveArtifactsProvided {
+			break
+		}
+	}
+	return scriptsMap
 }
 
 func includes(arr []string, str string) bool {

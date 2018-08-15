@@ -3,7 +3,6 @@ package admin
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/client/config"
@@ -66,36 +66,41 @@ type CreateKubeConfigOptions struct {
 	ContextNamespace string
 
 	KubeConfigFile string
-	Output         io.Writer
+
+	genericclioptions.IOStreams
 }
 
-func NewCommandCreateKubeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateKubeConfigOptions{Output: out}
+func NewCreateKubeConfigOptions(streams genericclioptions.IOStreams) *CreateKubeConfigOptions {
+	return &CreateKubeConfigOptions{
+		APIServerURL:     "https://localhost:8443",
+		APIServerCAFiles: []string{"openshift.local.config/master/ca.crt"},
+		ContextNamespace: metav1.NamespaceDefault,
+		KubeConfigFile:   ".kubeconfig",
+		IOStreams:        streams,
+	}
+}
 
+func NewCommandCreateKubeConfig(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCreateKubeConfigOptions(streams)
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a basic .kubeconfig file from client certs",
 		Long:  createKubeConfigLongDesc,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if _, err := options.CreateKubeConfig(); err != nil {
+			kcmdutil.CheckErr(o.Validate(args))
+			if _, err := o.CreateKubeConfig(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
 	}
 
-	flags := cmd.Flags()
-
-	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
-	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
-	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", []string{"openshift.local.config/master/ca.crt"}, "Files containing signing authorities to use to verify the API server's serving certificate.")
-	flags.StringVar(&options.CertFile, "client-certificate", "", "The client cert file.")
-	flags.StringVar(&options.KeyFile, "client-key", "", "The client key file.")
-	flags.StringVar(&options.ContextNamespace, "namespace", metav1.NamespaceDefault, "Namespace for this context in .kubeconfig.")
-	flags.StringVar(&options.KubeConfigFile, "kubeconfig", ".kubeconfig", "Path for the resulting .kubeconfig file.")
+	cmd.Flags().StringVar(&o.APIServerURL, "master", o.APIServerURL, "The API server's URL.")
+	cmd.Flags().StringVar(&o.PublicAPIServerURL, "public-master", o.PublicAPIServerURL, "The API public facing server's URL (if applicable).")
+	cmd.Flags().StringSliceVar(&o.APIServerCAFiles, "certificate-authority", o.APIServerCAFiles, "Files containing signing authorities to use to verify the API server's serving certificate.")
+	cmd.Flags().StringVar(&o.CertFile, "client-certificate", o.CertFile, "The client cert file.")
+	cmd.Flags().StringVar(&o.KeyFile, "client-key", o.KeyFile, "The client key file.")
+	cmd.Flags().StringVar(&o.ContextNamespace, "namespace", o.ContextNamespace, "Namespace for this context in .kubeconfig.")
+	cmd.Flags().StringVar(&o.KubeConfigFile, "kubeconfig", o.KubeConfigFile, "Path for the resulting .kubeconfig file.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("certificate-authority")

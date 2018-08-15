@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/apimachinery/pkg/watch"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	apps "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 )
 
 func (d *AppCreate) createAndCheckAppDC() bool {
@@ -27,42 +31,42 @@ func (d *AppCreate) createAndCheckAppDC() bool {
 func (d *AppCreate) createAppDC() bool {
 	defer recordTime(&d.result.App.CreatedTime)
 	gracePeriod := int64(0)
-	dc := &apps.DeploymentConfig{
+	dc := &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   d.appName,
 			Labels: d.label,
 		},
-		Spec: apps.DeploymentConfigSpec{
+		Spec: appsv1.DeploymentConfigSpec{
 			Replicas: 1,
 			Selector: d.label,
-			Triggers: []apps.DeploymentTriggerPolicy{
-				{Type: apps.DeploymentTriggerOnConfigChange},
+			Triggers: []appsv1.DeploymentTriggerPolicy{
+				{Type: appsv1.DeploymentTriggerOnConfigChange},
 			},
-			Template: &kapi.PodTemplateSpec{
+			Template: &corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: d.label},
-				Spec: kapi.PodSpec{
+				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: &gracePeriod,
-					Containers: []kapi.Container{
+					Containers: []corev1.Container{
 						{
 							Name:  d.appName,
 							Image: d.appImage,
-							Ports: []kapi.ContainerPort{
+							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
 									ContainerPort: int32(d.appPort),
-									Protocol:      kapi.ProtocolTCP,
+									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							ImagePullPolicy: kapi.PullIfNotPresent,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command: []string{
 								"socat", "-T", "1", "-d",
-								fmt.Sprintf("%s-l:%d,reuseaddr,fork,crlf", kapi.ProtocolTCP, d.appPort),
+								fmt.Sprintf("%s-l:%d,reuseaddr,fork,crlf", corev1.ProtocolTCP, d.appPort),
 								"system:\"echo 'HTTP/1.0 200 OK'; echo 'Content-Type: text/plain'; echo; echo 'Hello'\"",
 							},
-							ReadinessProbe: &kapi.Probe{
+							ReadinessProbe: &corev1.Probe{
 								// The action taken to determine the health of a container
-								Handler: kapi.Handler{
-									HTTPGet: &kapi.HTTPGetAction{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/",
 										Port: intstr.FromInt(d.appPort),
 									},
@@ -100,7 +104,7 @@ This may be a transient error. Check the master API logs for anomalies near this
 	}
 	defer stopWatcher(watcher)
 	for event := range watcher.ResultChan() {
-		running, err := kubectl.PodContainerRunning(d.appName)(event)
+		running, err := podContainerRunning(d.appName)(event)
 		if err != nil {
 			d.out.Error("DCluAC009", err, fmt.Sprintf(`
 %s: Error while watching for app pod to deploy:
@@ -123,4 +127,45 @@ There are many reasons why this can occur; for example:
   * The node container runtime may be malfunctioning (check node and docker/cri-o logs)
 	`, now(), d.deployTimeout))
 	return false
+}
+
+// podContainerRunning returns false until the named container has ContainerStatus running (at least once),
+// and will return an error if the pod is deleted, runs to completion, or the container pod is not available.
+func podContainerRunning(containerName string) watch.ConditionFunc {
+	return func(event watch.Event) (bool, error) {
+		switch event.Type {
+		case watch.Deleted:
+			return false, errors.NewNotFound(schema.GroupResource{Resource: "pods"}, "")
+		}
+		switch t := event.Object.(type) {
+		case *api.Pod:
+			switch t.Status.Phase {
+			case api.PodRunning, api.PodPending:
+			case api.PodFailed, api.PodSucceeded:
+				return false, kubectl.ErrPodCompleted
+			default:
+				return false, nil
+			}
+			for _, s := range t.Status.ContainerStatuses {
+				if s.Name != containerName {
+					continue
+				}
+				if s.State.Terminated != nil {
+					return false, kubectl.ErrContainerTerminated
+				}
+				return s.State.Running != nil, nil
+			}
+			for _, s := range t.Status.InitContainerStatuses {
+				if s.Name != containerName {
+					continue
+				}
+				if s.State.Terminated != nil {
+					return false, kubectl.ErrContainerTerminated
+				}
+				return s.State.Running != nil, nil
+			}
+			return false, nil
+		}
+		return false, nil
+	}
 }

@@ -1252,10 +1252,7 @@ func TestValidateISTUpdateWithWhitelister(t *testing.T) {
 				Tag:        tc.newTagRef,
 			}
 
-			hostnameFunc := imageapi.DefaultRegistryHostnameRetriever(func() (string, bool) {
-				return tc.registryURL, len(tc.registryURL) > 0
-			}, "", "")
-			whitelister, err := whitelist.NewRegistryWhitelister(*tc.whitelist, hostnameFunc)
+			whitelister, err := whitelist.NewRegistryWhitelister(*tc.whitelist, &simpleHostnameRetriever{registryURL: tc.registryURL})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1265,6 +1262,18 @@ func TestValidateISTUpdateWithWhitelister(t *testing.T) {
 			}
 		})
 	}
+}
+
+type simpleHostnameRetriever struct {
+	registryURL string
+}
+
+func (r *simpleHostnameRetriever) InternalRegistryHostname() (string, bool) {
+	return r.registryURL, len(r.registryURL) > 0
+}
+
+func (r *simpleHostnameRetriever) ExternalRegistryHostname() (string, bool) {
+	return "", false
 }
 
 func TestValidateRegistryAllowedForImport(t *testing.T) {

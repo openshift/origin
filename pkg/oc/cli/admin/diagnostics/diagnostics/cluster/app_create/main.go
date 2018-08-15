@@ -18,7 +18,7 @@ import (
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
@@ -170,24 +170,115 @@ func NewDefaultAppCreateDiagnostic() *AppCreate {
 
 func (d *AppCreate) AvailableParameters() []types.Parameter {
 	return []types.Parameter{
-		{"project", "Project name to use instead of generating from project-base", &d.project, ""},
-		{"project-base", "Base name to create randomized project name", &d.projectBase, AppCreateProjectBaseDefault},
-		{"keep-project", "Do not delete randomized project when complete", &d.keepProject, false},
-		{"app-name", "Name for the test application to be created", &d.appName, AppCreateAppNameDefault},
-		{"app-image", "Image for the test application to be created", &d.appImage, getDefaultAppImage()},
-		{"app-port", "Port at which the test application listens", &d.appPort, AppCreateAppPortDefault},
-		{"route-host", "Create specific route instead of default", &d.routeHost, ""},
-		{"route-port", "Router port to use for route connection test", &d.routePort, 80},
-		{"deploy-timeout", "Seconds to wait for the app to be ready", &d.deployTimeout, AppCreateTimeoutDefault},
-		{"admission-timeout", "Seconds to wait for the route to be admitted by a router", &d.routeAdmissionTimeout, AppCreateRouteAdmissionTimeoutDefault},
-		{"skip-service-connect", "Do not test connecting to the service", &d.skipServiceConnect, false},
-		{"skip-route-test", "Do not test route at all", &d.skipRouteTest, false},
-		{"skip-route-connect", "Do not test connecting to the route", &d.skipRouteConnect, false},
-		{"http-timeout", "Milliseconds to wait for an HTTP request to the app", &d.httpTimeout, AppCreateHttpTimeoutDefault},
-		{"http-retries", "Number of times to retry an HTTP request to the app", &d.httpRetries, AppCreateHttpRetriesDefault},
-		{"node-selector", "Node selector for where the test app should land", &d.nodeSelector, ""},
-		{"keep-app", "Do not delete the test app when complete", &d.keepApp, false},
-		{"result-dir", "Directory in which to write result details if desired", &d.writeResultDir, ""},
+		{
+			Name:        "project",
+			Description: "Project name to use instead of generating from project-base",
+			Target:      &d.project,
+			Default:     "",
+		},
+		{
+			Name:        "project-base",
+			Description: "Base name to create randomized project name",
+			Target:      &d.projectBase,
+			Default:     AppCreateProjectBaseDefault,
+		},
+		{
+			Name:        "keep-project",
+			Description: "Do not delete randomized project when complete",
+			Target:      &d.keepProject,
+			Default:     false,
+		},
+		{
+			Name:        "app-name",
+			Description: "Name for the test application to be created",
+			Target:      &d.appName,
+			Default:     AppCreateAppNameDefault,
+		},
+		{
+			Name:        "app-image",
+			Description: "Image for the test application to be created",
+			Target:      &d.appImage,
+			Default:     getDefaultAppImage(),
+		},
+		{
+			Name:        "app-port",
+			Description: "Port at which the test application listens",
+			Target:      &d.appPort,
+			Default:     AppCreateAppPortDefault,
+		},
+		{
+			Name:        "route-host",
+			Description: "Create specific route instead of default",
+			Target:      &d.routeHost,
+			Default:     "",
+		},
+
+		{
+			Name:        "route-port",
+			Description: "Router port to use for route connection test",
+			Target:      &d.routePort,
+			Default:     80,
+		},
+		{
+			Name:        "deploy-timeout",
+			Description: "Seconds to wait for the app to be ready",
+			Target:      &d.deployTimeout,
+			Default:     AppCreateTimeoutDefault,
+		},
+		{
+			Name:        "admission-timeout",
+			Description: "Seconds to wait for the route to be admitted by a router",
+			Target:      &d.routeAdmissionTimeout,
+			Default:     AppCreateRouteAdmissionTimeoutDefault,
+		},
+		{
+			Name:        "skip-service-connect",
+			Description: "Do not test connecting to the service",
+			Target:      &d.skipServiceConnect,
+			Default:     false,
+		},
+		{
+			Name:        "skip-route-test",
+			Description: "Do not test route at all",
+			Target:      &d.skipRouteTest,
+			Default:     false,
+		},
+		{
+			Name:        "skip-route-connect",
+			Description: "Do not test connecting to the route",
+			Target:      &d.skipRouteConnect,
+			Default:     false,
+		},
+		{
+			Name:        "http-timeout",
+			Description: "Milliseconds to wait for an HTTP request to the app",
+			Target:      &d.httpTimeout,
+			Default:     AppCreateHttpTimeoutDefault,
+		},
+		{
+			Name:        "http-retries",
+			Description: "Number of times to retry an HTTP request to the app",
+			Target:      &d.httpRetries,
+			Default:     AppCreateHttpRetriesDefault,
+		},
+		{
+			Name:        "node-selector",
+			Description: "Node selector for where the test app should land",
+			Target:      &d.nodeSelector,
+			Default:     "",
+		},
+		{
+			Name:        "keep-app",
+			Description: "Do not delete the test app when complete",
+			Target:      &d.keepApp,
+			Default:     false,
+		},
+		{
+			Name:        "result-dir",
+			Description: "Directory in which to write result details if desired",
+			Target:      &d.writeResultDir,
+			Default:     "",
+		},
 	}
 }
 

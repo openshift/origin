@@ -135,16 +135,9 @@ Summary: %{product_name} Test Suite
 
 %package node
 Summary:        %{product_name} Node
-Requires:       %{name} = %{version}-%{release}
 Requires:       %{name}-hyperkube = %{version}-%{release}
-Requires:       docker >= %{docker_version}
 Requires:       util-linux
 Requires:       socat
-Requires:       nfs-utils
-Requires:       cifs-utils
-Requires:       ethtool
-Requires:       device-mapper-persistent-data >= 0.6.2
-Requires:       conntrack-tools
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
@@ -187,6 +180,7 @@ Requires:         bridge-utils
 Requires:         ethtool
 Requires:         procps-ng
 Requires:         iproute
+Requires:         conntrack-tools
 Obsoletes:        openshift-sdn-ovs < %{package_refactor_version}
 
 %description sdn-ovs
@@ -308,11 +302,6 @@ done
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
-# different service for origin vs aos
-# install -m 0644 contrib/systemd/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
-# same sysconfig files for origin vs aos
-install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
-
 # Install man1 man pages
 install -d -m 0755 %{buildroot}%{_mandir}/man1
 install -m 0644 docs/man/man1/* %{buildroot}%{_mandir}/man1/
@@ -394,7 +383,6 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %files node
 %{_bindir}/openshift-node-config
 %{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
 

@@ -8,12 +8,13 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/project"
-	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -72,7 +73,7 @@ type projectRequestLimit struct {
 
 // ensure that the required Openshift admission interfaces are implemented
 var _ = oadmission.WantsProjectCache(&projectRequestLimit{})
-var _ = oadmission.WantsOpenshiftInternalUserClient(&projectRequestLimit{})
+var _ = oadmission.WantsRESTClientConfig(&projectRequestLimit{})
 
 // Admit ensures that only a configured number of projects can be requested by a particular user.
 func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
@@ -171,8 +172,13 @@ func (o *projectRequestLimit) projectCountByRequester(userName string) (int, err
 	return count, nil
 }
 
-func (o *projectRequestLimit) SetOpenshiftInternalUserClient(client userclient.Interface) {
-	o.userClient = client.User()
+func (o *projectRequestLimit) SetRESTClientConfig(restClientConfig rest.Config) {
+	var err error
+	o.userClient, err = usertypedclient.NewForConfig(&restClientConfig)
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
 }
 
 func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) {

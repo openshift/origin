@@ -3,7 +3,6 @@ package policy
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
@@ -16,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	authorization "github.com/openshift/api/authorization"
@@ -35,11 +35,11 @@ type ReconcileClusterRolesOptions struct {
 	Confirmed bool
 	Union     bool
 
-	Out    io.Writer
-	ErrOut io.Writer
 	Output string
 
 	RoleClient rbacv1client.ClusterRoleInterface
+
+	genericclioptions.IOStreams
 }
 
 var (
@@ -69,31 +69,25 @@ var (
 	  %[1]s --additive-only`)
 )
 
-// NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command
-func NewCmdReconcileClusterRoles(name, fullName string, f kcmdutil.Factory, out, errout io.Writer) *cobra.Command {
-	o := &ReconcileClusterRolesOptions{
-		Out:    out,
-		ErrOut: errout,
-		Union:  true,
+func NewReconcileClusterRolesOptions(streams genericclioptions.IOStreams) *ReconcileClusterRolesOptions {
+	return &ReconcileClusterRolesOptions{
+		Union:     true,
+		IOStreams: streams,
 	}
+}
 
+// NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command
+func NewCmdReconcileClusterRoles(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewReconcileClusterRolesOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name + " [ClusterRoleName]...",
 		Short:   "Update cluster roles to match the recommended bootstrap policy",
 		Long:    fmt.Sprintf(reconcileLong, rbacv1.AutoUpdateAnnotationKey),
 		Example: fmt.Sprintf(reconcileExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := o.Complete(cmd, f, args); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			if err := o.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := o.RunReconcileClusterRoles(cmd, f); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(cmd, f, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.RunReconcileClusterRoles(cmd, f))
 		},
 		Deprecated: fmt.Sprintf("use 'oc auth reconcile'"),
 	}

@@ -31,9 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/host"
 	"github.com/openshift/origin/pkg/oc/clusterup/manifests"
-
-	// install our apis into the legacy scheme
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 type staticInstall struct {

@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
@@ -100,11 +101,6 @@ func (w *syncedWriter) write(p []byte) (int, error) {
 // ResourceOptions assists in performing migrations on any object that
 // can be retrieved via the API.
 type ResourceOptions struct {
-	// To prevent any issues with multiple workers trying
-	// to read from this, the field was simply removed
-	// In       io.Reader
-	Out, ErrOut io.Writer
-
 	Unstructured  bool
 	AllNamespaces bool
 	Include       []string
@@ -135,6 +131,8 @@ type ResourceOptions struct {
 	Workers int
 	// If true, Out and ErrOut will be wrapped to make them goroutine safe.
 	SyncOut bool
+
+	genericclioptions.IOStreams
 }
 
 func (o *ResourceOptions) Bind(c *cobra.Command) {
@@ -210,14 +208,16 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		}
 	}
 
-	clientConfig, err := f.ToRESTConfig()
+	// use the factory's caching discovery client
+	discoveryClient, err := f.ToDiscoveryClient()
 	if err != nil {
 		return err
 	}
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
+	// but invalidate its cache to force it to fetch the latest data
+	discoveryClient.Invalidate()
+	// and do a no-op call to cause the latest data to be written to disk
+	_, _ = discoveryClient.ServerResources()
+	// so that the REST mapper will never use stale discovery data
 	mapper, err := f.ToRESTMapper()
 	if err != nil {
 		return err
@@ -725,7 +725,7 @@ func DefaultRetriable(info *resource.Info, err error) error {
 // represented.
 // TODO: add a field to APIResources for "virtual" (or that points to the canonical resource).
 // TODO: fallback to the scheme when discovery is not possible.
-func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper) ([]schema.GroupResource, error) {
+func FindAllCanonicalResources(d discovery.ServerResourcesInterface, m meta.RESTMapper) ([]schema.GroupResource, error) {
 	set := make(map[schema.GroupResource]struct{})
 	all, err := d.ServerResources()
 	if err != nil {

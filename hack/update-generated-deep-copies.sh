@@ -11,10 +11,6 @@ function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 
 # enumerate group versions
 ALL_FQ_APIS=(
-    github.com/openshift/origin/pkg/build/controller/build/apis/defaults
-    github.com/openshift/origin/pkg/build/controller/build/apis/defaults/v1
-    github.com/openshift/origin/pkg/build/controller/build/apis/overrides
-    github.com/openshift/origin/pkg/build/controller/build/apis/overrides/v1
     github.com/openshift/origin/pkg/cmd/server/apis/config
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1/testing

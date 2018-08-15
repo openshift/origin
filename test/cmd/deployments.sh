@@ -69,6 +69,9 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/deployments/config"
 os::cmd::expect_failure_and_text 'oc rollout latest test-deployment-config' 'already in progress'
 os::cmd::expect_failure_and_text 'oc rollout latest dc/test-deployment-config' 'already in progress'
+# ensure that a cancelled deployment can be retried successfully
+os::cmd::expect_success 'oc rollout cancel dc/test-deployment-config'
+os::cmd::expect_success_and_text 'oc rollout retry dc/test-deployment-config' 'deploymentconfig.apps.openshift.io/test-deployment-config retried rollout'
 os::cmd::expect_success 'oc delete deploymentConfigs test-deployment-config'
 echo "deploymentConfigs: ok"
 os::test::junit::declare_suite_end

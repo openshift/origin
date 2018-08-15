@@ -1,6 +1,8 @@
 package browsersafe
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 )
@@ -25,8 +27,17 @@ func NewBrowserSafeAuthorizer(delegate authorizer.Authorizer, authenticatedGroup
 }
 
 func (a *browserSafeAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
-	browserSafeAttributes := a.getBrowserSafeAttributes(attributes)
-	return a.delegate.Authorize(browserSafeAttributes)
+	attrs := a.getBrowserSafeAttributes(attributes)
+	decision, reason, err := a.delegate.Authorize(attrs)
+	safeAttributes, changed := attrs.(*browserSafeAttributes)
+
+	// check if the request was not allowed and we changed the attributes
+	if decision == authorizer.DecisionAllow || !changed {
+		return decision, reason, err
+	}
+
+	// if so, use this information to update the reason
+	return decision, safeAttributes.reason(reason), err
 }
 
 func (a *browserSafeAuthorizer) getBrowserSafeAttributes(attributes authorizer.Attributes) authorizer.Attributes {
@@ -76,4 +87,20 @@ func (b *browserSafeAttributes) GetSubresource() string {
 		return unsafeProxy
 	}
 	return b.Attributes.GetSubresource()
+}
+
+func (b *browserSafeAttributes) reason(reason string) string {
+	if b.isProxyVerb {
+		if len(reason) != 0 {
+			reason += ", "
+		}
+		reason += fmt.Sprintf("%s verb changed to %s", proxyAction, unsafeProxy)
+	}
+	if b.isProxySubresource {
+		if len(reason) != 0 {
+			reason += ", "
+		}
+		reason += fmt.Sprintf("%s subresource changed to %s", proxyAction, unsafeProxy)
+	}
+	return reason
 }

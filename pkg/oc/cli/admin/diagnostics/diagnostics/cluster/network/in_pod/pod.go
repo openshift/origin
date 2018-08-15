@@ -25,6 +25,7 @@ type CheckPodNetwork struct {
 	KubeClient           kclientset.Interface
 	NetNamespacesClient  networktypedclient.NetNamespacesGetter
 	ClusterNetworkClient networktypedclient.ClusterNetworksGetter
+	Runtime              *util.Runtime
 
 	vnidMap map[string]uint32
 	res     types.DiagnosticResult
@@ -173,14 +174,13 @@ func (d CheckPodNetwork) checkPodToPodConnection(fromPod, toPod *kapi.Pod) {
 
 	success := util.ExpectedConnectionStatus(fromPod.Namespace, toPod.Namespace, d.vnidMap)
 
-	kexecer := kexec.New()
-	containerID := util.ParseContainerID(fromPod.Status.ContainerStatuses[0].ContainerID).ID
-	pid, err := kexecer.Command("docker", "inspect", "-f", "{{.State.Pid}}", containerID).CombinedOutput()
+	pid, err := d.Runtime.GetContainerPid(fromPod.Status.ContainerStatuses[0].ContainerID)
 	if err != nil {
-		d.res.Error("DPodNet1007", err, fmt.Sprintf("Fetching pid for pod %q, container %q failed. Error: %s", util.PrintPod(fromPod), containerID, err))
+		d.res.Error("DPodNet1007", err, err.Error())
 		return
 	}
 
+	kexecer := kexec.New()
 	out, err := kexecer.Command("nsenter", "-n", "-t", strings.Trim(fmt.Sprintf("%s", pid), "\n"), "--", "ping", "-c1", "-W2", toPod.Status.PodIP).CombinedOutput()
 	if success && err != nil {
 		d.res.Error("DPodNet1008", err, fmt.Sprintf("Connectivity from pod %q to pod %q failed. Error: %s, Out: %s", util.PrintPod(fromPod), util.PrintPod(toPod), err, string(out)))

@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 )
@@ -68,7 +67,7 @@ func (c *installContext) ImagePullPolicy() string {
 }
 
 func NewComponentInstallContext(clientImageName, imageFormat, pullPolicy, baseDir string, logLevel int) (Context, error) {
-	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(baseDir, kubeapiserver.KubeAPIServerDirName, adminKubeConfigFileName))
+	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(baseDir, "kube-apiserver", adminKubeConfigFileName))
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
+	osautil "github.com/openshift/origin/pkg/oc/lib/serviceaccount"
 )
 
 func TestExport(t *testing.T) {
@@ -93,12 +93,12 @@ func TestExport(t *testing.T) {
 					Name: baseSA.Name,
 				},
 				ImagePullSecrets: []kapi.LocalObjectReference{
-					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA.Name) + "-foo"},
 					{Name: "another-pull-secret"},
 				},
 				Secrets: []kapi.ObjectReference{
-					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
-					{Name: osautil.GetTokenSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA.Name) + "-foo"},
+					{Name: osautil.GetTokenSecretNamePrefix(baseSA.Name) + "-foo"},
 					{Name: "another-mountable-secret"},
 				},
 			},
@@ -122,12 +122,12 @@ func TestExport(t *testing.T) {
 					Name: baseSA.Name,
 				},
 				ImagePullSecrets: []kapi.LocalObjectReference{
-					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA.Name) + "-foo"},
 					{Name: "another-pull-secret"},
 				},
 				Secrets: []kapi.ObjectReference{
-					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
-					{Name: osautil.GetTokenSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA.Name) + "-foo"},
+					{Name: osautil.GetTokenSecretNamePrefix(baseSA.Name) + "-foo"},
 					{Name: "another-mountable-secret"},
 				},
 			},
@@ -136,12 +136,12 @@ func TestExport(t *testing.T) {
 					Name: baseSA.Name,
 				},
 				ImagePullSecrets: []kapi.LocalObjectReference{
-					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA.Name) + "-foo"},
 					{Name: "another-pull-secret"},
 				},
 				Secrets: []kapi.ObjectReference{
-					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA) + "-foo"},
-					{Name: osautil.GetTokenSecretNamePrefix(baseSA) + "-foo"},
+					{Name: osautil.GetDockercfgSecretNamePrefix(baseSA.Name) + "-foo"},
+					{Name: osautil.GetTokenSecretNamePrefix(baseSA.Name) + "-foo"},
 					{Name: "another-mountable-secret"},
 				},
 			},

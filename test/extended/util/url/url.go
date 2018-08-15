@@ -8,12 +8,15 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
 	o "github.com/onsi/gomega"
 
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/api/core/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
@@ -21,9 +24,10 @@ import (
 )
 
 type Tester struct {
-	client    kclientset.Interface
-	namespace string
-	podName   string
+	client           kclientset.Interface
+	namespace        string
+	podName          string
+	errorPassThrough bool
 }
 
 func NewTester(client kclientset.Interface, ns string) *Tester {
@@ -37,21 +41,69 @@ func (ut *Tester) Close() {
 	ut.podName = ""
 }
 
-func (ut *Tester) Responses(tests ...*Test) []*Response {
-	script := testsToScript(tests)
-	if len(ut.podName) == 0 {
-		name, err := createExecPod(ut.client, ut.namespace, "execpod")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		ut.podName = name
+func (ut *Tester) Response(test *Test) *Response {
+	responses := ut.Responses(test)
+	if responses == nil {
+		return nil
 	}
+	if len(responses) == 0 {
+		return nil
+	}
+	return responses[0]
+}
+
+func (ut *Tester) Responses(tests ...*Test) []*Response {
+	if len(ut.podName) == 0 {
+		_, err := createExecPod(ut.client, ut.namespace, "execpod")
+		if err != nil && !apierrs.IsAlreadyExists(err) {
+			// exit even on error passthrough, unless the exec pod
+			// was already created by a test running in parallel
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+		ut.podName = "execpod"
+	}
+	// testToScript needs to run after creating the pod
+	// in case we need to rsync files for a post body
+	script := testsToScript(tests)
 	output, err := e2e.RunHostCmd(ut.namespace, ut.podName, script)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if !ut.errorPassThrough {
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+	if err != nil {
+		return []*Response{
+			{
+				Error: fmt.Sprintf("%#v", err),
+			},
+		}
+
+	}
 	responses, err := parseResponses(output)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if !ut.errorPassThrough {
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+	if err != nil {
+		return []*Response{
+			{
+				Error: fmt.Sprintf("%#v", err),
+				Body:  []byte(output),
+			},
+		}
+	}
 	if len(responses) != len(tests) {
+		// exit even on error passthrough
 		o.Expect(fmt.Errorf("number of tests did not match number of responses: %d and %d", len(responses), len(tests))).NotTo(o.HaveOccurred())
+
 	}
 	return responses
+}
+
+func (ut *Tester) WithErrorPassthrough(pt bool) *Tester {
+	ut.errorPassThrough = pt
+	return ut
+}
+
+func (ut *Tester) Podname() string {
+	return ut.podName
 }
 
 func (ut *Tester) Within(t time.Duration, tests ...*Test) {
@@ -189,6 +241,11 @@ type Test struct {
 	Name       string
 	Req        *http.Request
 	SkipVerify bool
+	// we capture this here vs. the httpRequest
+	// to facilitate passing to curl
+	PostBodyFile string
+	PodName      string
+	Oc           *exutil.CLI
 
 	Wants []func(*http.Response) error
 }
@@ -201,6 +258,22 @@ func Expect(method, url string) *Test {
 	return &Test{
 		Req: req,
 	}
+}
+
+func (ut *Test) WithBodyToUpload(filename, podname string, oc *exutil.CLI) *Test {
+	ut.PostBodyFile = filename
+	ut.PodName = podname
+	ut.Oc = oc
+	return ut
+}
+
+func (ut *Test) WithToken(token string) *Test {
+	return ut.WithHeader("Authorization", "Bearer "+token)
+}
+
+func (ut *Test) WithHeader(hdr, value string) *Test {
+	ut.Req.Header.Set(hdr, value)
+	return ut
 }
 
 func (ut *Test) Through(addr string) *Test {
@@ -272,7 +345,21 @@ func (ut *Test) ToShell(i int) string {
 		}
 	}
 	lines = append(lines, `rc=0`)
-	cmd := fmt.Sprintf(`curl -X %s %s -s -S -o /tmp/body -D /tmp/headers %q`, ut.Req.Method, strings.Join(headers, " "), ut.Req.URL)
+	post := ""
+	if strings.ToLower(strings.Trim(ut.Req.Method, " ")) == "post" {
+		post = " -H 'Expect:' "
+		if len(ut.PostBodyFile) > 0 {
+			basename := filepath.Base(ut.PostBodyFile)
+			dirname := filepath.Dir(ut.PostBodyFile)
+			lastsubdir := filepath.Base(dirname)
+			err := ut.Oc.AsAdmin().Run("rsync").Args(dirname, ut.PodName+":"+"/tmp", "--strategy=tar").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			post = post + " -d @/tmp/" + lastsubdir + "/" + basename
+		} else {
+			post = post + " -d '' "
+		}
+	}
+	cmd := fmt.Sprintf(`curl -X %s %s %s -s -S -o /tmp/body -D /tmp/headers %q`, ut.Req.Method, strings.Join(headers, " "), post, ut.Req.URL)
 	cmd += ` -w '{"code":%{http_code}}'`
 	if ut.SkipVerify {
 		cmd += ` -k`

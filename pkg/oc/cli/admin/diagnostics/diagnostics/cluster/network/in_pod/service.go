@@ -25,6 +25,7 @@ type CheckServiceNetwork struct {
 	KubeClient           kclientset.Interface
 	NetNamespacesClient  networktypedclient.NetNamespacesGetter
 	ClusterNetworkClient networktypedclient.ClusterNetworksGetter
+	Runtime              *util.Runtime
 
 	vnidMap map[string]uint32
 	res     types.DiagnosticResult
@@ -174,11 +175,9 @@ func (d CheckServiceNetwork) checkPodToServiceConnection(fromPod *kapi.Pod, toSe
 
 	success := util.ExpectedConnectionStatus(fromPod.Namespace, toService.Namespace, d.vnidMap)
 
-	kexecer := kexec.New()
-	containerID := util.ParseContainerID(fromPod.Status.ContainerStatuses[0].ContainerID).ID
-	pid, err := kexecer.Command("docker", "inspect", "-f", "{{.State.Pid}}", containerID).CombinedOutput()
+	pid, err := d.Runtime.GetContainerPid(fromPod.Status.ContainerStatuses[0].ContainerID)
 	if err != nil {
-		d.res.Error("DSvcNet1009", err, fmt.Sprintf("Fetching pid for pod %q failed. Error: %s", util.PrintPod(fromPod), err))
+		d.res.Error("DSvcNet1009", err, err.Error())
 		return
 	}
 
@@ -187,6 +186,8 @@ func (d CheckServiceNetwork) checkPodToServiceConnection(fromPod *kapi.Pod, toSe
 	// like in the pod connectivity check because only connections to the correct port
 	// get redirected by the iptables rules.
 	srvConCmd := fmt.Sprintf("echo -n '' > /dev/%s/%s/%d", strings.ToLower(string(toService.Spec.Ports[0].Protocol)), toService.Spec.ClusterIP, toService.Spec.Ports[0].Port)
+
+	kexecer := kexec.New()
 	out, err := kexecer.Command("nsenter", "-n", "-t", strings.Trim(fmt.Sprintf("%s", pid), "\n"), "--", "timeout", "1", "bash", "-c", srvConCmd).CombinedOutput()
 	if success && err != nil {
 		d.res.Error("DSvcNet1010", err, fmt.Sprintf("Connectivity from pod %q to service %q failed. Error: %s, Out: %s", util.PrintPod(fromPod), printService(toService), err, string(out)))

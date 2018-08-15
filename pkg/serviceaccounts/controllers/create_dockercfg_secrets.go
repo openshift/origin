@@ -25,7 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 
-	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 )
 
 const (
@@ -46,6 +46,11 @@ const (
 
 	// DeprecatedKubeCreatedByAnnotation was removed by https://github.com/kubernetes/kubernetes/pull/54445 (liggitt approved).
 	DeprecatedKubeCreatedByAnnotation = "kubernetes.io/created-by"
+
+	// These constants are here to create a name that is short enough to survive chopping by generate name
+	maxNameLength             = 63
+	randomLength              = 5
+	maxSecretPrefixNameLength = maxNameLength - randomLength
 )
 
 // DockercfgControllerOptions contains options for the DockercfgController
@@ -402,7 +407,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *v1.ServiceAccoun
 
 	// If this service account has no record of a pending token name, record one
 	if len(pendingTokenName) == 0 {
-		pendingTokenName = secret.Strategy.GenerateName(osautil.GetTokenSecretNamePrefixV1(serviceAccount))
+		pendingTokenName = secret.Strategy.GenerateName(getTokenSecretNamePrefix(serviceAccount.Name))
 		if serviceAccount.Annotations == nil {
 			serviceAccount.Annotations = map[string]string{}
 		}
@@ -468,7 +473,7 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *v1.ServiceA
 
 	dockercfgSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.Strategy.GenerateName(osautil.GetDockercfgSecretNamePrefixV1(serviceAccount)),
+			Name:      secret.Strategy.GenerateName(getDockercfgSecretNamePrefix(serviceAccount.Name)),
 			Namespace: tokenSecret.Namespace,
 			Annotations: map[string]string{
 				v1.ServiceAccountNameKey:           serviceAccount.Name,
@@ -509,7 +514,7 @@ func getGeneratedDockercfgSecretNames(serviceAccount *v1.ServiceAccount) (sets.S
 	mountableDockercfgSecrets := sets.String{}
 	imageDockercfgPullSecrets := sets.String{}
 
-	secretNamePrefix := osautil.GetDockercfgSecretNamePrefixV1(serviceAccount)
+	secretNamePrefix := getDockercfgSecretNamePrefix(serviceAccount.Name)
 
 	for _, s := range serviceAccount.Secrets {
 		if strings.HasPrefix(s.Name, secretNamePrefix) {
@@ -522,4 +527,15 @@ func getGeneratedDockercfgSecretNames(serviceAccount *v1.ServiceAccount) (sets.S
 		}
 	}
 	return mountableDockercfgSecrets, imageDockercfgPullSecrets
+}
+
+func getDockercfgSecretNamePrefix(serviceAccountName string) string {
+	return apihelpers.GetName(serviceAccountName, "dockercfg-", maxSecretPrefixNameLength)
+}
+
+// getTokenSecretNamePrefix creates the prefix used for the generated SA token secret. This is compatible with kube up until
+// long names, at which point we hash the SA name and leave the "token-" intact.  Upstream clips the value and generates a random
+// string.
+func getTokenSecretNamePrefix(serviceAccountName string) string {
+	return apihelpers.GetName(serviceAccountName, "token-", maxSecretPrefixNameLength)
 }

@@ -9,17 +9,14 @@ import (
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
 type scopeAuthorizer struct {
 	clusterRoleGetter rbaclisters.ClusterRoleLister
-
-	forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker
 }
 
-func NewAuthorizer(clusterRoleGetter rbaclisters.ClusterRoleLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) authorizer.Authorizer {
-	return &scopeAuthorizer{clusterRoleGetter: clusterRoleGetter, forbiddenMessageMaker: forbiddenMessageMaker}
+func NewAuthorizer(clusterRoleGetter rbaclisters.ClusterRoleLister) authorizer.Authorizer {
+	return &scopeAuthorizer{clusterRoleGetter: clusterRoleGetter}
 }
 
 func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
@@ -46,11 +43,6 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorize
 		return authorizer.DecisionNoOpinion, "", nil
 	}
 
-	denyReason, err := a.forbiddenMessageMaker.MakeMessage(attributes)
-	if err != nil {
-		denyReason = err.Error()
-	}
-
 	// the scope prevent this.  We need to authoritatively deny
-	return authorizer.DecisionDeny, fmt.Sprintf("scopes %v prevent this action; %v", scopes, denyReason), kerrors.NewAggregate(nonFatalErrors)
+	return authorizer.DecisionDeny, fmt.Sprintf("scopes %v prevent this action", scopes), kerrors.NewAggregate(nonFatalErrors)
 }

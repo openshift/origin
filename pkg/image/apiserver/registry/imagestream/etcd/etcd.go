@@ -2,6 +2,9 @@ package etcd
 
 import (
 	"context"
+	"time"
+
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,7 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
@@ -19,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -45,7 +49,7 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a new REST.
 func NewREST(
 	optsGetter restoptions.Getter,
-	registryHostname imageapi.RegistryHostnameRetriever,
+	registryHostname registryhostname.RegistryHostnameRetriever,
 	subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface,
 	limitVerifier imageadmission.LimitVerifier,
 	registryWhitelister whitelist.RegistryWhitelister,
@@ -172,46 +176,73 @@ func (r *LayersREST) Get(ctx context.Context, name string, options *metav1.GetOp
 		Images:     make(map[string]imageapi.ImageBlobReferences),
 	}
 
+	missing := addImageStreamLayersFromCache(isl, is, r.index)
+	// if we are missing images, they may not have propogated to the cache. Wait a non-zero amount of time
+	// and try again
+	if len(missing) > 0 {
+		// 250ms is a reasonable propagation delay for a medium to large cluster
+		time.Sleep(250 * time.Millisecond)
+		missing = addImageStreamLayersFromCache(isl, is, r.index)
+		if len(missing) > 0 {
+			// TODO: return this in the API object as well
+			glog.V(2).Infof("Image stream %s/%s references %d images that could not be found: %v", is.Namespace, is.Name, len(missing), missing)
+		}
+	}
+
+	return isl, nil
+}
+
+// addImageStreamLayersFromCache looks up tagged images from the provided image stream in the cache and then adds
+// metadata about those images and their referenced blobs to isl. It returns the names of missing images from the
+// cache.
+func addImageStreamLayersFromCache(isl *imageapi.ImageStreamLayers, is *imageapi.ImageStream, index ImageLayerIndex) []string {
+	var missing []string
 	for _, status := range is.Status.Tags {
 		for _, item := range status.Items {
 			if len(item.Image) == 0 {
 				continue
 			}
 
-			obj, _, _ := r.index.GetByKey(item.Image)
+			obj, _, _ := index.GetByKey(item.Image)
 			entry, ok := obj.(*ImageLayers)
 			if !ok {
+				missing = append(missing, item.Image)
 				continue
 			}
 
-			if _, ok := isl.Images[item.Image]; !ok {
-				var reference imageapi.ImageBlobReferences
-				for _, layer := range entry.Layers {
-					reference.Layers = append(reference.Layers, layer.Name)
-					if _, ok := isl.Blobs[layer.Name]; !ok {
-						isl.Blobs[layer.Name] = imageapi.ImageLayerData{LayerSize: &layer.LayerSize, MediaType: layer.MediaType}
-					}
-				}
-				if blob := entry.Config; blob != nil {
-					reference.Manifest = &blob.Name
-					if _, ok := isl.Blobs[blob.Name]; !ok {
-						if blob.LayerSize == 0 {
-							// only send media type since we don't the size of the manifest
-							isl.Blobs[blob.Name] = imageapi.ImageLayerData{MediaType: blob.MediaType}
-						} else {
-							isl.Blobs[blob.Name] = imageapi.ImageLayerData{LayerSize: &blob.LayerSize, MediaType: blob.MediaType}
-						}
-					}
-				}
-				// the image manifest is always a blob - schema2 images also have a config blob referenced from the manifest
-				if _, ok := isl.Blobs[item.Image]; !ok {
-					isl.Blobs[item.Image] = imageapi.ImageLayerData{MediaType: entry.MediaType}
-				}
-				isl.Images[item.Image] = reference
+			// we have already added this image once
+			if _, ok := isl.Images[item.Image]; ok {
+				continue
 			}
+
+			var reference imageapi.ImageBlobReferences
+			for _, layer := range entry.Layers {
+				reference.Layers = append(reference.Layers, layer.Name)
+				if _, ok := isl.Blobs[layer.Name]; !ok {
+					isl.Blobs[layer.Name] = imageapi.ImageLayerData{LayerSize: &layer.LayerSize, MediaType: layer.MediaType}
+				}
+			}
+
+			if blob := entry.Config; blob != nil {
+				reference.Manifest = &blob.Name
+				if _, ok := isl.Blobs[blob.Name]; !ok {
+					if blob.LayerSize == 0 {
+						// only send media type since we don't the size of the manifest
+						isl.Blobs[blob.Name] = imageapi.ImageLayerData{MediaType: blob.MediaType}
+					} else {
+						isl.Blobs[blob.Name] = imageapi.ImageLayerData{LayerSize: &blob.LayerSize, MediaType: blob.MediaType}
+					}
+				}
+			}
+
+			// the image manifest is always a blob - schema2 images also have a config blob referenced from the manifest
+			if _, ok := isl.Blobs[item.Image]; !ok {
+				isl.Blobs[item.Image] = imageapi.ImageLayerData{MediaType: entry.MediaType}
+			}
+			isl.Images[item.Image] = reference
 		}
 	}
-	return isl, nil
+	return missing
 }
 
 // LegacyREST allows us to wrap and alter some behavior

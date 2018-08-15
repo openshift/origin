@@ -6,7 +6,7 @@ import (
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	routesapi "github.com/openshift/origin/pkg/route/apis/route"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -34,7 +34,7 @@ type clusterRoleBindingsAdapter interface {
 //deploymentConfigAdapter is an abstraction to retrieve resource for validating dcs
 //for aggregated logging diagnostics
 type deploymentConfigAdapter interface {
-	deploymentconfigs(project string, options metav1.ListOptions) (*appsapi.DeploymentConfigList, error)
+	deploymentconfigs(project string, options metav1.ListOptions) (*appsv1.DeploymentConfigList, error)
 	podsAdapter
 }
 

@@ -14,10 +14,10 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/api/network/v1"
+	networkclient "github.com/openshift/client-go/network/clientset/versioned"
+	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
 	"github.com/openshift/origin/pkg/network/common"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
 type nodeVNIDMap struct {
@@ -195,7 +195,7 @@ func (vmap *nodeVNIDMap) Start(networkInformers networkinformers.SharedInformerF
 
 func (vmap *nodeVNIDMap) watchNetNamespaces() {
 	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, vmap.handleAddOrUpdateNetNamespace, vmap.handleDeleteNetNamespace)
-	vmap.networkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
+	vmap.networkInformers.Network().V1().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (vmap *nodeVNIDMap) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
