@@ -132,7 +132,7 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 		return nil, err
 	}
 
-	runtime, err := netutil.GetRuntime()
+	runtime, err := netutil.GetRuntime(kubeClient)
 	if err != nil {
 		return nil, err
 	}

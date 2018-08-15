@@ -7,8 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/golang/glog"
-
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kexec "k8s.io/utils/exec"
 )
 
@@ -27,8 +26,8 @@ type Runtime struct {
 	Endpoint string
 }
 
-func GetRuntime() (*Runtime, error) {
-	runtimeName, runtimeType, runtimeEndpoint, err := getDefaultRuntimeEndpoint()
+func GetRuntime(kubeClient kclientset.Interface) (*Runtime, error) {
+	runtimeName, runtimeType, runtimeEndpoint, err := getRuntimeEndpoint(kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -114,42 +113,44 @@ func (r *Runtime) GetRuntimeVersion() (string, error) {
 	return versionInfo, nil
 }
 
-func getDefaultRuntimeEndpoint() (string, string, string, error) {
-	isCRIO, err := filePathExists(defaultCRIOShimSocket)
+func getRuntimeEndpoint(kubeClient kclientset.Interface) (string, string, string, error) {
+	nodes, err := GetNodes(kubeClient)
 	if err != nil {
 		return "", "", "", err
 	}
-
-	isDocker, err := filePathExists(defaultDockerShimSocket)
-	if err != nil {
-		return "", "", "", err
+	if len(nodes) == 0 {
+		return "", "", "", fmt.Errorf("no nodes found to detect the runtime")
 	}
 
-	// TODO: Instead of trying to detect the runtime make this as config option
-	if isDocker && isCRIO {
-		glog.Warningf("Found both crio and docker socket files, defaulting to crio")
-		return crioRuntimeName, crioRuntimeType, defaultCRIOShimSocket, nil
-	} else if isCRIO {
-		return crioRuntimeName, crioRuntimeType, defaultCRIOShimSocket, nil
-	} else if isDocker {
-		return dockerRuntimeName, dockerRuntimeType, defaultDockerShimSocket, nil
+	for _, node := range nodes {
+		if len(node.Status.NodeInfo.ContainerRuntimeVersion) > 0 {
+			runtimeTokens := strings.Split(node.Status.NodeInfo.ContainerRuntimeVersion, "://")
+			switch runtimeTokens[0] {
+			case crioRuntimeType:
+				if err := filePathExists(defaultCRIOShimSocket); err != nil {
+					return "", "", "", fmt.Errorf("detected crio runtime but validation of socket file %q failed: %v", defaultCRIOShimSocket, err)
+				}
+				return crioRuntimeName, crioRuntimeType, defaultCRIOShimSocket, nil
+			case dockerRuntimeType:
+				if err := filePathExists(defaultDockerShimSocket); err != nil {
+					return "", "", "", fmt.Errorf("detected docker runtime but validation of socket file %q failed: %v", defaultDockerShimSocket, err)
+				}
+				return dockerRuntimeName, dockerRuntimeType, defaultDockerShimSocket, nil
+			default:
+				return "", "", "", fmt.Errorf("runtime %q is not supported", runtimeTokens[0])
+			}
+		}
 	}
 
-	return "", "", "", fmt.Errorf("supported runtime socket files not found")
+	return "", "", "", fmt.Errorf("supported runtime not found")
 }
 
-func filePathExists(endpoint string) (bool, error) {
+func filePathExists(endpoint string) error {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	if _, err := os.Stat(u.Path); err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
+	_, err = os.Stat(u.Path)
+	return err
 }
