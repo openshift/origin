@@ -214,7 +214,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 			newRoute.Spec.Host = r.Spec.Host
 			if !reflect.DeepEqual(r, newRoute) {
 				updated = true
-				blueprints = append(blueprints, route.DeepCopy())
+				blueprints = append(blueprints, newRoute)
 				continue
 			}
 		}
@@ -222,7 +222,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 	}
 
 	if !routeExists {
-		blueprints = append(blueprints, route.DeepCopy())
+		blueprints = append(blueprints, newRoute)
 		updated = true
 	}
 
@@ -234,7 +234,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 	cm.blueprintRoutes = blueprints
 	cm.lock.Unlock()
 
-	cm.provisionRoutePool(route)
+	cm.provisionRoutePool(newRoute)
 }
 
 // RemoveBlueprint removes a route blueprint.
@@ -264,7 +264,7 @@ func (cm *haproxyConfigManager) RemoveBlueprint(route *routeapi.Route) {
 	cm.blueprintRoutes = blueprints
 	cm.lock.Unlock()
 
-	cm.removeRoutePool(route)
+	cm.removeRoutePool(deletedRoute)
 }
 
 // Register registers an id with an expected haproxy backend for a route.
