@@ -119,6 +119,8 @@ func GetTestPod(testPodImage, testPodProtocol, podName, nodeName string, testPod
 			fmt.Sprintf("%s-l:%d,reuseaddr,fork,crlf", testPodProtocol, testPodPort),
 			"system:\"echo 'HTTP/1.0 200 OK'; echo 'Content-Type: text/plain'; echo; echo 'Hello OpenShift'\"",
 		}
+		pod.Spec.Containers[0].ReadinessProbe = &kapi.Probe{Handler: kapi.Handler{HTTPGet: &kapi.HTTPGetAction{Port: intstr.FromInt(testPodPort), Scheme: kapi.URISchemeHTTP}}}
+		pod.Spec.Containers[0].LivenessProbe = &kapi.Probe{Handler: kapi.Handler{HTTPGet: &kapi.HTTPGetAction{Port: intstr.FromInt(testPodPort), Scheme: kapi.URISchemeHTTP}}}
 	}
 	return pod
 }
