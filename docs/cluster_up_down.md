@@ -62,7 +62,7 @@ a URL to access the management console for your cluster.
      [registries.insecure]
      registries = ['172.30.0.0/16']
      ```
-     or edit the `/etc/docker/daemon.json` file and add the following:
+     or add/edit the `/etc/docker/daemon.json` file and add the following:
      ```json
      {
         "insecure-registries": [
@@ -92,6 +92,25 @@ a URL to access the management console for your cluster.
      firewall-cmd --permanent --zone dockerc --add-port 53/udp
      firewall-cmd --permanent --zone dockerc --add-port 8053/udp
      firewall-cmd --reload
+     ```
+     Following en example of the output faced when the access is not grant.
+     ```
+     Starting OpenShift using openshift/origin:v3.9.0 ...
+      -- Starting OpenShift container ... 
+         Creating initial OpenShift configuration
+         Starting OpenShift using container 'origin'
+         Waiting for API server to start listening
+      FAIL
+         Error: timed out waiting for OpenShift container "origin" 
+         WARNING: 127.0.0.1:8443 may be blocked by firewall rules
+     ```
+     
+     **NOTE**: Following how to install this command if the message `the firewall-cmd: command not found` be faced.
+     ```
+     $ sudo yum install firewalld
+     $ sudo systemctl start firewalld
+     $ sudo systemctl enable firewalld
+     $ sudo systemctl status firewalld
      ```
 
 4. Download the Linux `oc` binary from
