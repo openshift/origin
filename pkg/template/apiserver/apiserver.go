@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	restclient "k8s.io/client-go/rest"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
 	brokertemplateinstanceetcd "github.com/openshift/origin/pkg/template/apiserver/registry/brokertemplateinstance/etcd"

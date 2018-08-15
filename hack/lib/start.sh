@@ -129,16 +129,14 @@ function os::start::internal::configure_master() {
 	openshift_executable="$(os::start::internal::openshift_executable "${version}")"
 
 	os::log::debug "Creating master configuration for the OpenShift server"
-	${openshift_executable} start                                                   \
+	${openshift_executable} start master                                            \
 	                        --create-certs=false                                    \
 	                        --images="${USE_IMAGES}"                                \
 	                        --master="${MASTER_ADDR}"                               \
-	                        --dns="tcp://${API_HOST}:53"                            \
-	                        --hostname="${KUBELET_HOST}"                            \
-	                        --volume-dir="${VOLUME_DIR}"                            \
+	                        --dns="tcp://${API_HOST}:8053"                          \
 	                        --etcd-dir="${ETCD_DATA_DIR}"                           \
 	                        --network-plugin="${NETWORK_PLUGIN:-}"                  \
-	                        --write-config="${SERVER_CONFIG_DIR}"                   \
+	                        --write-config="${SERVER_CONFIG_DIR}/master"            \
 	                        --listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
 	                        --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
 
@@ -474,11 +472,7 @@ function os::start::internal::start_node() {
 
 	os::log::debug "Starting OpenShift node"
 	local openshift_env=( "OPENSHIFT_ON_PANIC=crash" )
-	$(os::start::internal::openshift_executable) openshift start node \
-		--config="${NODE_CONFIG_DIR}/node-config.yaml" \
-		--loglevel=4 --logspec='*importer=5' \
-		--latest-images="${use_latest_images}" \
-	&>"${LOG_DIR}/node.log" &
+	$(which hyperkube) kubelet $(openshift-node-config --config="${NODE_CONFIG_DIR}/node-config.yaml" --loglevel=4) &>"${LOG_DIR}/node.log" &
 	export NODE_PID=$!
 
 	os::log::debug "OpenShift node start at: $( date )"
@@ -543,7 +537,7 @@ function os::start::internal::determine_hostnames() {
 	local hostnames
 	hostnames="${PUBLIC_MASTER_HOST},"
 	hostnames+="localhost,172.30.0.1,"
-	for address in $(openshift start --print-ip); do
+	for address in $(openshift start master --print-ip); do
 		hostnames+="${address},"
 	done
 	hostnames+="kubernetes.default.svc.cluster.local,"

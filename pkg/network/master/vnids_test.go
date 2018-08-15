@@ -5,8 +5,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openshift/library-go/pkg/network/networkapihelpers"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
 func TestMasterVNIDMap(t *testing.T) {
@@ -35,27 +35,27 @@ func TestMasterVNIDMap(t *testing.T) {
 	checkCurrentVNIDs(t, vmap, 4, 3)
 
 	// update vnids
-	_, err = vmap.updateNetID("alpha", networkapi.JoinPodNetwork, "bravo")
+	_, err = vmap.updateNetID("alpha", networkapihelpers.JoinPodNetwork, "bravo")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("alpha", networkapi.JoinPodNetwork, "bogus")
+	_, err = vmap.updateNetID("alpha", networkapihelpers.JoinPodNetwork, "bogus")
 	checkErr(t, err)
-	_, err = vmap.updateNetID("bogus", networkapi.JoinPodNetwork, "alpha")
+	_, err = vmap.updateNetID("bogus", networkapihelpers.JoinPodNetwork, "alpha")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 2)
 
-	_, err = vmap.updateNetID("alpha", networkapi.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("alpha", networkapihelpers.GlobalPodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("charlie", networkapi.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("charlie", networkapihelpers.GlobalPodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bogus", networkapi.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("bogus", networkapihelpers.GlobalPodNetwork, "")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 1)
 
-	_, err = vmap.updateNetID("alpha", networkapi.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("alpha", networkapihelpers.IsolatePodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bravo", networkapi.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("bravo", networkapihelpers.IsolatePodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bogus", networkapi.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("bogus", networkapihelpers.IsolatePodNetwork, "")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 2)
 

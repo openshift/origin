@@ -12,7 +12,7 @@ metadata:
 parameters:
 - description: The location of the grafana image
   name: IMAGE_GRAFANA
-  value: mrsiano/grafana-ocp:latest
+  value: docker.io/grafana/grafana:master 
 - description: The location of the proxy image
   name: IMAGE_PROXY
   value: openshift/oauth-proxy:v1.0.0
@@ -137,14 +137,12 @@ objects:
           volumeMounts:
           - mountPath: "/root/go/src/github.com/grafana/grafana/data"
             name: grafana-data
-          - mountPath: "/root/go/src/github.com/grafana/grafana/conf"
+          - mountPath: "/usr/share/grafana/conf"
             name: grafanaconfig
           - mountPath: /etc/tls/private
             name: grafana-tls
           - mountPath: /etc/proxy/secrets
             name: secrets
-          command:
-           - "./bin/grafana-server"
 
         volumes:
         - name: grafanaconfig

@@ -9,7 +9,7 @@ import (
 	servingcertcontroller "github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert"
 )
 
-func RunServiceServingCertsController(ctx ControllerContext) (bool, error) {
+func RunServiceServingCertsController(ctx *ControllerContext) (bool, error) {
 	signer := ctx.OpenshiftControllerConfig.ServiceServingCert.Signer
 	if signer == nil || len(signer.CertFile) == 0 || len(signer.KeyFile) == 0 {
 		return false, nil

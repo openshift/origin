@@ -317,16 +317,6 @@ os::provision::copy-config() {
   fi
 }
 
-os::provision::start-node-service() {
-  local config_root=$1
-  local node_name=$2
-
-  cmd="/usr/bin/openshift start node --loglevel=${LOG_LEVEL} \
---config=$(os::provision::get-node-config ${config_root} ${node_name})"
-  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" \
-      "${config_root}"
-}
-
 OS_WAIT_FOREVER=-1
 os::provision::wait-for-condition() {
   local msg=$1

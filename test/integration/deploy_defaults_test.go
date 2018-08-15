@@ -5,17 +5,17 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	appsclientscheme "github.com/openshift/client-go/apps/clientset/versioned/scheme"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
@@ -24,27 +24,27 @@ import (
 )
 
 var (
-	nonDefaultRevisionHistoryLimit = appsapi.DefaultRevisionHistoryLimit + 42
+	nonDefaultRevisionHistoryLimit = int32(52)
 )
 
-func minimalDC(name string, generation int64) *appsapi.DeploymentConfig {
-	return &appsapi.DeploymentConfig{
+func minimalDC(name string, generation int64) *appsv1.DeploymentConfig {
+	return &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       name,
 			Generation: generation,
 		},
-		Spec: appsapi.DeploymentConfigSpec{
+		Spec: appsv1.DeploymentConfigSpec{
 			Selector: map[string]string{
 				"app": name,
 			},
-			Template: &kapi.PodTemplateSpec{
+			Template: &corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app": name,
 					},
 				},
-				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:  "a",
 							Image: " ",
@@ -64,36 +64,36 @@ func int32ptr(v int32) *int32 {
 	return &v
 }
 
-func setEssentialDefaults(dc *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
-	dc.Spec.Strategy.Type = appsapi.DeploymentStrategyTypeRolling
-	dc.Spec.Strategy.RollingParams = &appsapi.RollingDeploymentStrategyParams{
+func setEssentialDefaults(dc *appsv1.DeploymentConfig) *appsv1.DeploymentConfig {
+	dc.Spec.Strategy.Type = appsv1.DeploymentStrategyTypeRolling
+	twentyFivePerc := intstr.FromString("25%")
+	dc.Spec.Strategy.RollingParams = &appsv1.RollingDeploymentStrategyParams{
 		IntervalSeconds:     int64ptr(1),
 		UpdatePeriodSeconds: int64ptr(1),
 		TimeoutSeconds:      int64ptr(600),
-		MaxUnavailable:      intstr.FromString("25%"),
-		MaxSurge:            intstr.FromString("25%"),
+		MaxUnavailable:      &twentyFivePerc,
+		MaxSurge:            &twentyFivePerc,
 	}
 	dc.Spec.Strategy.ActiveDeadlineSeconds = int64ptr(21600)
-	dc.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{
-		{Type: appsapi.DeploymentTriggerOnConfigChange},
+	dc.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{
+		{Type: appsv1.DeploymentTriggerOnConfigChange},
 	}
 	dc.Spec.Template.Spec.Containers[0].TerminationMessagePath = "/dev/termination-log"
 	dc.Spec.Template.Spec.Containers[0].TerminationMessagePolicy = "File"
 	dc.Spec.Template.Spec.Containers[0].ImagePullPolicy = "IfNotPresent"
+	dc.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
 	dc.Spec.Template.Spec.RestartPolicy = "Always"
 	dc.Spec.Template.Spec.TerminationGracePeriodSeconds = int64ptr(30)
 	dc.Spec.Template.Spec.DNSPolicy = "ClusterFirst"
-	dc.Spec.Template.Spec.SecurityContext = &kapi.PodSecurityContext{
-		HostNetwork: false,
-		HostPID:     false,
-		HostIPC:     false,
-	}
+	dc.Spec.Template.Spec.HostNetwork = false
+	dc.Spec.Template.Spec.HostPID = false
+	dc.Spec.Template.Spec.HostIPC = false
 	dc.Spec.Template.Spec.SchedulerName = "default-scheduler"
 
 	return dc
 }
 
-func clearTransient(dc *appsapi.DeploymentConfig) {
+func clearTransient(dc *appsv1.DeploymentConfig) {
 	dc.ObjectMeta.Namespace = ""
 	dc.ObjectMeta.SelfLink = ""
 	dc.ObjectMeta.UID = ""
@@ -123,16 +123,16 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	legacy.InstallInternalLegacyApps(appsclientscheme.Scheme)
 
 	ttLegacy := []struct {
-		obj    *appsapi.DeploymentConfig
-		legacy *appsapi.DeploymentConfig
+		obj    *appsv1.DeploymentConfig
+		legacy *appsv1.DeploymentConfig
 	}{
 		{
-			obj: func() *appsapi.DeploymentConfig {
+			obj: func() *appsv1.DeploymentConfig {
 				dc := minimalDC("test-legacy-01", 0)
 				dc.Spec.RevisionHistoryLimit = nil
 				return dc
 			}(),
-			legacy: func() *appsapi.DeploymentConfig {
+			legacy: func() *appsv1.DeploymentConfig {
 				dc := minimalDC("test-legacy-01", 1)
 				setEssentialDefaults(dc)
 				// Legacy API shall not default RevisionHistoryLimit to maintain backwards compatibility
@@ -141,12 +141,12 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 			}(),
 		},
 		{
-			obj: func() *appsapi.DeploymentConfig {
+			obj: func() *appsv1.DeploymentConfig {
 				dc := minimalDC("test-legacy-02", 0)
 				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
 				return dc
 			}(),
-			legacy: func() *appsapi.DeploymentConfig {
+			legacy: func() *appsv1.DeploymentConfig {
 				dc := minimalDC("test-legacy-02", 1)
 				setEssentialDefaults(dc)
 				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
@@ -165,7 +165,7 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create DC: %v", err)
 				}
-				legacyDC := legacyObj.(*appsapi.DeploymentConfig)
+				legacyDC := legacyObj.(*appsv1.DeploymentConfig)
 
 				clearTransient(legacyDC)
 				if !reflect.DeepEqual(legacyDC, tc.legacy) {
@@ -176,16 +176,16 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	})
 
 	ttApps := []struct {
-		obj  *appsapi.DeploymentConfig
-		apps *appsapi.DeploymentConfig
+		obj  *appsv1.DeploymentConfig
+		apps *appsv1.DeploymentConfig
 	}{
 		{
-			obj: func() *appsapi.DeploymentConfig {
+			obj: func() *appsv1.DeploymentConfig {
 				dc := minimalDC("test-apps-01", 0)
 				dc.Spec.RevisionHistoryLimit = nil
 				return dc
 			}(),
-			apps: func() *appsapi.DeploymentConfig {
+			apps: func() *appsv1.DeploymentConfig {
 				dc := minimalDC("test-apps-01", 1)
 				setEssentialDefaults(dc)
 				// Group API should default RevisionHistoryLimit
@@ -194,12 +194,12 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 			}(),
 		},
 		{
-			obj: func() *appsapi.DeploymentConfig {
+			obj: func() *appsv1.DeploymentConfig {
 				dc := minimalDC("test-apps-02", 0)
 				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
 				return dc
 			}(),
-			apps: func() *appsapi.DeploymentConfig {
+			apps: func() *appsv1.DeploymentConfig {
 				dc := minimalDC("test-apps-02", 1)
 				setEssentialDefaults(dc)
 				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit

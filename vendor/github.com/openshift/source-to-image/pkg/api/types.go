@@ -244,9 +244,9 @@ type Config struct {
 	// ImageWorkDir is the default working directory for the builder image.
 	ImageWorkDir string
 
-	// ImageScriptsDir is the path to the directory containing the assemble/run scripts located within the builder image.
-	// It should be specified as an absolute path (e.g. "/usr/libexec/s2i")
-	ImageScriptsDir string
+	// ImageScriptsURL is the default location to find the assemble/run scripts for a builder image.
+	// This url can be a reference within the builder image if the scheme is specified as image://
+	ImageScriptsURL string
 }
 
 // EnvironmentSpec specifies a single environment variable.

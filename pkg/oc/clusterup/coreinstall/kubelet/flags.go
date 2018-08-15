@@ -36,8 +36,6 @@ func (opt KubeletStartFlags) MakeKubeletFlags(dockerClient dockerhelper.Interfac
 	}
 
 	createFlagsCmd := []string{
-		"start", "node",
-		"--write-flags",
 		"--config=/var/lib/origin/openshift.local.config/node/node-config.yaml",
 	}
 
@@ -46,7 +44,7 @@ func (opt KubeletStartFlags) MakeKubeletFlags(dockerClient dockerhelper.Interfac
 		Bind(binds...).
 		Env(env...).
 		SaveContainerLogs(componentName, path.Join(basedir, "logs")).
-		Entrypoint("openshift").
+		Entrypoint("openshift-node-config").
 		Command(createFlagsCmd...).Output()
 	if err != nil {
 		return "", errors.NewError("could not run %q: %v", componentName, err).WithCause(err)

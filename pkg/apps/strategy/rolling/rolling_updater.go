@@ -167,7 +167,7 @@ func NewRollingUpdater(namespace string, rcClient coreclient.ReplicationControll
 	updater.getOrCreateTargetController = updater.getOrCreateTargetControllerWithClient
 	updater.getReadyPods = updater.readyPods
 	updater.cleanup = updater.cleanupWithClients
-	updater.nowFn = func() metav1.Time { return metav1.Now() }
+	updater.nowFn = metav1.Now
 	return updater
 }
 
@@ -445,7 +445,7 @@ func (r *RollingUpdater) readyPods(oldRc, newRc *api.ReplicationController, minR
 	oldReady := int32(0)
 	newReady := int32(0)
 	if r.nowFn == nil {
-		r.nowFn = func() metav1.Time { return metav1.Now() }
+		r.nowFn = metav1.Now
 	}
 
 	for i := range controllers {

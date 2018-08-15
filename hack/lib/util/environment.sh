@@ -169,7 +169,7 @@ readonly -f os::util::environment::setup_tmpdir_vars
 function os::util::environment::setup_kubelet_vars() {
     KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
     export KUBELET_SCHEME
-    KUBELET_BIND_HOST="${KUBELET_BIND_HOST:-$(openshift start --print-ip || echo "127.0.0.1")}"
+    KUBELET_BIND_HOST="${KUBELET_BIND_HOST:-$(openshift start master --print-ip || echo "127.0.0.1")}"
     export KUBELET_BIND_HOST
     KUBELET_HOST="${KUBELET_HOST:-${KUBELET_BIND_HOST}}"
     export KUBELET_HOST
@@ -232,7 +232,7 @@ function os::util::environment::setup_server_vars() {
     KUBE_CACHE_MUTATION_DETECTOR="${KUBE_CACHE_MUTATION_DETECTOR:-true}"
     export KUBE_CACHE_MUTATION_DETECTOR
 
-    API_BIND_HOST="${API_BIND_HOST:-$(openshift start --print-ip || echo "127.0.0.1")}"
+    API_BIND_HOST="${API_BIND_HOST:-$(openshift start master --print-ip || echo "127.0.0.1")}"
     export API_BIND_HOST
     API_HOST="${API_HOST:-${API_BIND_HOST}}"
     export API_HOST

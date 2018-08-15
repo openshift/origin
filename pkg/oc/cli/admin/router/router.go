@@ -25,6 +25,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -279,7 +280,7 @@ $ModLoad omstdout.so
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
-func NewCmdRouter(f kcmdutil.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdRouter(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	cfg := &RouterConfig{
 		Name:          "router",
 		ImageTemplate: variable.NewDefaultImageTemplate(),
@@ -304,7 +305,7 @@ func NewCmdRouter(f kcmdutil.Factory, parentName, name string, out, errout io.Wr
 		Long:    routerLong,
 		Example: fmt.Sprintf(routerExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunCmdRouter(f, cmd, out, errout, cfg, args)
+			err := RunCmdRouter(f, cmd, streams.Out, streams.ErrOut, cfg, args)
 			if err != kcmdutil.ErrExit {
 				kcmdutil.CheckErr(err)
 			} else {

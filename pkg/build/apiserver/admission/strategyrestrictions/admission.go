@@ -5,24 +5,26 @@ import (
 	"io"
 	"strings"
 
-	"github.com/openshift/api/build"
-	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/build/buildscheme"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/kubernetes"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	"k8s.io/client-go/rest"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
-	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
+	"github.com/openshift/api/build"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildscheme"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"k8s.io/kubernetes/pkg/apis/authorization"
+	"k8s.io/apiserver/pkg/admission/initializer"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -38,8 +40,8 @@ type buildByStrategy struct {
 	buildClient buildclient.Interface
 }
 
-var _ = kubeadmission.WantsInternalKubeClientSet(&buildByStrategy{})
-var _ = oadmission.WantsOpenshiftInternalBuildClient(&buildByStrategy{})
+var _ = initializer.WantsExternalKubeClientSet(&buildByStrategy{})
+var _ = oadmission.WantsRESTClientConfig(&buildByStrategy{})
 
 // NewBuildByStrategy returns an admission control for builds that checks
 // on policy based on the build strategy type
@@ -84,12 +86,17 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	}
 }
 
-func (a *buildByStrategy) SetInternalKubeClientSet(c internalclientset.Interface) {
-	a.sarClient = c.Authorization().SubjectAccessReviews()
+func (a *buildByStrategy) SetExternalKubeClientSet(c kubernetes.Interface) {
+	a.sarClient = c.AuthorizationV1().SubjectAccessReviews()
 }
 
-func (a *buildByStrategy) SetOpenshiftInternalBuildClient(c buildclient.Interface) {
-	a.buildClient = c
+func (a *buildByStrategy) SetRESTClientConfig(restClientConfig rest.Config) {
+	var err error
+	a.buildClient, err = buildclient.NewForConfig(&restClientConfig)
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
 }
 
 func (a *buildByStrategy) ValidateInitialization() error {
@@ -139,9 +146,9 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 		subresource = tokens[1]
 	}
 
-	sar := util.AddUserToSAR(attr.GetUserInfo(), &authorization.SubjectAccessReview{
-		Spec: authorization.SubjectAccessReviewSpec{
-			ResourceAttributes: &authorization.ResourceAttributes{
+	sar := util.AddUserToSAR(attr.GetUserInfo(), &authorizationv1.SubjectAccessReview{
+		Spec: authorizationv1.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Namespace:   attr.GetNamespace(),
 				Verb:        "create",
 				Group:       resource.Group,
@@ -167,9 +174,9 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 		subresource = tokens[1]
 	}
 
-	sar := util.AddUserToSAR(attr.GetUserInfo(), &authorization.SubjectAccessReview{
-		Spec: authorization.SubjectAccessReviewSpec{
-			ResourceAttributes: &authorization.ResourceAttributes{
+	sar := util.AddUserToSAR(attr.GetUserInfo(), &authorizationv1.SubjectAccessReview{
+		Spec: authorizationv1.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Namespace:   attr.GetNamespace(),
 				Verb:        "create",
 				Group:       resource.Group,
@@ -213,7 +220,7 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 	}
 }
 
-func (a *buildByStrategy) checkAccess(strategy buildapi.BuildStrategy, subjectAccessReview *authorization.SubjectAccessReview, attr admission.Attributes) error {
+func (a *buildByStrategy) checkAccess(strategy buildapi.BuildStrategy, subjectAccessReview *authorizationv1.SubjectAccessReview, attr admission.Attributes) error {
 	resp, err := a.sarClient.Create(subjectAccessReview)
 	if err != nil {
 		return admission.NewForbidden(attr, err)

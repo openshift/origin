@@ -18,6 +18,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
 // maxRetriesOnConflict is the maximum retry count for Create calls which
@@ -37,7 +38,7 @@ var _ rest.Creater = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, registry imageapi.RegistryHostnameRetriever) *REST {
+func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, registry registryhostname.RegistryHostnameRetriever) *REST {
 	return &REST{
 		imageRegistry:       imageRegistry,
 		imageStreamRegistry: imageStreamRegistry,

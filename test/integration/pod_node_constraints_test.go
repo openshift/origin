@@ -3,6 +3,7 @@ package integration
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
@@ -11,8 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -140,7 +141,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	}
 }
 
-func testPodNodeConstraintsPodSpec(nodeName string, nodeSelector map[string]string) kapi.PodSpec {
+func testInternalPodNodeConstraintsPodSpec(nodeName string, nodeSelector map[string]string) kapi.PodSpec {
 	spec := kapi.PodSpec{}
 	spec.RestartPolicy = kapi.RestartPolicyAlways
 	spec.NodeName = nodeName
@@ -154,10 +155,24 @@ func testPodNodeConstraintsPodSpec(nodeName string, nodeSelector map[string]stri
 	return spec
 }
 
+func testPodNodeConstraintsPodSpec(nodeName string, nodeSelector map[string]string) corev1.PodSpec {
+	spec := corev1.PodSpec{}
+	spec.RestartPolicy = corev1.RestartPolicyAlways
+	spec.NodeName = nodeName
+	spec.NodeSelector = nodeSelector
+	spec.Containers = []corev1.Container{
+		{
+			Name:  "container",
+			Image: "test/image",
+		},
+	}
+	return spec
+}
+
 func testPodNodeConstraintsPod(nodeName string, nodeSelector map[string]string) *kapi.Pod {
 	pod := &kapi.Pod{}
 	pod.Name = "testpod"
-	pod.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	pod.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	return pod
 }
 
@@ -168,7 +183,7 @@ func testPodNodeConstraintsReplicationController(nodeName string, nodeSelector m
 	rc.Spec.Selector = map[string]string{"foo": "bar"}
 	rc.Spec.Template = &kapi.PodTemplateSpec{}
 	rc.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	rc.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	rc.Spec.Template.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	return rc
 }
 
@@ -177,7 +192,7 @@ func testPodNodeConstraintsDeployment(nodeName string, nodeSelector map[string]s
 	d.Name = "testdeployment"
 	d.Spec.Replicas = 1
 	d.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	d.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	d.Spec.Template.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	d.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{"foo": "bar"},
 	}
@@ -190,7 +205,7 @@ func testPodNodeConstraintsReplicaSet(nodeName string, nodeSelector map[string]s
 	rs.Spec.Replicas = 1
 	rs.Spec.Template = kapi.PodTemplateSpec{}
 	rs.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	rs.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	rs.Spec.Template.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	rs.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{"foo": "bar"},
 	}
@@ -201,18 +216,18 @@ func testPodNodeConstraintsJob(nodeName string, nodeSelector map[string]string) 
 	job := &batch.Job{}
 	job.Name = "testjob"
 	job.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	job.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	job.Spec.Template.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	job.Spec.Template.Spec.RestartPolicy = kapi.RestartPolicyNever
 	// Matching selector is now generated automatically
 	// job.Spec.Selector = ...
 	return job
 }
 
-func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[string]string) *appsapi.DeploymentConfig {
-	dc := &appsapi.DeploymentConfig{}
+func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[string]string) *appsv1.DeploymentConfig {
+	dc := &appsv1.DeploymentConfig{}
 	dc.Name = "testdc"
 	dc.Spec.Replicas = 1
-	dc.Spec.Template = &kapi.PodTemplateSpec{}
+	dc.Spec.Template = &corev1.PodTemplateSpec{}
 	dc.Spec.Template.Labels = map[string]string{"foo": "bar"}
 	dc.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	dc.Spec.Selector = map[string]string{"foo": "bar"}

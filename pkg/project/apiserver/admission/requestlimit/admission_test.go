@@ -154,7 +154,7 @@ func TestMaxProjectByRequester(t *testing.T) {
 		}
 		user := fakeUser("testuser", tc.userLabels)
 		client := fakeuserclient.NewSimpleClientset(user)
-		reqLimit.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(client)
+		reqLimit.(*projectRequestLimit).userClient = client.UserV1()
 
 		maxProjects, hasLimit, err := reqLimit.(*projectRequestLimit).maxProjectsByRequester("testuser")
 		if err != nil {
@@ -278,7 +278,7 @@ func TestAdmit(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		reqLimit.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(client)
+		reqLimit.(*projectRequestLimit).userClient = client.UserV1()
 		reqLimit.(oadmission.WantsProjectCache).SetProjectCache(pCache)
 		if err = reqLimit.(admission.InitializationValidator).ValidateInitialization(); err != nil {
 			t.Fatalf("validation error: %v", err)

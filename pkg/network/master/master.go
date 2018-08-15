@@ -17,14 +17,13 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	networkapi "github.com/openshift/api/network/v1"
+	networkclient "github.com/openshift/client-go/network/clientset/versioned"
+	networkinternalinformers "github.com/openshift/client-go/network/informers/externalversions"
+	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	osapivalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
-	networkinternalinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion/network/internalversion"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
@@ -63,8 +62,8 @@ func Start(networkConfig osconfigapi.NetworkControllerConfig, networkClient netw
 
 		nodeInformer:         kubeInformers.Core().V1().Nodes(),
 		namespaceInformer:    kubeInformers.Core().V1().Namespaces(),
-		hostSubnetInformer:   networkInformers.Network().InternalVersion().HostSubnets(),
-		netNamespaceInformer: networkInformers.Network().InternalVersion().NetNamespaces(),
+		hostSubnetInformer:   networkInformers.Network().V1().HostSubnets(),
+		netNamespaceInformer: networkInformers.Network().V1().NetNamespaces(),
 
 		subnetAllocatorMap: map[common.ClusterNetwork]*SubnetAllocator{},
 		hostSubnetNodeIPs:  map[ktypes.UID]string{},
@@ -101,7 +100,6 @@ func Start(networkConfig osconfigapi.NetworkControllerConfig, networkClient netw
 		Network:          parsedClusterNetworkEntries[0].CIDR,
 		HostSubnetLength: parsedClusterNetworkEntries[0].HostSubnetLength,
 	}
-	osapivalidation.SetDefaultClusterNetwork(*configCN)
 
 	// try this for a while before just dying
 	var getError error

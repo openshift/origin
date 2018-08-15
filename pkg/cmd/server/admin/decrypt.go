@@ -13,6 +13,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
@@ -44,28 +45,29 @@ var decryptExample = templates.Examples(`
 	# Decrypt from stdin to stdout:
 	%[1]s --key=secret.key < secret2.encrypted > secret2.decrypted`)
 
-func NewCommandDecrypt(commandName string, fullName, encryptFullName string, out io.Writer) *cobra.Command {
-	options := &DecryptOptions{
-		EncryptedReader: os.Stdin,
-		DecryptedWriter: out,
+func NewDecryptOptions(streams genericclioptions.IOStreams) *DecryptOptions {
+	return &DecryptOptions{
+		EncryptedReader: streams.In,
+		DecryptedWriter: streams.Out,
 	}
+}
 
+func NewCommandDecrypt(commandName string, fullName, encryptFullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewDecryptOptions(streams)
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   fmt.Sprintf("Decrypt data encrypted with %q", encryptFullName),
 		Example: fmt.Sprintf(decryptExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Validate(args))
-			kcmdutil.CheckErr(options.Decrypt())
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.Decrypt())
 		},
 	}
 
-	flags := cmd.Flags()
+	cmd.Flags().StringVar(&o.EncryptedFile, "in", o.EncryptedFile, fmt.Sprintf("File containing encrypted data, in the format written by %q.", encryptFullName))
+	cmd.Flags().StringVar(&o.DecryptedFile, "out", o.DecryptedFile, "File to write the decrypted data to. Written to stdout if omitted.")
 
-	flags.StringVar(&options.EncryptedFile, "in", options.EncryptedFile, fmt.Sprintf("File containing encrypted data, in the format written by %q.", encryptFullName))
-	flags.StringVar(&options.DecryptedFile, "out", options.DecryptedFile, "File to write the decrypted data to. Written to stdout if omitted.")
-
-	flags.StringVar(&options.KeyFile, "key", options.KeyFile, fmt.Sprintf("The file to read the decrypting key from. Must be a PEM file in the format written by %q.", encryptFullName))
+	cmd.Flags().StringVar(&o.KeyFile, "key", o.KeyFile, fmt.Sprintf("The file to read the decrypting key from. Must be a PEM file in the format written by %q.", encryptFullName))
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("in")

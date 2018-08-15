@@ -215,8 +215,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("by checking that the second deployment exists"))
-			// TODO when #11016 gets fixed this can be reverted to 30seconds
-			err = wait.PollImmediate(500*time.Millisecond, 5*time.Minute, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
 				_, rcs, _, err := deploymentInfo(oc, dcName)
 				if err != nil {
 					return false, nil
@@ -292,7 +291,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(is.Status.Tags["direct"].Items).NotTo(o.BeEmpty())
 			o.Expect(is.Status.Tags["pullthrough"].Items).NotTo(o.BeEmpty())
 
-			dc, err = oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Spec.Triggers).To(o.HaveLen(3))
 
@@ -350,7 +349,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 
 			g.By("verifying the scale is updated on the deployment config")
-			config, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get("deployment-test", metav1.GetOptions{})
+			config, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get("deployment-test", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(config.Spec.Replicas).Should(o.BeEquivalentTo(1))
 			o.Expect(config.Spec.Test).Should(o.BeTrue())
@@ -403,11 +402,11 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			expectLatestVersion := func(version int) {
-				dc, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(dcName, metav1.GetOptions{})
+				dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(dcName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				latestVersion := dc.Status.LatestVersion
 				err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
-					dc, err = oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(dcName, metav1.GetOptions{})
+					dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(dcName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					latestVersion = dc.Status.LatestVersion
 					return latestVersion == int64(version), nil
@@ -783,15 +782,12 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			_, err = updateConfigWithRetries(oc.AppsClient().Apps(), oc.Namespace(), dcName, func(dc *appsv1.DeploymentConfig) {
-				// TODO: oc rollout pause should patch instead of making a full update
-				dc.Spec.Paused = false
-			})
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(dcName, types.StrategicMergePatchType, []byte(`{"spec": {"paused": false}}`))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("making sure it updates observedGeneration after being paused")
-			dc, err = oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Patch(dcName, types.StrategicMergePatchType, []byte(`{"spec": {"paused": true}}`))
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(dcName, types.StrategicMergePatchType, []byte(`{"spec": {"paused": true}}`))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			_, err = waitForDCModification(oc, dc.Namespace, dcName, deploymentChangeTimeout,
@@ -1015,9 +1011,6 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(dc.Spec.Triggers).To(o.BeNil())
-			// FIXME: remove when tests are migrated to the new client
-			// (the old one incorrectly translates nil into an empty array)
-			dc.Spec.Triggers = append(dc.Spec.Triggers, appsv1.DeploymentTriggerPolicy{Type: appsv1.DeploymentTriggerOnConfigChange})
 			// This is the last place we can safely say that the time was taken before replicas became ready
 			startTime := time.Now()
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
@@ -1206,7 +1199,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 
 			g.By("deleting owned RCs when deleted", func() {
-				err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Delete(dcName, &metav1.DeleteOptions{})
+				err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Delete(dcName, &metav1.DeleteOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = wait.PollImmediate(200*time.Millisecond, 5*time.Minute, func() (bool, error) {
@@ -1286,7 +1279,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 			g.By("redeploying immediately by config change")
 			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
-			dc, err = oc.AppsClient().Apps().DeploymentConfigs(dc.Namespace).Patch(dc.Name, types.StrategicMergePatchType,
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(dc.Namespace).Patch(dc.Name, types.StrategicMergePatchType,
 				[]byte(`{"spec":{"template":{"metadata":{"annotations":{"foo": "bar"}}}}}`))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
@@ -1386,7 +1379,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			dc.Spec.Replicas = 1
 			// Make sure the deployer pod doesn't immediately
 			dc.Spec.MinReadySeconds = 3
-			dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Create(dc)
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for RC to be created")
@@ -1431,7 +1424,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 			g.By("redeploying immediately by config change")
 			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
-			dc, err = oc.AppsClient().Apps().DeploymentConfigs(dc.Namespace).Patch(dc.Name, types.StrategicMergePatchType,
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(dc.Namespace).Patch(dc.Name, types.StrategicMergePatchType,
 				[]byte(`{"spec":{"template":{"metadata":{"annotations":{"foo": "bar"}}}}}`))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,

@@ -8,10 +8,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
 	u "github.com/openshift/origin/pkg/build/controller/common/testutil"
-
-	_ "github.com/openshift/origin/pkg/api/install"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 func TestBuildOverrideForcePull(t *testing.T) {
@@ -36,7 +34,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 	ops := []admission.Operation{admission.Create, admission.Update}
 	for _, test := range tests {
 		for _, op := range ops {
-			overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{ForcePull: true}}
+			overrides := BuildOverrides{Config: &configapi.BuildOverridesConfig{ForcePull: true}}
 			pod := u.Pod().WithBuild(t, test.build)
 			err := overrides.ApplyOverrides((*v1.Pod)(pod))
 			if err != nil {
@@ -180,7 +178,7 @@ func TestLabelOverrides(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		overridesConfig := &overridesapi.BuildOverridesConfig{
+		overridesConfig := &configapi.BuildOverridesConfig{
 			ImageLabels: test.overrideLabels,
 		}
 
@@ -221,7 +219,7 @@ func TestBuildOverrideNodeSelector(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{NodeSelector: test.overrides}}
+		overrides := BuildOverrides{Config: &configapi.BuildOverridesConfig{NodeSelector: test.overrides}}
 		pod := u.Pod().WithBuild(t, test.build)
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
@@ -273,7 +271,7 @@ func TestBuildOverrideAnnotations(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{Annotations: test.overrides}}
+		overrides := BuildOverrides{Config: &configapi.BuildOverridesConfig{Annotations: test.overrides}}
 		pod := u.Pod().WithBuild(t, test.build)
 		pod.Annotations = test.annotations
 		err := overrides.ApplyOverrides((*v1.Pod)(pod))

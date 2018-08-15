@@ -3,20 +3,18 @@ package serviceaccounts
 import (
 	"errors"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/serviceaccounts"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 )
 
 const (
@@ -46,20 +44,22 @@ var (
 
 type CreateKubeconfigOptions struct {
 	SAName           string
-	SAClient         kcoreclient.ServiceAccountInterface
-	SecretsClient    kcoreclient.SecretInterface
+	SAClient         corev1client.ServiceAccountInterface
+	SecretsClient    corev1client.SecretInterface
 	RawConfig        clientcmdapi.Config
 	ContextNamespace string
 
-	Out io.Writer
-	Err io.Writer
+	genericclioptions.IOStreams
 }
 
-func NewCommandCreateKubeconfig(name, fullname string, f cmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &CreateKubeconfigOptions{
-		Out: out,
-		Err: os.Stderr,
+func NewCreateKubeconfigOptions(streams genericclioptions.IOStreams) *CreateKubeconfigOptions {
+	return &CreateKubeconfigOptions{
+		IOStreams: streams,
 	}
+}
+
+func NewCommandCreateKubeconfig(name, fullname string, f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	options := NewCreateKubeconfigOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf(createKubeconfigUsage, name),
@@ -87,7 +87,7 @@ func (o *CreateKubeconfigOptions) Complete(args []string, f cmdutil.Factory, cmd
 	if err != nil {
 		return err
 	}
-	client, err := kcoreclient.NewForConfig(clientConfig)
+	client, err := corev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (o *CreateKubeconfigOptions) Validate() error {
 		return errors.New("API clients must not be nil in order to create a new service account token")
 	}
 
-	if o.Out == nil || o.Err == nil {
+	if o.Out == nil || o.ErrOut == nil {
 		return errors.New("cannot proceed if output or error writers are nil")
 	}
 
@@ -139,8 +139,8 @@ func (o *CreateKubeconfigOptions) Run() error {
 			continue
 		}
 
-		if serviceaccounts.IsValidServiceAccountToken(serviceAccount, secret) {
-			token, exists := secret.Data[kapi.ServiceAccountTokenKey]
+		if sautil.IsServiceAccountToken(secret, serviceAccount) {
+			token, exists := secret.Data[corev1.ServiceAccountTokenKey]
 			if !exists {
 				return fmt.Errorf("service account token %q for service account %q did not contain token data", secret.Name, serviceAccount.Name)
 			}

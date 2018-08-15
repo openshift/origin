@@ -24,6 +24,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -147,7 +148,7 @@ const (
 )
 
 // NewCmdRegistry implements the OpenShift cli registry command
-func NewCmdRegistry(f kcmdutil.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdRegistry(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	cfg := &RegistryConfig{
 		ImageTemplate:  variable.NewDefaultImageTemplate(),
 		Name:           "registry",
@@ -168,7 +169,7 @@ func NewCmdRegistry(f kcmdutil.Factory, parentName, name string, out, errout io.
 			opts := &RegistryOptions{
 				Config: cfg,
 			}
-			kcmdutil.CheckErr(opts.Complete(f, cmd, out, errout, args))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, streams.Out, streams.ErrOut, args))
 			err := opts.RunCmdRegistry()
 			if err == kcmdutil.ErrExit {
 				os.Exit(1)

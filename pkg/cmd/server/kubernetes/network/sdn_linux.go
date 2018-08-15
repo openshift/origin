@@ -12,9 +12,9 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
+	networkclient "github.com/openshift/client-go/network/clientset/versioned"
+	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
 )

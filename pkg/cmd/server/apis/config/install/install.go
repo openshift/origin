@@ -8,8 +8,6 @@ import (
 	auditv1alpha1 "k8s.io/apiserver/pkg/apis/audit/v1alpha1"
 	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 
-	defaultsinstall "github.com/openshift/origin/pkg/build/controller/build/apis/defaults/install"
-	overridesinstall "github.com/openshift/origin/pkg/build/controller/build/apis/overrides/install"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	imagepolicyinstall "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/install"
@@ -40,8 +38,6 @@ func InstallLegacyInternal(scheme *runtime.Scheme) {
 	requestlimitinstall.InstallInternal(scheme)
 
 	// add the other admission config types we have to the core group if they are legacy types
-	defaultsinstall.InstallLegacyInternal(scheme)
-	overridesinstall.InstallLegacyInternal(scheme)
 	imagepolicyinstall.InstallLegacyInternal(scheme)
 	ingressadmissioninstall.InstallLegacyInternal(scheme)
 	requestlimitinstall.InstallLegacyInternal(scheme)

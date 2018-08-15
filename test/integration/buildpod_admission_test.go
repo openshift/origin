@@ -16,8 +16,6 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
-	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
 	buildtestutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -30,7 +28,7 @@ var buildPodAdmissionTestTimeout time.Duration = 30 * time.Second
 
 func TestBuildDefaultGitHTTPProxy(t *testing.T) {
 	httpProxy := "http://my.test.proxy:12345"
-	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &configapi.BuildDefaultsConfig{
 		GitHTTPProxy: httpProxy,
 	})
 	defer fn()
@@ -42,7 +40,7 @@ func TestBuildDefaultGitHTTPProxy(t *testing.T) {
 
 func TestBuildDefaultGitHTTPSProxy(t *testing.T) {
 	httpsProxy := "https://my.test.proxy:12345"
-	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &configapi.BuildDefaultsConfig{
 		GitHTTPSProxy: httpsProxy,
 	})
 	defer fn()
@@ -63,7 +61,7 @@ func TestBuildDefaultEnvironment(t *testing.T) {
 			Value: "VALUE2",
 		},
 	}
-	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &configapi.BuildDefaultsConfig{
 		Env: env,
 	})
 	defer fn()
@@ -75,7 +73,7 @@ func TestBuildDefaultEnvironment(t *testing.T) {
 
 func TestBuildDefaultLabels(t *testing.T) {
 	labels := []buildapi.ImageLabel{{Name: "KEY", Value: "VALUE"}}
-	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &configapi.BuildDefaultsConfig{
 		ImageLabels: labels,
 	})
 	defer fn()
@@ -87,7 +85,7 @@ func TestBuildDefaultLabels(t *testing.T) {
 
 func TestBuildDefaultNodeSelectors(t *testing.T) {
 	selectors := map[string]string{"KEY": "VALUE"}
-	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &configapi.BuildDefaultsConfig{
 		NodeSelector: selectors,
 	})
 	defer fn()
@@ -99,7 +97,7 @@ func TestBuildDefaultNodeSelectors(t *testing.T) {
 
 func TestBuildDefaultAnnotations(t *testing.T) {
 	annotations := map[string]string{"KEY": "VALUE"}
-	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &configapi.BuildDefaultsConfig{
 		Annotations: annotations,
 	})
 	defer fn()
@@ -125,7 +123,7 @@ func TestBuildOverrideTolerations(t *testing.T) {
 		},
 	}
 
-	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &configapi.BuildOverridesConfig{
 		Tolerations: tolerations,
 	})
 
@@ -144,7 +142,7 @@ func TestBuildOverrideTolerations(t *testing.T) {
 }
 
 func TestBuildOverrideForcePull(t *testing.T) {
-	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &configapi.BuildOverridesConfig{
 		ForcePull: true,
 	})
 	defer fn()
@@ -155,7 +153,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 }
 
 func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
-	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &configapi.BuildOverridesConfig{
 		ForcePull: true,
 	})
 	defer fn()
@@ -170,7 +168,7 @@ func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
 
 func TestBuildOverrideLabels(t *testing.T) {
 	labels := []buildapi.ImageLabel{{Name: "KEY", Value: "VALUE"}}
-	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &configapi.BuildOverridesConfig{
 		ImageLabels: labels,
 	})
 	defer fn()
@@ -182,7 +180,7 @@ func TestBuildOverrideLabels(t *testing.T) {
 
 func TestBuildOverrideNodeSelectors(t *testing.T) {
 	selectors := map[string]string{"KEY": "VALUE"}
-	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &configapi.BuildOverridesConfig{
 		NodeSelector: selectors,
 	})
 	defer fn()
@@ -194,7 +192,7 @@ func TestBuildOverrideNodeSelectors(t *testing.T) {
 
 func TestBuildOverrideAnnotations(t *testing.T) {
 	annotations := map[string]string{"KEY": "VALUE"}
-	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &configapi.BuildOverridesConfig{
 		Annotations: annotations,
 	})
 	defer fn()
@@ -278,7 +276,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 	return nil, nil
 }
 
-func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.BuildDefaultsConfig) (buildclient.Interface, kclientset.Interface, func()) {
+func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *configapi.BuildDefaultsConfig) (buildclient.Interface, kclientset.Interface, func()) {
 	return setupBuildPodAdmissionTest(t, map[string]*configapi.AdmissionPluginConfig{
 		"BuildDefaults": {
 			Configuration: defaultsConfig,
@@ -286,7 +284,7 @@ func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.B
 	})
 }
 
-func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesapi.BuildOverridesConfig) (buildclient.Interface, kclientset.Interface, func()) {
+func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *configapi.BuildOverridesConfig) (buildclient.Interface, kclientset.Interface, func()) {
 	return setupBuildPodAdmissionTest(t, map[string]*configapi.AdmissionPluginConfig{
 		"BuildOverrides": {
 			Configuration: overridesConfig,

@@ -437,6 +437,8 @@ os::cmd::expect_success 'oc delete imagestreams --all'
 
 # newapp does not attempt to create an imagestream that already exists for a Docker image
 os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream.image.openshift.io "ruby" created'
+# make sure the ruby:latest tag is imported before we run new-app again
+os::cmd::try_until_success 'oc get imagestreamtags ruby:latest'
 os::cmd::expect_success_and_not_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp2 --strategy=docker' '"ruby:latest" already exists'
 os::cmd::expect_success 'oc delete all -l app=testapp2'
 os::cmd::expect_success 'oc delete all -l app=testapp1'

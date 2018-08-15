@@ -9,9 +9,9 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 
+	networkclient "github.com/openshift/client-go/network/clientset/versioned"
+	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
 	"github.com/openshift/origin/pkg/network/common"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion/network/internalversion"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
 type egressIPManager struct {

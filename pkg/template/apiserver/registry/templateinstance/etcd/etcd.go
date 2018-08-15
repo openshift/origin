@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
@@ -27,7 +27,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against templateinstances.
-func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationinternalversion.AuthorizationInterface) (*REST, *StatusREST, error) {
+func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationclient.AuthorizationV1Interface) (*REST, *StatusREST, error) {
 	strategy := templateinstance.NewStrategy(authorizationClient)
 
 	store := &registry.Store{

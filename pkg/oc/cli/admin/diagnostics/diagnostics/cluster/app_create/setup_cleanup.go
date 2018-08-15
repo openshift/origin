@@ -7,6 +7,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
@@ -41,17 +42,18 @@ func (d *AppCreate) setupProject() bool {
 
 	buffer := bytes.Buffer{}
 	projOpts := &newproject.NewProjectOptions{
-		ProjectName:   d.project,
-		DisplayName:   "AppCreate diagnostic",
-		Description:   "AppCreate diagnostic",
-		NodeSelector:  d.nodeSelector,
-		ProjectClient: d.ProjectClient,
-		RbacClient:    d.RbacClient,
-		AdminRole:     bootstrappolicy.AdminRoleName,
-		AdminUser:     "",
-		Output:        &buffer,
+		ProjectName:     d.project,
+		DisplayName:     "AppCreate diagnostic",
+		Description:     "AppCreate diagnostic",
+		NodeSelector:    d.nodeSelector,
+		ProjectClient:   d.ProjectClient,
+		RbacClient:      d.RbacClient,
+		AdminRole:       bootstrappolicy.AdminRoleName,
+		AdminUser:       "",
+		IOStreams:       genericclioptions.IOStreams{Out: &buffer},
+		UseNodeSelector: true,
 	}
-	if err := projOpts.Run(true); err != nil {
+	if err := projOpts.Run(); err != nil {
 		d.out.Error("DCluAC005", err, fmt.Sprintf("%s: Creating project '%s' failed: \n%s\n%v", now(), d.project, buffer.String(), err))
 		return false
 	}

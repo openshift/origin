@@ -4,21 +4,19 @@ import (
 	"fmt"
 	"testing"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
+	fakekubeclient "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/apis/authorization"
-	fakekubeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	fakebuildclient "github.com/openshift/client-go/build/clientset/versioned/fake"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 
 	"github.com/openshift/api/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
@@ -33,7 +31,7 @@ func TestBuildAdmission(t *testing.T) {
 		object              runtime.Object
 		oldObject           runtime.Object
 		responseObject      runtime.Object
-		reviewResponse      *authorization.SubjectAccessReview
+		reviewResponse      *authorizationv1.SubjectAccessReview
 		expectedResource    string
 		expectedSubresource string
 		expectAccept        bool
@@ -179,7 +177,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 	}
 
-	emptyResponse := &authorization.SubjectAccessReview{}
+	emptyResponse := &authorizationv1.SubjectAccessReview{}
 	ops := []admission.Operation{admission.Create, admission.Update}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -191,7 +189,7 @@ func TestBuildAdmission(t *testing.T) {
 
 				fakeKubeClient := fakekubeclient.NewSimpleClientset()
 				fakeKubeClient.PrependReactor("create", "subjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-					review, ok := action.(clientgotesting.CreateAction).GetObject().(*authorization.SubjectAccessReview)
+					review, ok := action.(clientgotesting.CreateAction).GetObject().(*authorizationv1.SubjectAccessReview)
 					if !ok {
 						return true, emptyResponse, fmt.Errorf("unexpected object received: %#v", review)
 					}
@@ -211,8 +209,8 @@ func TestBuildAdmission(t *testing.T) {
 				})
 
 				c := NewBuildByStrategy()
-				c.(kubeadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(fakeKubeClient)
-				c.(oadmission.WantsOpenshiftInternalBuildClient).SetOpenshiftInternalBuildClient(fakeBuildClient)
+				c.(*buildByStrategy).sarClient = fakeKubeClient.AuthorizationV1().SubjectAccessReviews()
+				c.(*buildByStrategy).buildClient = fakeBuildClient
 				attrs := admission.NewAttributesRecord(test.object, test.oldObject, test.kind.WithVersion("version"), "foo", "test-build", test.resource.WithVersion("version"), test.subResource, op, fakeUser())
 				err := c.(admission.MutationInterface).Admit(attrs)
 				if err != nil && test.expectAccept {
@@ -298,9 +296,9 @@ func v1TestBuildConfig(strategy buildapiv1.BuildStrategy) *buildapiv1.BuildConfi
 	}
 }
 
-func reviewResponse(allowed bool, msg string) *authorization.SubjectAccessReview {
-	return &authorization.SubjectAccessReview{
-		Status: authorization.SubjectAccessReviewStatus{
+func reviewResponse(allowed bool, msg string) *authorizationv1.SubjectAccessReview {
+	return &authorizationv1.SubjectAccessReview{
+		Status: authorizationv1.SubjectAccessReviewStatus{
 			Allowed: allowed,
 			Reason:  msg,
 		},

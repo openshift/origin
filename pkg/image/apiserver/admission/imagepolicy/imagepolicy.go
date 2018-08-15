@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
@@ -26,9 +27,9 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageinternalclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/project/cache"
+	"k8s.io/client-go/rest"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -69,7 +70,7 @@ type imagePolicyPlugin struct {
 	resolver     imageResolver
 }
 
-var _ = oadmission.WantsOpenshiftInternalImageClient(&imagePolicyPlugin{})
+var _ = oadmission.WantsRESTClientConfig(&imagePolicyPlugin{})
 var _ = oadmission.WantsDefaultRegistryFunc(&imagePolicyPlugin{})
 
 type integratedRegistryMatcher struct {
@@ -116,8 +117,13 @@ func (a *imagePolicyPlugin) SetDefaultRegistryFunc(fn func() (string, bool)) {
 	a.integratedRegistryMatcher.RegistryMatcher = rules.RegistryNameMatcher(fn)
 }
 
-func (a *imagePolicyPlugin) SetOpenshiftInternalImageClient(c imageclient.Interface) {
-	a.client = c.Image()
+func (a *imagePolicyPlugin) SetRESTClientConfig(restClientConfig rest.Config) {
+	var err error
+	a.client, err = imageinternalclient.NewForConfig(&restClientConfig)
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
 }
 
 func (a *imagePolicyPlugin) SetProjectCache(c *cache.ProjectCache) {

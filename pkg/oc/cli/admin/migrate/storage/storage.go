@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"io"
 	"runtime"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
@@ -82,12 +82,13 @@ type MigrateAPIStorageOptions struct {
 	limiter *tokenLimiter
 }
 
-// NewCmdMigrateAPIStorage implements a MigrateStorage command
-func NewCmdMigrateAPIStorage(name, fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	options := &MigrateAPIStorageOptions{
+func NewMigrateAPIStorageOptions(streams genericclioptions.IOStreams) *MigrateAPIStorageOptions {
+	return &MigrateAPIStorageOptions{
+
+		bandwidth: 10,
+
 		ResourceOptions: migrate.ResourceOptions{
-			Out:    out,
-			ErrOut: errout,
+			IOStreams: streams,
 
 			Unstructured: true,
 			Include:      []string{"*"},
@@ -180,32 +181,36 @@ func NewCmdMigrateAPIStorage(name, fullName string, f kcmdutil.Factory, in io.Re
 			},
 		},
 	}
+}
+
+// NewCmdMigrateAPIStorage implements a MigrateStorage command
+func NewCmdMigrateAPIStorage(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewMigrateAPIStorageOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name, // TODO do something useful here
 		Short:   "Update the stored version of API objects",
 		Long:    internalMigrateStorageLong,
 		Example: fmt.Sprintf(internalMigrateStorageExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			kcmdutil.CheckErr(options.Run())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-	options.ResourceOptions.Bind(cmd)
-	flags := cmd.Flags()
+	o.ResourceOptions.Bind(cmd)
 
 	// opt-in to allow parallel execution since we know this command is goroutine safe
 	// storage migration is IO bound so we make sure that we have enough workers to saturate the rate limiter
-	options.Workers = 32 * runtime.NumCPU()
+	o.Workers = 32 * runtime.NumCPU()
 	// expose a flag to allow rate limiting the workers based on network bandwidth
-	flags.IntVar(&options.bandwidth, "bandwidth", 10,
+	cmd.Flags().IntVar(&o.bandwidth, "bandwidth", o.bandwidth,
 		"Average network bandwidth measured in megabits per second (Mbps) to use during storage migration.  Zero means no limit.  This flag is alpha and may change in the future.")
 
 	// remove flags that do not make sense
-	flags.MarkDeprecated("confirm", "storage migration does not support dry run, this flag is ignored")
-	flags.MarkHidden("confirm")
-	flags.MarkDeprecated("output", "storage migration does not support dry run, this flag is ignored")
-	flags.MarkHidden("output")
+	cmd.Flags().MarkDeprecated("confirm", "storage migration does not support dry run, this flag is ignored")
+	cmd.Flags().MarkHidden("confirm")
+	cmd.Flags().MarkDeprecated("output", "storage migration does not support dry run, this flag is ignored")
+	cmd.Flags().MarkHidden("output")
 
 	return cmd
 }

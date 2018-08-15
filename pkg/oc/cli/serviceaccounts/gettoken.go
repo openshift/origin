@@ -3,19 +3,18 @@ package serviceaccounts
 import (
 	"errors"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
-	"github.com/openshift/origin/pkg/serviceaccounts"
 )
 
 const (
@@ -43,18 +42,20 @@ var (
 
 type GetServiceAccountTokenOptions struct {
 	SAName        string
-	SAClient      kcoreclient.ServiceAccountInterface
-	SecretsClient kcoreclient.SecretInterface
+	SAClient      corev1client.ServiceAccountInterface
+	SecretsClient corev1client.SecretInterface
 
-	Out io.Writer
-	Err io.Writer
+	genericclioptions.IOStreams
 }
 
-func NewCommandGetServiceAccountToken(name, fullname string, f cmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &GetServiceAccountTokenOptions{
-		Out: out,
-		Err: os.Stderr,
+func NewGetServiceAccountTokenOptions(streams genericclioptions.IOStreams) *GetServiceAccountTokenOptions {
+	return &GetServiceAccountTokenOptions{
+		IOStreams: streams,
 	}
+}
+
+func NewCommandGetServiceAccountToken(name, fullname string, f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	options := NewGetServiceAccountTokenOptions(streams)
 
 	getServiceAccountTokenCommand := &cobra.Command{
 		Use:     fmt.Sprintf(getServiceAccountTokenUsage, name),
@@ -82,7 +83,7 @@ func (o *GetServiceAccountTokenOptions) Complete(args []string, f cmdutil.Factor
 	if err != nil {
 		return err
 	}
-	client, err := kcoreclient.NewForConfig(clientConfig)
+	client, err := corev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -105,7 +106,7 @@ func (o *GetServiceAccountTokenOptions) Validate() error {
 		return errors.New("API clients must not be nil in order to create a new service account token")
 	}
 
-	if o.Out == nil || o.Err == nil {
+	if o.Out == nil || o.ErrOut == nil {
 		return errors.New("cannot proceed if output or error writers are nil")
 	}
 
@@ -124,7 +125,7 @@ func (o *GetServiceAccountTokenOptions) Run() error {
 			continue
 		}
 
-		if serviceaccounts.IsValidServiceAccountToken(serviceAccount, secret) {
+		if sautil.IsServiceAccountToken(secret, serviceAccount) {
 			token, exists := secret.Data[kapi.ServiceAccountTokenKey]
 			if !exists {
 				return fmt.Errorf("service account token %q for service account %q did not contain token data", secret.Name, serviceAccount.Name)

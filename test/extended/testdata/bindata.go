@@ -8496,9 +8496,8 @@ var _testExtendedTestdataJenkinsPluginImagestreamScmDslJobXml = []byte(`<?xml ve
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.6">
     <script>node {
-   stage &apos;Stage 1&apos;
-   openshiftImageStream name: &apos;testimage&apos;, tag: &apos;v1&apos;, namespace: &apos;${PROJECT_NAME}&apos;
-   openshiftTag destStream: &apos;localjenkins&apos;, destTag: &apos;develop&apos;, destinationNamespace: &apos;${PROJECT_NAME}&apos;, namespace: &apos;openshift&apos;, srcStream: &apos;jenkins&apos;, srcTag: &apos;latest&apos;
+   openshiftImageStream name: "testimage", tag: "v1", namespace: "${PROJECT_NAME}" &#xD; &#xA;
+   openshiftTag destStream: "localjenkins", destTag: "develop", destinationNamespace: "${PROJECT_NAME}", namespace: "openshift", srcStream: "jenkins", srcTag: "latest"
 }</script>
     <sandbox>true</sandbox>
   </definition>

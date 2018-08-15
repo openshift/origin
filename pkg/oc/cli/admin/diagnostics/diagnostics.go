@@ -111,6 +111,7 @@ func NewCmdDiagnostics(name string, fullName string, f genericclioptions.RESTCli
 		RequestedDiagnostics:     available.Names().Difference(defaultSkipDiagnostics()),
 		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(available...),
 		LogOptions:               &log.LoggerOptions{Out: streams.Out},
+		Factory:                  f,
 	}
 
 	cmd := &cobra.Command{

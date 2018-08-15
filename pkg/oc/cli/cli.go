@@ -138,10 +138,10 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Commands: []*cobra.Command{
 				types.NewCmdTypes(fullName, f, ioStreams),
 				loginCmd,
-				requestproject.NewCmdRequestProject(requestproject.RequestProjectRecommendedCommandName, fullName, f, ioStreams),
+				requestproject.NewCmdRequestProject(fullName, f, ioStreams),
 				newapp.NewCmdNewApplication(newapp.NewAppRecommendedCommandName, fullName, f, ioStreams),
 				status.NewCmdStatus(status.StatusRecommendedName, fullName, fullName+" "+status.StatusRecommendedName, f, ioStreams),
-				project.NewCmdProject(fullName+" project", f, ioStreams),
+				project.NewCmdProject(fullName, f, ioStreams),
 				projects.NewCmdProjects(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdExplain(fullName, f, ioStreams),
 				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, ioStreams),

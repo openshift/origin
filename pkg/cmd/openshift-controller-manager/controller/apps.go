@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
-func RunDeployerController(ctx ControllerContext) (bool, error) {
+func RunDeployerController(ctx *ControllerContext) (bool, error) {
 	clientConfig, err := ctx.ClientBuilder.Config(bootstrappolicy.InfraDeployerControllerServiceAccountName)
 	if err != nil {
 		return true, err
@@ -36,7 +36,7 @@ func RunDeployerController(ctx ControllerContext) (bool, error) {
 	return true, nil
 }
 
-func RunDeploymentConfigController(ctx ControllerContext) (bool, error) {
+func RunDeploymentConfigController(ctx *ControllerContext) (bool, error) {
 	saName := bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName
 
 	kubeClient, err := ctx.ClientBuilder.Client(saName)

@@ -13,7 +13,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
@@ -90,7 +90,6 @@ func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, stream
 	// TODO: remove verbose in 3.12
 	// this is done to trick pflag into allowing the duplicate registration.  The local value here wins
 	cmd.Flags().BoolVarP(&o.suggest, "v", "v", o.suggest, "See details for resolving issues.")
-	cmd.Flags().MarkDeprecated("v", "Use --suggest instead.  Will be dropped in a future release")
 	cmd.Flags().MarkShorthandDeprecated("v", "Use --suggest instead.  Will be dropped in a future release")
 	cmd.Flags().BoolVar(&o.suggest, "verbose", o.suggest, "See details for resolving issues.")
 	cmd.Flags().MarkDeprecated("verbose", "Use --suggest instead.")
@@ -131,7 +130,7 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 	if err != nil {
 		return err
 	}
-	appsClient, err := appsclientinternal.NewForConfig(clientConfig)
+	appsClient, err := appsclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

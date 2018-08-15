@@ -1,10 +1,12 @@
 package config
 
 import (
+	"github.com/openshift/origin/pkg/build/apis/build"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // A new entry shall be added to FeatureAliases for every change to following values.
@@ -1539,8 +1541,8 @@ type DeployerControllerConfig struct {
 type BuildControllerConfig struct {
 	ImageTemplateFormat ImageConfig
 
-	// TODO slim this down to what is actually needed
-	AdmissionPluginConfig map[string]*AdmissionPluginConfig
+	BuildDefaults  *BuildDefaultsConfig
+	BuildOverrides *BuildOverridesConfig
 }
 
 type ResourceQuotaControllerConfig struct {
@@ -1592,4 +1594,76 @@ type LeaderElectionConfig struct {
 	LeaseDuration metav1.Duration
 	RenewDeadline metav1.Duration
 	RetryPeriod   metav1.Duration
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// BuildDefaultsConfig controls the default information for Builds
+type BuildDefaultsConfig struct {
+	metav1.TypeMeta
+
+	// gitHTTPProxy is the location of the HTTPProxy for Git source
+	GitHTTPProxy string
+
+	// gitHTTPSProxy is the location of the HTTPSProxy for Git source
+	GitHTTPSProxy string
+
+	// gitNoProxy is the list of domains for which the proxy should not be used
+	GitNoProxy string
+
+	// env is a set of default environment variables that will be applied to the
+	// build if the specified variables do not exist on the build
+	Env []core.EnvVar
+
+	// sourceStrategyDefaults are default values that apply to builds using the
+	// source strategy.
+	SourceStrategyDefaults *SourceStrategyDefaultsConfig
+
+	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// User can override a default label by providing a label with the same name in their
+	// Build/BuildConfig.
+	ImageLabels []build.ImageLabel
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string
+
+	// annotations are annotations that will be added to the build pod
+	Annotations map[string]string
+
+	// resources defines resource requirements to execute the build.
+	Resources core.ResourceRequirements
+}
+
+// SourceStrategyDefaultsConfig contains values that apply to builds using the
+// source strategy.
+type SourceStrategyDefaultsConfig struct {
+
+	// Incremental indicates if s2i build strategies should perform an incremental
+	// build or not
+	Incremental *bool
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// BuildOverridesConfig controls override settings for builds
+type BuildOverridesConfig struct {
+	metav1.TypeMeta
+
+	// forcePull indicates whether the build strategy should always be set to ForcePull=true
+	ForcePull bool
+
+	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// If user provided a label in their Build/BuildConfig with the same name as one in this
+	// list, the user's label will be overwritten.
+	ImageLabels []build.ImageLabel
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string
+
+	// annotations are annotations that will be added to the build pod
+	Annotations map[string]string
+
+	// tolerations is a list of Tolerations that will override any existing
+	// tolerations set on a build pod.
+	Tolerations []core.Toleration
 }

@@ -3,8 +3,8 @@
 package node
 
 import (
+	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
 type singleTenantPlugin struct{}

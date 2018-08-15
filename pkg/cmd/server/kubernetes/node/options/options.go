@@ -136,7 +136,7 @@ func setIfUnset(cmdLineArgs map[string][]string, key string, value ...string) {
 	}
 }
 
-// Some flags are *required* to be set when running from openshift start node.  This ensures they are set.
+// Some flags are *required* to be set when running from openshift-node-config.  This ensures they are set.
 // If they are not set, we fail.  This is compensating for some lost integration tests.
 func CheckFlags(args []string) error {
 	if needle := "--authentication-token-webhook=true"; !hasArg(needle, args) {

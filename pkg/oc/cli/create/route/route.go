@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	routev1 "github.com/openshift/api/route/v1"
 )
@@ -18,12 +18,12 @@ import (
 // forcePort always sets a port, even when there is only one and it has no name.
 // The kubernetes generator, when no port is present incorrectly selects the service Port
 // instead of the service TargetPort for the route TargetPort.
-func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, portString string, forcePort bool) (*routev1.Route, error) {
+func UnsecuredRoute(kc corev1client.CoreV1Interface, namespace, routeName, serviceName, portString string, forcePort bool) (*routev1.Route, error) {
 	if len(routeName) == 0 {
 		routeName = serviceName
 	}
 
-	svc, err := kc.Core().Services(namespace).Get(serviceName, metav1.GetOptions{})
+	svc, err := kc.Services(namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
 		if len(portString) == 0 {
 			return nil, fmt.Errorf("you need to provide a route port via --port when exposing a non-existent service")
@@ -95,11 +95,11 @@ func resolveRoutePort(portString string) *routev1.RoutePort {
 	}
 }
 
-func supportsTCP(svc *kapi.Service) (bool, kapi.ServicePort) {
+func supportsTCP(svc *corev1.Service) (bool, corev1.ServicePort) {
 	for _, port := range svc.Spec.Ports {
-		if port.Protocol == kapi.ProtocolTCP {
+		if port.Protocol == corev1.ProtocolTCP {
 			return true, port
 		}
 	}
-	return false, kapi.ServicePort{}
+	return false, corev1.ServicePort{}
 }

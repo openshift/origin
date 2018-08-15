@@ -16,6 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
@@ -34,7 +35,7 @@ var (
 	`)
 	subjectReviewExamples = templates.Examples(`# Check whether user bob can create a pod specified in myresource.yaml
 	$ %[1]s -u bob -f myresource.yaml
-	
+
 	# Check whether user bob who belongs to projectAdmin group can create a pod specified in myresource.yaml
 	$ %[1]s -u bob -g projectAdmin -f myresource.yaml
 
@@ -44,12 +45,11 @@ var (
 
 const SubjectReviewRecommendedName = "scc-subject-review"
 
-type sccSubjectReviewOptions struct {
+type SCCSubjectReviewOptions struct {
 	sccSubjectReviewClient     securitytypedclient.PodSecurityPolicySubjectReviewsGetter
 	sccSelfSubjectReviewClient securitytypedclient.PodSecurityPolicySelfSubjectReviewsGetter
 	namespace                  string
 	enforceNamespace           bool
-	out                        io.Writer
 	builder                    *resource.Builder
 	RESTClientFactory          func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	printer                    sccSubjectReviewPrinter
@@ -57,17 +57,25 @@ type sccSubjectReviewOptions struct {
 	User                       string
 	Groups                     []string
 	serviceAccount             string
+
+	genericclioptions.IOStreams
 }
 
-func NewCmdSccSubjectReview(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	o := &sccSubjectReviewOptions{}
+func NewSCCSubjectReviewOptions(streams genericclioptions.IOStreams) *SCCSubjectReviewOptions {
+	return &SCCSubjectReviewOptions{
+		IOStreams: streams,
+	}
+}
+
+func NewCmdSccSubjectReview(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewSCCSubjectReviewOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name,
 		Long:    subjectReviewLong,
 		Short:   "Check whether a user or a ServiceAccount can create a Pod.",
 		Example: fmt.Sprintf(subjectReviewExamples, fullName, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, args, cmd, out))
+			kcmdutil.CheckErr(o.Complete(f, args, cmd))
 			kcmdutil.CheckErr(o.Run(args))
 		},
 	}
@@ -80,7 +88,7 @@ func NewCmdSccSubjectReview(name, fullName string, f kcmdutil.Factory, out io.Wr
 	return cmd
 }
 
-func (o *sccSubjectReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
+func (o *SCCSubjectReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobra.Command) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified")
 	}
@@ -129,11 +137,10 @@ func (o *sccSubjectReviewOptions) Complete(f kcmdutil.Factory, args []string, cm
 	} else {
 		o.printer = &sccSubjectReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
 	}
-	o.out = out
 	return nil
 }
 
-func (o *sccSubjectReviewOptions) Run(args []string) error {
+func (o *SCCSubjectReviewOptions) Run(args []string) error {
 	userOrSA := o.User
 	if len(o.serviceAccount) > 0 {
 		userOrSA = o.serviceAccount
@@ -187,7 +194,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 			}
 			response = versionedObj
 		}
-		if err := o.printer.print(info, response, o.out); err != nil {
+		if err := o.printer.print(info, response, o.Out); err != nil {
 			allErrs = append(allErrs, err)
 		}
 		return nil
@@ -196,7 +203,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 	return utilerrors.NewAggregate(allErrs)
 }
 
-func (o *sccSubjectReviewOptions) pspSubjectReview(userOrSA string, podTemplateSpec *kapi.PodTemplateSpec) (*securityapi.PodSecurityPolicySubjectReview, error) {
+func (o *SCCSubjectReviewOptions) pspSubjectReview(userOrSA string, podTemplateSpec *kapi.PodTemplateSpec) (*securityapi.PodSecurityPolicySubjectReview, error) {
 	podSecurityPolicySubjectReview := &securityapi.PodSecurityPolicySubjectReview{
 		Spec: securityapi.PodSecurityPolicySubjectReviewSpec{
 			Template: *podTemplateSpec,
@@ -207,7 +214,7 @@ func (o *sccSubjectReviewOptions) pspSubjectReview(userOrSA string, podTemplateS
 	return o.sccSubjectReviewClient.PodSecurityPolicySubjectReviews(o.namespace).Create(podSecurityPolicySubjectReview)
 }
 
-func (o *sccSubjectReviewOptions) pspSelfSubjectReview(podTemplateSpec *kapi.PodTemplateSpec) (*securityapi.PodSecurityPolicySelfSubjectReview, error) {
+func (o *SCCSubjectReviewOptions) pspSelfSubjectReview(podTemplateSpec *kapi.PodTemplateSpec) (*securityapi.PodSecurityPolicySelfSubjectReview, error) {
 	podSecurityPolicySelfSubjectReview := &securityapi.PodSecurityPolicySelfSubjectReview{
 		Spec: securityapi.PodSecurityPolicySelfSubjectReviewSpec{
 			Template: *podTemplateSpec,

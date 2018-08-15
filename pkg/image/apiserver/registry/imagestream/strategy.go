@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	authorizationapi "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,17 +15,17 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
 type ResourceGetter interface {
@@ -35,7 +36,7 @@ type ResourceGetter interface {
 type Strategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
-	registryHostnameRetriever imageapi.RegistryHostnameRetriever
+	registryHostnameRetriever registryhostname.RegistryHostnameRetriever
 	tagVerifier               *TagVerifier
 	limitVerifier             imageadmission.LimitVerifier
 	registryWhitelister       whitelist.RegistryWhitelister
@@ -45,7 +46,7 @@ type Strategy struct {
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
 func NewStrategy(
-	registryHostname imageapi.RegistryHostnameRetriever,
+	registryHostname registryhostname.RegistryHostnameRetriever,
 	subjectAccessReviewClient authorizationclient.SubjectAccessReviewInterface,
 	limitVerifier imageadmission.LimitVerifier,
 	registryWhitelister whitelist.RegistryWhitelister,

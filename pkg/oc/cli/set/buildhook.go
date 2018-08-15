@@ -207,6 +207,10 @@ func (o *BuildHookOptions) Run() error {
 		return err
 	}
 
+	if len(infos) == 0 {
+		return fmt.Errorf("no resources found")
+	}
+
 	patches := CalculatePatchesExternal(infos, func(info *resource.Info) (bool, error) {
 		bc, ok := info.Object.(*buildv1.BuildConfig)
 		if !ok {

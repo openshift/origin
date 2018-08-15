@@ -10,16 +10,14 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	u "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-
-	_ "github.com/openshift/origin/pkg/api/install"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 func TestProxyDefaults(t *testing.T) {
-	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+	defaultsConfig := &configapi.BuildDefaultsConfig{
 		GitHTTPProxy:  "http",
 		GitHTTPSProxy: "https",
 		GitNoProxy:    "no",
@@ -48,7 +46,7 @@ func TestProxyDefaults(t *testing.T) {
 }
 
 func TestEnvDefaults(t *testing.T) {
-	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+	defaultsConfig := &configapi.BuildDefaultsConfig{
 		Env: []kapi.EnvVar{
 			{
 				Name:  "VAR1",
@@ -112,12 +110,47 @@ func TestEnvDefaults(t *testing.T) {
 		t.Errorf("GIT_SSL_NO_VERIFY key not found")
 	}
 
+	// custom builds should have the defaulted env vars applied to the build pod
+	pod = u.Pod().WithBuild(t, u.Build().WithCustomStrategy().AsBuild())
+	err = admitter.ApplyDefaults((*v1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var1found, var2found, gitSSL = false, false, false
+	for _, ev := range pod.Spec.Containers[0].Env {
+		if ev.Name == "VAR1" {
+			if ev.Value != "VALUE1" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			var1found = true
+		}
+		if ev.Name == "VAR2" {
+			if ev.Value != "VALUE2" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			var2found = true
+		}
+		if ev.Name == "GIT_SSL_NO_VERIFY" {
+			gitSSL = true
+		}
+	}
+
+	if !var1found {
+		t.Errorf("VAR1 not found")
+	}
+	if !var2found {
+		t.Errorf("VAR2 not found")
+	}
+	if !gitSSL {
+		t.Errorf("GIT_SSL_NO_VERIFY key not found")
+	}
 }
 
 func TestIncrementalDefaults(t *testing.T) {
 	bool_t := true
-	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
-		SourceStrategyDefaults: &defaultsapi.SourceStrategyDefaultsConfig{
+	defaultsConfig := &configapi.BuildDefaultsConfig{
+		SourceStrategyDefaults: &configapi.SourceStrategyDefaultsConfig{
 			Incremental: &bool_t,
 		},
 	}
@@ -267,7 +300,7 @@ func TestLabelDefaults(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+		defaultsConfig := &configapi.BuildDefaultsConfig{
 			ImageLabels: test.defaultLabels,
 		}
 
@@ -317,7 +350,7 @@ func TestBuildDefaultsNodeSelector(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{NodeSelector: test.defaults}}
+		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{NodeSelector: test.defaults}}
 		pod := u.Pod().WithBuild(t, test.build)
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
@@ -369,7 +402,7 @@ func TestBuildDefaultsAnnotations(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{Annotations: test.defaults}}
+		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{Annotations: test.defaults}}
 		pod := u.Pod().WithBuild(t, test.build)
 		pod.Annotations = test.annotations
 		err := defaults.ApplyDefaults((*v1.Pod)(pod))
@@ -562,7 +595,7 @@ func TestResourceDefaults(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{Resources: test.DefaultResource}}
+		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{Resources: test.DefaultResource}}
 
 		build := u.Build().WithSourceStrategy().AsBuild()
 		build.Spec.Resources = test.BuildResource

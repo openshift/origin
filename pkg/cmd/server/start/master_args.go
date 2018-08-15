@@ -107,7 +107,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
-		NetworkArgs:        NewDefaultNetworkArgs(),
+		NetworkArgs:        NewDefaultMasterNetworkArgs(),
 	}
 
 	return config
@@ -305,7 +305,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
 	}
 
-	internal, err := applyDefaults(config, configapiv1.SchemeGroupVersion)
+	internal, err := applyDefaults(config, configapiv1.LegacySchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +348,7 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 
 		IdentityProviders: []configapi.IdentityProvider{},
 		GrantConfig: configapi.GrantConfig{
-			Method: "auto",
+			Method: configapi.GrantHandlerAuto,
 		},
 
 		SessionConfig: &configapi.SessionConfig{

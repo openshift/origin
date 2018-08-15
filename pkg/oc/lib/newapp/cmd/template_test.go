@@ -21,7 +21,7 @@ func TestTransformTemplate(t *testing.T) {
 	testParamMap := map[string]string{}
 	testParamMap["parameter_foo_bar_exist"] = "value_foo_bar_exist_new"
 
-	template, err := TransformTemplate(templatefoobar, fakeTemplateProcessor{}, "foo_bar_namespace", testParamMap, false)
+	template, err := TransformTemplateInternal(templatefoobar, fakeTemplateProcessor{}, "foo_bar_namespace", testParamMap, false)
 	if err != nil {
 		t.Errorf("unexpect err : %v", err)
 	}

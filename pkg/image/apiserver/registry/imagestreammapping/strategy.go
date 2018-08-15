@@ -10,6 +10,7 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
 // Strategy implements behavior for image stream mappings.
@@ -17,12 +18,12 @@ type Strategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
 
-	registryHostRetriever imageapi.RegistryHostnameRetriever
+	registryHostRetriever registryhostname.RegistryHostnameRetriever
 }
 
 // Strategy is the default logic that applies when creating ImageStreamMapping
 // objects via the REST API.
-func NewStrategy(registryHost imageapi.RegistryHostnameRetriever) Strategy {
+func NewStrategy(registryHost registryhostname.RegistryHostnameRetriever) Strategy {
 	return Strategy{
 		ObjectTyper:           legacyscheme.Scheme,
 		NameGenerator:         names.SimpleNameGenerator,

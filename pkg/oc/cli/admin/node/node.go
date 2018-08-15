@@ -3,12 +3,12 @@ package node
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 const ManageNodeCommandName = "manage-node"
@@ -57,72 +57,74 @@ type ManageNodeOptions struct {
 	listPodsOptions    *ListPodsOptions
 	schedulableOptions *SchedulableOptions
 
-	out, errout io.Writer
+	genericclioptions.IOStreams
+}
+
+func NewManageNodeOptions(streams genericclioptions.IOStreams) *ManageNodeOptions {
+	nodeOpts := NewNodeOptions(streams)
+	return &ManageNodeOptions{
+		nodeOptions:     nodeOpts,
+		evacuateOptions: NewEvacuateOptions(nodeOpts),
+		listPodsOptions: &ListPodsOptions{
+			Options:         nodeOpts,
+			printPodHeaders: true,
+		},
+		schedulableOptions: &SchedulableOptions{
+			Options: nodeOpts,
+		},
+
+		IOStreams: streams,
+	}
 }
 
 // NewCommandManageNode implements the OpenShift cli manage-node command
-func NewCommandManageNode(f kcmdutil.Factory, commandName, fullName string, out, errout io.Writer) *cobra.Command {
-	nodeOpts := &NodeOptions{}
-	schedulableOp := &SchedulableOptions{Options: nodeOpts}
-	evacuateOp := NewEvacuateOptions(nodeOpts)
-	listpodsOp := &ListPodsOptions{Options: nodeOpts, printPodHeaders: true}
-
-	opts := &ManageNodeOptions{
-		nodeOptions:        nodeOpts,
-		evacuateOptions:    evacuateOp,
-		listPodsOptions:    listpodsOp,
-		schedulableOptions: schedulableOp,
-
-		out:    out,
-		errout: errout,
-	}
-
+func NewCommandManageNode(f kcmdutil.Factory, commandName, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewManageNodeOptions(streams)
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Manage nodes - list pods, evacuate, or mark ready",
 		Long:    manageNodeLong,
 		Example: fmt.Sprintf(manageNodeExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(c, f, args))
-			kcmdutil.CheckErr(opts.Validate(c))
-			kcmdutil.CheckErr(opts.RunManageNode(c))
+			kcmdutil.CheckErr(o.Complete(c, f, args))
+			kcmdutil.CheckErr(o.Validate(c))
+			kcmdutil.CheckErr(o.RunManageNode(c))
 		},
 	}
-	flags := cmd.Flags()
 
 	// Supported operations
-	flags.BoolVar(&schedulable, "schedulable", false, "Control pod schedulability on the node.")
-	flags.BoolVar(&evacuate, "evacuate", false, "Migrate all/selected pods on the node.")
-	flags.MarkDeprecated("evacuate", "use 'oc adm drain NODE' instead")
-	flags.BoolVar(&listpods, "list-pods", false, "List all/selected pods on the node. Printer flags --output, etc. are only valid for this option.")
+	cmd.Flags().BoolVar(&schedulable, "schedulable", false, "Control pod schedulability on the node.")
+	cmd.Flags().BoolVar(&evacuate, "evacuate", false, "Migrate all/selected pods on the node.")
+	cmd.Flags().MarkDeprecated("evacuate", "use 'oc adm drain NODE' instead")
+	cmd.Flags().BoolVar(&listpods, "list-pods", false, "List all/selected pods on the node. Printer flags --output, etc. are only valid for this option.")
 
 	// Common optional params
-	flags.StringVar(&nodeOpts.PodSelector, "pod-selector", "", "Label selector to filter pods on the node. Optional param for --evacuate or --list-pods")
-	flags.StringVar(&nodeOpts.Selector, "selector", "", "Label selector to filter nodes. Either pass one/more nodes as arguments or use this node selector")
+	cmd.Flags().StringVar(&o.nodeOptions.PodSelector, "pod-selector", o.nodeOptions.PodSelector, "Label selector to filter pods on the node. Optional param for --evacuate or --list-pods")
+	cmd.Flags().StringVar(&o.nodeOptions.Selector, "selector", o.nodeOptions.Selector, "Label selector to filter nodes. Either pass one/more nodes as arguments or use this node selector")
 
 	// Operation specific params
-	evacuateOp.AddFlags(cmd)
-	listpodsOp.AddFlags(cmd)
+	o.evacuateOptions.AddFlags(cmd)
+	o.listPodsOptions.AddFlags(cmd)
 
 	return cmd
 }
 
-func (n *ManageNodeOptions) Complete(c *cobra.Command, f kcmdutil.Factory, args []string) error {
-	return n.nodeOptions.Complete(f, c, args, n.out, n.errout)
+func (o *ManageNodeOptions) Complete(c *cobra.Command, f kcmdutil.Factory, args []string) error {
+	return o.nodeOptions.Complete(f, c, args)
 }
 
-func (n *ManageNodeOptions) Validate(c *cobra.Command) error {
+func (o *ManageNodeOptions) Validate(c *cobra.Command) error {
 	if err := ValidOperation(c); err != nil {
 		return kcmdutil.UsageErrorf(c, err.Error())
 	}
 
 	checkNodeSelector := c.Flag("selector").Changed
-	if err := n.nodeOptions.Validate(checkNodeSelector); err != nil {
+	if err := o.nodeOptions.Validate(checkNodeSelector); err != nil {
 		return kcmdutil.UsageErrorf(c, err.Error())
 	}
 
 	// Cross op validations
-	if n.evacuateOptions.DryRun && !evacuate {
+	if o.evacuateOptions.DryRun && !evacuate {
 		err := errors.New("--dry-run is only applicable for --evacuate")
 		return kcmdutil.UsageErrorf(c, err.Error())
 	}
@@ -130,17 +132,17 @@ func (n *ManageNodeOptions) Validate(c *cobra.Command) error {
 	return nil
 }
 
-func (n *ManageNodeOptions) RunManageNode(c *cobra.Command) error {
+func (o *ManageNodeOptions) RunManageNode(c *cobra.Command) error {
 	var err error
 	if c.Flag("schedulable").Changed {
-		n.schedulableOptions.Schedulable = schedulable
-		err = n.schedulableOptions.Run()
+		o.schedulableOptions.Schedulable = schedulable
+		err = o.schedulableOptions.Run()
 	} else if evacuate {
-		n.evacuateOptions.printPodHeaders = !kcmdutil.GetFlagBool(c, "no-headers")
-		err = n.evacuateOptions.Run()
+		o.evacuateOptions.printPodHeaders = !kcmdutil.GetFlagBool(c, "no-headers")
+		err = o.evacuateOptions.Run()
 	} else if listpods {
-		n.listPodsOptions.printPodHeaders = !kcmdutil.GetFlagBool(c, "no-headers")
-		err = n.listPodsOptions.Run()
+		o.listPodsOptions.printPodHeaders = !kcmdutil.GetFlagBool(c, "no-headers")
+		err = o.listPodsOptions.Run()
 	}
 
 	return err

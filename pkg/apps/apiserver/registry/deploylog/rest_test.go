@@ -13,11 +13,10 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	fakeexternal "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 
@@ -89,14 +88,9 @@ func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 	// Fake deploymentConfig
 	config := appstest.OkDeploymentConfig(version)
 
-	internalConfig := &appsapi.DeploymentConfig{}
-	if err := legacyscheme.Scheme.Convert(config, internalConfig, nil); err != nil {
-		panic(err)
-	}
-
-	fakeDn := appsfake.NewSimpleClientset(internalConfig)
+	fakeDn := appsfake.NewSimpleClientset(config)
 	fakeDn.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, internalConfig, nil
+		return true, config, nil
 	})
 
 	// Used for testing validation errors prior to getting replication controllers.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/api/network/v1"
 
 	kapi "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"

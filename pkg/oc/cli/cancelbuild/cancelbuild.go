@@ -18,12 +18,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
 	"github.com/openshift/api/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildtv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildinternal "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
+	buildclientinternal "github.com/openshift/origin/pkg/build/client"
+	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
 	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
+	buildlisterinternal "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -69,9 +71,9 @@ type CancelBuildOptions struct {
 	PrinterCancelInProgress printers.ResourcePrinter
 	PrinterRestart          printers.ResourcePrinter
 	Mapper                  meta.RESTMapper
-	Client                  buildinternalclient.Interface
-	BuildClient             buildtypedclient.BuildResourceInterface
-	BuildLister             buildlister.BuildLister
+	Client                  buildtv1client.BuildV1Interface
+	BuildClient             buildtv1client.BuildInterface
+	BuildLister             buildlisterinternal.BuildLister
 
 	// timeout is used by unit tests to shorten the polling period
 	timeout time.Duration
@@ -139,12 +141,19 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 	if err != nil {
 		return err
 	}
-	o.Client, err = buildinternalclient.NewForConfig(config)
+
+	o.Client, err = buildtv1client.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	o.BuildLister = buildclient.NewClientBuildLister(o.Client.Build())
-	o.BuildClient = o.Client.Build().Builds(o.Namespace)
+
+	internalclient, err := buildinternalclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	o.BuildLister = buildclientinternal.NewClientBuildLister(internalclient.Build())
+	o.BuildClient = o.Client.Builds(o.Namespace)
 	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
@@ -187,7 +196,7 @@ func (o *CancelBuildOptions) Validate() error {
 
 // RunCancelBuild implements all the necessary functionality for CancelBuild.
 func (o *CancelBuildOptions) RunCancelBuild() error {
-	var builds []*buildapi.Build
+	var builds []*buildv1.Build
 	for _, name := range o.BuildNames {
 		build, err := o.BuildClient.Get(name, metav1.GetOptions{})
 		if err != nil {
@@ -202,7 +211,13 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				break
 			}
 		}
-		if stateMatch && !buildutil.IsBuildComplete(build) {
+
+		internalBuildStatus := &buildapi.BuildStatus{}
+		if err := buildapiv1.Convert_v1_BuildStatus_To_build_BuildStatus(&build.Status, internalBuildStatus, nil); err != nil {
+			return err
+		}
+
+		if stateMatch && !buildutil.IsTerminalPhase(internalBuildStatus.Phase) {
 			builds = append(builds, build)
 		}
 	}
@@ -210,11 +225,11 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 	if o.DumpLogs {
 		for _, b := range builds {
 			// Do not attempt to get logs from build that was not scheduled.
-			if b.Status.Phase == buildapi.BuildPhaseNew {
+			if b.Status.Phase == buildv1.BuildPhaseNew {
 				continue
 			}
-			logClient := buildinternal.NewBuildLogClient(o.Client.Build().RESTClient(), o.Namespace)
-			opts := buildapi.BuildLogOptions{NoWait: true}
+			logClient := buildclientv1.NewBuildLogClient(o.Client.RESTClient(), o.Namespace)
+			opts := buildv1.BuildLogOptions{NoWait: true}
 			response, err := logClient.Logs(b.Name, opts).Do().Raw()
 			if err != nil {
 				o.ReportError(fmt.Errorf("unable to fetch logs for %s/%s: %v", b.Namespace, b.Name, err))
@@ -228,7 +243,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 	var wg sync.WaitGroup
 	for _, b := range builds {
 		wg.Add(1)
-		go func(build *buildapi.Build) {
+		go func(build *buildv1.Build) {
 			defer wg.Done()
 			err := wait.Poll(500*time.Millisecond, o.timeout, func() (bool, error) {
 				build.Status.Cancelled = true
@@ -263,7 +278,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				if err != nil {
 					return true, err
 				}
-				return updatedBuild.Status.Phase == buildapi.BuildPhaseCancelled, nil
+				return updatedBuild.Status.Phase == buildv1.BuildPhaseCancelled, nil
 			})
 			if err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to cancel: %v", build.Namespace, build.Name, err))
@@ -280,7 +295,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 
 	if o.Restart {
 		for _, b := range builds {
-			request := &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
+			request := &buildv1.BuildRequest{ObjectMeta: metav1.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
 			build, err := o.BuildClient.Clone(request.Name, request)
 			if err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))
@@ -303,9 +318,9 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 // isStateCancellable validates the state provided by the '--state' flag.
 func isStateCancellable(state string) bool {
 	cancellablePhases := []string{
-		string(buildapi.BuildPhaseNew),
-		string(buildapi.BuildPhasePending),
-		string(buildapi.BuildPhaseRunning),
+		string(buildv1.BuildPhaseNew),
+		string(buildv1.BuildPhasePending),
+		string(buildv1.BuildPhaseRunning),
 	}
 	for _, p := range cancellablePhases {
 		if state == strings.ToLower(p) {

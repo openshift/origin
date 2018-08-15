@@ -263,9 +263,9 @@ func filterByScheme(scheme *runtime.Scheme, in ...runtime.Object) []runtime.Obje
 	for i := range in {
 		obj := in[i]
 		gvks, _, err := scheme.ObjectKinds(obj)
+		//fmt.Printf("obj: %+v, gvk: %#+v, err: %v\n", obj, gvks, err)
 		if err != nil {
 			continue
-			//panic(err)
 		}
 		if len(gvks) == 0 {
 			continue

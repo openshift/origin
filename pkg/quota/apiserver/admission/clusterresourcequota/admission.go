@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
+	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
@@ -22,9 +24,9 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
-	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	quotatypedclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
+	"k8s.io/client-go/rest"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -55,8 +57,8 @@ type clusterQuotaAdmission struct {
 	evaluator resourcequota.Evaluator
 }
 
-var _ oadmission.WantsInternalKubernetesInformers = &clusterQuotaAdmission{}
-var _ oadmission.WantsOpenshiftInternalQuotaClient = &clusterQuotaAdmission{}
+var _ kubeapiserveradmission.WantsInternalKubeInformerFactory = &clusterQuotaAdmission{}
+var _ oadmission.WantsRESTClientConfig = &clusterQuotaAdmission{}
 var _ oadmission.WantsClusterQuota = &clusterQuotaAdmission{}
 
 const (
@@ -136,13 +138,18 @@ func (q *clusterQuotaAdmission) SetOriginQuotaRegistry(registry quota.Registry) 
 	q.registry = registry
 }
 
-func (q *clusterQuotaAdmission) SetInternalKubernetesInformers(informers kinternalinformers.SharedInformerFactory) {
+func (q *clusterQuotaAdmission) SetInternalKubeInformerFactory(informers kinternalinformers.SharedInformerFactory) {
 	q.namespaceLister = informers.Core().InternalVersion().Namespaces().Lister()
 	q.namespaceSynced = informers.Core().InternalVersion().Namespaces().Informer().HasSynced
 }
 
-func (q *clusterQuotaAdmission) SetOpenshiftInternalQuotaClient(client quotaclient.Interface) {
-	q.clusterQuotaClient = client.Quota()
+func (q *clusterQuotaAdmission) SetRESTClientConfig(restClientConfig rest.Config) {
+	var err error
+	q.clusterQuotaClient, err = quotatypedclient.NewForConfig(&restClientConfig)
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
 }
 
 func (q *clusterQuotaAdmission) SetClusterQuota(clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper, informers quotainformer.ClusterResourceQuotaInformer) {

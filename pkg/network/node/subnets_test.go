@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network/common"
 )
 

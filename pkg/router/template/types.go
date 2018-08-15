@@ -190,7 +190,7 @@ type ConfigManager interface {
 	Register(id string, route *routeapi.Route)
 
 	// AddRoute adds a new route or updates an existing route.
-	AddRoute(id string, route *routeapi.Route) error
+	AddRoute(id, routingKey string, route *routeapi.Route) error
 
 	// RemoveRoute removes a route.
 	RemoveRoute(id string, route *routeapi.Route) error

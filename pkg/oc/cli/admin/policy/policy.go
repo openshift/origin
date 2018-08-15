@@ -2,7 +2,6 @@ package policy
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -15,6 +14,7 @@ import (
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 )
@@ -32,64 +32,64 @@ var policyLong = ktemplates.LongDesc(`
 	and 'scc'.`)
 
 // NewCmdPolicy implements the OpenShift cli policy command
-func NewCmdPolicy(name, fullName string, f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdPolicy(name, fullName string, f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Manage policy",
 		Long:  policyLong,
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
 	groups := ktemplates.CommandGroups{
 		{
 			Message: "Discover:",
 			Commands: []*cobra.Command{
-				NewCmdWhoCan(WhoCanRecommendedName, fullName+" "+WhoCanRecommendedName, f, out),
-				NewCmdSccSubjectReview(SubjectReviewRecommendedName, fullName+" "+SubjectReviewRecommendedName, f, out),
-				NewCmdSccReview(ReviewRecommendedName, fullName+" "+ReviewRecommendedName, f, out),
+				NewCmdWhoCan(WhoCanRecommendedName, fullName+" "+WhoCanRecommendedName, f, streams),
+				NewCmdSccSubjectReview(SubjectReviewRecommendedName, fullName+" "+SubjectReviewRecommendedName, f, streams),
+				NewCmdSccReview(ReviewRecommendedName, fullName+" "+ReviewRecommendedName, f, streams),
 			},
 		},
 		{
 			Message: "Manage project membership:",
 			Commands: []*cobra.Command{
-				NewCmdRemoveUserFromProject(RemoveUserRecommendedName, fullName+" "+RemoveUserRecommendedName, f, out),
-				NewCmdRemoveGroupFromProject(RemoveGroupRecommendedName, fullName+" "+RemoveGroupRecommendedName, f, out),
+				NewCmdRemoveUserFromProject(RemoveUserRecommendedName, fullName+" "+RemoveUserRecommendedName, f, streams),
+				NewCmdRemoveGroupFromProject(RemoveGroupRecommendedName, fullName+" "+RemoveGroupRecommendedName, f, streams),
 			},
 		},
 		{
 			Message: "Assign roles to users and groups:",
 			Commands: []*cobra.Command{
-				NewCmdAddRoleToUser(AddRoleToUserRecommendedName, fullName+" "+AddRoleToUserRecommendedName, f, out, errOut),
-				NewCmdAddRoleToGroup(AddRoleToGroupRecommendedName, fullName+" "+AddRoleToGroupRecommendedName, f, out, errOut),
-				NewCmdRemoveRoleFromUser(RemoveRoleFromUserRecommendedName, fullName+" "+RemoveRoleFromUserRecommendedName, f, out, errOut),
-				NewCmdRemoveRoleFromGroup(RemoveRoleFromGroupRecommendedName, fullName+" "+RemoveRoleFromGroupRecommendedName, f, out, errOut),
+				NewCmdAddRoleToUser(AddRoleToUserRecommendedName, fullName+" "+AddRoleToUserRecommendedName, f, streams),
+				NewCmdAddRoleToGroup(AddRoleToGroupRecommendedName, fullName+" "+AddRoleToGroupRecommendedName, f, streams),
+				NewCmdRemoveRoleFromUser(RemoveRoleFromUserRecommendedName, fullName+" "+RemoveRoleFromUserRecommendedName, f, streams),
+				NewCmdRemoveRoleFromGroup(RemoveRoleFromGroupRecommendedName, fullName+" "+RemoveRoleFromGroupRecommendedName, f, streams),
 			},
 		},
 		{
 			Message: "Assign cluster roles to users and groups:",
 			Commands: []*cobra.Command{
-				NewCmdAddClusterRoleToUser(AddClusterRoleToUserRecommendedName, fullName+" "+AddClusterRoleToUserRecommendedName, f, out, errOut),
-				NewCmdAddClusterRoleToGroup(AddClusterRoleToGroupRecommendedName, fullName+" "+AddClusterRoleToGroupRecommendedName, f, out, errOut),
-				NewCmdRemoveClusterRoleFromUser(RemoveClusterRoleFromUserRecommendedName, fullName+" "+RemoveClusterRoleFromUserRecommendedName, f, out, errOut),
-				NewCmdRemoveClusterRoleFromGroup(RemoveClusterRoleFromGroupRecommendedName, fullName+" "+RemoveClusterRoleFromGroupRecommendedName, f, out, errOut),
+				NewCmdAddClusterRoleToUser(AddClusterRoleToUserRecommendedName, fullName+" "+AddClusterRoleToUserRecommendedName, f, streams),
+				NewCmdAddClusterRoleToGroup(AddClusterRoleToGroupRecommendedName, fullName+" "+AddClusterRoleToGroupRecommendedName, f, streams),
+				NewCmdRemoveClusterRoleFromUser(RemoveClusterRoleFromUserRecommendedName, fullName+" "+RemoveClusterRoleFromUserRecommendedName, f, streams),
+				NewCmdRemoveClusterRoleFromGroup(RemoveClusterRoleFromGroupRecommendedName, fullName+" "+RemoveClusterRoleFromGroupRecommendedName, f, streams),
 			},
 		},
 		{
 			Message: "Manage policy on pods and containers:",
 			Commands: []*cobra.Command{
-				NewCmdAddSCCToUser(AddSCCToUserRecommendedName, fullName+" "+AddSCCToUserRecommendedName, f, out),
-				NewCmdAddSCCToGroup(AddSCCToGroupRecommendedName, fullName+" "+AddSCCToGroupRecommendedName, f, out),
-				NewCmdRemoveSCCFromUser(RemoveSCCFromUserRecommendedName, fullName+" "+RemoveSCCFromUserRecommendedName, f, out),
-				NewCmdRemoveSCCFromGroup(RemoveSCCFromGroupRecommendedName, fullName+" "+RemoveSCCFromGroupRecommendedName, f, out),
+				NewCmdAddSCCToUser(AddSCCToUserRecommendedName, fullName+" "+AddSCCToUserRecommendedName, f, streams),
+				NewCmdAddSCCToGroup(AddSCCToGroupRecommendedName, fullName+" "+AddSCCToGroupRecommendedName, f, streams),
+				NewCmdRemoveSCCFromUser(RemoveSCCFromUserRecommendedName, fullName+" "+RemoveSCCFromUserRecommendedName, f, streams),
+				NewCmdRemoveSCCFromGroup(RemoveSCCFromGroupRecommendedName, fullName+" "+RemoveSCCFromGroupRecommendedName, f, streams),
 			},
 		},
 		{
 			Message: "Upgrade and repair system policy:",
 			Commands: []*cobra.Command{
-				NewCmdReconcileClusterRoles(ReconcileClusterRolesRecommendedName, fullName+" "+ReconcileClusterRolesRecommendedName, f, out, errOut),
-				NewCmdReconcileClusterRoleBindings(ReconcileClusterRoleBindingsRecommendedName, fullName+" "+ReconcileClusterRoleBindingsRecommendedName, f, out, errOut),
-				NewCmdReconcileSCC(ReconcileSCCRecommendedName, fullName+" "+ReconcileSCCRecommendedName, f, out),
+				NewCmdReconcileClusterRoles(ReconcileClusterRolesRecommendedName, fullName+" "+ReconcileClusterRolesRecommendedName, f, streams),
+				NewCmdReconcileClusterRoleBindings(ReconcileClusterRoleBindingsRecommendedName, fullName+" "+ReconcileClusterRoleBindingsRecommendedName, f, streams),
+				NewCmdReconcileSCC(ReconcileSCCRecommendedName, fullName+" "+ReconcileSCCRecommendedName, f, streams),
 			},
 		},
 	}

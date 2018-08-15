@@ -73,16 +73,16 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kprinters.Resourc
 		return err
 	}
 
-	fmt.Fprint(l.Options.ErrWriter, "\nListing matched pods on node: ", node.ObjectMeta.Name, "\n\n")
+	fmt.Fprint(l.Options.ErrOut, "\nListing matched pods on node: ", node.ObjectMeta.Name, "\n\n")
 	if p, ok := printer.(*kprinters.HumanReadablePrinter); ok {
 		if l.printPodHeaders {
 			p.EnsurePrintHeaders()
 		}
-		p.PrintObj(pods, l.Options.Writer)
+		p.PrintObj(pods, l.Options.Out)
 		return err
 	}
 
-	printer.PrintObj(pods, l.Options.Writer)
+	printer.PrintObj(pods, l.Options.Out)
 
 	return err
 }
@@ -116,6 +116,6 @@ func (l *ListPodsOptions) handleRESTOutput(nodes []*kapi.Node, printer kprinters
 		unifiedPodList.Items = append(unifiedPodList.Items, pods.Items...)
 	}
 
-	printer.PrintObj(unifiedPodList, l.Options.Writer)
+	printer.PrintObj(unifiedPodList, l.Options.Out)
 	return errList
 }

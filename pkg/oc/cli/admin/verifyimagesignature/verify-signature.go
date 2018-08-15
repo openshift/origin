@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -21,6 +20,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -70,6 +70,10 @@ var (
 	`)
 )
 
+const (
+	VerifyRecommendedName = "verify-image-signature"
+)
+
 type VerifyImageSignatureOptions struct {
 	InputImage        string
 	ExpectedIdentity  string
@@ -84,41 +88,39 @@ type VerifyImageSignatureOptions struct {
 
 	ImageClient imageclient.ImageInterface
 
-	Out    io.Writer
-	ErrOut io.Writer
+	genericclioptions.IOStreams
 }
 
-const (
-	VerifyRecommendedName = "verify-image-signature"
-)
-
-func NewCmdVerifyImageSignature(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	opts := &VerifyImageSignatureOptions{
-		ErrOut: errOut,
-		Out:    out,
+func NewVerifyImageSignatureOptions(streams genericclioptions.IOStreams) *VerifyImageSignatureOptions {
+	return &VerifyImageSignatureOptions{
 		// TODO: This improves the error message users get when containers/image is not able
 		// to locate the pubring.gpg file (which is default).
 		// This should be improved/fixed in containers/image.
 		PublicKeyFilename: filepath.Join(os.Getenv("GNUPGHOME"), "pubring.gpg"),
+		IOStreams:         streams,
 	}
+}
+
+func NewCmdVerifyImageSignature(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewVerifyImageSignatureOptions(streams)
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s IMAGE --expected-identity=EXPECTED_IDENTITY [--save]", VerifyRecommendedName),
 		Short:   "Verify the image identity contained in the image signature",
 		Long:    verifyImageSignatureLongDesc,
 		Example: fmt.Sprintf(verifyImageSignatureExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Validate())
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
-			kcmdutil.CheckErr(opts.Run())
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.ExpectedIdentity, "expected-identity", opts.ExpectedIdentity, "An expected image docker reference to verify (required).")
-	cmd.Flags().BoolVar(&opts.Save, "save", opts.Save, "If true, the result of the verification will be saved to an image object.")
-	cmd.Flags().BoolVar(&opts.RemoveAll, "remove-all", opts.RemoveAll, "If set, all signature verifications will be removed from the given image.")
-	cmd.Flags().StringVar(&opts.PublicKeyFilename, "public-key", opts.PublicKeyFilename, fmt.Sprintf("A path to a public GPG key to be used for verification. (defaults to %q)", opts.PublicKeyFilename))
-	cmd.Flags().StringVar(&opts.RegistryURL, "registry-url", opts.RegistryURL, "The address to use when contacting the registry, instead of using the internal cluster address. This is useful if you can't resolve or reach the internal registry address.")
-	cmd.Flags().BoolVar(&opts.Insecure, "insecure", opts.Insecure, "If set, use the insecure protocol for registry communication.")
+	cmd.Flags().StringVar(&o.ExpectedIdentity, "expected-identity", o.ExpectedIdentity, "An expected image docker reference to verify (required).")
+	cmd.Flags().BoolVar(&o.Save, "save", o.Save, "If true, the result of the verification will be saved to an image object.")
+	cmd.Flags().BoolVar(&o.RemoveAll, "remove-all", o.RemoveAll, "If set, all signature verifications will be removed from the given image.")
+	cmd.Flags().StringVar(&o.PublicKeyFilename, "public-key", o.PublicKeyFilename, fmt.Sprintf("A path to a public GPG key to be used for verification. (defaults to %q)", o.PublicKeyFilename))
+	cmd.Flags().StringVar(&o.RegistryURL, "registry-url", o.RegistryURL, "The address to use when contacting the registry, instead of using the internal cluster address. This is useful if you can't resolve or reach the internal registry address.")
+	cmd.Flags().BoolVar(&o.Insecure, "insecure", o.Insecure, "If set, use the insecure protocol for registry communication.")
 	return cmd
 }
 
@@ -136,7 +138,7 @@ func (o *VerifyImageSignatureOptions) Validate() error {
 	}
 	return nil
 }
-func (o *VerifyImageSignatureOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *VerifyImageSignatureOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return kcmdutil.UsageErrorf(cmd, "exactly one image must be specified")
 	}

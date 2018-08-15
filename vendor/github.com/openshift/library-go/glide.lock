@@ -1,5 +1,5 @@
 hash: dda20859ba4eff22e18c1f0d54dd1d9a625cb371cd1f206bab65373bbf524b2c
-updated: 2018-07-23T18:02:00.753943-04:00
+updated: 2018-08-07T09:57:40.798572554-04:00
 imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
@@ -57,9 +57,10 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: fc4c02c9169b85b9a80353f11ac15ce542a0944a
+  version: f424ae81fec6a71a7d7421d5c572a13106b520fc
   subpackages:
   - config/v1
+  - network/v1
   - operator/v1alpha1
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4

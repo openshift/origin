@@ -6,6 +6,7 @@ import (
 	etcd "github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
+	authorizationapi "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -13,7 +14,6 @@ import (
 	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/util/restoptions"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
 var testDefaultRegistry = func() (string, bool) { return "defaultregistry:5000", true }
@@ -46,7 +47,7 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defaultRegistry := imageapi.DefaultRegistryHostnameRetriever(testDefaultRegistry, "", "")
+	defaultRegistry := registryhostname.TestingRegistryHostnameRetriever(testDefaultRegistry, "", "")
 	imageStreamStorage, _, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), defaultRegistry, &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, &fake.RegistryWhitelister{}, imagestreametcd.NewEmptyLayerIndex())
 	if err != nil {
 		t.Fatal(err)

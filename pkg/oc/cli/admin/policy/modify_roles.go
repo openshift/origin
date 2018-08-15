@@ -17,6 +17,7 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
@@ -79,10 +80,12 @@ var (
 
 type RoleModificationOptions struct {
 	RoleName             string
+	RoleNamespace        string
 	RoleKind             string
 	RoleBindingName      string
 	RoleBindingNamespace string
 	RbacClient           rbacv1client.RbacV1Interface
+	SANames              []string
 
 	UserClient           userv1client.UserV1Interface
 	ServiceAccountClient corev1client.ServiceAccountsGetter
@@ -97,39 +100,35 @@ type RoleModificationOptions struct {
 
 	PrintObj  func(obj runtime.Object) error
 	PrintErrf func(format string, args ...interface{})
+
+	genericclioptions.IOStreams
+}
+
+func NewRoleModificationOptions(streams genericclioptions.IOStreams) *RoleModificationOptions {
+	return &RoleModificationOptions{
+		IOStreams: streams,
+	}
 }
 
 // NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
-func NewCmdAddRoleToGroup(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
-	roleNamespace := ""
-
+func NewCmdAddRoleToGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRoleModificationOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name + " ROLE GROUP [GROUP ...]",
 		Short: "Add a role to groups for the current project",
 		Long:  addRoleToGroupLongDesc,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", out, errOut); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.checkRoleBindingNamespace(f, roleNamespace); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			if err := options.AddRole(); err != nil {
-				kcmdutil.CheckErr(err)
-				return
-			}
-
-			if len(options.Output) == 0 {
-				printSuccessForCommand(options.RoleName, true, "group", options.Targets, true, options.DryRun, out)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
+			kcmdutil.CheckErr(o.checkRoleBindingNamespace(f))
+			kcmdutil.CheckErr(o.AddRole())
+			if len(o.Output) == 0 {
+				printSuccessForCommand(o.RoleName, true, "group", o.Targets, true, o.DryRun, o.Out)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
-	cmd.Flags().StringVar(&roleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
+	cmd.Flags().StringVar(&o.RoleNamespace, "role-namespace", o.RoleNamespace, "namespace where the role is located: empty means a role defined in cluster policy")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
@@ -137,38 +136,27 @@ func NewCmdAddRoleToGroup(name, fullName string, f kcmdutil.Factory, out, errOut
 }
 
 // NewCmdAddRoleToUser implements the OpenShift cli add-role-to-user command
-func NewCmdAddRoleToUser(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
-	saNames := []string{}
-	roleNamespace := ""
-
+func NewCmdAddRoleToUser(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRoleModificationOptions(streams)
+	o.SANames = []string{}
 	cmd := &cobra.Command{
 		Use:     name + " ROLE (USER | -z SERVICEACCOUNT) [USER ...]",
 		Short:   "Add a role to users or serviceaccounts for the current project",
 		Long:    addRoleToUserLongDesc,
 		Example: fmt.Sprintf(addRoleToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, out, errOut); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.checkRoleBindingNamespace(f, roleNamespace); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			if err := options.AddRole(); err != nil {
-				kcmdutil.CheckErr(err)
-				return
-			}
-			if len(options.Output) == 0 {
-				printSuccessForCommand(options.RoleName, true, "user", options.Targets, true, options.DryRun, out)
+			kcmdutil.CheckErr(o.CompleteUserWithSA(f, cmd, args))
+			kcmdutil.CheckErr(o.checkRoleBindingNamespace(f))
+			kcmdutil.CheckErr(o.AddRole())
+			if len(o.Output) == 0 {
+				printSuccessForCommand(o.RoleName, true, "user", o.Targets, true, o.DryRun, o.Out)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
-	cmd.Flags().StringVar(&roleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
-	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
+	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
+	cmd.Flags().StringVar(&o.RoleNamespace, "role-namespace", o.RoleNamespace, "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
@@ -176,35 +164,24 @@ func NewCmdAddRoleToUser(name, fullName string, f kcmdutil.Factory, out, errOut 
 }
 
 // NewCmdRemoveRoleFromGroup implements the OpenShift cli remove-role-from-group command
-func NewCmdRemoveRoleFromGroup(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
-	roleNamespace := ""
-
+func NewCmdRemoveRoleFromGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRoleModificationOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name + " ROLE GROUP [GROUP ...]",
 		Short: "Remove a role from groups for the current project",
 		Long:  `Remove a role from groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", out, errOut); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.checkRoleBindingNamespace(f, roleNamespace); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			if err := options.RemoveRole(); err != nil {
-				kcmdutil.CheckErr(err)
-				return
-			}
-			if len(options.Output) == 0 {
-				printSuccessForCommand(options.RoleName, false, "group", options.Targets, true, options.DryRun, out)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
+			kcmdutil.CheckErr(o.checkRoleBindingNamespace(f))
+			kcmdutil.CheckErr(o.RemoveRole())
+			if len(o.Output) == 0 {
+				printSuccessForCommand(o.RoleName, false, "group", o.Targets, true, o.DryRun, o.Out)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
-	cmd.Flags().StringVar(&roleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
+	cmd.Flags().StringVar(&o.RoleNamespace, "role-namespace", o.RoleNamespace, "namespace where the role is located: empty means a role defined in cluster policy")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
@@ -212,37 +189,26 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f kcmdutil.Factory, out, e
 }
 
 // NewCmdRemoveRoleFromUser implements the OpenShift cli remove-role-from-user command
-func NewCmdRemoveRoleFromUser(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
-	saNames := []string{}
-	roleNamespace := ""
-
+func NewCmdRemoveRoleFromUser(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRoleModificationOptions(streams)
+	o.SANames = []string{}
 	cmd := &cobra.Command{
 		Use:   name + " ROLE USER [USER ...]",
 		Short: "Remove a role from users for the current project",
 		Long:  `Remove a role from users for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, out, errOut); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.checkRoleBindingNamespace(f, roleNamespace); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			if err := options.RemoveRole(); err != nil {
-				kcmdutil.CheckErr(err)
-				return
-			}
-			if len(options.Output) == 0 {
-				printSuccessForCommand(options.RoleName, false, "user", options.Targets, true, options.DryRun, out)
+			kcmdutil.CheckErr(o.CompleteUserWithSA(f, cmd, args))
+			kcmdutil.CheckErr(o.checkRoleBindingNamespace(f))
+			kcmdutil.CheckErr(o.RemoveRole())
+			if len(o.Output) == 0 {
+				printSuccessForCommand(o.RoleName, false, "user", o.Targets, true, o.DryRun, o.Out)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
-	cmd.Flags().StringVar(&roleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
-	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
+	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
+	cmd.Flags().StringVar(&o.RoleNamespace, "role-namespace", o.RoleNamespace, "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
@@ -250,60 +216,49 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f kcmdutil.Factory, out, er
 }
 
 // NewCmdAddClusterRoleToGroup implements the OpenShift cli add-cluster-role-to-group command
-func NewCmdAddClusterRoleToGroup(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
-
+func NewCmdAddClusterRoleToGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRoleModificationOptions(streams)
+	o.RoleKind = "ClusterRole"
 	cmd := &cobra.Command{
 		Use:   name + " <role> <group> [group]...",
 		Short: "Add a role to groups for all projects in the cluster",
 		Long:  addClusterRoleToGroupLongDesc,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", out, errOut); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.AddRole(); err != nil {
-				kcmdutil.CheckErr(err)
-				return
-			}
-			if len(options.Output) == 0 {
-				printSuccessForCommand(options.RoleName, true, "group", options.Targets, false, options.DryRun, out)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
+			kcmdutil.CheckErr(o.AddRole())
+			if len(o.Output) == 0 {
+				printSuccessForCommand(o.RoleName, true, "group", o.Targets, false, o.DryRun, o.Out)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
+	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
+
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
 // NewCmdAddClusterRoleToUser implements the OpenShift cli add-cluster-role-to-user command
-func NewCmdAddClusterRoleToUser(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	saNames := []string{}
-	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
-
+func NewCmdAddClusterRoleToUser(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRoleModificationOptions(streams)
+	o.RoleKind = "ClusterRole"
+	o.SANames = []string{}
 	cmd := &cobra.Command{
 		Use:   name + " <role> <user | -z serviceaccount> [user]...",
 		Short: "Add a role to users for all projects in the cluster",
 		Long:  addClusterRoleToUserLongDesc,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, out, errOut); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.AddRole(); err != nil {
-				kcmdutil.CheckErr(err)
-				return
-			}
-			if len(options.Output) == 0 {
-				printSuccessForCommand(options.RoleName, true, "user", options.Targets, false, options.DryRun, out)
+			kcmdutil.CheckErr(o.CompleteUserWithSA(f, cmd, args))
+			kcmdutil.CheckErr(o.AddRole())
+			if len(o.Output) == 0 {
+				printSuccessForCommand(o.RoleName, true, "user", o.Targets, false, o.DryRun, o.Out)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
-	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
+	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify or create. If left empty creates a new rolebindo.RoleBindingNameg with a default name")
+	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use o.SANamess a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
@@ -311,29 +266,23 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f kcmdutil.Factory, out, 
 }
 
 // NewCmdRemoveClusterRoleFromGroup implements the OpenShift cli remove-cluster-role-from-group command
-func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
-
+func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRoleModificationOptions(streams)
+	o.RoleKind = "ClusterRole"
 	cmd := &cobra.Command{
 		Use:   name + " <role> <group> [group]...",
 		Short: "Remove a role from groups for all projects in the cluster",
 		Long:  `Remove a role from groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", out, errOut); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.RemoveRole(); err != nil {
-				kcmdutil.CheckErr(err)
-				return
-			}
-			if len(options.Output) == 0 {
-				printSuccessForCommand(options.RoleName, false, "group", options.Targets, false, options.DryRun, out)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
+			kcmdutil.CheckErr(o.RemoveRole())
+			if len(o.Output) == 0 {
+				printSuccessForCommand(o.RoleName, false, "group", o.Targets, false, o.DryRun, o.Out)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
+	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
@@ -341,47 +290,41 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f kcmdutil.Factory,
 }
 
 // NewCmdRemoveClusterRoleFromUser implements the OpenShift cli remove-cluster-role-from-user command
-func NewCmdRemoveClusterRoleFromUser(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
-	saNames := []string{}
-	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
-
+func NewCmdRemoveClusterRoleFromUser(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRoleModificationOptions(streams)
+	o.RoleKind = "ClusterRole"
+	o.SANames = []string{}
 	cmd := &cobra.Command{
 		Use:   name + " <role> <user> [user]...",
 		Short: "Remove a role from users for all projects in the cluster",
 		Long:  `Remove a role from users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, out, errOut); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			if err := options.RemoveRole(); err != nil {
-				kcmdutil.CheckErr(err)
-				return
-			}
-			if len(options.Output) == 0 {
-				printSuccessForCommand(options.RoleName, false, "user", options.Targets, false, options.DryRun, out)
+			kcmdutil.CheckErr(o.CompleteUserWithSA(f, cmd, args))
+			kcmdutil.CheckErr(o.RemoveRole())
+			if len(o.Output) == 0 {
+				printSuccessForCommand(o.RoleName, false, "user", o.Targets, false, o.DryRun, o.Out)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
-	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
+	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
+	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
-func (o *RoleModificationOptions) checkRoleBindingNamespace(f kcmdutil.Factory, roleNamespace string) error {
+func (o *RoleModificationOptions) checkRoleBindingNamespace(f kcmdutil.Factory) error {
 	var err error
 	o.RoleBindingNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
-	if len(roleNamespace) > 0 {
-		if o.RoleBindingNamespace != roleNamespace {
+	if len(o.RoleNamespace) > 0 {
+		if o.RoleBindingNamespace != o.RoleNamespace {
 			return fmt.Errorf("role binding in namespace %q can't reference role in different namespace %q",
-				o.RoleBindingNamespace, roleNamespace)
+				o.RoleBindingNamespace, o.RoleNamespace)
 		}
 		o.RoleKind = "Role"
 	} else {
@@ -390,7 +333,7 @@ func (o *RoleModificationOptions) checkRoleBindingNamespace(f kcmdutil.Factory, 
 	return nil
 }
 
-func (o *RoleModificationOptions) innerComplete(f kcmdutil.Factory, cmd *cobra.Command, out, errOut io.Writer) error {
+func (o *RoleModificationOptions) innerComplete(f kcmdutil.Factory, cmd *cobra.Command) error {
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
@@ -411,16 +354,16 @@ func (o *RoleModificationOptions) innerComplete(f kcmdutil.Factory, cmd *cobra.C
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, o.Out)
 	}
 	o.PrintErrf = func(format string, args ...interface{}) {
-		fmt.Fprintf(errOut, format, args...)
+		fmt.Fprintf(o.ErrOut, format, args...)
 	}
 
 	return nil
 }
 
-func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *cobra.Command, args []string, saNames []string, out, errOut io.Writer) error {
+func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return errors.New("you must specify a role")
 	}
@@ -432,12 +375,12 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *co
 
 	o.Targets = o.Users
 
-	if (len(o.Users) == 0) && (len(saNames) == 0) {
+	if (len(o.Users) == 0) && (len(o.SANames) == 0) {
 		return errors.New("you must specify at least one user or service account")
 	}
 
 	// return an error if a fully-qualified service-account name is used
-	for _, sa := range saNames {
+	for _, sa := range o.SANames {
 		if strings.HasPrefix(sa, "system:serviceaccount") {
 			return errors.New("--serviceaccount (-z) should only be used with short-form serviceaccount names (e.g. `default`)")
 		}
@@ -449,7 +392,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *co
 		}
 	}
 
-	err := o.innerComplete(f, cmd, out, errOut)
+	err := o.innerComplete(f, cmd)
 	if err != nil {
 		return err
 	}
@@ -459,7 +402,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *co
 		return err
 	}
 
-	for _, sa := range saNames {
+	for _, sa := range o.SANames {
 		o.Targets = append(o.Targets, sa)
 		o.Subjects = append(o.Subjects, rbacv1.Subject{Namespace: defaultNamespace, Name: sa, Kind: rbacv1.ServiceAccountKind})
 	}
@@ -467,7 +410,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *co
 	return nil
 }
 
-func (o *RoleModificationOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string, out, errOut io.Writer) error {
+func (o *RoleModificationOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("you must specify at least two arguments: <role> <%s> [%s]...", targetName, targetName)
 	}
@@ -477,7 +420,7 @@ func (o *RoleModificationOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comman
 
 	o.Targets = *target
 
-	return o.innerComplete(f, cmd, out, errOut)
+	return o.innerComplete(f, cmd)
 }
 
 func (o *RoleModificationOptions) getRoleBinding() (*roleBindingAbstraction, bool /* isUpdate */, error) {

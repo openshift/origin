@@ -14,15 +14,14 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
@@ -35,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreamimport"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreamtag"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
@@ -44,7 +44,7 @@ import (
 type ExtraConfig struct {
 	KubeAPIServerClientConfig          *restclient.Config
 	LimitVerifier                      imageadmission.LimitVerifier
-	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
+	RegistryHostnameRetriever          registryhostname.RegistryHostnameRetriever
 	AllowedRegistriesForImport         *configapi.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
 	AdditionalTrustedCA                []byte

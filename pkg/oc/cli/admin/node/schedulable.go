@@ -41,7 +41,7 @@ func (s *SchedulableOptions) Run() error {
 			printer = p
 		}
 
-		printer.PrintObj(node, s.Options.Writer)
+		printer.PrintObj(node, s.Options.Out)
 	}
 	return kerrors.NewAggregate(errList)
 }

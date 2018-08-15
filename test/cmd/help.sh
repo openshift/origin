@@ -41,18 +41,18 @@ os::cmd::expect_success_and_text 'oc login --help' 'insecure-skip-tls-verify'
 
 # help for given command with --help flag must be consistent
 os::cmd::expect_success_and_text 'oc get --help' 'Display one or many resources'
-os::cmd::expect_success_and_text 'openshift start --help' 'Start an all-in-one server'
+os::cmd::expect_success_and_text 'openshift start --help' 'Start components of OpenShift'
 os::cmd::expect_success_and_text 'openshift start master --help' 'Start a master'
-os::cmd::expect_success_and_text 'openshift start node --help' 'Start a node'
+os::cmd::expect_success_and_text 'openshift start network --help' 'Start node network'
 os::cmd::expect_success_and_text 'oc project --help' 'Switch to another project'
 os::cmd::expect_success_and_text 'oc projects --help' 'existing projects'
 os::cmd::expect_success_and_text 'oc get --help' 'oc'
 
 # help for given command through help command must be consistent
 os::cmd::expect_success_and_text 'oc help get' 'Display one or many resources'
-os::cmd::expect_success_and_text 'openshift help start' 'Start an all-in-one server'
+os::cmd::expect_success_and_text 'openshift help start' 'Start components of OpenShift'
 os::cmd::expect_success_and_text 'openshift help start master' 'Start a master'
-os::cmd::expect_success_and_text 'openshift help start node' 'Start a node'
+os::cmd::expect_success_and_text 'openshift help start network' 'Start node network'
 os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
 os::cmd::expect_success_and_text 'oc help projects' 'current active project and existing projects on the server'
 

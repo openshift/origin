@@ -3,8 +3,6 @@ package project
 import (
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -16,6 +14,7 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -36,14 +35,15 @@ type NewProjectOptions struct {
 	Description  string
 	NodeSelector string
 
-	ProjectClient projectclient.ProjectInterface
-	RbacClient    rbacv1client.RbacV1Interface
-	SARClient     authorizationtypedclient.SubjectAccessReviewInterface
+	UseNodeSelector bool
+	ProjectClient   projectclient.ProjectInterface
+	RbacClient      rbacv1client.RbacV1Interface
+	SARClient       authorizationtypedclient.SubjectAccessReviewInterface
 
 	AdminRole string
 	AdminUser string
 
-	Output io.Writer
+	genericclioptions.IOStreams
 }
 
 var newProjectLong = templates.LongDesc(`
@@ -53,42 +53,43 @@ var newProjectLong = templates.LongDesc(`
 	an admin user (and role, if you want to use a non-default admin role), and a node selector
 	to restrict which nodes pods in this project can be scheduled to.`)
 
-// NewCmdNewProject implements the OpenShift cli new-project command
-func NewCmdNewProject(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &NewProjectOptions{}
+func NewNewProjectOptions(streams genericclioptions.IOStreams) *NewProjectOptions {
+	return &NewProjectOptions{
+		AdminRole: bootstrappolicy.AdminRoleName,
+		IOStreams: streams,
+	}
+}
 
+// NewCmdNewProject implements the OpenShift cli new-project command
+func NewCmdNewProject(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewNewProjectOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name + " NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]",
 		Short: "Create a new project",
 		Long:  newProjectLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.complete(f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			// We can't depend on len(options.NodeSelector) > 0 as node-selector="" is valid
-			// and we want to populate node selector as project annotation only if explicitly set by user
-			useNodeSelector := cmd.Flag("node-selector").Changed
-
-			if err := options.Run(useNodeSelector); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().StringVar(&options.AdminRole, "admin-role", bootstrappolicy.AdminRoleName, "Project admin role name in the cluster policy")
-	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "Project admin username")
-	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "Project display name")
-	cmd.Flags().StringVar(&options.Description, "description", "", "Project description")
-	cmd.Flags().StringVar(&options.NodeSelector, "node-selector", "", "Restrict pods onto nodes matching given label selector. Format: '<key1>=<value1>, <key2>=<value2>...'. Specifying \"\" means any node, not default. If unspecified, cluster default node selector will be used.")
+	cmd.Flags().StringVar(&o.AdminRole, "admin-role", o.AdminRole, "Project admin role name in the cluster policy")
+	cmd.Flags().StringVar(&o.AdminUser, "admin", o.AdminUser, "Project admin username")
+	cmd.Flags().StringVar(&o.DisplayName, "display-name", o.DisplayName, "Project display name")
+	cmd.Flags().StringVar(&o.Description, "description", o.Description, "Project description")
+	cmd.Flags().StringVar(&o.NodeSelector, "node-selector", o.NodeSelector, "Restrict pods onto nodes matching given label selector. Format: '<key1>=<value1>, <key2>=<value2>...'. Specifying \"\" means any node, not default. If unspecified, cluster default node selector will be used.")
 
 	return cmd
 }
 
-func (o *NewProjectOptions) complete(f kcmdutil.Factory, args []string) error {
+func (o *NewProjectOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("you must specify one argument: project name")
 	}
+
+	// We can't depend on len(options.NodeSelector) > 0 as node-selector="" is valid
+	// and we want to populate node selector as project annotation only if explicitly set by user
+	o.UseNodeSelector = cmd.Flag("node-selector").Changed
 
 	o.ProjectName = args[0]
 
@@ -115,7 +116,7 @@ func (o *NewProjectOptions) complete(f kcmdutil.Factory, args []string) error {
 	return nil
 }
 
-func (o *NewProjectOptions) Run(useNodeSelector bool) error {
+func (o *NewProjectOptions) Run() error {
 	if _, err := o.ProjectClient.Projects().Get(o.ProjectName, metav1.GetOptions{}); err != nil {
 		if !kerrors.IsNotFound(err) {
 			return err
@@ -129,7 +130,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	project.Annotations = make(map[string]string)
 	project.Annotations[oapi.OpenShiftDescription] = o.Description
 	project.Annotations[oapi.OpenShiftDisplayName] = o.DisplayName
-	if useNodeSelector {
+	if o.UseNodeSelector {
 		project.Annotations[projectapi.ProjectNodeSelector] = o.NodeSelector
 	}
 	project, err := o.ProjectClient.Projects().Create(project)
@@ -137,12 +138,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		return err
 	}
 
-	output := o.Output
-	if output == nil {
-		output = os.Stdout
-	}
-
-	fmt.Fprintf(output, "Created project %v\n", o.ProjectName)
+	fmt.Fprintf(o.Out, "Created project %v\n", o.ProjectName)
 
 	errs := []error{}
 	if len(o.AdminUser) != 0 {
@@ -155,7 +151,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		}
 
 		if err := adduser.AddRole(); err != nil {
-			fmt.Fprintf(output, "%v could not be added to the %v role: %v\n", o.AdminUser, o.AdminRole, err)
+			fmt.Fprintf(o.Out, "%v could not be added to the %v role: %v\n", o.AdminUser, o.AdminRole, err)
 			errs = append(errs, err)
 		} else {
 			if err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
@@ -190,7 +186,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 			Subjects:             binding.Subjects,
 		}
 		if err := addRole.AddRole(); err != nil {
-			fmt.Fprintf(output, "Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)
+			fmt.Fprintf(o.Out, "Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)
 			errs = append(errs, err)
 		}
 	}

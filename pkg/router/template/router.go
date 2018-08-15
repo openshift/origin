@@ -351,8 +351,8 @@ func (r *templateRouter) commitAndReload() error {
 		}
 
 		r.stateChanged = false
-		r.dynamicallyConfigured = true
 		if r.dynamicConfigManager != nil {
+			r.dynamicallyConfigured = true
 			r.dynamicConfigManager.Notify(RouterEventReloadStart)
 		}
 
@@ -510,6 +510,10 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 		delete(r.state, k)
 		r.stateChanged = true
 	}
+
+	if r.stateChanged {
+		r.dynamicallyConfigured = false
+	}
 }
 
 // CreateServiceUnit creates a new service named with the given id.
@@ -598,7 +602,7 @@ func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.
 		return false
 	}
 
-	err := r.dynamicConfigManager.AddRoute(backendKey, route)
+	err := r.dynamicConfigManager.AddRoute(backendKey, backend.RoutingKeyName, route)
 	if err != nil {
 		glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically add route for backend %s: %v", backendKey, err)
 		return false

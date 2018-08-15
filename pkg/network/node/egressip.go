@@ -14,8 +14,8 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
 	"github.com/openshift/origin/pkg/network/common"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	"github.com/vishvananda/netlink"
 )
 
@@ -67,7 +67,7 @@ func (eip *egressIPWatcher) Start(networkInformers networkinformers.SharedInform
 	eip.vxlanMonitor = newEgressVXLANMonitor(eip.oc.ovs, eip.tracker, updates)
 	go eip.watchVXLAN(updates)
 
-	eip.tracker.Start(networkInformers.Network().InternalVersion().HostSubnets(), networkInformers.Network().InternalVersion().NetNamespaces())
+	eip.tracker.Start(networkInformers.Network().V1().HostSubnets(), networkInformers.Network().V1().NetNamespaces())
 	return nil
 }
 
@@ -161,7 +161,7 @@ func (eip *egressIPWatcher) assignEgressIP(egressIP, mark string) error {
 	go func() {
 		out, err := exec.Command("/sbin/arping", "-q", "-A", "-c", "1", "-I", eip.localEgressLink.Attrs().Name, egressIP).CombinedOutput()
 		if err != nil {
-			glog.Warning("Failed to send ARP claim for egress IP %q: %v (%s)", egressIP, err, string(out))
+			glog.Warningf("Failed to send ARP claim for egress IP %q: %v (%s)", egressIP, err, string(out))
 			return
 		}
 		time.Sleep(2 * time.Second)
