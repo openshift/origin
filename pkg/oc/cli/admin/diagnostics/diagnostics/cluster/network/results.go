@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
@@ -99,7 +100,7 @@ func (d *NetworkDiagnostic) copyNetworkPodInfo(pod *kapi.Pod) error {
 
 func (d *NetworkDiagnostic) getNetworkPodLogs(pod *kapi.Pod) error {
 	bytelim := int64(1024000)
-	opts := &kapi.PodLogOptions{
+	opts := &corev1.PodLogOptions{
 		TypeMeta:   pod.TypeMeta,
 		Container:  pod.Name,
 		Follow:     true,
