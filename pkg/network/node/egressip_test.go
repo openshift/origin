@@ -142,8 +142,8 @@ func setupEgressIPWatcher(t *testing.T) (*egressIPWatcher, []string) {
 func TestEgressIP(t *testing.T) {
 	eip, flows := setupEgressIPWatcher(t)
 
-	eip.updateNodeEgress("172.17.0.3", []string{})
-	eip.updateNodeEgress("172.17.0.4", []string{})
+	eip.updateNodeEgress("172.17.0.3", "", []string{})
+	eip.updateNodeEgress("172.17.0.4", "", []string{})
 	eip.deleteNamespaceEgress(42)
 	eip.deleteNamespaceEgress(43)
 
@@ -168,7 +168,7 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"}) // Added .100
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.100"}) // Added .100
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -179,8 +179,8 @@ func TestEgressIP(t *testing.T) {
 	}
 
 	// Assign HostSubnet.EgressIP first, then NetNamespace.EgressIP, with a remote EgressIP
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.101", "172.17.0.100"}) // Added .101
-	eip.updateNodeEgress("172.17.0.5", []string{"172.17.0.105"})                 // Added .105
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.101", "172.17.0.100"}) // Added .101
+	eip.updateNodeEgress("172.17.0.5", "", []string{"172.17.0.105"})                 // Added .105
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -222,7 +222,7 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102", "172.17.0.104"}) // Added .102, .104
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.102", "172.17.0.104"}) // Added .102, .104
 	err = assertNetlinkChange(eip, "claim 172.17.0.104")
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -245,7 +245,7 @@ func TestEgressIP(t *testing.T) {
 	}
 
 	// Assign HostSubnet.EgressIP first, then NetNamespace.EgressIP, with a local EgressIP
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102", "172.17.0.103"}) // Added .103, Dropped .104
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.102", "172.17.0.103"}) // Added .103, Dropped .104
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -288,7 +288,7 @@ func TestEgressIP(t *testing.T) {
 	}
 
 	// Drop remote node EgressIP
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"}) // Dropped .101
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.100"}) // Dropped .101
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -299,7 +299,7 @@ func TestEgressIP(t *testing.T) {
 	}
 
 	// Drop local node EgressIP
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102"}) // Dropped .103
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.102"}) // Dropped .103
 	err = assertNetlinkChange(eip, "release 172.17.0.103")
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -310,7 +310,7 @@ func TestEgressIP(t *testing.T) {
 	}
 
 	// Add them back, swapped
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100", "172.17.0.103"}) // Added .103
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.100", "172.17.0.103"}) // Added .103
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -320,7 +320,7 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.101", "172.17.0.102"}) // Added .101
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.101", "172.17.0.102"}) // Added .101
 	err = assertNetlinkChange(eip, "claim 172.17.0.101")
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -335,7 +335,7 @@ func TestMultipleNamespaceEgressIPs(t *testing.T) {
 	eip, flows := setupEgressIPWatcher(t)
 
 	eip.updateNamespaceEgress(42, []string{"172.17.0.100"})
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.100"})
 	err := assertOVSChanges(eip, &flows,
 		egressOVSChange{vnid: 42, egress: Remote, remote: "172.17.0.3"},
 	)
@@ -343,18 +343,15 @@ func TestMultipleNamespaceEgressIPs(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	// Prepending a second, unavailable, namespace egress IP should block the working
-	// one, because we still only support using the first EgressIP
+	// Prepending a second, unavailable, namespace egress IP should have no effect
 	eip.updateNamespaceEgress(42, []string{"172.17.0.101", "172.17.0.100"})
-	err = assertOVSChanges(eip, &flows,
-		egressOVSChange{vnid: 42, egress: Dropped},
-	)
+	err = assertNoOVSChanges(eip, &flows)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
 
-	// Assigning that IP to a node should now make it work
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.101"})
+	// Now assigning that IP to a node should switch OVS to use that since it's first in the list
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.101"})
 	err = assertNetlinkChange(eip, "claim 172.17.0.101")
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -366,9 +363,9 @@ func TestMultipleNamespaceEgressIPs(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	// Swapping the order in the NetNamespace should bring the original Egress IP back
+	// Swapping the order in the NetNamespace should swap back
 	eip.updateNamespaceEgress(42, []string{"172.17.0.100", "172.17.0.101"})
-	err = assertNetlinkChange(eip, "release 172.17.0.101")
+	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -380,8 +377,8 @@ func TestMultipleNamespaceEgressIPs(t *testing.T) {
 	}
 
 	// Removing the inactive egress IP from its node should have no effect
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.200"})
-	err = assertNoNetlinkChanges(eip)
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.200"})
+	err = assertNetlinkChange(eip, "release 172.17.0.101")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -393,7 +390,11 @@ func TestMultipleNamespaceEgressIPs(t *testing.T) {
 	}
 
 	// Removing the remaining egress IP should now kill the namespace
-	eip.updateNodeEgress("172.17.0.3", nil)
+	eip.updateNodeEgress("172.17.0.3", "", nil)
+	err = assertNoNetlinkChanges(eip)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
 	err = assertOVSChanges(eip, &flows,
 		egressOVSChange{vnid: 42, egress: Dropped},
 	)
@@ -402,9 +403,9 @@ func TestMultipleNamespaceEgressIPs(t *testing.T) {
 	}
 
 	// Now add the egress IPs back...
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.101"})
-	err = assertNoNetlinkChanges(eip)
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.101"})
+	err = assertNetlinkChange(eip, "claim 172.17.0.101")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -444,7 +445,7 @@ func TestMultipleNamespaceEgressIPs(t *testing.T) {
 	}
 
 	eip.updateNamespaceEgress(44, []string{"172.17.0.101"})
-	err = assertNoNetlinkChanges(eip)
+	err = assertNetlinkChange(eip, "release 172.17.0.101")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -457,7 +458,7 @@ func TestMultipleNamespaceEgressIPs(t *testing.T) {
 	}
 
 	eip.deleteNamespaceEgress(44)
-	err = assertNoNetlinkChanges(eip)
+	err = assertNetlinkChange(eip, "claim 172.17.0.101")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -474,7 +475,7 @@ func TestNodeIPAsEgressIP(t *testing.T) {
 	eip, flows := setupEgressIPWatcher(t)
 
 	// Trying to assign node IP as egress IP should fail. (It will log an error but this test doesn't notice that.)
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.4", "172.17.0.102"})
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.4", "172.17.0.102"})
 	err := assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -489,7 +490,7 @@ func TestDuplicateNodeEgressIPs(t *testing.T) {
 	eip, flows := setupEgressIPWatcher(t)
 
 	eip.updateNamespaceEgress(42, []string{"172.17.0.100"})
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.100"})
 	err := assertOVSChanges(eip, &flows, egressOVSChange{vnid: 42, egress: Remote, remote: "172.17.0.3"})
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -498,7 +499,7 @@ func TestDuplicateNodeEgressIPs(t *testing.T) {
 	// Adding the Egress IP to another node should not work and should cause the
 	// namespace to start dropping traffic. (And in particular, even though we're
 	// adding the Egress IP to the local node, there should not be a netlink change.)
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.4", "", []string{"172.17.0.100"})
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -509,7 +510,7 @@ func TestDuplicateNodeEgressIPs(t *testing.T) {
 	}
 
 	// Removing the duplicate node egressIP should restore traffic to the broken namespace
-	eip.updateNodeEgress("172.17.0.4", []string{})
+	eip.updateNodeEgress("172.17.0.4", "", []string{})
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -520,7 +521,7 @@ func TestDuplicateNodeEgressIPs(t *testing.T) {
 	}
 
 	// As above, but with a remote node IP
-	eip.updateNodeEgress("172.17.0.5", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.5", "", []string{"172.17.0.100"})
 	err = assertOVSChanges(eip, &flows, egressOVSChange{vnid: 42, egress: Dropped})
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -542,7 +543,7 @@ func TestDuplicateNodeEgressIPs(t *testing.T) {
 
 	// Removing the original egress node should result in the "duplicate" egress node
 	// now being used.
-	eip.updateNodeEgress("172.17.0.3", []string{})
+	eip.updateNodeEgress("172.17.0.3", "", []string{})
 	err = assertOVSChanges(eip, &flows, egressOVSChange{vnid: 42, egress: Remote, remote: "172.17.0.5"})
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -553,7 +554,7 @@ func TestDuplicateNamespaceEgressIPs(t *testing.T) {
 	eip, flows := setupEgressIPWatcher(t)
 
 	eip.updateNamespaceEgress(42, []string{"172.17.0.100"})
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.100"})
 	err := assertOVSChanges(eip, &flows, egressOVSChange{vnid: 42, egress: Remote, remote: "172.17.0.3"})
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -595,7 +596,7 @@ func TestDuplicateNamespaceEgressIPs(t *testing.T) {
 	// cause the rules to get deleted and then added back in the opposite order,
 	// which assertNoOVSChanges() would complain about, so we have to use
 	// assertOVSChanges() instead.
-	eip.updateNodeEgress("172.17.0.3", []string{})
+	eip.updateNodeEgress("172.17.0.3", "", []string{})
 	err = assertOVSChanges(eip, &flows,
 		egressOVSChange{vnid: 42, egress: Dropped},
 		egressOVSChange{vnid: 43, egress: Dropped},
@@ -604,7 +605,7 @@ func TestDuplicateNamespaceEgressIPs(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.3", "", []string{"172.17.0.100"})
 	err = assertOVSChanges(eip, &flows,
 		egressOVSChange{vnid: 42, egress: Dropped},
 		egressOVSChange{vnid: 43, egress: Dropped},
