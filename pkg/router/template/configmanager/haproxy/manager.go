@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/origin/pkg/route/apis/route/validation"
 	templaterouter "github.com/openshift/origin/pkg/router/template"
 	templateutil "github.com/openshift/origin/pkg/router/template/util"
 )
@@ -119,6 +120,9 @@ type haproxyConfigManager struct {
 	// wildcardRoutesAllowed indicates if wildcard routes are allowed.
 	wildcardRoutesAllowed bool
 
+	// extendedValidation indicates if extended route validation is enabled.
+	extendedValidation bool
+
 	// router is the associated template router.
 	router templaterouter.RouterInterface
 
@@ -154,10 +158,11 @@ func NewHAProxyConfigManager(options templaterouter.ConfigManagerOptions) *hapro
 	return &haproxyConfigManager{
 		connectionInfo:         options.ConnectionInfo,
 		commitInterval:         options.CommitInterval,
-		blueprintRoutes:        buildBlueprintRoutes(options.BlueprintRoutes),
+		blueprintRoutes:        buildBlueprintRoutes(options.BlueprintRoutes, options.ExtendedValidation),
 		blueprintRoutePoolSize: options.BlueprintRoutePoolSize,
 		maxDynamicServers:      options.MaxDynamicServers,
 		wildcardRoutesAllowed:  options.WildcardRoutesAllowed,
+		extendedValidation:     options.ExtendedValidation,
 		defaultCertificate:     "",
 
 		client:           client,
@@ -198,6 +203,14 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 	newRoute := route.DeepCopy()
 	newRoute.Namespace = blueprintRoutePoolNamespace
 	newRoute.Spec.Host = ""
+
+	if cm.extendedValidation {
+		if err := validateBlueprintRoute(newRoute); err != nil {
+			glog.Errorf("Skipping blueprint route %s/%s due to invalid configuration: %v",
+				route.Namespace, route.Name, err)
+			return
+		}
+	}
 
 	cm.lock.Lock()
 	existingBlueprints := cm.blueprintRoutes
@@ -915,8 +928,18 @@ func (entry *routeBackendEntry) BuildMapAssociations(route *routeapi.Route) {
 	}
 }
 
+// validateBlueprintRoute runs extended validation on a blueprint route.
+func validateBlueprintRoute(route *routeapi.Route) error {
+	if errs := validation.ExtendedValidateRoute(route); len(errs) > 0 {
+		agg := errs.ToAggregate()
+		return fmt.Errorf(agg.Error())
+	}
+
+	return nil
+}
+
 // buildBlueprintRoutes generates a list of blueprint routes.
-func buildBlueprintRoutes(customRoutes []*routeapi.Route) []*routeapi.Route {
+func buildBlueprintRoutes(customRoutes []*routeapi.Route, validate bool) []*routeapi.Route {
 	routes := make([]*routeapi.Route, 0)
 
 	// Add in defaults based on the different route termination types.
@@ -937,6 +960,13 @@ func buildBlueprintRoutes(customRoutes []*routeapi.Route) []*routeapi.Route {
 	for _, r := range customRoutes {
 		dolly := r.DeepCopy()
 		dolly.Namespace = blueprintRoutePoolNamespace
+		if validate {
+			if err := validateBlueprintRoute(dolly); err != nil {
+				glog.Errorf("Skipping blueprint route %s/%s due to invalid configuration: %v", r.Namespace, r.Name, err)
+				continue
+			}
+		}
+
 		routes = append(routes, dolly)
 	}
 
