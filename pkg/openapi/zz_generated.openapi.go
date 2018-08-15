@@ -106,6 +106,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/build/v1.GitHubWebHookCause":                                              schema_openshift_api_build_v1_GitHubWebHookCause(ref),
 		"github.com/openshift/api/build/v1.GitInfo":                                                         schema_openshift_api_build_v1_GitInfo(ref),
 		"github.com/openshift/api/build/v1.GitLabWebHookCause":                                              schema_openshift_api_build_v1_GitLabWebHookCause(ref),
+		"github.com/openshift/api/build/v1.GitRefInfo":                                                      schema_openshift_api_build_v1_GitRefInfo(ref),
 		"github.com/openshift/api/build/v1.GitSourceRevision":                                               schema_openshift_api_build_v1_GitSourceRevision(ref),
 		"github.com/openshift/api/build/v1.ImageChangeCause":                                                schema_openshift_api_build_v1_ImageChangeCause(ref),
 		"github.com/openshift/api/build/v1.ImageChangeTrigger":                                              schema_openshift_api_build_v1_ImageChangeTrigger(ref),
@@ -5704,12 +5705,25 @@ func schema_openshift_api_build_v1_GitInfo(ref common.ReferenceCallback) common.
 							Format:      "",
 						},
 					},
+					"refs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Refs is a list of GitRefs for the provided repo - generally sent when used from a post-receive hook. This field is optional and is used when sending multiple refs",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/build/v1.GitRefInfo"),
+									},
+								},
+							},
+						},
+					},
 				},
-				Required: []string{"uri"},
+				Required: []string{"uri", "refs"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/build/v1.SourceControlUser"},
+			"github.com/openshift/api/build/v1.GitRefInfo", "github.com/openshift/api/build/v1.SourceControlUser"},
 	}
 }
 
@@ -5737,6 +5751,82 @@ func schema_openshift_api_build_v1_GitLabWebHookCause(ref common.ReferenceCallba
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/build/v1.SourceRevision"},
+	}
+}
+
+func schema_openshift_api_build_v1_GitRefInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "GitRefInfo is a single ref",
+				Properties: map[string]spec.Schema{
+					"uri": {
+						SchemaProps: spec.SchemaProps{
+							Description: "uri points to the source that will be built. The structure of the source will depend on the type of build to run",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ref": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ref is the branch/tag/ref to build.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"httpProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "httpProxy is a proxy used to reach the git repository over http",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"httpsProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "httpsProxy is a proxy used to reach the git repository over https",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"noProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "noProxy is the list of domains for which the proxy should not be used",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"commit": {
+						SchemaProps: spec.SchemaProps{
+							Description: "commit is the commit hash identifying a specific commit",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"author": {
+						SchemaProps: spec.SchemaProps{
+							Description: "author is the author of a specific commit",
+							Ref:         ref("github.com/openshift/api/build/v1.SourceControlUser"),
+						},
+					},
+					"committer": {
+						SchemaProps: spec.SchemaProps{
+							Description: "committer is the committer of a specific commit",
+							Ref:         ref("github.com/openshift/api/build/v1.SourceControlUser"),
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message is the description of a specific commit",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"uri"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/build/v1.SourceControlUser"},
 	}
 }
 
