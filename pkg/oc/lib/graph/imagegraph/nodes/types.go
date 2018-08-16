@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
@@ -19,22 +20,22 @@ const (
 )
 
 var (
-	ImageStreamNodeKind      = reflect.TypeOf(imageapi.ImageStream{}).Name()
-	ImageNodeKind            = reflect.TypeOf(imageapi.Image{}).Name()
-	ImageStreamTagNodeKind   = reflect.TypeOf(imageapi.ImageStreamTag{}).Name()
-	ImageStreamImageNodeKind = reflect.TypeOf(imageapi.ImageStreamImage{}).Name()
+	ImageStreamNodeKind      = reflect.TypeOf(imagev1.ImageStream{}).Name()
+	ImageNodeKind            = reflect.TypeOf(imagev1.Image{}).Name()
+	ImageStreamTagNodeKind   = reflect.TypeOf(imagev1.ImageStreamTag{}).Name()
+	ImageStreamImageNodeKind = reflect.TypeOf(imagev1.ImageStreamImage{}).Name()
 
 	// non-api types
-	DockerRepositoryNodeKind = reflect.TypeOf(imageapi.DockerImageReference{}).Name()
+	DockerRepositoryNodeKind = reflect.TypeOf(imagev1.DockerImageReference{}).Name()
 )
 
-func ImageStreamNodeName(o *imageapi.ImageStream) osgraph.UniqueName {
+func ImageStreamNodeName(o *imagev1.ImageStream) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(ImageStreamNodeKind, o)
 }
 
 type ImageStreamNode struct {
 	osgraph.Node
-	*imageapi.ImageStream
+	*imagev1.ImageStream
 
 	IsFound bool
 }
@@ -59,13 +60,13 @@ func (*ImageStreamNode) Kind() string {
 	return ImageStreamNodeKind
 }
 
-func ImageStreamTagNodeName(o *imageapi.ImageStreamTag) osgraph.UniqueName {
+func ImageStreamTagNodeName(o *imagev1.ImageStreamTag) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(ImageStreamTagNodeKind, o)
 }
 
 type ImageStreamTagNode struct {
 	osgraph.Node
-	*imageapi.ImageStreamTag
+	*imagev1.ImageStreamTag
 
 	IsFound bool
 }
@@ -100,13 +101,13 @@ func (*ImageStreamTagNode) Kind() string {
 	return ImageStreamTagNodeKind
 }
 
-func ImageStreamImageNodeName(o *imageapi.ImageStreamImage) osgraph.UniqueName {
+func ImageStreamImageNodeName(o *imagev1.ImageStreamImage) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(ImageStreamImageNodeKind, o)
 }
 
 type ImageStreamImageNode struct {
 	osgraph.Node
-	*imageapi.ImageStreamImage
+	*imagev1.ImageStreamImage
 
 	IsFound bool
 }
@@ -169,13 +170,13 @@ func (n DockerImageRepositoryNode) UniqueName() osgraph.UniqueName {
 	return DockerImageRepositoryNodeName(n.Ref)
 }
 
-func ImageNodeName(o *imageapi.Image) osgraph.UniqueName {
+func ImageNodeName(o *imagev1.Image) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(ImageNodeKind, o)
 }
 
 type ImageNode struct {
 	osgraph.Node
-	Image *imageapi.Image
+	Image *imagev1.Image
 }
 
 func (n ImageNode) Object() interface{} {

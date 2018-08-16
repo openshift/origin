@@ -4,41 +4,41 @@ items:
 - apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
   metadata:
-    name: overlapping 
+    name: overlapping
   spec:
     scaleTargetRef:
-      kind: DeploymentConfig 
-      name: frontend 
+      kind: DeploymentConfig
+      name: frontend
       apiVersion: apps.openshift.io/v1
       subresource: scale
-    minReplicas: 1 
-    maxReplicas: 10 
+    minReplicas: 1
+    maxReplicas: 10
     targetCPUUtilizationPercentage: 80
 - apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
   metadata:
-    name: overlapping2 
+    name: overlapping2
   spec:
     scaleTargetRef:
-      kind: DeploymentConfig 
-      name: frontend 
+      kind: DeploymentConfig
+      name: frontend
       apiVersion: apps.openshift.io/v1
       subresource: scale
-    minReplicas: 1 
-    maxReplicas: 10 
+    minReplicas: 1
+    maxReplicas: 10
     targetCPUUtilizationPercentage: 80
 - apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
   metadata:
-    name: overlapping3 
+    name: overlapping3
   spec:
     scaleTargetRef:
-      kind: DeploymentConfig 
-      name: frontend 
+      kind: DeploymentConfig
+      name: frontend
       apiVersion: apps.openshift.io/v1
       subresource: scale
-    minReplicas: 1 
-    maxReplicas: 10 
+    minReplicas: 1
+    maxReplicas: 10
     targetCPUUtilizationPercentage: 80
 - apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
@@ -46,12 +46,12 @@ items:
     name: dc-autoscaler
   spec:
     scaleTargetRef:
-      kind: DeploymentConfig 
-      name: someotherdc 
+      kind: DeploymentConfig
+      name: someotherdc
       apiVersion: apps.openshift.io/v1
       subresource: scale
-    minReplicas: 1 
-    maxReplicas: 10 
+    minReplicas: 1
+    maxReplicas: 10
     targetCPUUtilizationPercentage: 80
 - apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
@@ -59,14 +59,14 @@ items:
     name: rc-autoscaler
   spec:
     scaleTargetRef:
-      kind: ReplicationController 
-      name: someotherdc-1 
-      apiVersion: v1 
+      kind: ReplicationController
+      name: someotherdc-1
+      apiVersion: v1
       subresource: scale
-    minReplicas: 1 
+    minReplicas: 1
     maxReplicas: 10
     targetCPUUtilizationPercentage: 80
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     creationTimestamp: null

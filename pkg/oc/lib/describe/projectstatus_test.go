@@ -2,38 +2,44 @@ package describe
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
 	"text/tabwriter"
 	"time"
 
-	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	fakekubernetes "k8s.io/client-go/kubernetes/fake"
+	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kubefakeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kubeclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	appsfakeclient "github.com/openshift/client-go/apps/clientset/versioned/fake"
+	"github.com/openshift/api"
+	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	projectv1 "github.com/openshift/api/project/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	fakeappsclient "github.com/openshift/client-go/apps/clientset/versioned/fake"
+	fakeappsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1/fake"
+	fakebuildclient "github.com/openshift/client-go/build/clientset/versioned/fake"
+	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1/fake"
+	fakeimageclient "github.com/openshift/client-go/image/clientset/versioned/fake"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1/fake"
+	fakeprojectclient "github.com/openshift/client-go/project/clientset/versioned/fake"
+	fakeprojectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1/fake"
+	fakerouteclient "github.com/openshift/client-go/route/clientset/versioned/fake"
+	fakeroutev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1/fake"
 	oapi "github.com/openshift/origin/pkg/api"
-	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
-	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
-	imagefakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
-	imageclientscheme "github.com/openshift/origin/pkg/image/generated/internalclientset/scheme"
+	"github.com/openshift/origin/pkg/api/install"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectfakeclient "github.com/openshift/origin/pkg/project/generated/internalclientset/fake"
-	projectclientscheme "github.com/openshift/origin/pkg/project/generated/internalclientset/scheme"
-	routefakeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
-	routeclientscheme "github.com/openshift/origin/pkg/route/generated/internalclientset/scheme"
 )
 
 func mustParseTime(t string) time.Time {
@@ -57,7 +63,7 @@ func TestProjectStatus(t *testing.T) {
 		},
 		"empty project with display name": {
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "example",
 						Namespace: "",
@@ -76,7 +82,7 @@ func TestProjectStatus(t *testing.T) {
 		"empty service": {
 			File: "k8s-service-with-nothing.json",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -91,7 +97,7 @@ func TestProjectStatus(t *testing.T) {
 		"service with RC": {
 			File: "k8s-unserviced-rc.json",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -107,7 +113,7 @@ func TestProjectStatus(t *testing.T) {
 		"external name service": {
 			File: "external-name-service.json",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -121,7 +127,7 @@ func TestProjectStatus(t *testing.T) {
 		"rc with unmountable and missing secrets": {
 			File: "bad_secret_with_just_rc.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -136,7 +142,7 @@ func TestProjectStatus(t *testing.T) {
 		"dueling rcs": {
 			File: "dueling-rcs.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "dueling-rc", Namespace: ""},
 				},
 			},
@@ -149,7 +155,7 @@ func TestProjectStatus(t *testing.T) {
 		"service with pod": {
 			File: "service-with-pod.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -164,7 +170,7 @@ func TestProjectStatus(t *testing.T) {
 		"build chains": {
 			File: "build-chains.json",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -176,7 +182,7 @@ func TestProjectStatus(t *testing.T) {
 		"scheduled image stream": {
 			File: "prereq-image-present-with-sched.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -188,7 +194,7 @@ func TestProjectStatus(t *testing.T) {
 		"standalone rc": {
 			File: "bare-rc.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -202,7 +208,7 @@ func TestProjectStatus(t *testing.T) {
 		"unstarted build": {
 			File: "new-project-no-build.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -221,7 +227,7 @@ func TestProjectStatus(t *testing.T) {
 		"unpushable build": {
 			File: "unpushable-build.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -233,7 +239,7 @@ func TestProjectStatus(t *testing.T) {
 		"bare-bc-can-push": {
 			File: "bare-bc-can-push.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -249,7 +255,7 @@ func TestProjectStatus(t *testing.T) {
 		"cyclical build": {
 			File: "circular.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -263,7 +269,7 @@ func TestProjectStatus(t *testing.T) {
 		"running build": {
 			File: "new-project-one-build.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -282,7 +288,7 @@ func TestProjectStatus(t *testing.T) {
 		"a/b test DeploymentConfig": {
 			File: "new-project-two-deployment-configs.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -302,7 +308,7 @@ func TestProjectStatus(t *testing.T) {
 		"with real deployments": {
 			File: "new-project-deployed-app.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -334,7 +340,7 @@ func TestProjectStatus(t *testing.T) {
 			File:  "deployment.yaml",
 			ErrFn: func(err error) bool { return err == nil },
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -350,7 +356,7 @@ func TestProjectStatus(t *testing.T) {
 		"with stateful sets": {
 			File: "statefulset.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -367,7 +373,7 @@ func TestProjectStatus(t *testing.T) {
 		"restarting pod": {
 			File: "restarting-pod.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -382,7 +388,7 @@ func TestProjectStatus(t *testing.T) {
 		"cross namespace reference": {
 			File: "different-project-image-deployment.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -396,7 +402,7 @@ func TestProjectStatus(t *testing.T) {
 		"monopod": {
 			File: "k8s-lonely-pod.json",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -410,7 +416,7 @@ func TestProjectStatus(t *testing.T) {
 		"deploys single pod": {
 			File: "simple-deployment.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -424,7 +430,7 @@ func TestProjectStatus(t *testing.T) {
 		"deployment with unavailable pods": {
 			File: "available-deployment.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -438,7 +444,7 @@ func TestProjectStatus(t *testing.T) {
 		"standalone daemonset": {
 			File: "rollingupdate-daemonset.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -452,7 +458,7 @@ func TestProjectStatus(t *testing.T) {
 		"hpa non-missing scaleref": {
 			File: "hpa-with-scale-ref.yaml",
 			Extra: []runtime.Object{
-				&projectapi.Project{
+				&projectv1.Project{
 					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
@@ -466,7 +472,17 @@ func TestProjectStatus(t *testing.T) {
 	defer func() { timeNowFn = oldTimeFn }()
 
 	appsScheme := runtime.NewScheme()
-	appsapi.Install(appsScheme)
+	appsv1.Install(appsScheme)
+	buildScheme := runtime.NewScheme()
+	buildv1.Install(buildScheme)
+	imageScheme := runtime.NewScheme()
+	imagev1.Install(imageScheme)
+	projectScheme := runtime.NewScheme()
+	projectv1.Install(projectScheme)
+	routeScheme := runtime.NewScheme()
+	routev1.Install(routeScheme)
+	kubeScheme := runtime.NewScheme()
+	kubernetesscheme.AddToScheme(kubeScheme)
 
 	for k, test := range testCases {
 		t.Run(k, func(t *testing.T) {
@@ -480,8 +496,7 @@ func TestProjectStatus(t *testing.T) {
 			if len(test.File) > 0 {
 				// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
 				var err error
-				objs, err = readObjectsFromPath("../../../../pkg/oc/lib/graph/genericgraph/test/"+test.File, "example",
-					legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...), legacyscheme.Scheme)
+				objs, err = readObjectsFromPath("../../../../pkg/oc/lib/graph/genericgraph/test/"+test.File, "example")
 				if err != nil {
 					t.Errorf("%s: unexpected error: %v", k, err)
 				}
@@ -490,41 +505,26 @@ func TestProjectStatus(t *testing.T) {
 				objs = append(objs, o)
 			}
 
-			kc := kubefakeclient.NewSimpleClientset(filterByScheme(kubeclientscheme.Scheme, objs...)...)
-			projectClient := projectfakeclient.NewSimpleClientset(filterByScheme(projectclientscheme.Scheme, objs...)...)
-			buildClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
-			imageClient := imagefakeclient.NewSimpleClientset(filterByScheme(imageclientscheme.Scheme, objs...)...)
-
-			appsInternalObjects := filterByScheme(appsScheme, objs...)
-			appsExternalObjects := []runtime.Object{}
-			for _, obj := range appsInternalObjects {
-				dcExternal := &appsv1.DeploymentConfig{}
-				_, ok := obj.(*appsapi.DeploymentConfig)
-				if !ok {
-					continue
-				}
-				if err := legacyscheme.Scheme.Convert(obj, dcExternal, nil); err != nil {
-					panic(err)
-				}
-				appsExternalObjects = append(appsExternalObjects, dcExternal)
-			}
-			appsClient := appsfakeclient.NewSimpleClientset(appsExternalObjects...)
-
-			routeClient := routefakeclient.NewSimpleClientset(filterByScheme(routeclientscheme.Scheme, objs...)...)
+			kc := fakekubernetes.NewSimpleClientset(filterByScheme(kubeScheme, objs...)...)
+			projectClient := &fakeprojectv1client.FakeProjectV1{Fake: &(fakeprojectclient.NewSimpleClientset(filterByScheme(projectScheme, objs...)...).Fake)}
+			buildClient := &fakebuildv1client.FakeBuildV1{Fake: &(fakebuildclient.NewSimpleClientset(filterByScheme(buildScheme, objs...)...).Fake)}
+			imageClient := &fakeimagev1client.FakeImageV1{Fake: &(fakeimageclient.NewSimpleClientset(filterByScheme(imageScheme, objs...)...).Fake)}
+			appsClient := &fakeappsv1client.FakeAppsV1{Fake: &(fakeappsclient.NewSimpleClientset(filterByScheme(appsScheme, objs...)...).Fake)}
+			routeClient := &fakeroutev1client.FakeRouteV1{Fake: &(fakerouteclient.NewSimpleClientset(filterByScheme(routeScheme, objs...)...).Fake)}
 
 			d := ProjectStatusDescriber{
 				KubeClient:                  kc,
-				ProjectClient:               projectClient.Project(),
-				BuildClient:                 buildClient.Build(),
-				ImageClient:                 imageClient.Image(),
-				AppsClient:                  appsClient.Apps(),
-				RouteClient:                 routeClient.Route(),
+				ProjectClient:               projectClient,
+				BuildClient:                 buildClient,
+				ImageClient:                 imageClient,
+				AppsClient:                  appsClient,
+				RouteClient:                 routeClient,
 				Server:                      "https://example.com:8443",
 				Suggest:                     true,
 				CommandBaseName:             "oc",
 				LogsCommandName:             "oc logs -p",
 				SecurityPolicyCommandFormat: "policycommand %s %s",
-				RESTMapper:                  testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme),
+				RESTMapper:                  testrestmapper.TestOnlyStaticRESTMapper(scheme.Scheme),
 			}
 			t.Logf("describing %q ...", test.File)
 			out, err := d.Describe("example", "")
@@ -564,26 +564,26 @@ func TestProjectStatusErrors(t *testing.T) {
 		},
 	}
 	for k, test := range testCases {
-		projectClient := projectfakeclient.NewSimpleClientset()
-		buildClient := buildfakeclient.NewSimpleClientset()
-		imageClient := imagefakeclient.NewSimpleClientset()
-		routeClient := routefakeclient.NewSimpleClientset()
-		appsClient := appsfakeclient.NewSimpleClientset()
+		projectClient := &fakeprojectv1client.FakeProjectV1{Fake: &(fakeprojectclient.NewSimpleClientset().Fake)}
+		buildClient := &fakebuildv1client.FakeBuildV1{Fake: &(fakebuildclient.NewSimpleClientset().Fake)}
+		imageClient := &fakeimagev1client.FakeImageV1{Fake: &(fakeimageclient.NewSimpleClientset().Fake)}
+		routeClient := &fakeroutev1client.FakeRouteV1{Fake: &(fakerouteclient.NewSimpleClientset().Fake)}
+		appsClient := &fakeappsv1client.FakeAppsV1{Fake: &(fakeappsclient.NewSimpleClientset().Fake)}
 		projectClient.PrependReactor("*", "*", func(_ clientgotesting.Action) (bool, runtime.Object, error) {
 			return true, nil, test.Err
 		})
-		kc := kubefakeclient.NewSimpleClientset()
+		kc := fakekubernetes.NewSimpleClientset()
 		kc.PrependReactor("*", "*", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 			return true, nil, test.Err
 		})
 
 		d := ProjectStatusDescriber{
 			KubeClient:                  kc,
-			ProjectClient:               projectClient.Project(),
-			BuildClient:                 buildClient.Build(),
-			ImageClient:                 imageClient.Image(),
-			AppsClient:                  appsClient.Apps(),
-			RouteClient:                 routeClient.Route(),
+			ProjectClient:               projectClient,
+			BuildClient:                 buildClient,
+			ImageClient:                 imageClient,
+			AppsClient:                  appsClient,
+			RouteClient:                 routeClient,
 			Server:                      "https://example.com:8443",
 			Suggest:                     true,
 			CommandBaseName:             "oc",
@@ -658,25 +658,32 @@ func TestPrintMarkerSuggestions(t *testing.T) {
 	}
 }
 
-// ReadObjectsFromPath reads objects from the specified file for testing.
-func readObjectsFromPath(path, namespace string, decoder runtime.Decoder, typer runtime.ObjectTyper) ([]runtime.Object, error) {
+// readObjectsFromPath reads objects from the specified file for testing.
+func readObjectsFromPath(path, namespace string) ([]runtime.Object, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	data, err = yaml.ToJSON(data)
-	if err != nil {
-		return nil, err
-	}
+	// Create a scheme with only the types we care about, also to ensure we
+	// are not messing with the bult-in schemes.
+	// We need to perform roundtripping to invoke defaulting, just deserializing
+	// files is not sufficient here.
+	scheme := runtime.NewScheme()
+	kubernetesscheme.AddToScheme(scheme)
+	api.Install(scheme)
+	install.InstallInternalKube(scheme)
+	install.InstallInternalOpenShift(scheme)
+	codecs := serializer.NewCodecFactory(scheme)
+	decoder := codecs.UniversalDecoder()
 	obj, err := runtime.Decode(decoder, data)
 	if err != nil {
 		return nil, err
 	}
 	if !meta.IsListType(obj) {
-		if err := setNamespace(typer, obj, namespace); err != nil {
+		if err := setNamespace(scheme, obj, namespace); err != nil {
 			return nil, err
 		}
-		return []runtime.Object{obj}, nil
+		return convertToExternal(scheme, []runtime.Object{obj})
 	}
 	list, err := meta.ExtractList(obj)
 	if err != nil {
@@ -687,23 +694,46 @@ func readObjectsFromPath(path, namespace string, decoder runtime.Decoder, typer 
 		return nil, errs[0]
 	}
 	for _, o := range list {
-		if err := setNamespace(typer, o, namespace); err != nil {
+		if err := setNamespace(scheme, o, namespace); err != nil {
 			return nil, err
 		}
 	}
-	return list, nil
+	return convertToExternal(scheme, list)
 }
 
-func setNamespace(typer runtime.ObjectTyper, obj runtime.Object, namespace string) error {
+func convertToExternal(scheme *runtime.Scheme, objs []runtime.Object) ([]runtime.Object, error) {
+	result := make([]runtime.Object, 0, len(objs))
+	for _, obj := range objs {
+		gvks, _, err := scheme.ObjectKinds(obj)
+		if err != nil {
+			return nil, err
+		}
+		if len(gvks) == 0 {
+			return nil, fmt.Errorf("Unknown GroupVersionKind for %#v", obj)
+		}
+		gvs := scheme.PrioritizedVersionsForGroup(gvks[0].Group)
+		if len(gvs) == 0 {
+			return nil, fmt.Errorf("Unknown GroupVersion for %#v", obj)
+		}
+		ext, err := scheme.ConvertToVersion(obj, gvs[0])
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, ext)
+	}
+	return result, nil
+}
+
+func setNamespace(scheme *runtime.Scheme, obj runtime.Object, namespace string) error {
 	itemMeta, err := meta.Accessor(obj)
 	if err != nil {
 		return err
 	}
-	gvks, _, err := typer.ObjectKinds(obj)
+	gvks, _, err := scheme.ObjectKinds(obj)
 	if err != nil {
 		return err
 	}
-	mapper := testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme)
+	mapper := testrestmapper.TestOnlyStaticRESTMapper(scheme)
 	mapping, err := mapper.RESTMappings(gvks[0].GroupKind(), gvks[0].Version)
 	if err != nil {
 		return err

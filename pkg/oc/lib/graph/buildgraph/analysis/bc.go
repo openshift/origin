@@ -10,7 +10,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
@@ -97,13 +98,17 @@ func FindMissingInputImageStreams(g osgraph.Graph, f osgraph.Namer) []osgraph.Ma
 					// prior to our reaching this point in the code; so there is not need to check for that type vs. ImageStreamTag or ImageStreamImage;
 
 					tagNode, _ := bcInputNode.(*imagegraph.ImageStreamTagNode)
-					imageStream := imageStreamNode.Object().(*imageapi.ImageStream)
-					if _, ok := imageStream.Status.Tags[tagNode.ImageTag()]; !ok {
-
-						markers = append(markers, getImageStreamTagMarker(g, f, bcInputNode, imageStreamNode, tagNode, bcNode))
-
+					imageStream := imageStreamNode.Object().(*imagev1.ImageStream)
+					found := false
+					for _, tag := range imageStream.Status.Tags {
+						if tag.Tag == tagNode.ImageTag() {
+							found = true
+							break
+						}
 					}
-
+					if !found {
+						markers = append(markers, getImageStreamTagMarker(g, f, bcInputNode, imageStreamNode, tagNode, bcNode))
+					}
 				}
 
 			case *imagegraph.ImageStreamImageNode:
@@ -112,7 +117,7 @@ func FindMissingInputImageStreams(g osgraph.Graph, f osgraph.Namer) []osgraph.Ma
 					imageStreamNode := uncastImageStreamNode.(*imagegraph.ImageStreamNode)
 
 					imageNode, _ := bcInputNode.(*imagegraph.ImageStreamImageNode)
-					imageStream := imageStreamNode.Object().(*imageapi.ImageStream)
+					imageStream := imageStreamNode.Object().(*imagev1.ImageStream)
 					found, imageID := validImageStreamImage(imageNode, imageStream)
 					if !found {
 
@@ -206,14 +211,14 @@ func findPendingTagMarkers(istNode *imagegraph.ImageStreamTagNode, g osgraph.Gra
 		// the latest build.
 		// TODO: Handle other build phases.
 		switch latestBuild.Build.Status.Phase {
-		case buildapi.BuildPhaseCancelled:
+		case buildv1.BuildPhaseCancelled:
 			// TODO: Add a warning here.
-		case buildapi.BuildPhaseError:
+		case buildv1.BuildPhaseError:
 			// TODO: Add a warning here.
-		case buildapi.BuildPhaseComplete:
+		case buildv1.BuildPhaseComplete:
 			// We should never hit this. The output of our build is missing but the build is complete.
 			// Most probably the user has messed up?
-		case buildapi.BuildPhaseFailed:
+		case buildv1.BuildPhaseFailed:
 			// Since the tag hasn't been populated yet, we assume there hasn't been a successful
 			// build so far.
 			markers = append(markers, osgraph.Marker{
@@ -295,7 +300,7 @@ func getImageStreamTagSuggestion(g osgraph.Graph, f osgraph.Namer, tagNode *imag
 }
 
 // getImageStreamImageMarker will return the appropriate marker for when a BuildConfig is missing its input ImageStreamImage
-func getImageStreamImageMarker(g osgraph.Graph, f osgraph.Namer, bcNode graph.Node, bcInputNode graph.Node, imageStreamNode graph.Node, imageNode *imagegraph.ImageStreamImageNode, imageStream *imageapi.ImageStream, imageID string) osgraph.Marker {
+func getImageStreamImageMarker(g osgraph.Graph, f osgraph.Namer, bcNode graph.Node, bcInputNode graph.Node, imageStreamNode graph.Node, imageNode *imagegraph.ImageStreamImageNode, imageStream *imagev1.ImageStream, imageID string) osgraph.Marker {
 	return osgraph.Marker{
 		Node: bcNode,
 		RelatedNodes: []graph.Node{bcInputNode,
@@ -308,7 +313,7 @@ func getImageStreamImageMarker(g osgraph.Graph, f osgraph.Namer, bcNode graph.No
 }
 
 // getImageStreamImageSuggestion will return the appropriate marker Suggestion for when a BuildConfig is missing its input ImageStreamImage
-func getImageStreamImageSuggestion(imageID string, imageStream *imageapi.ImageStream) osgraph.Suggestion {
+func getImageStreamImageSuggestion(imageID string, imageStream *imagev1.ImageStream) osgraph.Suggestion {
 	// check the images stream to see if any import images are in flight or have failed
 	annotation, ok := imageStream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]
 	if !ok {
@@ -335,7 +340,7 @@ func getImageStreamImageSuggestion(imageID string, imageStream *imageapi.ImageSt
 // validImageStreamImage will cycle through the imageStream.Status.Tags.[]TagEvent.DockerImageReference and  determine whether an image with the hexadecimal image id
 // associated with an ImageStreamImage reference in fact exists in a given ImageStream; on return, this method returns a true if does exist, and as well as the hexadecimal image
 // id from the ImageStreamImage
-func validImageStreamImage(imageNode *imagegraph.ImageStreamImageNode, imageStream *imageapi.ImageStream) (bool, string) {
+func validImageStreamImage(imageNode *imagegraph.ImageStreamImageNode, imageStream *imagev1.ImageStream) (bool, string) {
 	dockerImageReference, err := imageapi.ParseDockerImageReference(imageNode.Name)
 	if err == nil {
 		for _, tagEventList := range imageStream.Status.Tags {

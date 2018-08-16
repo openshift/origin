@@ -25,7 +25,6 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
@@ -494,19 +493,9 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 	}
 
 	g := genericgraph.New()
-	// TODO: Remove conversion when we move the appsgraph to external types
-	internalConfig := &appsapi.DeploymentConfig{}
-	if err := legacyscheme.Scheme.Convert(config, internalConfig, nil); err != nil {
-		return "", fmt.Errorf("conversion error: %v", err)
-	}
-	dcNode := appsgraph.EnsureDeploymentConfigNode(g, internalConfig)
+	dcNode := appsgraph.EnsureDeploymentConfigNode(g, config)
 	for i := range deployments {
-		// TODO: Remove when kubegraph use external types
-		internalDeployment := &kapi.ReplicationController{}
-		if err := legacyscheme.Scheme.Convert(&deployments[i], internalDeployment, nil); err != nil {
-			return "", fmt.Errorf("conversion error: %v", err)
-		}
-		kubegraph.EnsureReplicationControllerNode(g, internalDeployment)
+		kubegraph.EnsureReplicationControllerNode(g, &deployments[i])
 	}
 	appsedges.AddTriggerDeploymentConfigsEdges(g, dcNode)
 	appsedges.AddDeploymentConfigsDeploymentEdges(g, dcNode)

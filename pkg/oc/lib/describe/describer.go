@@ -13,6 +13,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +37,7 @@ import (
 	"github.com/openshift/api/project"
 	"github.com/openshift/api/quota"
 	"github.com/openshift/api/route"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/api/security"
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
@@ -58,6 +60,7 @@ import (
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1conversions "github.com/openshift/origin/pkg/route/apis/route/v1"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
@@ -875,10 +878,14 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.Des
 				if len(ingress.RouterCanonicalHostname) > 0 {
 					hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 				}
-				switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
-				case kapi.ConditionTrue:
+				external := routev1.RouteIngress{}
+				if err := routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(&ingress, &external, nil); err != nil {
+					return err
+				}
+				switch status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted); status {
+				case corev1.ConditionTrue:
 					fmt.Fprintf(out, "\t  exposed on router %s%s %s ago\n", ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
-				case kapi.ConditionFalse:
+				case corev1.ConditionFalse:
 					fmt.Fprintf(out, "\t  rejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 					if len(condition.Message) > 0 {
 						fmt.Fprintf(out, "\t    %s\n", condition.Message)
@@ -897,10 +904,14 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.Des
 			if len(ingress.RouterCanonicalHostname) > 0 {
 				hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 			}
-			switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
-			case kapi.ConditionTrue:
+			external := routev1.RouteIngress{}
+			if err := routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(&ingress, &external, nil); err != nil {
+				return err
+			}
+			switch status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted); status {
+			case corev1.ConditionTrue:
 				fmt.Fprintf(out, "\t%s exposed on router %s %s%s ago\n", ingress.Host, ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
-			case kapi.ConditionFalse:
+			case corev1.ConditionFalse:
 				fmt.Fprintf(out, "\trejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				if len(condition.Message) > 0 {
 					fmt.Fprintf(out, "\t  %s\n", condition.Message)

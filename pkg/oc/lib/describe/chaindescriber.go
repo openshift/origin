@@ -13,8 +13,8 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagev1 "github.com/openshift/api/image/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
 	buildanalysis "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
@@ -38,14 +38,14 @@ func (e NotFoundErr) Error() string {
 // ChainDescriber generates extended information about a chain of
 // dependencies of an image stream
 type ChainDescriber struct {
-	c            buildclient.BuildConfigsGetter
+	c            buildv1client.BuildConfigsGetter
 	namespaces   sets.String
 	outputFormat string
 	namer        osgraph.Namer
 }
 
 // NewChainDescriber returns a new ChainDescriber
-func NewChainDescriber(c buildclient.BuildConfigsGetter, namespaces sets.String, out string) *ChainDescriber {
+func NewChainDescriber(c buildv1client.BuildConfigsGetter, namespaces sets.String, out string) *ChainDescriber {
 	return &ChainDescriber{c: c, namespaces: namespaces, outputFormat: out, namer: namespacedFormatter{hideNamespace: true}}
 }
 
@@ -81,7 +81,7 @@ func (d *ChainDescriber) MakeGraph() (osgraph.Graph, error) {
 // image stream tag (name:tag) in namespace. Namespace is needed here
 // because image stream tags with the same name can be found across
 // different namespaces.
-func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImages, reverse bool) (string, error) {
+func (d *ChainDescriber) Describe(ist *imagev1.ImageStreamTag, includeInputImages, reverse bool) (string, error) {
 	g, err := d.MakeGraph()
 	if err != nil {
 		return "", err

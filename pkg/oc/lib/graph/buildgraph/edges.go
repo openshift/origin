@@ -2,10 +2,10 @@ package buildgraph
 
 import (
 	"github.com/gonum/graph"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -59,7 +59,7 @@ func AddAllBuildEdges(g osgraph.MutableUniqueGraph) {
 	}
 }
 
-func imageRefNode(g osgraph.MutableUniqueGraph, ref *kapi.ObjectReference, bc *buildapi.BuildConfig) graph.Node {
+func imageRefNode(g osgraph.MutableUniqueGraph, ref *corev1.ObjectReference, bc *buildv1.BuildConfig) graph.Node {
 	if ref == nil {
 		return nil
 	}
@@ -94,7 +94,7 @@ func AddInputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNod
 	if in := buildgraph.EnsureSourceRepositoryNode(g, node.BuildConfig.Spec.Source); in != nil {
 		g.AddEdge(in, node, BuildInputEdgeKind)
 	}
-	inputImage := buildinternalhelpers.GetInputReference(node.BuildConfig.Spec.Strategy)
+	inputImage := buildutil.GetInputReference(node.BuildConfig.Spec.Strategy)
 	if input := imageRefNode(g, inputImage, node.BuildConfig); input != nil {
 		g.AddEdge(input, node, BuildInputImageEdgeKind)
 	}
@@ -103,12 +103,12 @@ func AddInputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNod
 // AddTriggerEdges links the build config to its trigger input image nodes.
 func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNode) {
 	for _, trigger := range node.BuildConfig.Spec.Triggers {
-		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
+		if trigger.Type != buildv1.ImageChangeBuildTriggerType {
 			continue
 		}
 		from := trigger.ImageChange.From
 		if trigger.ImageChange.From == nil {
-			from = buildinternalhelpers.GetInputReference(node.BuildConfig.Spec.Strategy)
+			from = buildutil.GetInputReference(node.BuildConfig.Spec.Strategy)
 		}
 		triggerNode := imageRefNode(g, from, node.BuildConfig)
 		g.AddEdge(triggerNode, node, BuildTriggerImageEdgeKind)
