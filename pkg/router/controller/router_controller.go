@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
+	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/router"
 )
@@ -36,7 +36,7 @@ type RouterController struct {
 	// Holds Namespace --> EndpointsName --> EndpointsObject
 	NamespaceEndpoints map[string]map[string]*kapi.Endpoints
 
-	ProjectClient       projectclient.ProjectResourceInterface
+	ProjectClient       projectclient.ProjectInterface
 	ProjectLabels       labels.Selector
 	ProjectSyncInterval time.Duration
 	ProjectWaitInterval time.Duration
