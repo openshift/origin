@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kubernetes "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 const (
@@ -35,13 +35,13 @@ type Plugin interface {
 	// - newly created build object or nil if default is to be created
 	// - information whether to trigger the build itself
 	// - eventual error.
-	Extract(buildCfg *buildapi.BuildConfig, trigger *buildapi.WebHookTrigger, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, *buildapi.DockerStrategyOptions, bool, error)
-	GetTriggers(buildConfig *buildapi.BuildConfig) ([]*buildapi.WebHookTrigger, error)
+	Extract(buildCfg *buildv1.BuildConfig, trigger *buildv1.WebHookTrigger, req *http.Request) (*buildv1.SourceRevision, []corev1.EnvVar, *buildv1.DockerStrategyOptions, bool, error)
+	GetTriggers(buildConfig *buildv1.BuildConfig) ([]*buildv1.WebHookTrigger, error)
 }
 
 // GitRefMatches determines if the ref from a webhook event matches a build
 // configuration
-func GitRefMatches(eventRef, configRef string, buildSource *buildapi.BuildSource) bool {
+func GitRefMatches(eventRef, configRef string, buildSource *buildv1.BuildSource) bool {
 	if buildSource.Git != nil && len(buildSource.Git.Ref) != 0 {
 		configRef = buildSource.Git.Ref
 	}
@@ -62,7 +62,7 @@ func NewWarning(message string) *kerrors.StatusError {
 
 // CheckSecret tests the user provided secret against the secrets for the webhook triggers, if a match is found
 // then the corresponding webhook trigger is returned.
-func CheckSecret(namespace, userSecret string, triggers []*buildapi.WebHookTrigger, secretsClient kcoreclient.SecretsGetter) (*buildapi.WebHookTrigger, error) {
+func CheckSecret(namespace, userSecret string, triggers []*buildv1.WebHookTrigger, secretsClient kubernetes.SecretsGetter) (*buildv1.WebHookTrigger, error) {
 	for i := range triggers {
 		secretRef := triggers[i].SecretReference
 		secret := triggers[i].Secret
@@ -77,7 +77,7 @@ func CheckSecret(namespace, userSecret string, triggers []*buildapi.WebHookTrigg
 			if err != nil && !kerrors.IsNotFound(err) {
 				return nil, err
 			}
-			if v, ok := s.Data[buildapi.WebHookSecretKey]; ok {
+			if v, ok := s.Data[buildutil.WebHookSecretKey]; ok {
 				if hmac.Equal(v, []byte(userSecret)) {
 					return triggers[i], nil
 				}
@@ -88,33 +88,33 @@ func CheckSecret(namespace, userSecret string, triggers []*buildapi.WebHookTrigg
 	return nil, ErrSecretMismatch
 }
 
-func GenerateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType string) (buildTriggerCauses []buildapi.BuildTriggerCause) {
+func GenerateBuildTriggerInfo(revision *buildv1.SourceRevision, hookType string) (buildTriggerCauses []buildv1.BuildTriggerCause) {
 	hiddenSecret := "<secret>"
 	switch {
 	case hookType == "generic":
 		buildTriggerCauses = append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseGenericMsg,
-				GenericWebHook: &buildapi.GenericWebHookCause{
+			buildv1.BuildTriggerCause{
+				Message: buildutil.BuildTriggerCauseGenericMsg,
+				GenericWebHook: &buildv1.GenericWebHookCause{
 					Revision: revision,
 					Secret:   hiddenSecret,
 				},
 			})
 	case hookType == "github":
 		buildTriggerCauses = append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseGithubMsg,
-				GitHubWebHook: &buildapi.GitHubWebHookCause{
+			buildv1.BuildTriggerCause{
+				Message: buildutil.BuildTriggerCauseGithubMsg,
+				GitHubWebHook: &buildv1.GitHubWebHookCause{
 					Revision: revision,
 					Secret:   hiddenSecret,
 				},
 			})
 	case hookType == "gitlab":
 		buildTriggerCauses = append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseGitLabMsg,
-				GitLabWebHook: &buildapi.GitLabWebHookCause{
-					CommonWebHookCause: buildapi.CommonWebHookCause{
+			buildv1.BuildTriggerCause{
+				Message: buildutil.BuildTriggerCauseGitLabMsg,
+				GitLabWebHook: &buildv1.GitLabWebHookCause{
+					CommonWebHookCause: buildv1.CommonWebHookCause{
 						Revision: revision,
 						Secret:   hiddenSecret,
 					},
@@ -122,10 +122,10 @@ func GenerateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType string
 			})
 	case hookType == "bitbucket":
 		buildTriggerCauses = append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseBitbucketMsg,
-				BitbucketWebHook: &buildapi.BitbucketWebHookCause{
-					CommonWebHookCause: buildapi.CommonWebHookCause{
+			buildv1.BuildTriggerCause{
+				Message: buildutil.BuildTriggerCauseBitbucketMsg,
+				BitbucketWebHook: &buildv1.BitbucketWebHookCause{
+					CommonWebHookCause: buildv1.CommonWebHookCause{
 						Revision: revision,
 						Secret:   hiddenSecret,
 					},

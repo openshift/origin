@@ -3,13 +3,14 @@ package test
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
@@ -26,14 +27,14 @@ func (g *FakeSecretsGetter) Secrets(namespace string) kcoreclient.SecretInterfac
 }
 
 type FakeSecretInterface struct {
-	Secrets map[string]*kapi.Secret
+	Secrets map[string]*corev1.Secret
 }
 
-func (f *FakeSecretInterface) Create(s *kapi.Secret) (*kapi.Secret, error) {
+func (f *FakeSecretInterface) Create(s *corev1.Secret) (*corev1.Secret, error) {
 	return nil, nil
 }
 
-func (f *FakeSecretInterface) Update(*kapi.Secret) (*kapi.Secret, error) {
+func (f *FakeSecretInterface) Update(*corev1.Secret) (*corev1.Secret, error) {
 	return nil, nil
 }
 
@@ -43,101 +44,101 @@ func (f *FakeSecretInterface) Delete(name string, options *metav1.DeleteOptions)
 func (f *FakeSecretInterface) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
 	return nil
 }
-func (f *FakeSecretInterface) Get(name string, options metav1.GetOptions) (*kapi.Secret, error) {
+func (f *FakeSecretInterface) Get(name string, options metav1.GetOptions) (*corev1.Secret, error) {
 	return f.Secrets[name], nil
 }
-func (f *FakeSecretInterface) List(opts metav1.ListOptions) (*kapi.SecretList, error) {
+func (f *FakeSecretInterface) List(opts metav1.ListOptions) (*corev1.SecretList, error) {
 	return nil, nil
 }
 func (f *FakeSecretInterface) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return nil, nil
 }
-func (f *FakeSecretInterface) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *kapi.Secret, err error) {
+func (f *FakeSecretInterface) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *corev1.Secret, err error) {
 	return nil, nil
 }
 
-func newBuildSource(ref string) *buildapi.BuildSource {
-	return &buildapi.BuildSource{
-		Git: &buildapi.GitBuildSource{
+func newBuildSource(ref string) *buildv1.BuildSource {
+	return &buildv1.BuildSource{
+		Git: &buildv1.GitBuildSource{
 			Ref: ref,
 		},
 	}
 }
 
-func newBuildConfig() *buildapi.BuildConfig {
-	return &buildapi.BuildConfig{
-		Spec: buildapi.BuildConfigSpec{
-			Triggers: []buildapi.BuildTriggerPolicy{
+func newBuildConfig() *buildv1.BuildConfig {
+	return &buildv1.BuildConfig{
+		Spec: buildv1.BuildConfigSpec{
+			Triggers: []buildv1.BuildTriggerPolicy{
 				{
-					Type: buildapi.GenericWebHookBuildTriggerType,
-					GenericWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret101",
 					},
 				},
 				{
-					Type: buildapi.GenericWebHookBuildTriggerType,
-					GenericWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildv1.WebHookTrigger{
 						Secret:   "secret100",
 						AllowEnv: true,
 					},
 				},
 				{
-					Type: buildapi.GenericWebHookBuildTriggerType,
-					GenericWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret102",
 					},
 				},
 				{
-					Type: buildapi.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret201",
 					},
 				},
 				{
-					Type: buildapi.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret200",
 					},
 				},
 				{
-					Type: buildapi.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret202",
 					},
 				},
 				{
-					Type: buildapi.GitLabWebHookBuildTriggerType,
-					GitLabWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret301",
 					},
 				},
 				{
-					Type: buildapi.GitLabWebHookBuildTriggerType,
-					GitLabWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret300",
 					},
 				},
 				{
-					Type: buildapi.GitLabWebHookBuildTriggerType,
-					GitLabWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret302",
 					},
 				},
 				{
-					Type: buildapi.BitbucketWebHookBuildTriggerType,
-					BitbucketWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret401",
 					},
 				},
 				{
-					Type: buildapi.BitbucketWebHookBuildTriggerType,
-					BitbucketWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret400",
 					},
 				},
 				{
-					Type: buildapi.BitbucketWebHookBuildTriggerType,
-					BitbucketWebHook: &buildapi.WebHookTrigger{
+					Type: buildv1.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildv1.WebHookTrigger{
 						Secret: "secret402",
 					},
 				},
@@ -171,7 +172,7 @@ func TestWebHookEventNoRef(t *testing.T) {
 }
 
 func TestFindTriggerPolicyWebHookError(t *testing.T) {
-	buildConfig := &buildapi.BuildConfig{}
+	buildConfig := &buildv1.BuildConfig{}
 	plugins := []webhook.Plugin{
 		&generic.WebHookPlugin{},
 		&bitbucket.WebHookPlugin{},
@@ -381,13 +382,13 @@ func TestValidateEnvVarsGenericWebHook(t *testing.T) {
 }
 
 func TestCheckSecret(t *testing.T) {
-	t1 := &buildapi.WebHookTrigger{
+	t1 := &buildv1.WebHookTrigger{
 		Secret: "secret1",
 	}
-	t2 := &buildapi.WebHookTrigger{
+	t2 := &buildv1.WebHookTrigger{
 		Secret: "secret2",
 	}
-	m, err := webhook.CheckSecret("", "secret1", []*buildapi.WebHookTrigger{t1, t2}, nil)
+	m, err := webhook.CheckSecret("", "secret1", []*buildv1.WebHookTrigger{t1, t2}, nil)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -398,7 +399,7 @@ func TestCheckSecret(t *testing.T) {
 		t.Errorf("Expected to match trigger %v, matched trigger %v", *m, *t1)
 	}
 
-	m, err = webhook.CheckSecret("", "secret2", []*buildapi.WebHookTrigger{t1, t2}, nil)
+	m, err = webhook.CheckSecret("", "secret2", []*buildv1.WebHookTrigger{t1, t2}, nil)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -409,7 +410,7 @@ func TestCheckSecret(t *testing.T) {
 		t.Errorf("Expected to match trigger %v, matched trigger %v", *m, *t1)
 	}
 
-	m, err = webhook.CheckSecret("", "secret3", []*buildapi.WebHookTrigger{t1, t2}, nil)
+	m, err = webhook.CheckSecret("", "secret3", []*buildv1.WebHookTrigger{t1, t2}, nil)
 	if err != webhook.ErrSecretMismatch {
 		t.Errorf("Expected error %v, got %v", webhook.ErrSecretMismatch, err)
 	}
@@ -419,24 +420,24 @@ func TestCheckSecret(t *testing.T) {
 }
 
 func TestCheckSecretRef(t *testing.T) {
-	secret1 := &kapi.Secret{
+	secret1 := &corev1.Secret{
 		Data: map[string][]byte{
-			buildapi.WebHookSecretKey: []byte("secretvalue1"),
-			"otherkey":                []byte("othersecretvalue"),
+			buildutil.WebHookSecretKey: []byte("secretvalue1"),
+			"otherkey":                 []byte("othersecretvalue"),
 		},
 	}
-	secret2 := &kapi.Secret{
+	secret2 := &corev1.Secret{
 		Data: map[string][]byte{
-			buildapi.WebHookSecretKey: []byte("secretvalue2"),
+			buildutil.WebHookSecretKey: []byte("secretvalue2"),
 		},
 	}
-	invalidSecret := &kapi.Secret{
+	invalidSecret := &corev1.Secret{
 		Data: map[string][]byte{
 			"somekey": []byte("secretvalue1"),
 		},
 	}
 	getter := &FakeSecretInterface{
-		Secrets: map[string]*kapi.Secret{
+		Secrets: map[string]*corev1.Secret{
 			"secret1":       secret1,
 			"secret2":       secret2,
 			"invalidSecret": invalidSecret,
@@ -446,22 +447,22 @@ func TestCheckSecretRef(t *testing.T) {
 		Getter: getter,
 	}
 
-	t1 := &buildapi.WebHookTrigger{
-		SecretReference: &buildapi.SecretLocalReference{
+	t1 := &buildv1.WebHookTrigger{
+		SecretReference: &buildv1.SecretLocalReference{
 			Name: "secret1",
 		},
 	}
-	t2 := &buildapi.WebHookTrigger{
-		SecretReference: &buildapi.SecretLocalReference{
+	t2 := &buildv1.WebHookTrigger{
+		SecretReference: &buildv1.SecretLocalReference{
 			Name: "secret2",
 		},
 	}
-	t3 := &buildapi.WebHookTrigger{
-		SecretReference: &buildapi.SecretLocalReference{
+	t3 := &buildv1.WebHookTrigger{
+		SecretReference: &buildv1.SecretLocalReference{
 			Name: "invalidSecret",
 		},
 	}
-	m, err := webhook.CheckSecret("", "secretvalue1", []*buildapi.WebHookTrigger{t1, t2}, secretsClient)
+	m, err := webhook.CheckSecret("", "secretvalue1", []*buildv1.WebHookTrigger{t1, t2}, secretsClient)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -472,7 +473,7 @@ func TestCheckSecretRef(t *testing.T) {
 		t.Errorf("Expected to match trigger %v, matched trigger %v", *m, *t1)
 	}
 
-	m, err = webhook.CheckSecret("", "secretvalue2", []*buildapi.WebHookTrigger{t1, t2}, secretsClient)
+	m, err = webhook.CheckSecret("", "secretvalue2", []*buildv1.WebHookTrigger{t1, t2}, secretsClient)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -483,7 +484,7 @@ func TestCheckSecretRef(t *testing.T) {
 		t.Errorf("Expected to match trigger %v, matched trigger %v", *m, *t1)
 	}
 
-	m, err = webhook.CheckSecret("", "othersecretvalue", []*buildapi.WebHookTrigger{t1, t2}, secretsClient)
+	m, err = webhook.CheckSecret("", "othersecretvalue", []*buildv1.WebHookTrigger{t1, t2}, secretsClient)
 	if err != webhook.ErrSecretMismatch {
 		t.Errorf("Expected error %v, got %v", webhook.ErrSecretMismatch, err)
 	}
@@ -491,7 +492,7 @@ func TestCheckSecretRef(t *testing.T) {
 		t.Errorf("Expected not to match a trigger, but matched %v", *m)
 	}
 
-	m, err = webhook.CheckSecret("", "secretvalue1", []*buildapi.WebHookTrigger{t3}, secretsClient)
+	m, err = webhook.CheckSecret("", "secretvalue1", []*buildv1.WebHookTrigger{t3}, secretsClient)
 	if err != webhook.ErrSecretMismatch {
 		t.Errorf("Expected error %v, got %v", webhook.ErrSecretMismatch, err)
 	}
