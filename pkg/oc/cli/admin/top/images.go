@@ -9,18 +9,20 @@ import (
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
@@ -45,9 +47,9 @@ var (
 
 type TopImagesOptions struct {
 	// internal values
-	Images  *imageapi.ImageList
-	Streams *imageapi.ImageStreamList
-	Pods    *kapi.PodList
+	Images  *imagev1.ImageList
+	Streams *imagev1.ImageStreamList
+	Pods    *corev1.PodList
 
 	genericclioptions.IOStreams
 }
@@ -83,11 +85,11 @@ func (o *TopImagesOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 	if err != nil {
 		return err
 	}
-	kClient, err := kinternalclientset.NewForConfig(clientConfig)
+	kClient, err := corev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
+	imageClient, err := imagev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -97,19 +99,19 @@ func (o *TopImagesOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 		namespace = metav1.NamespaceAll
 	}
 
-	allImages, err := imageClient.Image().Images().List(metav1.ListOptions{})
+	allImages, err := imageClient.Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Images = allImages
 
-	allStreams, err := imageClient.Image().ImageStreams(namespace).List(metav1.ListOptions{})
+	allStreams, err := imageClient.ImageStreams(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Streams = allStreams
 
-	allPods, err := kClient.Core().Pods(namespace).List(metav1.ListOptions{})
+	allPods, err := kClient.Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -202,7 +204,7 @@ func (o TopImagesOptions) imagesTop() []Info {
 	return infos
 }
 
-func getStorage(image *imageapi.Image) int64 {
+func getStorage(image *imagev1.Image) int64 {
 	storage := int64(0)
 	blobSet := sets.NewString()
 	for _, layer := range image.DockerImageLayers {
@@ -212,8 +214,12 @@ func getStorage(image *imageapi.Image) int64 {
 		blobSet.Insert(layer.Name)
 		storage += layer.LayerSize
 	}
-	if len(image.DockerImageConfig) > 0 && !blobSet.Has(image.DockerImageMetadata.ID) {
-		blobSet.Insert(image.DockerImageMetadata.ID)
+	dockerImage, err := imageutil.GetImageMetadata(image)
+	if err != nil {
+		return storage
+	}
+	if len(image.DockerImageConfig) > 0 && !blobSet.Has(dockerImage.ID) {
+		blobSet.Insert(dockerImage.ID)
 		storage += int64(len(image.DockerImageConfig))
 	}
 	return storage
@@ -233,11 +239,11 @@ func getImageStreamTags(g genericgraph.Graph, node *imagegraph.ImageNode) []stri
 	return istags
 }
 
-func getTags(stream *imageapi.ImageStream, image *imageapi.Image) []string {
+func getTags(stream *imagev1.ImageStream, image *imagev1.Image) []string {
 	tags := []string{}
-	for tag, history := range stream.Status.Tags {
-		if len(history.Items) > 0 && history.Items[0].Image == image.Name {
-			tags = append(tags, tag)
+	for _, tag := range stream.Status.Tags {
+		if len(tag.Items) > 0 && tag.Items[0].Image == image.Name {
+			tags = append(tags, tag.Tag)
 		}
 	}
 	imageapi.PrioritizeTags(tags)
@@ -268,7 +274,7 @@ func getImageUsage(g genericgraph.Graph, node *imagegraph.ImageNode) []string {
 	return usage
 }
 
-func getController(pod *kapi.Pod) string {
+func getController(pod *corev1.Pod) string {
 	controller := "<unknown>"
 	if pod.Annotations == nil {
 		return controller
@@ -277,10 +283,10 @@ func getController(pod *kapi.Pod) string {
 	if bc, ok := pod.Annotations[buildapi.BuildAnnotation]; ok {
 		return fmt.Sprintf("Build: %s/%s", pod.Namespace, bc)
 	}
-	if dc, ok := pod.Annotations[appsapi.DeploymentAnnotation]; ok {
+	if dc, ok := pod.Annotations[appsutil.DeploymentAnnotation]; ok {
 		return fmt.Sprintf("Deployment: %s/%s", pod.Namespace, dc)
 	}
-	if dc, ok := pod.Annotations[appsapi.DeploymentPodAnnotation]; ok {
+	if dc, ok := pod.Annotations[appsutil.DeploymentPodAnnotation]; ok {
 		return fmt.Sprintf("Deployer: %s/%s", pod.Namespace, dc)
 	}
 

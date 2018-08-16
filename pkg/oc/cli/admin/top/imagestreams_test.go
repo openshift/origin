@@ -4,27 +4,30 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
 )
 
 func TestImageStreamsTop(t *testing.T) {
 	testCases := map[string]struct {
-		images   *imageapi.ImageList
-		streams  *imageapi.ImageStreamList
+		images   *imagev1.ImageList
+		streams  *imagev1.ImageStreamList
 		expected []Info
 	}{
 		"empty image stream": {
-			images: &imageapi.ImageList{},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			images: &imagev1.ImageList{},
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "image1"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "image1"}},
 								},
 							},
 						},
@@ -40,22 +43,23 @@ func TestImageStreamsTop(t *testing.T) {
 			},
 		},
 		"no storage": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
-						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1"}},
+						DockerImageLayers: []imagev1.ImageLayer{{Name: "layer1"}},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "image1"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "image1"}},
 								},
 							},
 						},
@@ -71,22 +75,23 @@ func TestImageStreamsTop(t *testing.T) {
 			},
 		},
 		"with storage": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
-						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
+						DockerImageLayers: []imagev1.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "image1"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "image1"}},
 								},
 							},
 						},
@@ -103,25 +108,26 @@ func TestImageStreamsTop(t *testing.T) {
 			},
 		},
 		"multiple layers": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "image1"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1", LayerSize: 1024},
 							{Name: "layer2", LayerSize: 512},
 						},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "image1"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "image1"}},
 								},
 							},
 						},
@@ -138,32 +144,34 @@ func TestImageStreamsTop(t *testing.T) {
 			},
 		},
 		"multiple images": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
-						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
+						DockerImageLayers: []imagev1.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1", LayerSize: int64(1024)},
 							{Name: "layer2", LayerSize: int64(128)},
 						},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "image1"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "image1"}},
 								},
-								"tag2": {
-									Items: []imageapi.TagEvent{{Image: "image2"}},
+								{
+									Tag:   "tag2",
+									Items: []imagev1.TagEvent{{Image: "image2"}},
 								},
 							},
 						},
@@ -180,40 +188,46 @@ func TestImageStreamsTop(t *testing.T) {
 			},
 		},
 		"multiple images with manifest config": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
-						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
+						DockerImageLayers: []imagev1.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 						DockerImageConfig: "raw image config",
-						DockerImageMetadata: imageapi.DockerImage{
-							ID: "manifestConfigID",
+						DockerImageMetadata: runtime.RawExtension{
+							Object: &dockerv10.DockerImage{
+								ID: "manifestConfigID",
+							},
 						},
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1", LayerSize: int64(1024)},
 							{Name: "layer2", LayerSize: int64(128)},
 						},
 						DockerImageConfig: "raw image config",
-						DockerImageMetadata: imageapi.DockerImage{
-							ID: "manifestConfigID",
+						DockerImageMetadata: runtime.RawExtension{
+							Object: &dockerv10.DockerImage{
+								ID: "manifestConfigID",
+							},
 						},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "image1"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "image1"}},
 								},
-								"tag2": {
-									Items: []imageapi.TagEvent{{Image: "image2"}},
+								{
+									Tag:   "tag2",
+									Items: []imagev1.TagEvent{{Image: "image2"}},
 								},
 							},
 						},
@@ -230,29 +244,30 @@ func TestImageStreamsTop(t *testing.T) {
 			},
 		},
 		"multiple unreferenced images": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
-						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
+						DockerImageLayers: []imagev1.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1", LayerSize: int64(1024)},
 							{Name: "layer2", LayerSize: int64(128)},
 						},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "image1"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "image1"}},
 								},
 							},
 						},

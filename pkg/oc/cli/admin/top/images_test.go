@@ -3,43 +3,45 @@ package top
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	imagev1 "github.com/openshift/api/image/v1"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/dockerlayer"
 )
 
 func TestImagesTop(t *testing.T) {
 	testCases := map[string]struct {
-		images   *imageapi.ImageList
-		streams  *imageapi.ImageStreamList
-		pods     *kapi.PodList
+		images   *imagev1.ImageList
+		streams  *imagev1.ImageStreamList
+		pods     *corev1.PodList
 		expected []Info
 	}{
 		"no metadata": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{},
+			pods: &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:           "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -51,11 +53,11 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"with metadata": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1", LayerSize: int64(512)},
 							{Name: "layer2", LayerSize: int64(512)},
 						},
@@ -63,21 +65,22 @@ func TestImagesTop(t *testing.T) {
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{},
+			pods: &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:           "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -90,24 +93,24 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"with metadata and image config": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1", LayerSize: int64(512)},
 							{Name: "layer2", LayerSize: int64(512)},
 						},
-						DockerImageManifest: "non empty metadata",
+						DockerImageManifest: `{"schemaVersion": 1, "history": [{"v1Compatibility": "{\"id\":\"2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7\",\"parent\":\"117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c\",\"created\":\"2015-02-21T02:11:06.735146646Z\",\"container\":\"c9a3eda5951d28aa8dbe5933be94c523790721e4f80886d0a8e7a710132a38ec\",\"container_config\":{\"Hostname\":\"43bd710ec89a\",\"Domainname\":\"\",\"User\":\"\",\"Memory\":0,\"MemorySwap\":0,\"CpuShares\":0,\"Cpuset\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"PortSpecs\":null,\"ExposedPorts\":null,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) CMD [/bin/bash]\"],\"Image\":\"117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"NetworkDisabled\":false,\"MacAddress\":\"\",\"OnBuild\":[]},\"docker_version\":\"1.4.1\",\"config\":{\"Hostname\":\"43bd710ec89a\",\"Domainname\":\"\",\"User\":\"\",\"Memory\":0,\"MemorySwap\":0,\"CpuShares\":0,\"Cpuset\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"PortSpecs\":null,\"ExposedPorts\":null,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"NetworkDisabled\":false,\"MacAddress\":\"\",\"OnBuild\":[]},\"architecture\":\"amd64\",\"os\":\"linux\",\"checksum\":\"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"Size\":0}\n"}]}`,
 						DockerImageConfig:   "raw image config",
-						DockerImageMetadata: imageapi.DockerImage{
-							ID: "manifestConfigID",
+						DockerImageMetadata: runtime.RawExtension{
+							Raw: []byte(`{"Id":"manifestConfigID"}`),
 						},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{},
-			pods:    &kapi.PodList{},
+			streams: &imagev1.ImageStreamList{},
+			pods:    &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:    "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -119,25 +122,22 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"with metadata and image config and some layers duplicated": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1", LayerSize: int64(512)},
 							{Name: "layer2", LayerSize: int64(256)},
 							{Name: "layer1", LayerSize: int64(512)},
 						},
 						DockerImageManifest: "non empty metadata",
 						DockerImageConfig:   "raw image config",
-						DockerImageMetadata: imageapi.DockerImage{
-							ID: "layer2",
-						},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{},
-			pods:    &kapi.PodList{},
+			streams: &imagev1.ImageStreamList{},
+			pods:    &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:    "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -149,32 +149,34 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"multiple tags": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:        metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"},
-						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1"}, {Name: "layer2"}},
+						DockerImageLayers: []imagev1.ImageLayer{{Name: "layer1"}, {Name: "layer2"}},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
-								"tag2": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+								{
+									Tag:   "tag2",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{},
+			pods: &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:           "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -186,42 +188,45 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"multiple streams": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:        metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"},
-						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1"}, {Name: "layer2"}},
+						DockerImageLayers: []imagev1.ImageLayer{{Name: "layer1"}, {Name: "layer2"}},
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
-								"tag2": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+								{
+									Tag:   "tag2",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream2", Namespace: "ns2"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{},
+			pods: &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:           "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -233,13 +238,13 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"image without a stream": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{},
-			pods:    &kapi.PodList{},
+			streams: &imagev1.ImageStreamList{},
+			pods:    &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:           "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -251,16 +256,16 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"image parents": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:          metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"},
-						DockerImageLayers:   []imageapi.ImageLayer{{Name: "layer1"}},
+						DockerImageLayers:   []imagev1.ImageLayer{{Name: "layer1"}},
 						DockerImageManifest: "non empty metadata",
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1"},
 							{Name: "layer2"},
 						},
@@ -268,8 +273,8 @@ func TestImagesTop(t *testing.T) {
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{},
-			pods:    &kapi.PodList{},
+			streams: &imagev1.ImageStreamList{},
+			pods:    &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:           "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -288,16 +293,16 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"image parents with empty layer": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:          metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"},
-						DockerImageLayers:   []imageapi.ImageLayer{{Name: "layer1"}},
+						DockerImageLayers:   []imagev1.ImageLayer{{Name: "layer1"}},
 						DockerImageManifest: "non empty metadata",
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1"},
 							{Name: dockerlayer.DigestSha256EmptyTar},
 							{Name: "layer2"},
@@ -306,8 +311,8 @@ func TestImagesTop(t *testing.T) {
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{},
-			pods:    &kapi.PodList{},
+			streams: &imagev1.ImageStreamList{},
+			pods:    &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:           "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -326,16 +331,16 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"image parents with gzipped empty layer": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{
 						ObjectMeta:          metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"},
-						DockerImageLayers:   []imageapi.ImageLayer{{Name: "layer1"}},
+						DockerImageLayers:   []imagev1.ImageLayer{{Name: "layer1"}},
 						DockerImageManifest: "non empty metadata",
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
-						DockerImageLayers: []imageapi.ImageLayer{
+						DockerImageLayers: []imagev1.ImageLayer{
 							{Name: "layer1"},
 							{Name: dockerlayer.GzippedEmptyLayerDigest},
 							{Name: "layer2"},
@@ -344,8 +349,8 @@ func TestImagesTop(t *testing.T) {
 					},
 				},
 			},
-			streams: &imageapi.ImageStreamList{},
-			pods:    &kapi.PodList{},
+			streams: &imagev1.ImageStreamList{},
+			pods:    &corev1.PodList{},
 			expected: []Info{
 				imageInfo{
 					Image:           "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a",
@@ -364,31 +369,32 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"build pending": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{
-				Items: []kapi.Pod{
+			pods: &corev1.PodList{
+				Items: []corev1.Pod{
 					{
 						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{buildapi.BuildAnnotation: "build1"}},
-						Spec:       kapi.PodSpec{Containers: []kapi.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
-						Status:     kapi.PodStatus{Phase: kapi.PodPending},
+						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
+						Status:     corev1.PodStatus{Phase: corev1.PodPending},
 					},
 				},
 			},
@@ -403,31 +409,32 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"build running": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{
-				Items: []kapi.Pod{
+			pods: &corev1.PodList{
+				Items: []corev1.Pod{
 					{
 						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{buildapi.BuildAnnotation: "build1"}},
-						Spec:       kapi.PodSpec{Containers: []kapi.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
-						Status:     kapi.PodStatus{Phase: kapi.PodRunning},
+						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
+						Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 					},
 				},
 			},
@@ -442,31 +449,32 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"deployer pending": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{
-				Items: []kapi.Pod{
+			pods: &corev1.PodList{
+				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsapi.DeploymentPodAnnotation: "deployer1"}},
-						Spec:       kapi.PodSpec{Containers: []kapi.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
-						Status:     kapi.PodStatus{Phase: kapi.PodPending},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsutil.DeploymentPodAnnotation: "deployer1"}},
+						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
+						Status:     corev1.PodStatus{Phase: corev1.PodPending},
 					},
 				},
 			},
@@ -481,31 +489,32 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"deployer running": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{
-				Items: []kapi.Pod{
+			pods: &corev1.PodList{
+				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsapi.DeploymentPodAnnotation: "deployer1"}},
-						Spec:       kapi.PodSpec{Containers: []kapi.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
-						Status:     kapi.PodStatus{Phase: kapi.PodRunning},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsutil.DeploymentPodAnnotation: "deployer1"}},
+						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
+						Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 					},
 				},
 			},
@@ -520,31 +529,32 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"deployement pending": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{
-				Items: []kapi.Pod{
+			pods: &corev1.PodList{
+				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsapi.DeploymentAnnotation: "deplyment1"}},
-						Spec:       kapi.PodSpec{Containers: []kapi.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
-						Status:     kapi.PodStatus{Phase: kapi.PodPending},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsutil.DeploymentAnnotation: "deplyment1"}},
+						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
+						Status:     corev1.PodStatus{Phase: corev1.PodPending},
 					},
 				},
 			},
@@ -559,31 +569,32 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"deployment running": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{
-				Items: []kapi.Pod{
+			pods: &corev1.PodList{
+				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsapi.DeploymentAnnotation: "deplyment1"}},
-						Spec:       kapi.PodSpec{Containers: []kapi.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
-						Status:     kapi.PodStatus{Phase: kapi.PodRunning},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsutil.DeploymentAnnotation: "deplyment1"}},
+						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
+						Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 					},
 				},
 			},
@@ -598,31 +609,32 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"unknown controller 1": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{
-				Items: []kapi.Pod{
+			pods: &corev1.PodList{
+				Items: []corev1.Pod{
 					{
 						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1"},
-						Spec:       kapi.PodSpec{Containers: []kapi.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
-						Status:     kapi.PodStatus{Phase: kapi.PodRunning},
+						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
+						Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 					},
 				},
 			},
@@ -637,31 +649,32 @@ func TestImagesTop(t *testing.T) {
 			},
 		},
 		"unknown controller 2": {
-			images: &imageapi.ImageList{
-				Items: []imageapi.Image{
+			images: &imagev1.ImageList{
+				Items: []imagev1.Image{
 					{ObjectMeta: metav1.ObjectMeta{Name: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 				},
 			},
-			streams: &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{
+			streams: &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
-						Status: imageapi.ImageStreamStatus{
-							Tags: map[string]imageapi.TagEventList{
-								"tag1": {
-									Items: []imageapi.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
+						Status: imagev1.ImageStreamStatus{
+							Tags: []imagev1.NamedTagEventList{
+								{
+									Tag:   "tag1",
+									Items: []imagev1.TagEvent{{Image: "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}},
 								},
 							},
 						},
 					},
 				},
 			},
-			pods: &kapi.PodList{
-				Items: []kapi.Pod{
+			pods: &corev1.PodList{
+				Items: []corev1.Pod{
 					{
 						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{"unknown controller": "unknown"}},
-						Spec:       kapi.PodSpec{Containers: []kapi.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
-						Status:     kapi.PodStatus{Phase: kapi.PodRunning},
+						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
+						Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 					},
 				},
 			},

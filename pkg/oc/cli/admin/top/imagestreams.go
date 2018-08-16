@@ -15,10 +15,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 )
 
@@ -38,8 +38,8 @@ var (
 
 type TopImageStreamsOptions struct {
 	// internal values
-	Images  *imageapi.ImageList
-	Streams *imageapi.ImageStreamList
+	Images  *imagev1.ImageList
+	Streams *imagev1.ImageStreamList
 
 	genericclioptions.IOStreams
 }
@@ -79,18 +79,18 @@ func (o *TopImageStreamsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command
 	if err != nil {
 		return err
 	}
-	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
+	imageClient, err := imagev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
-	allImages, err := imageClient.Image().Images().List(metav1.ListOptions{})
+	allImages, err := imageClient.Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Images = allImages
 
-	allStreams, err := imageClient.Image().ImageStreams(namespace).List(metav1.ListOptions{})
+	allStreams, err := imageClient.ImageStreams(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -183,8 +183,12 @@ func getImageStreamSize(g genericgraph.Graph, node *imagegraph.ImageStreamNode) 
 			blobSet.Insert(layer.Name)
 			storage += layer.LayerSize
 		}
-		if len(image.DockerImageConfig) > 0 && !blobSet.Has(image.DockerImageMetadata.ID) {
-			blobSet.Insert(image.DockerImageMetadata.ID)
+		dockerImage, err := imageutil.GetImageMetadata(image)
+		if err != nil {
+			continue
+		}
+		if len(image.DockerImageConfig) > 0 && !blobSet.Has(dockerImage.ID) {
+			blobSet.Insert(dockerImage.ID)
 			storage += int64(len(image.DockerImageConfig))
 		}
 	}

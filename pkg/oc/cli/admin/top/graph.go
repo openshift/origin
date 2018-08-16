@@ -4,8 +4,9 @@ import (
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/dockerlayer"
 	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -32,7 +33,7 @@ func getImageNodes(nodes []gonum.Node) []*imagegraph.ImageNode {
 	return ret
 }
 
-func addImagesToGraph(g genericgraph.Graph, images *imageapi.ImageList) {
+func addImagesToGraph(g genericgraph.Graph, images *imagev1.ImageList) {
 	for i := range images.Items {
 		image := &images.Items[i]
 
@@ -59,7 +60,7 @@ func addImagesToGraph(g genericgraph.Graph, images *imageapi.ImageList) {
 	}
 }
 
-func addImageStreamsToGraph(g genericgraph.Graph, streams *imageapi.ImageStreamList) {
+func addImageStreamsToGraph(g genericgraph.Graph, streams *imagev1.ImageStreamList) {
 	for i := range streams.Items {
 		stream := &streams.Items[i]
 		glog.V(4).Infof("Adding ImageStream %s/%s to graph", stream.Namespace, stream.Name)
@@ -87,10 +88,10 @@ func addImageStreamsToGraph(g genericgraph.Graph, streams *imageapi.ImageStreamL
 	}
 }
 
-func addPodsToGraph(g genericgraph.Graph, pods *kapi.PodList) {
+func addPodsToGraph(g genericgraph.Graph, pods *corev1.PodList) {
 	for i := range pods.Items {
 		pod := &pods.Items[i]
-		if pod.Status.Phase != kapi.PodRunning && pod.Status.Phase != kapi.PodPending {
+		if pod.Status.Phase != corev1.PodRunning && pod.Status.Phase != corev1.PodPending {
 			glog.V(4).Infof("Pod %s/%s is not running nor pending - skipping", pod.Namespace, pod.Name)
 			continue
 		}
@@ -101,7 +102,7 @@ func addPodsToGraph(g genericgraph.Graph, pods *kapi.PodList) {
 	}
 }
 
-func addPodSpecToGraph(g genericgraph.Graph, spec *kapi.PodSpec, predecessor gonum.Node) {
+func addPodSpecToGraph(g genericgraph.Graph, spec *corev1.PodSpec, predecessor gonum.Node) {
 	for j := range spec.Containers {
 		container := spec.Containers[j]
 

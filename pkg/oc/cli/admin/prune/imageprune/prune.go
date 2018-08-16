@@ -15,9 +15,9 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	kappsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrapi "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,16 +26,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -94,18 +92,18 @@ type pruneAlgorithm struct {
 // ImageDeleter knows how to remove images from OpenShift.
 type ImageDeleter interface {
 	// DeleteImage removes the image from OpenShift's storage.
-	DeleteImage(image *imageapi.Image) error
+	DeleteImage(image *imagev1.Image) error
 }
 
 // ImageStreamDeleter knows how to remove an image reference from an image stream.
 type ImageStreamDeleter interface {
 	// GetImageStream returns a fresh copy of an image stream.
-	GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	GetImageStream(stream *imagev1.ImageStream) (*imagev1.ImageStream, error)
 	// UpdateImageStream removes all references to the image from the image
 	// stream's status.tags. The updated image stream is returned.
-	UpdateImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	UpdateImageStream(stream *imagev1.ImageStream) (*imagev1.ImageStream, error)
 	// NotifyImageStreamPrune shows notification about updated image stream.
-	NotifyImageStreamPrune(stream *imageapi.ImageStream, updatedTags []string, deletedTags []string)
+	NotifyImageStreamPrune(stream *imagev1.ImageStream, updatedTags []string, deletedTags []string)
 }
 
 // BlobDeleter knows how to delete a blob from the Docker registry.
@@ -151,34 +149,34 @@ type PrunerOptions struct {
 	Namespace string
 	// Images is the entire list of images in OpenShift. An image must be in this
 	// list to be a candidate for pruning.
-	Images *imageapi.ImageList
+	Images *imagev1.ImageList
 	// ImageWatcher watches for image changes.
 	ImageWatcher watch.Interface
 	// Streams is the entire list of image streams across all namespaces in the
 	// cluster.
-	Streams *imageapi.ImageStreamList
+	Streams *imagev1.ImageStreamList
 	// StreamWatcher watches for stream changes.
 	StreamWatcher watch.Interface
 	// Pods is the entire list of pods across all namespaces in the cluster.
-	Pods *kapi.PodList
+	Pods *corev1.PodList
 	// RCs is the entire list of replication controllers across all namespaces in
 	// the cluster.
-	RCs *kapi.ReplicationControllerList
+	RCs *corev1.ReplicationControllerList
 	// BCs is the entire list of build configs across all namespaces in the
 	// cluster.
-	BCs *buildapi.BuildConfigList
+	BCs *buildv1.BuildConfigList
 	// Builds is the entire list of builds across all namespaces in the cluster.
-	Builds *buildapi.BuildList
+	Builds *buildv1.BuildList
 	// DSs is the entire list of daemon sets across all namespaces in the cluster.
-	DSs *kapisext.DaemonSetList
+	DSs *kappsv1.DaemonSetList
 	// Deployments is the entire list of kube's deployments across all namespaces in the cluster.
-	Deployments *kapisext.DeploymentList
+	Deployments *kappsv1.DeploymentList
 	// DCs is the entire list of deployment configs across all namespaces in the cluster.
 	DCs *appsv1.DeploymentConfigList
 	// RSs is the entire list of replica sets across all namespaces in the cluster.
-	RSs *kapisext.ReplicaSetList
+	RSs *kappsv1.ReplicaSetList
 	// LimitRanges is a map of LimitRanges across namespaces, being keys in this map.
-	LimitRanges map[string][]*kapi.LimitRange
+	LimitRanges map[string][]*corev1.LimitRange
 	// DryRun indicates that no changes will be made to the cluster and nothing
 	// will be removed.
 	DryRun bool
@@ -217,7 +215,7 @@ type pruner struct {
 	registryURL           *url.URL
 	imageWatcher          watch.Interface
 	imageStreamWatcher    watch.Interface
-	imageStreamLimits     map[string][]*kapi.LimitRange
+	imageStreamLimits     map[string][]*corev1.LimitRange
 	// sorted queue of images to prune; nil stands for empty queue
 	queue *nodeItem
 	// contains prunable images removed from queue that are currently being processed
@@ -349,15 +347,22 @@ func getValue(option interface{}) string {
 }
 
 // addImagesToGraph adds all images, their manifests and their layers to the graph.
-func (p *pruner) addImagesToGraph(images *imageapi.ImageList) []error {
+func (p *pruner) addImagesToGraph(images *imagev1.ImageList) []error {
+	var errs []error
 	for i := range images.Items {
 		image := &images.Items[i]
 
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(p.g, image)
 
-		if image.DockerImageManifestMediaType == schema2.MediaTypeManifest && len(image.DockerImageMetadata.ID) > 0 {
-			configName := image.DockerImageMetadata.ID
+		dockerImage, err := imageutil.GetImageMetadata(image)
+		if err != nil {
+			glog.V(1).Infof("Failed to read image metadata for image %s: %v", image.Name, err)
+			errs = append(errs, err)
+			continue
+		}
+		if image.DockerImageManifestMediaType == schema2.MediaTypeManifest && len(dockerImage.ID) > 0 {
+			configName := dockerImage.ID
 			glog.V(4).Infof("Adding image config %q to graph", configName)
 			configNode := imagegraph.EnsureImageComponentConfigNode(p.g, configName)
 			p.g.AddEdge(imageNode, configNode, ReferencedImageConfigEdgeKind)
@@ -374,7 +379,7 @@ func (p *pruner) addImagesToGraph(images *imageapi.ImageList) []error {
 		p.g.AddEdge(imageNode, manifestNode, ReferencedImageManifestEdgeKind)
 	}
 
-	return nil
+	return errs
 }
 
 // addImageStreamsToGraph adds all the streams to the graph. The most recent n
@@ -390,7 +395,7 @@ func (p *pruner) addImagesToGraph(images *imageapi.ImageList) []error {
 //
 // addImageStreamsToGraph also adds references from each stream to all the
 // layers it references (via each image a stream references).
-func (p *pruner) addImageStreamsToGraph(streams *imageapi.ImageStreamList, limits map[string][]*kapi.LimitRange) []error {
+func (p *pruner) addImageStreamsToGraph(streams *imagev1.ImageStreamList, limits map[string][]*corev1.LimitRange) []error {
 	for i := range streams.Items {
 		stream := &streams.Items[i]
 
@@ -408,14 +413,14 @@ func (p *pruner) addImageStreamsToGraph(streams *imageapi.ImageStreamList, limit
 		isNode := imagegraph.EnsureImageStreamNode(p.g, stream)
 		imageStreamNode := isNode.(*imagegraph.ImageStreamNode)
 
-		for tag, history := range stream.Status.Tags {
-			istNode := imagegraph.EnsureImageStreamTagNode(p.g, makeISTagWithStream(stream, tag))
+		for _, tag := range stream.Status.Tags {
+			istNode := imagegraph.EnsureImageStreamTagNode(p.g, makeISTagWithStream(stream, tag.Tag))
 
-			for i, tagEvent := range history.Items {
-				imageNode := imagegraph.FindImage(p.g, history.Items[i].Image)
+			for i, tagEvent := range tag.Items {
+				imageNode := imagegraph.FindImage(p.g, tag.Items[i].Image)
 				if imageNode == nil {
 					glog.V(2).Infof("Unable to find image %q in graph (from tag=%q, revision=%d, dockerImageReference=%s) - skipping",
-						history.Items[i].Image, tag, tagEvent.Generation, history.Items[i].DockerImageReference)
+						tag.Items[i].Image, tag.Tag, tagEvent.Generation, tag.Items[i].DockerImageReference)
 					continue
 				}
 
@@ -474,23 +479,27 @@ func (p *pruner) addImageStreamsToGraph(streams *imageapi.ImageStreamList, limit
 }
 
 // exceedsLimits checks if given image exceeds LimitRanges defined in ImageStream's namespace.
-func exceedsLimits(is *imageapi.ImageStream, image *imageapi.Image, limits map[string][]*kapi.LimitRange) bool {
+func exceedsLimits(is *imagev1.ImageStream, image *imagev1.Image, limits map[string][]*corev1.LimitRange) bool {
 	limitRanges, ok := limits[is.Namespace]
 	if !ok || len(limitRanges) == 0 {
 		return false
 	}
 
-	imageSize := resource.NewQuantity(image.DockerImageMetadata.Size, resource.BinarySI)
+	dockerImage, err := imageutil.GetImageMetadata(image)
+	if err != nil {
+		return false
+	}
+	imageSize := resource.NewQuantity(dockerImage.Size, resource.BinarySI)
 	for _, limitRange := range limitRanges {
 		if limitRange == nil {
 			continue
 		}
 		for _, limit := range limitRange.Spec.Limits {
-			if limit.Type != imageapi.LimitTypeImage {
+			if limit.Type != imagev1.LimitTypeImage {
 				continue
 			}
 
-			limitQuantity, ok := limit.Max[kapi.ResourceStorage]
+			limitQuantity, ok := limit.Max[corev1.ResourceStorage]
 			if !ok {
 				continue
 			}
@@ -509,7 +518,7 @@ func exceedsLimits(is *imageapi.ImageStream, image *imageapi.Image, limits map[s
 //
 // Edges are added to the graph from each pod to the images specified by that
 // pod's list of containers, as long as the image is managed by OpenShift.
-func (p *pruner) addPodsToGraph(pods *kapi.PodList) []error {
+func (p *pruner) addPodsToGraph(pods *corev1.PodList) []error {
 	var errs []error
 
 	for i := range pods.Items {
@@ -521,7 +530,7 @@ func (p *pruner) addPodsToGraph(pods *kapi.PodList) []error {
 		// A pod is only *excluded* from being added to the graph if its phase is not
 		// pending or running. Additionally, it has to be at least as old as the minimum
 		// age threshold defined by the algorithm.
-		if pod.Status.Phase != kapi.PodRunning && pod.Status.Phase != kapi.PodPending {
+		if pod.Status.Phase != corev1.PodRunning && pod.Status.Phase != corev1.PodPending {
 			if !pod.CreationTimestamp.Time.After(p.algorithm.keepYoungerThan) {
 				glog.V(4).Infof("Ignoring %s for image reference counting because it's not running/pending and is too old", desc)
 				continue
@@ -540,7 +549,7 @@ func (p *pruner) addPodsToGraph(pods *kapi.PodList) []error {
 // Edges are added to the graph from each predecessor (pod or replication
 // controller) to the images specified by the pod spec's list of containers, as
 // long as the image is managed by OpenShift.
-func (p *pruner) addPodSpecToGraph(referrer *corev1.ObjectReference, spec *kapi.PodSpec, predecessor gonum.Node) []error {
+func (p *pruner) addPodSpecToGraph(referrer *corev1.ObjectReference, spec *corev1.PodSpec, predecessor gonum.Node) []error {
 	var errs []error
 
 	for j := range spec.Containers {
@@ -605,7 +614,7 @@ func (p *pruner) addPodSpecToGraph(referrer *corev1.ObjectReference, spec *kapi.
 // Edges are added to the graph from each replication controller to the images
 // specified by its pod spec's list of containers, as long as the image is
 // managed by OpenShift.
-func (p *pruner) addReplicationControllersToGraph(rcs *kapi.ReplicationControllerList) []error {
+func (p *pruner) addReplicationControllersToGraph(rcs *corev1.ReplicationControllerList) []error {
 	var errs []error
 
 	for i := range rcs.Items {
@@ -623,7 +632,7 @@ func (p *pruner) addReplicationControllersToGraph(rcs *kapi.ReplicationControlle
 //
 // Edges are added to the graph from each daemon set to the images specified by its pod spec's list of
 // containers, as long as the image is managed by OpenShift.
-func (p *pruner) addDaemonSetsToGraph(dss *kapisext.DaemonSetList) []error {
+func (p *pruner) addDaemonSetsToGraph(dss *kappsv1.DaemonSetList) []error {
 	var errs []error
 
 	for i := range dss.Items {
@@ -641,7 +650,7 @@ func (p *pruner) addDaemonSetsToGraph(dss *kapisext.DaemonSetList) []error {
 //
 // Edges are added to the graph from each deployment to the images specified by its pod spec's list of
 // containers, as long as the image is managed by OpenShift.
-func (p *pruner) addDeploymentsToGraph(dmnts *kapisext.DeploymentList) []error {
+func (p *pruner) addDeploymentsToGraph(dmnts *kappsv1.DeploymentList) []error {
 	var errs []error
 
 	for i := range dmnts.Items {
@@ -667,13 +676,8 @@ func (p *pruner) addDeploymentConfigsToGraph(dcs *appsv1.DeploymentConfigList) [
 		dc := &dcs.Items[i]
 		ref := getRef(dc)
 		glog.V(4).Infof("Examining %s", getKindName(ref))
-		internalDc := &appsapi.DeploymentConfig{}
-		if err := legacyscheme.Scheme.Convert(dc, internalDc, nil); err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		dcNode := appsgraph.EnsureDeploymentConfigNode(p.g, internalDc)
-		errs = append(errs, p.addPodSpecToGraph(getRef(dc), &internalDc.Spec.Template.Spec, dcNode)...)
+		dcNode := appsgraph.EnsureDeploymentConfigNode(p.g, dc)
+		errs = append(errs, p.addPodSpecToGraph(getRef(dc), &dc.Spec.Template.Spec, dcNode)...)
 	}
 
 	return errs
@@ -683,7 +687,7 @@ func (p *pruner) addDeploymentConfigsToGraph(dcs *appsv1.DeploymentConfigList) [
 //
 // Edges are added to the graph from each replica set to the images specified by its pod spec's list of
 // containers, as long as the image is managed by OpenShift.
-func (p *pruner) addReplicaSetsToGraph(rss *kapisext.ReplicaSetList) []error {
+func (p *pruner) addReplicaSetsToGraph(rss *kappsv1.ReplicaSetList) []error {
 	var errs []error
 
 	for i := range rss.Items {
@@ -700,7 +704,7 @@ func (p *pruner) addReplicaSetsToGraph(rss *kapisext.ReplicaSetList) []error {
 // addBuildConfigsToGraph adds build configs to the graph.
 //
 // Edges are added to the graph from each build config to the image specified by its strategy.from.
-func (p *pruner) addBuildConfigsToGraph(bcs *buildapi.BuildConfigList) []error {
+func (p *pruner) addBuildConfigsToGraph(bcs *buildv1.BuildConfigList) []error {
 	var errs []error
 
 	for i := range bcs.Items {
@@ -717,7 +721,7 @@ func (p *pruner) addBuildConfigsToGraph(bcs *buildapi.BuildConfigList) []error {
 // addBuildsToGraph adds builds to the graph.
 //
 // Edges are added to the graph from each build to the image specified by its strategy.from.
-func (p *pruner) addBuildsToGraph(builds *buildapi.BuildList) []error {
+func (p *pruner) addBuildsToGraph(builds *buildv1.BuildList) []error {
 	var errs []error
 
 	for i := range builds.Items {
@@ -756,12 +760,8 @@ func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *corev1.ObjectR
 // Edges are added to the graph from each predecessor (build or build config)
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
-func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectReference, strategy buildapi.BuildStrategy, predecessor gonum.Node) []error {
-	externalStrategy := buildv1.BuildStrategy{}
-	if err := legacyscheme.Scheme.Convert(&strategy, &externalStrategy, nil); err != nil {
-		return []error{fmt.Errorf("unable to convert strategy: %v", err)}
-	}
-	from := buildapihelpers.GetInputReference(externalStrategy)
+func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectReference, strategy buildv1.BuildStrategy, predecessor gonum.Node) []error {
+	from := buildapihelpers.GetInputReference(strategy)
 	if from == nil {
 		glog.V(4).Infof("Unable to determine 'from' reference - skipping")
 		return nil
@@ -840,8 +840,8 @@ func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectR
 }
 
 func (p *pruner) handleImageStreamEvent(event watch.Event) {
-	getIsNode := func() (*imageapi.ImageStream, *imagegraph.ImageStreamNode) {
-		is, ok := event.Object.(*imageapi.ImageStream)
+	getIsNode := func() (*imagev1.ImageStream, *imagegraph.ImageStreamNode) {
+		is, ok := event.Object.(*imagev1.ImageStream)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("internal error: expected ImageStream object in %s event, not %T", event.Type, event.Object))
 			return nil, nil
@@ -866,7 +866,7 @@ func (p *pruner) handleImageStreamEvent(event watch.Event) {
 			return
 		}
 		glog.V(4).Infof("Adding ImageStream %s to the graph", getName(is))
-		p.addImageStreamsToGraph(&imageapi.ImageStreamList{Items: []imageapi.ImageStream{*is}}, p.imageStreamLimits)
+		p.addImageStreamsToGraph(&imagev1.ImageStreamList{Items: []imagev1.ImageStream{*is}}, p.imageStreamLimits)
 
 	case watch.Modified:
 		is, isNode := getIsNode()
@@ -881,13 +881,13 @@ func (p *pruner) handleImageStreamEvent(event watch.Event) {
 		}
 
 		glog.V(4).Infof("Adding updated ImageStream %s back to the graph", getName(is))
-		p.addImageStreamsToGraph(&imageapi.ImageStreamList{Items: []imageapi.ImageStream{*is}}, p.imageStreamLimits)
+		p.addImageStreamsToGraph(&imagev1.ImageStreamList{Items: []imagev1.ImageStream{*is}}, p.imageStreamLimits)
 	}
 }
 
 func (p *pruner) handleImageEvent(event watch.Event) {
-	getImageNode := func() (*imageapi.Image, *imagegraph.ImageNode) {
-		img, ok := event.Object.(*imageapi.Image)
+	getImageNode := func() (*imagev1.Image, *imagegraph.ImageNode) {
+		img, ok := event.Object.(*imagev1.Image)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("internal error: expected Image object in %s event, not %T", event.Type, event.Object))
 			return nil, nil
@@ -908,7 +908,7 @@ func (p *pruner) handleImageEvent(event watch.Event) {
 			return
 		}
 		glog.V(4).Infof("Adding new Image %s to the graph", img.Name)
-		p.addImagesToGraph(&imageapi.ImageList{Items: []imageapi.Image{*img}})
+		p.addImagesToGraph(&imagev1.ImageList{Items: []imagev1.Image{*img}})
 
 	case watch.Deleted:
 		img, imgNode := getImageNode()
@@ -1023,11 +1023,11 @@ func pruneStreams(
 			updatedTags := sets.NewString()
 			deletedTags := sets.NewString()
 
-			for tag := range stream.Status.Tags {
-				if updated, deleted := pruneISTagHistory(g, imageNameToNode, keepYoungerThan, streamName, stream, tag); deleted {
-					deletedTags.Insert(tag)
+			for _, tag := range stream.Status.Tags {
+				if updated, deleted := pruneISTagHistory(g, imageNameToNode, keepYoungerThan, streamName, stream, tag.Tag); deleted {
+					deletedTags.Insert(tag.Tag)
 				} else if updated {
-					updatedTags.Insert(tag)
+					updatedTags.Insert(tag.Tag)
 				}
 			}
 
@@ -1094,11 +1094,17 @@ func pruneISTagHistory(
 	prunableImageNodes map[string]*imagegraph.ImageNode,
 	keepYoungerThan time.Time,
 	streamName string,
-	imageStream *imageapi.ImageStream,
+	imageStream *imagev1.ImageStream,
 	tag string,
 ) (tagUpdated, tagDeleted bool) {
-	history := imageStream.Status.Tags[tag]
-	newHistory := imageapi.TagEventList{}
+	var history imagev1.NamedTagEventList
+	for _, t := range imageStream.Status.Tags {
+		if t.Tag == tag {
+			history = t
+			break
+		}
+	}
+	newHistory := imagev1.NamedTagEventList{Tag: tag}
 
 	for _, tagEvent := range history.Items {
 		glog.V(4).Infof("Checking image stream tag %s:%s generation %d with image %q", streamName, tag, tagEvent.Generation, tagEvent.Image)
@@ -1114,18 +1120,31 @@ func pruneISTagHistory(
 
 	if len(newHistory.Items) == 0 {
 		glog.V(4).Infof("Image stream tag %s:%s - removing empty tag", streamName, tag)
-		delete(imageStream.Status.Tags, tag)
+		tags := []imagev1.NamedTagEventList{}
+		for i := range imageStream.Status.Tags {
+			t := imageStream.Status.Tags[i]
+			if t.Tag != tag {
+				tags = append(tags, t)
+			}
+		}
+		imageStream.Status.Tags = tags
 		tagDeleted = true
 		tagUpdated = false
 	} else if tagUpdated {
-		imageStream.Status.Tags[tag] = newHistory
+		for i := range imageStream.Status.Tags {
+			t := imageStream.Status.Tags[i]
+			if t.Tag == tag {
+				imageStream.Status.Tags[i] = newHistory
+				break
+			}
+		}
 	}
 
 	return
 }
 
 func tagEventIsPrunable(
-	tagEvent imageapi.TagEvent,
+	tagEvent imagev1.TagEvent,
 	g genericgraph.Graph,
 	prunableImageNodes map[string]*imagegraph.ImageNode,
 	keepYoungerThan time.Time,
@@ -1582,42 +1601,42 @@ func streamsReferencingImageComponent(g genericgraph.Graph, cn *imagegraph.Image
 
 // imageDeleter removes an image from OpenShift.
 type imageDeleter struct {
-	images imageclient.ImagesGetter
+	images imagev1client.ImagesGetter
 }
 
 var _ ImageDeleter = &imageDeleter{}
 
 // NewImageDeleter creates a new imageDeleter.
-func NewImageDeleter(images imageclient.ImagesGetter) ImageDeleter {
+func NewImageDeleter(images imagev1client.ImagesGetter) ImageDeleter {
 	return &imageDeleter{
 		images: images,
 	}
 }
 
-func (p *imageDeleter) DeleteImage(image *imageapi.Image) error {
+func (p *imageDeleter) DeleteImage(image *imagev1.Image) error {
 	glog.V(4).Infof("Deleting image %q", image.Name)
 	return p.images.Images().Delete(image.Name, metav1.NewDeleteOptions(0))
 }
 
 // imageStreamDeleter updates an image stream in OpenShift.
 type imageStreamDeleter struct {
-	streams imageclient.ImageStreamsGetter
+	streams imagev1client.ImageStreamsGetter
 }
 
 var _ ImageStreamDeleter = &imageStreamDeleter{}
 
 // NewImageStreamDeleter creates a new imageStreamDeleter.
-func NewImageStreamDeleter(streams imageclient.ImageStreamsGetter) ImageStreamDeleter {
+func NewImageStreamDeleter(streams imagev1client.ImageStreamsGetter) ImageStreamDeleter {
 	return &imageStreamDeleter{
 		streams: streams,
 	}
 }
 
-func (p *imageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (p *imageStreamDeleter) GetImageStream(stream *imagev1.ImageStream) (*imagev1.ImageStream, error) {
 	return p.streams.ImageStreams(stream.Namespace).Get(stream.Name, metav1.GetOptions{})
 }
 
-func (p *imageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (p *imageStreamDeleter) UpdateImageStream(stream *imagev1.ImageStream) (*imagev1.ImageStream, error) {
 	glog.V(4).Infof("Updating ImageStream %s", getName(stream))
 	is, err := p.streams.ImageStreams(stream.Namespace).UpdateStatus(stream)
 	if err == nil {
@@ -1627,7 +1646,7 @@ func (p *imageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream) (*i
 }
 
 // NotifyImageStreamPrune shows notification about updated image stream.
-func (p *imageStreamDeleter) NotifyImageStreamPrune(stream *imageapi.ImageStream, updatedTags []string, deletedTags []string) {
+func (p *imageStreamDeleter) NotifyImageStreamPrune(stream *imagev1.ImageStream, updatedTags []string, deletedTags []string) {
 	return
 }
 
@@ -1719,8 +1738,8 @@ func (p *manifestDeleter) DeleteManifest(registryClient *http.Client, registryUR
 	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/v2/%s/manifests/%s", registryURL.String(), repoName, manifest))
 }
 
-func makeISTag(namespace, name, tag string) *imageapi.ImageStreamTag {
-	return &imageapi.ImageStreamTag{
+func makeISTag(namespace, name, tag string) *imagev1.ImageStreamTag {
+	return &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      imageapi.JoinImageStreamTag(name, tag),
@@ -1728,6 +1747,6 @@ func makeISTag(namespace, name, tag string) *imageapi.ImageStreamTag {
 	}
 }
 
-func makeISTagWithStream(is *imageapi.ImageStream, tag string) *imageapi.ImageStreamTag {
+func makeISTagWithStream(is *imagev1.ImageStream, tag string) *imagev1.ImageStreamTag {
 	return makeISTag(is.Namespace, is.Name, tag)
 }
