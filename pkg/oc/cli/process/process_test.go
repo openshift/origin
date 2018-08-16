@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatev1 "github.com/openshift/api/template/v1"
 )
 
 func TestInjectUserVars(t *testing.T) {
-	template := &templateapi.Template{
-		Parameters: []templateapi.Parameter{
+	template := &templatev1.Template{
+		Parameters: []templatev1.Parameter{
 			{Name: "parameter_foo_bar_exist", Value: "value_foo_bar_exist_old"},
 			{Name: "parameter_foo_bar_2", Value: "value_foo_bar_2"}},
 	}
