@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/golang/glog"
+
 	clientv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -13,18 +16,17 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/golang/glog"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
 
 // calculateBuildConfigTriggers transforms a build config into a set of image change triggers.
 // It uses synthetic field paths since we don't need to generically transform the config.
-func calculateBuildConfigTriggers(bc *buildapi.BuildConfig) []triggerapi.ObjectFieldTrigger {
+func calculateBuildConfigTriggers(bc *buildv1.BuildConfig) []triggerapi.ObjectFieldTrigger {
 	var triggers []triggerapi.ObjectFieldTrigger
 	for _, t := range bc.Spec.Triggers {
 		if t.ImageChange == nil {
@@ -32,7 +34,7 @@ func calculateBuildConfigTriggers(bc *buildapi.BuildConfig) []triggerapi.ObjectF
 		}
 		var (
 			fieldPath string
-			from      *kapi.ObjectReference
+			from      *corev1.ObjectReference
 		)
 		if t.ImageChange.From != nil {
 			from = t.ImageChange.From
@@ -72,25 +74,25 @@ func NewBuildConfigTriggerIndexer(prefix string) trigger.Indexer {
 func (i buildConfigTriggerIndexer) Index(obj, old interface{}) (string, *trigger.CacheEntry, cache.DeltaType, error) {
 	var (
 		triggers []triggerapi.ObjectFieldTrigger
-		bc       *buildapi.BuildConfig
+		bc       *buildv1.BuildConfig
 		change   cache.DeltaType
 	)
 	switch {
 	case obj != nil && old == nil:
 		// added
-		bc = obj.(*buildapi.BuildConfig)
+		bc = obj.(*buildv1.BuildConfig)
 		triggers = calculateBuildConfigTriggers(bc)
 		change = cache.Added
 	case old != nil && obj == nil:
 		// deleted
-		bc = old.(*buildapi.BuildConfig)
+		bc = old.(*buildv1.BuildConfig)
 		triggers = calculateBuildConfigTriggers(bc)
 		change = cache.Deleted
 	default:
 		// updated
-		bc = obj.(*buildapi.BuildConfig)
+		bc = obj.(*buildv1.BuildConfig)
 		triggers = calculateBuildConfigTriggers(bc)
-		oldTriggers := calculateBuildConfigTriggers(old.(*buildapi.BuildConfig))
+		oldTriggers := calculateBuildConfigTriggers(old.(*buildv1.BuildConfig))
 		switch {
 		case len(oldTriggers) == 0:
 			change = cache.Added
@@ -113,7 +115,7 @@ func (i buildConfigTriggerIndexer) Index(obj, old interface{}) (string, *trigger
 // BuildConfigInstantiator abstracts creating builds from build requests.
 type BuildConfigInstantiator interface {
 	// Instantiate should launch a build from the provided build request.
-	Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error)
+	Instantiate(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error)
 }
 
 // buildConfigReactor converts trigger changes into new builds. It will request a build if
@@ -135,10 +137,10 @@ func NewBuildConfigReactor(instantiator BuildConfigInstantiator, restclient rest
 // ImageChanged is passed a build config and a set of changes and updates the object if
 // necessary.
 func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
-	bc := obj.(*buildapi.BuildConfig)
+	bc := obj.(*buildv1.BuildConfig)
 
-	var request *buildapi.BuildRequest
-	var fired map[kapi.ObjectReference]string
+	var request *buildv1.BuildRequest
+	var fired map[corev1.ObjectReference]string
 	for _, t := range bc.Spec.Triggers {
 		p := t.ImageChange
 		if p == nil || (p.From != nil && p.From.Kind != "ImageStreamTag") {
@@ -148,7 +150,7 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 			glog.V(5).Infof("Skipping paused build on bc: %s/%s for trigger: %+v", bc.Namespace, bc.Name, t)
 			continue
 		}
-		var from *kapi.ObjectReference
+		var from *corev1.ObjectReference
 		if p.From != nil {
 			from = p.From
 		} else {
@@ -177,12 +179,12 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 
 		// prevent duplicate build trigger causes
 		if fired == nil {
-			fired = make(map[kapi.ObjectReference]string)
+			fired = make(map[corev1.ObjectReference]string)
 		}
 		fired[*from] = latest
 
 		if request == nil {
-			request = &buildapi.BuildRequest{
+			request = &buildv1.BuildRequest{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bc.Name,
 					Namespace: bc.Namespace,
@@ -190,7 +192,7 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 			}
 		}
 		if request.TriggeredByImage == nil {
-			request.TriggeredByImage = &kapi.ObjectReference{
+			request.TriggeredByImage = &corev1.ObjectReference{
 				Kind: "DockerImage",
 				Name: latest,
 			}
@@ -200,9 +202,9 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 		}
 
 		if newSource {
-			request.TriggeredBy = append(request.TriggeredBy, buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseImageMsg,
-				ImageChangeBuild: &buildapi.ImageChangeCause{
+			request.TriggeredBy = append(request.TriggeredBy, buildv1.BuildTriggerCause{
+				Message: buildutil.BuildTriggerCauseImageMsg,
+				ImageChangeBuild: &buildv1.ImageChangeCause{
 					ImageID: latest,
 					FromRef: from,
 				},
@@ -220,7 +222,7 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 	if err != nil {
 		instantiateErr := fmt.Errorf("error triggering Build for BuildConfig %s/%s: %v", bc.Namespace, bc.Name, err)
 		utilruntime.HandleError(instantiateErr)
-		r.eventRecorder.Event(bc, kapi.EventTypeWarning, "BuildConfigTriggerFailed", instantiateErr.Error())
+		r.eventRecorder.Event(bc, corev1.EventTypeWarning, "BuildConfigTriggerFailed", instantiateErr.Error())
 	}
 	return err
 }
