@@ -41,6 +41,24 @@ var (
 	InputContentPath = filepath.Join(BuildWorkDirMount, "inputs")
 )
 
+// GeneratorFatalError represents a fatal error while generating a build.
+// An operation that fails because of a fatal error should not be retried.
+type GeneratorFatalError struct {
+	// Reason the fatal error occurred
+	Reason string
+}
+
+// Error returns the error string for this fatal error
+func (e *GeneratorFatalError) Error() string {
+	return fmt.Sprintf("fatal error generating Build from BuildConfig: %s", e.Reason)
+}
+
+// IsFatal returns true if err is a fatal error
+func IsFatalGeneratorError(err error) bool {
+	_, isFatal := err.(*GeneratorFatalError)
+	return isFatal
+}
+
 // GetBuildPodName returns name of the build pod.
 func GetBuildPodName(build *buildv1.Build) string {
 	return apihelpers.GetPodName(build.Name, buildPodSuffix)
