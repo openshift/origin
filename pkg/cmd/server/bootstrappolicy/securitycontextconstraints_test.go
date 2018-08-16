@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
+	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 )
 

@@ -9,7 +9,7 @@ import (
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,13 +25,13 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	authorization "github.com/openshift/api/authorization"
-	templateapiv1 "github.com/openshift/api/template/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/client/templateprocessing"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/template/client/internalversion"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
@@ -45,9 +45,9 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
-		template           *templateapi.Template
-		processedtemplate  *templateapi.Template
-		privatetemplate    *templateapi.Template
+		template           *templatev1.Template
+		processedtemplate  *unstructured.UnstructuredList
+		privatetemplate    *templatev1.Template
 		clusterrolebinding *authorizationapi.ClusterRoleBinding
 		brokercli          client.Client
 		service            *api.Service
@@ -71,17 +71,16 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 
 		// should have been created before the extended test runs
-		template, err = cli.TemplateClient().Template().Templates("openshift").Get("mysql-ephemeral", metav1.GetOptions{})
+		template, err = cli.TemplateClient().TemplateV1().Templates("openshift").Get("mysql-ephemeral", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		processedtemplate, err = internalversion.NewTemplateProcessorClient(cli.AdminTemplateClient().Template().RESTClient(), "openshift").Process(template)
+		dynamicClient, err := dynamic.NewForConfig(cli.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		errs := runtime.DecodeList(processedtemplate.Objects, unstructured.UnstructuredJSONScheme)
-		o.Expect(errs).To(o.BeEmpty())
+		processedtemplate, err = templateprocessing.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// privatetemplate is an additional template in our namespace
-		privatetemplate, err = cli.TemplateClient().Template().Templates(cli.Namespace()).Create(&templateapi.Template{
+		privatetemplate, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Create(&templatev1.Template{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "private",
 			},
@@ -114,7 +113,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		// it shouldn't be around, but if it is, clean up the
 		// BrokerTemplateInstance object.  The object is not namespaced so the
 		// namespace cleanup doesn't catch this.
-		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
+		cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
 	})
 
 	catalog := func() {
@@ -163,7 +162,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 			},
 		})
 		if err != nil {
-			templateInstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+			templateInstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "error getting TemplateInstance after failed provision: %v\n", err)
 			} else {
@@ -175,21 +174,21 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		templateInstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+		templateInstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(brokerTemplateInstance.Spec).To(o.Equal(templateapi.BrokerTemplateInstanceSpec{
-			TemplateInstance: kapi.ObjectReference{
+		o.Expect(brokerTemplateInstance.Spec).To(o.Equal(templatev1.BrokerTemplateInstanceSpec{
+			TemplateInstance: corev1.ObjectReference{
 				Kind:      "TemplateInstance",
 				Namespace: cli.Namespace(),
 				Name:      templateInstance.Name,
 				UID:       templateInstance.UID,
 			},
-			Secret: kapi.ObjectReference{
+			Secret: corev1.ObjectReference{
 				Kind:      "Secret",
 				Namespace: cli.Namespace(),
 				Name:      secret.Name,
@@ -202,30 +201,30 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 			api.OpenServiceBrokerInstanceExternalID: templateInstance.Name,
 		}))
 		o.Expect(templateInstance.OwnerReferences).To(o.ContainElement(metav1.OwnerReference{
-			APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+			APIVersion:         templatev1.SchemeGroupVersion.String(),
 			Kind:               "BrokerTemplateInstance",
 			Name:               brokerTemplateInstance.Name,
 			UID:                brokerTemplateInstance.UID,
 			BlockOwnerDeletion: &blockOwnerDeletion,
 		}))
 
-		o.Expect(templateInstance.Spec).To(o.Equal(templateapi.TemplateInstanceSpec{
+		o.Expect(templateInstance.Spec).To(o.Equal(templatev1.TemplateInstanceSpec{
 			Template: *template,
-			Secret: &kapi.LocalObjectReference{
+			Secret: &corev1.LocalObjectReference{
 				Name: secret.Name,
 			},
-			Requester: &templateapi.TemplateInstanceRequester{
+			Requester: &templatev1.TemplateInstanceRequester{
 				Username: cli.Username(),
 				Groups:   []string{"system:authenticated"},
 			},
 		}))
 
 		o.Expect(templateInstance.Status.Conditions).To(o.HaveLen(1))
-		o.Expect(templatecontroller.TemplateInstanceHasCondition(templateInstance, templateapi.TemplateInstanceReady, kapi.ConditionTrue)).To(o.Equal(true))
+		o.Expect(templatecontroller.TemplateInstanceHasCondition(templateInstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue)).To(o.Equal(true))
 
 		o.Expect(templateInstance.Status.Objects).To(o.HaveLen(len(template.Objects)))
 		for i, obj := range templateInstance.Status.Objects {
-			u := processedtemplate.Objects[i].(*unstructured.Unstructured)
+			u := processedtemplate.Items[i]
 			o.Expect(obj.Ref.Kind).To(o.Equal(u.GetKind()))
 			o.Expect(obj.Ref.Namespace).To(o.Equal(cli.Namespace()))
 			o.Expect(obj.Ref.Name).To(o.Equal(u.GetName()))
@@ -233,13 +232,13 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		}
 
 		o.Expect(secret.OwnerReferences).To(o.ContainElement(metav1.OwnerReference{
-			APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+			APIVersion:         templatev1.SchemeGroupVersion.String(),
 			Kind:               "BrokerTemplateInstance",
 			Name:               brokerTemplateInstance.Name,
 			UID:                brokerTemplateInstance.UID,
 			BlockOwnerDeletion: &blockOwnerDeletion,
 		}))
-		o.Expect(secret.Type).To(o.Equal(v1.SecretTypeOpaque))
+		o.Expect(secret.Type).To(o.Equal(corev1.SecretTypeOpaque))
 		o.Expect(secret.Data).To(o.Equal(map[string][]byte{
 			"MYSQL_USER": []byte("test"),
 		}))
@@ -261,7 +260,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.Equal([]string{bindingID}))
 
@@ -274,20 +273,20 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		err := brokercli.Unbind(context.Background(), cliUser, instanceID, bindingID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 	}
 
 	deprovision := func() {
 		g.By("deprovisioning a service")
-		err := cli.TemplateClient().Template().Templates(cli.Namespace()).Delete(privatetemplate.Name, &metav1.DeleteOptions{})
+		err := cli.InternalTemplateClient().Template().Templates(cli.Namespace()).Delete(privatetemplate.Name, &metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = brokercli.Deprovision(context.Background(), cliUser, instanceID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		_, err = cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 

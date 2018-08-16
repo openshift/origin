@@ -10,6 +10,7 @@ import (
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,10 +19,10 @@ import (
 	"k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/utils/clock"
 
+	templatev1 "github.com/openshift/api/template/v1"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
@@ -93,17 +94,17 @@ func TestControllerCheckReadiness(t *testing.T) {
 		return true, &authorizationv1.SubjectAccessReview{Status: authorizationv1.SubjectAccessReviewStatus{Allowed: true}}, nil
 	})
 
-	templateInstance := &templateapi.TemplateInstance{
+	templateInstance := &templatev1.TemplateInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Time{Time: clock.now},
 		},
-		Spec: templateapi.TemplateInstanceSpec{
-			Requester: &templateapi.TemplateInstanceRequester{},
+		Spec: templatev1.TemplateInstanceSpec{
+			Requester: &templatev1.TemplateInstanceRequester{},
 		},
-		Status: templateapi.TemplateInstanceStatus{
-			Objects: []templateapi.TemplateInstanceObject{
+		Status: templatev1.TemplateInstanceStatus{
+			Objects: []templatev1.TemplateInstanceObject{
 				{
-					Ref: kapi.ObjectReference{
+					Ref: corev1.ObjectReference{
 						APIVersion: "batch/v1",
 						Kind:       "Job",
 						Namespace:  "namespace",

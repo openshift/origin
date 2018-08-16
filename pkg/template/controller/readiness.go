@@ -3,6 +3,7 @@ package controller
 import (
 	"strconv"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -165,7 +166,7 @@ var readinessCheckers = map[schema.GroupKind]func(runtime.Object) (bool, bool, e
 }
 
 // CanCheckReadiness indicates whether a readiness check exists for a GK.
-func CanCheckReadiness(ref kapi.ObjectReference) bool {
+func CanCheckReadiness(ref corev1.ObjectReference) bool {
 	switch ref.GroupVersionKind().GroupKind() {
 	case build.Kind("BuildConfig"), schema.GroupKind{Group: "", Kind: "BuildConfig"}:
 		return true
@@ -177,7 +178,7 @@ func CanCheckReadiness(ref kapi.ObjectReference) bool {
 // CheckReadiness runs the readiness check on a given object.  TODO: remove
 // "oc client.Interface" and error once BuildConfigs can report on the status of
 // their latest build.
-func CheckReadiness(oc buildclient.Interface, ref kapi.ObjectReference, obj *unstructured.Unstructured) (bool, bool, error) {
+func CheckReadiness(oc buildclient.Interface, ref corev1.ObjectReference, obj *unstructured.Unstructured) (bool, bool, error) {
 	castObj, err := legacyscheme.Scheme.New(ref.GroupVersionKind())
 	if err != nil {
 		return false, false, err

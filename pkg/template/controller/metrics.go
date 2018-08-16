@@ -3,11 +3,11 @@ package controller
 import (
 	"time"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 var templateInstanceCompleted = prometheus.NewCounterVec(
@@ -65,9 +65,9 @@ func (c *TemplateInstanceController) Collect(ch chan<- prometheus.Metric) {
 nextTemplateInstance:
 	for _, templateInstance := range templateInstances {
 		for _, cond := range templateInstance.Status.Conditions {
-			if cond.Status == kapi.ConditionTrue &&
-				(cond.Type == templateapi.TemplateInstanceInstantiateFailure ||
-					cond.Type == templateapi.TemplateInstanceReady) {
+			if cond.Status == corev1.ConditionTrue &&
+				(cond.Type == templatev1.TemplateInstanceInstantiateFailure ||
+					cond.Type == templatev1.TemplateInstanceReady) {
 				continue nextTemplateInstance
 			}
 		}
