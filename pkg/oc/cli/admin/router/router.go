@@ -20,6 +20,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -28,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	"github.com/openshift/api/security"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/bulk"
@@ -36,8 +39,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
-	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
@@ -1109,7 +1112,7 @@ func validateServiceAccount(client securityclientinternal.Interface, ns string, 
 	// get set of sccs applicable to the service account
 	userInfo := serviceaccount.UserInfo(ns, serviceAccount, "")
 	for _, scc := range sccList.Items {
-		if oscc.ConstraintAppliesTo(&scc, userInfo, "", nil) {
+		if constraintAppliesTo(&scc, userInfo, "", nil) {
 			switch {
 			case hostPorts && scc.AllowHostPorts:
 				return nil
@@ -1128,4 +1131,55 @@ func validateServiceAccount(client securityclientinternal.Interface, ns string, 
 		return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
 	}
 	return nil
+}
+
+// constraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
+// if it is usable by the userInfo.  This is a copy from some server code.
+// TODO remove this and have the router SA check do a SAR check instead.
+// Anything we do here needs to work with a deny authorizer so the choices are limited to SAR / Authorizer
+func constraintAppliesTo(constraint *securityapi.SecurityContextConstraints, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
+	for _, user := range constraint.Users {
+		if userInfo.GetName() == user {
+			return true
+		}
+	}
+	for _, userGroup := range userInfo.GetGroups() {
+		if constraintSupportsGroup(userGroup, constraint.Groups) {
+			return true
+		}
+	}
+	if a != nil {
+		return authorizedForSCC(constraint, userInfo, namespace, a)
+	}
+	return false
+}
+
+// constraintSupportsGroup checks that group is in constraintGroups.
+func constraintSupportsGroup(group string, constraintGroups []string) bool {
+	for _, g := range constraintGroups {
+		if g == group {
+			return true
+		}
+	}
+	return false
+}
+
+// authorizedForSCC returns true if info is authorized to perform the "use" verb on the SCC resource.
+func authorizedForSCC(constraint *securityapi.SecurityContextConstraints, info user.Info, namespace string, a authorizer.Authorizer) bool {
+	// check against the namespace that the pod is being created in to allow per-namespace SCC grants.
+	attr := authorizer.AttributesRecord{
+		User:            info,
+		Verb:            "use",
+		Namespace:       namespace,
+		Name:            constraint.Name,
+		APIGroup:        security.GroupName,
+		Resource:        "securitycontextconstraints",
+		ResourceRequest: true,
+	}
+	decision, reason, err := a.Authorize(attr)
+	if err != nil {
+		glog.V(5).Infof("cannot authorize for SCC: %v %q %v", decision, reason, err)
+		return false
+	}
+	return decision == authorizer.DecisionAllow
 }

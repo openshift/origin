@@ -4,23 +4,22 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/security/apis/security"
-	securityinternalversion "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 // SourceBuildStrategy creates STI(source to image) builds
 type SourceBuildStrategy struct {
 	Image          string
-	SecurityClient securityinternalversion.SecurityInterface
+	SecurityClient securityv1client.SecurityV1Interface
 }
 
 // DefaultDropCaps is the list of capabilities to drop if the current user cannot run as root
@@ -33,13 +32,13 @@ var DefaultDropCaps = []string{
 
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
-func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
+func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Pod, error) {
 	data, err := runtime.Encode(buildJSONCodec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the Build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 
-	containerEnv := []v1.EnvVar{
+	containerEnv := []corev1.EnvVar{
 		{Name: "BUILD", Value: string(data)},
 	}
 
@@ -56,8 +55,8 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 		// be controlled via the SCC that's in effect for the build service account
 		// For now, both are hard-coded based on whether the build service account can
 		// run as root.
-		containerEnv = append(containerEnv, v1.EnvVar{Name: buildapi.AllowedUIDs, Value: "1-"})
-		containerEnv = append(containerEnv, v1.EnvVar{Name: buildapi.DropCapabilities, Value: strings.Join(DefaultDropCaps, ",")})
+		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildapi.AllowedUIDs, Value: "1-"})
+		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildapi.DropCapabilities, Value: strings.Join(DefaultDropCaps, ",")})
 	}
 
 	serviceAccount := build.Spec.ServiceAccount
@@ -66,62 +65,62 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 
 	privileged := true
-	pod := &v1.Pod{
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildapihelpers.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			Labels:    getPodLabels(build),
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			ServiceAccountName: serviceAccount,
-			Containers: []v1.Container{
+			Containers: []corev1.Container{
 				{
 					Name:    StiBuild,
 					Image:   bs.Image,
 					Command: []string{"openshift-sti-build"},
 					Env:     copyEnvVarSlice(containerEnv),
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					SecurityContext: &v1.SecurityContext{
+					SecurityContext: &corev1.SecurityContext{
 						Privileged: &privileged,
 					},
-					TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
-					VolumeMounts: []v1.VolumeMount{
+					TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
+					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      "buildworkdir",
 							MountPath: buildutil.BuildWorkDirMount,
 						},
 					},
-					ImagePullPolicy: v1.PullIfNotPresent,
+					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
 				},
 			},
-			Volumes: []v1.Volume{
+			Volumes: []corev1.Volume{
 				{
 					Name: "buildworkdir",
-					VolumeSource: v1.VolumeSource{
-						EmptyDir: &v1.EmptyDirVolumeSource{},
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 			},
-			RestartPolicy: v1.RestartPolicyNever,
+			RestartPolicy: corev1.RestartPolicyNever,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
 
 	if build.Spec.Source.Git != nil || build.Spec.Source.Binary != nil {
-		gitCloneContainer := v1.Container{
+		gitCloneContainer := corev1.Container{
 			Name:    GitCloneContainer,
 			Image:   bs.Image,
 			Command: []string{"openshift-git-clone"},
 			Env:     copyEnvVarSlice(containerEnv),
-			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
-			VolumeMounts: []v1.VolumeMount{
+			TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "buildworkdir",
 					MountPath: buildutil.BuildWorkDirMount,
 				},
 			},
-			ImagePullPolicy: v1.PullIfNotPresent,
+			ImagePullPolicy: corev1.PullIfNotPresent,
 			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
 		}
 		if build.Spec.Source.Binary != nil {
@@ -132,42 +131,42 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, gitCloneContainer)
 	}
 	if len(build.Spec.Source.Images) > 0 {
-		extractImageContentContainer := v1.Container{
+		extractImageContentContainer := corev1.Container{
 			Name:    ExtractImageContentContainer,
 			Image:   bs.Image,
 			Command: []string{"openshift-extract-image-content"},
 			Env:     copyEnvVarSlice(containerEnv),
 			// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-			SecurityContext: &v1.SecurityContext{
+			SecurityContext: &corev1.SecurityContext{
 				Privileged: &privileged,
 			},
-			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
-			VolumeMounts: []v1.VolumeMount{
+			TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "buildworkdir",
 					MountPath: buildutil.BuildWorkDirMount,
 				},
 			},
-			ImagePullPolicy: v1.PullIfNotPresent,
+			ImagePullPolicy: corev1.PullIfNotPresent,
 			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
 		}
 		setupDockerSecrets(pod, &extractImageContentContainer, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
 	}
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers,
-		v1.Container{
+		corev1.Container{
 			Name:    "manage-dockerfile",
 			Image:   bs.Image,
 			Command: []string{"openshift-manage-dockerfile"},
 			Env:     copyEnvVarSlice(containerEnv),
-			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
-			VolumeMounts: []v1.VolumeMount{
+			TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "buildworkdir",
 					MountPath: buildutil.BuildWorkDirMount,
 				},
 			},
-			ImagePullPolicy: v1.PullIfNotPresent,
+			ImagePullPolicy: corev1.PullIfNotPresent,
 			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
 		},
 	)
@@ -193,16 +192,16 @@ func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
 	rootUser := int64(0)
 
 	review, err := bs.SecurityClient.PodSecurityPolicySubjectReviews(build.Namespace).Create(
-		&security.PodSecurityPolicySubjectReview{
-			Spec: security.PodSecurityPolicySubjectReviewSpec{
-				Template: kapi.PodTemplateSpec{
-					Spec: kapi.PodSpec{
+		&securityv1.PodSecurityPolicySubjectReview{
+			Spec: securityv1.PodSecurityPolicySubjectReviewSpec{
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
 						ServiceAccountName: build.Spec.ServiceAccount,
-						Containers: []kapi.Container{
+						Containers: []corev1.Container{
 							{
 								Name:  "fake",
 								Image: "fake",
-								SecurityContext: &kapi.SecurityContext{
+								SecurityContext: &corev1.SecurityContext{
 									RunAsUser: &rootUser,
 								},
 							},

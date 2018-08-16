@@ -98,7 +98,8 @@
       "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride",
       "github.com/openshift/origin/pkg/oc",
       "github.com/openshift/origin/pkg/cmd/server",
-      "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
+      "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
     ],
     "forbiddenImportPackageRoots": [
       "github.com/openshift/origin/pkg/apps/generated",

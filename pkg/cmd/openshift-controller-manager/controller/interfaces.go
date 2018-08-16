@@ -37,7 +37,6 @@ import (
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
@@ -232,9 +231,6 @@ type ControllerClientBuilder interface {
 	OpenshiftNetworkClient(name string) (networkclient.Interface, error)
 	OpenshiftNetworkClientOrDie(name string) networkclient.Interface
 
-	OpenshiftInternalSecurityClient(name string) (securityclient.Interface, error)
-	OpenshiftInternalSecurityClientOrDie(name string) securityclient.Interface
-
 	OpenshiftV1SecurityClient(name string) (securityv1client.Interface, error)
 	OpenshiftV1SecurityClientOrDie(name string) securityv1client.Interface
 }
@@ -387,28 +383,6 @@ func (b OpenshiftControllerClientBuilder) OpenshiftNetworkClient(name string) (n
 // will panic.
 func (b OpenshiftControllerClientBuilder) OpenshiftNetworkClientOrDie(name string) networkclient.Interface {
 	client, err := b.OpenshiftNetworkClient(name)
-	if err != nil {
-		glog.Fatal(err)
-	}
-	return client
-}
-
-// OpenshiftInternalSecurityClient provides a REST client for the security API.
-// If the client cannot be created because of configuration error, this function
-// will error.
-func (b OpenshiftControllerClientBuilder) OpenshiftInternalSecurityClient(name string) (securityclient.Interface, error) {
-	clientConfig, err := b.Config(name)
-	if err != nil {
-		return nil, err
-	}
-	return securityclient.NewForConfig(clientConfig)
-}
-
-// OpenshiftInternalSecurityClientOrDie provides a REST client for the security API.
-// If the client cannot be created because of configuration error, this function
-// will panic.
-func (b OpenshiftControllerClientBuilder) OpenshiftInternalSecurityClientOrDie(name string) securityclient.Interface {
-	client, err := b.OpenshiftInternalSecurityClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}
