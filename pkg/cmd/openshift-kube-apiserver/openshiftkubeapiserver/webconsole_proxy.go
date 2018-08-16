@@ -1,4 +1,4 @@
-package origin
+package openshiftkubeapiserver
 
 import (
 	"fmt"
@@ -40,7 +40,7 @@ func withAssetServerRedirect(handler http.Handler, accessor *webConsolePublicURL
 	})
 }
 
-func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, accessor *webConsolePublicURLAccessor) http.Handler {
+func withConsoleRedirection(handler, assetServerHandler http.Handler, accessor *webConsolePublicURLAccessor) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		// blacklist well known paths so we do not risk recursion deadlocks
 		for _, prefix := range []string{"/apis", "/api", "/oapi", "/healthz", "/version"} {
@@ -85,9 +85,9 @@ type webConsolePublicURLAccessor struct {
 	polling         time.Duration
 }
 
-func newWebConsolePublicURLAccessor(clientConfig rest.Config) *webConsolePublicURLAccessor {
+func newWebConsolePublicURLAccessor(clientConfig *rest.Config) *webConsolePublicURLAccessor {
 	accessor := &webConsolePublicURLAccessor{
-		configMapGetter: coreclientv1.NewForConfigOrDie(&clientConfig),
+		configMapGetter: coreclientv1.NewForConfigOrDie(clientConfig),
 	}
 	return accessor
 }

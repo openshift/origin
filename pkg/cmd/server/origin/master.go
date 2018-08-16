@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -19,20 +18,13 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/oauth/urls"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-)
-
-const (
-	openShiftOAuthAPIPrefix      = "/oauth"
-	openShiftLoginPrefix         = "/login"
-	openShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
 func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*openshiftapiserver.OpenshiftAPIConfig, error) {
@@ -94,22 +86,6 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	return ret, ret.ExtraConfig.Validate()
 }
 
-func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftNonAPIConfig, error) {
-	var err error
-	ret := &OpenshiftNonAPIConfig{
-		GenericConfig: &apiserver.RecommendedConfig{
-			Config:                kubeAPIServerConfig,
-			SharedInformerFactory: c.ClientGoKubeInformers,
-		},
-	}
-	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(c.Options)
-	if err != nil {
-		return nil, err
-	}
-
-	return ret, nil
-}
-
 func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerOptions *kapiserveroptions.ServerRunOptions, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, apiextensionsinformers.SharedInformerFactory, error) {
 	apiExtensionsConfig, err := createAPIExtensionsConfig(kubeAPIServerConfig, c.ClientGoKubeInformers, kubeAPIServerOptions)
 	if err != nil {
@@ -123,7 +99,7 @@ func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationT
 }
 
 func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
-	openshiftNonAPIConfig, err := c.newOpenshiftNonAPIConfig(kubeAPIServerConfig)
+	openshiftNonAPIConfig, err := openshiftkubeapiserver.NewOpenshiftNonAPIConfig(&kubeAPIServerConfig, c.ClientGoKubeInformers, &c.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -171,40 +147,6 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 	return preparedKubeAPIServer.GenericAPIServer, nil
 }
 
-func (c *MasterConfig) newWebConsoleProxy() (http.Handler, error) {
-	caBundle, err := ioutil.ReadFile(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile)
-	if err != nil {
-		return nil, err
-	}
-	proxyHandler, err := NewServiceProxyHandler("webconsole", "openshift-web-console", aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()), caBundle, "OpenShift web console")
-	if err != nil {
-		return nil, err
-	}
-	return proxyHandler, nil
-}
-
-func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (http.Handler, map[string]apiserver.PostStartHookFunc, error) {
-	if c.Options.OAuthConfig == nil {
-		return http.NotFoundHandler(), nil, nil
-	}
-
-	config, err := NewOAuthServerConfigFromMasterConfig(c, genericConfig.SecureServing.Listener)
-	if err != nil {
-		return nil, nil, err
-	}
-	config.GenericConfig.AuditBackend = genericConfig.AuditBackend
-	config.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
-	oauthServer, err := config.Complete().New(apiserver.NewEmptyDelegate())
-	if err != nil {
-		return nil, nil, err
-	}
-	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain,
-		map[string]apiserver.PostStartHookFunc{
-			"oauth.openshift.io-StartOAuthClientsBootstrapping": config.StartOAuthClientsBootstrapping,
-		},
-		nil
-}
-
 func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerOptions *kapiserveroptions.ServerRunOptions, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
 	aggregatorConfig, err := createAggregatorConfig(
 		kubeAPIServerConfig,
@@ -234,7 +176,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig, stopCh)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options, stopCh)
 	if err != nil {
 		return err
 	}
@@ -305,7 +247,7 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig, stopCh)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options, stopCh)
 	if err != nil {
 		return err
 	}
@@ -373,66 +315,6 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-}
-
-func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config, stopCh <-chan struct{}) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
-	webconsoleProxyHandler, err := c.newWebConsoleProxy()
-	if err != nil {
-		return nil, nil, err
-	}
-	oauthServerHandler, extraPostStartHooks, err := c.newOAuthServerHandler(genericConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return func(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
-			// Machinery that let's use discover the Web Console Public URL
-			accessor := newWebConsolePublicURLAccessor(c.PrivilegedLoopbackClientConfig)
-			go accessor.Run(stopCh)
-
-			// these are after the kube handler
-			handler := c.versionSkewFilter(apiHandler)
-
-			// this is the normal kube handler chain
-			handler = apiserver.DefaultBuildHandlerChain(handler, genericConfig)
-
-			// these handlers are all before the normal kube chain
-			handler = translateLegacyScopeImpersonation(handler)
-			handler = configprocessing.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
-
-			// redirects from / to /console if you're using a browser
-			handler = withAssetServerRedirect(handler, accessor)
-
-			// these handlers are actually separate API servers which have their own handler chains.
-			// our server embeds these
-			handler = c.withConsoleRedirection(handler, webconsoleProxyHandler, accessor)
-			handler = c.withOAuthRedirection(handler, oauthServerHandler)
-
-			return handler
-		},
-		extraPostStartHooks,
-		nil
-}
-
-func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Handler) http.Handler {
-	if c.Options.OAuthConfig == nil {
-		return handler
-	}
-
-	glog.Infof("Starting OAuth2 API at %s", urls.OpenShiftOAuthAPIPrefix)
-	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftOAuthCallbackPrefix)
-}
-
-func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler, prefixes ...string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		for _, p := range prefixes {
-			if strings.HasPrefix(req.URL.Path, p) {
-				patternHandler.ServeHTTP(w, req)
-				return
-			}
-		}
-		handler.ServeHTTP(w, req)
-	})
 }
 
 // bootstrapData casts our policy data to the rbacrest helper that can

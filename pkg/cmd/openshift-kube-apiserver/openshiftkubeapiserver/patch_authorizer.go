@@ -1,11 +1,13 @@
-package origin
+package openshiftkubeapiserver
 
 import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
+	"k8s.io/client-go/informers"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
+	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
@@ -14,8 +16,8 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
-func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) authorizer.Authorizer {
-	rbacInformers := informers.GetKubernetesInformers().Rbac().V1()
+func NewAuthorizer(internalInformers internalinformers.SharedInformerFactory, versionedInformers informers.SharedInformerFactory) authorizer.Authorizer {
+	rbacInformers := versionedInformers.Rbac().V1()
 
 	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister())
 
@@ -29,10 +31,10 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 	graph := node.NewGraph()
 	node.AddGraphEventHandlers(
 		graph,
-		informers.GetInternalKubernetesInformers().Core().InternalVersion().Nodes(),
-		informers.GetInternalKubernetesInformers().Core().InternalVersion().Pods(),
-		informers.GetInternalKubernetesInformers().Core().InternalVersion().PersistentVolumes(),
-		informers.GetKubernetesInformers().Storage().V1beta1().VolumeAttachments(),
+		internalInformers.Core().InternalVersion().Nodes(),
+		internalInformers.Core().InternalVersion().Pods(),
+		internalInformers.Core().InternalVersion().PersistentVolumes(),
+		versionedInformers.Storage().V1beta1().VolumeAttachments(),
 	)
 	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())
 

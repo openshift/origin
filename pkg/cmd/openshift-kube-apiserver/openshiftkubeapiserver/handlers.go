@@ -1,4 +1,4 @@
-package origin
+package openshiftkubeapiserver
 
 import (
 	"bytes"
@@ -51,8 +51,8 @@ func (f *userAgentFilter) matches(verb, userAgent string) bool {
 
 // versionSkewFilter adds a filter that may deny requests from skewed
 // oc clients, since we know that those clients will strip unknown fields which can lead to unexpected outcomes
-func (c *MasterConfig) versionSkewFilter(handler http.Handler) http.Handler {
-	filterConfig := c.Options.PolicyConfig.UserAgentMatchingConfig
+func versionSkewFilter(handler http.Handler, kubeAPIServerConfig *configapi.MasterConfig) http.Handler {
+	filterConfig := kubeAPIServerConfig.PolicyConfig.UserAgentMatchingConfig
 	if len(filterConfig.RequiredClients) == 0 && len(filterConfig.DeniedClients) == 0 {
 		return handler
 	}

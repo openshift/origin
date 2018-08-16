@@ -1,4 +1,4 @@
-package origin
+package openshiftkubeapiserver
 
 import (
 	"io/ioutil"
@@ -117,12 +117,12 @@ func TestVersionSkewFilterDenyOld(t *testing.T) {
 	verbs := []string{"PATCH", "POST"}
 	doNothingHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 	})
-	config := MasterConfig{}
-	config.Options.PolicyConfig.UserAgentMatchingConfig.DeniedClients = []configapi.UserAgentDenyRule{
+	config := &configapi.MasterConfig{}
+	config.PolicyConfig.UserAgentMatchingConfig.DeniedClients = []configapi.UserAgentDenyRule{
 		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v1\.1\.10 \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v(?:(?:1\.1\.1)|(?:1\.0\.1)) \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 	}
-	handler := config.versionSkewFilter(doNothingHandler)
+	handler := versionSkewFilter(doNothingHandler, config)
 	server := httptest.NewServer(testHandlerChain(handler))
 	defer server.Close()
 
@@ -164,13 +164,13 @@ func TestVersionSkewFilterDenySkewed(t *testing.T) {
 	verbs := []string{"PUT", "DELETE"}
 	doNothingHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 	})
-	config := MasterConfig{}
-	config.Options.PolicyConfig.UserAgentMatchingConfig.RequiredClients = []configapi.UserAgentMatchRule{
+	config := &configapi.MasterConfig{}
+	config.PolicyConfig.UserAgentMatchingConfig.RequiredClients = []configapi.UserAgentMatchRule{
 		{Regex: `\w+/` + kubeServerVersion + ` \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs},
 		{Regex: `\w+/` + openshiftServerVersion + ` \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs},
 	}
-	config.Options.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
-	handler := config.versionSkewFilter(doNothingHandler)
+	config.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
+	handler := versionSkewFilter(doNothingHandler, config)
 	server := httptest.NewServer(testHandlerChain(handler))
 	defer server.Close()
 
@@ -215,14 +215,14 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 	verbs := []string{"PUT", "DELETE"}
 	doNothingHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 	})
-	config := MasterConfig{}
-	config.Options.PolicyConfig.UserAgentMatchingConfig.RequiredClients = []configapi.UserAgentMatchRule{
+	config := &configapi.MasterConfig{}
+	config.PolicyConfig.UserAgentMatchingConfig.RequiredClients = []configapi.UserAgentMatchRule{
 		{Regex: `\w+/` + kubeServerVersion + ` \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs},
 		{Regex: `\w+/` + openshiftServerVersion + ` \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs},
 	}
-	config.Options.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
+	config.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
 
-	handler := config.versionSkewFilter(doNothingHandler)
+	handler := versionSkewFilter(doNothingHandler, config)
 	server := httptest.NewServer(testHandlerChain(handler))
 	defer server.Close()
 
