@@ -232,7 +232,7 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
-      "github.com/openshift/origin/pkg/build/buildapihelpers",
+      "github.com/openshift/origin/pkg/build/apis/build/internal_helpers",
       "github.com/openshift/origin/pkg/image/apis/image"
     ]
   },
@@ -526,6 +526,7 @@
       "github.com/openshift/origin/pkg/authorization/generated",
       "github.com/openshift/origin/pkg/build/apis/build/v1",
       "github.com/openshift/origin/pkg/build/generated",
+      "github.com/openshift/origin/pkg/build/apis/build/internal_helpers",
 	  "github.com/openshift/origin/pkg/image/apis/image/v1",
       "github.com/openshift/origin/pkg/image/generated",
 	  "github.com/openshift/origin/pkg/image/util",
@@ -561,7 +562,6 @@
       "github.com/openshift/origin/pkg/build/apis/build/install",
       "github.com/openshift/origin/pkg/build/buildapihelpers",
       "github.com/openshift/origin/pkg/build/client",
-      "github.com/openshift/origin/pkg/build/client/internalversion",
       "github.com/openshift/origin/pkg/build/client/v1",
       "github.com/openshift/origin/pkg/build/util",
       "github.com/openshift/origin/pkg/bulk",
