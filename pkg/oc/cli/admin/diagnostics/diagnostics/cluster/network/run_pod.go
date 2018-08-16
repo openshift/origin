@@ -85,25 +85,26 @@ func (d *NetworkDiagnostic) AvailableParameters() []types.Parameter {
 		},
 		{
 			Name:        FlagNetworkDiagPodImage,
-			Description: "Image to use for diagnostic pod",
+			Description: "Override the default diagnostic pod image. Any image with bash and chroot support",
 			Target:      &d.PodImage,
-			Default:     util.GetNetworkDiagDefaultPodImage(),
+			Default:     "",
 		},
 		{
-			Name:        FlagNetworkDiagTestPodImage,
-			Description: "Image to use for diagnostic test pod",
-			Target:      &d.TestPodImage,
-			Default:     util.GetNetworkDiagDefaultTestPodImage(),
+			Name: FlagNetworkDiagTestPodImage,
+			Description: fmt.Sprintf("Override the default diagnostic test pod image. Any image that accepts protocol --%s on port --%s",
+				FlagNetworkDiagTestPodProtocol, FlagNetworkDiagTestPodPort),
+			Target:  &d.TestPodImage,
+			Default: "",
 		},
 		{
 			Name:        FlagNetworkDiagTestPodProtocol,
-			Description: "Protocol used to connect to diagnostic test pod",
+			Description: "Override the default diagnostic test pod protocol",
 			Target:      &d.TestPodProtocol,
 			Default:     util.NetworkDiagDefaultTestPodProtocol,
 		},
 		{
 			Name:        FlagNetworkDiagTestPodPort,
-			Description: "Serving port on the diagnostic test pod",
+			Description: "Override the default diagnostic test pod port",
 			Target:      &d.TestPodPort,
 			Default:     util.NetworkDiagDefaultTestPodPort,
 		},
@@ -119,6 +120,13 @@ func (d *NetworkDiagnostic) Complete(logger *log.Logger) error {
 		return fmt.Errorf("Network log path %q exists but is not a directory", d.LogDir)
 	}
 	d.LogDir = logdir
+
+	if len(d.PodImage) == 0 {
+		d.PodImage = util.GetNetworkDiagDefaultPodImage()
+	}
+	if len(d.TestPodImage) == 0 {
+		d.TestPodImage = util.GetNetworkDiagDefaultTestPodImage()
+	}
 
 	supportedProtocols := sets.NewString(string(kapi.ProtocolTCP), string(kapi.ProtocolUDP))
 	if !supportedProtocols.Has(d.TestPodProtocol) {
