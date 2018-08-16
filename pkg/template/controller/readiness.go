@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -30,10 +31,10 @@ import (
 func checkBuildReadiness(obj runtime.Object) (bool, bool, error) {
 	b := obj.(*buildapi.Build)
 
-	ready := buildutil.IsTerminalPhase(b.Status.Phase) &&
+	ready := buildinternalhelpers.IsTerminalPhase(b.Status.Phase) &&
 		b.Status.Phase == buildapi.BuildPhaseComplete
 
-	failed := buildutil.IsTerminalPhase(b.Status.Phase) &&
+	failed := buildinternalhelpers.IsTerminalPhase(b.Status.Phase) &&
 		b.Status.Phase != buildapi.BuildPhaseComplete
 
 	return ready, failed, nil
