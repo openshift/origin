@@ -107,15 +107,15 @@ func GetSchedulableNodes(kubeClient kclientset.Interface) ([]kapi.Node, error) {
 	return filteredNodes, nil
 }
 
-func GetLocalNode(kubeClient kclientset.Interface) (string, string, error) {
+func GetLocalNode(kubeClient kclientset.Interface) (*kapi.Node, string, error) {
 	nodeList, err := kubeClient.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 
 	_, hostIPs, err := netutils.GetHostIPNetworks(nil)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 	for _, node := range nodeList.Items {
 		if len(node.Status.Addresses) == 0 {
@@ -124,12 +124,12 @@ func GetLocalNode(kubeClient kclientset.Interface) (string, string, error) {
 		for _, ip := range hostIPs {
 			for _, addr := range node.Status.Addresses {
 				if addr.Type == kapi.NodeInternalIP && ip.String() == addr.Address {
-					return node.Name, addr.Address, nil
+					return &node, addr.Address, nil
 				}
 			}
 		}
 	}
-	return "", "", fmt.Errorf("unable to find local node IP")
+	return nil, "", fmt.Errorf("unable to find local node IP")
 }
 
 // Get local/non-local pods in network diagnostic namespaces

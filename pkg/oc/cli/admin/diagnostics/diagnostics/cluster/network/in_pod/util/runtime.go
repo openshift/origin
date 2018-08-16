@@ -114,31 +114,26 @@ func (r *Runtime) GetRuntimeVersion() (string, error) {
 }
 
 func getRuntimeEndpoint(kubeClient kclientset.Interface) (string, string, string, error) {
-	nodes, err := GetNodes(kubeClient)
+	node, _, err := GetLocalNode(kubeClient)
 	if err != nil {
 		return "", "", "", err
 	}
-	if len(nodes) == 0 {
-		return "", "", "", fmt.Errorf("no nodes found to detect the runtime")
-	}
 
-	for _, node := range nodes {
-		if len(node.Status.NodeInfo.ContainerRuntimeVersion) > 0 {
-			runtimeTokens := strings.Split(node.Status.NodeInfo.ContainerRuntimeVersion, "://")
-			switch runtimeTokens[0] {
-			case crioRuntimeType:
-				if err := filePathExists(defaultCRIOShimSocket); err != nil {
-					return "", "", "", fmt.Errorf("detected crio runtime but validation of socket file %q failed: %v", defaultCRIOShimSocket, err)
-				}
-				return crioRuntimeName, crioRuntimeType, defaultCRIOShimSocket, nil
-			case dockerRuntimeType:
-				if err := filePathExists(defaultDockerShimSocket); err != nil {
-					return "", "", "", fmt.Errorf("detected docker runtime but validation of socket file %q failed: %v", defaultDockerShimSocket, err)
-				}
-				return dockerRuntimeName, dockerRuntimeType, defaultDockerShimSocket, nil
-			default:
-				return "", "", "", fmt.Errorf("runtime %q is not supported", runtimeTokens[0])
+	if len(node.Status.NodeInfo.ContainerRuntimeVersion) > 0 {
+		runtimeTokens := strings.Split(node.Status.NodeInfo.ContainerRuntimeVersion, "://")
+		switch runtimeTokens[0] {
+		case crioRuntimeType:
+			if err := filePathExists(defaultCRIOShimSocket); err != nil {
+				return "", "", "", fmt.Errorf("detected crio runtime but validation of socket file %q failed: %v", defaultCRIOShimSocket, err)
 			}
+			return crioRuntimeName, crioRuntimeType, defaultCRIOShimSocket, nil
+		case dockerRuntimeType:
+			if err := filePathExists(defaultDockerShimSocket); err != nil {
+				return "", "", "", fmt.Errorf("detected docker runtime but validation of socket file %q failed: %v", defaultDockerShimSocket, err)
+			}
+			return dockerRuntimeName, dockerRuntimeType, defaultDockerShimSocket, nil
+		default:
+			return "", "", "", fmt.Errorf("runtime %q is not supported", runtimeTokens[0])
 		}
 	}
 
