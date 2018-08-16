@@ -19,9 +19,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	routev1 "github.com/openshift/api/route/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 	"github.com/openshift/origin/pkg/router"
 	routercontroller "github.com/openshift/origin/pkg/router/controller"
 	informerfactory "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -45,7 +46,7 @@ type RouterControllerFactory struct {
 	FieldSelector   string
 	NamespaceLabels labels.Selector
 	ProjectLabels   labels.Selector
-	RouteModifierFn func(route *routeapi.Route)
+	RouteModifierFn func(route *routev1.Route)
 
 	informers map[reflect.Type]kcache.SharedIndexInformer
 }
@@ -72,7 +73,7 @@ func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes bool) 
 
 		NamespaceLabels:        f.NamespaceLabels,
 		FilteredNamespaceNames: make(sets.String),
-		NamespaceRoutes:        make(map[string]map[string]*routeapi.Route),
+		NamespaceRoutes:        make(map[string]map[string]*routev1.Route),
 		NamespaceEndpoints:     make(map[string]map[string]*kapi.Endpoints),
 
 		ProjectClient:       f.ProjectClient,
@@ -124,7 +125,7 @@ func (f *RouterControllerFactory) registerInformerEventHandlers(rc *routercontro
 	}
 	f.registerSharedInformerEventHandlers(&kapi.Endpoints{}, rc.HandleEndpoints)
 
-	f.registerSharedInformerEventHandlers(&routeapi.Route{}, rc.HandleRoute)
+	f.registerSharedInformerEventHandlers(&routev1.Route{}, rc.HandleRoute)
 
 	if rc.WatchNodes {
 		f.registerSharedInformerEventHandlers(&kapi.Node{}, rc.HandleNode)
@@ -167,9 +168,9 @@ func (f *RouterControllerFactory) processExistingItems(rc *routercontroller.Rout
 		rc.HandleEndpoints(watch.Added, item.(*kapi.Endpoints))
 	}
 
-	items := []routeapi.Route{}
-	for _, item := range f.informerStoreList(&routeapi.Route{}) {
-		items = append(items, *(item.(*routeapi.Route)))
+	items := []routev1.Route{}
+	for _, item := range f.informerStoreList(&routev1.Route{}) {
+		items = append(items, *(item.(*routev1.Route)))
 	}
 	// Return routes in order of age to avoid rejections during resync
 	sort.Sort(routeAge(items))
@@ -207,7 +208,7 @@ func (f *RouterControllerFactory) createEndpointsSharedInformer() {
 }
 
 func (f *RouterControllerFactory) CreateRoutesSharedInformer() kcache.SharedIndexInformer {
-	rt := &routeapi.Route{}
+	rt := &routev1.Route{}
 	objType := reflect.TypeOf(rt)
 	if informer, ok := f.informers[objType]; ok {
 		return informer
@@ -237,7 +238,7 @@ func (f *RouterControllerFactory) CreateRoutesSharedInformer() kcache.SharedInde
 			}
 			if f.RouteModifierFn != nil {
 				w = watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
-					if route, ok := in.Object.(*routeapi.Route); ok {
+					if route, ok := in.Object.(*routev1.Route); ok {
 						f.RouteModifierFn(route)
 					}
 					return in, true
@@ -314,10 +315,10 @@ func (f *RouterControllerFactory) registerSharedInformerEventHandlers(obj runtim
 }
 
 // routeAge sorts routes from oldest to newest and is stable for all routes.
-type routeAge []routeapi.Route
+type routeAge []routev1.Route
 
 func (r routeAge) Len() int      { return len(r) }
 func (r routeAge) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 func (r routeAge) Less(i, j int) bool {
-	return routeapi.RouteLessThan(&r[i], &r[j])
+	return routeapihelpers.RouteLessThan(&r[i], &r[j])
 }

@@ -9,30 +9,31 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 )
 
-func oldest(changes Changed, active []*routeapi.Route, routes ...*routeapi.Route) (updated, displaced []*routeapi.Route) {
+func oldest(changes Changed, active []*routev1.Route, routes ...*routev1.Route) (updated, displaced []*routev1.Route) {
 	if len(routes) == 0 {
 		return active, nil
 	}
 	route := routes[0]
 	if len(active) == 0 {
 		changes.Activated(route)
-		return []*routeapi.Route{route}, routes[1:]
+		return []*routev1.Route{route}, routes[1:]
 	}
-	if routeapi.RouteLessThan(active[0], route) {
+	if routeapihelpers.RouteLessThan(active[0], route) {
 		return active, routes
 	}
 	changes.Activated(route)
 	for _, displaced := range active {
 		changes.Displaced(displaced)
 	}
-	return []*routeapi.Route{route}, append(active, routes[1:]...)
+	return []*routev1.Route{route}, append(active, routes[1:]...)
 }
 
-func newRoute(namespace, name string, uid, rv int, spec routeapi.RouteSpec) *routeapi.Route {
-	route := &routeapi.Route{
+func newRoute(namespace, name string, uid, rv int, spec routev1.RouteSpec) *routev1.Route {
+	route := &routev1.Route{
 		Spec: spec,
 	}
 	route.Name = name
@@ -46,7 +47,7 @@ func newRoute(namespace, name string, uid, rv int, spec routeapi.RouteSpec) *rou
 func Test_hostIndex(t *testing.T) {
 	type step struct {
 		remove bool
-		route  *routeapi.Route
+		route  *routev1.Route
 	}
 	tests := []struct {
 		name       string
@@ -65,7 +66,7 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "add",
 			steps: []step{
-				{route: newRoute("test", "1", 0, 1, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 0, 1, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"000"}},
 			activates: map[string]struct{}{"000": {}},
@@ -74,8 +75,8 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "add - stable",
 			steps: []step{
-				{route: newRoute("test", "1", 0, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 0, 2, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 0, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 0, 2, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"000"}},
 			activates: map[string]struct{}{"000": {}},
@@ -83,8 +84,8 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "add - UID change",
 			steps: []step{
-				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 2, 2, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 2, 2, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active: map[string][]string{"test.com": {"002"}},
 			// because the UID changes, we aren't displacing ourselves
@@ -93,8 +94,8 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "add - UID change in reverse order",
 			steps: []step{
-				{route: newRoute("test", "1", 2, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 2, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 2, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 2, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active: map[string][]string{"test.com": {"001"}},
 			// because the UID changes, we aren't displacing ourselves
@@ -103,8 +104,8 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "add - skip displacement",
 			steps: []step{
-				{route: newRoute("test", "1", 0, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 1, 2, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 0, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 1, 2, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"000"}},
 			inactive:  map[string][]string{"test.com": {"001"}},
@@ -114,8 +115,8 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "add - displace",
 			steps: []step{
-				{route: newRoute("test", "2", 1, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 0, 2, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 1, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 0, 2, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"000"}},
 			activates: map[string]struct{}{"000": {}},
@@ -126,8 +127,8 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "coexist",
 			steps: []step{
-				{route: newRoute("test", "1", 0, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 1, 2, routeapi.RouteSpec{Host: "test2.com"})},
+				{route: newRoute("test", "1", 0, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 1, 2, routev1.RouteSpec{Host: "test2.com"})},
 			},
 			active: map[string][]string{
 				"test.com":  {"000"},
@@ -139,8 +140,8 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "update - active",
 			steps: []step{
-				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 2, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 2, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"001"}},
 			activates: map[string]struct{}{"001": {}},
@@ -148,26 +149,26 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "update - no change",
 			steps: []step{
-				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 1, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active: map[string][]string{"test.com": {"001"}},
 		},
 		{
 			name: "update - inactive",
 			steps: []step{
-				{route: newRoute("test", "2", 11, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 2, routeapi.RouteSpec{Host: "test.com"})},
-				{remove: true, route: newRoute("test", "2", 11, 3, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 11, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 2, routev1.RouteSpec{Host: "test.com"})},
+				{remove: true, route: newRoute("test", "2", 11, 3, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active: map[string][]string{"test.com": {"001"}},
 		},
 		{
 			name: "update - displace when hostname changes",
 			steps: []step{
-				{route: newRoute("test", "1", 11, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 1, 2, routeapi.RouteSpec{Host: "test2.com"})},
-				{route: newRoute("test", "2", 1, 3, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 11, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 1, 2, routev1.RouteSpec{Host: "test2.com"})},
+				{route: newRoute("test", "2", 1, 3, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"001"}},
 			activates: map[string]struct{}{"001": {}},
@@ -177,15 +178,15 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "remove - does not exist",
 			steps: []step{
-				{remove: true, route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com"})},
+				{remove: true, route: newRoute("test", "1", 1, 1, routev1.RouteSpec{Host: "test.com"})},
 			},
 		},
 		{
 			name: "remove - become active",
 			steps: []step{
-				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 11, 2, routeapi.RouteSpec{Host: "test.com"})},
-				{remove: true, route: newRoute("test", "1", 1, 3, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 11, 2, routev1.RouteSpec{Host: "test.com"})},
+				{remove: true, route: newRoute("test", "1", 1, 3, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"011"}},
 			activates: map[string]struct{}{"011": {}},
@@ -193,10 +194,10 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "remove - multiple inactive",
 			steps: []step{
-				{route: newRoute("test", "3", 111, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 11, 2, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 3, routeapi.RouteSpec{Host: "test.com"})},
-				{remove: true, route: newRoute("test", "1", 1, 4, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "3", 111, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 11, 2, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 3, routev1.RouteSpec{Host: "test.com"})},
+				{remove: true, route: newRoute("test", "1", 1, 4, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"011"}},
 			activates: map[string]struct{}{"011": {}},
@@ -205,11 +206,11 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "remove - multiple inactive - all",
 			steps: []step{
-				{route: newRoute("test", "3", 111, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 11, 2, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 3, routeapi.RouteSpec{Host: "test.com"})},
-				{remove: true, route: newRoute("test", "1", 1, 4, routeapi.RouteSpec{Host: "test.com"})},
-				{remove: true, route: newRoute("test", "2", 11, 5, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "3", 111, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 11, 2, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 3, routev1.RouteSpec{Host: "test.com"})},
+				{remove: true, route: newRoute("test", "1", 1, 4, routev1.RouteSpec{Host: "test.com"})},
+				{remove: true, route: newRoute("test", "2", 11, 5, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active:    map[string][]string{"test.com": {"111"}},
 			activates: map[string]struct{}{"111": {}},
@@ -217,18 +218,18 @@ func Test_hostIndex(t *testing.T) {
 		{
 			name: "remove - inactive",
 			steps: []step{
-				{route: newRoute("test", "2", 11, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 2, routeapi.RouteSpec{Host: "test.com"})},
-				{remove: true, route: newRoute("test", "2", 11, 3, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 11, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 2, routev1.RouteSpec{Host: "test.com"})},
+				{remove: true, route: newRoute("test", "2", 11, 3, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active: map[string][]string{"test.com": {"001"}},
 		},
 		{
 			name: "remove - does not become active",
 			steps: []step{
-				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 11, 2, routeapi.RouteSpec{Host: "test.com"})},
-				{remove: true, route: newRoute("test", "2", 11, 3, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 11, 2, routev1.RouteSpec{Host: "test.com"})},
+				{remove: true, route: newRoute("test", "2", 11, 3, routev1.RouteSpec{Host: "test.com"})},
 			},
 			active: map[string][]string{"test.com": {"001"}},
 		},
@@ -301,13 +302,13 @@ func Test_hostIndex(t *testing.T) {
 func Test_Filter(t *testing.T) {
 	type step struct {
 		remove bool
-		route  *routeapi.Route
+		route  *routev1.Route
 	}
 	tests := []struct {
 		name       string
 		activateFn RouteActivationFunc
 		steps      []step
-		filter     func(route *routeapi.Route) bool
+		filter     func(route *routev1.Route) bool
 
 		// assert the state of the index
 		active   map[string][]string
@@ -319,13 +320,13 @@ func Test_Filter(t *testing.T) {
 		{
 			name: "multiple active and inactive routes",
 			steps: []step{
-				{route: newRoute("test", "3", 111, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 11, 2, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 3, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "4", 12, 4, routeapi.RouteSpec{Host: "test4.com"})},
-				{route: newRoute("test", "5", 13, 5, routeapi.RouteSpec{Host: "test5.com"})},
+				{route: newRoute("test", "3", 111, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 11, 2, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 3, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "4", 12, 4, routev1.RouteSpec{Host: "test4.com"})},
+				{route: newRoute("test", "5", 13, 5, routev1.RouteSpec{Host: "test5.com"})},
 			},
-			filter: func(route *routeapi.Route) bool {
+			filter: func(route *routev1.Route) bool {
 				return route.Name == "5" || route.Name == "2"
 			},
 			active: map[string][]string{
@@ -337,11 +338,11 @@ func Test_Filter(t *testing.T) {
 		{
 			name: "remove all inactive",
 			steps: []step{
-				{route: newRoute("test", "3", 111, 1, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "2", 11, 2, routeapi.RouteSpec{Host: "test.com"})},
-				{route: newRoute("test", "1", 1, 3, routeapi.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "3", 111, 1, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "2", 11, 2, routev1.RouteSpec{Host: "test.com"})},
+				{route: newRoute("test", "1", 1, 3, routev1.RouteSpec{Host: "test.com"})},
 			},
-			filter: func(route *routeapi.Route) bool {
+			filter: func(route *routev1.Route) bool {
 				return route.Name == "1"
 			},
 			active: map[string][]string{
@@ -409,7 +410,7 @@ func Test_Filter(t *testing.T) {
 	}
 }
 
-func changesToMap(routes []*routeapi.Route) map[string]struct{} {
+func changesToMap(routes []*routev1.Route) map[string]struct{} {
 	m := make(map[string]struct{})
 	for _, route := range routes {
 		m[string(route.UID)] = struct{}{}

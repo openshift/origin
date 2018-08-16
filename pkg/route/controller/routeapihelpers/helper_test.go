@@ -1,9 +1,10 @@
-package route
+package routeapihelpers
 
 import (
 	"testing"
 	"time"
 
+	routev1 "github.com/openshift/api/route/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -53,13 +54,13 @@ func TestRouteLessThan(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		r1 := &Route{
+		r1 := &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				CreationTimestamp: tc.timestamp1,
 				UID:               tc.uid1,
 			},
 		}
-		r2 := &Route{
+		r2 := &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				CreationTimestamp: tc.timestamp2,
 				UID:               tc.uid2,

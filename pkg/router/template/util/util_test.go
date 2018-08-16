@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 func TestGenerateRouteRegexp(t *testing.T) {
@@ -214,32 +214,32 @@ func TestGenCertificateHostName(t *testing.T) {
 func TestGenerateBackendNamePrefix(t *testing.T) {
 	testPrefixes := []struct {
 		name           string
-		termination    routeapi.TLSTerminationType
+		termination    routev1.TLSTerminationType
 		expectedPrefix string
 	}{
 		{
 			name:           "http route",
-			termination:    routeapi.TLSTerminationType(""),
+			termination:    routev1.TLSTerminationType(""),
 			expectedPrefix: "be_http",
 		},
 		{
 			name:           "edge secured route",
-			termination:    routeapi.TLSTerminationEdge,
+			termination:    routev1.TLSTerminationEdge,
 			expectedPrefix: "be_edge_http",
 		},
 		{
 			name:           "reencrypt route",
-			termination:    routeapi.TLSTerminationReencrypt,
+			termination:    routev1.TLSTerminationReencrypt,
 			expectedPrefix: "be_secure",
 		},
 		{
 			name:           "passthrough route",
-			termination:    routeapi.TLSTerminationPassthrough,
+			termination:    routev1.TLSTerminationPassthrough,
 			expectedPrefix: "be_tcp",
 		},
 		{
 			name:           "unknown route",
-			termination:    routeapi.TLSTerminationType("foo"),
+			termination:    routev1.TLSTerminationType("foo"),
 			expectedPrefix: "be_http",
 		},
 	}

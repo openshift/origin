@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/route/apis/route/validation"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 	"github.com/openshift/origin/pkg/router"
 )
 
@@ -44,10 +44,10 @@ func (p *ExtendedValidator) HandleEndpoints(eventType watch.EventType, endpoints
 }
 
 // HandleRoute processes watch events on the Route resource.
-func (p *ExtendedValidator) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+func (p *ExtendedValidator) HandleRoute(eventType watch.EventType, route *routev1.Route) error {
 	// Check if previously seen route and its Spec is unchanged.
 	routeName := routeNameKey(route)
-	if errs := validation.ExtendedValidateRoute(route); len(errs) > 0 {
+	if errs := routeapihelpers.ExtendedValidateRoute(route); len(errs) > 0 {
 		errmsg := ""
 		for i := 0; i < len(errs); i++ {
 			errmsg = errmsg + "\n  - " + errs[i].Error()

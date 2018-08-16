@@ -28,13 +28,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	routev1 "github.com/openshift/api/route/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	routelisters "github.com/openshift/client-go/route/listers/route/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/router/metrics"
@@ -445,7 +445,7 @@ func (o *TemplateRouterOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	routeclient, err := routeinternalclientset.NewForConfig(config)
+	routeclient, err := routeclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}
@@ -549,8 +549,8 @@ func (o *TemplateRouterOptions) Run() error {
 }
 
 // blueprintRoutes returns all the routes in the blueprint namespace.
-func (o *TemplateRouterOptions) blueprintRoutes(routeclient *routeinternalclientset.Clientset) ([]*routeapi.Route, error) {
-	blueprints := make([]*routeapi.Route, 0)
+func (o *TemplateRouterOptions) blueprintRoutes(routeclient *routeclientset.Clientset) ([]*routev1.Route, error) {
+	blueprints := make([]*routev1.Route, 0)
 	if len(o.BlueprintRouteNamespace) == 0 {
 		return blueprints, nil
 	}

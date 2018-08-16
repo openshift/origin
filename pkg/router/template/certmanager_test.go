@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 func TestCertManager(t *testing.T) {
@@ -26,7 +26,7 @@ func TestCertManager(t *testing.T) {
 			//expect that the ca cert will be concatenated to the regular cert so we only come out with a single add/delete
 			cfg: &ServiceAliasConfig{
 				Host:           "www.example.com",
-				TLSTermination: routeapi.TLSTerminationEdge,
+				TLSTermination: routev1.TLSTerminationEdge,
 				Certificates: map[string]Certificate{
 					"www.example.com": {
 						ID: "testCert",
@@ -44,7 +44,7 @@ func TestCertManager(t *testing.T) {
 			//even if it has certs since it is unsupported
 			cfg: &ServiceAliasConfig{
 				Host:           "www.example.com",
-				TLSTermination: routeapi.TLSTerminationPassthrough,
+				TLSTermination: routev1.TLSTerminationPassthrough,
 				Certificates: map[string]Certificate{
 					"www.example.com": {
 						ID: "testCert",
@@ -61,7 +61,7 @@ func TestCertManager(t *testing.T) {
 			//expect that we have 2 adds/deletes.  1 for the regular cert/ca and 1 for the destination cert
 			cfg: &ServiceAliasConfig{
 				Host:           "www.example.com",
-				TLSTermination: routeapi.TLSTerminationReencrypt,
+				TLSTermination: routev1.TLSTerminationReencrypt,
 				Certificates: map[string]Certificate{
 					"www.example.com": {
 						ID: "testCert",
@@ -80,7 +80,7 @@ func TestCertManager(t *testing.T) {
 		"add cert no certs": {
 			cfg: &ServiceAliasConfig{
 				Host:           "www.example.com",
-				TLSTermination: routeapi.TLSTerminationEdge,
+				TLSTermination: routev1.TLSTerminationEdge,
 				Certificates:   map[string]Certificate{},
 			},
 			expectedAdds:    []string{},
@@ -171,7 +171,7 @@ func TestCertManagerSkipsWrittenConfigs(t *testing.T) {
 	certManager, _ := newSimpleCertificateManager(newFakeCertificateManagerConfig(), fakeCertWriter)
 	cfg := &ServiceAliasConfig{
 		Host:           "www.example.com",
-		TLSTermination: routeapi.TLSTerminationEdge,
+		TLSTermination: routev1.TLSTerminationEdge,
 		Certificates: map[string]Certificate{
 			"www.example.com": {
 				ID: "testCert",

@@ -52,6 +52,7 @@ import (
 	routeedges "github.com/openshift/origin/pkg/oc/lib/graph/routegraph"
 	routeanalysis "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/analysis"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
+	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -960,7 +961,7 @@ func extractRouteInfo(route *routeapi.Route) (requested bool, other []string, er
 	reasons := sets.NewString()
 	for _, ingress := range route.Status.Ingress {
 		exact := route.Spec.Host == ingress.Host
-		switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+		switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 		case kapi.ConditionFalse:
 			reasons.Insert(condition.Reason)
 		default:

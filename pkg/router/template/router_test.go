@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 // TestCreateServiceUnit tests creating a service unit and finding it in router state
@@ -199,7 +199,7 @@ func TestDeleteEndpoints(t *testing.T) {
 // TestRouteKey tests that route keys are created as expected
 func TestRouteKey(t *testing.T) {
 	router := NewFakeTemplateRouter()
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "bar",
@@ -248,16 +248,16 @@ func TestRouteKey(t *testing.T) {
 
 	startCount := len(router.state)
 	for _, tc := range testCases {
-		route := &routeapi.Route{
+		route := &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: tc.Namespace,
 				Name:      tc.Name,
 			},
-			Spec: routeapi.RouteSpec{
+			Spec: routev1.RouteSpec{
 				Host: "host",
 				Path: "path",
-				TLS: &routeapi.TLSConfig{
-					Termination:              routeapi.TLSTerminationEdge,
+				TLS: &routev1.TLSConfig{
+					Termination:              routev1.TLSTerminationEdge,
 					Certificate:              "abc",
 					Key:                      "def",
 					CACertificate:            "ghi",
@@ -290,23 +290,23 @@ func TestCreateServiceAliasConfig(t *testing.T) {
 	serviceName := "TestService"
 	serviceWeight := int32(0)
 
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "bar",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "host",
 			Path: "path",
-			Port: &routeapi.RoutePort{
+			Port: &routev1.RoutePort{
 				TargetPort: intstr.FromInt(8080),
 			},
-			To: routeapi.RouteTargetReference{
+			To: routev1.RouteTargetReference{
 				Name:   serviceName,
 				Weight: &serviceWeight,
 			},
-			TLS: &routeapi.TLSConfig{
-				Termination:              routeapi.TLSTerminationEdge,
+			TLS: &routev1.TLSConfig{
+				Termination:              routev1.TLSTerminationEdge,
 				Certificate:              "abc",
 				Key:                      "def",
 				CACertificate:            "ghi",
@@ -338,15 +338,15 @@ func TestAddRoute(t *testing.T) {
 	namespace := "foo"
 	serviceName := "TestService"
 
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "bar",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "host",
 			Path: "path",
-			To: routeapi.RouteTargetReference{
+			To: routev1.RouteTargetReference{
 				Name: serviceName,
 			},
 		},
@@ -386,12 +386,12 @@ func TestUpdateRoute(t *testing.T) {
 	router := NewFakeTemplateRouter()
 
 	// Add a route that can be targeted for an update
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "bar",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "host",
 			Path: "/foo",
 		},
@@ -426,7 +426,7 @@ func TestUpdateRoute(t *testing.T) {
 }
 
 // compareTLS is a utility to help compare cert contents between an route and a config
-func compareTLS(route *routeapi.Route, saCfg ServiceAliasConfig, t *testing.T) bool {
+func compareTLS(route *routev1.Route, saCfg ServiceAliasConfig, t *testing.T) bool {
 	return findCert(route.Spec.TLS.DestinationCACertificate, saCfg.Certificates, false, t) &&
 		findCert(route.Spec.TLS.CACertificate, saCfg.Certificates, false, t) &&
 		findCert(route.Spec.TLS.Key, saCfg.Certificates, true, t) &&
@@ -461,21 +461,21 @@ func findCert(cert string, certs map[string]Certificate, isPrivateKey bool, t *t
 // TestRemoveRoute tests removing a ServiceAliasConfig from a ServiceUnit
 func TestRemoveRoute(t *testing.T) {
 	router := NewFakeTemplateRouter()
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "bar",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "host",
 		},
 	}
-	route2 := &routeapi.Route{
+	route2 := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "bar2",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "host",
 		},
 	}
@@ -524,7 +524,7 @@ func TestShouldWriteCertificates(t *testing.T) {
 		{
 			name: "passthrough termination",
 			cfg: &ServiceAliasConfig{
-				TLSTermination: routeapi.TLSTerminationPassthrough,
+				TLSTermination: routev1.TLSTerminationPassthrough,
 			},
 			shouldWriteCerts: false,
 		},
@@ -532,7 +532,7 @@ func TestShouldWriteCertificates(t *testing.T) {
 			name: "edge termination true",
 			cfg: &ServiceAliasConfig{
 				Host:           "edgetermtrue",
-				TLSTermination: routeapi.TLSTerminationEdge,
+				TLSTermination: routev1.TLSTerminationEdge,
 				Certificates:   makeCertMap("edgetermtrue", true),
 			},
 			shouldWriteCerts: true,
@@ -541,7 +541,7 @@ func TestShouldWriteCertificates(t *testing.T) {
 			name: "edge termination false",
 			cfg: &ServiceAliasConfig{
 				Host:           "edgetermfalse",
-				TLSTermination: routeapi.TLSTerminationEdge,
+				TLSTermination: routev1.TLSTerminationEdge,
 				Certificates:   makeCertMap("edgetermfalse", false),
 			},
 			shouldWriteCerts: false,
@@ -550,7 +550,7 @@ func TestShouldWriteCertificates(t *testing.T) {
 			name: "reencrypt termination true",
 			cfg: &ServiceAliasConfig{
 				Host:           "reencrypttermtrue",
-				TLSTermination: routeapi.TLSTerminationReencrypt,
+				TLSTermination: routev1.TLSTerminationReencrypt,
 				Certificates:   makeCertMap("reencrypttermtrue", true),
 			},
 			shouldWriteCerts: true,
@@ -559,7 +559,7 @@ func TestShouldWriteCertificates(t *testing.T) {
 			name: "reencrypt termination false",
 			cfg: &ServiceAliasConfig{
 				Host:           "reencrypttermfalse",
-				TLSTermination: routeapi.TLSTerminationReencrypt,
+				TLSTermination: routev1.TLSTerminationReencrypt,
 				Certificates:   makeCertMap("reencrypttermfalse", false),
 			},
 			shouldWriteCerts: false,
@@ -614,41 +614,41 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 
 	testCases := []struct {
 		Name           string
-		InsecurePolicy routeapi.InsecureEdgeTerminationPolicyType
+		InsecurePolicy routev1.InsecureEdgeTerminationPolicyType
 	}{
 		{
 			Name:           "none",
-			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyNone,
+			InsecurePolicy: routev1.InsecureEdgeTerminationPolicyNone,
 		},
 		{
 			Name:           "allow",
-			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyAllow,
+			InsecurePolicy: routev1.InsecureEdgeTerminationPolicyAllow,
 		},
 		{
 			Name:           "redirect",
-			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyRedirect,
+			InsecurePolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
 		},
 		{
 			Name:           "httpsec",
-			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyType("httpsec"),
+			InsecurePolicy: routev1.InsecureEdgeTerminationPolicyType("httpsec"),
 		},
 		{
 			Name:           "hsts",
-			InsecurePolicy: routeapi.InsecureEdgeTerminationPolicyType("hsts"),
+			InsecurePolicy: routev1.InsecureEdgeTerminationPolicyType("hsts"),
 		},
 	}
 
 	for _, tc := range testCases {
-		route := &routeapi.Route{
+		route := &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      tc.Name,
 			},
-			Spec: routeapi.RouteSpec{
+			Spec: routev1.RouteSpec{
 				Host: fmt.Sprintf("%s-host", tc.Name),
 				Path: "path",
-				TLS: &routeapi.TLSConfig{
-					Termination:                   routeapi.TLSTerminationEdge,
+				TLS: &routev1.TLSConfig{
+					Termination:                   routev1.TLSTerminationEdge,
 					Certificate:                   "abc",
 					Key:                           "def",
 					CACertificate:                 "ghi",

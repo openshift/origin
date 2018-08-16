@@ -12,11 +12,11 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	clientset "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/util"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/route/apis/route/validation"
-	clientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 )
 
 // RouteCertificateValidation is a Diagnostic to check that there is a working router.
@@ -76,7 +76,7 @@ func (d *RouteCertificateValidation) Check() types.DiagnosticResult {
 		return r
 	}
 
-	routes, err := client.Route().Routes(metav1.NamespaceAll).List(metav1.ListOptions{})
+	routes, err := client.Routes(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		r.Error("DRouCert2013", err, fmt.Sprintf(clGetRoutesFailed, err))
 		return r
@@ -84,7 +84,7 @@ func (d *RouteCertificateValidation) Check() types.DiagnosticResult {
 
 	for _, route := range routes.Items {
 		original := route.DeepCopy()
-		errs := validation.ExtendedValidateRoute(&route)
+		errs := routeapihelpers.ExtendedValidateRoute(&route)
 
 		if len(errs) == 0 {
 			if !kapihelper.Semantic.DeepEqual(original, &route) {

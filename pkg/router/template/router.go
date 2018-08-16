@@ -20,8 +20,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	routev1 "github.com/openshift/api/route/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/router/template/limiter"
 )
 
@@ -588,7 +588,7 @@ func (r *templateRouter) removeServiceAliasAssociation(id, alias string) {
 // dynamicallyAddRoute attempts to dynamically add a route.
 // Note: The config should have been synced at least once initially and
 //       the caller needs to acquire a lock [and release it].
-func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.Route, backend *ServiceAliasConfig) bool {
+func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routev1.Route, backend *ServiceAliasConfig) bool {
 	if r.dynamicConfigManager == nil {
 		return false
 	}
@@ -637,7 +637,7 @@ func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.
 // dynamicallyRemoveRoute attempts to dynamically remove a route.
 // Note: The config should have been synced at least once initially and
 //       the caller needs to acquire a lock [and release it].
-func (r *templateRouter) dynamicallyRemoveRoute(backendKey string, route *routeapi.Route) bool {
+func (r *templateRouter) dynamicallyRemoveRoute(backendKey string, route *routev1.Route) bool {
 	if r.dynamicConfigManager == nil || !r.synced {
 		return false
 	}
@@ -746,7 +746,7 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 }
 
 // routeKey generates route key. This allows templates to use this key without having to create a separate method
-func routeKey(route *routeapi.Route) string {
+func routeKey(route *routev1.Route) string {
 	return routeKeyFromParts(route.Namespace, route.Name)
 }
 
@@ -766,8 +766,8 @@ func getPartsFromRouteKey(key string) (string, string) {
 
 // createServiceAliasConfig creates a ServiceAliasConfig from a route and the router state.
 // The router state is not modified in the process, so referenced ServiceUnits may not exist.
-func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, backendKey string) *ServiceAliasConfig {
-	wantsWildcardSupport := (route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain)
+func (r *templateRouter) createServiceAliasConfig(route *routev1.Route, backendKey string) *ServiceAliasConfig {
+	wantsWildcardSupport := (route.Spec.WildcardPolicy == routev1.WildcardPolicySubdomain)
 
 	// The router config trumps what the route asks for/wants.
 	wildcard := r.allowWildcardRoutes && wantsWildcardSupport
@@ -806,11 +806,11 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, backend
 
 		config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
 
-		if tls.Termination == routeapi.TLSTerminationReencrypt && len(tls.DestinationCACertificate) == 0 && len(r.defaultDestinationCAPath) > 0 {
+		if tls.Termination == routev1.TLSTerminationReencrypt && len(tls.DestinationCACertificate) == 0 && len(r.defaultDestinationCAPath) > 0 {
 			config.VerifyServiceHostname = true
 		}
 
-		if tls.Termination != routeapi.TLSTerminationPassthrough {
+		if tls.Termination != routev1.TLSTerminationPassthrough {
 			config.Certificates = make(map[string]Certificate)
 
 			if len(tls.Certificate) > 0 {
@@ -851,7 +851,7 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, backend
 
 // AddRoute adds the given route to the router state if the route
 // hasn't been seen before or has changed since it was last seen.
-func (r *templateRouter) AddRoute(route *routeapi.Route) {
+func (r *templateRouter) AddRoute(route *routev1.Route) {
 	backendKey := routeKey(route)
 
 	newConfig := r.createServiceAliasConfig(route, backendKey)
@@ -897,7 +897,7 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 }
 
 // RemoveRoute removes the given route
-func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
+func (r *templateRouter) RemoveRoute(route *routev1.Route) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -906,7 +906,7 @@ func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 
 // removeRouteInternal removes the given route - internal
 // lockless form, caller needs to ensure lock acquisition [and release].
-func (r *templateRouter) removeRouteInternal(route *routeapi.Route) {
+func (r *templateRouter) removeRouteInternal(route *routev1.Route) {
 	backendKey := routeKey(route)
 	serviceAliasConfig, ok := r.state[backendKey]
 	if !ok {
@@ -1009,12 +1009,12 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 		return false
 	}
 
-	if cfg.TLSTermination == routeapi.TLSTerminationEdge || cfg.TLSTermination == routeapi.TLSTerminationReencrypt {
+	if cfg.TLSTermination == routev1.TLSTerminationEdge || cfg.TLSTermination == routev1.TLSTerminationReencrypt {
 		if hasRequiredEdgeCerts(cfg) {
 			return true
 		}
 
-		if cfg.TLSTermination == routeapi.TLSTerminationReencrypt {
+		if cfg.TLSTermination == routev1.TLSTerminationReencrypt {
 			if hasReencryptDestinationCACert(cfg) {
 				glog.V(4).Infof("a reencrypt route with host %s does not have an edge certificate, using default router certificate", cfg.Host)
 				return true
@@ -1040,7 +1040,7 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 }
 
 // HasRoute indicates whether the given route is known to this router.
-func (r *templateRouter) HasRoute(route *routeapi.Route) bool {
+func (r *templateRouter) HasRoute(route *routev1.Route) bool {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	key := routeKey(route)
@@ -1089,7 +1089,7 @@ func generateDestCertKey(config *ServiceAliasConfig) string {
 // if weight < 0 or > 256 set to 0.
 // When the weight is 0 no traffic goes to the service. If they are
 // all 0 the request is returned with 503 response.
-func getServiceUnits(route *routeapi.Route) map[string]int32 {
+func getServiceUnits(route *routev1.Route) map[string]int32 {
 	serviceUnits := make(map[string]int32)
 
 	// get the weight and number of endpoints for each service
