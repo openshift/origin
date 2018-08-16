@@ -53,7 +53,7 @@
       "metadata": {
         "name": "route-edge",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}"
         }
       },
       "spec": {

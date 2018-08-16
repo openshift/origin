@@ -18878,7 +18878,7 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "metadata": {
         "name": "route-edge",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}"
         }
       },
       "spec": {
@@ -19386,7 +19386,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "metadata": {
         "name": "route-edge",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}"
         }
       },
       "spec": {
@@ -19843,7 +19843,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "metadata": {
         "name": "route-edge",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}"
         }
       },
       "spec": {
@@ -20340,7 +20340,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "metadata": {
         "name": "route-edge",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}"
         }
      },
       "spec": {
