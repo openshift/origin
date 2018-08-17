@@ -1,5 +1,5 @@
 hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
-updated: 2018-08-10T13:17:19.670164-04:00
+updated: 2018-08-17T10:23:00.048468-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -508,7 +508,7 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: e89373fe6b4a7413d7acd6da1725b83ef713e6e4
+  version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
 - name: github.com/google/cadvisor
   version: c38aa7d9fa62f6b32862471d35a8944f3718cbda
   repo: https://github.com/openshift/google-cadvisor.git
@@ -819,7 +819,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: f424ae81fec6a71a7d7421d5c572a13106b520fc
+  version: cb68976b78d5fdc64c52646f55d78bf6ea95883a
   subpackages:
   - apps
   - apps/v1
@@ -969,7 +969,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: bfc0aea02ce95dcfc1a83d452270dbc66933709b
+  version: 9e710ba9bcf926e020306b67633bf38b8e671da5
   subpackages:
   - dockerclient
   - imageprogress
@@ -995,7 +995,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: a6f9beadd289fb336c17c33991cb48c10d62c2de
+  version: 7b9adb2996ebb91a58fed6abdd9d9c2d7b58a53c
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1510,7 +1510,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 13307c0691215c4084eda4e3ffaeb5a77e5450c7
+  version: 60509ffe155278f9646a79aa2f086ddf8c7ad556
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1622,7 +1622,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 39be5e70007120031a1996249f75118bd7eb31d7
+  version: 427190a5c8fb757089de86d5081f2e058408d217
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1823,7 +1823,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 88ad25d6541a7eb2eb993996b0f99c2c274f29dd
+  version: 7c242b7f0eabe510ee2f4d25785b54a7fa60dab9
   repo: https://github.com/openshift/kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -1864,7 +1864,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 533fb4198e847c4d5b3413558e82afa226d25543
+  version: c235f75d4886e2f53d0d6bc908d862ef490f0ac7
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

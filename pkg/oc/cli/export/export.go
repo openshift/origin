@@ -3,7 +3,6 @@ package export
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 

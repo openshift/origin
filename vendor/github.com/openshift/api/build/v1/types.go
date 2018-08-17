@@ -1072,6 +1072,17 @@ type GenericWebHookEvent struct {
 type GitInfo struct {
 	GitBuildSource    `json:",inline" protobuf:"bytes,1,opt,name=gitBuildSource"`
 	GitSourceRevision `json:",inline" protobuf:"bytes,2,opt,name=gitSourceRevision"`
+
+	// Refs is a list of GitRefs for the provided repo - generally sent
+	// when used from a post-receive hook. This field is optional and is
+	// used when sending multiple refs
+	Refs []GitRefInfo `json:"refs" protobuf:"bytes,3,rep,name=refs"`
+}
+
+// GitRefInfo is a single ref
+type GitRefInfo struct {
+	GitBuildSource    `json:",inline" protobuf:"bytes,1,opt,name=gitBuildSource"`
+	GitSourceRevision `json:",inline" protobuf:"bytes,2,opt,name=gitSourceRevision"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

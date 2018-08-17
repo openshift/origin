@@ -166,6 +166,9 @@ type ConfigManagerOptions struct {
 
 	// WildcardRoutesAllowed indicates if wildcard routes are allowed.
 	WildcardRoutesAllowed bool
+
+	// ExtendedValidation indicates if extended route validation is enabled.
+	ExtendedValidation bool
 }
 
 // ConfigManager is used by the router to make configuration changes using

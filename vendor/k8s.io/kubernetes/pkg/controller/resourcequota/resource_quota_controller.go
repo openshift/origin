@@ -161,10 +161,11 @@ func NewResourceQuotaController(options *ResourceQuotaControllerOptions) (*Resou
 
 		rq.quotaMonitor = qm
 
-		// do initial quota monitor setup
+		// do initial quota monitor setup.  If we have a discovery failure here, it's ok. We'll discover more resources when
+		// a later sync happens.
 		resources, err := GetQuotableResources(options.DiscoveryFunc)
 		if err != nil {
-			return nil, err
+			utilruntime.HandleError(fmt.Errorf("initial discovery check failure, continuing and counting on future sync update: %v", err))
 		}
 		if err = qm.SyncMonitors(resources); err != nil {
 			utilruntime.HandleError(fmt.Errorf("initial monitor sync has error: %v", err))
@@ -421,7 +422,9 @@ func (rq *ResourceQuotaController) Sync(discoveryFunc NamespacedResourcesFunc, p
 	// Something has changed, so track the new state and perform a sync.
 	oldResources := make(map[schema.GroupVersionResource]struct{})
 	wait.Until(func() {
-		// Get the current resource list from discovery.
+		// Get the current resource list from discovery.  A failure here will (should?) prevent updates to the sync list.
+		// TODO I suspect that this should actually tolerate the addition of resources on discovery failure, but may need more
+		// TODO fine grained inspection of errors on failures to know which resources could/should be removed.
 		newResources, err := GetQuotableResources(discoveryFunc)
 		if err != nil {
 			utilruntime.HandleError(err)
@@ -470,15 +473,18 @@ func (rq *ResourceQuotaController) resyncMonitors(resources map[schema.GroupVers
 
 // GetQuotableResources returns all resources that the quota system should recognize.
 // It requires a resource supports the following verbs: 'create','list','delete'
+// This function may return both results and an error.  If that happens, it means that the discovery calls were only
+// partially successful.  A decision about whether to proceed or not is left to the caller.
 func GetQuotableResources(discoveryFunc NamespacedResourcesFunc) (map[schema.GroupVersionResource]struct{}, error) {
-	possibleResources, err := discoveryFunc()
-	if err != nil {
-		return nil, fmt.Errorf("failed to discover resources: %v", err)
+	possibleResources, discoveryErr := discoveryFunc()
+	if discoveryErr != nil && len(possibleResources) == 0 {
+		return nil, fmt.Errorf("failed to discover resources: %v", discoveryErr)
 	}
 	quotableResources := discovery.FilteredBy(discovery.SupportsAllVerbs{Verbs: []string{"create", "list", "watch", "delete"}}, possibleResources)
 	quotableGroupVersionResources, err := discovery.GroupVersionResources(quotableResources)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse resources: %v", err)
 	}
-	return quotableGroupVersionResources, nil
+	// return the original discovery error (if any) in addition to the list
+	return quotableGroupVersionResources, discoveryErr
 }

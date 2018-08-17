@@ -13,7 +13,7 @@ type GenericResourceInformer interface {
 	Start(stopCh <-chan struct{})
 }
 
-// genericInternalResourceInformerFunc will return an internal informer for any resource matching
+// GenericInternalResourceInformerFunc will return an internal informer for any resource matching
 // its group resource, instead of the external version. Only valid for use where the type is accessed
 // via generic interfaces, such as the garbage collector with ObjectMeta.
 type GenericInternalResourceInformerFunc func(resource schema.GroupVersionResource) (informers.GenericInformer, error)

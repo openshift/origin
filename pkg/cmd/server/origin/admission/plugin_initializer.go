@@ -147,3 +147,31 @@ func NewPluginInitializer(
 
 	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
 }
+
+type DefaultInformerAccess struct {
+	InternalKubernetesInformers        kinternalinformers.SharedInformerFactory
+	KubernetesInformers                kexternalinformers.SharedInformerFactory
+	InternalOpenshiftImageInformers    imageinformer.SharedInformerFactory
+	InternalOpenshiftQuotaInformers    quotainformer.SharedInformerFactory
+	InternalOpenshiftSecurityInformers securityinformer.SharedInformerFactory
+	OpenshiftUserInformers             userinformer.SharedInformerFactory
+}
+
+func (i *DefaultInformerAccess) GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory {
+	return i.InternalKubernetesInformers
+}
+func (i *DefaultInformerAccess) GetKubernetesInformers() kexternalinformers.SharedInformerFactory {
+	return i.KubernetesInformers
+}
+func (i *DefaultInformerAccess) GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory {
+	return i.InternalOpenshiftImageInformers
+}
+func (i *DefaultInformerAccess) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
+	return i.InternalOpenshiftQuotaInformers
+}
+func (i *DefaultInformerAccess) GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory {
+	return i.InternalOpenshiftSecurityInformers
+}
+func (i *DefaultInformerAccess) GetOpenshiftUserInformers() userinformer.SharedInformerFactory {
+	return i.OpenshiftUserInformers
+}

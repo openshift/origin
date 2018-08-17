@@ -399,7 +399,8 @@ func (GitHubWebHookCause) SwaggerDoc() map[string]string {
 }
 
 var map_GitInfo = map[string]string{
-	"": "GitInfo is the aggregated git information for a generic webhook post",
+	"":     "GitInfo is the aggregated git information for a generic webhook post",
+	"refs": "Refs is a list of GitRefs for the provided repo - generally sent when used from a post-receive hook. This field is optional and is used when sending multiple refs",
 }
 
 func (GitInfo) SwaggerDoc() map[string]string {
@@ -412,6 +413,14 @@ var map_GitLabWebHookCause = map[string]string{
 
 func (GitLabWebHookCause) SwaggerDoc() map[string]string {
 	return map_GitLabWebHookCause
+}
+
+var map_GitRefInfo = map[string]string{
+	"": "GitRefInfo is a single ref",
+}
+
+func (GitRefInfo) SwaggerDoc() map[string]string {
+	return map_GitRefInfo
 }
 
 var map_GitSourceRevision = map[string]string{

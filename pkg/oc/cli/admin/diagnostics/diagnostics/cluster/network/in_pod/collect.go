@@ -47,7 +47,7 @@ func (d CollectNetworkInfo) CanRun() (bool, error) {
 func (d CollectNetworkInfo) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(CollectNetworkInfoName)
 
-	nodeName, _, err := util.GetLocalNode(d.KubeClient)
+	node, _, err := util.GetLocalNode(d.KubeClient)
 	if err != nil {
 		r.Error("DColNet1001", err, fmt.Sprintf("Fetching local node info failed: %s", err))
 		return r
@@ -55,7 +55,7 @@ func (d CollectNetworkInfo) Check() types.DiagnosticResult {
 
 	l := util.LogInterface{
 		Result: r,
-		Logdir: filepath.Join(util.NetworkDiagDefaultLogDir, util.NetworkDiagNodeLogDirPrefix, nodeName),
+		Logdir: filepath.Join(util.NetworkDiagDefaultLogDir, util.NetworkDiagNodeLogDirPrefix, node.Name),
 	}
 	l.LogNode(d.KubeClient, d.Runtime)
 	return r

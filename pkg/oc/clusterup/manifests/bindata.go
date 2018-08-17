@@ -16408,7 +16408,7 @@ objects:
           args:
           - apiserver
           - --enable-admission-plugins
-          - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceBindingsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
+          - NamespaceLifecycle,DefaultServicePlan,ServiceBindingsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
           - --storage-type
           - etcd
           - --secure-port
