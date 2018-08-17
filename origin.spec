@@ -385,6 +385,7 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %files node
 %{_bindir}/openshift-node-config
 %{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
+%config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
 
