@@ -5,36 +5,47 @@ go_library(
     srcs = select({
         "@io_bazel_rules_go//go/platform:android": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:darwin": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:dragonfly": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:freebsd": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:linux": [
+            "exec.go",
             "nsenter.go",
         ],
         "@io_bazel_rules_go//go/platform:nacl": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:netbsd": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:openbsd": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:plan9": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:solaris": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "@io_bazel_rules_go//go/platform:windows": [
             "nsenter_unsupported.go",
+            "k8s.io/utils/exec",
         ],
         "//conditions:default": [],
     }),
