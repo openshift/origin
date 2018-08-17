@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -606,7 +607,7 @@ func TestDockerfileBuild(t *testing.T) {
 		AsDockerfile: tempdir + string(os.PathSeparator) + "MyDockerfile",
 	}
 	expected := []string{
-		"FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"\"io.openshift.s2i.build.commit.date\"",
 		"\"io.openshift.s2i.build.commit.id\"",
 		"\"io.openshift.s2i.build.commit.ref\"",
@@ -614,9 +615,10 @@ func TestDockerfileBuild(t *testing.T) {
 		"\"io.openshift.s2i.build.source-location\"",
 		"\"io.openshift.s2i.build.image\"=\"docker.io/centos/nodejs-8-centos7\"",
 		"\"io.openshift.s2i.build.commit.author\"",
-		"COPY --chown=1001:0 upload/src /tmp/src",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^COPY upload/src /tmp/src",
+		"(?m)^RUN chown -R 1001:0.* /tmp/src",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/src/server.js"),
@@ -647,7 +649,7 @@ func TestDockerfileBuildDefaultDockerfile(t *testing.T) {
 		AsDockerfile: tempdir + string(os.PathSeparator),
 	}
 	expected := []string{
-		"FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"\"io.openshift.s2i.build.commit.date\"",
 		"\"io.openshift.s2i.build.commit.id\"",
 		"\"io.openshift.s2i.build.commit.ref\"",
@@ -655,9 +657,10 @@ func TestDockerfileBuildDefaultDockerfile(t *testing.T) {
 		"\"io.openshift.s2i.build.source-location\"",
 		"\"io.openshift.s2i.build.image\"=\"docker.io/centos/nodejs-8-centos7\"",
 		"\"io.openshift.s2i.build.commit.author\"",
-		"COPY --chown=1001:0 upload/src /tmp/src",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^COPY upload/src /tmp/src",
+		"(?m)^RUN chown -R 1001:0.* /tmp/src",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/src/server.js"),
@@ -752,10 +755,21 @@ func TestDockerfileBuildInjections(t *testing.T) {
 		t.Errorf("Unable to create injection dir: %v", err)
 	}
 
+	for i := 0; i < 3; i++ {
+		_, err = ioutil.TempFile(injection1, "injectfile-")
+		if err != nil {
+			t.Errorf("Unable to create injection file: %v", err)
+		}
+	}
+
 	injection2 := filepath.Join(tempdir, "injection2")
 	err = os.Mkdir(injection2, 0777)
 	if err != nil {
 		t.Errorf("Unable to create injection dir: %v", err)
+	}
+	_, err = ioutil.TempFile(injection2, "injectfile-2")
+	if err != nil {
+		t.Errorf("Unable to create injection file: %v", err)
 	}
 
 	config := &api.Config{
@@ -790,9 +804,12 @@ func TestDockerfileBuildInjections(t *testing.T) {
 	trimmedInjection2 := filepath.ToSlash(strings.TrimPrefix(injection2, filepath.VolumeName(injection2)))
 
 	expected := []string{
-		"COPY --chown=1001:0 upload/injections" + trimmedInjection1 + " /workdir/injection1",
-		"COPY --chown=1001:0 upload/injections" + trimmedInjection2 + " /destination/injection2",
-		"rm -rf /workdir/injection1",
+		"(?m)^COPY upload/injections" + trimmedInjection1 + " /workdir/injection1",
+		"(?m)^RUN chown -R 1001:0.* /workdir/injection1",
+		"(?m)^COPY upload/injections" + trimmedInjection2 + " /destination/injection2",
+		"(?m)^RUN chown -R 1001:0.* /destination/injection2",
+		"(?m)^RUN rm /workdir/injection1/injectfile-",
+		"    rm /workdir/injection1/injectfile-",
 	}
 	notExpected := []string{
 		"rm -rf /destination/injection2",
@@ -833,9 +850,10 @@ func TestDockerfileBuildScriptsURLAssemble(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /destination/scripts/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /destination/scripts/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/src/server.js"),
@@ -872,9 +890,10 @@ func TestDockerfileBuildScriptsURLRun(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /destination/scripts/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /destination/scripts/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/src/server.js"),
@@ -919,9 +938,10 @@ func TestDockerfileBuildSourceScriptsAssemble(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /destination/scripts/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /destination/scripts/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/scripts/assemble"),
@@ -965,9 +985,10 @@ func TestDockerfileBuildSourceScriptsRun(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /destination/scripts/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /destination/scripts/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/scripts/run"),
@@ -1015,12 +1036,13 @@ func TestDockerfileBuildScriptsURLImage(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"RUN /usr/custom/s2i/assemble",
-		"CMD /usr/custom/s2i/run",
+		"(?m)^RUN /usr/custom/s2i/assemble",
+		"(?m)^CMD /usr/custom/s2i/run",
 	}
 	notExpected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /destination/scripts/assemble",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /destination/scripts/assemble",
 	}
 	runDockerfileTest(t, config, expected, notExpected, nil)
 }
@@ -1053,9 +1075,10 @@ func TestDockerfileBuildImageScriptsURLAssemble(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /destination/scripts/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /destination/scripts/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/src/server.js"),
@@ -1092,9 +1115,10 @@ func TestDockerfileBuildImageScriptsURLRun(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /destination/scripts/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /destination/scripts/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/src/server.js"),
@@ -1139,9 +1163,10 @@ func TestDockerfileBuildImageScriptsURLImage(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /destination/scripts/assemble",
-		"CMD /usr/custom/s2i/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /destination/scripts/assemble",
+		"(?m)^CMD /usr/custom/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/scripts/assemble"),
@@ -1178,9 +1203,10 @@ func TestDockerfileBuildScriptsAndImageURL(t *testing.T) {
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /destination/scripts/assemble",
-		"CMD /usr/some/dir/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /destination/scripts/assemble",
+		"(?m)^CMD /usr/some/dir/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/src/server.js"),
@@ -1240,9 +1266,10 @@ func TestDockerfileBuildScriptsAndImageURLConflicts(t *testing.T) {
 		AsDockerfile: filepath.Join(outputDir, "Dockerfile"),
 	}
 	expected := []string{
-		"COPY --chown=1001:0 upload/scripts /destination/scripts",
-		"RUN /destination/scripts/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^COPY upload/scripts /destination/scripts",
+		"(?m)^RUN chown -R 1001:0.* /destination/scripts",
+		"(?m)^RUN /destination/scripts/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(outputDir, "upload/src/server.js"),
@@ -1283,15 +1310,17 @@ func TestDockerfileIncrementalBuild(t *testing.T) {
 	}
 
 	expected := []string{
-		"FROM test:tag as cached",
-		"RUN if [ -s /usr/libexec/s2i/save-artifacts ]; then /usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar; else touch /tmp/artifacts.tar; fi",
-		"FROM docker.io/centos/nodejs-8-centos7",
-		"COPY --from=cached --chown=1001:0 /tmp/artifacts.tar /tmp/artifacts.tar",
-		"RUN if [ -s /tmp/artifacts.tar ]; then mkdir -p /tmp/artifacts; tar -xf /tmp/artifacts.tar -C /tmp/artifacts; fi",
+		"(?m)^FROM test:tag as cached",
+		"(?m)^RUN if \\[ -s /usr/libexec/s2i/save-artifacts \\]; then /usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar; else touch /tmp/artifacts.tar; fi",
+		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^COPY --from=cached /tmp/artifacts.tar /tmp/artifacts.tar",
+		"(?m)^RUN chown 1001:0 /tmp/artifacts.tar",
+		"if \\[ -s /tmp/artifacts.tar \\]; then mkdir -p /tmp/artifacts; tar -xf /tmp/artifacts.tar -C /tmp/artifacts; fi",
 		"rm /tmp/artifacts.tar",
-		"COPY --chown=1001:0 upload/src /tmp/src",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^COPY upload/src /tmp/src",
+		"(?m)^RUN chown -R 1001:0.* /tmp/src",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 
 	runDockerfileTest(t, config, expected, nil, nil)
@@ -1335,14 +1364,15 @@ func TestDockerfileIncrementalSourceSave(t *testing.T) {
 	}
 
 	expected := []string{
-		"FROM test:tag as cached",
-		"COPY --chown=1001:0 upload/scripts/save-artifacts /destination/scripts/save-artifacts",
-		"RUN if [ -s /destination/scripts/save-artifacts ]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
-		"FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM test:tag as cached",
+		"(?m)^COPY upload/scripts/save-artifacts /destination/scripts/save-artifacts",
+		"(?m)^RUN chown 1001:0 /destination/scripts/save-artifacts",
+		"(?m)^RUN if \\[ -s /destination/scripts/save-artifacts \\]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
+		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"mkdir -p /destination/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /destination/artifacts",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/scripts/save-artifacts"),
@@ -1382,14 +1412,15 @@ func TestDockerfileIncrementalSaveURL(t *testing.T) {
 	}
 
 	expected := []string{
-		"FROM test:tag as cached",
-		"COPY --chown=1001:0 upload/scripts/save-artifacts /destination/scripts/save-artifacts",
-		"RUN if [ -s /destination/scripts/save-artifacts ]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
-		"FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM test:tag as cached",
+		"(?m)^COPY upload/scripts/save-artifacts /destination/scripts/save-artifacts",
+		"(?m)^RUN chown 1001:0 /destination/scripts/save-artifacts",
+		"(?m)^RUN if \\[ -s /destination/scripts/save-artifacts \\]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
+		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"mkdir -p /destination/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /destination/artifacts",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
 		filepath.Join(tempdir, "upload/scripts/save-artifacts"),
@@ -1421,14 +1452,14 @@ func TestDockerfileIncrementalTag(t *testing.T) {
 	}
 
 	expected := []string{
-		"FROM incremental:tag as cached",
+		"(?m)^FROM incremental:tag as cached",
 		"/usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar",
-		"FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"mkdir -p /tmp/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /tmp/artifacts",
 		"rm /tmp/artifacts.tar",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 
 	runDockerfileTest(t, config, expected, nil, nil)
@@ -1455,15 +1486,16 @@ func TestDockerfileIncrementalAssembleUser(t *testing.T) {
 	}
 
 	expected := []string{
-		"FROM test:tag as cached\nUSER 2250",
+		"(?m)^FROM test:tag as cached\nUSER 2250",
 		"/usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar",
-		"FROM docker.io/centos/nodejs-8-centos7",
-		"COPY --from=cached --chown=2250:0 /tmp/artifacts.tar /tmp/artifacts.tar",
+		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^COPY --from=cached /tmp/artifacts.tar /tmp/artifacts.tar",
+		"(?m)^RUN chown 2250:0 /tmp/artifacts.tar",
 		"mkdir -p /tmp/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /tmp/artifacts",
 		"rm /tmp/artifacts.tar",
-		"RUN /usr/libexec/s2i/assemble",
-		"CMD /usr/libexec/s2i/run",
+		"(?m)^RUN /usr/libexec/s2i/assemble",
+		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 
 	runDockerfileTest(t, config, expected, nil, nil)
@@ -1495,12 +1527,20 @@ func runDockerfileTest(t *testing.T, config *api.Config, expected []string, notE
 	}
 
 	for _, s := range expected {
-		if !strings.Contains(dockerfile, s) {
+		reg, err := regexp.Compile(s)
+		if err != nil {
+			t.Fatalf("failed to compile regex %q: %v", s, err)
+		}
+		if !reg.MatchString(dockerfile) {
 			t.Fatalf("Expected dockerfile to contain %s, it did not: \n%s", s, dockerfile)
 		}
 	}
 	for _, s := range notExpected {
-		if strings.Contains(dockerfile, s) {
+		reg, err := regexp.Compile(s)
+		if err != nil {
+			t.Fatalf("failed to compile regex %q: %v", s, err)
+		}
+		if reg.MatchString(dockerfile) {
 			t.Fatalf("Expected dockerfile not to contain %s, it did: \n%s", s, dockerfile)
 		}
 	}
