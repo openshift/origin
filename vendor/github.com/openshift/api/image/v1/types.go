@@ -428,22 +428,28 @@ type ImageStreamLayers struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// blobs is a map of blob name to metadata about the blob.
 	Blobs map[string]ImageLayerData `json:"blobs" protobuf:"bytes,2,rep,name=blobs"`
-	// images is a map between an image name and the names of the blobs and manifests that
+	// images is a map between an image name and the names of the blobs and config that
 	// comprise the image.
 	Images map[string]ImageBlobReferences `json:"images" protobuf:"bytes,3,rep,name=images"`
 }
 
 // ImageBlobReferences describes the blob references within an image.
 type ImageBlobReferences struct {
+	// imageMissing is true if the image is referenced by the image stream but the image
+	// object has been deleted from the API by an administrator. When this field is set,
+	// layers and config fields may be empty and callers that depend on the image metadata
+	// should consider the image to be unavailable for download or viewing.
+	// +optional
+	ImageMissing bool `json:"imageMissing" protobuf:"varint,3,opt,name=imageMissing"`
 	// layers is the list of blobs that compose this image, from base layer to top layer.
 	// All layers referenced by this array will be defined in the blobs map. Some images
 	// may have zero layers.
 	// +optional
 	Layers []string `json:"layers" protobuf:"bytes,1,rep,name=layers"`
-	// manifest, if set, is the blob that contains the image manifest. Some images do
-	// not have separate manifest blobs and this field will be set to nil if so.
+	// config, if set, is the blob that contains the image config. Some images do
+	// not have separate config blobs and this field will be set to nil if so.
 	// +optional
-	Manifest *string `json:"manifest" protobuf:"bytes,2,opt,name=manifest"`
+	Config *string `json:"config" protobuf:"bytes,2,opt,name=config"`
 }
 
 // ImageLayerData contains metadata about an image layer.

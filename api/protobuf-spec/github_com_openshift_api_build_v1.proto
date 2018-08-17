@@ -735,12 +735,24 @@ message GitInfo {
   optional GitBuildSource gitBuildSource = 1;
 
   optional GitSourceRevision gitSourceRevision = 2;
+
+  // Refs is a list of GitRefs for the provided repo - generally sent
+  // when used from a post-receive hook. This field is optional and is
+  // used when sending multiple refs
+  repeated GitRefInfo refs = 3;
 }
 
 // GitLabWebHookCause has information about a GitLab webhook that triggered a
 // build.
 message GitLabWebHookCause {
   optional CommonWebHookCause commonSpec = 1;
+}
+
+// GitRefInfo is a single ref
+message GitRefInfo {
+  optional GitBuildSource gitBuildSource = 1;
+
+  optional GitSourceRevision gitSourceRevision = 2;
 }
 
 // GitSourceRevision is the commit information from a git source for a build

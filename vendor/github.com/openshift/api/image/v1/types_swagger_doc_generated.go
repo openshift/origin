@@ -43,9 +43,10 @@ func (Image) SwaggerDoc() map[string]string {
 }
 
 var map_ImageBlobReferences = map[string]string{
-	"":         "ImageBlobReferences describes the blob references within an image.",
-	"layers":   "layers is the list of blobs that compose this image, from base layer to top layer. All layers referenced by this array will be defined in the blobs map. Some images may have zero layers.",
-	"manifest": "manifest, if set, is the blob that contains the image manifest. Some images do not have separate manifest blobs and this field will be set to nil if so.",
+	"":             "ImageBlobReferences describes the blob references within an image.",
+	"imageMissing": "imageMissing is true if the image is referenced by the image stream but the image object has been deleted from the API by an administrator. When this field is set, layers and config fields may be empty and callers that depend on the image metadata should consider the image to be unavailable for download or viewing.",
+	"layers":       "layers is the list of blobs that compose this image, from base layer to top layer. All layers referenced by this array will be defined in the blobs map. Some images may have zero layers.",
+	"config":       "config, if set, is the blob that contains the image config. Some images do not have separate config blobs and this field will be set to nil if so.",
 }
 
 func (ImageBlobReferences) SwaggerDoc() map[string]string {
@@ -191,7 +192,7 @@ var map_ImageStreamLayers = map[string]string{
 	"":         "ImageStreamLayers describes information about the layers referenced by images in this image stream.",
 	"metadata": "Standard object's metadata.",
 	"blobs":    "blobs is a map of blob name to metadata about the blob.",
-	"images":   "images is a map between an image name and the names of the blobs and manifests that comprise the image.",
+	"images":   "images is a map between an image name and the names of the blobs and config that comprise the image.",
 }
 
 func (ImageStreamLayers) SwaggerDoc() map[string]string {

@@ -13,9 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/webhook"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 // WebHookPlugin used for processing manual(or other) webhook requests.
@@ -59,7 +61,8 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 		return revision, envvars, dockerStrategyOptions, true, nil
 	}
 
-	var data buildapi.GenericWebHookEvent
+	internalData := &buildapi.GenericWebHookEvent{}
+	versionedData := &buildv1.GenericWebHookEvent{}
 	if contentType == "application/yaml" {
 		body, err = yaml.ToJSON(body)
 		if err != nil {
@@ -67,27 +70,31 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 			return revision, envvars, dockerStrategyOptions, true, warning
 		}
 	}
-	if err = json.Unmarshal(body, &data); err != nil {
+	if err = json.Unmarshal(body, &versionedData); err != nil {
 		warning := webhook.NewWarning(fmt.Sprintf("error unmarshalling payload: %v, ignoring payload and continuing with build", err))
 		return revision, envvars, dockerStrategyOptions, true, warning
 	}
-	if len(data.Env) > 0 && trigger.AllowEnv {
-		envvars = data.Env
+	if err := legacyscheme.Scheme.Convert(versionedData, internalData, nil); err != nil {
+		return revision, envvars, dockerStrategyOptions, false, errors.NewBadRequest(err.Error())
 	}
-	if data.DockerStrategyOptions != nil {
-		dockerStrategyOptions = data.DockerStrategyOptions
+
+	if len(internalData.Env) > 0 && trigger.AllowEnv {
+		envvars = internalData.Env
+	}
+	if internalData.DockerStrategyOptions != nil {
+		dockerStrategyOptions = internalData.DockerStrategyOptions
 	}
 	if buildCfg.Spec.Source.Git == nil {
 		// everything below here is specific to git-based builds
 		return revision, envvars, dockerStrategyOptions, true, nil
 	}
-	if data.Git == nil {
+	if internalData.Git == nil {
 		warning := webhook.NewWarning("no git information found in payload, ignoring and continuing with build")
 		return revision, envvars, dockerStrategyOptions, true, warning
 	}
 
-	if data.Git.Refs != nil {
-		for _, ref := range data.Git.Refs {
+	if internalData.Git.Refs != nil {
+		for _, ref := range internalData.Git.Refs {
 			if webhook.GitRefMatches(ref.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
 				revision = &buildapi.SourceRevision{
 					Git: &ref.GitSourceRevision,
@@ -98,12 +105,12 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 		warning := webhook.NewWarning(fmt.Sprintf("skipping build. None of the supplied refs matched %q", buildCfg.Spec.Source.Git.Ref))
 		return revision, envvars, dockerStrategyOptions, false, warning
 	}
-	if !webhook.GitRefMatches(data.Git.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
-		warning := webhook.NewWarning(fmt.Sprintf("skipping build. Branch reference from %q does not match configuration", data.Git.Ref))
+	if !webhook.GitRefMatches(internalData.Git.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
+		warning := webhook.NewWarning(fmt.Sprintf("skipping build. Branch reference from %q does not match configuration", internalData.Git.Ref))
 		return revision, envvars, dockerStrategyOptions, false, warning
 	}
 	revision = &buildapi.SourceRevision{
-		Git: &data.Git.GitSourceRevision,
+		Git: &internalData.Git.GitSourceRevision,
 	}
 	return revision, envvars, dockerStrategyOptions, true, nil
 }
