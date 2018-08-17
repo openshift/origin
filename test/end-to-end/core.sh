@@ -173,6 +173,7 @@ os::log::info "Ruby's testing blob digest: ${rubyimageblob}"
 # verify remote images can be pulled directly from the local registry
 os::log::info "Docker pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
+os::cmd::try_until_success 'oc get imagestreamtags mysql:pullthrough' $((2*TIME_MIN))
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 mysqlblob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 4096.}}{{.name}},{{end}}{{end}}' "mysql:pullthrough" | cut -d , -f 1)"
 # directly hit the image to trigger mirroring in case the layer already exists on disk
@@ -213,6 +214,7 @@ os::cmd::expect_failure_and_text "docker run -e OPENSHIFT_DEFAULT_REGISTRY=local
 
 os::log::info "Docker pull from istag"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"
+os::cmd::try_until_success 'oc get imagestreamtags hello-world:pullthrough -n test' $((2*TIME_MIN))
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/test/hello-world:pullthrough"
 os::cmd::expect_success "docker tag ${DOCKER_REGISTRY}/test/hello-world:pullthrough ${DOCKER_REGISTRY}/cache/hello-world:latest"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/hello-world:latest"
@@ -275,6 +277,7 @@ os::test::junit::declare_suite_end
 
 os::log::info "Fetch manifest V2 schema 2 image with old client using pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest hello-world:pullthrough"
+os::cmd::try_until_success 'oc get imagestreamtags hello-world:pullthrough' $((2*TIME_MIN))
 os::cmd::expect_success_and_text "oc get -o jsonpath='{.image.dockerImageManifestMediaType}' istag hello-world:pullthrough" 'application/vnd\.docker\.distribution\.manifest\.v2\+json'
 hello_world_name="$(oc get -o 'jsonpath={.image.metadata.name}' istag hello-world:pullthrough)"
 os::cmd::expect_success_and_text "echo '${hello_world_name}'" '.+'
