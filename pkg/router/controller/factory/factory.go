@@ -19,7 +19,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
+	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router"
@@ -37,7 +37,7 @@ const (
 type RouterControllerFactory struct {
 	KClient       kclientset.Interface
 	RClient       routeclientset.Interface
-	ProjectClient projectclient.ProjectResourceInterface
+	ProjectClient projectclient.ProjectInterface
 
 	ResyncInterval  time.Duration
 	Namespace       string
@@ -51,7 +51,7 @@ type RouterControllerFactory struct {
 }
 
 // NewDefaultRouterControllerFactory initializes a default router controller factory.
-func NewDefaultRouterControllerFactory(rc routeclientset.Interface, pc projectclient.ProjectResourceInterface, kc kclientset.Interface) *RouterControllerFactory {
+func NewDefaultRouterControllerFactory(rc routeclientset.Interface, pc projectclient.ProjectInterface, kc kclientset.Interface) *RouterControllerFactory {
 	return &RouterControllerFactory{
 		KClient:        kc,
 		RClient:        rc,

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,26 +14,26 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	"github.com/openshift/client-go/security/clientset/versioned/typed/security/v1/fake"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/security/apis/security"
-	securityinternalversion "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
-	"github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion/fake"
 )
 
-func newFakeSecurityClient(rootAllowed bool) securityinternalversion.SecurityInterface {
-	securityClient := &fake.FakeSecurity{Fake: &clienttesting.Fake{}}
+func newFakeSecurityClient(rootAllowed bool) securityv1client.SecurityV1Interface {
+	securityClient := &fake.FakeSecurityV1{Fake: &clienttesting.Fake{}}
 	securityClient.AddReactor("*", "*", func(clienttesting.Action) (bool, runtime.Object, error) {
-		var ref *kapi.ObjectReference
+		var ref *corev1.ObjectReference
 		if rootAllowed {
-			ref = &kapi.ObjectReference{} // i.e., not nil
+			ref = &corev1.ObjectReference{} // i.e., not nil
 		}
 
-		return true, &security.PodSecurityPolicySubjectReview{
-			Status: security.PodSecurityPolicySubjectReviewStatus{
+		return true, &securityv1.PodSecurityPolicySubjectReview{
+			Status: securityv1.PodSecurityPolicySubjectReviewStatus{
 				AllowedBy: ref,
 			},
 		}, nil
@@ -80,10 +80,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if container.Image != strategy.Image {
 		t.Errorf("Expected %s image, got %s!", container.Image, strategy.Image)
 	}
-	if container.ImagePullPolicy != v1.PullIfNotPresent {
-		t.Errorf("Expected %v, got %v", v1.PullIfNotPresent, container.ImagePullPolicy)
+	if container.ImagePullPolicy != corev1.PullIfNotPresent {
+		t.Errorf("Expected %v, got %v", corev1.PullIfNotPresent, container.ImagePullPolicy)
 	}
-	if actual.Spec.RestartPolicy != v1.RestartPolicyNever {
+	if actual.Spec.RestartPolicy != corev1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 

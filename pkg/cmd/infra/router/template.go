@@ -28,10 +28,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	projectclient "github.com/openshift/client-go/project/clientset/versioned"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
@@ -449,7 +449,7 @@ func (o *TemplateRouterOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	projectclient, err := projectinternalclientset.NewForConfig(config)
+	projectclient, err := projectclient.NewForConfig(config)
 	if err != nil {
 		return err
 	}

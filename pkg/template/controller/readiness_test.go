@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -279,7 +280,7 @@ func TestCheckReadiness(t *testing.T) {
 
 	for i, test := range tests {
 		buildClient := fakebuild.NewSimpleClientset(&test.build)
-		ref := kapi.ObjectReference{
+		ref := corev1.ObjectReference{
 			Kind:       test.groupKind.Kind,
 			APIVersion: test.groupKind.WithVersion("v1").GroupVersion().String(),
 		}

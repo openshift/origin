@@ -13,12 +13,11 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -29,8 +28,8 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 	var (
 		cli              = exutil.NewCLI("templates", exutil.KubeConfigPath())
-		template         *templateapi.Template
-		templateinstance *templateapi.TemplateInstance
+		template         *templatev1.Template
+		templateinstance *templatev1.TemplateInstance
 		templatefixture  = exutil.FixturePath("..", "..", "examples", "quickstarts", "cakephp-mysql.json")
 	)
 
@@ -38,7 +37,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		var err error
 
 		// must read the templateinstance before the build/dc
-		templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+		templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -90,10 +89,10 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		// the build or dc have not settled; the templateinstance must also
 		// indicate this
 
-		if templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceReady, kapi.ConditionTrue) {
+		if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue) {
 			return false, errors.New("templateinstance unexpectedly reported ready")
 		}
-		if templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+		if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
 			return false, errors.New("templateinstance unexpectedly reported failure")
 		}
 
@@ -112,7 +111,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			err = cli.Run("create").Args("-f", templatefixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			template, err = cli.TemplateClient().Template().Templates(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
+			template, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -126,17 +125,17 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		g.It("should report ready soon after all annotated objects are ready", func() {
 			var err error
 
-			templateinstance = &templateapi.TemplateInstance{
+			templateinstance = &templatev1.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "templateinstance",
 				},
-				Spec: templateapi.TemplateInstanceSpec{
+				Spec: templatev1.TemplateInstanceSpec{
 					Template: *template,
 				},
 			}
 
 			g.By("instantiating the templateinstance")
-			templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstance)
+			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(templateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build and dc to settle")
@@ -152,16 +151,16 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			g.By("waiting for the templateinstance to indicate ready")
 			// in principle, this should happen within 20 seconds
 			err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-				templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
 
-				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
 					return false, errors.New("templateinstance unexpectedly reported failure")
 				}
 
-				return templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceReady, kapi.ConditionTrue), nil
+				return templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue), nil
 			})
 			if err != nil {
 				err := dumpObjectReadiness(cli, templateinstance)
@@ -185,20 +184,20 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			templateinstance = &templateapi.TemplateInstance{
+			templateinstance = &templatev1.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "templateinstance",
 				},
-				Spec: templateapi.TemplateInstanceSpec{
+				Spec: templatev1.TemplateInstanceSpec{
 					Template: *template,
-					Secret: &kapi.LocalObjectReference{
+					Secret: &corev1.LocalObjectReference{
 						Name: secret.Name,
 					},
 				},
 			}
 
 			g.By("instantiating the templateinstance")
-			templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstance)
+			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(templateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build and dc to settle")
@@ -214,16 +213,16 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			g.By("waiting for the templateinstance to indicate failed")
 			// in principle, this should happen within 20 seconds
 			err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-				templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
 
-				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceReady, kapi.ConditionTrue) {
+				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue) {
 					return false, errors.New("templateinstance unexpectedly reported ready")
 				}
 
-				return templatecontroller.TemplateInstanceHasCondition(templateinstance, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue), nil
+				return templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue), nil
 			})
 			if err != nil {
 				err := dumpObjectReadiness(cli, templateinstance)

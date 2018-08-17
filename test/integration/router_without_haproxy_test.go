@@ -16,9 +16,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	projectclientset "github.com/openshift/client-go/project/clientset/versioned"
 	infrarouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
@@ -289,7 +289,7 @@ func createRouteProperties(serviceName, host string) *routeapi.Route {
 
 // launchAPI launches an api server and returns clients configured to
 // access it.
-func launchApi(t *testing.T) (routeinternalclientset.Interface, projectinternalclientset.Interface, kclientset.Interface, func(), error) {
+func launchApi(t *testing.T) (routeinternalclientset.Interface, projectclientset.Interface, kclientset.Interface, func(), error) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -309,7 +309,7 @@ func launchApi(t *testing.T) (routeinternalclientset.Interface, projectinternalc
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	projectclient, err := projectinternalclientset.NewForConfig(cfg)
+	projectclient, err := projectclientset.NewForConfig(cfg)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -365,7 +365,7 @@ func (p *DelayPlugin) Commit() error {
 
 // launchRateLimitedRouter launches a rate-limited template router
 // that communicates with the api via the provided clients.
-func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval time.Duration, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
+func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.Interface, projectclient projectclientset.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval time.Duration, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
 	reloadedMap[name] = 0
 	rateLimitingFunc := func() error {
 		reloadedMap[name] += 1
@@ -373,10 +373,10 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 		return nil
 	}
 
-	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient.Project().Projects(), kc)
+	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient.ProjectV1().Projects(), kc)
 
 	var plugin router.Plugin
-	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, factory.CreateRoutesSharedInformer(), name, reloadInterval, rateLimitingFunc)
+	templatePlugin, plugin := initializeRouterPlugins(routeclient, factory.CreateRoutesSharedInformer(), name, reloadInterval, rateLimitingFunc)
 
 	if maxDelay > 0 {
 		plugin = NewDelayPlugin(plugin, maxDelay)
@@ -388,7 +388,7 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 	return templatePlugin
 }
 
-func initializeRouterPlugins(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, informer cache.SharedIndexInformer, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
+func initializeRouterPlugins(routeclient routeinternalclientset.Interface, informer cache.SharedIndexInformer, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
 	r := templateplugin.NewFakeTemplateRouter()
 
 	r.EnableRateLimiter(reloadInterval, func() error {
@@ -412,9 +412,9 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 
 // launchRouter launches a template router that communicates with the
 // api via the provided clients.
-func launchRouter(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
-	factory := routerSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
-	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, factory.CreateRoutesSharedInformer(), "test-router", 0, func() error {
+func launchRouter(routeclient routeinternalclientset.Interface, projectclient projectclientset.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
+	factory := routerSelection.NewFactory(routeclient, projectclient.ProjectV1().Projects(), kc)
+	templatePlugin, plugin := initializeRouterPlugins(routeclient, factory.CreateRoutesSharedInformer(), "test-router", 0, func() error {
 		return nil
 	})
 	ctrl := factory.Create(plugin, false)

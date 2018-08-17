@@ -32,7 +32,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 
 		// wait for templateinstance controller to do its thing
 		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-			templateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
+			templateinstance, err := cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -63,12 +63,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete("templateinstance", nil)
+		err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete("templateinstance", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deleting the template instance")
 		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-			_, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
+			_, err := cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
 			if kapierrs.IsNotFound(err) {
 				return true, nil
 			}

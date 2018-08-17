@@ -19,7 +19,7 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 	kubeClient := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	buildClient := ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	externalKubeClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
-	securityClient := ctx.ClientBuilder.OpenshiftInternalSecurityClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
+	securityClient := ctx.ClientBuilder.OpenshiftV1SecurityClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 
 	buildInformer := ctx.InternalBuildInformers.Build().InternalVersion().Builds()
 	buildConfigInformer := ctx.InternalBuildInformers.Build().InternalVersion().BuildConfigs()
@@ -41,7 +41,7 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:          imageTemplate.ExpandOrDie("docker-builder"),
-			SecurityClient: securityClient.Security(),
+			SecurityClient: securityClient.SecurityV1(),
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{},
 		BuildDefaults:       builddefaults.BuildDefaults{Config: ctx.OpenshiftControllerConfig.Build.BuildDefaults},

@@ -75,6 +75,52 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/apps/generated",
+      "github.com/openshift/origin/pkg/build/generated",
+      "github.com/openshift/origin/pkg/image/generated",
+      "github.com/openshift/origin/pkg/network/generated",
+      "github.com/openshift/origin/pkg/oauth/generated",
+      "github.com/openshift/origin/pkg/project/generated",
+      "github.com/openshift/origin/pkg/quota/generated",
+      "github.com/openshift/origin/pkg/security/generated",
+      "github.com/openshift/origin/pkg/template/generated",
+      "github.com/openshift/origin/pkg/user/generated",
+      "github.com/openshift/origin/pkg/apps/apiserver",
+      "github.com/openshift/origin/pkg/build/apiserver",
+      "github.com/openshift/origin/pkg/image/apiserver",
+      "github.com/openshift/origin/pkg/network/apiserver",
+      "github.com/openshift/origin/pkg/oauth/apiserver",
+      "github.com/openshift/origin/pkg/project/apiserver",
+      "github.com/openshift/origin/pkg/quota/apiserver",
+      "github.com/openshift/origin/pkg/security/apiserver",
+      "github.com/openshift/origin/pkg/template/apiserver",
+      "github.com/openshift/origin/pkg/user/apiserver",
+      "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride",
+      "github.com/openshift/origin/pkg/oc",
+      "github.com/openshift/origin/pkg/cmd/server",
+      "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/origin/pkg/apps/generated",
+      "github.com/openshift/origin/pkg/network/generated",
+      "github.com/openshift/origin/pkg/oauth/generated",
+      "github.com/openshift/origin/pkg/project/generated",
+      "github.com/openshift/origin/pkg/security/generated",
+      "github.com/openshift/origin/pkg/template/generated",
+      "github.com/openshift/origin/pkg/user/generated"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/build/builder",
       "github.com/openshift/origin/pkg/cmd/infra/builder"
     ],
@@ -570,7 +616,6 @@
       "github.com/openshift/origin/pkg/route/apis/route/validation",
       "github.com/openshift/origin/pkg/route/generator",
       "github.com/openshift/origin/pkg/security/apis/security",
-      "github.com/openshift/origin/pkg/security/securitycontextconstraints",
       "github.com/openshift/origin/pkg/security/securitycontextconstraints/util",
       "github.com/openshift/origin/pkg/service/admission",
       "github.com/openshift/origin/pkg/template/apis/template",

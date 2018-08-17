@@ -17,7 +17,7 @@ import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	podsecuritypolicysubjectreview "github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
-	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
+	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.

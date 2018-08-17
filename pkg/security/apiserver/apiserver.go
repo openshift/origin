@@ -19,8 +19,8 @@ import (
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/rangeallocations"
 	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
+	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
 
 type ExtraConfig struct {

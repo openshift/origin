@@ -43,7 +43,7 @@ func (d *defaultSCCMatcher) FindApplicableSCCs(userInfo user.Info, namespace str
 		return nil, err
 	}
 	for _, constraint := range constraints {
-		if ConstraintAppliesTo(constraint, userInfo, namespace, d.authorizer) {
+		if constraintAppliesTo(constraint, userInfo, namespace, d.authorizer) {
 			matchedConstraints = append(matchedConstraints, constraint)
 		}
 	}
@@ -70,11 +70,10 @@ func authorizedForSCC(constraint *securityapi.SecurityContextConstraints, info u
 	return decision == authorizer.DecisionAllow
 }
 
-// ConstraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
+// constraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
 // if it is usable by the userInfo.
-// TODO make this private and have the router SA check do a SAR check instead.
 // Anything we do here needs to work with a deny authorizer so the choices are limited to SAR / Authorizer
-func ConstraintAppliesTo(constraint *securityapi.SecurityContextConstraints, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
+func constraintAppliesTo(constraint *securityapi.SecurityContextConstraints, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
 	for _, user := range constraint.Users {
 		if userInfo.GetName() == user {
 			return true

@@ -14,9 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router/controller"
@@ -233,7 +233,7 @@ func (o *RouterSelection) Complete() error {
 }
 
 // NewFactory initializes a factory that will watch the requested routes
-func (o *RouterSelection) NewFactory(routeclient routeinternalclientset.Interface, projectclient projectclient.ProjectResourceInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
+func (o *RouterSelection) NewFactory(routeclient routeinternalclientset.Interface, projectclient projectclient.ProjectInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
 	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient, kc)
 	factory.LabelSelector = o.LabelSelector
 	factory.FieldSelector = o.FieldSelector
