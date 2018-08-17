@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 var (
@@ -27,8 +29,8 @@ f3zQfReuhwI1BvBNglhZdjgSocKKqABwyGafHJcdORw=
 )
 
 func TestStringSource(t *testing.T) {
-	os.Setenv("TestStringSource_present_env", "envvalue")
-	os.Setenv("TestStringSource_encrypted_env", string(encryptedData))
+	util.ThreadSafeSetEnv("TestStringSource_present_env", "envvalue")
+	util.ThreadSafeSetEnv("TestStringSource_encrypted_env", string(encryptedData))
 
 	emptyFile, err := ioutil.TempFile("", "empty_file")
 	if err != nil {

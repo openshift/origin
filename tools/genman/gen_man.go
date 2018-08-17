@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/cmd/genutils"
+
+	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 func main() {
@@ -49,7 +51,7 @@ func genCmdMan(cmdName string, cmd *cobra.Command) {
 
 	// Set environment variables used by openshift so the output is consistent,
 	// regardless of where we run.
-	os.Setenv("HOME", "/home/username")
+	util.ThreadSafeSetEnv("HOME", "/home/username")
 	// TODO os.Stdin should really be something like ioutil.Discard, but a Reader
 	genMarkdown(cmd, "", outDir)
 	for _, c := range cmd.Commands() {

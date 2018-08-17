@@ -37,6 +37,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
@@ -2146,8 +2147,8 @@ insteadOf = %s
 	if err = ioutil.WriteFile(filepath.Join(userHomeDir, ".gitconfig"), []byte(gitConfig), 0644); err != nil {
 		t.Fatalf("%v", err)
 	}
-	os.Setenv("HOME", userHomeDir)
-	os.Setenv("GIT_ASKPASS", "true")
+	cmdutil.ThreadSafeSetEnv("HOME", userHomeDir)
+	cmdutil.ThreadSafeSetEnv("GIT_ASKPASS", "true")
 
 	return gitURLString, testDir
 

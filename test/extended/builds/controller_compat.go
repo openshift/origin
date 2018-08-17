@@ -1,10 +1,9 @@
 package builds
 
 import (
-	"os"
-
 	g "github.com/onsi/ginkgo"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/test/common/build"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -22,7 +21,7 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 		})
 
 		g.JustBeforeEach(func() {
-			os.Setenv("OS_TEST_NAMESPACE", oc.Namespace())
+			cmdutil.ThreadSafeSetEnv("OS_TEST_NAMESPACE", oc.Namespace())
 		})
 
 		g.AfterEach(func() {

@@ -35,6 +35,7 @@ import (
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/lib/kubeconfig"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -97,15 +98,15 @@ func ProwGCPSetup(oc *CLI) {
 	btd := os.Getenv("BASETMPDIR")
 	e2e.Logf("OS_TEST_NAMESPACE env setting %s, ARTIFACT_DIR env setting %s BASETMPDIR %s", tn, ad, btd)
 	if len(strings.TrimSpace(tn)) == 0 {
-		os.Setenv("OS_TEST_NAMESPACE", oc.Namespace())
+		cmdutil.ThreadSafeSetEnv("OS_TEST_NAMESPACE", oc.Namespace())
 		e2e.Logf("OS_TEST_NAMESPACE env setting now %s", os.Getenv("OS_TEST_NAMESPACE"))
 	}
 	if len(strings.TrimSpace(ad)) == 0 {
-		os.Setenv("ARTIFACT_DIR", "/tmp/artifacts")
+		cmdutil.ThreadSafeSetEnv("ARTIFACT_DIR", "/tmp/artifacts")
 		e2e.Logf("ARTIFACT_DIR env setting now %s", os.Getenv("ARTIFACT_DIR"))
 	}
 	if len(strings.TrimSpace(btd)) == 0 {
-		os.Setenv("BASETMPDIR", "/tmp/shared")
+		cmdutil.ThreadSafeSetEnv("BASETMPDIR", "/tmp/shared")
 		e2e.Logf("BASETMPDIR setting is now %s", os.Getenv("BASETMPDIR"))
 	}
 

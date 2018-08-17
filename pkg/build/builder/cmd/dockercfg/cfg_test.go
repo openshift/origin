@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 func TestGetDockerAuth(t *testing.T) {
@@ -38,8 +40,8 @@ func TestGetDockerAuth(t *testing.T) {
 		}
 		defer fileInfo.Close()
 
-		os.Setenv(testEnvKey, tmpDirPath)
-		defer os.Unsetenv(testEnvKey)
+		util.ThreadSafeSetEnv(testEnvKey, tmpDirPath)
+		defer util.ThreadSafeUnSetEnv(testEnvKey)
 	}
 
 	fileInfo.WriteString(content)

@@ -16,6 +16,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cni020 "github.com/containernetworking/cni/pkg/types/020"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/openshift/origin/pkg/cmd/util"
 
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 	utiltesting "k8s.io/client-go/util/testing"
@@ -43,17 +44,17 @@ const (
 )
 
 func skelArgsToEnv(command cniserver.CNICommand, args *cniskel.CmdArgs) {
-	os.Setenv(CNI_COMMAND, fmt.Sprintf("%v", command))
-	os.Setenv(CNI_CONTAINERID, args.ContainerID)
-	os.Setenv(CNI_NETNS, args.Netns)
-	os.Setenv(CNI_IFNAME, args.IfName)
-	os.Setenv(CNI_ARGS, args.Args)
-	os.Setenv(CNI_PATH, args.Path)
+	util.ThreadSafeSetEnv(CNI_COMMAND, fmt.Sprintf("%v", command))
+	util.ThreadSafeSetEnv(CNI_CONTAINERID, args.ContainerID)
+	util.ThreadSafeSetEnv(CNI_NETNS, args.Netns)
+	util.ThreadSafeSetEnv(CNI_IFNAME, args.IfName)
+	util.ThreadSafeSetEnv(CNI_ARGS, args.Args)
+	util.ThreadSafeSetEnv(CNI_PATH, args.Path)
 }
 
 func clearEnv() {
 	for _, ev := range []string{CNI_COMMAND, CNI_CONTAINERID, CNI_NETNS, CNI_IFNAME, CNI_ARGS, CNI_PATH} {
-		os.Unsetenv(ev)
+		util.ThreadSafeUnSetEnv(ev)
 	}
 }
 

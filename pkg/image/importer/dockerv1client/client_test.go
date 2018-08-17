@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 // tests of running registries are done in the integration client test
@@ -168,9 +169,9 @@ func TestProxy(t *testing.T) {
 		w.Header().Set("X-Docker-Endpoints", uri.Host)
 		w.WriteHeader(http.StatusOK)
 	}))
-	os.Setenv("HTTP_PROXY", "http.proxy.tld")
-	os.Setenv("HTTPS_PROXY", "secure.proxy.tld")
-	os.Setenv("NO_PROXY", "")
+	util.ThreadSafeSetEnv("HTTP_PROXY", "http.proxy.tld")
+	util.ThreadSafeSetEnv("HTTPS_PROXY", "secure.proxy.tld")
+	util.ThreadSafeSetEnv("NO_PROXY", "")
 	uri, _ = url.Parse(server.URL)
 	conn, err := NewClient(10*time.Second, true).Connect(uri.Host, true)
 	if err != nil {
