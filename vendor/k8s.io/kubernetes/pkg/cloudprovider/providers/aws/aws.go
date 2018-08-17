@@ -1324,7 +1324,7 @@ func (c *Cloud) NodeAddressesByProviderID(ctx context.Context, providerID string
 	return extractNodeAddresses(instance)
 }
 
-// InstanceExistsByProviderID returns true if the instance with the given provider id still exists and is running.
+// InstanceExistsByProviderID returns true if the instance with the given provider id still exists.
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 func (c *Cloud) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
 	instanceID, err := kubernetesInstanceID(providerID).mapToAWSInstanceID()
@@ -1348,8 +1348,8 @@ func (c *Cloud) InstanceExistsByProviderID(ctx context.Context, providerID strin
 	}
 
 	state := instances[0].State.Name
-	if *state != "running" {
-		glog.Warningf("the instance %s is not running", instanceID)
+	if *state == "terminated" {
+		glog.Warningf("the instance %s is terminated", instanceID)
 		return false, nil
 	}
 
@@ -4300,7 +4300,8 @@ func (c *Cloud) findInstanceByNodeName(nodeName types.NodeName) (*ec2.Instance, 
 	privateDNSName := mapNodeNameToPrivateDNSName(nodeName)
 	filters := []*ec2.Filter{
 		newEc2Filter("private-dns-name", privateDNSName),
-		newEc2Filter("instance-state-name", "running"),
+		// exclude instances in "terminated" state
+		newEc2Filter("instance-state-name", "pending", "running", "shutting-down", "stopping", "stopped"),
 	}
 
 	instances, err := c.describeInstances(filters)
