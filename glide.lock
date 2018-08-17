@@ -1,5 +1,5 @@
 hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
-updated: 2018-08-16T15:45:28.927083249-04:00
+updated: 2018-08-17T10:23:00.048468-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -819,7 +819,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 582a6a158e82806c0199b73c4287652880eb1ebc
+  version: cb68976b78d5fdc64c52646f55d78bf6ea95883a
   subpackages:
   - apps
   - apps/v1
@@ -995,7 +995,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: a6f9beadd289fb336c17c33991cb48c10d62c2de
+  version: 7b9adb2996ebb91a58fed6abdd9d9c2d7b58a53c
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1864,7 +1864,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: be76048969b7254cf905c42d89ca23d1154357b2
+  version: c235f75d4886e2f53d0d6bc908d862ef490f0ac7
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

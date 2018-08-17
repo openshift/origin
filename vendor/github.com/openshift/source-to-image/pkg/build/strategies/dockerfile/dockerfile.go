@@ -79,7 +79,8 @@ func (builder *Dockerfile) Build(config *api.Config) (*api.Result, error) {
 		config.AssembleUser = "1001"
 	}
 	if !user.IsUserAllowed(config.AssembleUser, &config.AllowedUIDs) {
-		return nil, s2ierr.NewUserNotAllowedError(config.AssembleUser, false)
+		builder.setFailureReason(utilstatus.ReasonAssembleUserForbidden, utilstatus.ReasonMessageAssembleUserForbidden)
+		return builder.result, s2ierr.NewUserNotAllowedError(config.AssembleUser, false)
 	}
 
 	dir, _ := filepath.Split(config.AsDockerfile)
@@ -90,10 +91,7 @@ func (builder *Dockerfile) Build(config *api.Config) (*api.Result, error) {
 	config.WorkingDir = dir
 
 	if config.BuilderImage == "" {
-		builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-			utilstatus.ReasonGenericS2IBuildFailed,
-			utilstatus.ReasonMessageGenericS2iBuildFailed,
-		)
+		builder.setFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
 		return builder.result, errors.New("builder image name cannot be empty")
 	}
 
@@ -102,10 +100,7 @@ func (builder *Dockerfile) Build(config *api.Config) (*api.Result, error) {
 	}
 
 	if err := builder.CreateDockerfile(config); err != nil {
-		builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-			utilstatus.ReasonDockerfileCreateFailed,
-			utilstatus.ReasonMessageDockerfileCreateFailed,
-		)
+		builder.setFailureReason(utilstatus.ReasonDockerfileCreateFailed, utilstatus.ReasonMessageDockerfileCreateFailed)
 		return builder.result, err
 	}
 
@@ -153,7 +148,8 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 			buffer.WriteString("# Copying in override save-artifacts script\n")
 			artifactsScript = sanitize(filepath.ToSlash(filepath.Join(scriptsDestDir, "save-artifacts")))
 			uploadScript := sanitize(filepath.ToSlash(filepath.Join(builder.uploadScriptsDir, "save-artifacts")))
-			buffer.WriteString(fmt.Sprintf("COPY --chown=%s:0 %s %s\n", sanitize(imageUser), uploadScript, artifactsScript))
+			buffer.WriteString(fmt.Sprintf("COPY %s %s\n", uploadScript, artifactsScript))
+			buffer.WriteString(fmt.Sprintf("RUN chown %s:0 %s\n", sanitize(imageUser), artifactsScript))
 		} else {
 			buffer.WriteString(fmt.Sprintf("# Save-artifacts script sourced from builder image based on user input or image metadata.\n"))
 			artifactsScript = sanitize(filepath.ToSlash(filepath.Join(imageScriptsDir, "save-artifacts")))
@@ -168,8 +164,9 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 	}
 
 	if config.Incremental {
-		buffer.WriteString(fmt.Sprintf("COPY --from=cached --chown=%[1]s:0 %[2]s %[2]s\n", sanitize(imageUser), artifactsTar))
-		buffer.WriteString(fmt.Sprintf("RUN if [ -s %[1]s ]; then mkdir -p %[2]s; tar -xf %[1]s -C %[2]s; fi && \\\n", artifactsTar, sanitize(filepath.ToSlash(artifactsDestDir))))
+		buffer.WriteString(fmt.Sprintf("COPY --from=cached %[1]s %[1]s\n", artifactsTar))
+		buffer.WriteString(fmt.Sprintf("RUN chown %s:0 %s && \\\n", sanitize(imageUser), artifactsTar))
+		buffer.WriteString(fmt.Sprintf("    if [ -s %[1]s ]; then mkdir -p %[2]s; tar -xf %[1]s -C %[2]s; fi && \\\n", artifactsTar, sanitize(filepath.ToSlash(artifactsDestDir))))
 		buffer.WriteString(fmt.Sprintf("    rm %s\n", artifactsTar))
 	}
 
@@ -198,17 +195,23 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 	env := createBuildEnvironment(config.WorkingDir, config.Environment)
 	buffer.WriteString(fmt.Sprintf("%s", env))
 
+	chownList := make([]string, 0)
+
 	if len(providedScripts) > 0 {
 		// Only COPY scripts dir if required scripts are present and needed.
 		// Even if the "scripts" dir exists, the COPY would fail if it was empty.
 		glog.V(2).Infof("Override scripts are included in directory %q", builder.uploadScriptsDir)
+		scriptsDest := sanitize(filepath.ToSlash(scriptsDestDir))
 		buffer.WriteString("# Copying in override assemble/run scripts\n")
-		buffer.WriteString(fmt.Sprintf("COPY --chown=%s:0 %s %s\n", sanitize(imageUser), sanitize(filepath.ToSlash(builder.uploadScriptsDir)), sanitize(filepath.ToSlash(scriptsDestDir))))
+		buffer.WriteString(fmt.Sprintf("COPY %s %s\n", sanitize(filepath.ToSlash(builder.uploadScriptsDir)), scriptsDest))
+		chownList = append(chownList, scriptsDest)
 	}
 
 	// copy in the user's source code.
 	buffer.WriteString("# Copying in source code\n")
-	buffer.WriteString(fmt.Sprintf("COPY --chown=%s:0 %s %s\n", sanitize(imageUser), sanitize(filepath.ToSlash(builder.uploadSrcDir)), sanitize(filepath.ToSlash(sourceDestDir))))
+	sourceDest := sanitize(filepath.ToSlash(sourceDestDir))
+	buffer.WriteString(fmt.Sprintf("COPY %s %s\n", sanitize(filepath.ToSlash(builder.uploadSrcDir)), sourceDest))
+	chownList = append(chownList, sourceDest)
 
 	glog.V(4).Infof("Processing injected inputs: %#v", config.Injections)
 	config.Injections = util.FixInjectionsWithRelativePath(config.ImageWorkDir, config.Injections)
@@ -218,8 +221,20 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 		buffer.WriteString("# Copying in injected content\n")
 	}
 	for _, injection := range config.Injections {
-		src := filepath.Join(constants.Injections, injection.Source)
-		buffer.WriteString(fmt.Sprintf("COPY --chown=%s:0 %s %s\n", sanitize(imageUser), sanitize(filepath.ToSlash(src)), sanitize(filepath.ToSlash(injection.Destination))))
+		src := sanitize(filepath.ToSlash(filepath.Join(constants.Injections, injection.Source)))
+		dest := sanitize(filepath.ToSlash(injection.Destination))
+		buffer.WriteString(fmt.Sprintf("COPY %s %s\n", src, dest))
+		chownList = append(chownList, dest)
+	}
+
+	// chown directories COPYed to image
+	if len(chownList) > 0 {
+		buffer.WriteString("# Change file ownership to the assemble user. Builder image must support chown command.\n")
+		buffer.WriteString(fmt.Sprintf("RUN chown -R %s:0", sanitize(imageUser)))
+		for _, dir := range chownList {
+			buffer.WriteString(fmt.Sprintf(" %s", dir))
+		}
+		buffer.WriteString("\n")
 	}
 
 	if _, provided := providedScripts[constants.Assemble]; provided {
@@ -230,23 +245,22 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 		buffer.WriteString(fmt.Sprintf("RUN %s\n", sanitize(filepath.ToSlash(filepath.Join(imageScriptsDir, "assemble")))))
 	}
 
-	// Remove any secrets that were copied into the image,
-	// but leave configmap content alone.
-	wroteRun := false
-	for _, injection := range config.Injections {
-		if injection.Keep {
-			continue
-		}
-		if !wroteRun {
-			buffer.WriteString("# Cleaning up injected secret content\n")
-			buffer.WriteString("RUN ")
-			wroteRun = true
-		} else {
-			buffer.WriteString(" && \\\n    ")
-		}
-		buffer.WriteString(fmt.Sprintf("rm -rf %s", sanitize(filepath.ToSlash(injection.Destination))))
+	filesToDelete, err := util.ListFilesToTruncate(builder.fs, config.Injections)
+	if err != nil {
+		return err
 	}
-	if wroteRun {
+	if len(filesToDelete) > 0 {
+		wroteRun := false
+		buffer.WriteString("# Cleaning up injected secret content\n")
+		for _, file := range filesToDelete {
+			if !wroteRun {
+				buffer.WriteString(fmt.Sprintf("RUN rm %s", file))
+				wroteRun = true
+				continue
+			}
+			buffer.WriteString(fmt.Sprintf(" && \\\n"))
+			buffer.WriteString(fmt.Sprintf("    rm %s", file))
+		}
 		buffer.WriteString("\n")
 	}
 
@@ -273,10 +287,7 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 
 	if len(config.WorkingDir) == 0 {
 		if config.WorkingDir, err = builder.fs.CreateWorkingDirectory(); err != nil {
-			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-				utilstatus.ReasonFSOperationFailed,
-				utilstatus.ReasonMessageFSOperationFailed,
-			)
+			builder.setFailureReason(utilstatus.ReasonFSOperationFailed, utilstatus.ReasonMessageFSOperationFailed)
 			return err
 		}
 	}
@@ -286,10 +297,7 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 	// Setup working directories
 	for _, v := range workingDirs {
 		if err = builder.fs.MkdirAllWithPermissions(filepath.Join(config.WorkingDir, v), 0755); err != nil {
-			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-				utilstatus.ReasonFSOperationFailed,
-				utilstatus.ReasonMessageFSOperationFailed,
-			)
+			builder.setFailureReason(utilstatus.ReasonFSOperationFailed, utilstatus.ReasonMessageFSOperationFailed)
 			return err
 		}
 	}
@@ -303,13 +311,11 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 	if config.Source != nil {
 		downloader, err := scm.DownloaderForSource(builder.fs, config.Source, config.ForceCopy)
 		if err != nil {
+			builder.setFailureReason(utilstatus.ReasonFetchSourceFailed, utilstatus.ReasonMessageFetchSourceFailed)
 			return err
 		}
 		if builder.sourceInfo, err = downloader.Download(config); err != nil {
-			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-				utilstatus.ReasonFetchSourceFailed,
-				utilstatus.ReasonMessageFetchSourceFailed,
-			)
+			builder.setFailureReason(utilstatus.ReasonFetchSourceFailed, utilstatus.ReasonMessageFetchSourceFailed)
 			switch err.(type) {
 			case file.RecursiveCopyError:
 				return fmt.Errorf("input source directory contains the target directory for the build, check that your Dockerfile output path does not reside within your input source path: %v", err)
@@ -333,6 +339,7 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 		dst := filepath.Join(config.WorkingDir, constants.Injections, trimmedSrc)
 		glog.V(4).Infof("Copying injection content from %s to %s", injection.Source, dst)
 		if err := builder.fs.CopyContents(injection.Source, dst); err != nil {
+			builder.setFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
 			return err
 		}
 		config.Injections[i].Source = trimmedSrc
@@ -340,7 +347,12 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 
 	// see if there is a .s2iignore file, and if so, read in the patterns and then
 	// search and delete on them.
-	return builder.ignorer.Ignore(config)
+	err = builder.ignorer.Ignore(config)
+	if err != nil {
+		builder.setFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
+		return err
+	}
+	return nil
 }
 
 // installScripts installs scripts at the provided URL to the Dockerfile context
@@ -357,6 +369,11 @@ func (builder *Dockerfile) installScripts(scriptsURL string, config *api.Config)
 	// all scripts are optional, we trust the image contains scripts if we don't find them
 	// in the source repo.
 	return scriptInstaller.InstallOptional(append(scripts.RequiredScripts, scripts.OptionalScripts...), config.WorkingDir)
+}
+
+// setFailureReason sets the builder's failure reason with the given reason and message.
+func (builder *Dockerfile) setFailureReason(reason api.StepFailureReason, message api.StepFailureMessage) {
+	builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(reason, message)
 }
 
 // getDestination returns the destination directory from the config.
