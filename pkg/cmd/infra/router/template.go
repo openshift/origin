@@ -468,6 +468,7 @@ func (o *TemplateRouterOptions) Run() error {
 			BlueprintRoutePoolSize: o.BlueprintRoutePoolSize,
 			MaxDynamicServers:      o.MaxDynamicServers,
 			WildcardRoutesAllowed:  o.AllowWildcardRoutes,
+			ExtendedValidation:     o.ExtendedValidation,
 		}
 		cfgManager = haproxyconfigmanager.NewHAProxyConfigManager(cmopts)
 		if len(o.BlueprintRouteNamespace) > 0 {

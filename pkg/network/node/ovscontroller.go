@@ -232,9 +232,15 @@ func (oc *ovsController) NewTransaction() ovs.Transaction {
 }
 
 func (oc *ovsController) ensureOvsPort(hostVeth, sandboxID, podIP string) (int, error) {
-	return oc.ovs.AddPort(hostVeth, -1,
+	ofport, err := oc.ovs.AddPort(hostVeth, -1,
 		fmt.Sprintf(`external-ids=sandbox="%s",ip="%s"`, sandboxID, podIP),
 	)
+	if err != nil {
+		// If hostVeth doesn't exist, ovs-vsctl will return an error, but will
+		// still add an entry to the database anyway.
+		_ = oc.ovs.DeletePort(hostVeth)
+	}
+	return ofport, err
 }
 
 func (oc *ovsController) setupPodFlows(ofport int, podIP net.IP, vnid uint32) error {

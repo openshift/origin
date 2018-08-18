@@ -25,18 +25,19 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	templateapi "github.com/openshift/api/template"
-	templateapiv1 "github.com/openshift/api/template/v1"
+	octemplateapi "github.com/openshift/api/template"
+	templatev1 "github.com/openshift/api/template/v1"
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
-	"github.com/openshift/origin/pkg/template/apis/template"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
-	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
-	templateclientinternal "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
+	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 	"github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/template/templateprocessing"
 )
@@ -99,8 +100,8 @@ type ProcessOptions struct {
 	explicitNamespace   bool
 	paramValuesProvided bool
 
-	templateClient    templateclient.TemplateInterface
-	templateProcessor func(*template.Template) (*template.Template, error)
+	templateClient    *templatev1client.TemplateV1Client
+	templateProcessor func(*templatev1.Template) (*templatev1.Template, error)
 
 	builderFn func() *resource.Builder
 
@@ -175,16 +176,22 @@ type processPrinter struct {
 
 func (p *processPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
 	if p.outputFormat == "describe" {
-		templateObj, ok := obj.(*template.Template)
+		templateObj, ok := obj.(*templatev1.Template)
 		if !ok {
 			return fmt.Errorf("attempt to describe a non-template object of type %T", obj)
+		}
+
+		// TODO(juanvallejo): remove once we have external describers
+		internalTemplate := &templateapi.Template{}
+		if err := templateapiv1.Convert_v1_Template_To_template_Template(templateObj, internalTemplate, nil); err != nil {
+			return err
 		}
 
 		s, err := (&describe.TemplateDescriber{
 			MetadataAccessor: meta.NewAccessor(),
 			ObjectTyper:      legacyscheme.Scheme,
 			ObjectDescriber:  nil,
-		}).DescribeTemplate(templateObj)
+		}).DescribeTemplate(internalTemplate)
 
 		if err != nil {
 			return fmt.Errorf("error describing %q: %v\n", templateObj.Name, err)
@@ -252,17 +259,14 @@ func (o *ProcessOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 			return err
 		}
 
-		// TODO: switch to using external templates client
-		templateClientset, err := templateclientinternal.NewForConfig(clientConfig)
+		o.templateClient, err = templatev1client.NewForConfig(clientConfig)
 		if err != nil {
 			return err
 		}
-		o.templateClient = templateClientset.Template()
 
-		// TODO: switch to using external templates client
-		templateProcessorClient := templateinternalclient.NewTemplateProcessorClient(o.templateClient.RESTClient(), o.namespace)
+		templateProcessorClient := templateclientv1.NewTemplateProcessorClient(o.templateClient.RESTClient(), o.namespace)
 
-		o.templateProcessor = func(template *template.Template) (*template.Template, error) {
+		o.templateProcessor = func(template *templatev1.Template) (*templatev1.Template, error) {
 			t, err := templateProcessorClient.Process(template)
 			if err != nil {
 				if err, ok := err.(*errors.StatusError); ok && err.ErrStatus.Details != nil {
@@ -362,7 +366,7 @@ func (o *ProcessOptions) RunProcess() error {
 	} else {
 		var err error
 		infos, err = o.builderFn().
-			WithScheme(ocscheme.ReadingInternalScheme).
+			WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 			LocalParam(o.local).
 			FilenameParam(o.explicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: []string{o.filename}}).
 			Do().
@@ -381,7 +385,7 @@ func (o *ProcessOptions) RunProcess() error {
 		fmt.Fprintf(o.Out, "%d input templates found, but only the first will be processed", len(infos))
 	}
 
-	obj, ok := infos[0].Object.(*template.Template)
+	obj, ok := infos[0].Object.(*templatev1.Template)
 	if !ok {
 		sourceName := o.filename
 		if len(o.templateName) > 0 {
@@ -393,7 +397,12 @@ func (o *ProcessOptions) RunProcess() error {
 	// If 'parameters' flag is set it does not do processing but only print
 	// the template parameters to console for inspection.
 	if o.parameters {
-		return describe.PrintTemplateParameters(obj.Parameters, o.Out)
+		// TODO(juanvallejo): remove once we have external describers
+		internalTemplate := &templateapi.Template{}
+		if err := templateapiv1.Convert_v1_Template_To_template_Template(obj, internalTemplate, nil); err != nil {
+			return err
+		}
+		return describe.PrintTemplateParameters(internalTemplate.Parameters, o.Out)
 	}
 
 	if label := o.labels; len(label) > 0 {
@@ -428,7 +437,7 @@ func (o *ProcessOptions) RunProcess() error {
 	}
 
 	// attempt to convert our resulting object to external
-	var externalResultObj templateapiv1.Template
+	var externalResultObj templatev1.Template
 	if err := ocscheme.PrintingInternalScheme.Convert(resultObj, &externalResultObj, nil); err != nil {
 		return fmt.Errorf("unable to convert template to external template object: %v", err)
 	}
@@ -463,10 +472,10 @@ func (o *ProcessOptions) RunProcess() error {
 }
 
 // injectUserVars injects user specified variables into the Template
-func injectUserVars(values app.Environment, t *template.Template, ignoreUnknownParameters bool) []error {
+func injectUserVars(values app.Environment, t *templatev1.Template, ignoreUnknownParameters bool) []error {
 	var errors []error
 	for param, val := range values {
-		v := templateprocessing.DeprecatedGetParameterByNameInternal(t, param)
+		v := templateprocessing.GetParameterByName(t, param)
 		if v != nil {
 			v.Value = val
 			v.Generate = ""
@@ -479,17 +488,32 @@ func injectUserVars(values app.Environment, t *template.Template, ignoreUnknownP
 
 // processTemplateLocally applies the same logic that a remote call would make but makes no
 // connection to the server.
-func processTemplateLocally(tpl *template.Template) (*template.Template, error) {
-	if errs := templatevalidation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
-		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+func processTemplateLocally(tpl *templatev1.Template) (*templatev1.Template, error) {
+	// TODO: Create validation helpers unique to the client
+	// We shouldn't be using api helpers anyway
+	internalTemplate := &templateapi.Template{}
+	if err := templateapiv1.Convert_v1_Template_To_template_Template(tpl, internalTemplate, nil); err != nil {
+		return nil, err
+	}
+
+	if errs := templatevalidation.ValidateProcessedTemplate(internalTemplate); len(errs) > 0 {
+		return nil, errors.NewInvalid(octemplateapi.Kind("Template"), tpl.Name, errs)
 	}
 	processor := templateprocessing.NewProcessor(map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	})
-	if errs := processor.Process(tpl); len(errs) > 0 {
-		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+	if errs := processor.Process(internalTemplate); len(errs) > 0 {
+		return nil, errors.NewInvalid(octemplateapi.Kind("Template"), tpl.Name, errs)
 	}
-	return tpl, nil
+
+	// TODO: remove once we stop using api helpers for
+	// processing templates locally
+	externalTemplate := &templatev1.Template{}
+	if err := templateapiv1.Convert_template_Template_To_v1_Template(internalTemplate, externalTemplate, nil); err != nil {
+		return nil, err
+	}
+
+	return externalTemplate, nil
 }
 
 // parseNamespaceResourceName parses the value and returns namespace, resource and the

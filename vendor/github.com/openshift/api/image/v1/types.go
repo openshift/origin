@@ -6,6 +6,27 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+const (
+	// ResourceImageStreams represents a number of image streams in a project.
+	ResourceImageStreams corev1.ResourceName = "openshift.io/imagestreams"
+
+	// ResourceImageStreamImages represents a number of unique references to images in all image stream
+	// statuses of a project.
+	ResourceImageStreamImages corev1.ResourceName = "openshift.io/images"
+
+	// ResourceImageStreamTags represents a number of unique references to images in all image stream specs
+	// of a project.
+	ResourceImageStreamTags corev1.ResourceName = "openshift.io/image-tags"
+
+	// Limit that applies to images. Used with a max["storage"] LimitRangeItem to set
+	// the maximum size of an image.
+	LimitTypeImage corev1.LimitType = "openshift.io/Image"
+
+	// Limit that applies to image streams. Used with a max[resource] LimitRangeItem to set the maximum number
+	// of resource. Where the resource is one of "openshift.io/images" and "openshift.io/image-tags".
+	LimitTypeImageStream corev1.LimitType = "openshift.io/ImageStream"
+)
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageList is a list of Image objects.
@@ -428,22 +449,28 @@ type ImageStreamLayers struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// blobs is a map of blob name to metadata about the blob.
 	Blobs map[string]ImageLayerData `json:"blobs" protobuf:"bytes,2,rep,name=blobs"`
-	// images is a map between an image name and the names of the blobs and manifests that
+	// images is a map between an image name and the names of the blobs and config that
 	// comprise the image.
 	Images map[string]ImageBlobReferences `json:"images" protobuf:"bytes,3,rep,name=images"`
 }
 
 // ImageBlobReferences describes the blob references within an image.
 type ImageBlobReferences struct {
+	// imageMissing is true if the image is referenced by the image stream but the image
+	// object has been deleted from the API by an administrator. When this field is set,
+	// layers and config fields may be empty and callers that depend on the image metadata
+	// should consider the image to be unavailable for download or viewing.
+	// +optional
+	ImageMissing bool `json:"imageMissing" protobuf:"varint,3,opt,name=imageMissing"`
 	// layers is the list of blobs that compose this image, from base layer to top layer.
 	// All layers referenced by this array will be defined in the blobs map. Some images
 	// may have zero layers.
 	// +optional
 	Layers []string `json:"layers" protobuf:"bytes,1,rep,name=layers"`
-	// manifest, if set, is the blob that contains the image manifest. Some images do
-	// not have separate manifest blobs and this field will be set to nil if so.
+	// config, if set, is the blob that contains the image config. Some images do
+	// not have separate config blobs and this field will be set to nil if so.
 	// +optional
-	Manifest *string `json:"manifest" protobuf:"bytes,2,opt,name=manifest"`
+	Config *string `json:"config" protobuf:"bytes,2,opt,name=config"`
 }
 
 // ImageLayerData contains metadata about an image layer.

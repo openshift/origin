@@ -83,8 +83,8 @@ func (in *ImageBlobReferences) DeepCopyInto(out *ImageBlobReferences) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.Manifest != nil {
-		in, out := &in.Manifest, &out.Manifest
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
 		if *in == nil {
 			*out = nil
 		} else {

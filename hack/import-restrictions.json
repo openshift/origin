@@ -108,6 +108,7 @@
     "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/oauthserver",
 
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver",
       "github.com/openshift/origin/pkg/cmd/server/origin",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/validation",
       "github.com/openshift/origin/pkg/oc/cli/admin",

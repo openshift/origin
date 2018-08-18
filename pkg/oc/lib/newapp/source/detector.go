@@ -28,6 +28,7 @@ var DefaultDetectors = Detectors{
 	DetectDotNet,
 	DetectLiteralDotNet,
 	DetectGolang,
+	DetectRust,
 }
 
 // DetectRuby detects Ruby source
@@ -78,6 +79,11 @@ func DetectLiteralDotNet(dir string) *Info {
 // DetectGolang detects Go source
 func DetectGolang(dir string) *Info {
 	return detect("golang", dir, "main.go", "Godeps")
+}
+
+// DetectRust detects Rust source
+func DetectRust(dir string) *Info {
+	return detect("rust", dir, "Cargo.toml")
 }
 
 // detect returns an Info object with the given platform if the source at dir contains any of the argument files

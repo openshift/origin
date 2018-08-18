@@ -31,9 +31,12 @@ func TestCreateTruncateFilesScript(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to read %q: %v", name, err)
 	}
-	if !strings.Contains(string(data), fmt.Sprintf("truncate -s0 %q", "/foo")) {
-		t.Errorf("Expected script to contain truncate -s0 \"/foo\", got: %q", string(data))
+	for _, f := range files {
+		if !strings.Contains(string(data), fmt.Sprintf("truncate -s0 %q", f)) {
+			t.Errorf("Expected script to contain truncate -s0 %q, got: %q", f, string(data))
+		}
 	}
+
 	if !strings.Contains(string(data), fmt.Sprintf("truncate -s0 %q", "/tmp/rm-foo")) {
 		t.Errorf("Expected script to truncate itself, got: %q", string(data))
 	}

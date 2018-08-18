@@ -224,7 +224,7 @@ func addImageStreamLayersFromCache(isl *imageapi.ImageStreamLayers, is *imageapi
 			}
 
 			if blob := entry.Config; blob != nil {
-				reference.Manifest = &blob.Name
+				reference.Config = &blob.Name
 				if _, ok := isl.Blobs[blob.Name]; !ok {
 					if blob.LayerSize == 0 {
 						// only send media type since we don't the size of the manifest

@@ -57,13 +57,13 @@ import (
 	"k8s.io/kubernetes/pkg/volume/secret"
 	"k8s.io/kubernetes/pkg/volume/storageos"
 	"k8s.io/kubernetes/pkg/volume/vsphere_volume"
+	"k8s.io/utils/exec"
 	// Cloud providers
 	_ "k8s.io/kubernetes/pkg/cloudprovider/providers"
 	// features check
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/features"
 )
-
 
 // ProbeVolumePlugins collects all volume plugins into an easy to use list.
 func probeVolumePlugins() []volume.VolumePlugin {
@@ -110,8 +110,8 @@ func probeVolumePlugins() []volume.VolumePlugin {
 // GetDynamicPluginProber gets the probers of dynamically discoverable plugins
 // for kubelet.
 // Currently only Flexvolume plugins are dynamically discoverable.
-func GetDynamicPluginProber(pluginDir string) volume.DynamicPluginProber {
-	return flexvolume.GetDynamicPluginProber(pluginDir)
+func GetDynamicPluginProber(pluginDir string, runner exec.Interface) volume.DynamicPluginProber {
+	return flexvolume.GetDynamicPluginProber(pluginDir, runner)
 }
 
 // ProbeNetworkPlugins collects all compiled-in plugins

@@ -328,6 +328,28 @@ func TestHandleImageStream(t *testing.T) {
 				},
 			},
 		},
+		// spec tag with generation with current status generation will be ignored
+		{
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Name:        "test",
+					Namespace:   "other",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"latest": {
+							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+							Generation: &two,
+						},
+					},
+				},
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{"latest": {Items: []imageapi.TagEvent{{Generation: 2}}}},
+				},
+			},
+			expected: nil,
+		},
 	}
 
 	for i, test := range testCases {

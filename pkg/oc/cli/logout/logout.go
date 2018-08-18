@@ -15,7 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	kubeconfiglib "github.com/openshift/origin/pkg/oc/lib/kubeconfig"
 	"github.com/openshift/origin/pkg/oc/util/project"
 )
@@ -110,7 +110,7 @@ func (o LogoutOptions) Validate(args []string) error {
 func (o LogoutOptions) RunLogout() error {
 	token := o.Config.BearerToken
 
-	client, err := oauthclient.NewForConfig(o.Config)
+	client, err := oauthv1client.NewForConfig(o.Config)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (o LogoutOptions) RunLogout() error {
 		return err
 	}
 
-	if err := client.Oauth().OAuthAccessTokens().Delete(token, &metav1.DeleteOptions{}); err != nil {
+	if err := client.OAuthAccessTokens().Delete(token, &metav1.DeleteOptions{}); err != nil {
 		glog.V(1).Infof("%v", err)
 	}
 
