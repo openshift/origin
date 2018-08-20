@@ -139,21 +139,17 @@ type DebugOptions struct {
 }
 
 func NewDebugOptions(streams genericclioptions.IOStreams) *DebugOptions {
+	attachOpts := kcmd.NewAttachOptions(streams)
+	attachOpts.TTY = true
+	attachOpts.Stdin = true
 	return &DebugOptions{
 		PrintFlags:         genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme),
 		IOStreams:          streams,
 		Timeout:            15 * time.Minute,
 		KeepInitContainers: true,
 		AsUser:             -1,
-		Attach: kcmd.AttachOptions{
-			StreamOptions: kcmd.StreamOptions{
-				IOStreams: streams,
-				TTY:       true,
-				Stdin:     true,
-			},
-			Attach: &kcmd.DefaultRemoteAttach{},
-		},
-		LogsForObject: polymorphichelpers.LogsForObjectFn,
+		Attach:             *attachOpts,
+		LogsForObject:      polymorphichelpers.LogsForObjectFn,
 	}
 }
 
