@@ -14,12 +14,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	routev1 "github.com/openshift/api/route/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	routelisters "github.com/openshift/client-go/route/listers/route/v1"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	f5plugin "github.com/openshift/origin/pkg/router/f5"
@@ -180,16 +180,16 @@ func (o *F5RouterOptions) Validate() error {
 // F5RouteAdmitterFunc returns a func that checks if a route is a
 // wildcard route and currently denies it.
 func (o *F5RouterOptions) F5RouteAdmitterFunc() controller.RouteAdmissionFunc {
-	return func(route *routeapi.Route) error {
+	return func(route *routev1.Route) error {
 		if err := o.AdmissionCheck(route); err != nil {
 			return err
 		}
 
 		switch route.Spec.WildcardPolicy {
-		case routeapi.WildcardPolicyNone:
+		case routev1.WildcardPolicyNone:
 			return nil
 
-		case routeapi.WildcardPolicySubdomain:
+		case routev1.WildcardPolicySubdomain:
 			// TODO: F5 wildcard route support.
 			return fmt.Errorf("Wildcard routes are currently not supported by the F5 router")
 		}
@@ -225,7 +225,7 @@ func (o *F5RouterOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	routeclient, err := routeinternalclientset.NewForConfig(config)
+	routeclient, err := routeclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}

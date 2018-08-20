@@ -12,6 +12,7 @@ import (
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 	routeedges "github.com/openshift/origin/pkg/oc/lib/graph/routegraph"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
+	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -167,7 +168,7 @@ func FindRouteAdmissionFailures(g osgraph.Graph, f osgraph.Namer) []osgraph.Mark
 		routeNode := uncastRouteNode.(*routegraph.RouteNode)
 	Route:
 		for _, ingress := range routeNode.Status.Ingress {
-			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+			switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 			case kapi.ConditionFalse:
 				markers = append(markers, osgraph.Marker{
 					Node: routeNode,

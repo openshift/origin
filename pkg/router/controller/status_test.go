@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -17,9 +18,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/route"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
-	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/client-go/route/clientset/versioned/fake"
+	routelisters "github.com/openshift/client-go/route/listers/route/v1"
 	"github.com/openshift/origin/pkg/util/writerlease"
 )
 
@@ -46,11 +47,11 @@ func (_ noopLease) Remove(key string) {
 
 type fakePlugin struct {
 	t     watch.EventType
-	route *routeapi.Route
+	route *routev1.Route
 	err   error
 }
 
-func (p *fakePlugin) HandleRoute(t watch.EventType, route *routeapi.Route) error {
+func (p *fakePlugin) HandleRoute(t watch.EventType, route *routev1.Route) error {
 	p.t, p.route = t, route
 	return p.err
 }
@@ -70,11 +71,11 @@ func (p *fakePlugin) Commit() error {
 }
 
 type routeLister struct {
-	items []*routeapi.Route
+	items []*routev1.Route
 	err   error
 }
 
-func (l *routeLister) List(selector labels.Selector) (ret []*routeapi.Route, err error) {
+func (l *routeLister) List(selector labels.Selector) (ret []*routev1.Route, err error) {
 	return l.items, l.err
 }
 
@@ -87,8 +88,8 @@ type routeNamespaceLister struct {
 	namespace string
 }
 
-func (l routeNamespaceLister) List(selector labels.Selector) (ret []*routeapi.Route, err error) {
-	var items []*routeapi.Route
+func (l routeNamespaceLister) List(selector labels.Selector) (ret []*routev1.Route, err error) {
+	var items []*routev1.Route
 	for _, item := range l.l.items {
 		if item.Namespace == l.namespace {
 			items = append(items, item)
@@ -97,7 +98,7 @@ func (l routeNamespaceLister) List(selector labels.Selector) (ret []*routeapi.Ro
 	return items, l.l.err
 }
 
-func (l routeNamespaceLister) Get(name string) (*routeapi.Route, error) {
+func (l routeNamespaceLister) Get(name string) (*routev1.Route, error) {
 	for _, item := range l.l.items {
 		if item.Namespace == l.namespace && item.Name == name {
 			return item, nil
@@ -108,7 +109,7 @@ func (l routeNamespaceLister) Get(name string) (*routeapi.Route, error) {
 
 type recorded struct {
 	at      time.Time
-	ingress *routeapi.RouteIngress
+	ingress *routev1.RouteIngress
 }
 
 type fakeTracker struct {
@@ -117,7 +118,7 @@ type fakeTracker struct {
 	results   map[string]bool
 }
 
-func (t *fakeTracker) IsChangeContended(id string, now time.Time, ingress *routeapi.RouteIngress) bool {
+func (t *fakeTracker) IsChangeContended(id string, now time.Time, ingress *routev1.RouteIngress) bool {
 	if t.contended == nil {
 		t.contended = make(map[string]recorded)
 	}
@@ -128,7 +129,7 @@ func (t *fakeTracker) IsChangeContended(id string, now time.Time, ingress *route
 	return t.results[id]
 }
 
-func (t *fakeTracker) Clear(id string, ingress *routeapi.RouteIngress) {
+func (t *fakeTracker) Clear(id string, ingress *routev1.RouteIngress) {
 	if t.cleared == nil {
 		t.cleared = make(map[string]recorded)
 	}
@@ -144,19 +145,19 @@ func TestStatusNoOp(t *testing.T) {
 	p := &fakePlugin{}
 	c := fake.NewSimpleClientset()
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:                    "route1.test.local",
 					RouterName:              "test",
 					RouterCanonicalHostname: "a.b.c.d",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionTrue,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionTrue,
 							LastTransitionTime: &touched,
 						},
 					},
@@ -164,7 +165,7 @@ func TestStatusNoOp(t *testing.T) {
 			},
 		},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "a.b.c.d", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, route)
 	if err != nil {
@@ -175,7 +176,7 @@ func TestStatusNoOp(t *testing.T) {
 	}
 }
 
-func checkResult(t *testing.T, err error, c *fake.Clientset, admitter *StatusAdmitter, targetHost string, targetObjTime metav1.Time, targetCachedTime *time.Time, ingressInd int, actionInd int) *routeapi.Route {
+func checkResult(t *testing.T, err error, c *fake.Clientset, admitter *StatusAdmitter, targetHost string, targetObjTime metav1.Time, targetCachedTime *time.Time, ingressInd int, actionInd int) *routev1.Route {
 	t.Helper()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -187,12 +188,12 @@ func checkResult(t *testing.T, err error, c *fake.Clientset, admitter *StatusAdm
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[actionInd].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[actionInd].(clientgotesting.UpdateAction).GetObject().(*routev1.Route)
 	if len(obj.Status.Ingress) != ingressInd+1 || obj.Status.Ingress[ingressInd].Host != targetHost {
 		t.Fatalf("expected route reset: expected %q / actual %q -- %#v", targetHost, obj.Status.Ingress[ingressInd].Host, obj)
 	}
 	condition := obj.Status.Ingress[ingressInd].Conditions[0]
-	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != targetObjTime || condition.Status != kapi.ConditionTrue || condition.Reason != "" {
+	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != targetObjTime || condition.Status != corev1.ConditionTrue || condition.Reason != "" {
 		t.Fatalf("%s: unexpected condition: %#v %s/%s", targetHost, condition, condition.LastTransitionTime, targetObjTime)
 	}
 	if targetCachedTime != nil {
@@ -212,20 +213,20 @@ func TestStatusResetsHost(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route2.test.local",
 					RouterName: "test",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionTrue,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionTrue,
 							LastTransitionTime: &touched,
 						},
 					},
@@ -233,7 +234,7 @@ func TestStatusResetsHost(t *testing.T) {
 			},
 		},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, route)
 
@@ -247,7 +248,7 @@ func TestStatusResetsHost(t *testing.T) {
 	}
 }
 
-func findIngressForRoute(route *routeapi.Route, routerName string) *routeapi.RouteIngress {
+func findIngressForRoute(route *routev1.Route, routerName string) *routev1.RouteIngress {
 	for i := range route.Status.Ingress {
 		if route.Status.Ingress[i].RouterName == routerName {
 			return &route.Status.Ingress[i]
@@ -261,26 +262,26 @@ func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
-		return true, nil, errors.NewForbidden(kapi.Resource("Route"), "route1", nil)
+		return true, nil, errors.NewForbidden(corev1.Resource("Route"), "route1", nil)
 	})
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route2.test.local",
 					RouterName: "test",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionTrue,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionTrue,
 							LastTransitionTime: &touched,
 						},
 					},
@@ -288,7 +289,7 @@ func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
 			},
 		},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, route)
 	route = checkResult(t, err, c, admitter, "route1.test.local", now, &touched.Time, 0, 0)
@@ -306,26 +307,26 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
-		return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
+		return true, nil, errors.NewConflict(corev1.Resource("Route"), "route1", nil)
 	})
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route2.test.local",
 					RouterName: "test",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							LastTransitionTime: &touched,
 						},
 					},
@@ -333,7 +334,7 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 			},
 		},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, route)
 	checkResult(t, err, c, admitter, "route1.test.local", now, nil, 0, 0)
@@ -343,13 +344,13 @@ func TestStatusRecordRejection(t *testing.T) {
 	now := nowFn()
 	nowFn = func() metav1.Time { return now }
 	p := &fakePlugin{}
-	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(route, "Failed", "generic error")
 
@@ -360,12 +361,12 @@ func TestStatusRecordRejection(t *testing.T) {
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routev1.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
-	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != kapi.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
+	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != corev1.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
 		t.Fatalf("unexpected condition: %#v", condition)
 	}
 }
@@ -375,20 +376,20 @@ func TestStatusRecordRejectionNoChange(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route1.test.local",
 					RouterName: "test",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							Reason:             "Failed",
 							Message:            "generic error",
 							LastTransitionTime: &touched,
@@ -398,7 +399,7 @@ func TestStatusRecordRejectionNoChange(t *testing.T) {
 			},
 		},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(route, "Failed", "generic error")
 
@@ -412,20 +413,20 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route2.test.local",
 					RouterName: "test",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							LastTransitionTime: &touched,
 						},
 					},
@@ -433,7 +434,7 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 			},
 		},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(route, "Failed", "generic error")
 
@@ -444,12 +445,12 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routev1.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
-	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != kapi.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
+	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != corev1.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
 		t.Fatalf("unexpected condition: %#v", condition)
 	}
 }
@@ -459,20 +460,20 @@ func TestStatusRecordRejectionOnHostUpdateOnly(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route2.test.local",
 					RouterName: "test",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							LastTransitionTime: &touched,
 							Reason:             "Failed",
 							Message:            "generic error",
@@ -482,7 +483,7 @@ func TestStatusRecordRejectionOnHostUpdateOnly(t *testing.T) {
 			},
 		},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(route, "Failed", "generic error")
 
@@ -493,12 +494,12 @@ func TestStatusRecordRejectionOnHostUpdateOnly(t *testing.T) {
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routev1.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
-	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != kapi.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
+	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != corev1.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
 		t.Fatalf("unexpected condition: %#v", condition)
 	}
 	if tracker.contended["uid1"].at != now.Time || tracker.cleared["uid1"].at.IsZero() {
@@ -511,26 +512,26 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
-		return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
+		return true, nil, errors.NewConflict(corev1.Resource("Route"), "route1", nil)
 	})
 	tracker := &fakeTracker{}
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route2.test.local",
 					RouterName: "test",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							LastTransitionTime: &touched,
 						},
 					},
@@ -538,7 +539,7 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 			},
 		},
 	}
-	lister := &routeLister{items: []*routeapi.Route{route}}
+	lister := &routeLister{items: []*routev1.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(route, "Failed", "generic error")
 
@@ -549,12 +550,12 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routev1.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
 	condition := obj.Status.Ingress[0].Conditions[0]
-	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != kapi.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
+	if condition.LastTransitionTime == nil || *condition.LastTransitionTime != now || condition.Status != corev1.ConditionFalse || condition.Reason != "Failed" || condition.Message != "generic error" {
 		t.Fatalf("unexpected condition: %#v", condition)
 	}
 }
@@ -567,14 +568,14 @@ func TestStatusFightBetweenReplicas(t *testing.T) {
 	// the initial pre-population
 	now1 := metav1.Now()
 	nowFn = func() metav1.Time { return now1 }
-	c1 := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c1 := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker1 := &fakeTracker{}
-	route1 := &routeapi.Route{
+	route1 := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
-		Status:     routeapi.RouteStatus{},
+		Spec:       routev1.RouteSpec{Host: "route1.test.local"},
+		Status:     routev1.RouteStatus{},
 	}
-	lister1 := &routeLister{items: []*routeapi.Route{route1}}
+	lister1 := &routeLister{items: []*routev1.Route{route1}}
 	admitter1 := NewStatusAdmitter(p, c1.Route(), lister1, "test", "", noopLease{}, tracker1)
 	err := admitter1.HandleRoute(watch.Added, route1)
 
@@ -587,9 +588,9 @@ func TestStatusFightBetweenReplicas(t *testing.T) {
 	// the new deployment's replica
 	now2 := metav1.Time{Time: now1.Time.Add(2 * time.Minute)}
 	nowFn = func() metav1.Time { return now2 }
-	c2 := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c2 := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker2 := &fakeTracker{}
-	lister2 := &routeLister{items: []*routeapi.Route{outObj1}}
+	lister2 := &routeLister{items: []*routev1.Route{outObj1}}
 	admitter2 := NewStatusAdmitter(p, c2.Route(), lister2, "test", "", noopLease{}, tracker2)
 	outObj1.Spec.Host = "route1.test-new.local"
 	err = admitter2.HandleRoute(watch.Added, outObj1)
@@ -625,7 +626,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 	now1 := metav1.Now()
 	nowFn = func() metav1.Time { return now1 }
 	touched1 := metav1.Time{Time: now1.Add(-time.Minute)}
-	c1 := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c1 := fake.NewSimpleClientset(&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	returnConflict := true
 	c1.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
@@ -633,23 +634,23 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 		}
 		if returnConflict {
 			returnConflict = false
-			return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
+			return true, nil, errors.NewConflict(corev1.Resource("Route"), "route1", nil)
 		}
 		return false, nil, nil
 	})
 	tracker := &fakeTracker{}
-	route1 := &routeapi.Route{
+	route1 := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route2.test-new.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route2.test-new.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route1.test.local",
 					RouterName: "test1",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							LastTransitionTime: &touched1,
 						},
 					},
@@ -657,10 +658,10 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 				{
 					Host:       "route1.test-new.local",
 					RouterName: "test2",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							LastTransitionTime: &touched1,
 						},
 					},
@@ -668,7 +669,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 			},
 		},
 	}
-	lister1 := &routeLister{items: []*routeapi.Route{route1}}
+	lister1 := &routeLister{items: []*routev1.Route{route1}}
 	admitter1 := NewStatusAdmitter(p, c1.Route(), lister1, "test2", "", noopLease{}, tracker)
 	err := admitter1.HandleRoute(watch.Added, route1)
 
@@ -683,18 +684,18 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 	touched2 := metav1.Time{Time: now2.Add(-time.Minute)}
 	tracker.cleared = nil
 	tracker.results = map[string]bool{"uid1": true}
-	route2 := &routeapi.Route{
+	route2 := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route2.test-new.local"},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Spec:       routev1.RouteSpec{Host: "route2.test-new.local"},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "route2.test.local",
 					RouterName: "test1",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							LastTransitionTime: &touched1,
 						},
 					},
@@ -702,10 +703,10 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 				{
 					Host:       "route1.test-new.local",
 					RouterName: "test2",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionFalse,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionFalse,
 							LastTransitionTime: &touched2,
 						},
 					},
@@ -722,7 +723,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 	}
 }
 
-func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *routeapi.Route, expectUpdate bool, conflict bool) *routeapi.Route {
+func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *routev1.Route, expectUpdate bool, conflict bool) *routev1.Route {
 	t.Helper()
 	// initialize a new client
 	c := fake.NewSimpleClientset(srcObj)
@@ -731,7 +732,7 @@ func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *route
 			if action.GetSubresource() != "status" {
 				return false, nil, nil
 			}
-			return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
+			return true, nil, errors.NewConflict(corev1.Resource("Route"), "route1", nil)
 		})
 	}
 
@@ -740,7 +741,7 @@ func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *route
 	inputObj := srcObj.DeepCopy()
 	inputObj.Spec.Host = host
 
-	admitter.lister.(*routeLister).items = []*routeapi.Route{inputObj}
+	admitter.lister.(*routeLister).items = []*routev1.Route{inputObj}
 
 	err := admitter.HandleRoute(watch.Modified, inputObj)
 
@@ -769,10 +770,10 @@ func TestRouterContention(t *testing.T) {
 	now := metav1.Now()
 	nowFn = func() metav1.Time { return now }
 
-	initObj := &routeapi.Route{
+	initObj := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: "route1.new.local"},
-		Status:     routeapi.RouteStatus{},
+		Spec:       routev1.RouteSpec{Host: "route1.new.local"},
+		Status:     routev1.RouteStatus{},
 	}
 
 	// NB: contention period is 1 minute
@@ -848,7 +849,7 @@ func TestRouterContention(t *testing.T) {
 	currObj = makePass(t, "route6.test.local", r1, currObj, true, false)
 }
 
-func ingressChangeWithNewHost(route *routeapi.Route, routerName, newHost string) *routeapi.RouteIngress {
+func ingressChangeWithNewHost(route *routev1.Route, routerName, newHost string) *routev1.RouteIngress {
 	ingress := findIngressForRoute(route, routerName).DeepCopy()
 	ingress.Host = newHost
 	return ingress

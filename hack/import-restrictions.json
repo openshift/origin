@@ -106,6 +106,7 @@
       "github.com/openshift/origin/pkg/network/generated",
       "github.com/openshift/origin/pkg/oauth/generated",
       "github.com/openshift/origin/pkg/project/generated",
+      "github.com/openshift/origin/pkg/route/generated",
       "github.com/openshift/origin/pkg/security/generated",
       "github.com/openshift/origin/pkg/template/generated",
       "github.com/openshift/origin/pkg/user/generated"
@@ -613,7 +614,7 @@
       "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated",
       "github.com/openshift/origin/pkg/quota/apis/quota",
       "github.com/openshift/origin/pkg/route/apis/route",
-      "github.com/openshift/origin/pkg/route/apis/route/validation",
+      "github.com/openshift/origin/pkg/route/controller/routeapihelpers",
       "github.com/openshift/origin/pkg/route/generator",
       "github.com/openshift/origin/pkg/security/apis/security",
       "github.com/openshift/origin/pkg/security/securitycontextconstraints/util",

@@ -16,12 +16,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	routev1 "github.com/openshift/api/route/v1"
 	projectclientset "github.com/openshift/client-go/project/clientset/versioned"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	routelisters "github.com/openshift/client-go/route/listers/route/v1"
 	infrarouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
@@ -114,7 +114,7 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 
 	// Keep track of created routes to be able to verify against
 	// the processed router state.
-	routes := []*routeapi.Route{}
+	routes := []*routev1.Route{}
 
 	// Create initial state
 	for i := int32(0); i < namespaceCount; i++ {
@@ -207,7 +207,7 @@ func createNamespace(t *testing.T, kc kclientset.Interface) *kapi.Namespace {
 	return namespace
 }
 
-func initializeNewRoute(t *testing.T, routeclient routeinternalclientset.Interface, kc kclientset.Interface, nsName, host string) *routeapi.Route {
+func initializeNewRoute(t *testing.T, routeclient routeclientset.Interface, kc kclientset.Interface, nsName, host string) *routev1.Route {
 	// Create a service for the route
 	serviceProperties := createServiceProperties()
 	service, err := kc.Core().Services(nsName).Create(serviceProperties)
@@ -271,15 +271,15 @@ func createEndpointsProperties(serviceName string) *kapi.Endpoints {
 	}
 }
 
-func createRouteProperties(serviceName, host string) *routeapi.Route {
-	return &routeapi.Route{
+func createRouteProperties(serviceName, host string) *routev1.Route {
+	return &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "route-",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: host,
 			Path: "",
-			To: routeapi.RouteTargetReference{
+			To: routev1.RouteTargetReference{
 				Name: serviceName,
 			},
 			TLS: nil,
@@ -289,7 +289,7 @@ func createRouteProperties(serviceName, host string) *routeapi.Route {
 
 // launchAPI launches an api server and returns clients configured to
 // access it.
-func launchApi(t *testing.T) (routeinternalclientset.Interface, projectclientset.Interface, kclientset.Interface, func(), error) {
+func launchApi(t *testing.T) (routeclientset.Interface, projectclientset.Interface, kclientset.Interface, func(), error) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -305,7 +305,7 @@ func launchApi(t *testing.T) (routeinternalclientset.Interface, projectclientset
 		return nil, nil, nil, nil, err
 	}
 
-	routeclient, err := routeinternalclientset.NewForConfig(cfg)
+	routeclient, err := routeclientset.NewForConfig(cfg)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -339,7 +339,7 @@ func (p *DelayPlugin) delay() {
 	time.Sleep(time.Duration(rand.Int31n(p.maxDelay)) * time.Millisecond)
 }
 
-func (p *DelayPlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+func (p *DelayPlugin) HandleRoute(eventType watch.EventType, route *routev1.Route) error {
 	p.delay()
 	return p.plugin.HandleRoute(eventType, route)
 }
@@ -365,7 +365,7 @@ func (p *DelayPlugin) Commit() error {
 
 // launchRateLimitedRouter launches a rate-limited template router
 // that communicates with the api via the provided clients.
-func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.Interface, projectclient projectclientset.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval time.Duration, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
+func launchRateLimitedRouter(t *testing.T, routeclient routeclientset.Interface, projectclient projectclientset.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval time.Duration, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
 	reloadedMap[name] = 0
 	rateLimitingFunc := func() error {
 		reloadedMap[name] += 1
@@ -388,7 +388,7 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 	return templatePlugin
 }
 
-func initializeRouterPlugins(routeclient routeinternalclientset.Interface, informer cache.SharedIndexInformer, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
+func initializeRouterPlugins(routeclient routeclientset.Interface, informer cache.SharedIndexInformer, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
 	r := templateplugin.NewFakeTemplateRouter()
 
 	r.EnableRateLimiter(reloadInterval, func() error {
@@ -412,7 +412,7 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, infor
 
 // launchRouter launches a template router that communicates with the
 // api via the provided clients.
-func launchRouter(routeclient routeinternalclientset.Interface, projectclient projectclientset.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
+func launchRouter(routeclient routeclientset.Interface, projectclient projectclientset.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
 	factory := routerSelection.NewFactory(routeclient, projectclient.ProjectV1().Projects(), kc)
 	templatePlugin, plugin := initializeRouterPlugins(routeclient, factory.CreateRoutesSharedInformer(), "test-router", 0, func() error {
 		return nil
@@ -440,7 +440,7 @@ func updateNamespaceLabels(t *testing.T, kc kclientset.Interface, namespace *kap
 	}
 }
 
-func waitForRouterToHaveRoute(t *testing.T, templatePlugin *templateplugin.TemplatePlugin, route *routeapi.Route, present bool) {
+func waitForRouterToHaveRoute(t *testing.T, templatePlugin *templateplugin.TemplatePlugin, route *routev1.Route, present bool) {
 	err := wait.PollImmediate(waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		if templatePlugin.Router.HasRoute(route) {
 			return present, nil

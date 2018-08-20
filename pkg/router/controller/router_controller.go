@@ -15,8 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	routev1 "github.com/openshift/api/route/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/router"
 )
 
@@ -32,7 +32,7 @@ type RouterController struct {
 	FilteredNamespaceNames sets.String
 	NamespaceLabels        labels.Selector
 	// Holds Namespace --> RouteName --> RouteObject
-	NamespaceRoutes map[string]map[string]*routeapi.Route
+	NamespaceRoutes map[string]map[string]*routev1.Route
 	// Holds Namespace --> EndpointsName --> EndpointsObject
 	NamespaceEndpoints map[string]map[string]*kapi.Endpoints
 
@@ -161,11 +161,11 @@ func (c *RouterController) RecordNamespaceEndpoints(eventType watch.EventType, e
 	}
 }
 
-func (c *RouterController) RecordNamespaceRoutes(eventType watch.EventType, rt *routeapi.Route) {
+func (c *RouterController) RecordNamespaceRoutes(eventType watch.EventType, rt *routev1.Route) {
 	switch eventType {
 	case watch.Added, watch.Modified:
 		if _, ok := c.NamespaceRoutes[rt.Namespace]; !ok {
-			c.NamespaceRoutes[rt.Namespace] = make(map[string]*routeapi.Route)
+			c.NamespaceRoutes[rt.Namespace] = make(map[string]*routev1.Route)
 		}
 		c.NamespaceRoutes[rt.Namespace][rt.Name] = rt
 	case watch.Deleted:
@@ -206,7 +206,7 @@ func (c *RouterController) HandleNode(eventType watch.EventType, obj interface{}
 
 // HandleRoute handles a single Route event and synchronizes the router backend.
 func (c *RouterController) HandleRoute(eventType watch.EventType, obj interface{}) {
-	route := obj.(*routeapi.Route)
+	route := obj.(*routev1.Route)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -237,7 +237,7 @@ func (c *RouterController) Commit() {
 }
 
 // processRoute logs and propagates a route event to the plugin
-func (c *RouterController) processRoute(eventType watch.EventType, route *routeapi.Route) {
+func (c *RouterController) processRoute(eventType watch.EventType, route *routev1.Route) {
 	glog.V(4).Infof("Processing route: %s/%s -> %s %s", route.Namespace, route.Name, route.Spec.To.Name, route.UID)
 	glog.V(4).Infof("           Alias: %s", route.Spec.Host)
 	if len(route.Spec.Path) > 0 {

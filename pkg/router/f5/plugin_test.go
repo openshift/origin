@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 	f5testing "github.com/openshift/origin/pkg/router/f5/testing"
 )
 
@@ -1566,7 +1566,7 @@ func TestHandleRoute(t *testing.T) {
 
 		// route specifies the route object to be passed to the
 		// HandleRoute method.
-		route *routeapi.Route
+		route *routev1.Route
 
 		// validate checks the state of the F5Plugin
 		// object and returns a Boolean
@@ -1579,14 +1579,14 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Unsecure route add",
 			eventType: watch.Added,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
 				},
@@ -1634,14 +1634,14 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Unsecure route modify",
 			eventType: watch.Modified,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example2.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
 					Path: "/foo/bar",
@@ -1688,14 +1688,14 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Unsecure route delete",
 			eventType: watch.Deleted,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example2.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
 				},
@@ -1718,18 +1718,18 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Edge route add",
 			eventType: watch.Added,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "edgetest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
-					TLS: &routeapi.TLSConfig{
-						Termination: routeapi.TLSTerminationEdge,
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationEdge,
 						Certificate: "abc",
 						Key:         "def",
 					},
@@ -1786,18 +1786,18 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Edge route delete",
 			eventType: watch.Deleted,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "edgetest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
-					TLS: &routeapi.TLSConfig{
-						Termination: routeapi.TLSTerminationEdge,
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationEdge,
 						Certificate: "abc",
 						Key:         "def",
 					},
@@ -1854,18 +1854,18 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Passthrough route add",
 			eventType: watch.Added,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "passthroughtest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example3.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
-					TLS: &routeapi.TLSConfig{
-						Termination: routeapi.TLSTerminationPassthrough,
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationPassthrough,
 					},
 				},
 			},
@@ -1886,18 +1886,18 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Add route with same hostname as passthrough route",
 			eventType: watch.Added,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example3.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
-					TLS: &routeapi.TLSConfig{
-						Termination: routeapi.TLSTerminationEdge,
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationEdge,
 						Certificate: "abc",
 						Key:         "def",
 					},
@@ -1920,14 +1920,14 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Modify route with same hostname as passthrough route",
 			eventType: watch.Modified,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example3.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
 				},
@@ -1949,14 +1949,14 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Delete route with same hostname as passthrough route",
 			eventType: watch.Deleted,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example3.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
 				},
@@ -1978,18 +1978,18 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Passthrough route delete",
 			eventType: watch.Deleted,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "passthroughtest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example3.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
-					TLS: &routeapi.TLSConfig{
-						Termination: routeapi.TLSTerminationPassthrough,
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationPassthrough,
 					},
 				},
 			},
@@ -2010,18 +2010,18 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Reencrypted route add",
 			eventType: watch.Added,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "reencryptedtest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example4.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
-					TLS: &routeapi.TLSConfig{
-						Termination:              routeapi.TLSTerminationReencrypt,
+					TLS: &routev1.TLSConfig{
+						Termination:              routev1.TLSTerminationReencrypt,
 						Certificate:              "abc",
 						Key:                      "def",
 						CACertificate:            "ghi",
@@ -2096,18 +2096,18 @@ func TestHandleRoute(t *testing.T) {
 		{
 			name:      "Reencrypted route delete",
 			eventType: watch.Deleted,
-			route: &routeapi.Route{
+			route: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "reencryptedtest",
 				},
-				Spec: routeapi.RouteSpec{
+				Spec: routev1.RouteSpec{
 					Host: "www.example4.com",
-					To: routeapi.RouteTargetReference{
+					To: routev1.RouteTargetReference{
 						Name: "TestService",
 					},
-					TLS: &routeapi.TLSConfig{
-						Termination:              routeapi.TLSTerminationReencrypt,
+					TLS: &routev1.TLSConfig{
+						Termination:              routev1.TLSTerminationReencrypt,
 						Certificate:              "abc",
 						Key:                      "def",
 						CACertificate:            "ghi",
@@ -2194,14 +2194,14 @@ func TestHandleRouteModifications(t *testing.T) {
 	}
 	defer mockF5.close()
 
-	testRoute := &routeapi.Route{
+	testRoute := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "mutatingroute",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "www.example.com",
-			To: routeapi.RouteTargetReference{
+			To: routev1.RouteTargetReference{
 				Name: "testendpoint",
 			},
 		},
@@ -2213,8 +2213,8 @@ func TestHandleRouteModifications(t *testing.T) {
 	}
 
 	// Verify that modifying the route into a secure route works.
-	testRoute.Spec.TLS = &routeapi.TLSConfig{
-		Termination:              routeapi.TLSTerminationReencrypt,
+	testRoute.Spec.TLS = &routev1.TLSConfig{
+		Termination:              routev1.TLSTerminationReencrypt,
 		Certificate:              "abc",
 		Key:                      "def",
 		CACertificate:            "ghi",
@@ -2235,8 +2235,8 @@ func TestHandleRouteModifications(t *testing.T) {
 	}
 
 	// Verify that modifying the route into a passthrough route works.
-	testRoute.Spec.TLS = &routeapi.TLSConfig{
-		Termination: routeapi.TLSTerminationPassthrough,
+	testRoute.Spec.TLS = &routev1.TLSConfig{
+		Termination: routev1.TLSTerminationPassthrough,
 	}
 
 	err = router.HandleRoute(watch.Modified, testRoute)
@@ -2263,18 +2263,18 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
 
-	testRoute := &routeapi.Route{
+	testRoute := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "xyzzy",
 			Name:      "testroute",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "www.example.com",
-			To: routeapi.RouteTargetReference{
+			To: routev1.RouteTargetReference{
 				Name: "testendpoint",
 			},
-			TLS: &routeapi.TLSConfig{
-				Termination:              routeapi.TLSTerminationReencrypt,
+			TLS: &routev1.TLSConfig{
+				Termination:              routev1.TLSTerminationReencrypt,
 				Certificate:              "abc",
 				Key:                      "def",
 				CACertificate:            "ghi",
@@ -2283,18 +2283,18 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 		},
 	}
 
-	testPassthroughRoute := &routeapi.Route{
+	testPassthroughRoute := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "quux",
 			Name:      "testpassthroughroute",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "www.example2.com",
-			To: routeapi.RouteTargetReference{
+			To: routev1.RouteTargetReference{
 				Name: "testhttpsendpoint",
 			},
-			TLS: &routeapi.TLSConfig{
-				Termination: routeapi.TLSTerminationPassthrough,
+			TLS: &routev1.TLSConfig{
+				Termination: routev1.TLSTerminationPassthrough,
 			},
 		},
 	}

@@ -609,7 +609,7 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kprinters.PrintOptions)
 		admitted, errors = 0, 0
 	)
 	for _, ingress := range route.Status.Ingress {
-		switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+		switch status, condition := ingressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 		case kapi.ConditionTrue:
 			admitted++
 			if !matchedHost {
@@ -680,6 +680,16 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kprinters.PrintOptions)
 	err := appendItemLabels(route.Labels, w, opts.ColumnLabels, opts.ShowLabels)
 
 	return err
+}
+
+func ingressConditionStatus(ingress *routeapi.RouteIngress, t routeapi.RouteIngressConditionType) (kapi.ConditionStatus, routeapi.RouteIngressCondition) {
+	for _, condition := range ingress.Conditions {
+		if t != condition.Type {
+			continue
+		}
+		return condition.Status, condition
+	}
+	return kapi.ConditionUnknown, routeapi.RouteIngressCondition{}
 }
 
 func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kprinters.PrintOptions) error {

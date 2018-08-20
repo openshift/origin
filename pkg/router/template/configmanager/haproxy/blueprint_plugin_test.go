@@ -10,44 +10,44 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 	templaterouter "github.com/openshift/origin/pkg/router/template"
 )
 
 type fakeConfigManager struct {
-	blueprints map[string]*routeapi.Route
+	blueprints map[string]*routev1.Route
 }
 
 func newFakeConfigManager() *fakeConfigManager {
 	return &fakeConfigManager{
-		blueprints: make(map[string]*routeapi.Route),
+		blueprints: make(map[string]*routev1.Route),
 	}
 }
 
 func (cm *fakeConfigManager) Initialize(router templaterouter.RouterInterface, certPath string) {
 }
 
-func (cm *fakeConfigManager) AddBlueprint(route *routeapi.Route) {
+func (cm *fakeConfigManager) AddBlueprint(route *routev1.Route) {
 	cm.blueprints[routeKey(route)] = route
 }
 
-func (cm *fakeConfigManager) RemoveBlueprint(route *routeapi.Route) {
+func (cm *fakeConfigManager) RemoveBlueprint(route *routev1.Route) {
 	delete(cm.blueprints, routeKey(route))
 }
 
-func (cm *fakeConfigManager) FindBlueprint(id string) (*routeapi.Route, bool) {
+func (cm *fakeConfigManager) FindBlueprint(id string) (*routev1.Route, bool) {
 	route, ok := cm.blueprints[id]
 	return route, ok
 }
 
-func (cm *fakeConfigManager) Register(id string, route *routeapi.Route) {
+func (cm *fakeConfigManager) Register(id string, route *routev1.Route) {
 }
 
-func (cm *fakeConfigManager) AddRoute(id, routingKey string, route *routeapi.Route) error {
+func (cm *fakeConfigManager) AddRoute(id, routingKey string, route *routev1.Route) error {
 	return nil
 }
 
-func (cm *fakeConfigManager) RemoveRoute(id string, route *routeapi.Route) error {
+func (cm *fakeConfigManager) RemoveRoute(id string, route *routev1.Route) error {
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (cm *fakeConfigManager) GenerateDynamicServerNames(id string) []string {
 	return []string{}
 }
 
-func routeKey(route *routeapi.Route) string {
+func routeKey(route *routev1.Route) string {
 	return fmt.Sprintf("%s:%s", route.Name, route.Namespace)
 }
 
@@ -82,15 +82,15 @@ func routeKey(route *routeapi.Route) string {
 func TestHandleRoute(t *testing.T) {
 	original := metav1.Time{Time: time.Now()}
 
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: original,
 			Namespace:         "bp",
 			Name:              "chevron",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "www.blueprints.org",
-			To: routeapi.RouteTargetReference{
+			To: routev1.RouteTargetReference{
 				Name:   "TestService",
 				Weight: new(int32),
 			},
@@ -114,7 +114,7 @@ func TestHandleRoute(t *testing.T) {
 		t.Errorf("TestHandleRoute unexpected error after blueprint update: %v", err)
 	}
 
-	blueprints := []*routeapi.Route{v2route, route}
+	blueprints := []*routev1.Route{v2route, route}
 	for _, r := range blueprints {
 		// delete the blueprint and check that it doesn't exist.
 		if err := plugin.HandleRoute(watch.Deleted, v2route); err != nil {

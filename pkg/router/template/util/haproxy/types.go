@@ -1,7 +1,7 @@
 package haproxy
 
 import (
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 // BackendConfig is the haproxy backend config.
@@ -10,8 +10,8 @@ type BackendConfig struct {
 	Host           string
 	Path           string
 	IsWildcard     bool
-	Termination    routeapi.TLSTerminationType
-	InsecurePolicy routeapi.InsecureEdgeTerminationPolicyType
+	Termination    routev1.TLSTerminationType
+	InsecurePolicy routev1.InsecureEdgeTerminationPolicyType
 	HasCertificate bool
 }
 

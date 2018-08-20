@@ -7,14 +7,15 @@ import (
 
 	"github.com/golang/glog"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 )
 
 // GenerateRouteRegexp generates a regular expression to match route hosts (and paths if any).
 func GenerateRouteRegexp(hostname, path string, wildcard bool) string {
 	hostRE := regexp.QuoteMeta(hostname)
 	if wildcard {
-		subdomain := routeapi.GetDomainForHost(hostname)
+		subdomain := routeapihelpers.GetDomainForHost(hostname)
 		if len(subdomain) == 0 {
 			glog.Warningf("Generating subdomain wildcard regexp - invalid host name %s", hostname)
 		} else {
@@ -56,14 +57,14 @@ func GenCertificateHostName(hostname string, wildcard bool) string {
 }
 
 // GenerateBackendNamePrefix generates the backend name prefix based on the termination.
-func GenerateBackendNamePrefix(termination routeapi.TLSTerminationType) string {
+func GenerateBackendNamePrefix(termination routev1.TLSTerminationType) string {
 	prefix := "be_http"
 	switch termination {
-	case routeapi.TLSTerminationEdge:
+	case routev1.TLSTerminationEdge:
 		prefix = "be_edge_http"
-	case routeapi.TLSTerminationReencrypt:
+	case routev1.TLSTerminationReencrypt:
 		prefix = "be_secure"
-	case routeapi.TLSTerminationPassthrough:
+	case routev1.TLSTerminationPassthrough:
 		prefix = "be_tcp"
 	}
 

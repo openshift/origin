@@ -14,11 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	routev1 "github.com/openshift/api/route/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 )
@@ -90,7 +90,7 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 }
 
 // RouteUpdate updates the route before it is seen by the cache.
-func (o *RouterSelection) RouteUpdate(route *routeapi.Route) {
+func (o *RouterSelection) RouteUpdate(route *routev1.Route) {
 	if len(o.HostnameTemplate) == 0 {
 		return
 	}
@@ -116,7 +116,7 @@ func (o *RouterSelection) RouteUpdate(route *routeapi.Route) {
 	route.Spec.Host = s
 }
 
-func (o *RouterSelection) AdmissionCheck(route *routeapi.Route) error {
+func (o *RouterSelection) AdmissionCheck(route *routev1.Route) error {
 	if len(route.Spec.Host) < 1 {
 		return nil
 	}
@@ -143,16 +143,16 @@ func (o *RouterSelection) AdmissionCheck(route *routeapi.Route) error {
 // based on blacklist & whitelist checks and wildcard routes policy setting.
 // Note: The blacklist settings trumps the whitelist ones.
 func (o *RouterSelection) RouteAdmissionFunc() controller.RouteAdmissionFunc {
-	return func(route *routeapi.Route) error {
+	return func(route *routev1.Route) error {
 		if err := o.AdmissionCheck(route); err != nil {
 			return err
 		}
 
 		switch route.Spec.WildcardPolicy {
-		case routeapi.WildcardPolicyNone:
+		case routev1.WildcardPolicyNone:
 			return nil
 
-		case routeapi.WildcardPolicySubdomain:
+		case routev1.WildcardPolicySubdomain:
 			if o.AllowWildcardRoutes {
 				return nil
 			}
@@ -233,7 +233,7 @@ func (o *RouterSelection) Complete() error {
 }
 
 // NewFactory initializes a factory that will watch the requested routes
-func (o *RouterSelection) NewFactory(routeclient routeinternalclientset.Interface, projectclient projectclient.ProjectInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
+func (o *RouterSelection) NewFactory(routeclient routeclientset.Interface, projectclient projectclient.ProjectInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
 	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient, kc)
 	factory.LabelSelector = o.LabelSelector
 	factory.FieldSelector = o.FieldSelector

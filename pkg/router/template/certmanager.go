@@ -9,7 +9,7 @@ import (
 
 	"github.com/golang/glog"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 // certificateFile represents a certificate file.
@@ -75,7 +75,7 @@ func (cm *simpleCertificateManager) WriteCertificatesForConfig(config *ServiceAl
 		return nil
 	}
 	if len(config.Certificates) > 0 {
-		if config.TLSTermination == routeapi.TLSTerminationEdge || config.TLSTermination == routeapi.TLSTerminationReencrypt {
+		if config.TLSTermination == routev1.TLSTerminationEdge || config.TLSTermination == routev1.TLSTerminationReencrypt {
 			certKey := cm.cfg.certKeyFunc(config)
 			certObj, ok := config.Certificates[certKey]
 
@@ -103,7 +103,7 @@ func (cm *simpleCertificateManager) WriteCertificatesForConfig(config *ServiceAl
 			}
 		}
 
-		if config.TLSTermination == routeapi.TLSTerminationReencrypt {
+		if config.TLSTermination == routev1.TLSTerminationReencrypt {
 			destCertKey := cm.cfg.destCertKeyFunc(config)
 			destCert, ok := config.Certificates[destCertKey]
 
@@ -125,7 +125,7 @@ func (cm *simpleCertificateManager) DeleteCertificatesForConfig(config *ServiceA
 		return nil
 	}
 	if len(config.Certificates) > 0 {
-		if config.TLSTermination == routeapi.TLSTerminationEdge || config.TLSTermination == routeapi.TLSTerminationReencrypt {
+		if config.TLSTermination == routev1.TLSTerminationEdge || config.TLSTermination == routev1.TLSTerminationReencrypt {
 			certKey := cm.cfg.certKeyFunc(config)
 			certObj, ok := config.Certificates[certKey]
 
@@ -135,7 +135,7 @@ func (cm *simpleCertificateManager) DeleteCertificatesForConfig(config *ServiceA
 			}
 		}
 
-		if config.TLSTermination == routeapi.TLSTerminationReencrypt {
+		if config.TLSTermination == routev1.TLSTerminationReencrypt {
 			destCertKey := cm.cfg.destCertKeyFunc(config)
 			destCert, ok := config.Certificates[destCertKey]
 

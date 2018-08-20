@@ -14,7 +14,8 @@ import (
 
 	"github.com/golang/glog"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 	templateutil "github.com/openshift/origin/pkg/router/template/util"
 	haproxyutil "github.com/openshift/origin/pkg/router/template/util/haproxy"
 )
@@ -91,7 +92,7 @@ func matchPattern(pattern, s string) bool {
 // Generate a regular expression to match wildcard hosts (and paths if any)
 // for a [sub]domain.
 func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
-	subdomain := routeapi.GetDomainForHost(hostname)
+	subdomain := routeapihelpers.GetDomainForHost(hostname)
 	if len(subdomain) == 0 {
 		glog.Warningf("Generating subdomain wildcard regexp - invalid host name %s", hostname)
 		return fmt.Sprintf("%s%s", hostname, path)
@@ -207,7 +208,7 @@ func getHTTPAliasesGroupedByHost(aliases map[string]ServiceAliasConfig) map[stri
 	result := make(map[string]map[string]ServiceAliasConfig)
 
 	for k, a := range aliases {
-		if a.TLSTermination == routeapi.TLSTerminationPassthrough {
+		if a.TLSTermination == routev1.TLSTerminationPassthrough {
 			continue
 		}
 
@@ -246,7 +247,7 @@ func getPrimaryAliasKey(aliases map[string]ServiceAliasConfig) string {
 	sort.Sort(sort.Reverse(sort.StringSlice(keys)))
 
 	for _, k := range keys {
-		if aliases[k].TLSTermination == routeapi.TLSTerminationEdge || aliases[k].TLSTermination == routeapi.TLSTerminationReencrypt {
+		if aliases[k].TLSTermination == routev1.TLSTerminationEdge || aliases[k].TLSTermination == routev1.TLSTerminationReencrypt {
 			return k
 		}
 	}

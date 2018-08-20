@@ -52,6 +52,7 @@ import (
 	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
+	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -874,7 +875,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.Des
 				if len(ingress.RouterCanonicalHostname) > 0 {
 					hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 				}
-				switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+				switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 				case kapi.ConditionTrue:
 					fmt.Fprintf(out, "\t  exposed on router %s%s %s ago\n", ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				case kapi.ConditionFalse:
@@ -896,7 +897,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.Des
 			if len(ingress.RouterCanonicalHostname) > 0 {
 				hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 			}
-			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+			switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 			case kapi.ConditionTrue:
 				fmt.Fprintf(out, "\t%s exposed on router %s %s%s ago\n", ingress.Host, ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 			case kapi.ConditionFalse:

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 // ServiceUnit represents a service and its endpoints.
@@ -32,7 +32,7 @@ type ServiceAliasConfig struct {
 	// Path is an optional path ie. www.example.com/myservice where "myservice" is the path
 	Path string
 	// TLSTermination is the termination policy for this backend and drives the mapping files and router configuration
-	TLSTermination routeapi.TLSTerminationType
+	TLSTermination routev1.TLSTerminationType
 	// Certificates used for securing this backend.  Keyed by the cert id
 	Certificates map[string]Certificate
 	// VerifyServiceHostname is true if the backend service(s) are expected to have serving certificates that sign for
@@ -47,7 +47,7 @@ type ServiceAliasConfig struct {
 	// InsecureEdgeTerminationPolicy indicates desired behavior for
 	// insecure connections to an edge-terminated route:
 	//   none (or disable), allow or redirect
-	InsecureEdgeTerminationPolicy routeapi.InsecureEdgeTerminationPolicyType
+	InsecureEdgeTerminationPolicy routev1.InsecureEdgeTerminationPolicyType
 
 	// Hash of the route name - used to obscure cookieId
 	RoutingKeyName string
@@ -152,7 +152,7 @@ type ConfigManagerOptions struct {
 
 	// BlueprintRoutes are a list of routes blueprints pre-allocated by
 	// the config manager to dynamically manage route additions.
-	BlueprintRoutes []*routeapi.Route
+	BlueprintRoutes []*routev1.Route
 
 	// BlueprintRoutePoolSize is the size of the pre-allocated pool for
 	// each route blueprint. This can be overriden on an individual
@@ -184,19 +184,19 @@ type ConfigManager interface {
 	Initialize(router RouterInterface, certPath string)
 
 	// AddBlueprint adds a new (or replaces an existing) route blueprint.
-	AddBlueprint(route *routeapi.Route)
+	AddBlueprint(route *routev1.Route)
 
 	// RemoveBlueprint removes a route blueprint.
-	RemoveBlueprint(route *routeapi.Route)
+	RemoveBlueprint(route *routev1.Route)
 
 	// Register registers an id to be associated with a route.
-	Register(id string, route *routeapi.Route)
+	Register(id string, route *routev1.Route)
 
 	// AddRoute adds a new route or updates an existing route.
-	AddRoute(id, routingKey string, route *routeapi.Route) error
+	AddRoute(id, routingKey string, route *routev1.Route) error
 
 	// RemoveRoute removes a route.
-	RemoveRoute(id string, route *routeapi.Route) error
+	RemoveRoute(id string, route *routev1.Route) error
 
 	// ReplaceRouteEndpoints replaces a subset (the ones associated with
 	// a single service unit) of a route endpoints.
