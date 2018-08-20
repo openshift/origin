@@ -10,6 +10,7 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -223,7 +224,7 @@ type ErrBadReference struct {
 	reason     string
 }
 
-func newErrBadReferenceToImage(reference string, obj *kapi.ObjectReference, reason string) error {
+func newErrBadReferenceToImage(reference string, obj *corev1.ObjectReference, reason string) error {
 	kind := "<UnknownType>"
 	namespace := ""
 	name := "<unknown-name>"
@@ -242,7 +243,7 @@ func newErrBadReferenceToImage(reference string, obj *kapi.ObjectReference, reas
 	}
 }
 
-func newErrBadReferenceTo(targetKind, reference string, obj *kapi.ObjectReference, reason string) error {
+func newErrBadReferenceTo(targetKind, reference string, obj *corev1.ObjectReference, reason string) error {
 	return &ErrBadReference{
 		kind:       obj.Kind,
 		namespace:  obj.Namespace,
@@ -282,7 +283,7 @@ func getName(obj runtime.Object) string {
 	return fmt.Sprintf("%s/%s", ns, accessor.GetName())
 }
 
-func getKindName(obj *kapi.ObjectReference) string {
+func getKindName(obj *corev1.ObjectReference) string {
 	if obj == nil {
 		return "unknown object"
 	}
@@ -293,11 +294,24 @@ func getKindName(obj *kapi.ObjectReference) string {
 	return fmt.Sprintf("%s[%s]", obj.Kind, name)
 }
 
-func getRef(obj runtime.Object) *kapi.ObjectReference {
+func getInternalRef(obj runtime.Object) *kapi.ObjectReference {
 	ref, err := kapiref.GetReference(legacyscheme.Scheme, obj)
 	if err != nil {
 		glog.Errorf("failed to get reference to object %T: %v", obj, err)
 		return nil
 	}
 	return ref
+}
+
+func getRef(obj runtime.Object) *corev1.ObjectReference {
+	ref, err := kapiref.GetReference(legacyscheme.Scheme, obj)
+	if err != nil {
+		glog.Errorf("failed to get reference to object %T: %v", obj, err)
+		return nil
+	}
+	result := &corev1.ObjectReference{}
+	if err := legacyscheme.Scheme.Convert(ref, result, nil); err != nil {
+		panic(err)
+	}
+	return result
 }

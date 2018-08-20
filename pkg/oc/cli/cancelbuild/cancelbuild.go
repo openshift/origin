@@ -19,13 +19,14 @@ import (
 
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
+	buildclientset "github.com/openshift/client-go/build/clientset/versioned"
 	buildtv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclientinternal "github.com/openshift/origin/pkg/build/client"
 	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
-	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildlisterinternal "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -73,7 +74,7 @@ type CancelBuildOptions struct {
 	Mapper                  meta.RESTMapper
 	Client                  buildtv1client.BuildV1Interface
 	BuildClient             buildtv1client.BuildInterface
-	BuildLister             buildlisterinternal.BuildLister
+	BuildLister             buildlisterv1.BuildLister
 
 	// timeout is used by unit tests to shorten the polling period
 	timeout time.Duration
@@ -147,12 +148,12 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		return err
 	}
 
-	internalclient, err := buildinternalclient.NewForConfig(config)
+	internalclient, err := buildclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}
 
-	o.BuildLister = buildclientinternal.NewClientBuildLister(internalclient.Build())
+	o.BuildLister = buildclientinternal.NewClientBuildLister(internalclient.BuildV1())
 	o.BuildClient = o.Client.Builds(o.Namespace)
 	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
@@ -217,7 +218,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			return err
 		}
 
-		if stateMatch && !buildutil.IsTerminalPhase(internalBuildStatus.Phase) {
+		if stateMatch && !buildinternalhelpers.IsTerminalPhase(internalBuildStatus.Phase) {
 			builds = append(builds, build)
 		}
 	}

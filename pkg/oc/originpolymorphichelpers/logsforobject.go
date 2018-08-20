@@ -21,9 +21,7 @@ import (
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	appsmanualclientv1 "github.com/openshift/origin/pkg/apps/client/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildmanualclientv1 "github.com/openshift/origin/pkg/build/client/v1"
-	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
@@ -100,35 +98,35 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			// TODO: support allContainers flag
 			return []*rest.Request{logClient.Logs(filteredInternalBuildItems[0].Name, *bopts)}, nil
 		case *buildapi.Build:
-			bopts, ok := options.(*buildapi.BuildLogOptions)
+			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
 			if bopts.Version != nil {
 				return nil, errors.New("cannot specify a version and a build")
 			}
-			buildClient, err := buildclientinternal.NewForConfig(clientConfig)
+			buildClient, err := buildv1client.NewForConfig(clientConfig)
 			if err != nil {
 				return nil, err
 			}
 			// TODO: support allContainers flag
-			return []*rest.Request{buildmanualclient.NewBuildLogClient(buildClient.Build().RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
+			return []*rest.Request{buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
 		case *buildapi.BuildConfig:
-			bopts, ok := options.(*buildapi.BuildLogOptions)
+			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
-			buildClient, err := buildclientinternal.NewForConfig(clientConfig)
+			buildClient, err := buildv1client.NewForConfig(clientConfig)
 			if err != nil {
 				return nil, err
 			}
-			logClient := buildmanualclient.NewBuildLogClient(buildClient.Build().RESTClient(), t.Namespace)
-			builds, err := buildClient.Build().Builds(t.Namespace).List(metav1.ListOptions{})
+			logClient := buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace)
+			builds, err := buildClient.Builds(t.Namespace).List(metav1.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
-			builds.Items = ocbuildapihelpers.FilterBuildsInternal(builds.Items, ocbuildapihelpers.ByBuildConfigPredicateInternal(t.Name))
-			if len(builds.Items) == 0 {
+			filteredInternalBuildItems := ocbuildapihelpers.FilterBuilds(builds.Items, ocbuildapihelpers.ByBuildConfigPredicate(t.Name))
+			if len(filteredInternalBuildItems) == 0 {
 				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
 			if bopts.Version != nil {
@@ -137,10 +135,9 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				// TODO: support allContainers flag
 				return []*rest.Request{logClient.Logs(desired, *bopts)}, nil
 			}
-			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestampInternal(builds.Items)))
+			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestamp(filteredInternalBuildItems)))
 			// TODO: support allContainers flag
-			return []*rest.Request{logClient.Logs(builds.Items[0].Name, *bopts)}, nil
-
+			return []*rest.Request{logClient.Logs(filteredInternalBuildItems[0].Name, *bopts)}, nil
 		default:
 			return delegate(restClientGetter, object, options, timeout, allContainers)
 		}

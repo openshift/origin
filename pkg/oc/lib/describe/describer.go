@@ -45,7 +45,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -187,7 +187,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapihelpers.GetBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
+	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildinternalhelpers.GetBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
 		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
@@ -221,7 +221,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		if buildObj.Status.Config != nil {
 			formatString(out, "Build Config", buildObj.Status.Config.Name)
 		}
-		formatString(out, "Build Pod", buildapihelpers.GetBuildPodName(buildObj))
+		formatString(out, "Build Pod", buildinternalhelpers.GetBuildPodName(buildObj))
 
 		if buildObj.Status.Output.To != nil && len(buildObj.Status.Output.To.ImageDigest) > 0 {
 			formatString(out, "Image Digest", buildObj.Status.Output.To.ImageDigest)
@@ -281,7 +281,7 @@ func nameAndNamespace(ns, name string) string {
 }
 
 func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
-	formatString(out, "\nStrategy", buildapihelpers.StrategyType(p.Strategy))
+	formatString(out, "\nStrategy", buildinternalhelpers.StrategyType(p.Strategy))
 	noneType := true
 	if p.Source.Git != nil {
 		noneType = false
@@ -570,7 +570,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 			fmt.Fprintf(out, "\nBuild\tStatus\tDuration\tCreation Time\n")
 
 			builds := buildList.Items
-			sort.Sort(sort.Reverse(buildapihelpers.BuildSliceByCreationTimestamp(builds)))
+			sort.Sort(sort.Reverse(buildinternalhelpers.BuildSliceByCreationTimestamp(builds)))
 
 			for i, build := range builds {
 				fmt.Fprintf(out, "%s \t%s \t%v \t%v\n",
