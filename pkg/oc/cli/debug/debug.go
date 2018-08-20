@@ -39,6 +39,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
@@ -572,8 +573,11 @@ func (o *DebugOptions) getContainerImageCommand(pod *corev1.Pod, container *core
 		return nil, fmt.Errorf("error: no usable image found")
 	}
 
-	dockerImage, err := imageutil.GetImageMetadata(image)
-	if err != nil {
+	if err := imageutil.ImageWithMetadata(image); err != nil {
+		return nil, err
+	}
+	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+	if !ok {
 		return nil, err
 	}
 

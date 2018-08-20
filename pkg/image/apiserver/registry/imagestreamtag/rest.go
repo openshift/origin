@@ -444,7 +444,7 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 	}
 
 	if image != nil {
-		if err := util.ImageWithMetadata(image); err != nil {
+		if err := util.InternalImageWithMetadata(image); err != nil {
 			return nil, err
 		}
 		image.DockerImageManifest = ""

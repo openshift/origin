@@ -17,6 +17,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -214,8 +215,11 @@ func getStorage(image *imagev1.Image) int64 {
 		blobSet.Insert(layer.Name)
 		storage += layer.LayerSize
 	}
-	dockerImage, err := imageutil.GetImageMetadata(image)
-	if err != nil {
+	if err := imageutil.ImageWithMetadata(image); err != nil {
+		return storage
+	}
+	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+	if !ok {
 		return storage
 	}
 	if len(image.DockerImageConfig) > 0 && !blobSet.Has(dockerImage.ID) {

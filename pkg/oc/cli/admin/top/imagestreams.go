@@ -15,6 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -183,8 +184,11 @@ func getImageStreamSize(g genericgraph.Graph, node *imagegraph.ImageStreamNode) 
 			blobSet.Insert(layer.Name)
 			storage += layer.LayerSize
 		}
-		dockerImage, err := imageutil.GetImageMetadata(image)
-		if err != nil {
+		if err := imageutil.ImageWithMetadata(image); err != nil {
+			continue
+		}
+		dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+		if !ok {
 			continue
 		}
 		if len(image.DockerImageConfig) > 0 && !blobSet.Has(dockerImage.ID) {

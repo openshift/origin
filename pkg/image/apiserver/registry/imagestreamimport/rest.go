@@ -520,7 +520,7 @@ func (r *REST) importSuccessful(
 	updated, err := r.images.Create(ctx, image, rest.ValidateAllObjectFunc, false)
 	switch {
 	case kapierrors.IsAlreadyExists(err):
-		if err := util.ImageWithMetadata(image); err != nil {
+		if err := util.InternalImageWithMetadata(image); err != nil {
 			glog.V(4).Infof("Unable to update image metadata during image import when image already exists %q: %v", image.Name, err)
 		}
 		updated = image

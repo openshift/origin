@@ -29,6 +29,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
@@ -355,10 +356,15 @@ func (p *pruner) addImagesToGraph(images *imagev1.ImageList) []error {
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(p.g, image)
 
-		dockerImage, err := imageutil.GetImageMetadata(image)
-		if err != nil {
+		if err := imageutil.ImageWithMetadata(image); err != nil {
 			glog.V(1).Infof("Failed to read image metadata for image %s: %v", image.Name, err)
 			errs = append(errs, err)
+			continue
+		}
+		dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+		if !ok {
+			glog.V(1).Infof("Failed to read image metadata for image %s", image.Name)
+			errs = append(errs, fmt.Errorf("Failed to read image metadata for image %s", image.Name))
 			continue
 		}
 		if image.DockerImageManifestMediaType == schema2.MediaTypeManifest && len(dockerImage.ID) > 0 {
@@ -485,8 +491,11 @@ func exceedsLimits(is *imagev1.ImageStream, image *imagev1.Image, limits map[str
 		return false
 	}
 
-	dockerImage, err := imageutil.GetImageMetadata(image)
-	if err != nil {
+	if err := imageutil.ImageWithMetadata(image); err != nil {
+		return false
+	}
+	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+	if !ok {
 		return false
 	}
 	imageSize := resource.NewQuantity(dockerImage.Size, resource.BinarySI)
