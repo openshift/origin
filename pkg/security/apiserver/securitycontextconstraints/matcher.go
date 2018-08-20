@@ -51,7 +51,7 @@ func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.I
 	} else {
 		for _, constraint := range constraints {
 			for _, user := range users {
-				if constraintAppliesTo(constraint, user, namespace, d.authorizer) {
+				if ConstraintAppliesTo(constraint.Name, constraint.Users, constraint.Groups, user, namespace, d.authorizer) {
 					matchedConstraints = append(matchedConstraints, constraint)
 					break
 				}
@@ -63,13 +63,13 @@ func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.I
 }
 
 // authorizedForSCC returns true if info is authorized to perform the "use" verb on the SCC resource.
-func authorizedForSCC(constraint *securityapi.SecurityContextConstraints, info user.Info, namespace string, a authorizer.Authorizer) bool {
+func authorizedForSCC(sccName string, info user.Info, namespace string, a authorizer.Authorizer) bool {
 	// check against the namespace that the pod is being created in to allow per-namespace SCC grants.
 	attr := authorizer.AttributesRecord{
 		User:            info,
 		Verb:            "use",
 		Namespace:       namespace,
-		Name:            constraint.Name,
+		Name:            sccName,
 		APIGroup:        security.GroupName,
 		Resource:        "securitycontextconstraints",
 		ResourceRequest: true,
@@ -82,22 +82,22 @@ func authorizedForSCC(constraint *securityapi.SecurityContextConstraints, info u
 	return decision == authorizer.DecisionAllow
 }
 
-// constraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
+// ConstraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
 // if it is usable by the userInfo.
 // Anything we do here needs to work with a deny authorizer so the choices are limited to SAR / Authorizer
-func constraintAppliesTo(constraint *securityapi.SecurityContextConstraints, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
-	for _, user := range constraint.Users {
+func ConstraintAppliesTo(sccName string, sccUsers, sccGroups []string, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
+	for _, user := range sccUsers {
 		if userInfo.GetName() == user {
 			return true
 		}
 	}
 	for _, userGroup := range userInfo.GetGroups() {
-		if constraintSupportsGroup(userGroup, constraint.Groups) {
+		if constraintSupportsGroup(userGroup, sccGroups) {
 			return true
 		}
 	}
 	if a != nil {
-		return authorizedForSCC(constraint, userInfo, namespace, a)
+		return authorizedForSCC(sccName, userInfo, namespace, a)
 	}
 	return false
 }

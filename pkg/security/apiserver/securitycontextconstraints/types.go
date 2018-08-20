@@ -18,4 +18,8 @@ type SecurityContextConstraintsProvider interface {
 	ValidateContainerSecurityContext(pod *api.Pod, container *api.Container, fldPath *field.Path) field.ErrorList
 	// Get the name of the SCC that this provider was initialized with.
 	GetSCCName() string
+	// Get the users associated to the SCC this provider was initialized with
+	GetSCCUsers() []string
+	// Get the groups associated to the SCC this provider was initialized with
+	GetSCCGroups() []string
 }

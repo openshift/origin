@@ -360,6 +360,14 @@ func (s *simpleProvider) GetSCCName() string {
 	return s.scc.Name
 }
 
+func (s *simpleProvider) GetSCCUsers() []string {
+	return s.scc.Users
+}
+
+func (s *simpleProvider) GetSCCGroups() []string {
+	return s.scc.Groups
+}
+
 // createUserStrategy creates a new user strategy.
 func createUserStrategy(opts *securityapi.RunAsUserStrategyOptions) (user.RunAsUserSecurityContextConstraintsStrategy, error) {
 	switch opts.Type {
