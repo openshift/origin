@@ -4,14 +4,17 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	internalcore "k8s.io/kubernetes/pkg/apis/core"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/controller/common"
-	u "github.com/openshift/origin/pkg/build/controller/common/testutil"
+	testutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
@@ -24,12 +27,12 @@ func TestProxyDefaults(t *testing.T) {
 	}
 
 	admitter := BuildDefaults{defaultsConfig}
-	pod := u.Pod().WithBuild(t, u.Build().WithDockerStrategy().AsBuild())
-	err := admitter.ApplyDefaults((*v1.Pod)(pod))
+	pod := testutil.Pod().WithBuild(t, testutil.Build().WithDockerStrategy().AsBuild())
+	err := admitter.ApplyDefaults((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, err := common.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := common.GetBuildFromPod((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -47,7 +50,7 @@ func TestProxyDefaults(t *testing.T) {
 
 func TestEnvDefaults(t *testing.T) {
 	defaultsConfig := &configapi.BuildDefaultsConfig{
-		Env: []kapi.EnvVar{
+		Env: []internalcore.EnvVar{
 			{
 				Name:  "VAR1",
 				Value: "VALUE1",
@@ -64,12 +67,12 @@ func TestEnvDefaults(t *testing.T) {
 	}
 
 	admitter := BuildDefaults{defaultsConfig}
-	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild())
-	err := admitter.ApplyDefaults((*v1.Pod)(pod))
+	pod := testutil.Pod().WithBuild(t, testutil.Build().WithSourceStrategy().AsBuild())
+	err := admitter.ApplyDefaults((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, err := common.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := common.GetBuildFromPod((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -111,8 +114,8 @@ func TestEnvDefaults(t *testing.T) {
 	}
 
 	// custom builds should have the defaulted env vars applied to the build pod
-	pod = u.Pod().WithBuild(t, u.Build().WithCustomStrategy().AsBuild())
-	err = admitter.ApplyDefaults((*v1.Pod)(pod))
+	pod = testutil.Pod().WithBuild(t, testutil.Build().WithCustomStrategy().AsBuild())
+	err = admitter.ApplyDefaults((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -157,12 +160,12 @@ func TestIncrementalDefaults(t *testing.T) {
 
 	admitter := BuildDefaults{defaultsConfig}
 
-	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild())
-	err := admitter.ApplyDefaults((*v1.Pod)(pod))
+	pod := testutil.Pod().WithBuild(t, testutil.Build().WithSourceStrategy().AsBuild())
+	err := admitter.ApplyDefaults((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, err := common.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := common.GetBuildFromPod((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -170,15 +173,15 @@ func TestIncrementalDefaults(t *testing.T) {
 		t.Errorf("failed to default incremental to true")
 	}
 
-	build = u.Build().WithSourceStrategy().AsBuild()
+	build = testutil.Build().WithSourceStrategy().AsBuild()
 	bool_f := false
 	build.Spec.Strategy.SourceStrategy.Incremental = &bool_f
-	pod = u.Pod().WithBuild(t, build)
-	err = admitter.ApplyDefaults((*v1.Pod)(pod))
+	pod = testutil.Pod().WithBuild(t, build)
+	err = admitter.ApplyDefaults((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, err = common.GetBuildFromPod((*v1.Pod)(pod))
+	build, err = common.GetBuildFromPod((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -190,9 +193,9 @@ func TestIncrementalDefaults(t *testing.T) {
 
 func TestLabelDefaults(t *testing.T) {
 	tests := []struct {
-		buildLabels   []buildapi.ImageLabel
-		defaultLabels []buildapi.ImageLabel
-		expected      []buildapi.ImageLabel
+		buildLabels   []buildv1.ImageLabel
+		defaultLabels []buildv1.ImageLabel
+		expected      []buildv1.ImageLabel
 	}{
 		{
 			buildLabels:   nil,
@@ -201,7 +204,7 @@ func TestLabelDefaults(t *testing.T) {
 		},
 		{
 			buildLabels: nil,
-			defaultLabels: []buildapi.ImageLabel{
+			defaultLabels: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
@@ -211,7 +214,7 @@ func TestLabelDefaults(t *testing.T) {
 					Value: "file:///dev/null",
 				},
 			},
-			expected: []buildapi.ImageLabel{
+			expected: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
@@ -223,7 +226,7 @@ func TestLabelDefaults(t *testing.T) {
 			},
 		},
 		{
-			buildLabels: []buildapi.ImageLabel{
+			buildLabels: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
@@ -234,7 +237,7 @@ func TestLabelDefaults(t *testing.T) {
 				},
 			},
 			defaultLabels: nil,
-			expected: []buildapi.ImageLabel{
+			expected: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
@@ -246,13 +249,13 @@ func TestLabelDefaults(t *testing.T) {
 			},
 		},
 		{
-			buildLabels: []buildapi.ImageLabel{
+			buildLabels: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
 				},
 			},
-			defaultLabels: []buildapi.ImageLabel{
+			defaultLabels: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "public",
@@ -262,7 +265,7 @@ func TestLabelDefaults(t *testing.T) {
 					Value: "file:///dev/null",
 				},
 			},
-			expected: []buildapi.ImageLabel{
+			expected: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
@@ -274,19 +277,19 @@ func TestLabelDefaults(t *testing.T) {
 			},
 		},
 		{
-			buildLabels: []buildapi.ImageLabel{
+			buildLabels: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
 				},
 			},
-			defaultLabels: []buildapi.ImageLabel{
+			defaultLabels: []buildv1.ImageLabel{
 				{
 					Name:  "changelog-url",
 					Value: "file:///dev/null",
 				},
 			},
-			expected: []buildapi.ImageLabel{
+			expected: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
@@ -300,13 +303,21 @@ func TestLabelDefaults(t *testing.T) {
 	}
 
 	for i, test := range tests {
+		internalLabels := []buildapi.ImageLabel{}
+		for _, l := range test.defaultLabels {
+			internalLabel := buildapi.ImageLabel{}
+			if err := legacyscheme.Scheme.Convert(&l, &internalLabel, nil); err != nil {
+				panic(err)
+			}
+			internalLabels = append(internalLabels, internalLabel)
+		}
 		defaultsConfig := &configapi.BuildDefaultsConfig{
-			ImageLabels: test.defaultLabels,
+			ImageLabels: internalLabels,
 		}
 
 		admitter := BuildDefaults{defaultsConfig}
-		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild())
-		err := admitter.ApplyDefaults((*v1.Pod)(pod))
+		pod := testutil.Pod().WithBuild(t, testutil.Build().WithImageLabels(test.buildLabels).AsBuild())
+		err := admitter.ApplyDefaults((*corev1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -325,25 +336,25 @@ func TestLabelDefaults(t *testing.T) {
 func TestBuildDefaultsNodeSelector(t *testing.T) {
 	tests := []struct {
 		name     string
-		build    *buildapi.Build
+		build    *buildv1.Build
 		defaults map[string]string
 		expected map[string]string
 	}{
 		{
 			name:     "build - full add",
-			build:    u.Build().AsBuild(),
+			build:    testutil.Build().AsBuild(),
 			defaults: map[string]string{"key1": "default1", "key2": "default2"},
 			expected: map[string]string{"key1": "default1", "key2": "default2"},
 		},
 		{
 			name:     "build - ignored",
-			build:    u.Build().WithNodeSelector(map[string]string{"key1": "value1"}).AsBuild(),
+			build:    testutil.Build().WithNodeSelector(map[string]string{"key1": "value1"}).AsBuild(),
 			defaults: map[string]string{"key1": "default1", "key2": "default2"},
 			expected: map[string]string{"key1": "value1"},
 		},
 		{
 			name:     "build - empty(non-nil) nodeselector",
-			build:    u.Build().WithNodeSelector(map[string]string{}).AsBuild(),
+			build:    testutil.Build().WithNodeSelector(map[string]string{}).AsBuild(),
 			defaults: map[string]string{"key1": "default1"},
 			expected: map[string]string{},
 		},
@@ -351,11 +362,11 @@ func TestBuildDefaultsNodeSelector(t *testing.T) {
 
 	for _, test := range tests {
 		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{NodeSelector: test.defaults}}
-		pod := u.Pod().WithBuild(t, test.build)
+		pod := testutil.Pod().WithBuild(t, test.build)
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
 		pod.Spec.NodeSelector = test.build.Spec.NodeSelector
-		err := defaults.ApplyDefaults((*v1.Pod)(pod))
+		err := defaults.ApplyDefaults((*corev1.Pod)(pod))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
@@ -373,28 +384,28 @@ func TestBuildDefaultsNodeSelector(t *testing.T) {
 func TestBuildDefaultsAnnotations(t *testing.T) {
 	tests := []struct {
 		name        string
-		build       *buildapi.Build
+		build       *buildv1.Build
 		annotations map[string]string
 		defaults    map[string]string
 		expected    map[string]string
 	}{
 		{
 			name:        "build - nil annotations",
-			build:       u.Build().AsBuild(),
+			build:       testutil.Build().AsBuild(),
 			annotations: nil,
 			defaults:    map[string]string{"key1": "default1", "key2": "default2"},
 			expected:    map[string]string{"key1": "default1", "key2": "default2"},
 		},
 		{
 			name:        "build - full add",
-			build:       u.Build().AsBuild(),
+			build:       testutil.Build().AsBuild(),
 			annotations: map[string]string{"key3": "value3"},
 			defaults:    map[string]string{"key1": "default1", "key2": "default2"},
 			expected:    map[string]string{"key1": "default1", "key2": "default2", "key3": "value3"},
 		},
 		{
 			name:        "build - partial add",
-			build:       u.Build().AsBuild(),
+			build:       testutil.Build().AsBuild(),
 			annotations: map[string]string{"key1": "value1"},
 			defaults:    map[string]string{"key1": "default1", "key2": "default2"},
 			expected:    map[string]string{"key1": "value1", "key2": "default2"},
@@ -403,9 +414,9 @@ func TestBuildDefaultsAnnotations(t *testing.T) {
 
 	for _, test := range tests {
 		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{Annotations: test.defaults}}
-		pod := u.Pod().WithBuild(t, test.build)
+		pod := testutil.Pod().WithBuild(t, test.build)
 		pod.Annotations = test.annotations
-		err := defaults.ApplyDefaults((*v1.Pod)(pod))
+		err := defaults.ApplyDefaults((*corev1.Pod)(pod))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
@@ -422,8 +433,8 @@ func TestBuildDefaultsAnnotations(t *testing.T) {
 func TestResourceDefaults(t *testing.T) {
 	tests := map[string]struct {
 		DefaultResource  kapi.ResourceRequirements
-		BuildResource    kapi.ResourceRequirements
-		ExpectedResource kapi.ResourceRequirements
+		BuildResource    corev1.ResourceRequirements
+		ExpectedResource corev1.ResourceRequirements
 	}{
 		"BuildDefaults plugin and Build object both defined resource limits and requests": {
 			DefaultResource: kapi.ResourceRequirements{
@@ -436,24 +447,24 @@ func TestResourceDefaults(t *testing.T) {
 					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
-			BuildResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+			BuildResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("30"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("3G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("40"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("4G"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("40"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("4G"),
 				},
 			},
-			ExpectedResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+			ExpectedResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("30"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("3G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("40"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("4G"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("40"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("4G"),
 				},
 			},
 		},
@@ -468,20 +479,20 @@ func TestResourceDefaults(t *testing.T) {
 					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
-			BuildResource: kapi.ResourceRequirements{
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+			BuildResource: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("30"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("3G"),
 				},
 			},
-			ExpectedResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+			ExpectedResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("1G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("30"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("3G"),
 				},
 			},
 		},
@@ -496,50 +507,50 @@ func TestResourceDefaults(t *testing.T) {
 					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
-			BuildResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+			BuildResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("30"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("3G"),
 				},
 			},
-			ExpectedResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+			ExpectedResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("30"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("3G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("2G"),
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("20"),
 				},
 			},
 		},
 		"BuildDefaults plugin defined nothing, Build object defined resource limits": {
 			DefaultResource: kapi.ResourceRequirements{},
-			BuildResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+			BuildResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("1G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("20"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
-			ExpectedResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+			ExpectedResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("1G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("20"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
 		},
 		"BuildDefaults plugin and Build object defined nothing": {
 			DefaultResource:  kapi.ResourceRequirements{},
-			BuildResource:    kapi.ResourceRequirements{},
-			ExpectedResource: kapi.ResourceRequirements{},
+			BuildResource:    corev1.ResourceRequirements{},
+			ExpectedResource: corev1.ResourceRequirements{},
 		},
 		"BuildDefaults plugin defined limits and requests, Build object defined nothing": {
 			DefaultResource: kapi.ResourceRequirements{
@@ -552,15 +563,15 @@ func TestResourceDefaults(t *testing.T) {
 					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
-			BuildResource: kapi.ResourceRequirements{},
-			ExpectedResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+			BuildResource: corev1.ResourceRequirements{},
+			ExpectedResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("1G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("20"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
 		},
@@ -573,22 +584,22 @@ func TestResourceDefaults(t *testing.T) {
 					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
-			BuildResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+			BuildResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("1G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU): resource.MustParse("30"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU): resource.MustParse("30"),
 				},
 			},
-			ExpectedResource: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+			ExpectedResource: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("1G"),
 				},
-				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("30"),
+					corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("2G"),
 				},
 			},
 		},
@@ -597,35 +608,36 @@ func TestResourceDefaults(t *testing.T) {
 	for name, test := range tests {
 		defaults := BuildDefaults{Config: &configapi.BuildDefaultsConfig{Resources: test.DefaultResource}}
 
-		build := u.Build().WithSourceStrategy().AsBuild()
+		build := testutil.Build().WithSourceStrategy().AsBuild()
 		build.Spec.Resources = test.BuildResource
-		pod := u.Pod().WithBuild(t, build)
+		pod := testutil.Pod().WithBuild(t, build)
 
 		// normally the buildconfig resources would be applied to the pod
 		// when it was created, but this pod didn't get created by the normal
 		// pod creation flow, so fake this out.
 		for i := range pod.Spec.InitContainers {
-			pod.Spec.InitContainers[i].Resources = buildutil.CopyApiResourcesToV1Resources(&test.BuildResource)
+			pod.Spec.InitContainers[i].Resources = test.BuildResource
 		}
 		for i := range pod.Spec.Containers {
-			pod.Spec.Containers[i].Resources = buildutil.CopyApiResourcesToV1Resources(&test.BuildResource)
+			pod.Spec.Containers[i].Resources = test.BuildResource
 		}
-		err := defaults.ApplyDefaults((*v1.Pod)(pod))
+		err := defaults.ApplyDefaults((*corev1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
-		build, err = common.GetBuildFromPod((*v1.Pod)(pod))
+		build, err = common.GetBuildFromPod((*corev1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
 		if !kapihelper.Semantic.DeepEqual(test.ExpectedResource, build.Spec.Resources) {
-			t.Fatalf("%v:Build resource expected expected=actual, %#v != %#v", name, test.ExpectedResource, build.Spec.Resources)
+			t.Fatalf("%v:Build resource expected expected=actual, \nexpected: %#v\n\nactual: %#v\n", name, test.ExpectedResource,
+				build.Spec.Resources)
 		}
 
-		allContainers := append([]v1.Container{}, pod.Spec.Containers...)
+		allContainers := append([]corev1.Container{}, pod.Spec.Containers...)
 		allContainers = append(allContainers, pod.Spec.InitContainers...)
 		for i, c := range allContainers {
-			if !kapihelper.Semantic.DeepEqual(buildutil.CopyApiResourcesToV1Resources(&test.ExpectedResource), c.Resources) {
+			if !kapihelper.Semantic.DeepEqual(test.ExpectedResource, c.Resources) {
 				t.Fatalf("%v: Pod container %d resource expected expected=actual, got expected:\n%#v\nactual:\n%#v", name, i, test.ExpectedResource, c.Resources)
 			}
 		}
@@ -633,9 +645,9 @@ func TestResourceDefaults(t *testing.T) {
 }
 
 func TestSetBuildLogLevel(t *testing.T) {
-	build := u.Build().WithSourceStrategy()
-	pod := u.Pod().WithEnvVar("BUILD", "foo")
-	setPodLogLevelFromBuild((*v1.Pod)(pod), build.AsBuild())
+	build := testutil.Build().WithSourceStrategy()
+	pod := testutil.Pod().WithEnvVar("BUILD", "foo")
+	setPodLogLevelFromBuild((*corev1.Pod)(pod), build.AsBuild())
 
 	if len(pod.Spec.Containers[0].Args) == 0 {
 		t.Errorf("Builds pod loglevel was not set")
@@ -645,10 +657,10 @@ func TestSetBuildLogLevel(t *testing.T) {
 		t.Errorf("Default build pod loglevel was not set to 0")
 	}
 
-	build = u.Build().WithSourceStrategy()
-	pod = u.Pod().WithEnvVar("BUILD", "foo")
-	build.Spec.Strategy.SourceStrategy.Env = []kapi.EnvVar{{Name: "BUILD_LOGLEVEL", Value: "7", ValueFrom: nil}}
-	setPodLogLevelFromBuild((*v1.Pod)(pod), build.AsBuild())
+	build = testutil.Build().WithSourceStrategy()
+	pod = testutil.Pod().WithEnvVar("BUILD", "foo")
+	build.Spec.Strategy.SourceStrategy.Env = []corev1.EnvVar{{Name: "BUILD_LOGLEVEL", Value: "7", ValueFrom: nil}}
+	setPodLogLevelFromBuild((*corev1.Pod)(pod), build.AsBuild())
 
 	if pod.Spec.Containers[0].Args[0] != "--loglevel=7" {
 		t.Errorf("Build pod loglevel was not transferred from BUILD_LOGLEVEL environment variable: %#v", pod)

@@ -6,17 +6,15 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	buildapiv1 "github.com/openshift/api/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/util"
@@ -26,7 +24,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	strategy := CustomBuildStrategy{}
 
 	expectedBad := mockCustomBuild(false, false)
-	expectedBad.Spec.Strategy.CustomStrategy.From = kapi.ObjectReference{
+	expectedBad.Spec.Strategy.CustomStrategy.From = corev1.ObjectReference{
 		Kind: "DockerImage",
 		Name: "",
 	}
@@ -43,7 +41,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if expected, actual := buildapihelpers.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{util.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {
@@ -54,10 +52,10 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if container.Name != CustomBuild {
 		t.Errorf("Expected %s, but got %s!", CustomBuild, container.Name)
 	}
-	if container.ImagePullPolicy != v1.PullIfNotPresent {
-		t.Errorf("Expected %v, got %v", v1.PullIfNotPresent, container.ImagePullPolicy)
+	if container.ImagePullPolicy != corev1.PullIfNotPresent {
+		t.Errorf("Expected %v, got %v", corev1.PullIfNotPresent, container.ImagePullPolicy)
 	}
-	if actual.Spec.RestartPolicy != v1.RestartPolicyNever {
+	if actual.Spec.RestartPolicy != corev1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	if len(container.VolumeMounts) != 4 {
@@ -71,13 +69,13 @@ func TestCustomCreateBuildPod(t *testing.T) {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if !kapihelper.Semantic.DeepEqual(container.Resources, util.CopyApiResourcesToV1Resources(&build.Spec.Resources)) {
+	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
 	if len(actual.Spec.Volumes) != 4 {
 		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	buildJSON, _ := runtime.Encode(customBuildEncodingCodecFactory.LegacyCodec(buildapiv1.SchemeGroupVersion), build)
+	buildJSON, _ := runtime.Encode(customBuildEncodingCodecFactory.LegacyCodec(buildv1.GroupVersion), build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -111,8 +109,8 @@ func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", fperr)
 	}
 	container := actual.Spec.Containers[0]
-	if container.ImagePullPolicy != v1.PullAlways {
-		t.Errorf("Expected %v, got %v", v1.PullAlways, container.ImagePullPolicy)
+	if container.ImagePullPolicy != corev1.PullAlways {
+		t.Errorf("Expected %v, got %v", corev1.PullAlways, container.ImagePullPolicy)
 	}
 }
 
@@ -162,51 +160,51 @@ func TestCustomBuildLongName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if pod.Labels[buildapi.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
-		t.Errorf("Unexpected build label value: %s", pod.Labels[buildapi.BuildLabel])
+	if pod.Labels[util.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
+		t.Errorf("Unexpected build label value: %s", pod.Labels[util.BuildLabel])
 	}
 }
 
-func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
+func mockCustomBuild(forcePull, emptySource bool) *buildv1.Build {
 	timeout := int64(60)
-	src := buildapi.BuildSource{}
+	src := buildv1.BuildSource{}
 	if !emptySource {
-		src = buildapi.BuildSource{
-			Git: &buildapi.GitBuildSource{
+		src = buildv1.BuildSource{
+			Git: &buildv1.GitBuildSource{
 				URI: "http://my.build.com/the/dockerbuild/Dockerfile",
 				Ref: "master",
 			},
 			ContextDir:   "foo",
-			SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
+			SourceSecret: &corev1.LocalObjectReference{Name: "secretFoo"},
 		}
 	}
-	return &buildapi.Build{
+	return &buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "CustomBuild",
 			Labels: map[string]string{
 				"name": "CustomBuild",
 			},
 		},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Revision: &buildapi.SourceRevision{
-					Git: &buildapi.GitSourceRevision{},
+		Spec: buildv1.BuildSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Revision: &buildv1.SourceRevision{
+					Git: &buildv1.GitSourceRevision{},
 				},
 				Source: src,
-				Strategy: buildapi.BuildStrategy{
-					CustomStrategy: &buildapi.CustomBuildStrategy{
-						From: kapi.ObjectReference{
+				Strategy: buildv1.BuildStrategy{
+					CustomStrategy: &buildv1.CustomBuildStrategy{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "builder-image",
 						},
-						Env: []kapi.EnvVar{
+						Env: []corev1.EnvVar{
 							{Name: "FOO", Value: "BAR"},
 						},
 						ExposeDockerSocket: true,
 						ForcePull:          forcePull,
-						Secrets: []buildapi.SecretSpec{
+						Secrets: []buildv1.SecretSpec{
 							{
-								SecretSource: kapi.LocalObjectReference{
+								SecretSource: corev1.LocalObjectReference{
 									Name: "secret",
 								},
 								MountPath: "secret",
@@ -214,25 +212,25 @@ func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "docker-registry.io/repository/custombuild",
 					},
-					PushSecret: &kapi.LocalObjectReference{Name: "foo"},
+					PushSecret: &corev1.LocalObjectReference{Name: "foo"},
 				},
-				Resources: kapi.ResourceRequirements{
-					Limits: kapi.ResourceList{
-						kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-						kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+						corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("10G"),
 					},
 				},
 				CompletionDeadlineSeconds: &timeout,
 				NodeSelector:              nodeSelector,
 			},
 		},
-		Status: buildapi.BuildStatus{
-			Phase: buildapi.BuildPhaseNew,
+		Status: buildv1.BuildStatus{
+			Phase: buildv1.BuildPhaseNew,
 		},
 	}
 }

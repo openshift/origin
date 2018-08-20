@@ -8,22 +8,22 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
-func mockBuildConfig(name string) buildapi.BuildConfig {
+func mockBuildConfig(name string) buildv1.BuildConfig {
 	appName := strings.Split(name, "-")
 	successfulBuildsToKeep := int32(2)
 	failedBuildsToKeep := int32(3)
-	return buildapi.BuildConfig{
+	return buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-build", appName[0]),
 			Namespace: "namespace",
@@ -31,16 +31,16 @@ func mockBuildConfig(name string) buildapi.BuildConfig {
 				"app": appName[0],
 			},
 		},
-		Spec: buildapi.BuildConfigSpec{
+		Spec: buildv1.BuildConfigSpec{
 			SuccessfulBuildsHistoryLimit: &successfulBuildsToKeep,
 			FailedBuildsHistoryLimit:     &failedBuildsToKeep,
 		},
 	}
 }
 
-func mockBuild(name string, phase buildapi.BuildPhase, stamp *metav1.Time) buildapi.Build {
+func mockBuild(name string, phase buildv1.BuildPhase, stamp *metav1.Time) buildv1.Build {
 	appName := strings.Split(name, "-")
-	return buildapi.Build{
+	return buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              name,
 			UID:               types.UID(fmt.Sprintf("uid%v", appName[1])),
@@ -48,17 +48,17 @@ func mockBuild(name string, phase buildapi.BuildPhase, stamp *metav1.Time) build
 			CreationTimestamp: *stamp,
 			Labels: map[string]string{
 				"app": appName[0],
-				buildapi.BuildConfigLabel: fmt.Sprintf("%v-build", appName[0]),
-				"buildconfig":             fmt.Sprintf("%v-build", appName[0]),
+				buildutil.BuildConfigLabel: fmt.Sprintf("%v-build", appName[0]),
+				"buildconfig":              fmt.Sprintf("%v-build", appName[0]),
 			},
 			Annotations: map[string]string{
-				buildapi.BuildConfigLabel: fmt.Sprintf("%v-build", appName[0]),
+				buildutil.BuildConfigLabel: fmt.Sprintf("%v-build", appName[0]),
 			},
 		},
-		Status: buildapi.BuildStatus{
+		Status: buildv1.BuildStatus{
 			Phase:          phase,
 			StartTimestamp: stamp,
-			Config: &kapi.ObjectReference{
+			Config: &corev1.ObjectReference{
 				Name:      fmt.Sprintf("%v-build", appName[0]),
 				Namespace: "namespace",
 			},
@@ -66,11 +66,11 @@ func mockBuild(name string, phase buildapi.BuildPhase, stamp *metav1.Time) build
 	}
 }
 
-// Using a multiple of 4 for length will return a list of buildapi.Build objects
+// Using a multiple of 4 for length will return a list of buildv1.Build objects
 // that are evenly split between all four below build phases.
-func mockBuildsList(length int) (buildapi.BuildConfig, []buildapi.Build) {
-	var builds []buildapi.Build
-	buildPhaseList := []buildapi.BuildPhase{buildapi.BuildPhaseComplete, buildapi.BuildPhaseFailed, buildapi.BuildPhaseError, buildapi.BuildPhaseCancelled}
+func mockBuildsList(length int) (buildv1.BuildConfig, []buildv1.Build) {
+	var builds []buildv1.Build
+	buildPhaseList := []buildv1.BuildPhase{buildv1.BuildPhaseComplete, buildv1.BuildPhaseFailed, buildv1.BuildPhaseError, buildv1.BuildPhaseCancelled}
 	addOrSubtract := []string{"+", "-"}
 
 	j := 0
@@ -109,11 +109,11 @@ func TestHandleBuildPruning(t *testing.T) {
 	buildDeleter := buildclient.NewClientBuildClient(buildClient)
 
 	bcName := buildutil.ConfigNameForBuild(build)
-	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
+	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
 	sort.Sort(ByCreationTimestamp(successfulStartingBuilds))
 
-	failedStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool {
-		return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseError || build.Status.Phase == buildapi.BuildPhaseCancelled)
+	failedStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool {
+		return build.Status.Phase == buildv1.BuildPhaseFailed || build.Status.Phase == buildv1.BuildPhaseError || build.Status.Phase == buildv1.BuildPhaseCancelled
 	})
 	sort.Sort(ByCreationTimestamp(failedStartingBuilds))
 
@@ -125,11 +125,11 @@ func TestHandleBuildPruning(t *testing.T) {
 		t.Errorf("error pruning builds: %v", err)
 	}
 
-	successfulRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
+	successfulRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
 	sort.Sort(ByCreationTimestamp(successfulRemainingBuilds))
 
-	failedRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool {
-		return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseError || build.Status.Phase == buildapi.BuildPhaseCancelled)
+	failedRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool {
+		return build.Status.Phase == buildv1.BuildPhaseFailed || build.Status.Phase == buildv1.BuildPhaseError || build.Status.Phase == buildv1.BuildPhaseCancelled
 	})
 	sort.Sort(ByCreationTimestamp(failedRemainingBuilds))
 

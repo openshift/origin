@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -15,7 +15,6 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -38,13 +37,13 @@ type CustomBuildStrategy struct {
 }
 
 // CreateBuildPod creates the pod to be used for the Custom build
-func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
+func (bs *CustomBuildStrategy) CreateBuildPod(build *buildv1.Build) (*corev1.Pod, error) {
 	strategy := build.Spec.Strategy.CustomStrategy
 	if strategy == nil {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without CustomStrategy parameters")
 	}
 
-	codec := customBuildEncodingCodecFactory.LegacyCodec(buildv1.SchemeGroupVersion)
+	codec := customBuildEncodingCodecFactory.LegacyCodec(buildv1.GroupVersion)
 	if len(strategy.BuildAPIVersion) != 0 {
 		gv, err := schema.ParseGroupVersion(strategy.BuildAPIVersion)
 		if err != nil {
@@ -58,7 +57,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
-	containerEnv := []v1.EnvVar{{Name: "BUILD", Value: string(data)}}
+	containerEnv := []corev1.EnvVar{{Name: "BUILD", Value: string(data)}}
 
 	if build.Spec.Source.Git != nil {
 		addSourceEnvVars(build.Spec.Source, &containerEnv)
@@ -76,12 +75,12 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 
 	if len(strategy.Env) > 0 {
-		containerEnv = append(containerEnv, buildutil.CopyApiEnvVarToV1EnvVar(strategy.Env)...)
+		containerEnv = append(containerEnv, strategy.Env...)
 	}
 
 	if strategy.ExposeDockerSocket {
 		glog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.Name)
-		containerEnv = append(containerEnv, v1.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
+		containerEnv = append(containerEnv, corev1.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
 	}
 
 	serviceAccount := build.Spec.ServiceAccount
@@ -90,27 +89,27 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 
 	privileged := true
-	pod := &v1.Pod{
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildapihelpers.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			Labels:    getPodLabels(build),
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			ServiceAccountName: serviceAccount,
-			Containers: []v1.Container{
+			Containers: []corev1.Container{
 				{
 					Name:  CustomBuild,
 					Image: strategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					SecurityContext: &v1.SecurityContext{
+					SecurityContext: &corev1.SecurityContext{
 						Privileged: &privileged,
 					},
-					TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+					TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 				},
 			},
-			RestartPolicy: v1.RestartPolicyNever,
+			RestartPolicy: corev1.RestartPolicyNever,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
@@ -119,12 +118,12 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 
 	if !strategy.ForcePull {
-		pod.Spec.Containers[0].ImagePullPolicy = v1.PullIfNotPresent
+		pod.Spec.Containers[0].ImagePullPolicy = corev1.PullIfNotPresent
 	} else {
 		glog.V(2).Infof("ForcePull is enabled for %s build", build.Name)
-		pod.Spec.Containers[0].ImagePullPolicy = v1.PullAlways
+		pod.Spec.Containers[0].ImagePullPolicy = corev1.PullAlways
 	}
-	pod.Spec.Containers[0].Resources = buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources)
+	pod.Spec.Containers[0].Resources = build.Spec.Resources
 	if build.Spec.Source.Binary != nil {
 		pod.Spec.Containers[0].Stdin = true
 		pod.Spec.Containers[0].StdinOnce = true

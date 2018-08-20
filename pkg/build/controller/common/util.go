@@ -4,23 +4,22 @@ import (
 	"fmt"
 	"sort"
 
-	"k8s.io/api/core/v1"
+	"github.com/golang/glog"
+
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	envresolve "github.com/openshift/origin/pkg/pod/envresolve"
-
-	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/pod/envresolve"
 )
 
-type ByCreationTimestamp []*buildapi.Build
+type ByCreationTimestamp []*buildv1.Build
 
 func (b ByCreationTimestamp) Len() int {
 	return len(b)
@@ -44,11 +43,11 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 		return err
 	}
 
-	var buildsToDelete []*buildapi.Build
+	var buildsToDelete []*buildv1.Build
 	var errList []error
 
 	if buildConfig.Spec.SuccessfulBuildsHistoryLimit != nil {
-		successfulBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build *buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
+		successfulBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
 		if err != nil {
 			return err
 		}
@@ -57,14 +56,14 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 		successfulBuildsHistoryLimit := int(*buildConfig.Spec.SuccessfulBuildsHistoryLimit)
 		glog.V(5).Infof("Current successful builds: %v, SuccessfulBuildsHistoryLimit: %v", len(successfulBuilds), successfulBuildsHistoryLimit)
 		if len(successfulBuilds) > successfulBuildsHistoryLimit {
-			glog.V(5).Infof("Preparing to prune %v of %v successful builds", (len(successfulBuilds) - successfulBuildsHistoryLimit), len(successfulBuilds))
+			glog.V(5).Infof("Preparing to prune %v of %v successful builds", len(successfulBuilds)-successfulBuildsHistoryLimit, len(successfulBuilds))
 			buildsToDelete = append(buildsToDelete, successfulBuilds[successfulBuildsHistoryLimit:]...)
 		}
 	}
 
 	if buildConfig.Spec.FailedBuildsHistoryLimit != nil {
-		failedBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build *buildapi.Build) bool {
-			return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseCancelled || build.Status.Phase == buildapi.BuildPhaseError)
+		failedBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build *buildv1.Build) bool {
+			return build.Status.Phase == buildv1.BuildPhaseFailed || build.Status.Phase == buildv1.BuildPhaseCancelled || build.Status.Phase == buildv1.BuildPhaseError
 		})
 		if err != nil {
 			return err
@@ -74,7 +73,7 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 		failedBuildsHistoryLimit := int(*buildConfig.Spec.FailedBuildsHistoryLimit)
 		glog.V(5).Infof("Current failed builds: %v, FailedBuildsHistoryLimit: %v", len(failedBuilds), failedBuildsHistoryLimit)
 		if len(failedBuilds) > failedBuildsHistoryLimit {
-			glog.V(5).Infof("Preparing to prune %v of %v failed builds", (len(failedBuilds) - failedBuildsHistoryLimit), len(failedBuilds))
+			glog.V(5).Infof("Preparing to prune %v of %v failed builds", len(failedBuilds)-failedBuildsHistoryLimit, len(failedBuilds))
 			buildsToDelete = append(buildsToDelete, failedBuilds[failedBuildsHistoryLimit:]...)
 		}
 	}
@@ -92,18 +91,18 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 	return nil
 }
 
-func SetBuildPodNameAnnotation(build *buildapi.Build, podName string) {
+func SetBuildPodNameAnnotation(build *buildv1.Build, podName string) {
 	if build.Annotations == nil {
 		build.Annotations = map[string]string{}
 	}
-	build.Annotations[buildapi.BuildPodNameAnnotation] = podName
+	build.Annotations[buildutil.BuildPodNameAnnotation] = podName
 }
 
-func HasBuildPodNameAnnotation(build *buildapi.Build) bool {
+func HasBuildPodNameAnnotation(build *buildv1.Build) bool {
 	if build.Annotations == nil {
 		return false
 	}
-	_, hasAnnotation := build.Annotations[buildapi.BuildPodNameAnnotation]
+	_, hasAnnotation := build.Annotations[buildutil.BuildPodNameAnnotation]
 	return hasAnnotation
 }
 
@@ -121,8 +120,8 @@ func (e ErrEnvVarResolver) Error() string {
 // including references to existing environment variables, jsonpath references to
 // the build object, secrets, and configmaps.
 // The build.Strategy.BuildStrategy.Env is replaced with the resolved references.
-func ResolveValueFrom(pod *v1.Pod, client kclientset.Interface) error {
-	var outputEnv []kapi.EnvVar
+func ResolveValueFrom(pod *corev1.Pod, client kubernetes.Interface) error {
+	var outputEnv []corev1.EnvVar
 	var allErrs []error
 
 	build, err := GetBuildFromPod(pod)
@@ -149,7 +148,7 @@ func ResolveValueFrom(pod *v1.Pod, client kclientset.Interface) error {
 			}
 		}
 
-		outputEnv = append(outputEnv, kapi.EnvVar{Name: e.Name, Value: value})
+		outputEnv = append(outputEnv, corev1.EnvVar{Name: e.Name, Value: value})
 		mapEnvs[e.Name] = value
 	}
 

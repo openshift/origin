@@ -4,18 +4,19 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/build/buildscheme"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/client-go/scale/scheme"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
-type TestPod v1.Pod
+type TestPod corev1.Pod
 
 func Pod() *TestPod {
-	return (*TestPod)(&v1.Pod{})
+	return (*TestPod)(&corev1.Pod{})
 }
 
 func (p *TestPod) WithAnnotation(name, value string) *TestPod {
@@ -28,22 +29,22 @@ func (p *TestPod) WithAnnotation(name, value string) *TestPod {
 
 func (p *TestPod) WithEnvVar(name, value string) *TestPod {
 	if len(p.Spec.InitContainers) == 0 {
-		p.Spec.InitContainers = append(p.Spec.InitContainers, v1.Container{})
+		p.Spec.InitContainers = append(p.Spec.InitContainers, corev1.Container{})
 	}
 	if len(p.Spec.Containers) == 0 {
-		p.Spec.Containers = append(p.Spec.Containers, v1.Container{})
+		p.Spec.Containers = append(p.Spec.Containers, corev1.Container{})
 	}
-	p.Spec.InitContainers[0].Env = append(p.Spec.InitContainers[0].Env, v1.EnvVar{Name: name, Value: value})
-	p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, v1.EnvVar{Name: name, Value: value})
+	p.Spec.InitContainers[0].Env = append(p.Spec.InitContainers[0].Env, corev1.EnvVar{Name: name, Value: value})
+	p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, corev1.EnvVar{Name: name, Value: value})
 	return p
 }
 
-func (p *TestPod) WithBuild(t *testing.T, build *buildapi.Build) *TestPod {
+func (p *TestPod) WithBuild(t *testing.T, build *buildv1.Build) *TestPod {
 	encodedBuild, err := runtime.Encode(buildscheme.Encoder, build)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	return p.WithAnnotation(buildapi.BuildAnnotation, build.Name).WithEnvVar("BUILD", string(encodedBuild))
+	return p.WithAnnotation(buildutil.BuildAnnotation, build.Name).WithEnvVar("BUILD", string(encodedBuild))
 }
 
 func (p *TestPod) InitEnvValue(name string) string {
@@ -70,12 +71,12 @@ func (p *TestPod) EnvValue(name string) string {
 	return ""
 }
 
-func (p *TestPod) GetBuild(t *testing.T) *buildapi.Build {
+func (p *TestPod) GetBuild(t *testing.T) *buildv1.Build {
 	obj, err := runtime.Decode(buildscheme.Decoder, []byte(p.EnvValue("BUILD")))
 	if err != nil {
 		t.Fatalf("Could not decode build: %v", err)
 	}
-	build, ok := obj.(*buildapi.Build)
+	build, ok := obj.(*buildv1.Build)
 	if !ok {
 		t.Fatalf("Not a build object: %#v", obj)
 	}
@@ -83,17 +84,17 @@ func (p *TestPod) GetBuild(t *testing.T) *buildapi.Build {
 }
 
 func (p *TestPod) ToAttributes() admission.Attributes {
-	return admission.NewAttributesRecord((*v1.Pod)(p),
+	return admission.NewAttributesRecord((*corev1.Pod)(p),
 		nil,
-		kapi.Kind("Pod").WithVersion("version"),
+		scheme.Kind("Pod").WithVersion("version"),
 		"default",
 		"TestPod",
-		kapi.Resource("pods").WithVersion("version"),
+		corev1.Resource("pods").WithVersion("version"),
 		"",
 		admission.Create,
 		nil)
 }
 
-func (p *TestPod) AsPod() *v1.Pod {
-	return (*v1.Pod)(p)
+func (p *TestPod) AsPod() *corev1.Pod {
+	return (*corev1.Pod)(p)
 }

@@ -10,15 +10,14 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/apis/policy"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	buildapiv1 "github.com/openshift/api/build/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
@@ -53,7 +52,7 @@ var BuildContainerNames = []string{CustomBuild, StiBuild, DockerBuild}
 var (
 	// BuildControllerRefKind contains the schema.GroupVersionKind for builds.
 	// This is used in the ownerRef of builder pods.
-	BuildControllerRefKind = buildapiv1.SchemeGroupVersion.WithKind("Build")
+	BuildControllerRefKind = buildv1.GroupVersion.WithKind("Build")
 )
 
 // FatalError is an error which can't be retried.
@@ -74,17 +73,17 @@ func IsFatal(err error) bool {
 }
 
 // setupDockerSocket configures the pod to support the host's Docker socket
-func setupDockerSocket(pod *v1.Pod) {
-	dockerSocketVolume := v1.Volume{
+func setupDockerSocket(pod *corev1.Pod) {
+	dockerSocketVolume := corev1.Volume{
 		Name: "docker-socket",
-		VolumeSource: v1.VolumeSource{
-			HostPath: &v1.HostPathVolumeSource{
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
 				Path: dockerSocketPath,
 			},
 		},
 	}
 
-	dockerSocketVolumeMount := v1.VolumeMount{
+	dockerSocketVolumeMount := corev1.VolumeMount{
 		Name:      "docker-socket",
 		MountPath: dockerSocketPath,
 	}
@@ -103,17 +102,17 @@ func setupDockerSocket(pod *v1.Pod) {
 }
 
 // setupCrioSocket configures the pod to support the host's Crio socket
-func setupCrioSocket(pod *v1.Pod) {
-	crioSocketVolume := v1.Volume{
+func setupCrioSocket(pod *corev1.Pod) {
+	crioSocketVolume := corev1.Volume{
 		Name: "crio-socket",
-		VolumeSource: v1.VolumeSource{
-			HostPath: &v1.HostPathVolumeSource{
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
 				Path: "/var/run/crio/crio.sock",
 			},
 		},
 	}
 
-	crioSocketVolumeMount := v1.VolumeMount{
+	crioSocketVolumeMount := corev1.VolumeMount{
 		Name:      "crio-socket",
 		MountPath: "/var/run/crio/crio.sock",
 	}
@@ -127,13 +126,13 @@ func setupCrioSocket(pod *v1.Pod) {
 
 // mountConfigMapVolume is a helper method responsible for actual mounting configMap
 // volumes into a pod.
-func mountConfigMapVolume(pod *v1.Pod, container *v1.Container, configMapName, mountPath, volumeSuffix string) {
+func mountConfigMapVolume(pod *corev1.Pod, container *corev1.Container, configMapName, mountPath, volumeSuffix string) {
 	mountVolume(pod, container, configMapName, mountPath, volumeSuffix, policy.ConfigMap)
 }
 
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
-func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPath, volumeSuffix string) {
+func mountSecretVolume(pod *corev1.Pod, container *corev1.Container, secretName, mountPath, volumeSuffix string) {
 	mountVolume(pod, container, secretName, mountPath, volumeSuffix, policy.Secret)
 }
 
@@ -143,7 +142,7 @@ func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPa
 // 1. ConfigMap
 // 2. EmptyDir
 // 3. Secret
-func mountVolume(pod *v1.Pod, container *v1.Container, objName, mountPath, volumeSuffix string, fsType policy.FSType) {
+func mountVolume(pod *corev1.Pod, container *corev1.Container, objName, mountPath, volumeSuffix string, fsType policy.FSType) {
 	volumeName := apihelpers.GetName(objName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
 
 	// coerce from RFC1123 subdomain to RFC1123 label.
@@ -162,7 +161,7 @@ func mountVolume(pod *v1.Pod, container *v1.Container, objName, mountPath, volum
 		pod.Spec.Volumes = append(pod.Spec.Volumes, volume)
 	}
 
-	volumeMount := v1.VolumeMount{
+	volumeMount := corev1.VolumeMount{
 		Name:      volumeName,
 		MountPath: mountPath,
 		ReadOnly:  true,
@@ -170,30 +169,30 @@ func mountVolume(pod *v1.Pod, container *v1.Container, objName, mountPath, volum
 	container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 }
 
-func makeVolume(volumeName, refName string, mode int32, fsType policy.FSType) v1.Volume {
+func makeVolume(volumeName, refName string, mode int32, fsType policy.FSType) corev1.Volume {
 	// TODO: Add support for key-based paths for secrets and configMaps?
-	vol := v1.Volume{
+	vol := corev1.Volume{
 		Name:         volumeName,
-		VolumeSource: v1.VolumeSource{},
+		VolumeSource: corev1.VolumeSource{},
 	}
 	switch fsType {
 	case policy.ConfigMap:
-		vol.VolumeSource.ConfigMap = &v1.ConfigMapVolumeSource{
-			LocalObjectReference: v1.LocalObjectReference{
+		vol.VolumeSource.ConfigMap = &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
 				Name: refName,
 			},
 			DefaultMode: &mode,
 		}
 	case policy.EmptyDir:
-		vol.VolumeSource.EmptyDir = &v1.EmptyDirVolumeSource{}
+		vol.VolumeSource.EmptyDir = &corev1.EmptyDirVolumeSource{}
 	case policy.Secret:
-		vol.VolumeSource.Secret = &v1.SecretVolumeSource{
+		vol.VolumeSource.Secret = &corev1.SecretVolumeSource{
 			SecretName:  refName,
 			DefaultMode: &mode,
 		}
 	default:
 		glog.V(3).Infof("File system %s is not supported for volumes. Using empty directory instead.", fsType)
-		vol.VolumeSource.EmptyDir = &v1.EmptyDirVolumeSource{}
+		vol.VolumeSource.EmptyDir = &corev1.EmptyDirVolumeSource{}
 	}
 
 	return vol
@@ -201,10 +200,10 @@ func makeVolume(volumeName, refName string, mode int32, fsType policy.FSType) v1
 
 // setupDockerSecrets mounts Docker Registry secrets into Pod running the build,
 // allowing Docker to authenticate against private registries or Docker Hub.
-func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSecret *kapi.LocalObjectReference, imageSources []buildapi.ImageSource) {
+func setupDockerSecrets(pod *corev1.Pod, container *corev1.Container, pushSecret, pullSecret *corev1.LocalObjectReference, imageSources []buildv1.ImageSource) {
 	if pushSecret != nil {
 		mountSecretVolume(pod, container, pushSecret.Name, DockerPushSecretMountPath, "push")
-		container.Env = append(container.Env, []v1.EnvVar{
+		container.Env = append(container.Env, []corev1.EnvVar{
 			{Name: "PUSH_DOCKERCFG_PATH", Value: DockerPushSecretMountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker push in %s", DockerPushSecretMountPath, pod.Name)
@@ -212,7 +211,7 @@ func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSe
 
 	if pullSecret != nil {
 		mountSecretVolume(pod, container, pullSecret.Name, DockerPullSecretMountPath, "pull")
-		container.Env = append(container.Env, []v1.EnvVar{
+		container.Env = append(container.Env, []corev1.EnvVar{
 			{Name: "PULL_DOCKERCFG_PATH", Value: DockerPullSecretMountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
@@ -224,7 +223,7 @@ func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSe
 		}
 		mountPath := filepath.Join(SourceImagePullSecretMountPath, strconv.Itoa(i))
 		mountSecretVolume(pod, container, imageSource.PullSecret.Name, mountPath, fmt.Sprintf("%s%d", "source-image", i))
-		container.Env = append(container.Env, []v1.EnvVar{
+		container.Env = append(container.Env, []corev1.EnvVar{
 			{Name: fmt.Sprintf("%s%d", "PULL_SOURCE_DOCKERCFG_PATH_", i), Value: mountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", mountPath, pod.Name)
@@ -233,21 +232,21 @@ func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSe
 
 // setupSourceSecrets mounts SSH key used for accessing private SCM to clone
 // application source code during build.
-func setupSourceSecrets(pod *v1.Pod, container *v1.Container, sourceSecret *kapi.LocalObjectReference) {
+func setupSourceSecrets(pod *corev1.Pod, container *corev1.Container, sourceSecret *corev1.LocalObjectReference) {
 	if sourceSecret == nil {
 		return
 	}
 
 	mountSecretVolume(pod, container, sourceSecret.Name, sourceSecretMountPath, "source")
 	glog.V(3).Infof("Installed source secrets in %s, in Pod %s/%s", sourceSecretMountPath, pod.Namespace, pod.Name)
-	container.Env = append(container.Env, []v1.EnvVar{
+	container.Env = append(container.Env, []corev1.EnvVar{
 		{Name: "SOURCE_SECRET_PATH", Value: sourceSecretMountPath},
 	}...)
 }
 
 // setupInputConfigMaps mounts the configMaps referenced by the ConfigMapBuildSource
 // into a builder container.
-func setupInputConfigMaps(pod *v1.Pod, container *v1.Container, configs []buildapi.ConfigMapBuildSource) {
+func setupInputConfigMaps(pod *corev1.Pod, container *corev1.Container, configs []buildv1.ConfigMapBuildSource) {
 	for _, c := range configs {
 		mountConfigMapVolume(pod, container, c.ConfigMap.Name, filepath.Join(ConfigMapBuildSourceBaseMountPath, c.ConfigMap.Name), "build")
 		glog.V(3).Infof("%s will be used as a build config in %s", c.ConfigMap.Name, ConfigMapBuildSourceBaseMountPath)
@@ -256,7 +255,7 @@ func setupInputConfigMaps(pod *v1.Pod, container *v1.Container, configs []builda
 
 // setupInputSecrets mounts the secrets referenced by the SecretBuildSource
 // into a builder container.
-func setupInputSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.SecretBuildSource) {
+func setupInputSecrets(pod *corev1.Pod, container *corev1.Container, secrets []buildv1.SecretBuildSource) {
 	for _, s := range secrets {
 		mountSecretVolume(pod, container, s.Secret.Name, filepath.Join(SecretBuildSourceBaseMountPath, s.Secret.Name), "build")
 		glog.V(3).Infof("%s will be used as a build secret in %s", s.Secret.Name, SecretBuildSourceBaseMountPath)
@@ -265,24 +264,24 @@ func setupInputSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.
 
 // addSourceEnvVars adds environment variables related to the source code
 // repository to builder container
-func addSourceEnvVars(source buildapi.BuildSource, output *[]v1.EnvVar) {
-	sourceVars := []v1.EnvVar{}
+func addSourceEnvVars(source buildv1.BuildSource, output *[]corev1.EnvVar) {
+	sourceVars := []corev1.EnvVar{}
 	if source.Git != nil {
-		sourceVars = append(sourceVars, v1.EnvVar{Name: "SOURCE_REPOSITORY", Value: source.Git.URI})
-		sourceVars = append(sourceVars, v1.EnvVar{Name: "SOURCE_URI", Value: source.Git.URI})
+		sourceVars = append(sourceVars, corev1.EnvVar{Name: "SOURCE_REPOSITORY", Value: source.Git.URI})
+		sourceVars = append(sourceVars, corev1.EnvVar{Name: "SOURCE_URI", Value: source.Git.URI})
 	}
 	if len(source.ContextDir) > 0 {
-		sourceVars = append(sourceVars, v1.EnvVar{Name: "SOURCE_CONTEXT_DIR", Value: source.ContextDir})
+		sourceVars = append(sourceVars, corev1.EnvVar{Name: "SOURCE_CONTEXT_DIR", Value: source.ContextDir})
 	}
 	if source.Git != nil && len(source.Git.Ref) > 0 {
-		sourceVars = append(sourceVars, v1.EnvVar{Name: "SOURCE_REF", Value: source.Git.Ref})
+		sourceVars = append(sourceVars, corev1.EnvVar{Name: "SOURCE_REF", Value: source.Git.Ref})
 	}
 	*output = append(*output, sourceVars...)
 }
 
 // addOutputEnvVars adds env variables that provide information about the output
 // target for the build
-func addOutputEnvVars(buildOutput *kapi.ObjectReference, output *[]v1.EnvVar) error {
+func addOutputEnvVars(buildOutput *corev1.ObjectReference, output *[]corev1.EnvVar) error {
 	if buildOutput == nil {
 		return nil
 	}
@@ -299,7 +298,7 @@ func addOutputEnvVars(buildOutput *kapi.ObjectReference, output *[]v1.EnvVar) er
 	ref.Registry = ""
 	image := ref.String()
 
-	outputVars := []v1.EnvVar{
+	outputVars := []corev1.EnvVar{
 		{Name: "OUTPUT_REGISTRY", Value: registry},
 		{Name: "OUTPUT_IMAGE", Value: image},
 	}
@@ -309,7 +308,7 @@ func addOutputEnvVars(buildOutput *kapi.ObjectReference, output *[]v1.EnvVar) er
 }
 
 // setupAdditionalSecrets creates secret volume mounts in the given pod for the given list of secrets
-func setupAdditionalSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.SecretSpec) {
+func setupAdditionalSecrets(pod *corev1.Pod, container *corev1.Container, secrets []buildv1.SecretSpec) {
 	for _, secretSpec := range secrets {
 		mountSecretVolume(pod, container, secretSpec.SecretSource.Name, secretSpec.MountPath, "secret")
 		glog.V(3).Infof("Installed additional secret in %s, in Pod %s/%s", secretSpec.MountPath, pod.Namespace, pod.Name)
@@ -317,11 +316,11 @@ func setupAdditionalSecrets(pod *v1.Pod, container *v1.Container, secrets []buil
 }
 
 // getPodLabels creates labels for the Build Pod
-func getPodLabels(build *buildapi.Build) map[string]string {
-	return map[string]string{buildapi.BuildLabel: buildapihelpers.LabelValue(build.Name)}
+func getPodLabels(build *buildv1.Build) map[string]string {
+	return map[string]string{buildutil.BuildLabel: buildapihelpers.LabelValue(build.Name)}
 }
 
-func makeOwnerReference(build *buildapi.Build) metav1.OwnerReference {
+func makeOwnerReference(build *buildv1.Build) metav1.OwnerReference {
 	t := true
 	return metav1.OwnerReference{
 		APIVersion: BuildControllerRefKind.GroupVersion().String(),
@@ -332,13 +331,13 @@ func makeOwnerReference(build *buildapi.Build) metav1.OwnerReference {
 	}
 }
 
-func setOwnerReference(pod *v1.Pod, build *buildapi.Build) {
+func setOwnerReference(pod *corev1.Pod, build *buildv1.Build) {
 	pod.OwnerReferences = []metav1.OwnerReference{makeOwnerReference(build)}
 }
 
 // HasOwnerReference returns true if the build pod has an OwnerReference to the
 // build.
-func HasOwnerReference(pod *v1.Pod, build *buildapi.Build) bool {
+func HasOwnerReference(pod *corev1.Pod, build *buildv1.Build) bool {
 	ref := makeOwnerReference(build)
 
 	for _, r := range pod.OwnerReferences {
@@ -350,9 +349,9 @@ func HasOwnerReference(pod *v1.Pod, build *buildapi.Build) bool {
 	return false
 }
 
-// copyEnvVarSlice returns a copy of an []v1.EnvVar
-func copyEnvVarSlice(in []v1.EnvVar) []v1.EnvVar {
-	out := make([]v1.EnvVar, len(in))
+// copyEnvVarSlice returns a copy of an []corev1.EnvVar
+func copyEnvVarSlice(in []corev1.EnvVar) []corev1.EnvVar {
+	out := make([]corev1.EnvVar, len(in))
 	copy(out, in)
 	return out
 }

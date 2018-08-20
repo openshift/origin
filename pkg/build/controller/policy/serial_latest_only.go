@@ -9,9 +9,9 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -30,7 +30,7 @@ type SerialLatestOnlyPolicy struct {
 // Calling this function on a build mean that any previous build that is in
 // 'new' phase will be automatically cancelled. This will also cancel any
 // "serial" build (when you changed the build config run policy on-the-fly).
-func (s *SerialLatestOnlyPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
+func (s *SerialLatestOnlyPolicy) IsRunnable(build *buildv1.Build) (bool, error) {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return true, nil
@@ -46,13 +46,13 @@ func (s *SerialLatestOnlyPolicy) IsRunnable(build *buildapi.Build) (bool, error)
 }
 
 // Handles returns true for the build run serial latest only policy
-func (s *SerialLatestOnlyPolicy) Handles(policy buildapi.BuildRunPolicy) bool {
-	return policy == buildapi.BuildRunPolicySerialLatestOnly
+func (s *SerialLatestOnlyPolicy) Handles(policy buildv1.BuildRunPolicy) bool {
+	return policy == buildv1.BuildRunPolicySerialLatestOnly
 }
 
 // cancelPreviousBuilds cancels all queued builds that have the build sequence number
 // lower than the given build. It retries the cancellation in case of conflict.
-func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []error {
+func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildv1.Build) []error {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return []error{}
@@ -61,10 +61,10 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []e
 	if err != nil {
 		return []error{NewNoBuildNumberAnnotationError(build)}
 	}
-	builds, err := buildutil.BuildConfigBuilds(s.BuildLister, build.Namespace, bcName, func(b *buildapi.Build) bool {
+	builds, err := buildutil.BuildConfigBuilds(s.BuildLister, build.Namespace, bcName, func(b *buildv1.Build) bool {
 		// Do not cancel the complete builds, builds that were already cancelled, or
 		// running builds.
-		if buildutil.IsBuildComplete(b) || b.Status.Phase == buildapi.BuildPhaseRunning {
+		if buildutil.IsBuildComplete(b) || b.Status.Phase == buildv1.BuildPhaseRunning {
 			return false
 		}
 

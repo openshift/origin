@@ -2,11 +2,11 @@ package defaults
 
 import (
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"k8s.io/api/core/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -18,7 +18,7 @@ type BuildDefaults struct {
 }
 
 // ApplyDefaults applies configured build defaults to a build pod
-func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
+func (b BuildDefaults) ApplyDefaults(pod *corev1.Pod) error {
 	build, err := common.GetBuildFromPod(pod)
 	if err != nil {
 		return nil
@@ -48,8 +48,8 @@ func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
 // environment variable may have been set in multiple ways: a default value,
 // by a BuildConfig, or by the BuildDefaults admission plugin. In this method
 // we finally act on the value by injecting it into the Pod.
-func setPodLogLevelFromBuild(pod *v1.Pod, build *buildapi.Build) error {
-	var envs []kapi.EnvVar
+func setPodLogLevelFromBuild(pod *corev1.Pod, build *buildv1.Build) error {
+	var envs []corev1.EnvVar
 
 	// Check whether the build strategy supports --loglevel parameter.
 	switch {
@@ -78,7 +78,7 @@ func setPodLogLevelFromBuild(pod *v1.Pod, build *buildapi.Build) error {
 	return nil
 }
 
-func (b BuildDefaults) applyPodDefaults(pod *v1.Pod, isCustomBuild bool) {
+func (b BuildDefaults) applyPodDefaults(pod *corev1.Pod, isCustomBuild bool) {
 	if len(b.Config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
 		// only apply nodeselector defaults if the pod has no nodeselector labels
 		// already.
@@ -99,7 +99,8 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod, isCustomBuild bool) {
 
 	// Apply default resources
 	defaultResources := b.Config.Resources
-	allContainers := make([]*v1.Container, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+
+	allContainers := make([]*corev1.Container, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
 	for i := range pod.Spec.Containers {
 		allContainers = append(allContainers, &pod.Spec.Containers[i])
 	}
@@ -110,44 +111,59 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod, isCustomBuild bool) {
 	for _, c := range allContainers {
 		// All env vars are allowed to be set in a custom build pod, the user already has
 		// total control over the env+logic in a custom build pod anyway.
+		externalEnv := make([]corev1.EnvVar, len(b.Config.Env))
+		for i, v := range b.Config.Env {
+			externalEnv[i] = corev1.EnvVar{}
+			if err := legacyscheme.Scheme.Convert(&v, &externalEnv[i], nil); err != nil {
+				panic(err)
+			}
+		}
 		if isCustomBuild {
-			util.MergeEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.Config.Env), &c.Env, false, []string{})
+			util.MergeEnvWithoutDuplicates(externalEnv, &c.Env, false, []string{})
 		} else {
-			util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.Config.Env), &c.Env, false)
+			util.MergeTrustedEnvWithoutDuplicates(externalEnv, &c.Env, false)
 		}
 
 		if c.Resources.Limits == nil {
-			c.Resources.Limits = v1.ResourceList{}
+			c.Resources.Limits = corev1.ResourceList{}
 		}
 		for name, value := range defaultResources.Limits {
-			if _, ok := c.Resources.Limits[v1.ResourceName(name)]; !ok {
+			if _, ok := c.Resources.Limits[corev1.ResourceName(name)]; !ok {
 				glog.V(5).Infof("Setting default resource limit %s for pod %s/%s to %v", name, pod.Namespace, pod.Name, value)
-				c.Resources.Limits[v1.ResourceName(name)] = value
+				c.Resources.Limits[corev1.ResourceName(name)] = value
 			}
 		}
 		if c.Resources.Requests == nil {
-			c.Resources.Requests = v1.ResourceList{}
+			c.Resources.Requests = corev1.ResourceList{}
 		}
 		for name, value := range defaultResources.Requests {
-			if _, ok := c.Resources.Requests[v1.ResourceName(name)]; !ok {
+			if _, ok := c.Resources.Requests[corev1.ResourceName(name)]; !ok {
 				glog.V(5).Infof("Setting default resource request %s for pod %s/%s to %v", name, pod.Namespace, pod.Name, value)
-				c.Resources.Requests[v1.ResourceName(name)] = value
+				c.Resources.Requests[corev1.ResourceName(name)] = value
 			}
 		}
 	}
 }
 
-func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
+func (b BuildDefaults) applyBuildDefaults(build *buildv1.Build) {
 	// Apply default env
 	for _, envVar := range b.Config.Env {
 		glog.V(5).Infof("Adding default environment variable %s=%s to build %s/%s", envVar.Name, envVar.Value, build.Namespace, build.Name)
-		addDefaultEnvVar(build, envVar)
+		externalEnv := corev1.EnvVar{}
+		if err := legacyscheme.Scheme.Convert(&envVar, &externalEnv, nil); err != nil {
+			panic(err)
+		}
+		addDefaultEnvVar(build, externalEnv)
 	}
 
 	// Apply default labels
 	for _, lbl := range b.Config.ImageLabels {
 		glog.V(5).Infof("Adding default image label %s=%s to build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
-		addDefaultLabel(lbl, &build.Spec.Output.ImageLabels)
+		label := buildv1.ImageLabel{
+			Name:  lbl.Name,
+			Value: lbl.Value,
+		}
+		addDefaultLabel(label, &build.Spec.Output.ImageLabels)
 	}
 
 	sourceDefaults := b.Config.SourceStrategyDefaults
@@ -190,26 +206,26 @@ func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	//Apply default resources
 	defaultResources := b.Config.Resources
 	if build.Spec.Resources.Limits == nil {
-		build.Spec.Resources.Limits = kapi.ResourceList{}
+		build.Spec.Resources.Limits = corev1.ResourceList{}
 	}
 	for name, value := range defaultResources.Limits {
-		if _, ok := build.Spec.Resources.Limits[name]; !ok {
+		if _, ok := build.Spec.Resources.Limits[corev1.ResourceName(name)]; !ok {
 			glog.V(5).Infof("Setting default resource limit %s for build %s/%s to %v", name, build.Namespace, build.Name, value)
-			build.Spec.Resources.Limits[name] = value
+			build.Spec.Resources.Limits[corev1.ResourceName(name)] = value
 		}
 	}
 	if build.Spec.Resources.Requests == nil {
-		build.Spec.Resources.Requests = kapi.ResourceList{}
+		build.Spec.Resources.Requests = corev1.ResourceList{}
 	}
 	for name, value := range defaultResources.Requests {
-		if _, ok := build.Spec.Resources.Requests[name]; !ok {
+		if _, ok := build.Spec.Resources.Requests[corev1.ResourceName(name)]; !ok {
 			glog.V(5).Infof("Setting default resource request %s for build %s/%s to %v", name, build.Namespace, build.Name, value)
-			build.Spec.Resources.Requests[name] = value
+			build.Spec.Resources.Requests[corev1.ResourceName(name)] = value
 		}
 	}
 }
 
-func addDefaultEnvVar(build *buildapi.Build, v kapi.EnvVar) {
+func addDefaultEnvVar(build *buildv1.Build, v corev1.EnvVar) {
 	envVars := buildutil.GetBuildEnv(build)
 
 	for i := range envVars {
@@ -221,7 +237,7 @@ func addDefaultEnvVar(build *buildapi.Build, v kapi.EnvVar) {
 	buildutil.SetBuildEnv(build, envVars)
 }
 
-func addDefaultLabel(defaultLabel buildapi.ImageLabel, buildLabels *[]buildapi.ImageLabel) {
+func addDefaultLabel(defaultLabel buildv1.ImageLabel, buildLabels *[]buildv1.ImageLabel) {
 	for _, lbl := range *buildLabels {
 		if lbl.Name == defaultLabel.Name {
 			return
