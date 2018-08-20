@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/discovery"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -116,11 +115,10 @@ type AppConfig struct {
 	Out    io.Writer
 	ErrOut io.Writer
 
-	KubeClient      kclientset.Interface
-	ImageClient     imageclient.ImageInterface
-	RouteClient     routeclient.RouteInterface
-	TemplateClient  templateclient.TemplateInterface
-	DiscoveryClient discovery.DiscoveryInterface
+	KubeClient     kclientset.Interface
+	ImageClient    imageclient.ImageInterface
+	RouteClient    routeclient.RouteInterface
+	TemplateClient templateclient.TemplateInterface
 
 	Resolvers
 
