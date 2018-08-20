@@ -89,5 +89,10 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer() error {
 		return err
 	}
 
+	// convert the networkconfig to admissionconfig
+	if err := ConvertNetworkConfigToAdmissionConfig(masterConfig); err != nil {
+		return err
+	}
+
 	return RunOpenShiftKubeAPIServerServer(masterConfig)
 }

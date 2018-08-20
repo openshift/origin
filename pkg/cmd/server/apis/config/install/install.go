@@ -16,6 +16,7 @@ import (
 	clusterresourceoverrideinstall "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride/install"
 	runoncedurationinstall "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration/install"
 	podnodeconstraintsinstall "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/install"
+	restrictedendpointsinstall "github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints/install"
 )
 
 func init() {
@@ -44,4 +45,5 @@ func InstallLegacyInternal(scheme *runtime.Scheme) {
 	clusterresourceoverrideinstall.InstallLegacyInternal(scheme)
 	runoncedurationinstall.InstallLegacyInternal(scheme)
 	podnodeconstraintsinstall.InstallLegacyInternal(scheme)
+	restrictedendpointsinstall.InstallLegacyInternal(scheme)
 }

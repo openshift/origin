@@ -36,6 +36,7 @@ import (
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/service/admission/restrictedendpoints"
 )
 
 // TODO register this per apiserver or at least per process
@@ -69,7 +70,7 @@ func registerOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	securityadmission.Register(plugins)
 	securityadmission.RegisterSCCExecRestrictions(plugins)
 	serviceadmit.RegisterExternalIP(plugins)
-	serviceadmit.RegisterRestrictedEndpoints(plugins)
+	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
 }
 
 var (
@@ -84,7 +85,7 @@ var (
 		"PodNodeSelector",
 		"Priority",
 		serviceadmit.ExternalIPPluginName,
-		serviceadmit.RestrictedEndpointsPluginName,
+		restrictedendpoints.RestrictedEndpointsPluginName,
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,

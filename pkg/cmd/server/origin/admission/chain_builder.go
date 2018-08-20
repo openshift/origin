@@ -26,6 +26,7 @@ import (
 	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
+	"github.com/openshift/origin/pkg/service/admission/restrictedendpoints"
 )
 
 var (
@@ -74,7 +75,7 @@ var (
 		"PodNodeSelector",
 		overrideapi.PluginName,
 		serviceadmit.ExternalIPPluginName,
-		serviceadmit.RestrictedEndpointsPluginName,
+		restrictedendpoints.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
@@ -130,7 +131,7 @@ var (
 		"PodNodeSelector",
 		overrideapi.PluginName,
 		serviceadmit.ExternalIPPluginName,
-		serviceadmit.RestrictedEndpointsPluginName,
+		restrictedendpoints.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
@@ -246,21 +247,6 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 				allowIngressIP = true
 			}
 			plugin = serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP)
-			admissionInitializer.Initialize(plugin)
-
-		case serviceadmit.RestrictedEndpointsPluginName:
-			// we need to set some customer parameters, so create by hand
-			var restricted []string
-			restricted = append(restricted, options.NetworkConfig.ServiceNetworkCIDR)
-			for _, cidr := range options.NetworkConfig.ClusterNetworks {
-				restricted = append(restricted, cidr.CIDR)
-			}
-			restrictedNetworks, err := serviceadmit.ParseSimpleCIDRRules(restricted)
-			if err != nil {
-				// should have been caught with validation
-				return nil, err
-			}
-			plugin = serviceadmit.NewRestrictedEndpointsAdmission(restrictedNetworks)
 			admissionInitializer.Initialize(plugin)
 
 		default:
