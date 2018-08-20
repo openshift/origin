@@ -37,7 +37,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			err = oc.Run("new-build").Args("-D", "FROM centos/nodejs-6-centos7\nUSER 0", "--name", "nodejsroot").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsroot-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "nodejsroot-1", nil, nil, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -52,10 +52,10 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			err := oc.Run("new-app").Args("nodejsroot~https://github.com/sclorg/nodejs-ex", "--name", "nodejsfail").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
 			o.Expect(err).To(o.HaveOccurred())
 
-			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
+			build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseFailed))
 			o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonPullBuilderImageFailed))
@@ -94,10 +94,10 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			err = oc.Run("new-app").Args("nodejsroot~https://github.com/sclorg/nodejs-ex", "--name", "nodejspass").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
+			build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			podname := build.Annotations[buildapi.BuildPodNameAnnotation]

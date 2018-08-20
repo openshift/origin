@@ -55,7 +55,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs(a58, oc)
 			}

@@ -610,7 +610,7 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	if err != nil {
 		return result, err
 	}
-	return result, WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), result)
+	return result, WaitForBuildResult(oc.InternalBuildClient().Build().Builds(oc.Namespace()), result)
 }
 
 // WaitForBuildResult updates result wit the state of the build

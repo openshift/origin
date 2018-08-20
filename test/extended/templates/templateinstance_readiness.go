@@ -42,7 +42,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			return false, err
 		}
 
-		build, err := cli.BuildClient().Build().Builds(cli.Namespace()).Get("cakephp-mysql-example-1", metav1.GetOptions{})
+		build, err := cli.InternalBuildClient().Build().Builds(cli.Namespace()).Get("cakephp-mysql-example-1", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil

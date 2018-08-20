@@ -274,7 +274,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 						build = b
 						return exutil.CheckBuildCancelled(b)
 					}
-					err := exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
+					err := exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseCancelled))
 					exutil.CheckForBuildEvent(oc.KubeClient().Core(), build, buildapi.BuildCancelledEventReason, buildapi.BuildCancelledEventMessage)
@@ -309,7 +309,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					})
 
 					o.Expect(buildName).ToNot(o.BeEmpty())
-					build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(build).NotTo(o.BeNil(), "build object should exist")
 
@@ -361,7 +361,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("waiting for the build to complete")
-					err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "ruby-hello-world-1", nil, nil, nil)
+					err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "ruby-hello-world-1", nil, nil, nil)
 					if err != nil {
 						exutil.DumpBuildLogs("ruby-hello-world", oc)
 					}
@@ -378,7 +378,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					g.By("clearing existing builds")
 					_, err := oc.Run("delete").Args("builds", "--all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					builds, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
 
@@ -403,14 +403,14 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					curlOut, err := exec.Command("curl", curlArgs...).Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("curl cmd: %v, output: %s", curlArgs, string(curlOut))
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).NotTo(o.BeEmpty())
 
 					g.By("clearing existing builds")
 					_, err = oc.Run("delete").Args("builds", "--all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
 
@@ -424,14 +424,14 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					curlOut, err = exec.Command("curl", curlArgs...).Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("curl cmd: %s, output: %s", curlArgs, string(curlOut))
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).NotTo(o.BeEmpty())
 
 					g.By("clearing existing builds")
 					_, err = oc.Run("delete").Args("builds", "--all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
 
@@ -445,7 +445,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					curlOut, err = exec.Command("curl", curlArgs...).Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("curl cmd: %v, output: %s", curlArgs, string(curlOut))
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
 
@@ -474,7 +474,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("waiting for build to finish")
-					err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "symlink-bc-1", exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
+					err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "symlink-bc-1", exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
 					if err != nil {
 						exutil.DumpBuildLogs("symlink-bc", oc)
 					}

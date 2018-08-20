@@ -34,12 +34,12 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 
 		g.Describe("RunBuildControllerTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildControllerTest(g.GinkgoT(), oc.BuildClient().Build(), oc.InternalAdminKubeClient())
+				build.RunBuildControllerTest(g.GinkgoT(), oc.InternalBuildClient().Build(), oc.InternalAdminKubeClient())
 			})
 		})
 		g.Describe("RunBuildControllerPodSyncTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildControllerPodSyncTest(g.GinkgoT(), oc.BuildClient().Build(), oc.InternalAdminKubeClient())
+				build.RunBuildControllerPodSyncTest(g.GinkgoT(), oc.InternalBuildClient().Build(), oc.InternalAdminKubeClient())
 			})
 		})
 		g.Describe("RunImageChangeTriggerTest [SkipPrevControllers]", func() {

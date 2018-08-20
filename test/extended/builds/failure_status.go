@@ -68,7 +68,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPostCommitHookFailed))
 				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePostCommitHookFailed))
@@ -79,7 +79,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				// is set if one is going to be set.
 				err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
 					// note this is the same build variable used in the test scope
-					build, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+					build, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 					if err != nil {
 						return true, err
 					}
@@ -103,7 +103,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
 				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
@@ -122,7 +122,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
 				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
@@ -143,7 +143,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 
 				var build *buildapi.Build
 				wait.PollImmediate(200*time.Millisecond, 30*time.Second, func() (bool, error) {
-					build, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+					build, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 					if build.Status.Reason != buildapi.StatusReasonOutOfMemoryKilled {
 						return false, nil
 					}
@@ -167,7 +167,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonInvalidContextDirectory))
 				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageInvalidContextDirectory))
@@ -186,7 +186,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPullBuilderImageFailed))
 				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePullBuilderImageFailed))
@@ -205,7 +205,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPushImageToRegistryFailed))
 				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePushImageToRegistryFailed))
@@ -224,7 +224,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(reasonAssembleFailed))
 				o.Expect(build.Status.Message).To(o.Equal(messageAssembleFailed))
@@ -243,7 +243,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonGenericBuildFailed))
 				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageGenericBuildFailed))

@@ -384,7 +384,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				br.AssertSuccess()
 
 				// get the build information
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
+				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				jenkinsBuildURI, err := url.Parse(build.Annotations[buildapi.BuildJenkinsBuildURIAnnotation])
@@ -399,7 +399,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			for buildName, buildInfo := range buildNameToBuildInfoMap {
 				_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+				_, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 			}
@@ -412,7 +412,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			for buildName, buildInfo := range buildNameToBuildInfoMap {
 				if buildInfo.number%2 == 0 {
 					fmt.Fprintf(g.GinkgoWriter, "Deleting build: %s", buildName)
-					err := oc.BuildClient().Build().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
+					err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 				}
@@ -450,11 +450,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				fmt.Fprintf(g.GinkgoWriter, "Checking %s, status: %v\n", buildName, status)
 				if buildInfo.number%2 == 0 {
-					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 					o.Expect(err).To(o.HaveOccurred())
 					o.Expect(status != http.StatusOK).To(o.BeTrue(), "Jenkins job run exists for %s but shouldn't.", buildName)
 				} else {
-					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 				}
@@ -518,7 +518,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				// start the build
 				g.By("waiting for the build to complete")
 				br := &exutil.BuildResult{Oc: oc, BuildName: "gradle-1"}
-				err = exutil.WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), br)
+				err = exutil.WaitForBuildResult(oc.InternalBuildClient().Build().Builds(oc.Namespace()), br)
 				if err != nil || !br.BuildSuccess {
 					exutil.DumpBuilds(oc)
 					exutil.DumpPodLogsStartingWith("maven", oc)
@@ -832,7 +832,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				err = oc.Run("new-app").Args(repo.RepoPath, "--strategy=pipeline", "--build-env=FOO1=BAR1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
+				bc, err := oc.InternalBuildClient().Build().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				envs := bc.Spec.Strategy.JenkinsPipelineStrategy.Env
 				o.Expect(len(envs)).To(o.Equal(1))
@@ -866,7 +866,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 						g.By("Waiting for the build uri")
 						var jenkinsBuildURI string
 						for {
-							build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+							build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
 							if err != nil {
 								errs <- fmt.Errorf("error getting build: %s", err)
 								return
@@ -916,7 +916,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 						defer g.GinkgoRecover()
 
 						for {
-							build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+							build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
 							switch {
 							case err != nil:
 								errs <- fmt.Errorf("error getting build: %s", err)
@@ -994,7 +994,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 					br.AssertSuccess()
 
 					// get the build information
-					build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
+					build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					jenkinsBuildURI, err := url.Parse(build.Annotations[buildapi.BuildJenkinsBuildURIAnnotation])
@@ -1008,7 +1008,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				for buildName, buildInfo := range buildNameToBuildInfoMap {
 					_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 					o.Expect(err).NotTo(o.HaveOccurred())
-					_, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 				}
@@ -1017,7 +1017,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				for buildName, buildInfo := range buildNameToBuildInfoMap {
 					if buildInfo.number%2 == 0 {
 						fmt.Fprintf(g.GinkgoWriter, "Deleting build: %s", buildName)
-						err := oc.BuildClient().Build().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
+						err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 					}
@@ -1045,11 +1045,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 					_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					if buildInfo.number%2 == 0 {
-						_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+						_, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 						o.Expect(err).To(o.HaveOccurred())
 						o.Expect(status != http.StatusOK).To(o.BeTrue(), "Jenkins job run exists for %s but shouldn't.", buildName)
 					} else {
-						_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+						_, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 						o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 					}
@@ -1072,7 +1072,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 					br.AssertSuccess()
 				}
 
-				buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("successful-pipeline", metav1.GetOptions{})
+				buildConfig, err := oc.InternalBuildClient().Build().BuildConfigs(oc.Namespace()).Get("successful-pipeline", metav1.GetOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				}
@@ -1081,7 +1081,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err
@@ -1113,14 +1113,14 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 					br.AssertFailure()
 				}
 
-				buildConfig, err = oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("failed-pipeline", metav1.GetOptions{})
+				buildConfig, err = oc.InternalBuildClient().Build().BuildConfigs(oc.Namespace()).Get("failed-pipeline", metav1.GetOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				}
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err
