@@ -426,6 +426,8 @@ backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
   timeout check 5000ms
   http-request set-header X-Forwarded-Host %[req.hdr(host)]
   http-request set-header X-Forwarded-Port %[dst_port]
+  acl existing-x-forwarded-proto req.hdr(X-Forwarded-Proto) -m found
+  http-request set-header X-Forwarded-Proto http if !existing-x-forwarded-proto !{ ssl_fc }
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
   http-request set-header X-Forwarded-Proto-Version h2 if { ssl_fc_alpn -i h2 }
