@@ -511,7 +511,7 @@ backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
 {{- if ne (env "ROUTER_SYSLOG_ADDRESS") ""}}
   option tcplog
 {{- end }}
-    {{- with $balanceAlgo := firstMatch "roundrobin|leastconn|source" (index $cfg.Annotations "haproxy.router.openshift.io/balance") (env "ROUTER_LOAD_BALANCE_ALGORITHM") }}
+    {{- with $balanceAlgo := firstMatch "roundrobin|leastconn|source" (index $cfg.Annotations "haproxy.router.openshift.io/balance") (env "ROUTER_TCP_BALANCE_SCHEME" (env "ROUTER_LOAD_BALANCE_ALGORITHM")) }}
   balance {{ $balanceAlgo }}
     {{- else }}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}source{{ end }}
