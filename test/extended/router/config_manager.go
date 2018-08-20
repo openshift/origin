@@ -2,7 +2,6 @@ package router
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -44,19 +43,10 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		image := os.Getenv("OS_IMAGE_PREFIX")
-		if len(image) == 0 {
-			image = "openshift/origin"
-		}
-		image += "-haproxy-router"
+		routerImage, _ := exutil.FindImageFormatString(oc)
+		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 
-		if dc, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{}); err == nil {
-			if len(dc.Spec.Template.Spec.Containers) > 0 && dc.Spec.Template.Spec.Containers[0].Image != "" {
-				image = dc.Spec.Template.Spec.Containers[0].Image
-			}
-		}
-
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+image).Execute()
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
