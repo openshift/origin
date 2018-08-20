@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"reflect"
 
@@ -25,7 +24,7 @@ import (
 	ingressadmission "github.com/openshift/origin/pkg/network/apiserver/admission"
 	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
-	serviceadmit "github.com/openshift/origin/pkg/service/admission"
+	"github.com/openshift/origin/pkg/service/admission/externalipranger"
 	"github.com/openshift/origin/pkg/service/admission/restrictedendpoints"
 )
 
@@ -74,7 +73,7 @@ var (
 		"OriginPodNodeEnvironment",
 		"PodNodeSelector",
 		overrideapi.PluginName,
-		serviceadmit.ExternalIPPluginName,
+		externalipranger.ExternalIPPluginName,
 		restrictedendpoints.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
 		"ImagePolicyWebhook",
@@ -130,7 +129,7 @@ var (
 		"OriginPodNodeEnvironment",
 		"PodNodeSelector",
 		overrideapi.PluginName,
-		serviceadmit.ExternalIPPluginName,
+		externalipranger.ExternalIPPluginName,
 		restrictedendpoints.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
 		"ImagePolicyWebhook",
@@ -234,35 +233,18 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 			plugin admission.Interface
 		)
 
-		switch pluginName {
-		case serviceadmit.ExternalIPPluginName:
-			// this needs to be moved upstream to be part of core config
-			reject, admit, err := serviceadmit.ParseRejectAdmitCIDRRules(options.NetworkConfig.ExternalIPNetworkCIDRs)
-			if err != nil {
-				// should have been caught with validation
-				return nil, err
-			}
-			allowIngressIP := false
-			if _, ipNet, err := net.ParseCIDR(options.NetworkConfig.IngressIPNetworkCIDR); err == nil && !ipNet.IP.IsUnspecified() {
-				allowIngressIP = true
-			}
-			plugin = serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP)
-			admissionInitializer.Initialize(plugin)
-
-		default:
-			// TODO this needs to be refactored to use the admission scheme we created upstream.  I think this holds us for the rebase.
-			pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename, configapi.Scheme)
-			if err != nil {
-				return nil, err
-			}
-			plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer, admissionDecorator)
-			if err != nil {
-				// should have been caught with validation
-				return nil, err
-			}
-			if plugin == nil {
-				continue
-			}
+		// TODO this needs to be refactored to use the admission scheme we created upstream.  I think this holds us for the rebase.
+		pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename, configapi.Scheme)
+		if err != nil {
+			return nil, err
+		}
+		plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer, admissionDecorator)
+		if err != nil {
+			// should have been caught with validation
+			return nil, err
+		}
+		if plugin == nil {
+			continue
 		}
 
 		plugins = append(plugins, plugin)

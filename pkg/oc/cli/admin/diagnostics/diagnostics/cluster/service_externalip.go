@@ -13,7 +13,7 @@ import (
 	hostdiag "github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/host"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
-	"github.com/openshift/origin/pkg/service/admission"
+	"github.com/openshift/origin/pkg/service/admission/externalipranger"
 )
 
 // ServiceExternalIPs is a Diagnostic to check for the services in the cluster
@@ -67,7 +67,7 @@ func (d *ServiceExternalIPs) Check() types.DiagnosticResult {
 	admit, reject := []*net.IPNet{}, []*net.IPNet{}
 	var err error
 	if cidrs := d.masterConfig.NetworkConfig.ExternalIPNetworkCIDRs; cidrs != nil {
-		reject, admit, err = admission.ParseRejectAdmitCIDRRules(cidrs)
+		reject, admit, err = externalipranger.ParseRejectAdmitCIDRRules(cidrs)
 		if err != nil {
 			r.Error("DH2007", err, fmt.Sprintf("Could not parse master config NetworkConfig.ExternalIPNetworkCIDRs: (%[1]T) %[1]v", err))
 			return r
@@ -93,7 +93,7 @@ func (d *ServiceExternalIPs) Check() types.DiagnosticResult {
 			if ip == nil {
 				continue // we don't really care for the purposes of this diagnostic
 			}
-			if admission.NetworkSlice(reject).Contains(ip) || !admission.NetworkSlice(admit).Contains(ip) {
+			if externalipranger.NetworkSlice(reject).Contains(ip) || !externalipranger.NetworkSlice(admit).Contains(ip) {
 				errList = append(errList, fmt.Sprintf("Service %s.%s specifies ExternalIP %s that is not permitted by the master ExternalIPNetworkCIDRs setting.", service.Namespace, service.Name, ipString))
 			}
 		}

@@ -25,7 +25,6 @@ import (
 	quotarunonceduration "github.com/openshift/origin/pkg/quota/apiserver/admission/runonceduration"
 	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 	securityadmission "github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
-	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 
 	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
@@ -36,6 +35,7 @@ import (
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/service/admission/externalipranger"
 	"github.com/openshift/origin/pkg/service/admission/restrictedendpoints"
 )
 
@@ -69,7 +69,7 @@ func registerOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	schedulerpodnodeconstraints.Register(plugins)
 	securityadmission.Register(plugins)
 	securityadmission.RegisterSCCExecRestrictions(plugins)
-	serviceadmit.RegisterExternalIP(plugins)
+	externalipranger.RegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
 }
 
@@ -84,7 +84,7 @@ var (
 		"OriginPodNodeEnvironment",
 		"PodNodeSelector",
 		"Priority",
-		serviceadmit.ExternalIPPluginName,
+		externalipranger.ExternalIPPluginName,
 		restrictedendpoints.RestrictedEndpointsPluginName,
 		"LimitRanger",
 		"ServiceAccount",

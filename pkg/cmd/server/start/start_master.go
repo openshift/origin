@@ -449,7 +449,6 @@ func (m *Master) Start() error {
 			etcdserver.RunEtcd(m.config.EtcdConfig)
 		}
 
-		// convert the networkconfig to admissionconfig
 		if err := openshift_kube_apiserver.ConvertNetworkConfigToAdmissionConfig(m.config); err != nil {
 			return err
 		}
