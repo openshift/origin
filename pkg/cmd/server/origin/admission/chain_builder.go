@@ -14,7 +14,6 @@ import (
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
-	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
@@ -262,13 +261,6 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 				return nil, err
 			}
 			plugin = serviceadmit.NewRestrictedEndpointsAdmission(restrictedNetworks)
-			admissionInitializer.Initialize(plugin)
-
-		case saadmit.PluginName:
-			// we need to set some custom parameters on the service account admission controller, so create that one by hand
-			saAdmitter := saadmit.NewServiceAccount()
-			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
-			plugin = saAdmitter
 			admissionInitializer.Initialize(plugin)
 
 		default:
