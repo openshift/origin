@@ -20,7 +20,7 @@ RUN INSTALL_PKGS=" \
       libmnl libnetfilter_conntrack conntrack-tools \
       libnfnetlink iproute bridge-utils procps-ng openssl \
       binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
-      iscsi-initiator-utils \
+      iscsi-initiator-utils git \
       " && \
     yum install -y centos-release-ceph-luminous && \
     rpm -V centos-release-ceph-luminous && \
