@@ -79,7 +79,6 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 			errs = append(errs, fmt.Errorf("unable to find SecurityContextConstraints for ServiceAccount %s: %v", sa.Name, err))
 			continue
 		}
-		scc.DeduplicateSecurityContextConstraints(saConstraints)
 		sort.Sort(scc.ByPriority(saConstraints))
 		var namespace *kapi.Namespace
 		for _, constraint := range saConstraints {
