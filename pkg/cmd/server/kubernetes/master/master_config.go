@@ -51,7 +51,6 @@ import (
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
 	endpointsstorage "k8s.io/kubernetes/pkg/registry/core/endpoint/storage"
-	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/library-go/pkg/crypto"
@@ -412,9 +411,6 @@ func (rc *incompleteKubeMasterConfig) Complete(
 	genericConfig.PublicAddress = publicAddress
 	genericConfig.Authentication.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
 	genericConfig.Authorization.Authorizer = kubeAuthorizer          // this is used to fulfill the kube SAR endpoints
-	genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
-	// This disables the ThirdPartyController which removes handlers from our go-restful containers.  The remove functionality is broken and destroys the serve mux.
-	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
 	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(masterConfig)
