@@ -352,7 +352,7 @@ frontend fe_no_sni
 
 backend openshift_default
   mode http
-  option forwardfor
+  option forwardfor if-none
   #option http-keep-alive
   option http-pretend-keepalive
 
@@ -380,7 +380,7 @@ backend openshift_default
 backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
   mode http
   option redispatch
-  option forwardfor
+  option forwardfor if-none
 
     {{- with $balanceAlgo := firstMatch "roundrobin|leastconn|source" (index $cfg.Annotations "haproxy.router.openshift.io/balance") (env "ROUTER_LOAD_BALANCE_ALGORITHM") }}
   balance {{ $balanceAlgo }}
