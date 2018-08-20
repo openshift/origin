@@ -2,13 +2,13 @@ package securitycontextconstraints
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -23,7 +23,7 @@ import (
 )
 
 type SCCMatcher interface {
-	FindApplicableSCCs(user user.Info, namespace string) ([]*securityapi.SecurityContextConstraints, error)
+	FindApplicableSCCs(namespace string, user ...user.Info) ([]*securityapi.SecurityContextConstraints, error)
 }
 
 type defaultSCCMatcher struct {
@@ -36,17 +36,29 @@ func NewDefaultSCCMatcher(c securitylisters.SecurityContextConstraintsLister, au
 }
 
 // FindApplicableSCCs implements SCCMatcher interface
-func (d *defaultSCCMatcher) FindApplicableSCCs(userInfo user.Info, namespace string) ([]*securityapi.SecurityContextConstraints, error) {
+// It finds all SCCs that the subjects in the `users` argument may use.
+// The returned SCCs are sorted by priority.
+func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.Info) ([]*securityapi.SecurityContextConstraints, error) {
 	var matchedConstraints []*securityapi.SecurityContextConstraints
 	constraints, err := d.cache.List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
-	for _, constraint := range constraints {
-		if constraintAppliesTo(constraint, userInfo, namespace, d.authorizer) {
-			matchedConstraints = append(matchedConstraints, constraint)
+
+	// filter out SCCs if we got some users, leave as is if not
+	if len(users) == 0 {
+		matchedConstraints = constraints
+	} else {
+		for _, constraint := range constraints {
+			for _, user := range users {
+				if constraintAppliesTo(constraint, user, namespace, d.authorizer) {
+					matchedConstraints = append(matchedConstraints, constraint)
+					break
+				}
+			}
 		}
 	}
+	sort.Sort(ByPriority(matchedConstraints))
 	return matchedConstraints, nil
 }
 
@@ -140,20 +152,6 @@ func constraintSupportsGroup(group string, constraintGroups []string) bool {
 		}
 	}
 	return false
-}
-
-// DeduplicateSecurityContextConstraints ensures we have a unique slice of constraints.
-func DeduplicateSecurityContextConstraints(sccs []*securityapi.SecurityContextConstraints) []*securityapi.SecurityContextConstraints {
-	deDuped := []*securityapi.SecurityContextConstraints{}
-	added := sets.NewString()
-
-	for _, s := range sccs {
-		if !added.Has(s.Name) {
-			deDuped = append(deDuped, s)
-			added.Insert(s.Name)
-		}
-	}
-	return deDuped
 }
 
 // getNamespaceByName retrieves a namespace only if ns is nil.

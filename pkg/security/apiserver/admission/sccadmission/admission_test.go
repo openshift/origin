@@ -748,7 +748,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 
 	for k, v := range testCases {
 		sccMatcher := oscc.NewDefaultSCCMatcher(lister, v.authorizer)
-		sccs, err := sccMatcher.FindApplicableSCCs(v.userInfo, v.namespace)
+		sccs, err := sccMatcher.FindApplicableSCCs(v.namespace, v.userInfo)
 		if err != nil {
 			t.Errorf("%s received error %v", k, err)
 			continue
@@ -777,7 +777,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	testAuthorizer := &sccTestAuthorizer{t: t}
 	namespace := "does-not-matter"
 	sccMatcher := oscc.NewDefaultSCCMatcher(lister, testAuthorizer)
-	sccs, err := sccMatcher.FindApplicableSCCs(userInfo, namespace)
+	sccs, err := sccMatcher.FindApplicableSCCs(namespace, userInfo)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)
 	}
