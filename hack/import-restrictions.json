@@ -608,7 +608,7 @@
       "github.com/openshift/origin/pkg/oauthserver/server/selectprovider",
       "github.com/openshift/origin/pkg/oauth/urls",
       "github.com/openshift/origin/pkg/oauth/util",
-      "github.com/openshift/origin/pkg/pod/envresolve",
+      "github.com/openshift/origin/pkg/pod/envresolve/internal_version",
       "github.com/openshift/origin/pkg/printers/internalversion",
       "github.com/openshift/origin/pkg/project/apis/project",
       "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated",
