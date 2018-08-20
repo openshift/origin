@@ -27,6 +27,7 @@ import (
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	quotatypedclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
+	"k8s.io/client-go/discovery"
 )
 
 type ClusterQuotaReconcilationControllerOptions struct {
@@ -107,11 +108,14 @@ func NewClusterQuotaReconcilationController(options ClusterQuotaReconcilationCon
 
 	c.quotaMonitor = qm
 
-	// do initial quota monitor setup
+	// do initial quota monitor setup.  If we have a discovery failure here, it's ok. We'll discover more resources when a later sync happens.
 	resources, err := resourcequota.GetQuotableResources(options.DiscoveryFunc)
-	if err != nil {
+	if discovery.IsGroupDiscoveryFailedError(err) {
+		utilruntime.HandleError(fmt.Errorf("initial discovery check failure, continuing and counting on future sync update: %v", err))
+	} else if err != nil {
 		return nil, err
 	}
+
 	if err = qm.SyncMonitors(resources); err != nil {
 		utilruntime.HandleError(fmt.Errorf("initial monitor sync has error: %v", err))
 	}
@@ -157,7 +161,16 @@ func (c *ClusterQuotaReconcilationController) Sync(discoveryFunc resourcequota.N
 		newResources, err := resourcequota.GetQuotableResources(discoveryFunc)
 		if err != nil {
 			utilruntime.HandleError(err)
-			return
+
+			if discovery.IsGroupDiscoveryFailedError(err) && len(newResources) > 0 {
+				// In partial discovery cases, don't remove any existing informers, just add new ones
+				for k, v := range oldResources {
+					newResources[k] = v
+				}
+			} else {
+				// short circuit in non-discovery error cases or if discovery returned zero resources
+				return
+			}
 		}
 
 		// Decide whether discovery has reported a change.
