@@ -6,6 +6,7 @@ import (
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv2alpha1 "k8s.io/api/batch/v2alpha1"
+	corev1 "k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,8 +17,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
-	appsapiv1 "github.com/openshift/api/apps/v1"
-	securityapiv1 "github.com/openshift/api/security/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
+	securityv1 "github.com/openshift/api/security/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -118,13 +119,13 @@ func GetPodSpecV1(obj runtime.Object) (*kapiv1.PodSpec, *field.Path, error) {
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *appsv1beta1.Deployment:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *securityapiv1.PodSecurityPolicySubjectReview:
+	case *securityv1.PodSecurityPolicySubjectReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *securityapiv1.PodSecurityPolicySelfSubjectReview:
+	case *securityv1.PodSecurityPolicySelfSubjectReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *securityapiv1.PodSecurityPolicyReview:
+	case *securityv1.PodSecurityPolicyReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *appsapiv1.DeploymentConfig:
+	case *appsv1.DeploymentConfig:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 		}
@@ -158,13 +159,13 @@ func GetTemplateMetaObject(obj runtime.Object) (metav1.Object, bool) {
 		return &r.Spec.Template.ObjectMeta, true
 	case *appsv1beta1.Deployment:
 		return &r.Spec.Template.ObjectMeta, true
-	case *securityapiv1.PodSecurityPolicySubjectReview:
+	case *securityv1.PodSecurityPolicySubjectReview:
 		return &r.Spec.Template.ObjectMeta, true
-	case *securityapiv1.PodSecurityPolicySelfSubjectReview:
+	case *securityv1.PodSecurityPolicySelfSubjectReview:
 		return &r.Spec.Template.ObjectMeta, true
-	case *securityapiv1.PodSecurityPolicyReview:
+	case *securityv1.PodSecurityPolicyReview:
 		return &r.Spec.Template.ObjectMeta, true
-	case *appsapiv1.DeploymentConfig:
+	case *appsv1.DeploymentConfig:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.ObjectMeta, true
 		}
@@ -255,7 +256,7 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if hasIdenticalPodSpecImage(m.oldSpec, container.Name, container.Image) {
 			continue
 		}
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
+		ref := corev1.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("initContainers").Index(i).Child("image")))
 			continue
@@ -271,7 +272,7 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if hasIdenticalPodSpecImage(m.oldSpec, container.Name, container.Image) {
 			continue
 		}
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
+		ref := corev1.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("containers").Index(i).Child("image")))
 			continue
@@ -356,7 +357,7 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if hasIdenticalPodSpecV1Image(m.oldSpec, container.Name, container.Image) {
 			continue
 		}
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
+		ref := corev1.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("initContainers").Index(i).Child("image")))
 			continue
@@ -372,7 +373,7 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if hasIdenticalPodSpecV1Image(m.oldSpec, container.Name, container.Image) {
 			continue
 		}
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
+		ref := corev1.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("containers").Index(i).Child("image")))
 			continue

@@ -3,15 +3,16 @@ package build
 import (
 	"fmt"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // buildPodCreationStrategy is used by the build controller to
 // create a build pod based on a build strategy
 type buildPodCreationStrategy interface {
-	CreateBuildPod(build *buildapi.Build) (*v1.Pod, error)
+	CreateBuildPod(build *buildv1.Build) (*corev1.Pod, error)
 }
 
 type typeBasedFactoryStrategy struct {
@@ -20,8 +21,8 @@ type typeBasedFactoryStrategy struct {
 	customBuildStrategy buildPodCreationStrategy
 }
 
-func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
-	var pod *v1.Pod
+func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildv1.Build) (*corev1.Pod, error) {
+	var pod *corev1.Pod
 	var err error
 	switch {
 	case build.Spec.Strategy.DockerStrategy != nil:
@@ -40,7 +41,7 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Po
 		if pod.Annotations == nil {
 			pod.Annotations = map[string]string{}
 		}
-		pod.Annotations[buildapi.BuildAnnotation] = build.Name
+		pod.Annotations[buildutil.BuildAnnotation] = build.Name
 	}
 	return pod, err
 }

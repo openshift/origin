@@ -3,15 +3,15 @@ package policy
 import (
 	"testing"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
-	allNewBuilds := []buildapi.Build{
-		addBuild("build-1", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
-		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
-		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
+	allNewBuilds := []buildv1.Build{
+		addBuild("build-1", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerialLatestOnly),
+		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerialLatestOnly),
+		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(allNewBuilds)
 	policy := SerialLatestOnlyPolicy{BuildLister: client.Lister(), BuildUpdater: client}
@@ -51,11 +51,11 @@ func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
 }
 
 func TestSerialLatestOnlyIsRunnableMixedRunning(t *testing.T) {
-	allNewBuilds := []buildapi.Build{
-		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicySerialLatestOnly),
-		addBuild("build-2", "sample-bc", buildapi.BuildPhaseCancelled, buildapi.BuildRunPolicySerialLatestOnly),
-		addBuild("build-3", "sample-bc", buildapi.BuildPhaseRunning, buildapi.BuildRunPolicySerialLatestOnly),
-		addBuild("build-4", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
+	allNewBuilds := []buildv1.Build{
+		addBuild("build-1", "sample-bc", buildv1.BuildPhaseComplete, buildv1.BuildRunPolicySerialLatestOnly),
+		addBuild("build-2", "sample-bc", buildv1.BuildPhaseCancelled, buildv1.BuildRunPolicySerialLatestOnly),
+		addBuild("build-3", "sample-bc", buildv1.BuildPhaseRunning, buildv1.BuildRunPolicySerialLatestOnly),
+		addBuild("build-4", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(allNewBuilds)
 	policy := SerialLatestOnlyPolicy{BuildLister: client.Lister(), BuildUpdater: client}
@@ -84,9 +84,9 @@ func TestSerialLatestOnlyIsRunnableMixedRunning(t *testing.T) {
 }
 
 func TestSerialLatestOnlyIsRunnableBuildsWithErrors(t *testing.T) {
-	builds := []buildapi.Build{
-		addBuild("build-1", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
-		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
+	builds := []buildv1.Build{
+		addBuild("build-1", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerialLatestOnly),
+		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerialLatestOnly),
 	}
 
 	// The build-1 will lack required labels

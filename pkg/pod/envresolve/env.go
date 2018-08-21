@@ -3,34 +3,34 @@ package envresolve
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/resource"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/pkg/api/v1/resource"
 	"k8s.io/kubernetes/pkg/fieldpath"
 )
 
 // ResourceStore defines a new resource store data structure
 type ResourceStore struct {
-	SecretStore    map[string]*kapi.Secret
-	ConfigMapStore map[string]*kapi.ConfigMap
+	SecretStore    map[string]*corev1.Secret
+	ConfigMapStore map[string]*corev1.ConfigMap
 }
 
 // NewResourceStore returns a pointer to a new resource store data structure
 func NewResourceStore() *ResourceStore {
 	return &ResourceStore{
-		SecretStore:    make(map[string]*kapi.Secret),
-		ConfigMapStore: make(map[string]*kapi.ConfigMap),
+		SecretStore:    make(map[string]*corev1.Secret),
+		ConfigMapStore: make(map[string]*corev1.ConfigMap),
 	}
 }
 
 // getSecretRefValue returns the value of a secret in the supplied namespace
-func getSecretRefValue(client kclientset.Interface, namespace string, store *ResourceStore, secretSelector *kapi.SecretKeySelector) (string, error) {
+func getSecretRefValue(client kubernetes.Interface, namespace string, store *ResourceStore, secretSelector *corev1.SecretKeySelector) (string, error) {
 	secret, ok := store.SecretStore[secretSelector.Name]
 	if !ok {
 		var err error
-		secret, err = client.Core().Secrets(namespace).Get(secretSelector.Name, metav1.GetOptions{})
+		secret, err = client.CoreV1().Secrets(namespace).Get(secretSelector.Name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -44,7 +44,7 @@ func getSecretRefValue(client kclientset.Interface, namespace string, store *Res
 }
 
 // getConfigMapRefValue returns the value of a configmap in the supplied namespace
-func getConfigMapRefValue(client kclientset.Interface, namespace string, store *ResourceStore, configMapSelector *kapi.ConfigMapKeySelector) (string, error) {
+func getConfigMapRefValue(client kubernetes.Interface, namespace string, store *ResourceStore, configMapSelector *corev1.ConfigMapKeySelector) (string, error) {
 	configMap, ok := store.ConfigMapStore[configMapSelector.Name]
 	if !ok {
 		var err error
@@ -61,17 +61,17 @@ func getConfigMapRefValue(client kclientset.Interface, namespace string, store *
 }
 
 // getFieldRef returns the value of the supplied path in the given object
-func getFieldRef(obj runtime.Object, from *kapi.EnvVarSource) (string, error) {
+func getFieldRef(obj runtime.Object, from *corev1.EnvVarSource) (string, error) {
 	return fieldpath.ExtractFieldPathAsString(obj, from.FieldRef.FieldPath)
 }
 
 // getResourceFieldRef returns the value of a resource in the given container
-func getResourceFieldRef(from *kapi.EnvVarSource, c *kapi.Container) (string, error) {
+func getResourceFieldRef(from *corev1.EnvVarSource, c *corev1.Container) (string, error) {
 	return resource.ExtractContainerResourceValue(from.ResourceFieldRef, c)
 }
 
 // GenEnvVarRefValue returns the value referenced by the supplied EnvVarSource given the other supplied information
-func GetEnvVarRefValue(kc kclientset.Interface, ns string, store *ResourceStore, from *kapi.EnvVarSource, obj runtime.Object, c *kapi.Container) (string, error) {
+func GetEnvVarRefValue(kc kubernetes.Interface, ns string, store *ResourceStore, from *corev1.EnvVarSource, obj runtime.Object, c *corev1.Container) (string, error) {
 	if from.SecretKeyRef != nil {
 		return getSecretRefValue(kc, ns, store, from.SecretKeyRef)
 	}
@@ -92,7 +92,7 @@ func GetEnvVarRefValue(kc kclientset.Interface, ns string, store *ResourceStore,
 }
 
 // GenEnvVarRefString returns a text description of the supplied EnvVarSource
-func GetEnvVarRefString(from *kapi.EnvVarSource) string {
+func GetEnvVarRefString(from *corev1.EnvVarSource) string {
 	if from.ConfigMapKeyRef != nil {
 		return fmt.Sprintf("configmap %s, key %s", from.ConfigMapKeyRef.Name, from.ConfigMapKeyRef.Key)
 	}

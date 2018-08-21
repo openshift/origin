@@ -15,6 +15,7 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kerrapi "k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +30,7 @@ import (
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
@@ -538,7 +540,7 @@ func (p *pruner) addPodsToGraph(pods *kapi.PodList) []error {
 // Edges are added to the graph from each predecessor (pod or replication
 // controller) to the images specified by the pod spec's list of containers, as
 // long as the image is managed by OpenShift.
-func (p *pruner) addPodSpecToGraph(referrer *kapi.ObjectReference, spec *kapi.PodSpec, predecessor gonum.Node) []error {
+func (p *pruner) addPodSpecToGraph(referrer *corev1.ObjectReference, spec *kapi.PodSpec, predecessor gonum.Node) []error {
 	var errs []error
 
 	for j := range spec.Containers {
@@ -731,7 +733,7 @@ func (p *pruner) addBuildsToGraph(builds *buildapi.BuildList) []error {
 
 // resolveISTagName parses  and tries to find it in the graph. If the parsing fails,
 // an error is returned. If the istag cannot be found, nil is returned.
-func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *kapi.ObjectReference, istagName string) (*imagegraph.ImageStreamTagNode, error) {
+func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *corev1.ObjectReference, istagName string) (*imagegraph.ImageStreamTagNode, error) {
 	name, tag, err := imageapi.ParseImageStreamTagName(istagName)
 	if err != nil {
 		if p.ignoreInvalidRefs {
@@ -754,8 +756,12 @@ func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *kapi.ObjectRef
 // Edges are added to the graph from each predecessor (build or build config)
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
-func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *kapi.ObjectReference, strategy buildapi.BuildStrategy, predecessor gonum.Node) []error {
-	from := buildapihelpers.GetInputReference(strategy)
+func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectReference, strategy buildapi.BuildStrategy, predecessor gonum.Node) []error {
+	externalStrategy := buildv1.BuildStrategy{}
+	if err := legacyscheme.Scheme.Convert(&strategy, &externalStrategy, nil); err != nil {
+		return []error{fmt.Errorf("unable to convert strategy: %v", err)}
+	}
+	from := buildapihelpers.GetInputReference(externalStrategy)
 	if from == nil {
 		glog.V(4).Infof("Unable to determine 'from' reference - skipping")
 		return nil

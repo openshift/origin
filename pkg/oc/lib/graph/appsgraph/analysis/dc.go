@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
@@ -72,7 +72,9 @@ func ictMarker(g osgraph.Graph, f osgraph.Namer, dcNode *appsgraph.DeploymentCon
 
 			for _, bcNode := range buildedges.BuildConfigsForTag(g, istNode) {
 				// Avoid warning for the dc image trigger in case there is a build in flight.
-				if latestBuild := buildedges.GetLatestBuild(g, bcNode); latestBuild != nil && !buildutil.IsBuildComplete(latestBuild.Build) {
+				if latestBuild := buildedges.GetLatestBuild(g, bcNode); latestBuild != nil && !buildinternalhelpers.IsBuildComplete(
+					latestBuild.
+						Build) {
 					return nil
 				}
 			}

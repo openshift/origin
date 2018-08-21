@@ -3,13 +3,14 @@ package prometheus
 import (
 	"github.com/golang/glog"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kselector "k8s.io/apimachinery/pkg/labels"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	internalversion "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -36,24 +37,24 @@ var (
 	)
 	bc             = buildCollector{}
 	registered     = false
-	cancelledPhase = string(buildapi.BuildPhaseCancelled)
-	completePhase  = string(buildapi.BuildPhaseComplete)
-	failedPhase    = string(buildapi.BuildPhaseFailed)
-	errorPhase     = string(buildapi.BuildPhaseError)
-	newPhase       = string(buildapi.BuildPhaseNew)
-	pendingPhase   = string(buildapi.BuildPhasePending)
-	runningPhase   = string(buildapi.BuildPhaseRunning)
+	cancelledPhase = string(buildv1.BuildPhaseCancelled)
+	completePhase  = string(buildv1.BuildPhaseComplete)
+	failedPhase    = string(buildv1.BuildPhaseFailed)
+	errorPhase     = string(buildv1.BuildPhaseError)
+	newPhase       = string(buildv1.BuildPhaseNew)
+	pendingPhase   = string(buildv1.BuildPhasePending)
+	runningPhase   = string(buildv1.BuildPhaseRunning)
 )
 
 type buildCollector struct {
-	lister internalversion.BuildLister
+	lister buildlister.BuildLister
 }
 
 // InitializeMetricsCollector calls into prometheus to register the buildCollector struct as a Collector in prometheus
 // for the terminal and active build metrics; note, in comparing with how kube-state-metrics integrates with prometheus,
 // kube-state-metrics leverages the prometheus.Registerer function, but it does not exist in the version of prometheus
 // vendored into origin as of this writing
-func IntializeMetricsCollector(buildLister internalversion.BuildLister) {
+func IntializeMetricsCollector(buildLister buildlister.BuildLister) {
 	bc.lister = buildLister
 	// unit tests unearthed multiple (sequential, not in parallel) registrations with prometheus via multiple calls to new build controller
 	if !registered {
@@ -102,36 +103,36 @@ func addCountGauge(ch chan<- prometheus.Metric, desc *prometheus.Desc, phase, re
 	ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, v, lv...)
 }
 
-func addTimeGauge(ch chan<- prometheus.Metric, b *buildapi.Build, time *metav1.Time, desc *prometheus.Desc, phase string, reason string, strategy string) {
+func addTimeGauge(ch chan<- prometheus.Metric, b *buildv1.Build, time *metav1.Time, desc *prometheus.Desc, phase string, reason string, strategy string) {
 	if time != nil {
 		lv := []string{b.ObjectMeta.Namespace, b.ObjectMeta.Name, phase, reason, strategy}
 		ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(time.Unix()), lv...)
 	}
 }
 
-func (bc *buildCollector) collectBuild(ch chan<- prometheus.Metric, b *buildapi.Build) (key collectKey) {
+func (bc *buildCollector) collectBuild(ch chan<- prometheus.Metric, b *buildv1.Build) (key collectKey) {
 
 	r := string(b.Status.Reason)
 	s := buildapihelpers.StrategyType(b.Spec.Strategy)
 	key = collectKey{reason: r, strategy: s}
 	switch b.Status.Phase {
 	// remember, new and pending builds don't have a start time
-	case buildapi.BuildPhaseNew:
+	case buildv1.BuildPhaseNew:
 		key.phase = newPhase
 		addTimeGauge(ch, b, &b.CreationTimestamp, activeBuildDesc, newPhase, r, s)
-	case buildapi.BuildPhasePending:
+	case buildv1.BuildPhasePending:
 		key.phase = pendingPhase
 		addTimeGauge(ch, b, &b.CreationTimestamp, activeBuildDesc, pendingPhase, r, s)
-	case buildapi.BuildPhaseRunning:
+	case buildv1.BuildPhaseRunning:
 		key.phase = runningPhase
 		addTimeGauge(ch, b, b.Status.StartTimestamp, activeBuildDesc, runningPhase, r, s)
-	case buildapi.BuildPhaseFailed:
+	case buildv1.BuildPhaseFailed:
 		key.phase = failedPhase
-	case buildapi.BuildPhaseError:
+	case buildv1.BuildPhaseError:
 		key.phase = errorPhase
-	case buildapi.BuildPhaseCancelled:
+	case buildv1.BuildPhaseCancelled:
 		key.phase = cancelledPhase
-	case buildapi.BuildPhaseComplete:
+	case buildv1.BuildPhaseComplete:
 		key.phase = completePhase
 	}
 	return key

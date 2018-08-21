@@ -9,9 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	securityv1 "github.com/openshift/api/security/v1"
-	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	securityclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -19,7 +19,7 @@ import (
 // SourceBuildStrategy creates STI(source to image) builds
 type SourceBuildStrategy struct {
 	Image          string
-	SecurityClient securityv1client.SecurityV1Interface
+	SecurityClient securityclient.SecurityV1Interface
 }
 
 // DefaultDropCaps is the list of capabilities to drop if the current user cannot run as root
@@ -32,7 +32,7 @@ var DefaultDropCaps = []string{
 
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
-func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Pod, error) {
+func (bs *SourceBuildStrategy) CreateBuildPod(build *buildv1.Build) (*corev1.Pod, error) {
 	data, err := runtime.Encode(buildJSONCodec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the Build %s/%s: %v", build.Namespace, build.Name, err)
@@ -46,7 +46,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Po
 
 	strategy := build.Spec.Strategy.SourceStrategy
 	if len(strategy.Env) > 0 {
-		buildutil.MergeTrustedEnvWithoutDuplicates(buildutil.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)
+		buildutil.MergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv, true)
 	}
 
 	// check if can run container as root
@@ -55,8 +55,8 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Po
 		// be controlled via the SCC that's in effect for the build service account
 		// For now, both are hard-coded based on whether the build service account can
 		// run as root.
-		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildapi.AllowedUIDs, Value: "1-"})
-		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildapi.DropCapabilities, Value: strings.Join(DefaultDropCaps, ",")})
+		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildutil.AllowedUIDs, Value: "1-"})
+		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildutil.DropCapabilities, Value: strings.Join(DefaultDropCaps, ",")})
 	}
 
 	serviceAccount := build.Spec.ServiceAccount
@@ -91,7 +91,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Po
 						},
 					},
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+					Resources:       build.Spec.Resources,
 				},
 			},
 			Volumes: []corev1.Volume{
@@ -121,7 +121,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Po
 				},
 			},
 			ImagePullPolicy: corev1.PullIfNotPresent,
-			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+			Resources:       build.Spec.Resources,
 		}
 		if build.Spec.Source.Binary != nil {
 			gitCloneContainer.Stdin = true
@@ -148,7 +148,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Po
 				},
 			},
 			ImagePullPolicy: corev1.PullIfNotPresent,
-			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+			Resources:       build.Spec.Resources,
 		}
 		setupDockerSecrets(pod, &extractImageContentContainer, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
@@ -167,7 +167,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Po
 				},
 			},
 			ImagePullPolicy: corev1.PullIfNotPresent,
-			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+			Resources:       build.Spec.Resources,
 		},
 	)
 
@@ -188,7 +188,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*corev1.Po
 	return pod, nil
 }
 
-func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
+func (bs *SourceBuildStrategy) canRunAsRoot(build *buildv1.Build) bool {
 	rootUser := int64(0)
 
 	review, err := bs.SecurityClient.PodSecurityPolicySubjectReviews(build.Namespace).Create(

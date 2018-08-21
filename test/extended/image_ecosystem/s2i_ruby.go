@@ -57,7 +57,7 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")
-				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), rcNameOne, nil, nil, nil)
+				err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), rcNameOne, nil, nil, nil)
 				if err != nil {
 					exutil.DumpBuildLogs(dcName, oc)
 				}

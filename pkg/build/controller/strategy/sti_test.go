@@ -5,27 +5,26 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	clienttesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	securityv1 "github.com/openshift/api/security/v1"
-	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
-	"github.com/openshift/client-go/security/clientset/versioned/typed/security/v1/fake"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	securityv1typed "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	securityv1fake "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1/fake"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
-func newFakeSecurityClient(rootAllowed bool) securityv1client.SecurityV1Interface {
-	securityClient := &fake.FakeSecurityV1{Fake: &clienttesting.Fake{}}
+func newFakeSecurityClient(rootAllowed bool) securityv1typed.SecurityV1Interface {
+	securityClient := &securityv1fake.FakeSecurityV1{Fake: &clienttesting.Fake{}}
 	securityClient.AddReactor("*", "*", func(clienttesting.Action) (bool, runtime.Object, error) {
 		var ref *corev1.ObjectReference
 		if rootAllowed {
@@ -66,7 +65,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if expected, actual := buildapihelpers.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildutil.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {
@@ -80,10 +79,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if container.Image != strategy.Image {
 		t.Errorf("Expected %s image, got %s!", container.Image, strategy.Image)
 	}
-	if container.ImagePullPolicy != corev1.PullIfNotPresent {
-		t.Errorf("Expected %v, got %v", corev1.PullIfNotPresent, container.ImagePullPolicy)
+	if container.ImagePullPolicy != v1.PullIfNotPresent {
+		t.Errorf("Expected %v, got %v", v1.PullIfNotPresent, container.ImagePullPolicy)
 	}
-	if actual.Spec.RestartPolicy != corev1.RestartPolicyNever {
+	if actual.Spec.RestartPolicy != v1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 
@@ -117,7 +116,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
-	if !kapihelper.Semantic.DeepEqual(container.Resources, util.CopyApiResourcesToV1Resources(&build.Spec.Resources)) {
+	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
 	found := false
@@ -131,10 +130,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		if v.Name == "ILLEGAL" {
 			foundIllegal = true
 		}
-		if v.Name == buildapi.AllowedUIDs && v.Value == "1-" {
+		if v.Name == buildutil.AllowedUIDs && v.Value == "1-" {
 			foundAllowedUIDs = true
 		}
-		if v.Name == buildapi.DropCapabilities && v.Value == "KILL,MKNOD,SETGID,SETUID" {
+		if v.Name == buildutil.DropCapabilities && v.Value == "KILL,MKNOD,SETGID,SETUID" {
 			foundDropCaps = true
 		}
 	}
@@ -145,16 +144,16 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
 	}
 	if foundAllowedUIDs && rootAllowed {
-		t.Fatalf("Did not expect %s when root is allowed", buildapi.AllowedUIDs)
+		t.Fatalf("Did not expect %s when root is allowed", buildutil.AllowedUIDs)
 	}
 	if !foundAllowedUIDs && !rootAllowed {
-		t.Fatalf("Expected %s when root is not allowed", buildapi.AllowedUIDs)
+		t.Fatalf("Expected %s when root is not allowed", buildutil.AllowedUIDs)
 	}
 	if foundDropCaps && rootAllowed {
-		t.Fatalf("Did not expect %s when root is allowed", buildapi.DropCapabilities)
+		t.Fatalf("Did not expect %s when root is allowed", buildutil.DropCapabilities)
 	}
 	if !foundDropCaps && !rootAllowed {
-		t.Fatalf("Expected %s when root is not allowed", buildapi.DropCapabilities)
+		t.Fatalf("Expected %s when root is not allowed", buildutil.DropCapabilities)
 	}
 	buildJSON, _ := runtime.Encode(buildJSONCodec, build)
 	errorCases := map[int][]string{
@@ -180,82 +179,82 @@ func TestS2IBuildLongName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if pod.Labels[buildapi.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
-		t.Errorf("Unexpected build label value: %s", pod.Labels[buildapi.BuildLabel])
+	if pod.Labels[buildutil.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
+		t.Errorf("Unexpected build label value: %s", pod.Labels[buildutil.BuildLabel])
 	}
 }
 
-func mockSTIBuild() *buildapi.Build {
+func mockSTIBuild() *buildv1.Build {
 	timeout := int64(60)
-	return &buildapi.Build{
+	return &buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "stiBuild",
 			Labels: map[string]string{
 				"name": "stiBuild",
 			},
 		},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Revision: &buildapi.SourceRevision{
-					Git: &buildapi.GitSourceRevision{},
+		Spec: buildv1.BuildSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Revision: &buildv1.SourceRevision{
+					Git: &buildv1.GitSourceRevision{},
 				},
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
+				Source: buildv1.BuildSource{
+					Git: &buildv1.GitBuildSource{
 						URI: "http://my.build.com/the/stibuild/Dockerfile",
 						Ref: "master",
 					},
 					ContextDir:   "foo",
-					SourceSecret: &kapi.LocalObjectReference{Name: "fooSecret"},
-					Secrets: []buildapi.SecretBuildSource{
+					SourceSecret: &corev1.LocalObjectReference{Name: "fooSecret"},
+					Secrets: []buildv1.SecretBuildSource{
 						{
-							Secret: kapi.LocalObjectReference{
+							Secret: corev1.LocalObjectReference{
 								Name: "secret",
 							},
 							DestinationDir: "/tmp",
 						},
 					},
-					ConfigMaps: []buildapi.ConfigMapBuildSource{
+					ConfigMaps: []buildv1.ConfigMapBuildSource{
 						{
-							ConfigMap: kapi.LocalObjectReference{
+							ConfigMap: corev1.LocalObjectReference{
 								Name: "configmap",
 							},
 							DestinationDir: "relpath",
 						},
 					},
 				},
-				Strategy: buildapi.BuildStrategy{
-					SourceStrategy: &buildapi.SourceBuildStrategy{
-						From: kapi.ObjectReference{
+				Strategy: buildv1.BuildStrategy{
+					SourceStrategy: &buildv1.SourceBuildStrategy{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "repository/sti-builder",
 						},
-						PullSecret: &kapi.LocalObjectReference{Name: "bar"},
+						PullSecret: &corev1.LocalObjectReference{Name: "bar"},
 						Scripts:    "http://my.build.com/the/sti/scripts",
-						Env: []kapi.EnvVar{
+						Env: []corev1.EnvVar{
 							{Name: "BUILD_LOGLEVEL", Value: "bar"},
 							{Name: "ILLEGAL", Value: "foo"},
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "docker-registry/repository/stiBuild",
 					},
-					PushSecret: &kapi.LocalObjectReference{Name: "foo"},
+					PushSecret: &corev1.LocalObjectReference{Name: "foo"},
 				},
-				Resources: kapi.ResourceRequirements{
-					Limits: kapi.ResourceList{
-						kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-						kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+						corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("10G"),
 					},
 				},
 				CompletionDeadlineSeconds: &timeout,
 				NodeSelector:              nodeSelector,
 			},
 		},
-		Status: buildapi.BuildStatus{
-			Phase: buildapi.BuildPhaseNew,
+		Status: buildv1.BuildStatus{
+			Phase: buildv1.BuildPhaseNew,
 		},
 	}
 }

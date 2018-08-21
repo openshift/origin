@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/build/controller/common"
 )
 
@@ -20,22 +20,22 @@ import (
 // should be able to update the spec.
 type buildUpdate struct {
 	podNameAnnotation *string
-	phase             *buildapi.BuildPhase
-	reason            *buildapi.StatusReason
+	phase             *buildv1.BuildPhase
+	reason            *buildv1.StatusReason
 	message           *string
 	startTime         *metav1.Time
 	completionTime    *metav1.Time
 	duration          *time.Duration
 	outputRef         *string
 	logSnippet        *string
-	pushSecret        *kapi.LocalObjectReference
+	pushSecret        *corev1.LocalObjectReference
 }
 
-func (u *buildUpdate) setPhase(phase buildapi.BuildPhase) {
+func (u *buildUpdate) setPhase(phase buildv1.BuildPhase) {
 	u.phase = &phase
 }
 
-func (u *buildUpdate) setReason(reason buildapi.StatusReason) {
+func (u *buildUpdate) setReason(reason buildv1.StatusReason) {
 	u.reason = &reason
 }
 
@@ -67,7 +67,7 @@ func (u *buildUpdate) setLogSnippet(message string) {
 	u.logSnippet = &message
 }
 
-func (u *buildUpdate) setPushSecret(pushSecret kapi.LocalObjectReference) {
+func (u *buildUpdate) setPushSecret(pushSecret corev1.LocalObjectReference) {
 	u.pushSecret = &pushSecret
 }
 
@@ -97,7 +97,7 @@ func (u *buildUpdate) isEmpty() bool {
 		u.pushSecret == nil
 }
 
-func (u *buildUpdate) apply(build *buildapi.Build) {
+func (u *buildUpdate) apply(build *buildv1.Build) {
 	if u.phase != nil {
 		build.Status.Phase = *u.phase
 	}

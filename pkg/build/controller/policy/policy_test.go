@@ -5,34 +5,36 @@ import (
 	"strings"
 	"testing"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+
+	buildv1 "github.com/openshift/api/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 type fakeBuildClient struct {
-	builds         *buildapi.BuildList
+	builds         *buildv1.BuildList
 	updateErrCount int
 }
 
-func newTestClient(builds []buildapi.Build) *fakeBuildClient {
-	return &fakeBuildClient{builds: &buildapi.BuildList{Items: builds}}
+func newTestClient(builds []buildv1.Build) *fakeBuildClient {
+	return &fakeBuildClient{builds: &buildv1.BuildList{Items: builds}}
 }
 
-func (f *fakeBuildClient) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
+func (f *fakeBuildClient) List(namespace string, opts metav1.ListOptions) (*buildv1.BuildList, error) {
 	return f.builds, nil
 }
 
-func (f *fakeBuildClient) Update(namespace string, build *buildapi.Build) error {
+func (f *fakeBuildClient) Update(namespace string, build *buildv1.Build) error {
 	// Make sure every update fails at least once with conflict to ensure build updates are
 	// retried.
 	if f.updateErrCount == 0 {
 		f.updateErrCount = 1
-		return kerrors.NewConflict(kapi.Resource("builds"), build.Name, errors.New("confict"))
+		return kerrors.NewConflict(corev1.Resource("builds"), build.Name, errors.New("confict"))
 	} else {
 		f.updateErrCount = 0
 	}
@@ -52,15 +54,15 @@ type fakeBuildLister struct {
 	f *fakeBuildClient
 }
 
-func (f *fakeBuildLister) List(label labels.Selector) ([]*buildapi.Build, error) {
-	var items []*buildapi.Build
+func (f *fakeBuildLister) List(label labels.Selector) ([]*buildv1.Build, error) {
+	var items []*buildv1.Build
 	for i := range f.f.builds.Items {
 		items = append(items, &f.f.builds.Items[i])
 	}
 	return items, nil
 }
 
-func (f *fakeBuildLister) Get(name string) (*buildapi.Build, error) {
+func (f *fakeBuildLister) Get(name string) (*buildv1.Build, error) {
 	for i := range f.f.builds.Items {
 		if f.f.builds.Items[i].Name == name {
 			return &f.f.builds.Items[i], nil
@@ -73,30 +75,30 @@ func (f *fakeBuildLister) Builds(ns string) buildlister.BuildNamespaceLister {
 	return f
 }
 
-func addBuild(name, bcName string, phase buildapi.BuildPhase, policy buildapi.BuildRunPolicy) buildapi.Build {
+func addBuild(name, bcName string, phase buildv1.BuildPhase, policy buildv1.BuildRunPolicy) buildv1.Build {
 	parts := strings.Split(name, "-")
-	return buildapi.Build{
-		Spec: buildapi.BuildSpec{},
+	return buildv1.Build{
+		Spec: buildv1.BuildSpec{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "test",
 			Labels: map[string]string{
-				buildapi.BuildRunPolicyLabel: string(policy),
-				buildapi.BuildConfigLabel:    bcName,
+				buildutil.BuildRunPolicyLabel: string(policy),
+				buildutil.BuildConfigLabel:    bcName,
 			},
 			Annotations: map[string]string{
-				buildapi.BuildNumberAnnotation: parts[len(parts)-1],
+				buildutil.BuildNumberAnnotation: parts[len(parts)-1],
 			},
 		},
-		Status: buildapi.BuildStatus{Phase: phase},
+		Status: buildv1.BuildStatus{Phase: phase},
 	}
 }
 
 func TestForBuild(t *testing.T) {
-	builds := []buildapi.Build{
-		addBuild("build-1", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
-		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerial),
-		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
+	builds := []buildv1.Build{
+		addBuild("build-1", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
+		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerial),
+		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(builds)
 	policies := GetAllRunPolicies(client.Lister(), client)
@@ -127,10 +129,10 @@ func TestForBuild(t *testing.T) {
 }
 
 func TestGetNextConfigBuildSerial(t *testing.T) {
-	builds := []buildapi.Build{
-		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicySerial),
-		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerial),
-		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerial),
+	builds := []buildv1.Build{
+		addBuild("build-1", "sample-bc", buildv1.BuildPhaseComplete, buildv1.BuildRunPolicySerial),
+		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerial),
+		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerial),
 	}
 
 	client := newTestClient(builds)
@@ -155,10 +157,10 @@ func TestGetNextConfigBuildSerial(t *testing.T) {
 }
 
 func TestGetNextConfigBuildParallel(t *testing.T) {
-	builds := []buildapi.Build{
-		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicyParallel),
-		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
-		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
+	builds := []buildv1.Build{
+		addBuild("build-1", "sample-bc", buildv1.BuildPhaseComplete, buildv1.BuildRunPolicyParallel),
+		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
+		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 	}
 
 	client := newTestClient(builds)

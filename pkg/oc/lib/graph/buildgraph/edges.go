@@ -5,7 +5,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -94,7 +94,7 @@ func AddInputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNod
 	if in := buildgraph.EnsureSourceRepositoryNode(g, node.BuildConfig.Spec.Source); in != nil {
 		g.AddEdge(in, node, BuildInputEdgeKind)
 	}
-	inputImage := buildapihelpers.GetInputReference(node.BuildConfig.Spec.Strategy)
+	inputImage := buildinternalhelpers.GetInputReference(node.BuildConfig.Spec.Strategy)
 	if input := imageRefNode(g, inputImage, node.BuildConfig); input != nil {
 		g.AddEdge(input, node, BuildInputImageEdgeKind)
 	}
@@ -108,7 +108,7 @@ func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigN
 		}
 		from := trigger.ImageChange.From
 		if trigger.ImageChange.From == nil {
-			from = buildapihelpers.GetInputReference(node.BuildConfig.Spec.Strategy)
+			from = buildinternalhelpers.GetInputReference(node.BuildConfig.Spec.Strategy)
 		}
 		triggerNode := imageRefNode(g, from, node.BuildConfig)
 		g.AddEdge(triggerNode, node, BuildTriggerImageEdgeKind)

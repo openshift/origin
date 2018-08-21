@@ -5,11 +5,11 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
@@ -19,7 +19,7 @@ type BuildOverrides struct {
 }
 
 // ApplyOverrides applies configured overrides to a build in a build pod
-func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
+func (b BuildOverrides) ApplyOverrides(pod *corev1.Pod) error {
 	if b.Config == nil {
 		return nil
 	}
@@ -52,8 +52,12 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 
 	// Apply label overrides
 	for _, lbl := range b.Config.ImageLabels {
+		externalLabel := buildv1.ImageLabel{
+			Name:  lbl.Name,
+			Value: lbl.Value,
+		}
 		glog.V(5).Infof("Overriding image label %s=%s in build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
-		overrideLabel(lbl, &build.Spec.Output.ImageLabels)
+		overrideLabel(externalLabel, &build.Spec.Output.ImageLabels)
 	}
 
 	if len(b.Config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
@@ -75,12 +79,11 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 	// Override Tolerations
 	if len(b.Config.Tolerations) != 0 {
 		glog.V(5).Infof("Overriding tolerations for pod %s/%s", pod.Namespace, pod.Name)
-		pod.Spec.Tolerations = []v1.Toleration{}
+		pod.Spec.Tolerations = []corev1.Toleration{}
 		for _, toleration := range b.Config.Tolerations {
-			t := v1.Toleration{}
-
-			if err := kapiv1.Convert_core_Toleration_To_v1_Toleration(&toleration, &t, nil); err != nil {
-				err := fmt.Errorf("Unable to convert core.Toleration to v1.Toleration: %v", err)
+			t := corev1.Toleration{}
+			if err := legacyscheme.Scheme.Convert(&toleration, &t, nil); err != nil {
+				err := fmt.Errorf("unable to convert core.Toleration to corev1.Toleration: %v", err)
 				utilruntime.HandleError(err)
 				return err
 			}
@@ -91,19 +94,19 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 	return common.SetBuildInPod(pod, build)
 }
 
-func applyForcePullToPod(pod *v1.Pod) error {
+func applyForcePullToPod(pod *corev1.Pod) error {
 	for i := range pod.Spec.InitContainers {
 		glog.V(5).Infof("Setting ImagePullPolicy to PullAlways on init container %s of pod %s/%s", pod.Spec.InitContainers[i].Name, pod.Namespace, pod.Name)
-		pod.Spec.InitContainers[i].ImagePullPolicy = v1.PullAlways
+		pod.Spec.InitContainers[i].ImagePullPolicy = corev1.PullAlways
 	}
 	for i := range pod.Spec.Containers {
 		glog.V(5).Infof("Setting ImagePullPolicy to PullAlways on container %s of pod %s/%s", pod.Spec.Containers[i].Name, pod.Namespace, pod.Name)
-		pod.Spec.Containers[i].ImagePullPolicy = v1.PullAlways
+		pod.Spec.Containers[i].ImagePullPolicy = corev1.PullAlways
 	}
 	return nil
 }
 
-func overrideLabel(overridingLabel buildapi.ImageLabel, buildLabels *[]buildapi.ImageLabel) {
+func overrideLabel(overridingLabel buildv1.ImageLabel, buildLabels *[]buildv1.ImageLabel) {
 	found := false
 	for i, lbl := range *buildLabels {
 		if lbl.Name == overridingLabel.Name {

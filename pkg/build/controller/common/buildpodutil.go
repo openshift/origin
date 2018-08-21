@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"github.com/openshift/origin/pkg/build/buildscheme"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 // GetBuildFromPod returns a build object encoded in a pod's BUILD environment variable along with
 // its encoding version
-func GetBuildFromPod(pod *v1.Pod) (*buildapi.Build, error) {
+func GetBuildFromPod(pod *corev1.Pod) (*buildv1.Build, error) {
 	if len(pod.Spec.Containers) == 0 {
 		return nil, errors.New("unable to get build from pod: pod has no containers")
 	}
@@ -27,7 +27,7 @@ func GetBuildFromPod(pod *v1.Pod) (*buildapi.Build, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to get build from pod: %v", err)
 	}
-	build, ok := obj.(*buildapi.Build)
+	build, ok := obj.(*buildv1.Build)
 	if !ok {
 		return nil, fmt.Errorf("unable to get build from pod: %v", errors.New("decoded object is not of type Build"))
 	}
@@ -35,7 +35,7 @@ func GetBuildFromPod(pod *v1.Pod) (*buildapi.Build, error) {
 }
 
 // SetBuildInPod encodes a build object and sets it in a pod's BUILD environment variable
-func SetBuildInPod(pod *v1.Pod, build *buildapi.Build) error {
+func SetBuildInPod(pod *corev1.Pod, build *buildv1.Build) error {
 	encodedBuild, err := runtime.Encode(buildscheme.Encoder, build)
 	if err != nil {
 		return fmt.Errorf("unable to set build in pod: %v", err)
@@ -51,7 +51,7 @@ func SetBuildInPod(pod *v1.Pod, build *buildapi.Build) error {
 	return nil
 }
 
-func getEnvVar(c *v1.Container, name string) string {
+func getEnvVar(c *corev1.Container, name string) string {
 	for _, envVar := range c.Env {
 		if envVar.Name == name {
 			return envVar.Value
@@ -61,13 +61,13 @@ func getEnvVar(c *v1.Container, name string) string {
 	return ""
 }
 
-func setEnvVar(c *v1.Container, name, value string) {
+func setEnvVar(c *corev1.Container, name, value string) {
 	for i, envVar := range c.Env {
 		if envVar.Name == name {
-			c.Env[i] = v1.EnvVar{Name: name, Value: value}
+			c.Env[i] = corev1.EnvVar{Name: name, Value: value}
 			return
 		}
 	}
 
-	c.Env = append(c.Env, v1.EnvVar{Name: name, Value: value})
+	c.Env = append(c.Env, corev1.EnvVar{Name: name, Value: value})
 }

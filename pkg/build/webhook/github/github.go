@@ -7,11 +7,12 @@ import (
 	"mime"
 	"net/http"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-
 	"github.com/golang/glog"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
@@ -25,10 +26,10 @@ func New() *WebHookPlugin {
 }
 
 type commit struct {
-	ID        string                     `json:"id,omitempty"`
-	Author    buildapi.SourceControlUser `json:"author,omitempty"`
-	Committer buildapi.SourceControlUser `json:"committer,omitempty"`
-	Message   string                     `json:"message,omitempty"`
+	ID        string                    `json:"id,omitempty"`
+	Author    buildv1.SourceControlUser `json:"author,omitempty"`
+	Committer buildv1.SourceControlUser `json:"committer,omitempty"`
+	Message   string                    `json:"message,omitempty"`
 }
 
 type pushEvent struct {
@@ -38,7 +39,7 @@ type pushEvent struct {
 }
 
 // Extract services webhooks from github.com
-func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildapi.WebHookTrigger, req *http.Request) (revision *buildapi.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *buildapi.DockerStrategyOptions, proceed bool, err error) {
+func (p *WebHookPlugin) Extract(buildCfg *buildv1.BuildConfig, trigger *buildv1.WebHookTrigger, req *http.Request) (revision *buildv1.SourceRevision, envvars []corev1.EnvVar, dockerStrategyOptions *buildv1.DockerStrategyOptions, proceed bool, err error) {
 	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
 		return revision, envvars, dockerStrategyOptions, proceed, err
@@ -63,8 +64,8 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 		return revision, envvars, dockerStrategyOptions, proceed, err
 	}
 
-	revision = &buildapi.SourceRevision{
-		Git: &buildapi.GitSourceRevision{
+	revision = &buildv1.SourceRevision{
+		Git: &buildv1.GitSourceRevision{
 			Commit:    event.HeadCommit.ID,
 			Author:    event.HeadCommit.Author,
 			Committer: event.HeadCommit.Committer,
@@ -75,9 +76,9 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 }
 
 // GetTriggers retrieves the WebHookTriggers for this webhook type (if any)
-func (p *WebHookPlugin) GetTriggers(buildConfig *buildapi.BuildConfig) ([]*buildapi.WebHookTrigger, error) {
-	triggers := buildapihelpers.FindTriggerPolicy(buildapi.GitHubWebHookBuildTriggerType, buildConfig)
-	webhookTriggers := []*buildapi.WebHookTrigger{}
+func (p *WebHookPlugin) GetTriggers(buildConfig *buildv1.BuildConfig) ([]*buildv1.WebHookTrigger, error) {
+	triggers := buildapihelpers.FindTriggerPolicy(buildv1.GitHubWebHookBuildTriggerType, buildConfig)
+	webhookTriggers := []*buildv1.WebHookTrigger{}
 	for _, trigger := range triggers {
 		if trigger.GitHubWebHook != nil {
 			webhookTriggers = append(webhookTriggers, trigger.GitHubWebHook)

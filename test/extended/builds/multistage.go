@@ -48,7 +48,7 @@ COPY --from=test /usr/bin/curl /test/
 
 		g.It("should succeed [Conformance]", func() {
 			g.By("creating a build directly")
-			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Create(&buildapi.Build{
+			build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Create(&buildapi.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "multi-stage",
 				},

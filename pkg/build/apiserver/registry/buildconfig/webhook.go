@@ -16,15 +16,16 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	kubetypedclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/api/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildclienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/build/client"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
@@ -43,19 +44,19 @@ func init() {
 
 type WebHook struct {
 	groupVersion      schema.GroupVersion
-	buildConfigClient buildclient.BuildInterface
-	secretsClient     kcoreclient.SecretsGetter
+	buildConfigClient buildclienttyped.BuildV1Interface
+	secretsClient     kubetypedclient.SecretsGetter
 	instantiator      client.BuildConfigInstantiator
 	plugins           map[string]webhook.Plugin
 }
 
 // NewWebHookREST returns the webhook handler
-func NewWebHookREST(buildConfigClient buildclient.BuildInterface, secretsClient kcoreclient.SecretsGetter, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
+func NewWebHookREST(buildConfigClient buildclienttyped.BuildV1Interface, secretsClient kubetypedclient.SecretsGetter, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
 	return newWebHookREST(buildConfigClient, secretsClient, client.BuildConfigInstantiatorClient{Client: buildConfigClient}, groupVersion, plugins)
 }
 
 // this supports simple unit testing
-func newWebHookREST(buildConfigClient buildclient.BuildInterface, secretsClient kcoreclient.SecretsGetter, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
+func newWebHookREST(buildConfigClient buildclienttyped.BuildV1Interface, secretsClient kubetypedclient.SecretsGetter, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
 	return &WebHook{
 		groupVersion:      groupVersion,
 		buildConfigClient: buildConfigClient,
@@ -103,8 +104,8 @@ type WebHookHandler struct {
 	responder         rest.Responder
 	groupVersion      schema.GroupVersion
 	plugins           map[string]webhook.Plugin
-	buildConfigClient buildclient.BuildInterface
-	secretsClient     kcoreclient.SecretsGetter
+	buildConfigClient buildclienttyped.BuildV1Interface
+	secretsClient     kubetypedclient.SecretsGetter
 	instantiator      client.BuildConfigInstantiator
 }
 
@@ -164,7 +165,8 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	warning := err
 
 	buildTriggerCauses := webhook.GenerateBuildTriggerInfo(revision, hookType)
-	request := &buildapi.BuildRequest{
+
+	request := &buildv1.BuildRequest{
 		TriggeredBy: buildTriggerCauses,
 		ObjectMeta:  metav1.ObjectMeta{Name: name},
 		Revision:    revision,

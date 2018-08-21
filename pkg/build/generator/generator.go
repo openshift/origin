@@ -11,18 +11,23 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/credentialprovider"
+	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
 	buildgroup "github.com/openshift/api/build"
 	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -32,24 +37,6 @@ import (
 )
 
 const conflictRetries = 3
-
-// GeneratorFatalError represents a fatal error while generating a build.
-// An operation that fails because of a fatal error should not be retried.
-type GeneratorFatalError struct {
-	// Reason the fatal error occurred
-	Reason string
-}
-
-// Error returns the error string for this fatal error
-func (e *GeneratorFatalError) Error() string {
-	return fmt.Sprintf("fatal error generating Build from BuildConfig: %s", e.Reason)
-}
-
-// IsFatal returns true if err is a fatal error
-func IsFatal(err error) bool {
-	_, isFatal := err.(*GeneratorFatalError)
-	return isFatal
-}
 
 // BuildGenerator is a central place responsible for generating new Build objects
 // from BuildConfigs and other Builds.
@@ -154,7 +141,7 @@ func findImageChangeTrigger(bc *buildapi.BuildConfig, ref *kapi.ObjectReference)
 		imageChange := trigger.ImageChange
 		triggerRef := imageChange.From
 		if triggerRef == nil {
-			triggerRef = buildapihelpers.GetInputReference(bc.Spec.Strategy)
+			triggerRef = buildinternalhelpers.GetInputReference(bc.Spec.Strategy)
 			if triggerRef == nil || triggerRef.Kind != "ImageStreamTag" {
 				continue
 			}
@@ -268,7 +255,7 @@ func (g *BuildGenerator) instantiate(ctx context.Context, request *buildapi.Buil
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
-		buildutil.UpdateBuildEnv(newBuild, request.Env)
+		buildinternalhelpers.UpdateBuildEnv(newBuild, request.Env)
 	}
 
 	// Update the Docker strategy options
@@ -356,7 +343,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx context.Context, bc *buildapi.B
 
 		triggerImageRef := trigger.ImageChange.From
 		if triggerImageRef == nil {
-			triggerImageRef = buildapihelpers.GetInputReference(bc.Spec.Strategy)
+			triggerImageRef = buildinternalhelpers.GetInputReference(bc.Spec.Strategy)
 		}
 		if triggerImageRef == nil {
 			glog.Warningf("Could not get ImageStream reference for default ImageChangeTrigger on BuildConfig %s/%s", bc.Namespace, bc.Name)
@@ -406,7 +393,8 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildapi.BuildReque
 			return nil, err
 		}
 		if isPaused(buildConfig) {
-			return nil, errors.NewInternalError(&GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)})
+			return nil, errors.NewInternalError(&buildutil.GeneratorFatalError{Reason: fmt.Sprintf(
+				"can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)})
 		}
 	}
 
@@ -417,7 +405,7 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildapi.BuildReque
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
-		buildutil.UpdateBuildEnv(newBuild, request.Env)
+		buildinternalhelpers.UpdateBuildEnv(newBuild, request.Env)
 	}
 
 	// Update the Docker build args
@@ -541,7 +529,7 @@ func (g *BuildGenerator) setBuildSourceImage(ctx context.Context, builderSecrets
 		var sourceImageSpec string
 		// if the imagesource matches the strategy from, and we have a trigger for the strategy from,
 		// use the imageid from the trigger rather than resolving it.
-		if strategyFrom := buildapihelpers.GetInputReference(bcCopy.Spec.Strategy); strategyFrom != nil &&
+		if strategyFrom := buildinternalhelpers.GetInputReference(bcCopy.Spec.Strategy); strategyFrom != nil &&
 			reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
 			strategyImageChangeTrigger != nil {
 			sourceImageSpec = strategyImageChangeTrigger.LastTriggeredImageID
@@ -744,11 +732,34 @@ func (g *BuildGenerator) resolveImageSecret(ctx context.Context, secrets []kapi.
 		glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
 		return nil
 	}
-	s := buildutil.FindDockerSecretAsReference(secrets, imageSpec)
+	s := findDockerSecretAsInternalReference(secrets, imageSpec)
 	if s == nil {
 		glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
 	}
 	return s
+}
+
+// findDockerSecretAsInternalReference looks through a set of k8s Secrets to find one that represents Docker credentials
+// and which contains credentials that are associated with the registry identified by the image.  It returns
+// a LocalObjectReference to the Secret, or nil if no match was found.
+func findDockerSecretAsInternalReference(secrets []kapi.Secret, image string) *kapi.LocalObjectReference {
+	emptyKeyring := credentialprovider.BasicDockerKeyring{}
+	for _, secret := range secrets {
+		externalSecret := corev1.Secret{}
+		if err := legacyscheme.Scheme.Convert(&secret, &externalSecret, nil); err != nil {
+			panic(err)
+		}
+		secretList := []corev1.Secret{externalSecret}
+		keyring, err := credentialprovidersecrets.MakeDockerKeyring(secretList, &emptyKeyring)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+		if _, found := keyring.Lookup(image); found {
+			return &kapi.LocalObjectReference{Name: secret.Name}
+		}
+	}
+	return nil
 }
 
 func resolveError(kind string, namespace string, name string, err error) error {

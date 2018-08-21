@@ -246,12 +246,12 @@ RUN echo %s > /3
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("starting a test build")
-	bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get(isName, metav1.GetOptions{})
+	bc, err := oc.InternalBuildClient().Build().BuildConfigs(oc.Namespace()).Get(isName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
 
 	g.By("expecting the Dockerfile build is in Complete phase")
-	err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), isName+"-1", nil, nil, nil)
+	err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), isName+"-1", nil, nil, nil)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("checking for the imported tag: %s", istName))

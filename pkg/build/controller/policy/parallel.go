@@ -1,9 +1,9 @@
 package policy
 
 import (
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -19,7 +19,7 @@ type ParallelPolicy struct {
 
 // IsRunnable implements the RunPolicy interface. The parallel builds are run as soon
 // as they are created. There is no build queue as all build run asynchronously.
-func (s *ParallelPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
+func (s *ParallelPolicy) IsRunnable(build *buildv1.Build) (bool, error) {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return true, nil
@@ -28,6 +28,6 @@ func (s *ParallelPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 }
 
 // Handles returns true for the build run parallel policy
-func (s *ParallelPolicy) Handles(policy buildapi.BuildRunPolicy) bool {
-	return policy == buildapi.BuildRunPolicyParallel
+func (s *ParallelPolicy) Handles(policy buildv1.BuildRunPolicy) bool {
+	return policy == buildv1.BuildRunPolicyParallel
 }

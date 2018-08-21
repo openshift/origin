@@ -7,97 +7,33 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
-var testBuildConfig = &buildapi.BuildConfig{
-	Spec: buildapi.BuildConfigSpec{
-		Triggers: []buildapi.BuildTriggerPolicy{
-			{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
-					Secret: "secret101",
-				},
-			},
-			{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
-					Secret: "secret100",
-				},
-			},
-			{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
-					Secret: "secret102",
-				},
-			},
-		},
-		CommonSpec: buildapi.CommonSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "git://github.com/my/repo.git",
-				},
-			},
-			Strategy: mockBuildStrategy,
-		},
-	},
-}
-
-var mockBuildStrategy = buildapi.BuildStrategy{
-	SourceStrategy: &buildapi.SourceBuildStrategy{
-		From: kapi.ObjectReference{
+var mockBuildStrategy = buildv1.BuildStrategy{
+	SourceStrategy: &buildv1.SourceBuildStrategy{
+		From: corev1.ObjectReference{
 			Kind: "DockerImage",
 			Name: "repository/image",
 		},
 	},
 }
 
-type okBuildConfigInstantiator struct{}
-
-func (*okBuildConfigInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
-	return &buildapi.Build{}, nil
-}
-
-type fakeResponder struct {
-	called     bool
-	statusCode int
-	object     runtime.Object
-	err        error
-}
-
-func (r *fakeResponder) Object(statusCode int, obj runtime.Object) {
-	if r.called {
-		panic("called twice")
-	}
-	r.called = true
-	r.statusCode = statusCode
-	r.object = obj
-}
-
-func (r *fakeResponder) Error(err error) {
-	if r.called {
-		panic("called twice")
-	}
-	r.called = true
-	r.err = err
-}
-
-var buildConfig = &buildapi.BuildConfig{
-	Spec: buildapi.BuildConfigSpec{
-		Triggers: []buildapi.BuildTriggerPolicy{
+var buildConfig = &buildv1.BuildConfig{
+	Spec: buildv1.BuildConfigSpec{
+		Triggers: []buildv1.BuildTriggerPolicy{
 			{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
+				Type: buildv1.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildv1.WebHookTrigger{
 					Secret: "secret100",
 				},
 			},
 		},
-		CommonSpec: buildapi.CommonSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{},
+		CommonSpec: buildv1.CommonSpec{
+			Source: buildv1.BuildSource{
+				Git: &buildv1.GitBuildSource{},
 			},
 		},
 	},
@@ -258,7 +194,7 @@ func postWithCharset(eventHeader, eventName string, data []byte, url, charset st
 
 type testContext struct {
 	plugin   WebHookPlugin
-	buildCfg *buildapi.BuildConfig
+	buildCfg *buildv1.BuildConfig
 	req      *http.Request
 	path     string
 }
@@ -266,31 +202,31 @@ type testContext struct {
 func setup(t *testing.T, filename, eventType, ref string) *testContext {
 	context := testContext{
 		plugin: WebHookPlugin{},
-		buildCfg: &buildapi.BuildConfig{
-			Spec: buildapi.BuildConfigSpec{
-				Triggers: []buildapi.BuildTriggerPolicy{
+		buildCfg: &buildv1.BuildConfig{
+			Spec: buildv1.BuildConfigSpec{
+				Triggers: []buildv1.BuildTriggerPolicy{
 					{
-						Type: buildapi.GitHubWebHookBuildTriggerType,
-						GitHubWebHook: &buildapi.WebHookTrigger{
+						Type: buildv1.GitHubWebHookBuildTriggerType,
+						GitHubWebHook: &buildv1.WebHookTrigger{
 							Secret: "secret101",
 						},
 					},
 					{
-						Type: buildapi.GitHubWebHookBuildTriggerType,
-						GitHubWebHook: &buildapi.WebHookTrigger{
+						Type: buildv1.GitHubWebHookBuildTriggerType,
+						GitHubWebHook: &buildv1.WebHookTrigger{
 							Secret: "secret100",
 						},
 					},
 					{
-						Type: buildapi.GitHubWebHookBuildTriggerType,
-						GitHubWebHook: &buildapi.WebHookTrigger{
+						Type: buildv1.GitHubWebHookBuildTriggerType,
+						GitHubWebHook: &buildv1.WebHookTrigger{
 							Secret: "secret102",
 						},
 					},
 				},
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{
-						Git: &buildapi.GitBuildSource{
+				CommonSpec: buildv1.CommonSpec{
+					Source: buildv1.BuildSource{
+						Git: &buildv1.GitBuildSource{
 							URI: "git://github.com/my/repo.git",
 							Ref: ref,
 						},
