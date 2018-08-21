@@ -1,4 +1,4 @@
-package admission
+package restrictedendpoints
 
 import (
 	"fmt"
@@ -6,10 +6,15 @@ import (
 	"net"
 	"reflect"
 
+	"github.com/golang/glog"
+
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+
+	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints"
 )
 
 const RestrictedEndpointsPluginName = "openshift.io/RestrictedEndpointsAdmission"
@@ -17,8 +22,41 @@ const RestrictedEndpointsPluginName = "openshift.io/RestrictedEndpointsAdmission
 func RegisterRestrictedEndpoints(plugins *admission.Plugins) {
 	plugins.Register(RestrictedEndpointsPluginName,
 		func(config io.Reader) (admission.Interface, error) {
-			return NewRestrictedEndpointsAdmission(nil), nil
+			pluginConfig, err := readConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			if pluginConfig == nil {
+				glog.Infof("Admission plugin %q is not configured so it will be disabled.", RestrictedEndpointsPluginName)
+				return nil, nil
+			}
+			restrictedNetworks, err := ParseSimpleCIDRRules(pluginConfig.RestrictedCIDRs)
+			if err != nil {
+				// should have been caught with validation
+				return nil, err
+			}
+
+			return NewRestrictedEndpointsAdmission(restrictedNetworks), nil
 		})
+}
+
+func readConfig(reader io.Reader) (*restrictedendpoints.RestrictedEndpointsAdmissionConfig, error) {
+	if reader == nil || reflect.ValueOf(reader).IsNil() {
+		return nil, nil
+	}
+	obj, err := configlatest.ReadYAML(reader)
+	if err != nil {
+		return nil, err
+	}
+	if obj == nil {
+		return nil, nil
+	}
+	config, ok := obj.(*restrictedendpoints.RestrictedEndpointsAdmissionConfig)
+	if !ok {
+		return nil, fmt.Errorf("unexpected config object: %#v", obj)
+	}
+	// No validation needed since config is just list of strings
+	return config, nil
 }
 
 type restrictedEndpointsAdmission struct {

@@ -11,7 +11,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
-	serviceadmit "github.com/openshift/origin/pkg/service/admission"
+	"github.com/openshift/origin/pkg/service/admission/externalipranger"
 )
 
 // TestAdmissionPluginChains makes sure that the admission plugin lists are coherent.
@@ -64,7 +64,7 @@ var legacyOpenshiftAdmissionPlugins = sets.NewString(
 	"RunOnceDuration",
 	"OriginPodNodeEnvironment",
 	overrideapi.PluginName,
-	serviceadmit.ExternalIPPluginName,
+	externalipranger.ExternalIPPluginName,
 	sccadmission.PluginName,
 	"SCCExecRestrictions",
 	"ResourceQuota",

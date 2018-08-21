@@ -1,14 +1,21 @@
-package admission
+package externalipranger
 
 import (
+	"fmt"
 	"io"
 	"net"
+	"reflect"
 	"strings"
+
+	"github.com/golang/glog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+
+	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/service/admission/apis/externalipranger"
 )
 
 const ExternalIPPluginName = "ExternalIPRanger"
@@ -16,8 +23,43 @@ const ExternalIPPluginName = "ExternalIPRanger"
 func RegisterExternalIP(plugins *admission.Plugins) {
 	plugins.Register("ExternalIPRanger",
 		func(config io.Reader) (admission.Interface, error) {
-			return NewExternalIPRanger(nil, nil, false), nil
+			pluginConfig, err := readConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			if pluginConfig == nil {
+				glog.Infof("Admission plugin %q is not configured so it will be disabled.", ExternalIPPluginName)
+				return nil, nil
+			}
+
+			// this needs to be moved upstream to be part of core config
+			reject, admit, err := ParseRejectAdmitCIDRRules(pluginConfig.ExternalIPNetworkCIDRs)
+			if err != nil {
+				// should have been caught with validation
+				return nil, err
+			}
+
+			return NewExternalIPRanger(reject, admit, pluginConfig.AllowIngressIP), nil
 		})
+}
+
+func readConfig(reader io.Reader) (*externalipranger.ExternalIPRangerAdmissionConfig, error) {
+	if reader == nil || reflect.ValueOf(reader).IsNil() {
+		return nil, nil
+	}
+	obj, err := configlatest.ReadYAML(reader)
+	if err != nil {
+		return nil, err
+	}
+	if obj == nil {
+		return nil, nil
+	}
+	config, ok := obj.(*externalipranger.ExternalIPRangerAdmissionConfig)
+	if !ok {
+		return nil, fmt.Errorf("unexpected config object: %#v", obj)
+	}
+	// No validation needed since config is just list of strings
+	return config, nil
 }
 
 type externalIPRanger struct {
