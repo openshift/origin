@@ -3,7 +3,6 @@ package router
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -14,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -52,20 +50,10 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		dc, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
-		if kapierrs.IsNotFound(err) {
-			g.Skip("no router installed on the cluster")
-			imagePrefix := os.Getenv("OS_IMAGE_PREFIX")
-			if len(imagePrefix) == 0 {
-				imagePrefix = "openshift/origin"
-			}
-			routerImage = imagePrefix + "-haproxy-router:latest"
-			return
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
-		routerImage = dc.Spec.Template.Spec.Containers[0].Image
+		routerImage, _ = exutil.FindImageFormatString(oc)
+		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 
-		_, err = oc.AdminKubeClient().Rbac().RoleBindings(ns).Create(&rbacv1.RoleBinding{
+		_, err := oc.AdminKubeClient().Rbac().RoleBindings(ns).Create(&rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "router",
 			},

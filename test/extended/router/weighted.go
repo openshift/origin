@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -27,11 +26,9 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	)
 
 	g.BeforeEach(func() {
-		imagePrefix := os.Getenv("OS_IMAGE_PREFIX")
-		if len(imagePrefix) == 0 {
-			imagePrefix = "openshift/origin"
-		}
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
+		routerImage, _ := exutil.FindImageFormatString(oc)
+		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
