@@ -958,14 +958,21 @@ func TestEgressCIDRAllocation(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	// Changing the EgressIPs of a namespace should drop the old allocation and create a new one
+	// Changing/Removing the EgressIPs of a namespace should drop the old allocation and create a new one
 	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
 		NetID:     46,
 		EgressIPs: []string{"172.17.0.202"}, // was 172.17.0.200
 	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     44,
+		EgressIPs: []string{}, // was 172.17.1.1
+	})
 	err = w.assertChanges(
 		"release 172.17.0.200 on 172.17.0.4",
 		"namespace 46 dropped",
+		"update egress CIDRs",
+		"release 172.17.1.1 on 172.17.0.3",
+		"namespace 44 normal",
 		"update egress CIDRs",
 	)
 	if err != nil {
@@ -973,15 +980,18 @@ func TestEgressCIDRAllocation(t *testing.T) {
 	}
 
 	allocation = eit.ReallocateEgressIPs()
-	for _, ip := range allocation["node-4"] {
-		if ip == "172.17.0.200" {
-			t.Fatalf("reallocation failed to drop unused egress IP 172.17.0.200: %#v", allocation)
+	for _, nodeAllocation := range allocation {
+		for _, ip := range nodeAllocation {
+			if ip == "172.17.1.1" || ip == "172.17.0.200" {
+				t.Fatalf("reallocation failed to drop unused egress IP %s: %#v", ip, allocation)
+			}
 		}
 	}
 	updateAllocations(eit, allocation)
 	err = w.assertChanges(
 		"claim 172.17.0.202 on 172.17.0.4 for namespace 46",
 		"namespace 46 via 172.17.0.202 on 172.17.0.4",
+		"update egress CIDRs",
 		"update egress CIDRs",
 	)
 	if err != nil {
