@@ -160,25 +160,25 @@ readonly -f os::start::internal::configure_master
 function os::start::internal::patch_master_config() {
 	local sudo=${USE_SUDO:+sudo}
 
-	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig.yaml"
-	oc ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig.yaml" --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
-	oc ex config patch - --patch="{\"admissionConfig\": {\"pluginConfig\": {\"openshift.io/ImagePolicy\": {\"configuration\": {\"apiVersion\": \"v1\", \"executionRules\": [{\"matchImageAnnotations\": [{\"key\": \"images.openshift.io/deny-execution\", \"value\": \"true\"}], \"name\": \"execution-denied\", \"onResources\": [{\"resource\": \"pods\"}, {\"resource\": \"builds\"}], \"reject\": true, \"skipOnResolutionFailure\": true }], \"kind\": \"ImagePolicyConfig\" }, \"location\": \"\"}}}}" | \
-	oc ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
-	oc ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls\", \"value\": [\"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"]}]" | \
-	oc ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
-	oc ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" | \
-	oc ex config patch - --patch="{\"auditConfig\": {\"enabled\": true}}" | \
-	oc ex config patch - --patch="{\"imagePolicyConfig\": {\"maxImagesBulkImportedPerRepository\": ${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-5}}}" > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
-	if [[ -n "${ALLOWED_REGISTRIES-}" ]]; then
-		oc ex config patch "${SERVER_CONFIG_DIR}/master/master-config.yaml" --patch="{\"imagePolicyConfig\":{\"allowedRegistriesForImport\":${ALLOWED_REGISTRIES}}}" > "${SERVER_CONFIG_DIR}/master/master-config.yaml.patch"
-		mv -f "${SERVER_CONFIG_DIR}/master/master-config.yaml.patch" "${SERVER_CONFIG_DIR}/master/master-config.yaml"
-	fi
-
 	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
 	export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 	CLUSTER_ADMIN_CONTEXT=$(oc config view --config="${ADMIN_KUBECONFIG}" --flatten -o template --template='{{index . "current-context"}}'); export CLUSTER_ADMIN_CONTEXT
 	${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
 	os::log::debug "To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
+
+	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig.yaml"
+	oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f "${SERVER_CONFIG_DIR}/master/master-config.orig.yaml" --patch="[{\"op\": "replace", \"path\": \"/etcdConfig/address\", \"value\": \"${API_HOST}:${ETCD_PORT}\"}]" | \
+	oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f - --patch="[{\"op\": \"add\", \"path\": \"/admissionConfig/pluginConfig\", \"value\": {\"openshift.io/ImagePolicy\": {\"configuration\": {\"apiVersion\": \"v1\", \"executionRules\": [{\"matchImageAnnotations\": [{\"key\": \"images.openshift.io/deny-execution\", \"value\": \"true\"}], \"name\": \"execution-denied\", \"onResources\": [{\"resource\": \"pods\"}, {\"resource\": \"builds\"}], \"reject\": true, \"skipOnResolutionFailure\": true }], \"kind\": \"ImagePolicyConfig\" }, \"location\": \"\"}}}]" | \
+	oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f - --patch="[{\"op\": \"replace\", \"path\": \"/etcdConfig/servingInfo/bindAddress\", \"value\": \"${API_HOST}:${ETCD_PORT}\"}]" | \
+	oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f - --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls\", \"value\": [\"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"]}]" | \
+	oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f - --patch="[{\"op\": \"replace\", \"path\": \"/etcdConfig/peerAddress\", \"value\": \"${API_HOST}:${ETCD_PEER_PORT}\"}]" | \
+	oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f - --patch="[{\"op\": \"replace\", \"path\": \"/etcdConfig/peerServingInfo/bindAddress\", \"value\": \"${API_HOST}:${ETCD_PEER_PORT}\"}]" | \
+	oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f - --patch="[{\"op\": \"replace\", \"path\": \"/auditConfig/enabled\", \"value\": true}]" | \
+	oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f - --patch="[{\"op\": \"replace\", \"path\": \"/imagePolicyConfig/maxImagesBulkImportedPerRepository\", \"value\": ${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-5}}]" > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	if [[ -n "${ALLOWED_REGISTRIES-}" ]]; then
+	    oc patch --config="${ADMIN_KUBECONFIG}" --local --type=json -o yaml -f "${SERVER_CONFIG_DIR}/master/master-config.yaml" --patch="[{\"op\": \"add\", \"path\": \"/imagePolicyConfig/allowedRegistriesForImport\", \"value\": ${ALLOWED_REGISTRIES}}]" > "${SERVER_CONFIG_DIR}/master/master-config.yaml.patch"
+		mv -f "${SERVER_CONFIG_DIR}/master/master-config.yaml.patch" "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	fi
 }
 readonly -f os::start::internal::patch_master_config
 

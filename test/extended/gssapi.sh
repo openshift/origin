@@ -44,8 +44,9 @@ realm="${host^^}"
 backend='https://openshift.default.svc.cluster.local:443'
 
 oauth_patch="$(sed "s/HOST_NAME/${host}/" "${test_data_location}/config/oauth_config.json")"
+final_oauth_patch="{"$(echo ${oauth_patch} | tail -n +3 | head -n -2 | sed s/\\n//g)"}"
 cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml"
-oc ex config patch "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml" --patch="${oauth_patch}" > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+oc patch -f "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml" --local --type=json -o yaml --patch="[{\"op\": \"replace\", \"path\": \"/oauthConfig/identityProviders\", \"value\": ${final_oauth_patch}}]" > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 os::start::server
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
