@@ -104,7 +104,7 @@ for test in "${tests[@]}"; do
 done
 
 os::log::debug "Metrics information logged to ${LOG_DIR}/metrics.log"
-oc get --raw /metrics --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"> "${LOG_DIR}/metrics.log"
+oc get --raw /metrics --kubeconfig="${MASTER_CONFIG_DIR}/admin.kubeconfig"> "${LOG_DIR}/metrics.log"
 
 if [[ -n "${failed:-}" ]]; then
     exit 1
