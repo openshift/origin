@@ -233,6 +233,7 @@ frontend fe_sni
       {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ else }} ca-file /etc/ssl/certs/ca-bundle.trust.crt {{ end }}
       {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CRL") }} crl-file {{.}} {{ end }}
     {{- end }}
+    {{- with .SessionTicketKeys }} tls-ticket-keys {{.}} {{ end }}
     {{- if isTrue (env "ROUTER_ENABLE_HTTP2") }} alpn h2,http/1.1{{ end }}
   mode http
 
@@ -305,6 +306,7 @@ frontend fe_no_sni
       {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ else }} ca-file /etc/ssl/certs/ca-bundle.trust.crt {{ end }}
       {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CRL") }} crl-file {{.}} {{ end }}
     {{- end }}
+    {{- with .SessionTicketKeys }} tls-ticket-keys {{.}} {{ end }}
   mode http
 
   # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)

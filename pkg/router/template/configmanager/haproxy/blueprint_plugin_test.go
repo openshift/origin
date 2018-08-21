@@ -24,7 +24,8 @@ func newFakeConfigManager() *fakeConfigManager {
 	}
 }
 
-func (cm *fakeConfigManager) Initialize(router templaterouter.RouterInterface, certPath string) {
+func (cm *fakeConfigManager) Initialize(router templaterouter.RouterInterface, certPath string) error {
+	return nil
 }
 
 func (cm *fakeConfigManager) AddBlueprint(route *routev1.Route) {
@@ -56,6 +57,10 @@ func (cm *fakeConfigManager) ReplaceRouteEndpoints(id string, oldEndpoints, newE
 }
 
 func (cm *fakeConfigManager) RemoveRouteEndpoints(id string, endpoints []templaterouter.Endpoint) error {
+	return nil
+}
+
+func (cm *fakeConfigManager) UpdateTLSKeys(id string, keys []string) error {
 	return nil
 }
 

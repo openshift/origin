@@ -28,8 +28,9 @@ type Client struct {
 	socketAddress string
 	timeout       int
 
-	backends []*Backend
-	maps     map[string]*HAProxyMap
+	backends     []*Backend
+	maps         map[string]*HAProxyMap
+	tlsKeyGroups []*TLSKeyGroup
 }
 
 // NewClient returns a client used to dynamically change the haproxy config.
@@ -44,6 +45,7 @@ func NewClient(socketName string, timeout int) *Client {
 		timeout:       timeout,
 		backends:      make([]*Backend, 0),
 		maps:          make(map[string]*HAProxyMap),
+		tlsKeyGroups:  make([]*TLSKeyGroup, 0),
 	}
 }
 
@@ -158,6 +160,19 @@ func (c *Client) FindMap(name string) (*HAProxyMap, error) {
 	}
 
 	return nil, fmt.Errorf("no map found for name: %s", name)
+}
+
+// TLSKeyGroups returns the list of configured haproxy TLS keys groups.
+func (c *Client) TLSKeyGroups() ([]*TLSKeyGroup, error) {
+	if len(c.tlsKeyGroups) == 0 {
+		if groupings, err := buildTLSKeyGroups(c); err != nil {
+			return nil, err
+		} else {
+			c.tlsKeyGroups = groupings
+		}
+	}
+
+	return c.tlsKeyGroups, nil
 }
 
 // runCommandWithRetries retries a haproxy command upto the retry limit

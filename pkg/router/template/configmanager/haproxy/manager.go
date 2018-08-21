@@ -56,6 +56,9 @@ const (
 	// control the pool namespace & service name to use.
 	blueprintRoutePoolNamespace   = blueprintRoutePoolNamePrefix
 	blueprintRoutePoolServiceName = blueprintRoutePoolNamePrefix + ".svc"
+
+	// tlsTicketKeySize is the size of each generated TLS Ticket key.
+	tlsTicketKeySize = 64
 )
 
 // endpointToDynamicServerMap is a map of endpoint to dynamic server names.
@@ -79,7 +82,7 @@ type routeBackendEntry struct {
 	// wildcard indicates if the route is a wildcard route.
 	wildcard bool
 
-	// BackendName is the name of the associated haproxy backend.
+	// backendName is the name of the associated haproxy backend.
 	backendName string
 
 	// mapAssociations is the associated set of haproxy maps and their
@@ -90,7 +93,7 @@ type routeBackendEntry struct {
 	// from the pre-configured blueprint route pool.
 	poolRouteBackendName string
 
-	// DynamicServerMap is a map of all the allocated dynamic servers.
+	// dynamicServerMap is a map of all the allocated dynamic servers.
 	dynamicServerMap endpointToDynamicServerMap
 }
 
@@ -173,11 +176,11 @@ func NewHAProxyConfigManager(options templaterouter.ConfigManagerOptions) *hapro
 }
 
 // Initialize initializes the haproxy config manager.
-func (cm *haproxyConfigManager) Initialize(router templaterouter.RouterInterface, certPath string) {
+func (cm *haproxyConfigManager) Initialize(router templaterouter.RouterInterface, certPath string) error {
 	certBytes := []byte{}
 	if len(certPath) > 0 {
 		if b, err := ioutil.ReadFile(certPath); err != nil {
-			glog.Errorf("Loading router default certificate from %s: %v", certPath, err)
+			return err
 		} else {
 			certBytes = b
 		}
@@ -196,6 +199,7 @@ func (cm *haproxyConfigManager) Initialize(router templaterouter.RouterInterface
 	}
 
 	glog.V(2).Infof("haproxy Config Manager router will flush out any dynamically configured changes within %s of each other", cm.commitInterval.String())
+	return nil
 }
 
 // AddBlueprint adds a new (or replaces an existing) route blueprint.
@@ -283,6 +287,7 @@ func (cm *haproxyConfigManager) RemoveBlueprint(route *routev1.Route) {
 // Register registers an id with an expected haproxy backend for a route.
 func (cm *haproxyConfigManager) Register(id string, route *routev1.Route) {
 	wildcard := cm.wildcardRoutesAllowed && (route.Spec.WildcardPolicy == routev1.WildcardPolicySubdomain)
+
 	entry := &routeBackendEntry{
 		id:               id,
 		termination:      routeTerminationType(route),
@@ -607,6 +612,41 @@ func (cm *haproxyConfigManager) RemoveRouteEndpoints(id string, endpoints []temp
 	return backend.Commit()
 }
 
+// UpdateTLSKeys updates the keys used with TLS session tickets for a specific
+// TLS key grouping.
+func (cm *haproxyConfigManager) UpdateTLSKeys(id string, keys []string) error {
+	glog.V(4).Infof("Updating TLS keys in group %s", id)
+	if cm.isReloading() {
+		return fmt.Errorf("Router reload in progress, cannot dynamically update TLS keys for %s", id)
+	}
+
+	cm.lock.Lock()
+	defer func() {
+		cm.lock.Unlock()
+		cm.scheduleRouterReload()
+	}()
+
+	glog.V(4).Infof("Getting TLS key groups ...")
+	groups, err := cm.client.TLSKeyGroups()
+	if err != nil {
+		return err
+	}
+
+	for _, g := range groups {
+		if g.Name() == id {
+			glog.V(4).Infof("Updating TLS keys in group %s", id)
+			if err := g.UpdateKeys(keys); err != nil {
+				return err
+			}
+
+			glog.V(4).Infof("Committing TLS key group %s", id)
+			g.Commit()
+		}
+	}
+
+	return nil
+}
+
 // Notify informs the config manager of any template router state changes.
 // We only care about the reload specific events.
 func (cm *haproxyConfigManager) Notify(event templaterouter.RouterEventType) {
@@ -694,7 +734,7 @@ func (cm *haproxyConfigManager) commitRouterConfig() {
 	cm.router.Commit()
 }
 
-// reloadInProgress indicates if a router reload is in progress.
+// isReloading indicates if a router reload is in progress.
 func (cm *haproxyConfigManager) isReloading() bool {
 	cm.lock.Lock()
 	defer cm.lock.Unlock()

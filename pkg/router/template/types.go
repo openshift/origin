@@ -181,7 +181,7 @@ type ConfigManagerOptions struct {
 // requirement for a ConfigManager "provider".
 type ConfigManager interface {
 	// Initialize initializes the config manager.
-	Initialize(router RouterInterface, certPath string)
+	Initialize(router RouterInterface, certPath string) error
 
 	// AddBlueprint adds a new (or replaces an existing) route blueprint.
 	AddBlueprint(route *routev1.Route)
@@ -204,6 +204,9 @@ type ConfigManager interface {
 
 	// RemoveRouteEndpoints removes a set of endpoints from a route.
 	RemoveRouteEndpoints(id string, endpoints []Endpoint) error
+
+	// UpdateTLSKeys updates the TLS keys for a specific TLS key group.
+	UpdateTLSKeys(id string, keys []string) error
 
 	// Notify notifies a configuration manager of a router event.
 	// Currently the only ones that are received are on reload* events,

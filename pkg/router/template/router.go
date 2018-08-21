@@ -2,8 +2,11 @@ package templaterouter
 
 import (
 	"crypto/md5"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -19,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	routev1 "github.com/openshift/api/route/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -42,6 +46,10 @@ const (
 	// '_' is not used as this could be part of the name in the future
 	// '/' is not safe to use in names of router config files
 	routeKeySeparator = ":"
+
+	// tlsSessionTicketKeySize is size of the generated key used with
+	// TLS session tickets.
+	tlsSessionTicketKeySize = 64
 )
 
 // templateRouter is a backend-agnostic router implementation
@@ -71,6 +79,9 @@ type templateRouter struct {
 	// certificate CA (/var/run/secrets/kubernetes.io/serviceaccount/serving_ca.crt) that the infrastructure uses to
 	// generate certificates for services by name.
 	defaultDestinationCAPath string
+	// ticketKeyRotateInterval specifies how often we rotate keys used with
+	// TLS session tickets.
+	ticketKeyRotateInterval time.Duration
 	// peerService provides a namespace/name to check against when receiving endpoint events in order
 	// to track the peers of this router.  This may be used to populate the set of peer ip addresses
 	// that a router can use for talking to other routers controlled by the same service.
@@ -101,6 +112,9 @@ type templateRouter struct {
 	metricReload prometheus.Summary
 	// metricWriteConfig tracks writing config
 	metricWriteConfig prometheus.Summary
+	// sessionTicketKeysPath is the path to a file containing keys used
+	// with TLS session tickets.
+	sessionTicketKeysPath string
 	// dynamicConfigManager configures route changes dynamically on the
 	// underlying router.
 	dynamicConfigManager ConfigManager
@@ -120,6 +134,7 @@ type templateRouterCfg struct {
 	defaultCertificatePath   string
 	defaultCertificateDir    string
 	defaultDestinationCAPath string
+	ticketKeyRotateInterval  time.Duration
 	statsUser                string
 	statsPassword            string
 	statsPort                int
@@ -143,6 +158,8 @@ type templateData struct {
 	DefaultCertificate string
 	// full path and file name to the default destination certificate
 	DefaultDestinationCA string
+	// full path and file name to the keys used with TLS session tickets.
+	SessionTicketKeys string
 	// peers
 	PeerEndpoints []Endpoint
 	//username to expose stats with (if the template supports it)
@@ -202,6 +219,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		defaultCertificatePath:   cfg.defaultCertificatePath,
 		defaultCertificateDir:    cfg.defaultCertificateDir,
 		defaultDestinationCAPath: cfg.defaultDestinationCAPath,
+		ticketKeyRotateInterval:  cfg.ticketKeyRotateInterval,
 		statsUser:                cfg.statsUser,
 		statsPassword:            cfg.statsPassword,
 		statsPort:                cfg.statsPort,
@@ -210,6 +228,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		peerEndpoints:            []Endpoint{},
 		bindPortsAfterSync:       cfg.bindPortsAfterSync,
 		dynamicConfigManager:     cfg.dynamicConfigManager,
+		sessionTicketKeysPath:    generateSessionTicketKeysPath(),
 
 		metricReload:      metricsReload,
 		metricWriteConfig: metricWriteConfig,
@@ -222,13 +241,26 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 	if err := router.writeDefaultCert(); err != nil {
 		return nil, err
 	}
+	keys, err := generateSessionTicketKeys(3)
+	if err != nil {
+		return nil, err
+	}
+	if err := router.writeSessionTicketKeys(keys); err != nil {
+		return nil, err
+	}
+
+	// Trigger automatic rotation of TLS session ticket keys.
+	router.autoRotateSessionTicketKeys()
+
 	glog.V(4).Infof("Reading persisted state")
 	if err := router.readState(); err != nil {
 		return nil, err
 	}
 	if router.dynamicConfigManager != nil {
 		glog.Infof("Initializing dynamic config manager ... ")
-		router.dynamicConfigManager.Initialize(router, router.defaultCertificatePath)
+		if err := router.dynamicConfigManager.Initialize(router, router.defaultCertificatePath); err != nil {
+			return nil, err
+		}
 	}
 	glog.V(4).Infof("Committing state")
 	// Bypass the rate limiter to ensure the first sync will be
@@ -303,6 +335,72 @@ func (r *templateRouter) writeDefaultCert() error {
 	}
 	r.defaultCertificatePath = outPath
 	return nil
+}
+
+// writeSessionTicketKeys writes the keys used with TLS session tickets.
+func (r *templateRouter) writeSessionTicketKeys(keys []string) error {
+	data := []byte(strings.Join(keys, "\n") + "\n")
+	err := ioutil.WriteFile(r.sessionTicketKeysPath, data, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// rotateSessionTicketKeys rotates the keys used with TLS session tickets.
+func (r *templateRouter) rotateSessionTicketKeys() error {
+	glog.V(4).Infof("Rotating TLS session ticket keys ...")
+	keys, err := generateSessionTicketKeys(3)
+	if err != nil {
+		return err
+	}
+
+	commitChanges := true
+	if r.dynamicConfigManager != nil {
+		if err := r.dynamicConfigManager.UpdateTLSKeys(r.sessionTicketKeysPath, keys); err != nil {
+			glog.V(4).Infof("Router will reload as there were errors dynamically updating TLS session ticket keys: %v", err)
+		} else {
+			glog.V(4).Infof("Dynamically updated TLS session ticket keys")
+			commitChanges = false
+		}
+	}
+
+	if err := r.writeSessionTicketKeys(keys); err != nil {
+		return err
+	}
+
+	r.lock.Lock()
+	r.stateChanged = true
+	r.dynamicallyConfigured = !commitChanges
+	r.lock.Unlock()
+
+	if commitChanges {
+		r.Commit()
+	}
+
+	return nil
+}
+
+// autoRotateSessionTicketKeys automatically rotates the TLS session ticket keys
+// in the background (inside a goroutine).
+func (r *templateRouter) autoRotateSessionTicketKeys() {
+	glog.V(4).Infof("TLS session ticket keys will be rotated every %s", r.ticketKeyRotateInterval.String())
+
+	go func(stopChan <-chan struct{}) {
+		ticker := time.NewTicker(r.ticketKeyRotateInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := r.rotateSessionTicketKeys(); err != nil {
+					glog.Errorf("rotating TLS session ticket keys: %v", err)
+				}
+			case <-stopChan:
+				return
+			}
+		}
+	}(wait.NeverStop)
 }
 
 func (r *templateRouter) readState() error {
@@ -445,6 +543,7 @@ func (r *templateRouter) writeConfig() error {
 			ServiceUnits:         r.serviceUnits,
 			DefaultCertificate:   r.defaultCertificatePath,
 			DefaultDestinationCA: r.defaultDestinationCAPath,
+			SessionTicketKeys:    r.sessionTicketKeysPath,
 			PeerEndpoints:        r.peerEndpoints,
 			StatsUser:            r.statsUser,
 			StatsPassword:        r.statsPassword,
@@ -1216,4 +1315,42 @@ func configsAreEqual(config1, config2 *ServiceAliasConfig) bool {
 		config1.VerifyServiceHostname == config2.VerifyServiceHostname &&
 		reflect.DeepEqual(config1.Annotations, config2.Annotations) &&
 		reflect.DeepEqual(config1.ServiceUnits, config2.ServiceUnits)
+}
+
+// generateSessionTicketKeysPath generates a file name to hold the keys used
+// with TLS session tickets.
+func generateSessionTicketKeysPath() string {
+	name := "tls-ticket-keys-1"
+	if fpath, err := ioutil.TempFile("", name); err == nil {
+		defer os.Remove(fpath.Name())
+		return fmt.Sprintf("%s.txt", fpath.Name())
+	}
+
+	return fmt.Sprintf("/tmp/%s.txt", name)
+}
+
+// generateSessionTicketKeys generates `n` keys used with TLS session tickets.
+func generateSessionTicketKeys(n int) ([]string, error) {
+	generateKey := func() ([]byte, error) {
+		k := make([]byte, tlsSessionTicketKeySize)
+		if _, err := io.ReadFull(rand.Reader, k); err != nil {
+			return []byte{}, err
+		}
+
+		encodedBytes := []byte(base64.StdEncoding.EncodeToString(k))
+
+		// The base64 encoded string will be bigger in size, so trim it.
+		return encodedBytes[:tlsSessionTicketKeySize], nil
+	}
+
+	keys := make([]string, 0)
+	for i := 0; i < n; i++ {
+		k, err := generateKey()
+		if err != nil {
+			return []string{}, err
+		}
+		keys = append(keys, string(k))
+	}
+
+	return keys, nil
 }
