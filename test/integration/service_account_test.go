@@ -236,7 +236,6 @@ func getServiceAccountPullSecret(client kclientset.Interface, ns, name string) (
 
 func TestEnforcingServiceAccount(t *testing.T) {
 	masterConfig, err := testserver.DefaultMasterOptions()
-	masterConfig.ServiceAccountConfig.LimitSecretReferences = false
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -383,6 +383,10 @@ func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, fldPath
 		}
 	}
 
+	if config.LimitSecretReferences {
+		validationResults.AddErrors(field.NotSupported(fldPath.Child("limitSecretReferences"), config.LimitSecretReferences, []string{"false"}))
+	}
+
 	if len(config.PrivateKeyFile) > 0 {
 		privateKeyFilePath := fldPath.Child("privateKeyFile")
 		if fileErrs := common.ValidateFile(config.PrivateKeyFile, privateKeyFilePath); len(fileErrs) > 0 {

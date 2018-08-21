@@ -31,9 +31,6 @@ func TestNodeAuthorizer(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	// we care about pods getting rejected for referencing secrets at all, not because the pod's service account doesn't reference them
-	masterConfig.ServiceAccountConfig.LimitSecretReferences = false
-
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatal(err)
