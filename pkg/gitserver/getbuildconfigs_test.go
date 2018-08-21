@@ -7,12 +7,12 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 )
 
-func bc(name string, annotation string) *buildapi.BuildConfig {
-	obj := &buildapi.BuildConfig{}
+func bc(name string, annotation string) *buildv1.BuildConfig {
+	obj := &buildv1.BuildConfig{}
 	obj.Name = name
 	obj.Namespace = "test"
 	obj.Annotations = map[string]string{}
