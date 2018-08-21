@@ -1,17 +1,17 @@
 package graphview
 
 import (
-	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
+	"github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubeedges "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	"github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
+	kubenodes "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 )
 
 type DaemonSet struct {
-	DaemonSet *kubegraph.DaemonSetNode
+	DaemonSet *kubenodes.DaemonSetNode
 
-	OwnedPods   []*kubegraph.PodNode
-	CreatedPods []*kubegraph.PodNode
+	OwnedPods   []*kubenodes.PodNode
+	CreatedPods []*kubenodes.PodNode
 
 	Images []ImagePipeline
 }
@@ -21,12 +21,12 @@ func AllDaemonSets(g osgraph.Graph, excludeNodeIDs IntSet) ([]DaemonSet, IntSet)
 	covered := IntSet{}
 	views := []DaemonSet{}
 
-	for _, uncastNode := range g.NodesByKind(kubegraph.DaemonSetNodeKind) {
+	for _, uncastNode := range g.NodesByKind(kubenodes.DaemonSetNodeKind) {
 		if excludeNodeIDs.Has(uncastNode.ID()) {
 			continue
 		}
 
-		view, covers := NewDaemonSet(g, uncastNode.(*kubegraph.DaemonSetNode))
+		view, covers := NewDaemonSet(g, uncastNode.(*kubenodes.DaemonSetNode))
 		covered.Insert(covers.List()...)
 		views = append(views, view)
 	}
@@ -35,27 +35,27 @@ func AllDaemonSets(g osgraph.Graph, excludeNodeIDs IntSet) ([]DaemonSet, IntSet)
 }
 
 // NewDaemonSet returns the DaemonSet and a set of all the NodeIDs covered by the DaemonSet
-func NewDaemonSet(g osgraph.Graph, node *kubegraph.DaemonSetNode) (DaemonSet, IntSet) {
+func NewDaemonSet(g osgraph.Graph, node *kubenodes.DaemonSetNode) (DaemonSet, IntSet) {
 	covered := IntSet{}
 	covered.Insert(node.ID())
 
 	view := DaemonSet{}
 	view.DaemonSet = node
 
-	for _, uncastPodNode := range g.PredecessorNodesByEdgeKind(node, kubeedges.ManagedByControllerEdgeKind) {
-		podNode := uncastPodNode.(*kubegraph.PodNode)
+	for _, uncastPodNode := range g.PredecessorNodesByEdgeKind(node, appsgraph.ManagedByControllerEdgeKind) {
+		podNode := uncastPodNode.(*kubenodes.PodNode)
 		covered.Insert(podNode.ID())
 		view.OwnedPods = append(view.OwnedPods, podNode)
 	}
 
-	for _, istNode := range g.PredecessorNodesByEdgeKind(node, kubeedges.TriggersDeploymentEdgeKind) {
+	for _, istNode := range g.PredecessorNodesByEdgeKind(node, kubegraph.TriggersDeploymentEdgeKind) {
 		imagePipeline, covers := NewImagePipelineFromImageTagLocation(g, istNode, istNode.(ImageTagLocation))
 		covered.Insert(covers.List()...)
 		view.Images = append(view.Images, imagePipeline)
 	}
 
 	// for image that we use, create an image pipeline and add it to the list
-	for _, tagNode := range g.PredecessorNodesByEdgeKind(node, appsedges.UsedInDeploymentEdgeKind) {
+	for _, tagNode := range g.PredecessorNodesByEdgeKind(node, appsgraph.UsedInDeploymentEdgeKind) {
 		imagePipeline, covers := NewImagePipelineFromImageTagLocation(g, tagNode, tagNode.(ImageTagLocation))
 
 		covered.Insert(covers.List()...)

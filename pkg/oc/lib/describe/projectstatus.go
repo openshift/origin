@@ -8,33 +8,35 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	kappsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
+	kappsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
+	autoscalingv1client "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapps "k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kappsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/apps/internalversion"
-	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kapisextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
 	deployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	projectv1 "github.com/openshift/api/project/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	oapi "github.com/openshift/origin/pkg/api"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	loginerrors "github.com/openshift/origin/pkg/oc/lib/errors"
 	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	appsanalysis "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/analysis"
@@ -53,10 +55,6 @@ import (
 	routeanalysis "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/analysis"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
 	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	"github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/origin/pkg/util/parallel"
 )
@@ -65,15 +63,15 @@ const ForbiddenListWarning = "Forbidden"
 
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
-	KubeClient kclientset.Interface
+	KubeClient kubernetes.Interface
 	RESTMapper meta.RESTMapper
 
 	// OpenShift clients
-	ProjectClient projectclient.ProjectInterface
-	BuildClient   buildclient.BuildInterface
-	ImageClient   imageclient.ImageInterface
-	AppsClient    appsclient.AppsV1Interface
-	RouteClient   routeclient.RouteInterface
+	ProjectClient projectv1client.ProjectV1Interface
+	BuildClient   buildv1client.BuildV1Interface
+	ImageClient   imagev1client.ImageV1Interface
+	AppsClient    appsv1client.AppsV1Interface
+	RouteClient   routev1client.RouteV1Interface
 	Server        string
 	Suggest       bool
 
@@ -101,9 +99,9 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&podLoader{namespace: namespace, lister: d.KubeClient.Core()},
 		&statefulSetLoader{namespace: namespace, lister: d.KubeClient.Apps()},
 		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.KubeClient.Autoscaling()},
-		&deploymentLoader{namespace: namespace, lister: d.KubeClient.Extensions()},
-		&replicasetLoader{namespace: namespace, lister: d.KubeClient.Extensions()},
-		&daemonsetLoader{namespace: namespace, lister: d.KubeClient.Extensions()},
+		&deploymentLoader{namespace: namespace, lister: d.KubeClient.Apps()},
+		&replicasetLoader{namespace: namespace, lister: d.KubeClient.Apps()},
+		&daemonsetLoader{namespace: namespace, lister: d.KubeClient.Apps()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.BuildClient},
@@ -195,7 +193,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	}
 
 	allNamespaces := namespace == metav1.NamespaceAll
-	var project *projectapi.Project
+	var project *projectv1.Project
 	if !allNamespaces {
 		p, err := d.ProjectClient.Projects().Get(namespace, metav1.GetOptions{})
 		if err != nil {
@@ -208,7 +206,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			if !kapierrors.IsNotFound(err) {
 				return "", err
 			}
-			p = &projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+			p = &projectv1.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 		}
 		project = p
 		f = namespacedFormatter{currentNamespace: namespace}
@@ -700,7 +698,7 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 	}
 }
 
-func describeProjectAndServer(f formatter, project *projectapi.Project, server string) string {
+func describeProjectAndServer(f formatter, project *projectv1.Project, server string) string {
 	projectName := project.Name
 	displayName := project.Annotations[oapi.OpenShiftDisplayName]
 	if len(displayName) == 0 {
@@ -957,12 +955,12 @@ func (e exposedRoutes) Less(i, j int) bool {
 	}
 }
 
-func extractRouteInfo(route *routeapi.Route) (requested bool, other []string, errors []string) {
+func extractRouteInfo(route *routev1.Route) (requested bool, other []string, errors []string) {
 	reasons := sets.NewString()
 	for _, ingress := range route.Status.Ingress {
 		exact := route.Spec.Host == ingress.Host
-		switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
-		case kapi.ConditionFalse:
+		switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routev1.RouteAdmitted); status {
+		case corev1.ConditionFalse:
 			reasons.Insert(condition.Reason)
 		default:
 			if exact {
@@ -975,7 +973,7 @@ func extractRouteInfo(route *routeapi.Route) (requested bool, other []string, er
 	return requested, other, reasons.List()
 }
 
-func describeRouteExposed(host string, route *routeapi.Route, errors bool) string {
+func describeRouteExposed(host string, route *routev1.Route, errors bool) string {
 	var trailer string
 	if errors {
 		trailer = " (!)"
@@ -984,16 +982,16 @@ func describeRouteExposed(host string, route *routeapi.Route, errors bool) strin
 	switch {
 	case route.Spec.TLS == nil:
 		prefix = fmt.Sprintf("http://%s", host)
-	case route.Spec.TLS.Termination == routeapi.TLSTerminationPassthrough:
+	case route.Spec.TLS.Termination == routev1.TLSTerminationPassthrough:
 		prefix = fmt.Sprintf("https://%s (passthrough)", host)
-	case route.Spec.TLS.Termination == routeapi.TLSTerminationReencrypt:
+	case route.Spec.TLS.Termination == routev1.TLSTerminationReencrypt:
 		prefix = fmt.Sprintf("https://%s (reencrypt)", host)
-	case route.Spec.TLS.Termination != routeapi.TLSTerminationEdge:
+	case route.Spec.TLS.Termination != routev1.TLSTerminationEdge:
 		// future proof against other types of TLS termination being added
 		prefix = fmt.Sprintf("https://%s", host)
-	case route.Spec.TLS.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyRedirect:
+	case route.Spec.TLS.InsecureEdgeTerminationPolicy == routev1.InsecureEdgeTerminationPolicyRedirect:
 		prefix = fmt.Sprintf("https://%s (redirects)", host)
-	case route.Spec.TLS.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyAllow:
+	case route.Spec.TLS.InsecureEdgeTerminationPolicy == routev1.InsecureEdgeTerminationPolicyAllow:
 		prefix = fmt.Sprintf("https://%s (and http)", host)
 	default:
 		prefix = fmt.Sprintf("https://%s", host)
@@ -1034,7 +1032,7 @@ func describeRouteInServiceGroup(f formatter, routeNode *routegraph.RouteNode) [
 	return lines
 }
 
-func describeDeploymentConfigTrigger(dc *appsapi.DeploymentConfig) string {
+func describeDeploymentConfigTrigger(dc *appsv1.DeploymentConfig) string {
 	if len(dc.Spec.Triggers) == 0 {
 		return "(manual)"
 	}
@@ -1196,7 +1194,7 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 	return out
 }
 
-func describeBuildPhase(build *buildapi.Build, t *metav1.Time, parentName string, pushTargetResolved bool) string {
+func describeBuildPhase(build *buildv1.Build, t *metav1.Time, parentName string, pushTargetResolved bool) string {
 	imageStreamFailure := ""
 	// if we're using an image stream and that image stream is the internal registry and that registry doesn't exist
 	if (build.Spec.Output.To != nil) && !pushTargetResolved {
@@ -1228,11 +1226,11 @@ func describeBuildPhase(build *buildapi.Build, t *metav1.Time, parentName string
 		revision = fmt.Sprintf(" - %s", revision)
 	}
 	switch build.Status.Phase {
-	case buildapi.BuildPhaseComplete:
+	case buildv1.BuildPhaseComplete:
 		return fmt.Sprintf("%s succeeded %s ago%s%s", buildIdentification, time, revision, imageStreamFailure)
-	case buildapi.BuildPhaseError:
+	case buildv1.BuildPhaseError:
 		return fmt.Sprintf("%s stopped with an error %s ago%s%s", buildIdentification, time, revision, imageStreamFailure)
-	case buildapi.BuildPhaseFailed:
+	case buildv1.BuildPhaseFailed:
 		return fmt.Sprintf("%s failed %s ago%s%s", buildIdentification, time, revision, imageStreamFailure)
 	default:
 		status := strings.ToLower(string(build.Status.Phase))
@@ -1240,7 +1238,7 @@ func describeBuildPhase(build *buildapi.Build, t *metav1.Time, parentName string
 	}
 }
 
-func describeSourceRevision(rev *buildapi.SourceRevision) string {
+func describeSourceRevision(rev *buildv1.SourceRevision) string {
 	if rev == nil {
 		return ""
 	}
@@ -1263,7 +1261,7 @@ func describeSourceRevision(rev *buildapi.SourceRevision) string {
 	}
 }
 
-func describeSourceControlUser(user buildapi.SourceControlUser) string {
+func describeSourceControlUser(user buildv1.SourceControlUser) string {
 	if len(user.Name) == 0 {
 		return user.Email
 	}
@@ -1273,7 +1271,7 @@ func describeSourceControlUser(user buildapi.SourceControlUser) string {
 	return fmt.Sprintf("%s <%s>", user.Name, user.Email)
 }
 
-func buildTimestamp(build *buildapi.Build) metav1.Time {
+func buildTimestamp(build *buildv1.Build) metav1.Time {
 	if build == nil {
 		return metav1.Time{}
 	}
@@ -1286,7 +1284,7 @@ func buildTimestamp(build *buildapi.Build) metav1.Time {
 	return build.CreationTimestamp
 }
 
-func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
+func describeSourceInPipeline(source *buildv1.BuildSource) (string, bool) {
 	switch {
 	case source.Git != nil:
 		if len(source.Git.Ref) == 0 {
@@ -1322,13 +1320,13 @@ func describeDeployments(f formatter, dNode *kubegraph.DeploymentNode, activeDep
 	return out
 }
 
-func describeDeploymentStatus(rs *kapisext.ReplicaSet, revision int64, first bool, restartCount int32) string {
+func describeDeploymentStatus(rs *kappsv1.ReplicaSet, revision int64, first bool, restartCount int32) string {
 	timeAt := strings.ToLower(formatRelativeTime(rs.CreationTimestamp.Time))
 	replicaSetRevision, _ := deployutil.Revision(rs)
 	if replicaSetRevision == revision {
-		return fmt.Sprintf("deployment #%d running for %s%s", replicaSetRevision, timeAt, describePodSummaryInline(rs.Status.ReadyReplicas, rs.Status.Replicas, rs.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf("deployment #%d running for %s%s", replicaSetRevision, timeAt, describePodSummaryInline(rs.Status.ReadyReplicas, rs.Status.Replicas, *rs.Spec.Replicas, false, restartCount))
 	} else {
-		return fmt.Sprintf("deployment #%d deployed %s ago%s", replicaSetRevision, timeAt, describePodSummaryInline(rs.Status.ReadyReplicas, rs.Status.Replicas, rs.Spec.Replicas, first, restartCount))
+		return fmt.Sprintf("deployment #%d deployed %s ago%s", replicaSetRevision, timeAt, describePodSummaryInline(rs.Status.ReadyReplicas, rs.Status.Replicas, *rs.Spec.Replicas, first, restartCount))
 	}
 }
 
@@ -1371,7 +1369,7 @@ func describeDeploymentConfigDeployments(f formatter, dcNode *appsgraph.Deployme
 	return out
 }
 
-func describeDeploymentConfigDeploymentStatus(rc *kapi.ReplicationController, first, test bool, restartCount int32) string {
+func describeDeploymentConfigDeploymentStatus(rc *corev1.ReplicationController, first, test bool, restartCount int32) string {
 	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
 	status := appsutil.DeploymentStatusFor(rc)
 	version := appsutil.DeploymentVersionFor(rc)
@@ -1387,49 +1385,49 @@ func describeDeploymentConfigDeploymentStatus(rc *kapi.ReplicationController, fi
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, *rc.Spec.Replicas, false, restartCount))
 	case appsutil.DeploymentStatusComplete:
 		// TODO: pod status output
 		if test {
 			return fmt.Sprintf("test deployment #%d deployed %s ago", version, timeAt)
 		}
-		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, first, restartCount))
+		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, *rc.Spec.Replicas, first, restartCount))
 	case appsutil.DeploymentStatusRunning:
 		format := "deployment #%d running%s for %s%s"
 		if test {
 			format = "test deployment #%d running%s for %s%s"
 		}
-		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, *rc.Spec.Replicas, false, restartCount))
 	default:
-		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, *rc.Spec.Replicas, false, restartCount))
 	}
 }
 
-func describeDeploymentConfigRolloutStatus(d *kapisext.Deployment) string {
+func describeDeploymentConfigRolloutStatus(d *kappsv1.Deployment) string {
 	timeAt := strings.ToLower(formatRelativeTime(d.CreationTimestamp.Time))
-	return fmt.Sprintf("created %s ago%s", timeAt, describePodSummaryInline(int32(d.Status.Replicas), int32(d.Status.Replicas), int32(d.Spec.Replicas), false, 0))
+	return fmt.Sprintf("created %s ago%s", timeAt, describePodSummaryInline(int32(d.Status.Replicas), int32(d.Status.Replicas), *d.Spec.Replicas, false, 0))
 }
 
-func describeStatefulSetStatus(p *kapps.StatefulSet) string {
+func describeStatefulSetStatus(p *kappsv1.StatefulSet) string {
 	timeAt := strings.ToLower(formatRelativeTime(p.CreationTimestamp.Time))
 	// TODO: Replace first argument in describePodSummaryInline with ReadyReplicas once that's a thing for pet sets.
-	return fmt.Sprintf("created %s ago%s", timeAt, describePodSummaryInline(int32(p.Status.Replicas), int32(p.Status.Replicas), int32(p.Spec.Replicas), false, 0))
+	return fmt.Sprintf("created %s ago%s", timeAt, describePodSummaryInline(int32(p.Status.Replicas), int32(p.Status.Replicas), *p.Spec.Replicas, false, 0))
 }
 
-func describeDaemonSetStatus(ds *kapisext.DaemonSet) string {
+func describeDaemonSetStatus(ds *kappsv1.DaemonSet) string {
 	timeAt := strings.ToLower(formatRelativeTime(ds.CreationTimestamp.Time))
 	replicaSetRevision := ds.Generation
 	return fmt.Sprintf("generation #%d running for %s%s", replicaSetRevision, timeAt, describePodSummaryInline(ds.Status.NumberReady, ds.Status.NumberAvailable, ds.Status.DesiredNumberScheduled, false, 0))
 }
 
-func describeRCStatus(rc *kapi.ReplicationController) string {
+func describeRCStatus(rc *corev1.ReplicationController) string {
 	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
-	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, 0))
+	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, *rc.Spec.Replicas, false, 0))
 }
 
-func describeRSStatus(rs *kapisext.ReplicaSet) string {
+func describeRSStatus(rs *kappsv1.ReplicaSet) string {
 	timeAt := strings.ToLower(formatRelativeTime(rs.CreationTimestamp.Time))
-	return fmt.Sprintf("rs/%s created %s ago%s", rs.Name, timeAt, describePodSummaryInline(rs.Status.ReadyReplicas, rs.Status.Replicas, rs.Spec.Replicas, false, 0))
+	return fmt.Sprintf("rs/%s created %s ago%s", rs.Name, timeAt, describePodSummaryInline(rs.Status.ReadyReplicas, rs.Status.Replicas, *rs.Spec.Replicas, false, 0))
 }
 
 func describePodSummaryInline(ready, actual, requested int32, includeEmpty bool, restartCount int32) string {
@@ -1468,13 +1466,13 @@ func describePodSummary(ready, requested int32, includeEmpty bool, restartCount 
 	return fmt.Sprintf("%d/%d pods", ready, requested) + restartWarn
 }
 
-func describeDeploymentConfigTriggers(config *appsapi.DeploymentConfig) (string, bool) {
+func describeDeploymentConfigTriggers(config *appsv1.DeploymentConfig) (string, bool) {
 	hasConfig, hasImage := false, false
 	for _, t := range config.Spec.Triggers {
 		switch t.Type {
-		case appsapi.DeploymentTriggerOnConfigChange:
+		case appsv1.DeploymentTriggerOnConfigChange:
 			hasConfig = true
-		case appsapi.DeploymentTriggerOnImageChange:
+		case appsv1.DeploymentTriggerOnImageChange:
 			hasImage = true
 		}
 	}
@@ -1500,7 +1498,7 @@ func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup, expo
 		return append([]string{fmt.Sprintf("%s (%s)", exposed[0], f.ResourceName(svc.Service))}, exposed[1:]...)
 	case len(exposed) == 1:
 		return []string{fmt.Sprintf("%s (%s)", exposed[0], f.ResourceName(svc.Service))}
-	case spec.Type == kapi.ServiceTypeNodePort:
+	case spec.Type == corev1.ServiceTypeNodePort:
 		return []string{fmt.Sprintf("%s (all nodes)%s", f.ResourceName(svc.Service), port)}
 	case ip == "None":
 		return []string{fmt.Sprintf("%s (headless)%s", f.ResourceName(svc.Service), port)}
@@ -1513,9 +1511,9 @@ func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup, expo
 	}
 }
 
-func portOrNodePort(spec kapi.ServiceSpec, port kapi.ServicePort) string {
+func portOrNodePort(spec corev1.ServiceSpec, port corev1.ServicePort) string {
 	switch {
-	case spec.Type != kapi.ServiceTypeNodePort:
+	case spec.Type != corev1.ServiceTypeNodePort:
 		return strconv.Itoa(int(port.Port))
 	case port.NodePort == 0:
 		return "<initializing>"
@@ -1524,14 +1522,14 @@ func portOrNodePort(spec kapi.ServiceSpec, port kapi.ServicePort) string {
 	}
 }
 
-func describeServicePorts(spec kapi.ServiceSpec) string {
+func describeServicePorts(spec corev1.ServiceSpec) string {
 	switch len(spec.Ports) {
 	case 0:
 		return " no ports"
 
 	case 1:
 		port := portOrNodePort(spec, spec.Ports[0])
-		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || port == spec.Ports[0].TargetPort.String() {
+		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == corev1.ClusterIPNone || port == spec.Ports[0].TargetPort.String() {
 			return fmt.Sprintf(":%s", port)
 		}
 		return fmt.Sprintf(":%s -> %s", port, spec.Ports[0].TargetPort.String())
@@ -1540,7 +1538,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 		pairs := []string{}
 		for _, port := range spec.Ports {
 			externalPort := portOrNodePort(spec, port)
-			if port.TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone {
+			if port.TargetPort.String() == "0" || spec.ClusterIP == corev1.ClusterIPNone {
 				pairs = append(pairs, externalPort)
 				continue
 			}
@@ -1558,7 +1556,7 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 	monopods := []graphview.Pod{}
 
 	for _, pod := range pods {
-		actualPod, ok := pod.Pod.Object().(*kapi.Pod)
+		actualPod, ok := pod.Pod.Object().(*corev1.Pod)
 		if !ok {
 			continue
 		}
@@ -1568,7 +1566,7 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 		}
 		_, isDeployerPod := meta.GetLabels()[appsutil.DeployerPodForDeploymentLabel]
 		_, isBuilderPod := meta.GetAnnotations()[buildapi.BuildAnnotation]
-		isFinished := actualPod.Status.Phase == kapi.PodSucceeded || actualPod.Status.Phase == kapi.PodFailed
+		isFinished := actualPod.Status.Phase == corev1.PodSucceeded || actualPod.Status.Phase == corev1.PodFailed
 		if isDeployerPod || isBuilderPod || isFinished {
 			continue
 		}
@@ -1588,8 +1586,8 @@ type GraphLoader interface {
 
 type rcLoader struct {
 	namespace string
-	lister    kcoreclient.ReplicationControllersGetter
-	items     []kapi.ReplicationController
+	lister    corev1client.ReplicationControllersGetter
+	items     []corev1.ReplicationController
 }
 
 func (l *rcLoader) Load() error {
@@ -1612,8 +1610,8 @@ func (l *rcLoader) AddToGraph(g osgraph.Graph) error {
 
 type serviceLoader struct {
 	namespace string
-	lister    kcoreclient.ServicesGetter
-	items     []kapi.Service
+	lister    corev1client.ServicesGetter
+	items     []corev1.Service
 }
 
 func (l *serviceLoader) Load() error {
@@ -1636,8 +1634,8 @@ func (l *serviceLoader) AddToGraph(g osgraph.Graph) error {
 
 type podLoader struct {
 	namespace string
-	lister    kcoreclient.PodsGetter
-	items     []kapi.Pod
+	lister    corev1client.PodsGetter
+	items     []corev1.Pod
 }
 
 func (l *podLoader) Load() error {
@@ -1660,8 +1658,8 @@ func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 
 type statefulSetLoader struct {
 	namespace string
-	lister    kappsclient.StatefulSetsGetter
-	items     []kapps.StatefulSet
+	lister    kappsv1client.StatefulSetsGetter
+	items     []kappsv1.StatefulSet
 }
 
 func (l *statefulSetLoader) Load() error {
@@ -1684,8 +1682,8 @@ func (l *statefulSetLoader) AddToGraph(g osgraph.Graph) error {
 
 type horizontalPodAutoscalerLoader struct {
 	namespace string
-	lister    kautoscalingclient.HorizontalPodAutoscalersGetter
-	items     []autoscaling.HorizontalPodAutoscaler
+	lister    autoscalingv1client.HorizontalPodAutoscalersGetter
+	items     []autoscalingv1.HorizontalPodAutoscaler
 }
 
 func (l *horizontalPodAutoscalerLoader) Load() error {
@@ -1708,8 +1706,8 @@ func (l *horizontalPodAutoscalerLoader) AddToGraph(g osgraph.Graph) error {
 
 type deploymentLoader struct {
 	namespace string
-	lister    kapisextclient.DeploymentsGetter
-	items     []kapisext.Deployment
+	lister    kappsv1client.DeploymentsGetter
+	items     []kappsv1.Deployment
 }
 
 func (l *deploymentLoader) Load() error {
@@ -1732,8 +1730,8 @@ func (l *deploymentLoader) AddToGraph(g osgraph.Graph) error {
 
 type daemonsetLoader struct {
 	namespace string
-	lister    kapisextclient.DaemonSetsGetter
-	items     []kapisext.DaemonSet
+	lister    kappsv1client.DaemonSetsGetter
+	items     []kappsv1.DaemonSet
 }
 
 func (l *daemonsetLoader) Load() error {
@@ -1756,8 +1754,8 @@ func (l *daemonsetLoader) AddToGraph(g osgraph.Graph) error {
 
 type replicasetLoader struct {
 	namespace string
-	lister    kapisextclient.ReplicaSetsGetter
-	items     []kapisext.ReplicaSet
+	lister    kappsv1client.ReplicaSetsGetter
+	items     []kappsv1.ReplicaSet
 }
 
 func (l *replicasetLoader) Load() error {
@@ -1780,8 +1778,8 @@ func (l *replicasetLoader) AddToGraph(g osgraph.Graph) error {
 
 type serviceAccountLoader struct {
 	namespace string
-	lister    kcoreclient.ServiceAccountsGetter
-	items     []kapi.ServiceAccount
+	lister    corev1client.ServiceAccountsGetter
+	items     []corev1.ServiceAccount
 }
 
 func (l *serviceAccountLoader) Load() error {
@@ -1804,8 +1802,8 @@ func (l *serviceAccountLoader) AddToGraph(g osgraph.Graph) error {
 
 type secretLoader struct {
 	namespace string
-	lister    kcoreclient.SecretsGetter
-	items     []kapi.Secret
+	lister    corev1client.SecretsGetter
+	items     []corev1.Secret
 }
 
 func (l *secretLoader) Load() error {
@@ -1828,8 +1826,8 @@ func (l *secretLoader) AddToGraph(g osgraph.Graph) error {
 
 type pvcLoader struct {
 	namespace string
-	lister    kcoreclient.PersistentVolumeClaimsGetter
-	items     []kapi.PersistentVolumeClaim
+	lister    corev1client.PersistentVolumeClaimsGetter
+	items     []corev1.PersistentVolumeClaim
 }
 
 func (l *pvcLoader) Load() error {
@@ -1852,8 +1850,8 @@ func (l *pvcLoader) AddToGraph(g osgraph.Graph) error {
 
 type isLoader struct {
 	namespace string
-	lister    imageclient.ImageStreamsGetter
-	items     []imageapi.ImageStream
+	lister    imagev1client.ImageStreamsGetter
+	items     []imagev1.ImageStream
 }
 
 func (l *isLoader) Load() error {
@@ -1877,7 +1875,7 @@ func (l *isLoader) AddToGraph(g osgraph.Graph) error {
 
 type dcLoader struct {
 	namespace string
-	lister    appsclient.DeploymentConfigsGetter
+	lister    appsv1client.DeploymentConfigsGetter
 	items     []appsv1.DeploymentConfig
 }
 
@@ -1893,7 +1891,7 @@ func (l *dcLoader) Load() error {
 
 func (l *dcLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
-		internalConfig := &appsapi.DeploymentConfig{}
+		internalConfig := &appsv1.DeploymentConfig{}
 		if err := legacyscheme.Scheme.Convert(&l.items[i], internalConfig, nil); err != nil {
 			return err
 		}
@@ -1905,8 +1903,8 @@ func (l *dcLoader) AddToGraph(g osgraph.Graph) error {
 
 type bcLoader struct {
 	namespace string
-	lister    buildclient.BuildConfigsGetter
-	items     []buildapi.BuildConfig
+	lister    buildv1client.BuildConfigsGetter
+	items     []buildv1.BuildConfig
 }
 
 func (l *bcLoader) Load() error {
@@ -1929,8 +1927,8 @@ func (l *bcLoader) AddToGraph(g osgraph.Graph) error {
 
 type buildLoader struct {
 	namespace string
-	lister    buildclient.BuildsGetter
-	items     []buildapi.Build
+	lister    buildv1client.BuildsGetter
+	items     []buildv1.Build
 }
 
 func (l *buildLoader) Load() error {
@@ -1953,8 +1951,8 @@ func (l *buildLoader) AddToGraph(g osgraph.Graph) error {
 
 type routeLoader struct {
 	namespace string
-	lister    routeclient.RoutesGetter
-	items     []routeapi.Route
+	lister    routev1client.RoutesGetter
+	items     []routev1.Route
 }
 
 func (l *routeLoader) Load() error {

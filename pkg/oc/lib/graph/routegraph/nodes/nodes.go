@@ -3,12 +3,12 @@ package nodes
 import (
 	"github.com/gonum/graph"
 
+	routev1 "github.com/openshift/api/route/v1"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // EnsureRouteNode adds a graph node for the specific route if it does not exist
-func EnsureRouteNode(g osgraph.MutableUniqueGraph, route *routeapi.Route) *RouteNode {
+func EnsureRouteNode(g osgraph.MutableUniqueGraph, route *routev1.Route) *RouteNode {
 	return osgraph.EnsureUnique(
 		g,
 		RouteNodeName(route),

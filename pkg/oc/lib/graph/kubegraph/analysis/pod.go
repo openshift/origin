@@ -6,8 +6,8 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
@@ -33,7 +33,7 @@ func FindRestartingPods(g osgraph.Graph, f osgraph.Namer, logsCommandName, secur
 
 	for _, uncastPodNode := range g.NodesByKind(kubegraph.PodNodeKind) {
 		podNode := uncastPodNode.(*kubegraph.PodNode)
-		pod, ok := podNode.Object().(*kapi.Pod)
+		pod, ok := podNode.Object().(*corev1.Pod)
 		if !ok {
 			continue
 		}
@@ -102,7 +102,7 @@ func FindRestartingPods(g osgraph.Graph, f osgraph.Namer, logsCommandName, secur
 	return markers
 }
 
-func containerIsNonRoot(pod *kapi.Pod, container string) bool {
+func containerIsNonRoot(pod *corev1.Pod, container string) bool {
 	for _, c := range pod.Spec.Containers {
 		if c.Name != container || c.SecurityContext == nil {
 			continue
@@ -116,11 +116,11 @@ func containerIsNonRoot(pod *kapi.Pod, container string) bool {
 	return false
 }
 
-func containerCrashLoopBackOff(status kapi.ContainerStatus) bool {
+func containerCrashLoopBackOff(status corev1.ContainerStatus) bool {
 	return status.State.Waiting != nil && status.State.Waiting.Reason == "CrashLoopBackOff"
 }
 
-func ContainerRestartedRecently(status kapi.ContainerStatus, now metav1.Time) bool {
+func ContainerRestartedRecently(status corev1.ContainerStatus, now metav1.Time) bool {
 	if status.RestartCount == 0 {
 		return false
 	}
@@ -130,6 +130,6 @@ func ContainerRestartedRecently(status kapi.ContainerStatus, now metav1.Time) bo
 	return false
 }
 
-func containerRestartedFrequently(status kapi.ContainerStatus) bool {
+func containerRestartedFrequently(status corev1.ContainerStatus) bool {
 	return status.RestartCount > RestartThreshold
 }

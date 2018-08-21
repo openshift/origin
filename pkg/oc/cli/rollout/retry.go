@@ -214,7 +214,7 @@ func (o RetryOptions) Run() error {
 		patches := set.CalculatePatchesExternal([]*resource.Info{{Object: rc, Mapping: mapping}}, func(info *resource.Info) (bool, error) {
 			rc.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 			delete(rc.Annotations, appsapi.DeploymentStatusReasonAnnotation)
-			delete(rc.Annotations, appsapi.DeploymentCancelledAnnotation)
+			delete(rc.Annotations, appsutil.DeploymentCancelledAnnotation)
 			return true, nil
 		})
 

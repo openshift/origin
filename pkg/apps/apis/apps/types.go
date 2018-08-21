@@ -27,9 +27,6 @@ const (
 
 // These constants represent keys used for correlating objects related to deployments.
 const (
-	// DeploymentConfigAnnotation is an annotation name used to correlate a deployment with the
-	// DeploymentConfig on which the deployment is based.
-	DeploymentConfigAnnotation = "openshift.io/deployment-config.name"
 	// DeploymentAnnotation is an annotation on a deployer Pod. The annotation value is the name
 	// of the deployment (a ReplicationController) on which the deployer Pod acts.
 	DeploymentAnnotation = "openshift.io/deployment.name"
@@ -43,23 +40,9 @@ const (
 	// DeploymentEncodedConfigAnnotation is an annotation name used to retrieve specific encoded
 	// DeploymentConfig on which a given deployment is based.
 	DeploymentEncodedConfigAnnotation = "openshift.io/encoded-deployment-config"
-	// DeploymentVersionAnnotation is an annotation on a deployment (a ReplicationController). The
-	// annotation value is the LatestVersion value of the DeploymentConfig which was the basis for
-	// the deployment.
-	DeploymentVersionAnnotation = "openshift.io/deployment-config.latest-version"
 	// DeploymentStatusReasonAnnotation represents the reason for deployment being in a given state
 	// Used for specifying the reason for cancellation or failure of a deployment
 	DeploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
-	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
-	// The annotation value does not matter and its mere presence indicates cancellation
-	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
-)
-
-// These constants represent values used in deployment annotations.
-const (
-	// DeploymentCancelledAnnotationValue represents the value for the DeploymentCancelledAnnotation
-	// annotation that signifies that the deployment should be cancelled
-	DeploymentCancelledAnnotationValue = "true"
 )
 
 // DeploymentStatus describes the possible states a deployment can be in.

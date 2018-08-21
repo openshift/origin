@@ -19,6 +19,7 @@ import (
 	gonum "github.com/gonum/graph"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -27,19 +28,19 @@ import (
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	imagev1 "github.com/openshift/api/image/v1"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 	oserrors "github.com/openshift/origin/pkg/util/errors"
@@ -128,12 +129,12 @@ type PruneImagesOptions struct {
 	IgnoreInvalidRefs   bool
 
 	ClientConfig       *restclient.Config
-	AppsClient         appsclient.DeploymentConfigsGetter
-	BuildClient        buildclient.BuildInterface
-	ImageClient        imageclient.ImageInterface
-	ImageClientFactory func() (imageclient.ImageInterface, error)
+	AppsClient         appsv1client.AppsV1Interface
+	BuildClient        buildv1client.BuildV1Interface
+	ImageClient        imagev1client.ImageV1Interface
+	ImageClientFactory func() (imagev1client.ImageV1Interface, error)
 	DiscoveryClient    discovery.DiscoveryInterface
-	KubeClient         kclientset.Interface
+	KubeClient         kubernetes.Interface
 	Timeout            time.Duration
 	Out                io.Writer
 	ErrOut             io.Writer
@@ -208,23 +209,38 @@ func (o *PruneImagesOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 	o.Out = out
 	o.ErrOut = os.Stderr
 
-	clientConfig, err := f.ToRESTConfig()
+	var err error
+	o.ClientConfig, err = f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	o.ClientConfig = clientConfig
-	appsClient, buildClient, imageClient, kubeClient, err := getClients(f)
+	if len(o.ClientConfig.BearerToken) == 0 {
+		return errNoToken
+	}
+	o.KubeClient, err = kubernetes.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
-	o.AppsClient = appsClient
-	o.BuildClient = buildClient
-	o.ImageClient = imageClient
-	o.ImageClientFactory = getImageClientFactory(f)
-	o.KubeClient = kubeClient
-	o.DiscoveryClient = kubeClient.Discovery()
+	o.AppsClient, err = appsv1client.NewForConfig(o.ClientConfig)
+	if err != nil {
+		return err
+	}
+	o.BuildClient, err = buildv1client.NewForConfig(o.ClientConfig)
+	if err != nil {
+		return err
+	}
+	o.ImageClient, err = imagev1client.NewForConfig(o.ClientConfig)
+	if err != nil {
+		return err
+	}
+	o.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(o.ClientConfig)
+	if err != nil {
+		return err
+	}
 
-	o.Timeout = clientConfig.Timeout
+	o.ImageClientFactory = getImageClientFactory(f)
+
+	o.Timeout = o.ClientConfig.Timeout
 	if o.Timeout == 0 {
 		o.Timeout = time.Duration(10 * time.Second)
 	}
@@ -281,7 +297,7 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	allDSs, err := o.KubeClient.Extensions().DaemonSets(o.Namespace).List(metav1.ListOptions{})
+	allDSs, err := o.KubeClient.Apps().DaemonSets(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		// TODO: remove in future (3.9) release
 		if !kerrors.IsForbidden(err) {
@@ -290,7 +306,7 @@ func (o PruneImagesOptions) Run() error {
 		fmt.Fprintf(o.ErrOut, "Failed to list daemonsets: %v\n - * Make sure to update clusterRoleBindings.\n", err)
 	}
 
-	allDeployments, err := o.KubeClient.Extensions().Deployments(o.Namespace).List(metav1.ListOptions{})
+	allDeployments, err := o.KubeClient.Apps().Deployments(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		// TODO: remove in future (3.9) release
 		if !kerrors.IsForbidden(err) {
@@ -304,7 +320,7 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	allRSs, err := o.KubeClient.Extensions().ReplicaSets(o.Namespace).List(metav1.ListOptions{})
+	allRSs, err := o.KubeClient.Apps().ReplicaSets(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		// TODO: remove in future (3.9) release
 		if !kerrors.IsForbidden(err) {
@@ -317,12 +333,12 @@ func (o PruneImagesOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	limitRangesMap := make(map[string][]*kapi.LimitRange)
+	limitRangesMap := make(map[string][]*corev1.LimitRange)
 	for i := range limitRangesList.Items {
 		limit := limitRangesList.Items[i]
 		limits, ok := limitRangesMap[limit.Namespace]
 		if !ok {
-			limits = []*kapi.LimitRange{}
+			limits = []*corev1.LimitRange{}
 		}
 		limits = append(limits, &limit)
 		limitRangesMap[limit.Namespace] = limits
@@ -597,11 +613,11 @@ type describingImageStreamDeleter struct {
 
 var _ imageprune.ImageStreamDeleter = &describingImageStreamDeleter{}
 
-func (p *describingImageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (p *describingImageStreamDeleter) GetImageStream(stream *imagev1.ImageStream) (*imagev1.ImageStream, error) {
 	return stream, nil
 }
 
-func (p *describingImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (p *describingImageStreamDeleter) UpdateImageStream(stream *imagev1.ImageStream) (*imagev1.ImageStream, error) {
 	if p.delegate == nil {
 		return stream, nil
 	}
@@ -614,7 +630,7 @@ func (p *describingImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageS
 	return updatedStream, err
 }
 
-func (p *describingImageStreamDeleter) NotifyImageStreamPrune(stream *imageapi.ImageStream, updatedTags []string, deletedTags []string) {
+func (p *describingImageStreamDeleter) NotifyImageStreamPrune(stream *imagev1.ImageStream, updatedTags []string, deletedTags []string) {
 	if len(updatedTags) > 0 {
 		fmt.Fprintf(p.w, "Updating istags %s/%s: %s\n", stream.Namespace, stream.Name, strings.Join(updatedTags, ", "))
 	}
@@ -634,7 +650,7 @@ type describingImageDeleter struct {
 
 var _ imageprune.ImageDeleter = &describingImageDeleter{}
 
-func (p *describingImageDeleter) DeleteImage(image *imageapi.Image) error {
+func (p *describingImageDeleter) DeleteImage(image *imagev1.Image) error {
 	fmt.Fprintf(p.w, "Deleting image %s\n", image.Name)
 
 	if p.delegate == nil {
@@ -728,44 +744,14 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 	return err
 }
 
-// getClients returns a OpenShift client and Kube client.
-func getClients(f kcmdutil.Factory) (appsclient.DeploymentConfigsGetter, buildclient.BuildInterface, imageclient.ImageInterface, kclientset.Interface, error) {
-	clientConfig, err := f.ToRESTConfig()
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	if len(clientConfig.BearerToken) == 0 {
-		return nil, nil, nil, nil, errNoToken
-	}
-
-	kubeClient, err := f.ClientSet()
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	appsClient, err := appsclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	buildClient, err := buildclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	imageClient, err := imageclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	return appsClient, buildClient, imageClient, kubeClient, err
-}
-
-func getImageClientFactory(f kcmdutil.Factory) func() (imageclient.ImageInterface, error) {
-	return func() (imageclient.ImageInterface, error) {
+func getImageClientFactory(f kcmdutil.Factory) func() (imagev1client.ImageV1Interface, error) {
+	return func() (imagev1client.ImageV1Interface, error) {
 		clientConfig, err := f.ToRESTConfig()
 		if err != nil {
 			return nil, err
 		}
 
-		return imageclient.NewForConfig(clientConfig)
+		return imagev1client.NewForConfig(clientConfig)
 	}
 }
 

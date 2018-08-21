@@ -22,9 +22,6 @@ import (
 	buildclientset "github.com/openshift/client-go/build/clientset/versioned"
 	buildtv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclientinternal "github.com/openshift/origin/pkg/build/client"
 	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -213,12 +210,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			}
 		}
 
-		internalBuildStatus := &buildapi.BuildStatus{}
-		if err := buildapiv1.Convert_v1_BuildStatus_To_build_BuildStatus(&build.Status, internalBuildStatus, nil); err != nil {
-			return err
-		}
-
-		if stateMatch && !buildinternalhelpers.IsTerminalPhase(internalBuildStatus.Phase) {
+		if stateMatch && !buildutil.IsTerminalPhase(build.Status.Phase) {
 			builds = append(builds, build)
 		}
 	}

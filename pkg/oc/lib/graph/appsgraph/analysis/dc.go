@@ -5,10 +5,10 @@ import (
 
 	"github.com/gonum/graph"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
@@ -72,7 +72,7 @@ func ictMarker(g osgraph.Graph, f osgraph.Namer, dcNode *appsgraph.DeploymentCon
 
 			for _, bcNode := range buildedges.BuildConfigsForTag(g, istNode) {
 				// Avoid warning for the dc image trigger in case there is a build in flight.
-				if latestBuild := buildedges.GetLatestBuild(g, bcNode); latestBuild != nil && !buildinternalhelpers.IsBuildComplete(
+				if latestBuild := buildedges.GetLatestBuild(g, bcNode); latestBuild != nil && !buildutil.IsBuildComplete(
 					latestBuild.
 						Build) {
 					return nil
@@ -169,7 +169,7 @@ func pvcMarker(g osgraph.Graph, f osgraph.Namer, dcNode *appsgraph.DeploymentCon
 		isBlockedRolling := false
 		rollingParams := dc.Spec.Strategy.RollingParams
 		if rollingParams != nil {
-			maxSurge, _, _ := kdeplutil.ResolveFenceposts(&rollingParams.MaxSurge, &rollingParams.MaxUnavailable, dc.Spec.Replicas)
+			maxSurge, _, _ := kdeplutil.ResolveFenceposts(rollingParams.MaxSurge, rollingParams.MaxUnavailable, dc.Spec.Replicas)
 			isBlockedRolling = maxSurge > 0
 		}
 		// If the claim is not RWO or deployments will not have more than a pod running at any time
@@ -195,7 +195,7 @@ func pvcMarker(g osgraph.Graph, f osgraph.Namer, dcNode *appsgraph.DeploymentCon
 
 func hasRWOAccess(pvcNode *kubegraph.PersistentVolumeClaimNode) bool {
 	for _, accessMode := range pvcNode.PersistentVolumeClaim.Spec.AccessModes {
-		if accessMode == kapi.ReadWriteOnce {
+		if accessMode == corev1.ReadWriteOnce {
 			return true
 		}
 	}

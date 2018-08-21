@@ -4,7 +4,6 @@ package util
 type DeploymentStatus string
 
 const (
-
 	// TODO: Should move to openshift/api
 	// DeploymentStatusNew means the deployment has been accepted but not yet acted upon.
 	DeploymentStatusNew DeploymentStatus = "New"
@@ -101,4 +100,17 @@ const (
 	deploymentEncodedConfigAnnotation = "openshift.io/encoded-deployment-config"
 
 	deploymentVersionAnnotation = "openshift.io/deployment-config.latest-version"
+
+	// DeploymentVersionAnnotation is an annotation on a deployment (a ReplicationController). The
+	// annotation value is the LatestVersion value of the DeploymentConfig which was the basis for
+	// the deployment.
+	DeploymentVersionAnnotation = "openshift.io/deployment-config.latest-version"
+
+	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
+	// The annotation value does not matter and its mere presence indicates cancellation
+	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
+
+	// DeploymentCancelledAnnotationValue represents the value for the DeploymentCancelledAnnotation
+	// annotation that signifies that the deployment should be cancelled
+	DeploymentCancelledAnnotationValue = "true"
 )

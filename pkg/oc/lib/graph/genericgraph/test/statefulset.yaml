@@ -1,6 +1,6 @@
 apiVersion: v1
 items:
-- apiVersion: apps/v1beta1
+- apiVersion: apps/v1
   kind: StatefulSet
   metadata:
     creationTimestamp: 2016-07-21T15:53:09Z

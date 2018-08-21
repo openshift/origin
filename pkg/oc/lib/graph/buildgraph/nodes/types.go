@@ -4,25 +4,25 @@ import (
 	"fmt"
 	"reflect"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
 
 var (
-	BuildConfigNodeKind = reflect.TypeOf(buildapi.BuildConfig{}).Name()
-	BuildNodeKind       = reflect.TypeOf(buildapi.Build{}).Name()
+	BuildConfigNodeKind = reflect.TypeOf(buildv1.BuildConfig{}).Name()
+	BuildNodeKind       = reflect.TypeOf(buildv1.Build{}).Name()
 
 	// non-api types
-	SourceRepositoryNodeKind = reflect.TypeOf(buildapi.BuildSource{}).Name()
+	SourceRepositoryNodeKind = reflect.TypeOf(buildv1.BuildSource{}).Name()
 )
 
-func BuildConfigNodeName(o *buildapi.BuildConfig) osgraph.UniqueName {
+func BuildConfigNodeName(o *buildv1.BuildConfig) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(BuildConfigNodeKind, o)
 }
 
 type BuildConfigNode struct {
 	osgraph.Node
-	BuildConfig *buildapi.BuildConfig
+	BuildConfig *buildv1.BuildConfig
 }
 
 func (n BuildConfigNode) Object() interface{} {
@@ -41,7 +41,7 @@ func (*BuildConfigNode) Kind() string {
 	return BuildConfigNodeKind
 }
 
-func SourceRepositoryNodeName(source buildapi.BuildSource) osgraph.UniqueName {
+func SourceRepositoryNodeName(source buildv1.BuildSource) osgraph.UniqueName {
 	switch {
 	case source.Git != nil:
 		sourceType, uri, ref := "git", source.Git.URI, source.Git.Ref
@@ -53,7 +53,7 @@ func SourceRepositoryNodeName(source buildapi.BuildSource) osgraph.UniqueName {
 
 type SourceRepositoryNode struct {
 	osgraph.Node
-	Source buildapi.BuildSource
+	Source buildv1.BuildSource
 }
 
 func (n SourceRepositoryNode) String() string {
@@ -64,13 +64,13 @@ func (SourceRepositoryNode) Kind() string {
 	return SourceRepositoryNodeKind
 }
 
-func BuildNodeName(o *buildapi.Build) osgraph.UniqueName {
+func BuildNodeName(o *buildv1.Build) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(BuildNodeKind, o)
 }
 
 type BuildNode struct {
 	osgraph.Node
-	Build *buildapi.Build
+	Build *buildv1.Build
 }
 
 func (n BuildNode) Object() interface{} {

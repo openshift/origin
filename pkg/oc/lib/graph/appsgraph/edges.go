@@ -4,15 +4,13 @@ import (
 	"github.com/golang/glog"
 	"github.com/gonum/graph"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
-	kubeedges "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 )
 
@@ -25,6 +23,8 @@ const (
 	DeploymentEdgeKind = "Deployment"
 	// VolumeClaimEdgeKind goes from DeploymentConfigs to PersistentVolumeClaims indicating a request for persistent storage.
 	VolumeClaimEdgeKind = "VolumeClaim"
+	// ManagedByControllerEdgeKind goes from Pod to controller when the Pod satisfies a controller's label selector
+	ManagedByControllerEdgeKind = "ManagedByController"
 )
 
 // AddTriggerDeploymentConfigsEdges creates edges that point to named Docker image repositories for each image used in the deployment.
@@ -34,10 +34,10 @@ func AddTriggerDeploymentConfigsEdges(g osgraph.MutableUniqueGraph, node *appsgr
 		return node
 	}
 
-	appsapi.EachTemplateImage(
+	EachTemplateImage(
 		&podTemplate.Spec,
-		appsapi.DeploymentConfigHasTrigger(node.DeploymentConfig),
-		func(image appsapi.TemplateImage, err error) {
+		DeploymentConfigHasTrigger(node.DeploymentConfig),
+		func(image TemplateImage, err error) {
 			if err != nil {
 				return
 			}
@@ -76,7 +76,7 @@ func AddDeploymentConfigsDeploymentEdges(g osgraph.MutableUniqueGraph, node *app
 			}
 			if BelongsToDeploymentConfig(node.DeploymentConfig, rcNode.ReplicationController) {
 				g.AddEdge(node, rcNode, DeploymentEdgeKind)
-				g.AddEdge(rcNode, node, kubeedges.ManagedByControllerEdgeKind)
+				g.AddEdge(rcNode, node, ManagedByControllerEdgeKind)
 			}
 		}
 	}
@@ -104,7 +104,7 @@ func AddVolumeClaimEdges(g osgraph.Graph, dcNode *appsgraph.DeploymentConfigNode
 			continue
 		}
 
-		syntheticClaim := &kapi.PersistentVolumeClaim{
+		syntheticClaim := &corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      source.PersistentVolumeClaim.ClaimName,
 				Namespace: dcNode.DeploymentConfig.Namespace,

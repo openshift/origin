@@ -28,10 +28,7 @@ func init() {
 
 // The docker metadata must be cast to a version
 func Convert_image_Image_To_v1_Image(in *newer.Image, out *v1.Image, s conversion.Scope) error {
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
-
+	out.ObjectMeta = in.ObjectMeta
 	out.DockerImageReference = in.DockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
 	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
@@ -91,10 +88,7 @@ func Convert_image_Image_To_v1_Image(in *newer.Image, out *v1.Image, s conversio
 }
 
 func Convert_v1_Image_To_image_Image(in *v1.Image, out *newer.Image, s conversion.Scope) error {
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
-
+	out.ObjectMeta = in.ObjectMeta
 	out.DockerImageReference = in.DockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
 	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType

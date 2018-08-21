@@ -10,9 +10,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	fakebuildclient "github.com/openshift/client-go/build/clientset/versioned/fake"
+	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1/fake"
 	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 )
@@ -203,16 +203,16 @@ func TestChainDescriber(t *testing.T) {
 			objs := []runtime.Object{}
 			if len(test.path) > 0 {
 				var err error
-				objs, err = readObjectsFromPath(test.path, test.defaultNamespace, legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
+				objs, err = readObjectsFromPath(test.path, test.defaultNamespace)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
 			ist := imagegraph.MakeImageStreamTagObjectMeta(test.defaultNamespace, test.name, test.tag)
 
-			fakeClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
+			fakeClient := &fakebuildv1client.FakeBuildV1{Fake: &(fakebuildclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...).Fake)}
 
-			desc, err := NewChainDescriber(fakeClient.Build(), test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)
+			desc, err := NewChainDescriber(fakeClient, test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)
 			t.Logf("%s: output:\n%s\n\n", test.testName, desc)
 			if err != test.expectedErr {
 				t.Fatalf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, err)

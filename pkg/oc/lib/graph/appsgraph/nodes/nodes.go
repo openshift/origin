@@ -3,13 +3,13 @@ package nodes
 import (
 	"github.com/gonum/graph"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 )
 
 // EnsureDeploymentConfigNode adds the provided deployment config to the graph if it does not exist
-func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *appsapi.DeploymentConfig) *DeploymentConfigNode {
+func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *appsv1.DeploymentConfig) *DeploymentConfigNode {
 	dcName := DeploymentConfigNodeName(dc)
 	dcNode := osgraph.EnsureUnique(
 		g,
@@ -27,7 +27,7 @@ func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *appsapi.Deploy
 	return dcNode
 }
 
-func FindOrCreateSyntheticDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *appsapi.DeploymentConfig) *DeploymentConfigNode {
+func FindOrCreateSyntheticDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *appsv1.DeploymentConfig) *DeploymentConfigNode {
 	return osgraph.EnsureUnique(
 		g,
 		DeploymentConfigNodeName(dc),
