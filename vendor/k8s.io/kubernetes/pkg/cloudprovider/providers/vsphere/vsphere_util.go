@@ -618,7 +618,7 @@ func GetUUIDFromProviderID(providerID string) string {
 }
 
 func IsUUIDSupportedNode(node *v1.Node) (bool, error) {
-	newVersion, err := version.ParseSemantic("v1.9.4")
+	newVersion, err := version.ParseSemantic("v1.9.1")
 	if err != nil {
 		glog.Errorf("Failed to determine whether node %+v is old with error %v", node, err)
 		return false, err
