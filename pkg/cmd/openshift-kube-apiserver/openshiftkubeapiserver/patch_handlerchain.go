@@ -21,20 +21,30 @@ const (
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
-func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig, stopCh <-chan struct{}) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
-	webconsoleProxyHandler, err := newWebConsoleProxy(genericConfig, kubeInformers, kubeAPIServerConfig)
+func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+	extraPostStartHooks := map[string]genericapiserver.PostStartHookFunc{}
+
+	webconsoleProxyHandler, err := newWebConsoleProxy(kubeInformers, kubeAPIServerConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	oauthServerHandler, extraPostStartHooks, err := NewOAuthServerHandler(genericConfig, kubeAPIServerConfig)
+	oauthServerHandler, newPostStartHooks, err := NewOAuthServerHandler(genericConfig, kubeAPIServerConfig)
 	if err != nil {
 		return nil, nil, err
+	}
+	for name, fn := range newPostStartHooks {
+		extraPostStartHooks[name] = fn
 	}
 
 	return func(apiHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
 			// Machinery that let's use discover the Web Console Public URL
 			accessor := newWebConsolePublicURLAccessor(genericConfig.LoopbackClientConfig)
-			go accessor.Run(stopCh)
+			// the webconsole is proxied through the API server.  This starts a small controller that keeps track of where to proxy.
+			// TODO stop proxying the webconsole. Should happen in a future release.
+			extraPostStartHooks["openshift.io-webconsolepublicurl"] = func(context genericapiserver.PostStartHookContext) error {
+				go accessor.Run(context.StopCh)
+				return nil
+			}
 
 			// these are after the kube handler
 			handler := versionSkewFilter(apiHandler, kubeAPIServerConfig)
@@ -60,7 +70,7 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers inf
 		nil
 }
 
-func newWebConsoleProxy(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig) (http.Handler, error) {
+func newWebConsoleProxy(kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig) (http.Handler, error) {
 	caBundle, err := ioutil.ReadFile(kubeAPIServerConfig.ControllerConfig.ServiceServingCert.Signer.CertFile)
 	if err != nil {
 		return nil, err

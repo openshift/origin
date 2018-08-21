@@ -50,10 +50,10 @@ func init() {
 func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
 	kubeapiserver.RegisterAllAdmissionPlugins(plugins)
 	genericapiserver.RegisterAllAdmissionPlugins(plugins)
-	registerOpenshiftAdmissionPlugins(plugins)
+	RegisterOpenshiftAdmissionPlugins(plugins)
 }
 
-func registerOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
+func RegisterOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	authorizationrestrictusers.Register(plugins)
 	buildjenkinsbootstrapper.Register(plugins)
 	buildsecretinjector.Register(plugins)

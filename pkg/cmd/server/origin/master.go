@@ -176,7 +176,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options, stopCh)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options)
 	if err != nil {
 		return err
 	}
@@ -225,9 +225,6 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	}
 
 	// add post-start hooks
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", openshiftapiserver.EnsureOpenShiftInfraNamespace)
-
 	for name, fn := range c.additionalPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}
@@ -247,7 +244,7 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options, stopCh)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options)
 	if err != nil {
 		return err
 	}
@@ -284,7 +281,6 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	}
 
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", openshiftapiserver.EnsureOpenShiftInfraNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("openshift.io-startinformers", func(context apiserver.PostStartHookContext) error {
 		c.InformerStart(context.StopCh)
 		return nil

@@ -26,6 +26,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
@@ -578,6 +579,16 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	AddOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	// register our poststarthooks
+	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles",
+		func(context genericapiserver.PostStartHookContext) error {
+			newContext := genericapiserver.PostStartHookContext{
+				LoopbackClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
+				StopCh:               context.StopCh,
+			}
+			return bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy()(newContext)
+
+		})
+	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", c.EnsureOpenShiftInfraNamespace)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("security.openshift.io-bootstrapscc", c.bootstrapSCC)
@@ -712,13 +723,13 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 }
 
 // EnsureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
-func EnsureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
+func (c *completedConfig) EnsureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
 	namespaceName := bootstrappolicy.DefaultOpenShiftInfraNamespace
 
 	var coreClient coreclient.CoreInterface
 	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
 		var err error
-		coreClient, err = coreclient.NewForConfig(context.LoopbackClientConfig)
+		coreClient, err = coreclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("unable to initialize client: %v", err))
 			return false, nil
@@ -743,4 +754,16 @@ func EnsureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext
 	}
 
 	return nil
+}
+
+// bootstrapData casts our policy data to the rbacrest helper that can
+// materialize the policy.
+func bootstrapData(data *bootstrappolicy.PolicyData) *rbacrest.PolicyData {
+	return &rbacrest.PolicyData{
+		ClusterRoles:            data.ClusterRoles,
+		ClusterRoleBindings:     data.ClusterRoleBindings,
+		Roles:                   data.Roles,
+		RoleBindings:            data.RoleBindings,
+		ClusterRolesToAggregate: data.ClusterRolesToAggregate,
+	}
 }

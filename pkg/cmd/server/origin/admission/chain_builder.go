@@ -61,8 +61,8 @@ var (
 		"ResourceQuota",
 	}
 
-	// kubeAdmissionPlugins gives the in-order default admission chain for kube resources.
-	kubeAdmissionPlugins = []string{
+	// KubeAdmissionPlugins gives the in-order default admission chain for kube resources.
+	KubeAdmissionPlugins = []string{
 		"AlwaysAdmit",
 		"NamespaceAutoProvision",
 		"NamespaceExists",
@@ -112,7 +112,7 @@ var (
 	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
 	// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
 	// the order specified in the openshift and kube chains must match the order here.
-	combinedAdmissionControlPlugins = []string{
+	CombinedAdmissionControlPlugins = []string{
 		"AlwaysAdmit",
 		"NamespaceAutoProvision",
 		"NamespaceExists",
@@ -187,7 +187,7 @@ func NewAdmissionChains(
 		for pluginName, config := range options.AdmissionConfig.PluginConfig {
 			pluginConfig[pluginName] = *config
 		}
-		upstreamAdmissionConfig, err := convertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
+		upstreamAdmissionConfig, err := ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +208,7 @@ func NewAdmissionChains(
 		admissionPluginConfigFilename = tempFile.Name()
 	}
 
-	admissionPluginNames := combinedAdmissionControlPlugins
+	admissionPluginNames := CombinedAdmissionControlPlugins
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
@@ -334,7 +334,7 @@ func splitStream(config io.Reader) (io.Reader, io.Reader, error) {
 	return bytes.NewBuffer(configBytes), bytes.NewBuffer(configBytes), nil
 }
 
-func convertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
+func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
 	ret := &apiserver.AdmissionConfiguration{}
 
 	for _, pluginName := range sets.StringKeySet(in).List() {
