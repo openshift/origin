@@ -182,7 +182,7 @@ func parseMappings(images, paths []string) ([]Mapping, error) {
 					return nil, err
 				}
 			}
-			if len(mapping.From) > 1 {
+			if len(mapping.From) > 0 {
 				mapping.From = strings.TrimPrefix(mapping.From, "/")
 			}
 			if len(mapping.To) > 0 {
@@ -292,13 +292,13 @@ func (o *Options) Run() error {
 			}
 		}
 
-		glog.V(5).Infof("Extracting from layers\n:%#v", filteredLayers)
-
 		for i := range filteredLayers {
-			layer := &layers[i]
+			layer := &filteredLayers[i]
 
 			err := func() error {
 				fromBlobs := repo.Blobs(ctx)
+
+				glog.V(5).Infof("Extracting from layer: %#v", layer)
 
 				// source
 				r, err := fromBlobs.Open(ctx, layer.Digest)
@@ -349,12 +349,14 @@ func printLayer(w io.Writer, r io.Reader, path string, options *archive.TarOptio
 			}
 			return err
 		}
+		glog.V(6).Infof("Printing layer entry %#v", hdr)
 		if options.AlterHeaders != nil {
 			ok, err := options.AlterHeaders.Alter(hdr)
 			if err != nil {
 				return err
 			}
 			if !ok {
+				glog.V(5).Infof("Exclude entry %s %x %d", hdr.Name, hdr.Typeflag, hdr.Size)
 				continue
 			}
 		}
@@ -435,6 +437,7 @@ func (n *copyFromPattern) Alter(hdr *tar.Header) (bool, error) {
 
 func changeTarEntryParent(hdr *tar.Header, from string) bool {
 	if !strings.HasPrefix(hdr.Name, from) {
+		glog.V(5).Infof("Exclude %s due to missing prefix %s", hdr.Name, from)
 		return false
 	}
 	if len(hdr.Linkname) > 0 {
@@ -458,6 +461,7 @@ func (_ filesOnly) Alter(hdr *tar.Header) (bool, error) {
 	case tar.TypeReg, tar.TypeRegA, tar.TypeDir:
 		return true, nil
 	default:
+		glog.V(6).Infof("Excluded %s because type was not a regular file or directory: %x", hdr.Name, hdr.Typeflag)
 		return false, nil
 	}
 }
