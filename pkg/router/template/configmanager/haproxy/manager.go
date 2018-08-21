@@ -199,16 +199,16 @@ func (cm *haproxyConfigManager) Initialize(router templaterouter.RouterInterface
 }
 
 // AddBlueprint adds a new (or replaces an existing) route blueprint.
-func (cm *haproxyConfigManager) AddBlueprint(route *routev1.Route) {
+func (cm *haproxyConfigManager) AddBlueprint(route *routev1.Route) error {
 	newRoute := route.DeepCopy()
 	newRoute.Namespace = blueprintRoutePoolNamespace
 	newRoute.Spec.Host = ""
 
 	if cm.extendedValidation {
-		if err := validateBlueprintRoute(newRoute); err != nil {
+		if err := routeapihelpers.ExtendedValidateRoute(newRoute).ToAggregate(); err != nil {
 			glog.Errorf("Skipping blueprint route %s/%s due to invalid configuration: %v",
 				route.Namespace, route.Name, err)
-			return
+			return err
 		}
 	}
 
@@ -240,7 +240,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routev1.Route) {
 	}
 
 	if !updated {
-		return
+		return nil
 	}
 
 	cm.lock.Lock()
@@ -248,6 +248,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routev1.Route) {
 	cm.lock.Unlock()
 
 	cm.provisionRoutePool(newRoute)
+	return nil
 }
 
 // RemoveBlueprint removes a route blueprint.
@@ -928,16 +929,6 @@ func (entry *routeBackendEntry) BuildMapAssociations(route *routev1.Route) {
 	}
 }
 
-// validateBlueprintRoute runs extended validation on a blueprint route.
-func validateBlueprintRoute(route *routev1.Route) error {
-	if errs := routeapihelpers.ExtendedValidateRoute(route); len(errs) > 0 {
-		agg := errs.ToAggregate()
-		return fmt.Errorf(agg.Error())
-	}
-
-	return nil
-}
-
 // buildBlueprintRoutes generates a list of blueprint routes.
 func buildBlueprintRoutes(customRoutes []*routev1.Route, validate bool) []*routev1.Route {
 	routes := make([]*routev1.Route, 0)
@@ -961,7 +952,7 @@ func buildBlueprintRoutes(customRoutes []*routev1.Route, validate bool) []*route
 		dolly := r.DeepCopy()
 		dolly.Namespace = blueprintRoutePoolNamespace
 		if validate {
-			if err := validateBlueprintRoute(dolly); err != nil {
+			if err := routeapihelpers.ExtendedValidateRoute(dolly).ToAggregate(); err != nil {
 				glog.Errorf("Skipping blueprint route %s/%s due to invalid configuration: %v", r.Namespace, r.Name, err)
 				continue
 			}

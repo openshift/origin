@@ -27,8 +27,9 @@ func newFakeConfigManager() *fakeConfigManager {
 func (cm *fakeConfigManager) Initialize(router templaterouter.RouterInterface, certPath string) {
 }
 
-func (cm *fakeConfigManager) AddBlueprint(route *routev1.Route) {
+func (cm *fakeConfigManager) AddBlueprint(route *routev1.Route) error {
 	cm.blueprints[routeKey(route)] = route
+	return nil
 }
 
 func (cm *fakeConfigManager) RemoveBlueprint(route *routev1.Route) {

@@ -184,7 +184,7 @@ type ConfigManager interface {
 	Initialize(router RouterInterface, certPath string)
 
 	// AddBlueprint adds a new (or replaces an existing) route blueprint.
-	AddBlueprint(route *routev1.Route)
+	AddBlueprint(route *routev1.Route) error
 
 	// RemoveBlueprint removes a route blueprint.
 	RemoveBlueprint(route *routev1.Route)
