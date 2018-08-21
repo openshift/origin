@@ -4,63 +4,59 @@ import (
 	"testing"
 	"time"
 
+	kappsv1 "k8s.io/api/apps/v1"
+	kappsv1beta1 "k8s.io/api/apps/v1beta1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/apis/batch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
-	oapps "github.com/openshift/api/apps"
-	"github.com/openshift/api/build"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	fakebuild "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-
-	"github.com/openshift/api/route"
-	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	_ "github.com/openshift/origin/pkg/route/apis/route/install"
+	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	fakebuild "github.com/openshift/client-go/build/clientset/versioned/fake"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestCheckReadiness(t *testing.T) {
+	one := int32(1)
 	zero := int64(0)
 
 	tests := []struct {
-		groupKind      schema.GroupKind
-		object         runtime.Object
-		build          buildapi.Build
-		expectedReady  bool
-		expectedFailed bool
+		groupVersionKind schema.GroupVersionKind
+		object           runtime.Object
+		build            buildv1.Build
+		expectedReady    bool
+		expectedFailed   bool
 	}{
 		// Build
 		{
-			groupKind: build.Kind("Build"),
-			object: &buildapi.Build{
-				Status: buildapi.BuildStatus{
-					Phase: buildapi.BuildPhaseNew,
+			groupVersionKind: groupVersionKind(buildv1.GroupVersion, "Build"),
+			object: &buildv1.Build{
+				Status: buildv1.BuildStatus{
+					Phase: buildv1.BuildPhaseNew,
 				},
 			},
 		},
 		{
-			groupKind: build.Kind("Build"),
-			object: &buildapi.Build{
-				Status: buildapi.BuildStatus{
-					Phase: buildapi.BuildPhaseComplete,
+			groupVersionKind: groupVersionKind(buildv1.GroupVersion, "Build"),
+			object: &buildv1.Build{
+				Status: buildv1.BuildStatus{
+					Phase: buildv1.BuildPhaseComplete,
 				},
 			},
 			expectedReady: true,
 		},
 		{
-			groupKind: build.Kind("Build"),
-			object: &buildapi.Build{
-				Status: buildapi.BuildStatus{
-					Phase: buildapi.BuildPhaseError,
+			groupVersionKind: groupVersionKind(buildv1.GroupVersion, "Build"),
+			object: &buildv1.Build{
+				Status: buildv1.BuildStatus{
+					Phase: buildv1.BuildPhaseError,
 				},
 			},
 			expectedFailed: true,
@@ -68,49 +64,49 @@ func TestCheckReadiness(t *testing.T) {
 
 		// BuildConfig
 		{
-			groupKind: build.Kind("BuildConfig"),
-			object:    &buildapi.BuildConfig{},
+			groupVersionKind: groupVersionKind(buildv1.GroupVersion, "BuildConfig"),
+			object:           &buildv1.BuildConfig{},
 		},
 		{
-			groupKind: build.Kind("BuildConfig"),
-			object: &buildapi.BuildConfig{
-				Status: buildapi.BuildConfigStatus{
+			groupVersionKind: groupVersionKind(buildv1.GroupVersion, "BuildConfig"),
+			object: &buildv1.BuildConfig{
+				Status: buildv1.BuildConfigStatus{
 					LastVersion: 1,
 				},
 			},
-			build: buildapi.Build{
+			build: buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						buildapi.BuildConfigLabel: "",
+						buildutil.BuildConfigLabel: "",
 					},
 					Annotations: map[string]string{
-						buildapi.BuildNumberAnnotation: "1",
+						buildutil.BuildNumberAnnotation: "1",
 					},
 				},
-				Status: buildapi.BuildStatus{
-					Phase: buildapi.BuildPhaseComplete,
+				Status: buildv1.BuildStatus{
+					Phase: buildv1.BuildPhaseComplete,
 				},
 			},
 			expectedReady: true,
 		},
 		{
-			groupKind: build.Kind("BuildConfig"),
-			object: &buildapi.BuildConfig{
-				Status: buildapi.BuildConfigStatus{
+			groupVersionKind: groupVersionKind(buildv1.GroupVersion, "BuildConfig"),
+			object: &buildv1.BuildConfig{
+				Status: buildv1.BuildConfigStatus{
 					LastVersion: 1,
 				},
 			},
-			build: buildapi.Build{
+			build: buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						buildapi.BuildConfigLabel: "",
+						buildutil.BuildConfigLabel: "",
 					},
 					Annotations: map[string]string{
-						buildapi.BuildNumberAnnotation: "1",
+						buildutil.BuildNumberAnnotation: "1",
 					},
 				},
-				Status: buildapi.BuildStatus{
-					Phase: buildapi.BuildPhaseError,
+				Status: buildv1.BuildStatus{
+					Phase: buildv1.BuildPhaseError,
 				},
 			},
 			expectedFailed: true,
@@ -118,22 +114,22 @@ func TestCheckReadiness(t *testing.T) {
 
 		// Deployment
 		{
-			groupKind: apps.Kind("Deployment"),
-			object:    &extensions.Deployment{},
+			groupVersionKind: groupVersionKind(kappsv1.SchemeGroupVersion, "Deployment"),
+			object:           &kappsv1.Deployment{},
 		},
 		{
-			groupKind: apps.Kind("Deployment"),
-			object: &extensions.Deployment{
-				Status: extensions.DeploymentStatus{
-					Conditions: []extensions.DeploymentCondition{
+			groupVersionKind: groupVersionKind(kappsv1.SchemeGroupVersion, "Deployment"),
+			object: &kappsv1.Deployment{
+				Status: kappsv1.DeploymentStatus{
+					Conditions: []kappsv1.DeploymentCondition{
 						{
-							Type:   extensions.DeploymentProgressing,
-							Status: kapi.ConditionTrue,
+							Type:   kappsv1.DeploymentProgressing,
+							Status: corev1.ConditionTrue,
 							Reason: deploymentutil.NewRSAvailableReason,
 						},
 						{
-							Type:   extensions.DeploymentAvailable,
-							Status: kapi.ConditionTrue,
+							Type:   kappsv1.DeploymentAvailable,
+							Status: corev1.ConditionTrue,
 						},
 					},
 				},
@@ -141,13 +137,50 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: apps.Kind("Deployment"),
-			object: &extensions.Deployment{
-				Status: extensions.DeploymentStatus{
-					Conditions: []extensions.DeploymentCondition{
+			groupVersionKind: groupVersionKind(kappsv1.SchemeGroupVersion, "Deployment"),
+			object: &kappsv1.Deployment{
+				Status: kappsv1.DeploymentStatus{
+					Conditions: []kappsv1.DeploymentCondition{
 						{
-							Type:   extensions.DeploymentProgressing,
-							Status: kapi.ConditionFalse,
+							Type:   kappsv1.DeploymentProgressing,
+							Status: corev1.ConditionFalse,
+						},
+					},
+				},
+			},
+			expectedFailed: true,
+		},
+		{
+			groupVersionKind: groupVersionKind(kextensionsv1beta1.SchemeGroupVersion, "Deployment"),
+			object:           &kextensionsv1beta1.Deployment{},
+		},
+		{
+			groupVersionKind: groupVersionKind(kextensionsv1beta1.SchemeGroupVersion, "Deployment"),
+			object: &kextensionsv1beta1.Deployment{
+				Status: kextensionsv1beta1.DeploymentStatus{
+					Conditions: []kextensionsv1beta1.DeploymentCondition{
+						{
+							Type:   kextensionsv1beta1.DeploymentProgressing,
+							Status: corev1.ConditionTrue,
+							Reason: deploymentutil.NewRSAvailableReason,
+						},
+						{
+							Type:   kextensionsv1beta1.DeploymentAvailable,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			expectedReady: true,
+		},
+		{
+			groupVersionKind: groupVersionKind(kextensionsv1beta1.SchemeGroupVersion, "Deployment"),
+			object: &kextensionsv1beta1.Deployment{
+				Status: kextensionsv1beta1.DeploymentStatus{
+					Conditions: []kextensionsv1beta1.DeploymentCondition{
+						{
+							Type:   kextensionsv1beta1.DeploymentProgressing,
+							Status: corev1.ConditionFalse,
 						},
 					},
 				},
@@ -157,22 +190,22 @@ func TestCheckReadiness(t *testing.T) {
 
 		// DeploymentConfig
 		{
-			groupKind: oapps.Kind("DeploymentConfig"),
-			object:    &appsapi.DeploymentConfig{},
+			groupVersionKind: groupVersionKind(appsv1.GroupVersion, "DeploymentConfig"),
+			object:           &appsv1.DeploymentConfig{},
 		},
 		{
-			groupKind: oapps.Kind("DeploymentConfig"),
-			object: &appsapi.DeploymentConfig{
-				Status: appsapi.DeploymentConfigStatus{
-					Conditions: []appsapi.DeploymentCondition{
+			groupVersionKind: groupVersionKind(appsv1.GroupVersion, "DeploymentConfig"),
+			object: &appsv1.DeploymentConfig{
+				Status: appsv1.DeploymentConfigStatus{
+					Conditions: []appsv1.DeploymentCondition{
 						{
-							Type:   appsapi.DeploymentProgressing,
-							Status: kapi.ConditionTrue,
-							Reason: appsapi.NewRcAvailableReason,
+							Type:   appsv1.DeploymentProgressing,
+							Status: corev1.ConditionTrue,
+							Reason: appsutil.NewRcAvailableReason,
 						},
 						{
-							Type:   appsapi.DeploymentAvailable,
-							Status: kapi.ConditionTrue,
+							Type:   appsv1.DeploymentAvailable,
+							Status: corev1.ConditionTrue,
 						},
 					},
 				},
@@ -180,13 +213,13 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: oapps.Kind("DeploymentConfig"),
-			object: &appsapi.DeploymentConfig{
-				Status: appsapi.DeploymentConfigStatus{
-					Conditions: []appsapi.DeploymentCondition{
+			groupVersionKind: groupVersionKind(appsv1.GroupVersion, "DeploymentConfig"),
+			object: &appsv1.DeploymentConfig{
+				Status: appsv1.DeploymentConfigStatus{
+					Conditions: []appsv1.DeploymentCondition{
 						{
-							Type:   appsapi.DeploymentProgressing,
-							Status: kapi.ConditionFalse,
+							Type:   appsv1.DeploymentProgressing,
+							Status: corev1.ConditionFalse,
 						},
 					},
 				},
@@ -196,22 +229,22 @@ func TestCheckReadiness(t *testing.T) {
 
 		// Job
 		{
-			groupKind: batch.Kind("Job"),
-			object:    &batch.Job{},
+			groupVersionKind: groupVersionKind(batchv1.SchemeGroupVersion, "Job"),
+			object:           &batchv1.Job{},
 		},
 		{
-			groupKind: batch.Kind("Job"),
-			object: &batch.Job{
-				Status: batch.JobStatus{
+			groupVersionKind: groupVersionKind(batchv1.SchemeGroupVersion, "Job"),
+			object: &batchv1.Job{
+				Status: batchv1.JobStatus{
 					CompletionTime: &metav1.Time{Time: time.Unix(0, 0)},
 				},
 			},
 			expectedReady: true,
 		},
 		{
-			groupKind: batch.Kind("Job"),
-			object: &batch.Job{
-				Status: batch.JobStatus{
+			groupVersionKind: groupVersionKind(batchv1.SchemeGroupVersion, "Job"),
+			object: &batchv1.Job{
+				Status: batchv1.JobStatus{
 					Failed: 1,
 				},
 			},
@@ -220,20 +253,41 @@ func TestCheckReadiness(t *testing.T) {
 
 		// StatefulSet
 		{
-			groupKind: apps.Kind("StatefulSet"),
-			object: &apps.StatefulSet{
-				Spec: apps.StatefulSetSpec{
-					Replicas: 1,
+			groupVersionKind: groupVersionKind(kappsv1.SchemeGroupVersion, "StatefulSet"),
+			object: &kappsv1.StatefulSet{
+				Spec: kappsv1.StatefulSetSpec{
+					Replicas: &one,
 				},
 			},
 		},
 		{
-			groupKind: apps.Kind("StatefulSet"),
-			object: &apps.StatefulSet{
-				Spec: apps.StatefulSetSpec{
-					Replicas: 1,
+			groupVersionKind: groupVersionKind(kappsv1.SchemeGroupVersion, "StatefulSet"),
+			object: &kappsv1.StatefulSet{
+				Spec: kappsv1.StatefulSetSpec{
+					Replicas: &one,
 				},
-				Status: apps.StatefulSetStatus{
+				Status: kappsv1.StatefulSetStatus{
+					ObservedGeneration: 0,
+					ReadyReplicas:      1,
+				},
+			},
+			expectedReady: true,
+		},
+		{
+			groupVersionKind: groupVersionKind(kappsv1beta1.SchemeGroupVersion, "StatefulSet"),
+			object: &kappsv1beta1.StatefulSet{
+				Spec: kappsv1beta1.StatefulSetSpec{
+					Replicas: &one,
+				},
+			},
+		},
+		{
+			groupVersionKind: groupVersionKind(kappsv1beta1.SchemeGroupVersion, "StatefulSet"),
+			object: &kappsv1beta1.StatefulSet{
+				Spec: kappsv1beta1.StatefulSetSpec{
+					Replicas: &one,
+				},
+				Status: kappsv1beta1.StatefulSetStatus{
 					ObservedGeneration: &zero,
 					ReadyReplicas:      1,
 				},
@@ -241,36 +295,36 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: route.Kind("Route"),
-			object: &routeapi.Route{
-				Spec: routeapi.RouteSpec{
+			groupVersionKind: groupVersionKind(routev1.GroupVersion, "Route"),
+			object: &routev1.Route{
+				Spec: routev1.RouteSpec{
 					Host: "",
 				},
 			},
 			expectedReady: false,
 		},
 		{
-			groupKind: route.Kind("Route"),
-			object: &routeapi.Route{
-				Spec: routeapi.RouteSpec{
+			groupVersionKind: groupVersionKind(routev1.GroupVersion, "Route"),
+			object: &routev1.Route{
+				Spec: routev1.RouteSpec{
 					Host: "app.example.com",
 				},
 			},
 			expectedReady: true,
 		},
 		{
-			groupKind: route.Kind("Route"),
-			object: &routeapi.Route{
-				Spec: routeapi.RouteSpec{
+			groupVersionKind: groupVersionKind(routev1.GroupVersion, "Route"),
+			object: &routev1.Route{
+				Spec: routev1.RouteSpec{
 					Host: "",
 				},
 			},
 			expectedReady: false,
 		},
 		{
-			groupKind: route.Kind("Route"),
-			object: &routeapi.Route{
-				Spec: routeapi.RouteSpec{
+			groupVersionKind: groupVersionKind(routev1.GroupVersion, "Route"),
+			object: &routev1.Route{
+				Spec: routev1.RouteSpec{
 					Host: "app.example.com",
 				},
 			},
@@ -281,32 +335,27 @@ func TestCheckReadiness(t *testing.T) {
 	for i, test := range tests {
 		buildClient := fakebuild.NewSimpleClientset(&test.build)
 		ref := corev1.ObjectReference{
-			Kind:       test.groupKind.Kind,
-			APIVersion: test.groupKind.WithVersion("v1").GroupVersion().String(),
+			Kind:       test.groupVersionKind.Kind,
+			APIVersion: test.groupVersionKind.GroupVersion().String(),
 		}
 		if can := CanCheckReadiness(ref); !can {
 			t.Errorf("%d: unexpected canCheckReadiness value %v", i, can)
 			continue
 		}
-
-		versionedObj, err := legacyscheme.Scheme.ConvertToVersion(test.object, schema.GroupVersions(legacyscheme.Scheme.PrioritizedVersionsAllGroups()))
-		if err != nil {
-			t.Fatal(err)
-		}
-		unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(versionedObj)
+		unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(test.object)
 		if err != nil {
 			t.Fatal(err)
 		}
 		ready, failed, err := CheckReadiness(buildClient, ref, &unstructured.Unstructured{Object: unstructuredObj})
 		if err != nil {
-			t.Errorf("%d: unexpected err value %v", i, err)
+			t.Errorf("%d: unexpected err value: %v", i, err)
 			continue
 		}
 		if ready != test.expectedReady {
-			t.Errorf("%d: unexpected ready value %v", i, ready)
+			t.Errorf("%d[%s]: unexpected ready value: %v", i, test.groupVersionKind.String(), ready)
 		}
 		if failed != test.expectedFailed {
-			t.Errorf("%d: unexpected failed value %v", i, failed)
+			t.Errorf("%d[%s]: unexpected failed value: %v", i, test.groupVersionKind.String(), failed)
 		}
 	}
 }

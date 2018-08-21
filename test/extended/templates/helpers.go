@@ -159,7 +159,7 @@ func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templatev1.TemplateIn
 			continue
 		}
 
-		ready, failed, err := controller.CheckReadiness(oc.InternalBuildClient(), object.Ref, obj)
+		ready, failed, err := controller.CheckReadiness(oc.BuildClient(), object.Ref, obj)
 		if err != nil {
 			return err
 		}
