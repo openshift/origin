@@ -12,6 +12,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/wait"
+
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -193,7 +195,7 @@ func executeMasterCommand(args []string) *MasterArgs {
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout, os.Stderr)
+	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout, os.Stderr, wait.NeverStop)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()

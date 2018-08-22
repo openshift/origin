@@ -170,9 +170,9 @@ func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarg
 }
 
 // Run launches the OpenShift master by creating a kubernetes master, installing
-// OpenShift APIs into it and then running it.
+// OpenShift APIs into it and then running it. The returned channel can be waited on to gracefully shutdown the API server.
 // TODO this method only exists to support the old openshift start path.  It should be removed a little ways into 3.10.
-func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
+func (c *MasterConfig) Run(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	var err error
 	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
 	var delegateAPIServer apiserver.DelegationTarget
@@ -182,47 +182,47 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 		c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers,
 		c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile, c.Options.OAuthConfig, c.Options.PolicyConfig.UserAgentMatchingConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	delegateAPIServer = apiserver.NewEmptyDelegate()
 	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	delegateAPIServer, err = c.withOpenshiftAPI(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.kubeAPIServerConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Start the audit backend before any request comes in. This means we cannot turn it into a
 	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
 	if c.AuditBackend != nil {
 		if err := c.AuditBackend.Run(stopCh); err != nil {
-			return fmt.Errorf("failed to run the audit backend: %v", err)
+			return nil, fmt.Errorf("failed to run the audit backend: %v", err)
 		}
 	}
 
 	if GRPCThreadLimit > 0 {
 		if err := aggregatedAPIServer.GenericAPIServer.AddHealthzChecks(NewGRPCStuckThreads()); err != nil {
-			return err
+			return nil, err
 		}
 		// We start a separate gofunc that will panic for us because nothing is watching healthz at the moment.
 		PanicOnGRPCStuckThreads(10*time.Second, stopCh)
@@ -236,8 +236,12 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}
 
-	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
+	shutdownCh := make(chan struct{})
+	go func() {
+		defer close(shutdownCh)
+		aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
+	}()
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+	return shutdownCh, cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }

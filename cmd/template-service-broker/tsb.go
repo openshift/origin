@@ -10,7 +10,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/version"
 
-	"k8s.io/apimachinery/pkg/util/wait"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/util/logs"
 
 	"github.com/openshift/library-go/pkg/serviceability"
@@ -25,6 +25,7 @@ import (
 )
 
 func main() {
+	stopCh := genericapiserver.SetupSignalHandler()
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	logs.InitLogs()
@@ -37,7 +38,7 @@ func main() {
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
-	cmd := tsbcmd.NewCommandStartTemplateServiceBrokerServer(os.Stdout, os.Stderr, wait.NeverStop)
+	cmd := tsbcmd.NewCommandStartTemplateServiceBrokerServer(os.Stdout, os.Stderr, stopCh)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	if err := cmd.Execute(); err != nil {
 		glog.Fatal(err)

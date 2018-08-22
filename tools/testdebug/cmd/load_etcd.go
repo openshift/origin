@@ -41,7 +41,7 @@ type DebugAPIServerOptions struct {
 	AllowAll     bool
 }
 
-func NewDebugAPIServerCommand() *cobra.Command {
+func NewDebugAPIServerCommand(stopCh <-chan struct{}) *cobra.Command {
 	o := &DebugAPIServerOptions{Out: os.Stdout}
 
 	cmd := &cobra.Command{
@@ -50,7 +50,7 @@ func NewDebugAPIServerCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(args))
 
-			kcmdutil.CheckErr(o.Run())
+			kcmdutil.CheckErr(o.Run(stopCh))
 		},
 	}
 
@@ -71,7 +71,7 @@ func (o *DebugAPIServerOptions) Complete(args []string) error {
 	return nil
 }
 
-func (o *DebugAPIServerOptions) Run() error {
+func (o *DebugAPIServerOptions) Run(stopCh <-chan struct{}) error {
 	masterConfig, err := testserver.DefaultMasterOptionsWithTweaks(true /*use default ports*/)
 	if err != nil {
 		return err
@@ -87,7 +87,8 @@ func (o *DebugAPIServerOptions) Run() error {
 		return err
 	}
 
-	if err := o.StartAPIServer(*masterConfig); err != nil {
+	shutdownCh, err := o.StartAPIServer(*masterConfig, stopCh)
+	if err != nil {
 		return err
 	}
 
@@ -108,19 +109,23 @@ func (o *DebugAPIServerOptions) Run() error {
 		}
 	}
 
-	select {}
+	select {
+	case <-shutdownCh:
+	}
+
+	return nil
 }
 
-func (o *DebugAPIServerOptions) StartAPIServer(masterConfig configapi.MasterConfig) error {
+func (o *DebugAPIServerOptions) StartAPIServer(masterConfig configapi.MasterConfig, stopCh <-chan struct{}) (<-chan struct{}, error) {
 	informers := origin.InformerAccess(nil)
 	openshiftConfig, err := origin.BuildMasterConfig(masterConfig, informers)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Printf("Starting master on %s\n", masterConfig.ServingInfo.BindAddress)
 	fmt.Printf("Public master address is %s\n", masterConfig.MasterPublicURL)
-	return start.StartAPI(openshiftConfig)
+	return start.StartAPI(openshiftConfig, stopCh)
 }
 
 // getAndTestEtcdClient creates an etcd client based on the provided config. It will attempt to

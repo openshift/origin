@@ -26,7 +26,7 @@ func NewCommandStart(basename string, out, errout io.Writer, stopCh <-chan struc
 		Deprecated: "This command will be replaced by the hypershift and hyperkube binaries for starting individual components.",
 	}
 
-	startMaster, _ := NewCommandStartMaster(basename, out, errout)
+	startMaster, _ := NewCommandStartMaster(basename, out, errout, stopCh)
 	startEtcdServer, _ := openshift_etcd.NewCommandStartEtcdServer(openshift_etcd.RecommendedStartEtcdServerName, basename, out, errout)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startEtcdServer)

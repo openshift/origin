@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
 
@@ -26,6 +27,8 @@ import (
 )
 
 func main() {
+	stopCh := genericapiserver.SetupSignalHandler()
+
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
@@ -40,14 +43,14 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	command := NewHyperShiftCommand()
+	command := NewHyperShiftCommand(stopCh)
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 }
 
-func NewHyperShiftCommand() *cobra.Command {
+func NewHyperShiftCommand(stopCh <-chan struct{}) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "hypershift",
 		Short: "Combined server command for OpenShift",
@@ -62,10 +65,10 @@ func NewHyperShiftCommand() *cobra.Command {
 	startEtcd.Hidden = true
 	cmd.AddCommand(startEtcd)
 
-	startOpenShiftAPIServer := openshift_apiserver.NewOpenShiftAPIServerCommand(openshift_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr)
+	startOpenShiftAPIServer := openshift_apiserver.NewOpenShiftAPIServerCommand(openshift_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr, stopCh)
 	cmd.AddCommand(startOpenShiftAPIServer)
 
-	startOpenShiftKubeAPIServer := openshift_kube_apiserver.NewOpenShiftKubeAPIServerServerCommand(openshift_kube_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr)
+	startOpenShiftKubeAPIServer := openshift_kube_apiserver.NewOpenShiftKubeAPIServerServerCommand(openshift_kube_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr, stopCh)
 	cmd.AddCommand(startOpenShiftKubeAPIServer)
 
 	startOpenShiftControllerManager := openshift_controller_manager.NewOpenShiftControllerManagerCommand(openshift_controller_manager.RecommendedStartControllerManagerName, "hypershift", os.Stdout, os.Stderr)

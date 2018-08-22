@@ -6,7 +6,6 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
@@ -23,7 +22,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
-func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) error {
+func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig, stopCh <-chan struct{}) error {
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{
 		AllowPrivileged: true,
@@ -55,7 +54,7 @@ func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.Kub
 	app.OpenShiftKubeAPIServerConfigPatch = configPatchFn
 	app.OpenShiftKubeAPIServerServerPatch = serverPatchContext.PatchServer
 
-	cmd := app.NewAPIServerCommand(utilwait.NeverStop)
+	cmd := app.NewAPIServerCommand(stopCh)
 	args, err := openshiftkubeapiserver.ConfigToFlags(kubeAPIServerConfig)
 	if err != nil {
 		return err

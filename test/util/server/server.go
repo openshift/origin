@@ -319,21 +319,8 @@ func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
 	}
 }
 
-func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error) {
-	return StartConfiguredMasterWithOptions(masterConfig)
-}
-
-func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, error) {
-	// we need to unconditionally start this controller for rbac permissions to work
-	if masterConfig.KubernetesMasterConfig.ControllerArguments == nil {
-		masterConfig.KubernetesMasterConfig.ControllerArguments = map[string][]string{}
-	}
-	masterConfig.KubernetesMasterConfig.ControllerArguments["controllers"] = append(masterConfig.KubernetesMasterConfig.ControllerArguments["controllers"], "serviceaccount-token", "clusterrole-aggregation")
-
-	return StartConfiguredMasterWithOptions(masterConfig)
-}
-
-func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig) (string, error) {
+// The returned channel can be waited on to gracefully shutdown the API server.
+func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stopCh <-chan struct{}) (string, error) {
 	guardMaster()
 
 	// openshift apiserver needs its own scheme, but this installs it for now.  oc needs it off, openshift apiserver needs it on. awesome.
@@ -350,11 +337,11 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig) (str
 		return "", err
 	}
 
-	if err := startKubernetesAPIServer(masterConfig, clientConfig); err != nil {
+	if err := startKubernetesAPIServer(masterConfig, clientConfig, stopCh); err != nil {
 		return "", err
 	}
 
-	if err := startOpenShiftAPIServer(masterConfig, clientConfig); err != nil {
+	if err := startOpenShiftAPIServer(masterConfig, clientConfig, stopCh); err != nil {
 		return "", err
 	}
 
@@ -418,7 +405,7 @@ func startEtcd(etcdConfig *configapi.EtcdConfig, etcdClientInfo configapi.EtcdCo
 	return nil
 }
 
-func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig *restclient.Config) error {
+func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig *restclient.Config, stopCh <-chan struct{}) error {
 	// TODO: replace this with a default which produces the new configs
 	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
 	if err != nil {
@@ -443,7 +430,7 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	// we need to set enable-aggregator-routing so that APIServices are resolved from Endpoints
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
 	kubeAPIServerConfig.APIServerArguments["audit-log-format"] = kubecontrolplanev1.Arguments{"json"}
-	go openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig)
+	go openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh)
 
 	url, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
 	if err := waitForServerHealthy(url); err != nil {
@@ -453,7 +440,7 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	return nil
 }
 
-func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig *restclient.Config) error {
+func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig *restclient.Config, stopCh <-chan struct{}) error {
 	// TODO: replace this with a default which produces the new configs
 	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
 	if err != nil {
@@ -480,7 +467,7 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		return fmt.Errorf("couldn't find free address for OpenShift API: %v", err)
 	}
 	openshiftAPIServerConfig.ServingInfo.BindAddress = openshiftAddrStr
-	go openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig)
+	go openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh)
 
 	openshiftAddr, err := url.Parse(fmt.Sprintf("https://%s", openshiftAddrStr))
 	if err != nil {
@@ -726,27 +713,6 @@ func isServerPathHealthy(url url.URL, path string, code int) (bool, string, erro
 	content, _ := ioutil.ReadAll(resp.Body)
 
 	return resp.StatusCode == code, string(content), nil
-}
-
-// StartTestMaster starts up a test master and returns back the startOptions so you can get clients and certs
-func StartTestMaster() (*configapi.MasterConfig, string, error) {
-	master, err := DefaultMasterOptions()
-	if err != nil {
-		return nil, "", err
-	}
-
-	adminKubeConfigFile, err := StartConfiguredMaster(master)
-	return master, adminKubeConfigFile, err
-}
-
-func StartTestMasterAPI() (*configapi.MasterConfig, string, error) {
-	master, err := DefaultMasterOptions()
-	if err != nil {
-		return nil, "", err
-	}
-
-	adminKubeConfigFile, err := StartConfiguredMasterAPI(master)
-	return master, adminKubeConfigFile, err
 }
 
 // serviceAccountSecretsExist checks whether the given service account has at least a token and a dockercfg

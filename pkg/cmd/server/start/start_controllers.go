@@ -29,7 +29,7 @@ var controllersLong = templates.LongDesc(`
 	will run in the foreground until you terminate the process.`)
 
 // NewCommandStartMasterControllers starts only the controllers
-func NewCommandStartMasterControllers(name, basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
+func NewCommandStartMasterControllers(name, basename string, out, errout io.Writer, stopCh <-chan struct{}) (*cobra.Command, *MasterOptions) {
 	opts := &MasterOptions{Output: out}
 	opts.DefaultsFromName(basename)
 
@@ -55,7 +55,7 @@ func NewCommandStartMasterControllers(name, basename string, out, errout io.Writ
 
 			serviceability.StartProfiler()
 
-			if err := opts.StartMaster(); err != nil {
+			if err := opts.StartMaster(stopCh); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
