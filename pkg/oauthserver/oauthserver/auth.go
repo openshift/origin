@@ -64,10 +64,10 @@ import (
 const (
 	openShiftLoginPrefix         = "/login"
 	openShiftApproveSubpath      = "approve"
-	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
-	OpenShiftWebConsoleClientID  = "openshift-web-console"
-	OpenShiftBrowserClientID     = "openshift-browser-client"
-	OpenShiftCLIClientID         = "openshift-challenging-client"
+	openShiftOAuthCallbackPrefix = "/oauth2callback"
+	openShiftWebConsoleClientID  = "openshift-web-console"
+	openShiftBrowserClientID     = "openshift-browser-client"
+	openShiftCLIClientID         = "openshift-challenging-client"
 )
 
 // WithOAuth decorates the given handler by serving the OAuth2 endpoints while
@@ -150,7 +150,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 }
 
 func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
-	browserClient, err := c.ExtraOAuthConfig.OAuthClientClient.Get(OpenShiftBrowserClientID, metav1.GetOptions{})
+	browserClient, err := c.ExtraOAuthConfig.OAuthClientClient.Get(openShiftBrowserClientID, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +413,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handl
 			// If the specified errorHandler doesn't handle the login error, let the state error handler attempt to propagate specific errors back to the token requester
 			oauthErrorHandler := handlers.AuthenticationErrorHandlers{errorHandler, state}
 
-			callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, identityProvider.Name)
+			callbackPath := path.Join(openShiftOAuthCallbackPrefix, identityProvider.Name)
 			oauthRedirector, oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.ExtraOAuthConfig.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected error: %v", err)

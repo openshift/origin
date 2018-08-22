@@ -232,7 +232,7 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 	go func() {
 		wait.PollUntil(1*time.Second, func() (done bool, err error) {
 			webConsoleClient := oauthapi.OAuthClient{
-				ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftWebConsoleClientID},
+				ObjectMeta:            metav1.ObjectMeta{Name: openShiftWebConsoleClientID},
 				Secret:                "",
 				RespondWithChallenges: false,
 				RedirectURIs:          c.ExtraOAuthConfig.AssetPublicAddresses,
@@ -244,8 +244,8 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 			}
 
 			browserClient := oauthapi.OAuthClient{
-				ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
 				Secret:                uuid.New(),
+				ObjectMeta:            metav1.ObjectMeta{Name: openShiftBrowserClientID},
 				RespondWithChallenges: false,
 				RedirectURIs:          []string{urls.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
 				GrantMethod:           oauthapi.GrantHandlerAuto,
@@ -256,7 +256,7 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 			}
 
 			cliClient := oauthapi.OAuthClient{
-				ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
+				ObjectMeta:            metav1.ObjectMeta{Name: openShiftCLIClientID},
 				Secret:                "",
 				RespondWithChallenges: true,
 				RedirectURIs:          []string{urls.OpenShiftOAuthTokenImplicitURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
