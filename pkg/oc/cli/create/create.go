@@ -1,8 +1,6 @@
 package create
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
@@ -36,7 +34,7 @@ func NewCreateSubcommandOptions(ioStreams genericclioptions.IOStreams) *CreateSu
 }
 
 func (o *CreateSubcommandOptions) Complete(f genericclioptions.RESTClientGetter, cmd *cobra.Command, args []string) error {
-	name, err := NameFromCommandArgs(args)
+	name, err := NameFromCommandArgs(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -60,9 +58,15 @@ func (o *CreateSubcommandOptions) Complete(f genericclioptions.RESTClientGetter,
 }
 
 // NameFromCommandArgs is a utility function for commands that assume the first argument is a resource name
-func NameFromCommandArgs(args []string) (string, error) {
-	if len(args) != 1 {
-		return "", fmt.Errorf("exactly one NAME is required, got %d", len(args))
+func NameFromCommandArgs(cmd *cobra.Command, args []string) (string, error) {
+	argsLen := cmd.ArgsLenAtDash()
+	// ArgsLenAtDash returns -1 when -- was not specified
+	if argsLen == -1 {
+		argsLen = len(args)
+	}
+	if argsLen != 1 {
+		return "", cmdutil.UsageErrorf(cmd, "exactly one NAME is required, got %d", argsLen)
 	}
 	return args[0], nil
+
 }
