@@ -1,6 +1,12 @@
 #compdef kubectl
 
 
+__kubectl_debug() {
+	if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
+		echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
+	fi
+}
+
 __kubectl_bash_source() {
 	alias shopt=':'
 	alias _expand=_bash_expand
