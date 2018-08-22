@@ -13,7 +13,6 @@ func TestCookieGenerate(t *testing.T) {
 		Path           string
 		Domain         string
 		Secure         bool
-		HTTPOnly       bool
 		ExistingCookie *http.Cookie
 
 		ExpectToken     string
@@ -41,18 +40,17 @@ func TestCookieGenerate(t *testing.T) {
 		},
 
 		"set missing with cookie options": {
-			Name:     "csrf",
-			Path:     "/",
-			Domain:   "foo.com",
-			Secure:   true,
-			HTTPOnly: true,
+			Name:   "csrf",
+			Path:   "/",
+			Domain: "foo.com",
+			Secure: true,
 
 			ExpectSetCookie: true,
 		},
 	}
 
 	for k, testCase := range testCases {
-		csrf := NewCookieCSRF(testCase.Name, testCase.Path, testCase.Domain, testCase.Secure, testCase.HTTPOnly)
+		csrf := NewCookieCSRF(testCase.Name, testCase.Path, testCase.Domain, testCase.Secure)
 
 		req, _ := http.NewRequest("GET", "/", nil)
 		if testCase.ExistingCookie != nil {
@@ -60,12 +58,7 @@ func TestCookieGenerate(t *testing.T) {
 		}
 
 		w := httptest.NewRecorder()
-		token, err := csrf.Generate(w, req)
-
-		if err != nil {
-			t.Errorf("%s: Unexpected error: %v", k, err)
-			continue
-		}
+		token := csrf.Generate(w, req)
 
 		if len(testCase.ExpectToken) != 0 && token != testCase.ExpectToken {
 			t.Errorf("%s: Unexpected token %s, got %s", k, testCase.ExpectToken, token)
@@ -85,7 +78,7 @@ func TestCookieGenerate(t *testing.T) {
 				Path:     testCase.Path,
 				Domain:   testCase.Domain,
 				Secure:   testCase.Secure,
-				HttpOnly: testCase.HTTPOnly,
+				HttpOnly: true,
 			}
 			if setCookie != protoCookie.String() {
 				t.Errorf("%s: Expected Set-Cookie header of \"%s\", got \"%s\"", k, protoCookie.String(), setCookie)
@@ -158,21 +151,14 @@ func TestCookieCheck(t *testing.T) {
 	}
 
 	for k, testCase := range testCases {
-		csrf := NewCookieCSRF(testCase.Name, "", "", false, false)
+		csrf := NewCookieCSRF(testCase.Name, "", "", false)
 
 		req, _ := http.NewRequest("GET", "/", nil)
 		if testCase.ExistingCookie != nil {
 			req.AddCookie(testCase.ExistingCookie)
 		}
 
-		ok, err := csrf.Check(req, testCase.Token)
-
-		if err != nil {
-			t.Errorf("%s: Unexpected error: %v", k, err)
-			continue
-		}
-
-		if ok != testCase.ExpectCheck {
+		if ok := csrf.Check(req, testCase.Token); ok != testCase.ExpectCheck {
 			t.Errorf("%s: Expected check to return %v, returned %v", k, testCase.ExpectCheck, ok)
 			continue
 		}

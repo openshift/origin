@@ -230,22 +230,17 @@ type RedirectorState interface {
 }
 
 func CSRFRedirectingState(csrf csrf.CSRF) RedirectorState {
-	return &defaultState{csrf}
+	return &defaultState{csrf: csrf}
 }
 
 func (d *defaultState) Generate(w http.ResponseWriter, req *http.Request) (string, error) {
 	then := req.URL.String()
 	if len(then) == 0 {
-		return "", errors.New("Cannot generate state: request has no URL")
-	}
-
-	csrfToken, err := d.csrf.Generate(w, req)
-	if err != nil {
-		return "", err
+		return "", errors.New("cannot generate state: request has no URL")
 	}
 
 	state := url.Values{
-		"csrf": {csrfToken},
+		"csrf": {d.csrf.Generate(w, req)},
 		"then": {then},
 	}
 	return encodeState(state)
@@ -256,14 +251,9 @@ func (d *defaultState) Check(state string, req *http.Request) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	csrf := values.Get("csrf")
 
-	ok, err := d.csrf.Check(req, csrf)
-	if err != nil {
-		return false, err
-	}
-	if !ok {
-		return false, fmt.Errorf("State did not contain a valid CSRF token")
+	if ok := d.csrf.Check(req, values.Get("csrf")); !ok {
+		return false, fmt.Errorf("state did not contain a valid CSRF token")
 	}
 
 	then := values.Get("then")

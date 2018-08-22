@@ -446,7 +446,6 @@
       "vendor/golang.org",
       "vendor/github.com/RangelReale/osin",
       "vendor/github.com/RangelReale/osincli",
-      "vendor/github.com/pborman/uuid",
       "vendor/github.com/gorilla/sessions",
       "vendor/github.com/gophercloud/gophercloud",
       "vendor/gopkg.in/ldap.v2",

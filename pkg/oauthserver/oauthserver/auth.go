@@ -249,7 +249,7 @@ func ensureOAuthClient(client oauthapi.OAuthClient, oauthClients oauthclient.OAu
 func (c *OAuthServerConfig) getCSRF() csrf.CSRF {
 	// TODO we really need to enforce HTTPS always
 	secure := isHTTPS(c.ExtraOAuthConfig.Options.MasterPublicURL)
-	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
+	return csrf.NewCookieCSRF("csrf", "/", "", secure)
 }
 
 func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux oauthserver.Mux, errorHandler handlers.AuthenticationErrorHandler) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
