@@ -43,6 +43,12 @@ type NamePrinter struct {
 // PrintObj is an implementation of ResourcePrinter.PrintObj which decodes the object
 // and print "resource/name" pair. If the object is a List, print all items in it.
 func (p *NamePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
+	return p.PrintfObj("%s", obj, w)
+}
+
+// PrintfObj is an implementation of ResourcePrinter.PrintfObj which decodes the object
+// and print formatted "resource/name" pair. If the object is a List, print all items in it.
+func (p *NamePrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
 	// we use reflect.Indirect here in order to obtain the actual value from a pointer.
 	// using reflect.Indirect indiscriminately is valid here, as all runtime.Objects are supposed to be pointers.
 	// we need an actual value in order to retrieve the package path for an object.
@@ -63,7 +69,7 @@ func (p *NamePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 			return err
 		}
 		for _, obj := range items {
-			if err := p.PrintObj(obj, w); err != nil {
+			if err := p.PrintfObj(format, obj, w); err != nil {
 				return err
 			}
 		}
@@ -84,7 +90,7 @@ func (p *NamePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 		}
 	}
 
-	return printObj(w, name, p.Operation, p.ShortOutput, GetObjectGroupKind(obj))
+	return printObj(w, format, name, p.ShortOutput, GetObjectGroupKind(obj))
 }
 
 func GetObjectGroupKind(obj runtime.Object) schema.GroupKind {
@@ -105,24 +111,16 @@ func GetObjectGroupKind(obj runtime.Object) schema.GroupKind {
 	return schema.GroupKind{Kind: "<unknown>"}
 }
 
-func printObj(w io.Writer, name string, operation string, shortOutput bool, groupKind schema.GroupKind) error {
+func printObj(w io.Writer, format, name string, shortOutput bool, groupKind schema.GroupKind) error {
 	if len(groupKind.Kind) == 0 {
 		return fmt.Errorf("missing kind for resource with name %v", name)
 	}
 
-	if len(operation) > 0 {
-		operation = " " + operation
-	}
-
-	if shortOutput {
-		operation = ""
-	}
-
+	objString := fmt.Sprintf("%s.%s/%s", strings.ToLower(groupKind.Kind), strings.ToLower(groupKind.Group), name)
 	if len(groupKind.Group) == 0 {
-		fmt.Fprintf(w, "%s/%s%s\n", strings.ToLower(groupKind.Kind), name, operation)
-		return nil
+		objString = fmt.Sprintf("%s/%s", strings.ToLower(groupKind.Kind), name)
 	}
 
-	fmt.Fprintf(w, "%s.%s/%s%s\n", strings.ToLower(groupKind.Kind), groupKind.Group, name, operation)
+	fmt.Fprintf(w, format+"\n", objString)
 	return nil
 }

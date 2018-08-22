@@ -60,6 +60,10 @@ func (p *TemplatePrinter) AfterPrint(w io.Writer, res string) error {
 	return nil
 }
 
+func (p *TemplatePrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
+}
+
 // PrintObj formats the obj with the Go Template.
 func (p *TemplatePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	if InternalObjectPreventer.IsForbidden(reflect.Indirect(reflect.ValueOf(obj)).Type().PkgPath()) {
@@ -152,6 +156,10 @@ func (p *GoTemplatePrinter) AllowMissingKeys(allow bool) {
 	} else {
 		p.template.Option("missingkey=error")
 	}
+}
+
+func (p *GoTemplatePrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
 }
 
 // PrintObj formats the obj with the Go Template.

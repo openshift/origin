@@ -36,6 +36,10 @@ func NewTypeSetter(typer runtime.ObjectTyper) *TypeSetterPrinter {
 	return &TypeSetterPrinter{Typer: typer}
 }
 
+func (p *TypeSetterPrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
+}
+
 // PrintObj is an implementation of ResourcePrinter.PrintObj which sets type information on the obj for the duration
 // of printing.  It is NOT threadsafe.
 func (p *TypeSetterPrinter) PrintObj(obj runtime.Object, w io.Writer) error {

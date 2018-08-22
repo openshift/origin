@@ -30,8 +30,15 @@ func (fn ResourcePrinterFunc) PrintObj(obj runtime.Object, w io.Writer) error {
 	return fn(obj, w)
 }
 
+// PrintObj implements ResourcePrinter
+func (fn ResourcePrinterFunc) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return fn(obj, w)
+}
+
 // ResourcePrinter is an interface that knows how to print runtime objects.
 type ResourcePrinter interface {
 	// Print receives a runtime object, formats it and prints it to a writer.
 	PrintObj(runtime.Object, io.Writer) error
+	// Print receives a runtime object, formats it according to passed format and prints it to a writer.
+	PrintfObj(string, runtime.Object, io.Writer) error
 }

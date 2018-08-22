@@ -212,6 +212,10 @@ func (o *RolloutLatestOptions) RunRolloutLatest() error {
 
 type revisionPrinter struct{}
 
+func (p *revisionPrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
+}
+
 func (p *revisionPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
 	dc, ok := obj.(*appsv1.DeploymentConfig)
 	if !ok {

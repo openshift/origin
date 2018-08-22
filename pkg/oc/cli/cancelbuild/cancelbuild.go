@@ -63,15 +63,13 @@ type CancelBuildOptions struct {
 	Namespace  string
 	BuildNames []string
 
-	HasError                bool
-	ReportError             func(error)
-	PrinterCancel           printers.ResourcePrinter
-	PrinterCancelInProgress printers.ResourcePrinter
-	PrinterRestart          printers.ResourcePrinter
-	Mapper                  meta.RESTMapper
-	Client                  buildtv1client.BuildV1Interface
-	BuildClient             buildtv1client.BuildInterface
-	BuildLister             buildlisterv1.BuildLister
+	HasError    bool
+	ReportError func(error)
+	Printer     printers.ResourcePrinter
+	Mapper      meta.RESTMapper
+	Client      buildtv1client.BuildV1Interface
+	BuildClient buildtv1client.BuildInterface
+	BuildLister buildlisterv1.BuildLister
 
 	// timeout is used by unit tests to shorten the polling period
 	timeout time.Duration
@@ -120,10 +118,7 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		fmt.Fprintf(o.ErrOut, "error: %s\n", err.Error())
 	}
 
-	// FIXME: this double printers should not be necessary
-	o.PrinterCancel = &printers.NamePrinter{Operation: "cancelled"}
-	o.PrinterRestart = &printers.NamePrinter{Operation: "restarted"}
-	o.PrinterCancelInProgress = &printers.NamePrinter{Operation: "marked for cancellation, waiting to be cancelled"}
+	o.Printer = &printers.NamePrinter{}
 
 	if o.timeout.Seconds() == 0 {
 		o.timeout = 30 * time.Second
@@ -256,7 +251,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			}
 
 			// ignore exit if error here; the phase verfication below is more important
-			o.PrinterCancelInProgress.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(build, nil), o.Out)
+			o.Printer.PrintfObj("%s marked for cancellation, waiting to be cancelled", kcmdutil.AsDefaultVersionedOrOriginal(build, nil), o.Out)
 
 			// Make sure the build phase is really cancelled.
 			timeout := o.timeout
@@ -278,7 +273,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				return
 			}
 
-			if err := o.PrinterCancel.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(build, nil), o.Out); err != nil {
+			if err := o.Printer.PrintfObj("%s cancelled", kcmdutil.AsDefaultVersionedOrOriginal(build, nil), o.Out); err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to print: %v", build.Namespace, build.Name, err))
 				return
 			}
@@ -294,7 +289,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))
 				continue
 			}
-			if err := o.PrinterRestart.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(b, nil), o.Out); err != nil {
+			if err := o.Printer.PrintfObj("%s restarted", kcmdutil.AsDefaultVersionedOrOriginal(b, nil), o.Out); err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to print: %v", build.Namespace, build.Name, err))
 				continue
 			}

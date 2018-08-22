@@ -174,6 +174,10 @@ type processPrinter struct {
 	outputFormat string
 }
 
+func (p *processPrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
+}
+
 func (p *processPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
 	if p.outputFormat == "describe" {
 		templateObj, ok := obj.(*templatev1.Template)
