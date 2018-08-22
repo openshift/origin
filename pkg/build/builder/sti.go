@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+
 	//	"os/exec"
 	"path/filepath"
 	//	"strings"
@@ -22,9 +23,7 @@ import (
 	s2i "github.com/openshift/source-to-image/pkg/build/strategies"
 	"github.com/openshift/source-to-image/pkg/docker"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	"github.com/openshift/source-to-image/pkg/tar"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
-	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
@@ -198,7 +197,6 @@ func (s *S2IBuilder) Build() error {
 
 	config := &s2iapi.Config{
 		// Save some processing time by not cleaning up (the container will go away anyway)
-		// ImageWorkDir: todo
 		PreserveWorkingDir: true,
 		WorkingDir:         "/tmp",
 		DockerConfig:       &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
@@ -260,32 +258,9 @@ func (s *S2IBuilder) Build() error {
 		scriptsURL := labels[s2iconstants.ScriptsURLLabel]
 		if len(scriptsURL) > 0 {
 			glog.V(4).Infof("Using builder scripts URL %s", destination)
-			// TODO: Refactor to ImageScriptsURL
 			config.ImageScriptsURL = scriptsURL
 		}
 	}
-
-	/*
-		if len(resolvConfHostPath) != 0 {
-			cmd := exec.Command("chcon", "system_u:object_r:svirt_sandbox_file_t:s0", "/etc/resolv.conf")
-			err := cmd.Run()
-			if err != nil {
-				return fmt.Errorf("unable to set permissions on /etc/resolv.conf: %v", err)
-			}
-			config.BuildVolumes = []string{fmt.Sprintf("%s:/etc/resolv.conf", resolvConfHostPath)}
-		}
-	*/
-
-	/*
-		if s.build.Spec.Strategy.SourceStrategy.ForcePull {
-			glog.V(4).Infof("With force pull true, setting policies to %s", s2iapi.PullAlways)
-			config.BuilderPullPolicy = s2iapi.PullAlways
-		} else {
-			glog.V(4).Infof("With force pull false, setting policies to %s", s2iapi.PullIfNotPresent)
-			config.BuilderPullPolicy = s2iapi.PullIfNotPresent
-		}
-		config.PreviousImagePullPolicy = s2iapi.PullAlways
-	*/
 
 	allowedUIDs := os.Getenv(builderutil.AllowedUIDs)
 	glog.V(4).Infof("The value of %s is [%s]", builderutil.AllowedUIDs, allowedUIDs)
@@ -304,11 +279,6 @@ func (s *S2IBuilder) Build() error {
 		}
 	*/
 
-	/*
-		t, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
-		config.IncrementalAuthentication = s2iapi.AuthConfig{Username: t.Username, Password: t.Password, Email: t.Email, ServerAddress: t.ServerAddress}
-	*/
-
 	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {
 		var buffer bytes.Buffer
 		for _, ve := range errs {
@@ -318,12 +288,6 @@ func (s *S2IBuilder) Build() error {
 		return errors.New(buffer.String())
 	}
 
-	/*
-		client, err := docker.NewEngineAPIClient(config.DockerConfig)
-		if err != nil {
-			return err
-		}
-	*/
 	if glog.Is(4) {
 		redactedConfig := SafeForLoggingS2IConfig(config)
 		glog.V(4).Infof("Creating a new S2I builder with config: %#v\n", describe.Config(nil, redactedConfig))
@@ -343,16 +307,11 @@ func (s *S2IBuilder) Build() error {
 	glog.Infof("Using %s as the s2i builder image", s.build.Spec.Strategy.SourceStrategy.From.Name)
 
 	result, err := builder.Build(config)
-
-	// TODO: fix s2i dockerfile to always return a result object
-	if result != nil {
-		for _, stage := range result.BuildInfo.Stages {
-			for _, step := range stage.Steps {
-				timing.RecordNewStep(ctx, buildapiv1.StageName(stage.Name), buildapiv1.StepName(step.Name), metav1.NewTime(step.StartTime), metav1.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
-			}
+	for _, stage := range result.BuildInfo.Stages {
+		for _, step := range stage.Steps {
+			timing.RecordNewStep(ctx, buildapiv1.StageName(stage.Name), buildapiv1.StepName(step.Name), metav1.NewTime(step.StartTime), metav1.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
 		}
 	}
-
 	if err != nil {
 		s.build.Status.Phase = buildapiv1.BuildPhaseFailed
 		if result != nil {
@@ -369,26 +328,6 @@ func (s *S2IBuilder) Build() error {
 		return err
 	}
 
-	// builderImage := s.build.Spec.Strategy.SourceStrategy.From.Name
-	// pullAuthConfig, _ := dockercfg.NewHelper().GetDockerAuth(builderImage, dockercfg.PullAuthType)
-
-	// err = pullImage(s.dockerClient, builderImage, pullAuthConfig)
-	// if err != nil {
-	// 	s.build.Status.Phase = buildapiv1.BuildPhaseFailed
-	// 	s.build.Status.Reason = buildapiv1.StatusReasonPullBuilderImageFailed
-	// 	s.build.Status.Message = builderutil.StatusMessagePullBuilderImageFailed
-	// 	HandleBuildStatusUpdate(s.build, s.client, nil)
-	// 	return err
-	// }
-
-	pullAuthConfigs, err := s.setupPullSecret()
-
-	if err != nil {
-		return err
-	}
-
-	// BuildArgs not needed - should exist in Dockerfile as ENV
-	// TODO: Why isn't Auth allowing the image to be pulled in?
 	opts := dockerclient.BuildImageOptions{
 		Name:                buildTag,
 		RmTmpContainer:      true,
@@ -399,12 +338,21 @@ func (s *S2IBuilder) Build() error {
 		Pull:                s.build.Spec.Strategy.SourceStrategy.ForcePull,
 	}
 
+	pullAuthConfigs, err := s.setupPullSecret()
+	if err != nil {
+		s.build.Status.Phase = buildapiv1.BuildPhaseFailed
+		s.build.Status.Reason = buildapiv1.StatusReasonPullBuilderImageFailed
+		s.build.Status.Message = builderutil.StatusMessagePullBuilderImageFailed
+		return err
+	}
 	if pullAuthConfigs != nil {
 		opts.AuthConfigs = *pullAuthConfigs
 	}
 
+	glog.Infof("Using imagebuilder to create image %s", buildTag)
 	startTime := metav1.Now()
-	err = dockerBuildImage(s.dockerClient, "/tmp/dockercontext", tar.New(s2ifs.NewFileSystem()), &opts)
+	err = buildDirectImage("/tmp/dockercontext", false, &opts)
+	// err = dockerBuildImage(s.dockerClient, "/tmp/dockercontext", tar.New(s2ifs.NewFileSystem()), &opts)
 	timing.RecordNewStep(ctx, buildapiv1.StageBuild, buildapiv1.StepDockerBuild, startTime, metav1.Now())
 	if err != nil {
 		// TODO: Create new error states
@@ -469,9 +417,6 @@ func (s *S2IBuilder) Build() error {
 		}
 		glog.V(0).Infof("Push successful")
 	}
-
-	//glog.Infof("sleeping")
-	//time.Sleep(10 * time.Minute)
 
 	return nil
 }
