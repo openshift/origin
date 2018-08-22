@@ -151,6 +151,12 @@ func runCompletionZsh(out io.Writer, boilerPlate string, kubectl *cobra.Command)
 	}
 
 	zsh_initialization := `
+__kubectl_debug() {
+	if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
+		echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
+	fi
+}
+
 __kubectl_bash_source() {
 	alias shopt=':'
 	alias _expand=_bash_expand
