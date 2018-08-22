@@ -500,7 +500,6 @@
       "vendor/github.com/openshift/client-go",
       "vendor/github.com/openshift/imagebuilder",
       "vendor/github.com/openshift/source-to-image",
-      "vendor/github.com/pborman/uuid",
       "vendor/github.com/prometheus/client_golang",
       "vendor/github.com/RangelReale/osincli",
       "vendor/github.com/spf13/cobra",
