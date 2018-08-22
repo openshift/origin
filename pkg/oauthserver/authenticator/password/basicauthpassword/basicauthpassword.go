@@ -8,12 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
-
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
 )
 
 // Authenticator uses basic auth to make a request to a JSON-returning URL.
@@ -134,12 +133,5 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		identity.Extra[authapi.IdentityEmailKey] = remoteUserData.Email
 	}
 
-	user, err := a.mapper.UserFor(identity)
-	if err != nil {
-		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
-		return nil, false, err
-	}
-	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
-
-	return user, true, nil
+	return identitymapper.UserFor(a.mapper, identity)
 }

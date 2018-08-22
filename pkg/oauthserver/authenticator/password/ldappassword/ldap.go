@@ -13,6 +13,7 @@ import (
 	"gopkg.in/ldap.v2"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 )
@@ -63,15 +64,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		return nil, false, nil
 	}
 
-	user, err := a.mapper.UserFor(identity)
-	if err != nil {
-		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
-		return nil, false, err
-	}
-	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
-
-	return user, true, nil
-
+	return identitymapper.UserFor(a.mapper, identity)
 }
 
 // getIdentity looks up a username in an LDAP server, and attempts to bind to the user's DN using the provided password

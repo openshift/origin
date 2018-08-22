@@ -9,10 +9,12 @@ import (
 
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
+
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
@@ -135,14 +137,7 @@ func (h *Handler) AuthenticatePassword(username, password string) (user.Info, bo
 		return nil, false, err
 	}
 
-	user, err := h.mapper.UserFor(identity)
-	glog.V(5).Infof("Got userIdentityMapping: %#v", user)
-	if err != nil {
-		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
-		return nil, false, err
-	}
-
-	return user, true, nil
+	return identitymapper.UserFor(h.mapper, identity)
 }
 
 // ServeHTTP handles the callback request in response to an external oauth flow
@@ -198,12 +193,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	user, err := h.mapper.UserFor(identity)
-	glog.V(5).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {
 		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
 		h.handleError(err, w, req)
 		return
 	}
+	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
 	_, err = h.success.AuthenticationSucceeded(user, authData.State, w, req)
 	if err != nil {
