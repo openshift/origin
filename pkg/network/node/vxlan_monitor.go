@@ -183,7 +183,7 @@ func (evm *egressVXLANMonitor) check(retryOnly bool) bool {
 			utilruntime.HandleError(fmt.Errorf("Could not parse %q: %v", flow, err))
 			continue
 		}
-		outTraffic[tunDst] = nPackets
+		outTraffic[tunDst] += nPackets
 	}
 
 	retry := false

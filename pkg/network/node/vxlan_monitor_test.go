@@ -8,16 +8,22 @@ import (
 	"github.com/openshift/origin/pkg/util/ovs"
 )
 
-func setPacketCounts(ovsif ovs.Interface, nodeIP string, sent, received int64) {
+func packetsIn(ovsif ovs.Interface, counts map[string]int, nodeIP string) {
+	counts[nodeIP] += 1
 	otx := ovsif.NewTransaction()
 	otx.DeleteFlows("table=10, tun_src=%s", nodeIP)
-	otx.DeleteFlows("table=100, dummy=%s", nodeIP)
-	if received >= 0 {
-		otx.AddFlow("table=10, n_packets=%d, tun_src=%s, actions=goto_table:30", received, nodeIP)
+	otx.AddFlow("table=10, n_packets=%d, tun_src=%s, actions=goto_table:30", counts[nodeIP], nodeIP)
+	err := otx.Commit()
+	if err != nil {
+		panic("can't happen: " + err.Error())
 	}
-	if sent >= 0 {
-		otx.AddFlow("table=100, n_packets=%d, dummy=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", sent, nodeIP, nodeIP)
-	}
+}
+
+func packetsOut(ovsif ovs.Interface, counts map[uint32]int, nodeIP string, vnid uint32) {
+	counts[vnid] += 1
+	otx := ovsif.NewTransaction()
+	otx.DeleteFlows("table=100, dummy=%s, reg0=%d", nodeIP, vnid)
+	otx.AddFlow("table=100, n_packets=%d, dummy=%s, reg0=%d, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", counts[vnid], nodeIP, vnid, nodeIP)
 	err := otx.Commit()
 	if err != nil {
 		panic("can't happen: " + err.Error())
@@ -36,11 +42,20 @@ func peekUpdate(updates chan *egressVXLANNode) *egressVXLANNode {
 func TestEgressVXLANMonitor(t *testing.T) {
 	ovsif := ovs.NewFake(Br0)
 	ovsif.AddBridge()
-	setPacketCounts(ovsif, "192.168.1.1", 0, 0)
-	setPacketCounts(ovsif, "192.168.1.2", -1, 0)
-	setPacketCounts(ovsif, "192.168.1.3", 0, 0)
-	setPacketCounts(ovsif, "192.168.1.4", -1, 0)
-	setPacketCounts(ovsif, "192.168.1.5", 0, 0)
+
+	inCounts := make(map[string]int)
+	outCounts := make(map[uint32]int)
+
+	packetsIn(ovsif, inCounts, "192.168.1.1")
+	packetsOut(ovsif, outCounts, "192.168.1.1", 0x41)
+	packetsIn(ovsif, inCounts, "192.168.1.2")
+	packetsIn(ovsif, inCounts, "192.168.1.3")
+	packetsOut(ovsif, outCounts, "192.168.1.3", 0x43)
+	packetsIn(ovsif, inCounts, "192.168.1.4")
+	packetsIn(ovsif, inCounts, "192.168.1.5")
+	packetsOut(ovsif, outCounts, "192.168.1.5", 0x45)
+	packetsOut(ovsif, outCounts, "192.168.1.5", 0x46)
+	packetsOut(ovsif, outCounts, "192.168.1.5", 0x47)
 
 	updates := make(chan *egressVXLANNode, 10)
 	evm := newEgressVXLANMonitor(ovsif, nil, updates)
@@ -60,11 +75,18 @@ func TestEgressVXLANMonitor(t *testing.T) {
 	}
 
 	// Send and receive some traffic
-	setPacketCounts(ovsif, "192.168.1.1", 10, 10)
-	setPacketCounts(ovsif, "192.168.1.2", -1, 20)
-	setPacketCounts(ovsif, "192.168.1.3", 10, 30)
-	setPacketCounts(ovsif, "192.168.1.4", -1, 40)
-	setPacketCounts(ovsif, "192.168.1.5", 70, 50)
+	packetsOut(ovsif, outCounts, "192.168.1.1", 0x41)
+	packetsIn(ovsif, inCounts, "192.168.1.1")
+
+	packetsIn(ovsif, inCounts, "192.168.1.2")
+
+	packetsOut(ovsif, outCounts, "192.168.1.3", 0x43)
+	packetsIn(ovsif, inCounts, "192.168.1.3")
+
+	packetsIn(ovsif, inCounts, "192.168.1.4")
+
+	packetsOut(ovsif, outCounts, "192.168.1.5", 0x45)
+	packetsIn(ovsif, inCounts, "192.168.1.5")
 
 	retry = evm.check(false)
 	if update := peekUpdate(updates); update != nil {
@@ -74,10 +96,11 @@ func TestEgressVXLANMonitor(t *testing.T) {
 		t.Fatalf("Check erroneously requested retry")
 	}
 
-	// Send some more traffic to .3 but don't receive any. Receive some more
-	// traffic from 5 but don't send any.
-	setPacketCounts(ovsif, "192.168.1.3", 20, 30)
-	setPacketCounts(ovsif, "192.168.1.5", 70, 100)
+	// Send some more traffic to .3 but don't receive any; this should cause
+	// .3 to be noticed as "maybe offline", causing retries. OTOH, receiving
+	// traffic on .5 without having sent any should have no effect.
+	packetsOut(ovsif, outCounts, "192.168.1.3", 0x43)
+	packetsIn(ovsif, inCounts, "192.168.1.5")
 
 	retry = evm.check(false)
 	if update := peekUpdate(updates); update != nil {
@@ -94,8 +117,8 @@ func TestEgressVXLANMonitor(t *testing.T) {
 		t.Fatalf("Check erroneously failed to request retry")
 	}
 
-	// Since we're only doing retries, it should ignore this
-	setPacketCounts(ovsif, "192.168.1.1", 20, 10)
+	// Since we're only doing retries right now, it should ignore this
+	packetsOut(ovsif, outCounts, "192.168.1.1", 0x41)
 
 	retry = evm.check(true)
 	if update := peekUpdate(updates); update == nil {
@@ -110,7 +133,9 @@ func TestEgressVXLANMonitor(t *testing.T) {
 		t.Fatalf("Check erroneously requested retry")
 	}
 
-	setPacketCounts(ovsif, "192.168.1.1", 20, 20)
+	// If we update .1 now before the next full check, then the monitor should never
+	// notice that it was briefly out of sync.
+	packetsIn(ovsif, inCounts, "192.168.1.1")
 	retry = evm.check(false)
 	if update := peekUpdate(updates); update != nil {
 		t.Fatalf("Check erroneously showed updated node %#v", update)
@@ -120,7 +145,7 @@ func TestEgressVXLANMonitor(t *testing.T) {
 	}
 
 	// Have .1 lag a bit but then catch up
-	setPacketCounts(ovsif, "192.168.1.1", 30, 20)
+	packetsOut(ovsif, outCounts, "192.168.1.1", 0x41)
 	retry = evm.check(false)
 	if update := peekUpdate(updates); update != nil {
 		t.Fatalf("Check erroneously showed updated node %#v", update)
@@ -129,7 +154,7 @@ func TestEgressVXLANMonitor(t *testing.T) {
 		t.Fatalf("Check erroneously failed to request retry")
 	}
 
-	setPacketCounts(ovsif, "192.168.1.1", 30, 30)
+	packetsIn(ovsif, inCounts, "192.168.1.1")
 	retry = evm.check(true)
 	if update := peekUpdate(updates); update != nil {
 		t.Fatalf("Check erroneously showed updated node %#v", update)
@@ -139,11 +164,56 @@ func TestEgressVXLANMonitor(t *testing.T) {
 	}
 
 	// Now bring back the failed node
-	setPacketCounts(ovsif, "192.168.1.3", 50, 40)
+	packetsOut(ovsif, outCounts, "192.168.1.3", 0x43)
+	packetsIn(ovsif, inCounts, "192.168.1.3")
 	retry = evm.check(false)
 	if update := peekUpdate(updates); update == nil {
 		t.Fatalf("Node failed to recover")
 	} else if update.nodeIP != "192.168.1.3" || update.offline {
+		t.Fatalf("Unexpected updated node %#v", update)
+	}
+	if update := peekUpdate(updates); update != nil {
+		t.Fatalf("Check erroneously showed additional updated node %#v", update)
+	}
+	if retry {
+		t.Fatalf("Check erroneously requested retry")
+	}
+
+	// When a node hosts multiple egress IPs, we should notice it failing if *any*
+	// IP fails
+	packetsOut(ovsif, outCounts, "192.168.1.5", 0x46)
+	retry = evm.check(false)
+	if update := peekUpdate(updates); update != nil {
+		t.Fatalf("Check erroneously showed updated node %#v", update)
+	}
+	if !retry {
+		t.Fatalf("Check erroneously failed to request retry")
+	}
+	retry = evm.check(true)
+	if update := peekUpdate(updates); update != nil {
+		t.Fatalf("Check erroneously showed updated node %#v", update)
+	}
+	if !retry {
+		t.Fatalf("Check erroneously failed to request retry")
+	}
+	retry = evm.check(true)
+	if update := peekUpdate(updates); update == nil {
+		t.Fatalf("Check failed to fail after maxRetries")
+	} else if update.nodeIP != "192.168.1.5" || !update.offline {
+		t.Fatalf("Unexpected update node %#v", update)
+	}
+	if update := peekUpdate(updates); update != nil {
+		t.Fatalf("Check erroneously showed additional updated node %#v", update)
+	}
+	if retry {
+		t.Fatalf("Check erroneously requested retry")
+	}
+
+	packetsIn(ovsif, inCounts, "192.168.1.5")
+	retry = evm.check(false)
+	if update := peekUpdate(updates); update == nil {
+		t.Fatalf("Node failed to recover")
+	} else if update.nodeIP != "192.168.1.5" || update.offline {
 		t.Fatalf("Unexpected updated node %#v", update)
 	}
 	if update := peekUpdate(updates); update != nil {
