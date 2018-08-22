@@ -193,8 +193,9 @@ func (s *storage) RemoveRefresh(token string) error {
 func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*oauthapi.OAuthAuthorizeToken, error) {
 	token := &oauthapi.OAuthAuthorizeToken{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              data.Code,
-			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
+			Name: data.Code,
+			// creation time is controlled by the API
+			// CreationTimestamp: metav1.Time{Time: data.CreatedAt},
 		},
 		CodeChallenge:       data.CodeChallenge,
 		CodeChallengeMethod: data.CodeChallengeMethod,
@@ -240,8 +241,9 @@ func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeTo
 func (s *storage) convertToAccessToken(data *osin.AccessData) (*oauthapi.OAuthAccessToken, error) {
 	token := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              data.AccessToken,
-			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
+			Name: data.AccessToken,
+			// creation time is controlled by the API
+			// CreationTimestamp: metav1.Time{Time: data.CreatedAt},
 		},
 		ExpiresIn:    int64(data.ExpiresIn),
 		RefreshToken: data.RefreshToken,
