@@ -7,15 +7,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	templatev1 "github.com/openshift/api/template/v1"
-	templateclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
-	templatev1informer "github.com/openshift/client-go/template/informers/externalversions/template/v1"
-	templatelister "github.com/openshift/client-go/template/listers/template/v1"
-	"github.com/openshift/origin/pkg/authorization/util"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	"github.com/openshift/origin/pkg/client/templateprocessing"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/prometheus/client_golang/prometheus"
+
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,16 +21,33 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/utils/clock"
+
+	templatev1 "github.com/openshift/api/template/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	templatev1clienttyped "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
+	templatev1informer "github.com/openshift/client-go/template/informers/externalversions/template/v1"
+	templatelister "github.com/openshift/client-go/template/listers/template/v1"
+	"github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/origin/pkg/client/templateprocessing"
 )
 
-const readinessTimeout = time.Hour
+const (
+	readinessTimeout = time.Hour
+
+	WaitForReadyAnnotation    = "template.alpha.openshift.io/wait-for-ready"
+	TemplateInstanceOwner     = "template.openshift.io/template-instance-owner"
+	TemplateInstanceFinalizer = "template.openshift.io/finalizer"
+)
+
+var (
+	TimeoutErr = errors.New("timeout while waiting for template instance to be ready")
+)
 
 // TemplateInstanceController watches for new TemplateInstance objects and
 // instantiates the template contained within, using parameters read from a
@@ -49,14 +59,14 @@ type TemplateInstanceController struct {
 	// (discuss w/ deads what this means)
 	dynamicRestMapper meta.RESTMapper
 	dynamicClient     dynamic.Interface
-	templateClient    templateclient.TemplateV1Interface
+	templateClient    templatev1clienttyped.TemplateV1Interface
 
 	// FIXME: Remove then cient when the build configs are able to report the
 	//				status of the last build.
-	buildClient buildclient.Interface
+	buildClient buildv1client.Interface
 
 	sarClient authorizationclient.SubjectAccessReviewsGetter
-	kc        kclientsetinternal.Interface
+	kc        kubernetes.Interface
 
 	lister   templatelister.TemplateInstanceLister
 	informer cache.SharedIndexInformer
@@ -69,7 +79,7 @@ type TemplateInstanceController struct {
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, sarClient authorizationclient.SubjectAccessReviewsGetter, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.TemplateV1Interface, informer templatev1informer.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, sarClient authorizationclient.SubjectAccessReviewsGetter, kc kubernetes.Interface, buildClient buildv1client.Interface, templateClient templatev1clienttyped.TemplateV1Interface, informer templatev1informer.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
 		dynamicRestMapper: dynamicRestMapper,
 		dynamicClient:     dynamicClient,
@@ -202,7 +212,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 
 func (c *TemplateInstanceController) checkReadiness(templateInstance *templatev1.TemplateInstance) (bool, error) {
 	if c.clock.Now().After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
-		return false, fmt.Errorf("Timeout")
+		return false, TimeoutErr
 	}
 
 	extra := map[string][]string{}
@@ -246,7 +256,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templatev1
 			return false, kerrors.NewNotFound(mapping.Resource.GroupResource(), object.Ref.Name)
 		}
 
-		if strings.ToLower(obj.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
+		if strings.ToLower(obj.GetAnnotations()[WaitForReadyAnnotation]) != "true" {
 			continue
 		}
 
@@ -255,7 +265,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templatev1
 			return false, err
 		}
 		if failed {
-			return false, fmt.Errorf("Readiness failed on %s %s/%s", object.Ref.Kind, object.Ref.Namespace, object.Ref.Name)
+			return false, fmt.Errorf("readiness failed on %s %s/%s", object.Ref.Kind, object.Ref.Namespace, object.Ref.Name)
 		}
 		if !ready {
 			return false, nil
@@ -317,7 +327,7 @@ func (c *TemplateInstanceController) processNextWorkItem() bool {
 func (c *TemplateInstanceController) enqueue(templateInstance *templatev1.TemplateInstance) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(templateInstance)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", templateInstance, err))
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", templateInstance, err))
 		return
 	}
 
@@ -328,7 +338,7 @@ func (c *TemplateInstanceController) enqueue(templateInstance *templatev1.Templa
 func (c *TemplateInstanceController) enqueueAfter(templateInstance *templatev1.TemplateInstance, duration time.Duration) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(templateInstance)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", templateInstance, err))
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", templateInstance, err))
 		return
 	}
 
@@ -355,19 +365,19 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 		Extra:  extra,
 	}
 
-	var secret *kapi.Secret
+	var secret *corev1.Secret
 	if templateInstance.Spec.Secret != nil {
 		if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: templateInstance.Namespace,
 			Verb:      "get",
-			Group:     kapi.GroupName,
+			Group:     corev1.GroupName,
 			Resource:  "secrets",
 			Name:      templateInstance.Spec.Secret.Name,
 		}); err != nil {
 			return err
 		}
 
-		s, err := c.kc.Core().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name, metav1.GetOptions{})
+		s, err := c.kc.CoreV1().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name, metav1.GetOptions{})
 		secret = s
 		if err != nil {
 			return err
@@ -412,7 +422,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 		if labels == nil {
 			labels = make(map[string]string)
 		}
-		labels[templateapi.TemplateInstanceOwner] = string(templateInstance.UID)
+		labels[TemplateInstanceOwner] = string(templateInstance.UID)
 		obj.SetLabels(labels)
 	}
 
@@ -480,7 +490,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 				continue
 			}
 
-			owner, ok := freshGottenObj.GetLabels()[templateapi.TemplateInstanceOwner]
+			owner, ok := freshGottenObj.GetLabels()[TemplateInstanceOwner]
 			// if the labels match, it's already our object so pretend we created
 			// it successfully.
 			if ok && owner == string(templateInstance.UID) {
@@ -512,13 +522,13 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 	// TODO perhaps this should be done in a strategy long term.
 	hasFinalizer := false
 	for _, v := range templateInstance.Finalizers {
-		if v == templateapi.TemplateInstanceFinalizer {
+		if v == TemplateInstanceFinalizer {
 			hasFinalizer = true
 			break
 		}
 	}
 	if !hasFinalizer {
-		templateInstance.Finalizers = append(templateInstance.Finalizers, templateapi.TemplateInstanceFinalizer)
+		templateInstance.Finalizers = append(templateInstance.Finalizers, TemplateInstanceFinalizer)
 	}
 	if len(allErrors) > 0 {
 		return utilerrors.NewAggregate(allErrors)

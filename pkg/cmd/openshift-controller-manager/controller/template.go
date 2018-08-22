@@ -22,8 +22,8 @@ func RunTemplateInstanceController(ctx *ControllerContext) (bool, error) {
 		ctx.RestMapper,
 		dynamicClient,
 		ctx.ClientBuilder.ClientGoClientOrDie(saName).AuthorizationV1(),
-		ctx.ClientBuilder.KubeInternalClientOrDie(saName),
-		ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(saName),
+		ctx.ClientBuilder.ClientGoClientOrDie(saName),
+		ctx.ClientBuilder.OpenshiftBuildClientOrDie(saName),
 		ctx.ClientBuilder.OpenshiftTemplateClientOrDie(saName).TemplateV1(),
 		ctx.InternalTemplateInformers.Template().V1().TemplateInstances(),
 	).Run(5, ctx.Stop)

@@ -15,15 +15,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
-	clientgofake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/utils/clock"
 
 	templatev1 "github.com/openshift/api/template/v1"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 type roundtripper func(*http.Request) (*http.Response, error)
@@ -45,7 +43,7 @@ func (f *fakeClock) Now() time.Time {
 // TemplateInstanceController.checkReadiness(): that it can return ready, not
 // ready and timed out correctly.
 func TestControllerCheckReadiness(t *testing.T) {
-	clock := &fakeClock{now: time.Unix(0, 0)}
+	fakeClock := &fakeClock{now: time.Unix(0, 0)}
 
 	job := batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -54,7 +52,7 @@ func TestControllerCheckReadiness(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				templateapi.WaitForReadyAnnotation: "true",
+				WaitForReadyAnnotation: "true",
 			},
 		},
 	}
@@ -82,12 +80,12 @@ func TestControllerCheckReadiness(t *testing.T) {
 
 	// fakeclient, respond "allowed" to any subjectaccessreview
 	fakeclientset := &fake.Clientset{}
-	sarClient := clientgofake.NewSimpleClientset()
+	sarClient := fake.NewSimpleClientset()
 	c := &TemplateInstanceController{
 		dynamicRestMapper: testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...),
 		sarClient:         sarClient.AuthorizationV1(),
 		kc:                fakeclientset,
-		clock:             clock,
+		clock:             fakeClock,
 		dynamicClient:     client,
 	}
 	sarClient.PrependReactor("create", "subjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -96,7 +94,7 @@ func TestControllerCheckReadiness(t *testing.T) {
 
 	templateInstance := &templatev1.TemplateInstance{
 		ObjectMeta: metav1.ObjectMeta{
-			CreationTimestamp: metav1.Time{Time: clock.now},
+			CreationTimestamp: metav1.Time{Time: fakeClock.now},
 		},
 		Spec: templatev1.TemplateInstanceSpec{
 			Requester: &templatev1.TemplateInstanceRequester{},
@@ -122,15 +120,15 @@ func TestControllerCheckReadiness(t *testing.T) {
 	}
 
 	// should report timed out
-	clock.now = clock.now.Add(readinessTimeout + 1)
+	fakeClock.now = fakeClock.now.Add(readinessTimeout + 1)
 	ready, err = c.checkReadiness(templateInstance)
-	if ready || err == nil || err.Error() != "Timeout" {
+	if ready || err == nil || err != TimeoutErr {
 		t.Error(ready, err)
 	}
 
 	// should report ready
-	clock.now = time.Unix(0, 0)
-	job.Status.CompletionTime = &metav1.Time{Time: clock.now}
+	fakeClock.now = time.Unix(0, 0)
+	job.Status.CompletionTime = &metav1.Time{Time: fakeClock.now}
 	ready, err = c.checkReadiness(templateInstance)
 	if !ready || err != nil {
 		t.Error(ready, err)
@@ -139,7 +137,7 @@ func TestControllerCheckReadiness(t *testing.T) {
 	// should report failed
 	job.Status.Failed = 1
 	ready, err = c.checkReadiness(templateInstance)
-	if ready || err == nil || err.Error() != "Readiness failed on Job namespace/name" {
+	if ready || err == nil || err.Error() != "readiness failed on Job namespace/name" {
 		t.Error(ready, err)
 	}
 }

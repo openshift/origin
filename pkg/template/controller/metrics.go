@@ -3,11 +3,12 @@ package controller
 import (
 	"time"
 
-	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	templatev1 "github.com/openshift/api/template/v1"
 )
 
 var templateInstanceCompleted = prometheus.NewCounterVec(
