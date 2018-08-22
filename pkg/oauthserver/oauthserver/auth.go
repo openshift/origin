@@ -104,11 +104,11 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	}
 	storage := registrystorage.New(c.ExtraOAuthConfig.OAuthAccessTokenClient, c.ExtraOAuthConfig.OAuthAuthorizeTokenClient, combinedOAuthClientGetter, tokentimeout)
 	config := osinserver.NewDefaultServerConfig()
-	if c.ExtraOAuthConfig.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds > 0 {
-		config.AuthorizationExpiration = c.ExtraOAuthConfig.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds
+	if authorizationExpiration := c.ExtraOAuthConfig.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds; authorizationExpiration > 0 {
+		config.AuthorizationExpiration = authorizationExpiration
 	}
-	if c.ExtraOAuthConfig.Options.TokenConfig.AccessTokenMaxAgeSeconds > 0 {
-		config.AccessExpiration = c.ExtraOAuthConfig.Options.TokenConfig.AccessTokenMaxAgeSeconds
+	if accessExpiration := c.ExtraOAuthConfig.Options.TokenConfig.AccessTokenMaxAgeSeconds; accessExpiration > 0 {
+		config.AccessExpiration = accessExpiration
 	}
 
 	grantChecker := registry.NewClientAuthorizationGrantChecker(c.ExtraOAuthConfig.OAuthClientAuthorizationClient)
@@ -139,12 +139,6 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 
 	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.ExtraOAuthConfig.Options.MasterPublicURL, c.getOsinOAuthClient)
 	tokenRequestEndpoints.Install(mux, urls.OpenShiftOAuthAPIPrefix)
-
-	// glog.Infof("oauth server configured as: %#v", server)
-	// glog.Infof("auth handler: %#v", authHandler)
-	// glog.Infof("auth request handler: %#v", authRequestHandler)
-	// glog.Infof("grant checker: %#v", grantChecker)
-	// glog.Infof("grant handler: %#v", grantHandler)
 
 	return baseMux, nil
 }
@@ -464,7 +458,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handl
 
 func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
 	switch provider := identityProvider.Provider.(type) {
-	case (*configapi.GitHubIdentityProvider):
+	case *configapi.GitHubIdentityProvider:
 		transport, err := transportFor(provider.CA, "", "")
 		if err != nil {
 			return nil, err
@@ -475,7 +469,7 @@ func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.Identity
 		}
 		return github.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.Hostname, transport, provider.Organizations, provider.Teams), nil
 
-	case (*configapi.GitLabIdentityProvider):
+	case *configapi.GitLabIdentityProvider:
 		transport, err := transportFor(provider.CA, "", "")
 		if err != nil {
 			return nil, err
@@ -486,14 +480,14 @@ func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.Identity
 		}
 		return gitlab.NewProvider(identityProvider.Name, provider.URL, provider.ClientID, clientSecret, transport, provider.Legacy)
 
-	case (*configapi.GoogleIdentityProvider):
+	case *configapi.GoogleIdentityProvider:
 		clientSecret, err := configapi.ResolveStringValue(provider.ClientSecret)
 		if err != nil {
 			return nil, err
 		}
 		return google.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.HostedDomain)
 
-	case (*configapi.OpenIDIdentityProvider):
+	case *configapi.OpenIDIdentityProvider:
 		transport, err := transportFor(provider.CA, "", "")
 		if err != nil {
 			return nil, err
@@ -541,13 +535,13 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 	}
 
 	switch provider := identityProvider.Provider.(type) {
-	case (*configapi.AllowAllPasswordIdentityProvider):
+	case *configapi.AllowAllPasswordIdentityProvider:
 		return allowanypassword.New(identityProvider.Name, identityMapper), nil
 
-	case (*configapi.DenyAllPasswordIdentityProvider):
+	case *configapi.DenyAllPasswordIdentityProvider:
 		return denypassword.New(), nil
 
-	case (*configapi.LDAPPasswordIdentityProvider):
+	case *configapi.LDAPPasswordIdentityProvider:
 		url, err := ldaputil.ParseURL(provider.URL)
 		if err != nil {
 			return nil, fmt.Errorf("Error parsing LDAPPasswordIdentityProvider URL: %v", err)
@@ -573,7 +567,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)
 
-	case (*configapi.HTPasswdPasswordIdentityProvider):
+	case *configapi.HTPasswdPasswordIdentityProvider:
 		htpasswdFile := provider.File
 		if len(htpasswdFile) == 0 {
 			return nil, fmt.Errorf("HTPasswdFile is required to support htpasswd auth")
@@ -584,7 +578,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 			return htpasswordAuth, nil
 		}
 
-	case (*configapi.BasicAuthPasswordIdentityProvider):
+	case *configapi.BasicAuthPasswordIdentityProvider:
 		connectionInfo := provider.RemoteConnectionInfo
 		if len(connectionInfo.URL) == 0 {
 			return nil, fmt.Errorf("URL is required for BasicAuthPasswordIdentityProvider")
@@ -595,7 +589,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 		}
 		return basicauthpassword.New(identityProvider.Name, connectionInfo.URL, transport, identityMapper), nil
 
-	case (*configapi.KeystonePasswordIdentityProvider):
+	case *configapi.KeystonePasswordIdentityProvider:
 		connectionInfo := provider.RemoteConnectionInfo
 		if len(connectionInfo.URL) == 0 {
 			return nil, fmt.Errorf("URL is required for KeystonePasswordIdentityProvider")
@@ -647,7 +641,7 @@ func (c *OAuthServerConfig) getAuthenticationRequestHandler() (authenticator.Req
 
 		} else {
 			switch provider := identityProvider.Provider.(type) {
-			case (*configapi.RequestHeaderIdentityProvider):
+			case *configapi.RequestHeaderIdentityProvider:
 				var authRequestHandler authenticator.Request
 
 				authRequestConfig := &headerrequest.Config{

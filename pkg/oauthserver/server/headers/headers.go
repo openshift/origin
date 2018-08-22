@@ -16,7 +16,7 @@ func SetStandardHeaders(w http.ResponseWriter) {
 		"Referrer-Policy": "strict-origin-when-cross-origin",
 		// Do not allow embedding as that can lead to clickjacking attacks
 		"X-Frame-Options": "DENY",
-		// Add other basic scurity hygiene headers
+		// Add other basic security hygiene headers
 		"X-Content-Type-Options": "nosniff",
 		"X-DNS-Prefetch-Control": "off",
 		"X-XSS-Protection":       "1; mode=block",
