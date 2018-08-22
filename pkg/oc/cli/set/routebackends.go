@@ -94,7 +94,7 @@ type BackendsOptions struct {
 
 func NewBackendsOptions(streams genericclioptions.IOStreams) *BackendsOptions {
 	return &BackendsOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("backends updated").WithTypeSetter(scheme.Scheme),
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }
@@ -157,9 +157,6 @@ func (o *BackendsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 	}
 	o.Builder = f.NewBuilder
 
-	if o.DryRun {
-		o.PrintFlags.Complete("%s (dry run)")
-	}
 	o.Printer, err = o.PrintFlags.ToPrinter()
 	if err != nil {
 		return err
@@ -238,7 +235,7 @@ func (o *BackendsOptions) Run() error {
 		}
 
 		if o.Local || o.DryRun {
-			if err := o.Printer.PrintObj(info.Object, o.Out); err != nil {
+			if err := o.Printer.PrintfObj("%s backends updated (dry run)", info.Object, o.Out); err != nil {
 				allErrs = append(allErrs, err)
 			}
 			continue
@@ -250,7 +247,7 @@ func (o *BackendsOptions) Run() error {
 			continue
 		}
 
-		if err := o.Printer.PrintObj(actual, o.Out); err != nil {
+		if err := o.Printer.PrintfObj("%s backends updated", actual, o.Out); err != nil {
 			allErrs = append(allErrs, err)
 		}
 	}
