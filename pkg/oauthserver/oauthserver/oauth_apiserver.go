@@ -43,6 +43,7 @@ func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *r
 
 	var sessionAuth *session.Authenticator
 	if oauthConfig.SessionConfig != nil {
+		// TODO we really need to enforce HTTPS always
 		secure := isHTTPS(oauthConfig.MasterPublicURL)
 		auth, err := buildSessionAuth(secure, oauthConfig.SessionConfig)
 		if err != nil {
