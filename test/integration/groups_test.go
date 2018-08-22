@@ -50,13 +50,13 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	}
 
 	// make sure that user/~ returns groups for unbacked users
-	expectedClusterAdminGroups := []string{"system:cluster-admins", "system:masters"}
+	expectedClusterAdminGroups := []string{"system:authenticated", "system:cluster-admins", "system:masters"}
 	clusterAdminUser, err := clusterAdminUserClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !reflect.DeepEqual(clusterAdminUser.Groups, expectedClusterAdminGroups) {
-		t.Errorf("expected %v, got %v", clusterAdminUser.Groups, expectedClusterAdminGroups)
+		t.Errorf("expected %v, got %v", expectedClusterAdminGroups, clusterAdminUser.Groups)
 	}
 
 	valerieGroups := []string{"theGroup"}
@@ -66,13 +66,14 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	// make sure that user/~ doesn't get back system groups when it merges
+	// make sure that user/~ returns system groups for backed users when it merges
+	expectedValerieGroups := append([]string{"system:authenticated", "system:authenticated:oauth"}, valerieGroups...)
 	secondValerie, err := userclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(secondValerie.Groups, valerieGroups) {
-		t.Errorf("expected %v, got %v", secondValerie.Groups, valerieGroups)
+	if !reflect.DeepEqual(secondValerie.Groups, expectedValerieGroups) {
+		t.Errorf("expected %v, got %v", expectedValerieGroups, secondValerie.Groups)
 	}
 
 	_, err = valerieProjectClient.Projects().Get("empty", metav1.GetOptions{})
