@@ -4,10 +4,6 @@
 - [Getting Started](#getting-started)
   - [Prerequisities](#prerequisites)
   - [Linux](#linux)
-  - [MacOS with Docker for Mac](#macos-with-docker-for-mac)
-  - [Mac OS X with Docker Machine](#mac-os-x-with-docker-machine)
-  - [Windows with Docker for Windows](#windows-with-docker-for-windows)
-  - [Windows with Docker Machine](#windows-with-docker-machine)
 - [Persistent Volumes](#persistent-volumes)
 - [Using a Proxy](#using-a-proxy)
 - [Installing Metrics](#installing-metrics)
@@ -39,8 +35,6 @@ OpenShift officially supports the following versions of Docker:
 ## Overview
 
 The `oc cluster up` command starts a local OpenShift all-in-one cluster with a configured registry, router, image streams, and default templates.
-By default, the command requires a working Docker connection. However, if running in an environment with
-[Docker Machine](https://docs.docker.com/machine) installed, it can create a Docker machine for you.
 
 The `oc cluster up` command will create a default user and project and, once it completes, will allow you to start using the
 command line to create and deploy apps with commands like `oc new-app`, `oc new-build`, and `oc run`. It will also print out
@@ -49,6 +43,8 @@ a URL to access the management console for your cluster.
 ## Getting Started
 
 ### Linux
+
+Currently Linux (including a Linux VM running on another platform) is the only supported platform for cluster up.
 
 | WARNING |
 | ------- |
@@ -118,136 +114,6 @@ To stop your cluster, run:
 ```
 $ oc cluster down
 ```
-
-### MacOS with Docker for Mac
-
-> `oc cluster up` with Docker for Mac does not work with versions 3.7.1 and earlier.
-  We recommend using [Mac OS X with Docker Machine](#mac-os-x-with-docker-machine) with these versions of the openshift cli.
-  See [issue #17570](https://github.com/openshift/origin/issues/17570).
-
-1. Install [Docker for Mac](https://docs.docker.com/docker-for-mac/release-notes/) making sure you meet the [prerequisites](https://docs.docker.com/docker-for-mac/#/what-to-know-before-you-install) 
-and download a [compatible version of Docker](#prerequisites).
-2. Once Docker is running, add an insecure registry of `172.30.0.0/16`:
-   - From the Docker menu in the toolbar, select `Preferences...`
-   - Click on `Daemon` in the preferences dialog (note: on some older versions of Docker for Mac this is under `Advanced`)
-   - Under `Insecure registries:`, click on the `+` icon to add a new entry
-   - Enter `172.30.0.0/16` and press `return`
-   - Click on `Apply and Restart`
-3. Install `socat`
-   - If not already installed, install [Homebrew for Mac](http://brew.sh/)
-   - Install socat
-     Open Terminal and run:
-     ```
-     $ brew install socat
-     ```
-2. Install the oc binary using homebrew with: `brew install openshift-cli`
-
-   OR
-
-   Download the Mac OS `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
-
-   > Please be aware that the 'oc cluster' set of commands are only available in the 1.3+ or newer releases.
-  
-3. Open Terminal and run
-   ```
-   $ oc cluster up
-   ```
-
-To stop your cluster, run:
-```
-$ oc cluster down
-```
-
-### Mac OS X with Docker Machine
-
-1. Install [Docker for Mac](https://docs.docker.com/docker-for-mac/release-notes/) making sure you meet the [prerequisites](https://docs.docker.com/docker-for-mac/#/what-to-know-before-you-install) 
-and download a [compatible version of Docker](#prerequisites).
-2. Install [VirtualBox for OSX Hosts](https://www.virtualbox.org/wiki/Downloads)
-3. Install the oc binary using homebrew with: `brew install openshift-cli`
-
-   OR
-
-   Download the OS X `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
-
-   > Please be aware that the 'oc cluster' set of commands are only available in the 1.3+ or newer releases.
-
-4. Create a new docker machine named `openshift` with appropriate resource constraints. See [Getting Started with Docker Machine](https://docs.docker.com/machine/get-started/#create-a-machine) for instructions.
-5. Open Terminal and run
-   ```
-   $ docker-machine create openshift
-   $ docker-machine start openshift
-   ```
-
-To start/stop OpenShift cluster:
-
-* Setup the Docker environment for the machine you wish to use, and then run `oc cluster up` and `oc cluster down`:
-
-  ```
-  $ eval $(docker-machine env openshift)
-  $ oc cluster up
-
-  ...
-
-  $ oc cluster down
-  ```
-
-### Windows with Docker for Windows
-
-1. Install [Docker for Windows](https://docs.docker.com/docker-for-windows/relase-notes/) making sure you meet the [prerequisites](https://docs.docker.com/docker-for-windows/#/what-to-know-before-you-install)
-and download a [compatible version of Docker](#prerequisites).
-2. Once Docker is running, add an insecure registry of `172.30.0.0/16`:
-   - Right click on the Docker icon in the notification area and select `Settings...`
-   - Click on `Docker Daemon` in the settings dialog
-   - Edit the Docker daemon configuration by adding `"172.30.0.0/16"` to the `"insecure-registries":` setting
-     ```
-     {
-       "registry-mirrors": [],
-       "insecure-registries": [ "172.30.0.0/16" ]
-     }
-     ```
-   - Click on `Apply` and Docker will restart
-3. Download the Windows `oc.exe` binary from [openshift-origin-client-tools-VERSION-windows.zip](https://github.com/openshift/origin/releases) and place it in your path.
-
-   > Please be aware that the 'oc cluster' set of commands are only available in the 1.3+ or newer releases.
-
-4. Open a Command window as Administrator and run:
-   ```
-   C:\> oc cluster up
-   ```
-
-To stop the cluster, run:
-
-```
-C:\> oc cluster down
-```
-
-### Windows with Docker Machine
-
-1. Install [Docker for Windows](https://docs.docker.com/docker-for-windows/release-notes/) making sure you meet the [prerequisites](https://docs.docker.com/docker-for-windows/#/what-to-know-before-you-install)
-and download a [compatible version of Docker](#prerequisites).
-2. Review the [prerequisite instructions](https://docs.docker.com/machine/get-started/#prerequisite-information) to set up Docker Machine on Windows.
-3. Download the Windows `oc.exe` binary from [openshift-origin-client-tools-VERSION-windows.zip](https://github.com/openshift/origin/releases) and place it in your path.
-
-   > Please be aware that the 'oc cluster' set of commands are only available in the 1.3+ or newer releases.
-4. Create a new docker machine named `openshift` with appropriate resource constraints. See [Getting Started with Docker Machine](https://docs.docker.com/machine/get-started/#create-a-machine) for instructions.
-5. Open a Command window as Administrator (for most drivers, docker-machine on Windows requires administrator privileges)
-   and run:
-   ```
-   C:\> docker-machine create openshift
-   C:\> docker-machine start openshift
-   ```
-
-To start/stop OpenShift cluster:
-
-* Setup the Docker environment for the machine you wish to use, and then run `oc cluster up` and `oc cluster down`:
-  ```
-  C:\> @FOR /f "tokens=*" %i IN ('docker-machine env openshift') DO @%i
-  C:\> oc cluster up
-
-  ...
-
-  C:\> oc cluster down
-  ```
 
 ## Persistent Volumes
 
