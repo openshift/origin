@@ -32,6 +32,10 @@ import (
 // JSONPrinter is an implementation of ResourcePrinter which outputs an object as JSON.
 type JSONPrinter struct{}
 
+func (p *JSONPrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
+}
+
 // PrintObj is an implementation of ResourcePrinter.PrintObj which simply writes the object to the Writer.
 func (p *JSONPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	// we use reflect.Indirect here in order to obtain the actual value from a pointer.
@@ -75,6 +79,10 @@ func (p *JSONPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 type YAMLPrinter struct {
 	version   string
 	converter runtime.ObjectConvertor
+}
+
+func (p *YAMLPrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
 }
 
 // PrintObj prints the data as YAML.

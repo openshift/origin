@@ -114,6 +114,10 @@ func NewJSONPathPrinter(tmpl string) (*JSONPathPrinter, error) {
 	}, nil
 }
 
+func (p *JSONPathPrinter) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
+}
+
 // PrintObj formats the obj with the JSONPath Template.
 func (j *JSONPathPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	// we use reflect.Indirect here in order to obtain the actual value from a pointer.
