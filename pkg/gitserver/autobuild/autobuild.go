@@ -7,23 +7,21 @@ import (
 	"os"
 	"path/filepath"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/origin/pkg/gitserver"
-
-	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 type AutoLinkBuilds struct {
 	Namespaces []string
-	Builders   []kapi.ObjectReference
+	Builders   []corev1.ObjectReference
 	Client     buildv1clienttyped.BuildConfigsGetter
 
 	CurrentNamespace string
@@ -50,7 +48,7 @@ func NewAutoLinkBuildsFromEnvironment() (*AutoLinkBuilds, error) {
 	if err != nil {
 		return nil, err
 	}
-	config.Client = buildClient.Build()
+	config.Client = buildClient.BuildV1()
 
 	if value := os.Getenv("AUTOLINK_NAMESPACE"); len(value) > 0 {
 		namespace = value
@@ -146,7 +144,7 @@ func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
 		if len(uri) == 0 {
 			continue
 		}
-		origin, err := s2igit.Parse(uri)
+		origin, err := gitserver.ParseURL(uri)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -200,7 +198,7 @@ func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
 	return clones, errors.NewAggregate(errs)
 }
 
-func hasItem(items []*buildv1.BuildConfig, item kapi.ObjectReference) bool {
+func hasItem(items []*buildv1.BuildConfig, item corev1.ObjectReference) bool {
 	for _, c := range items {
 		if c.Namespace == item.Namespace && c.Name == item.Name {
 			return true
