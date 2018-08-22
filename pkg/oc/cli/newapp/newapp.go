@@ -174,6 +174,10 @@ type versionedPrintObj struct {
 	cmd     *cobra.Command
 }
 
+func (p *versionedPrintObj) PrintfObj(format string, obj runtime.Object, w io.Writer) error {
+	return p.PrintObj(obj, w)
+}
+
 func (p *versionedPrintObj) PrintObj(obj runtime.Object, out io.Writer) error {
 	printFn := print.VersionedPrintObject(func(cmd *cobra.Command, obj runtime.Object, out io.Writer) error {
 		return p.printer.PrintObj(obj, out)
