@@ -1,80 +1,73 @@
 package session
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
-	"strconv"
+	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
-const UserNameKey = "user.name"
-const UserUIDKey = "user.uid"
-const ExpiresKey = "expires"
+const (
+	userNameKey = "user.name"
+	userUIDKey  = "user.uid"
+
+	// expKey is stored as an int64 unix time
+	expKey = "exp"
+	// expiresKey is the string representation of expKey
+	// TODO drop in a release when mixed masters are no longer an issue
+	expiresKey = "expires"
+)
 
 type Authenticator struct {
 	store  Store
-	name   string
-	maxAge int
+	maxAge time.Duration
 }
 
-func NewAuthenticator(store Store, name string, maxAge int) *Authenticator {
+func NewAuthenticator(store Store, maxAge time.Duration) *Authenticator {
 	return &Authenticator{
 		store:  store,
-		name:   name,
 		maxAge: maxAge,
 	}
 }
 
 func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
-	session, err := a.store.Get(req, a.name)
-	if err != nil {
-		return nil, false, err
+	values := a.store.Get(req)
+
+	expires, ok := values.GetInt64(expKey)
+
+	// TODO drop this logic in a release when mixed masters are no longer an issue
+	if !ok {
+		// TODO replace with (in a release when mixed masters are no longer an issue):
+		// return nil, false, nil
+
+		expiresString, ok := values.GetString(expiresKey)
+		if !ok {
+			return nil, false, nil
+		}
+		expiresParse, err := strconv.ParseInt(expiresString, 10, 64)
+		if err != nil {
+			glog.Errorf("error parsing expires timestamp: %v", err)
+			return nil, false, nil
+		}
+		expires = expiresParse
 	}
 
-	expiresObj, ok := session.Values()[ExpiresKey]
-	if !ok {
-		return nil, false, nil
-	}
-	expiresString, ok := expiresObj.(string)
-	if !ok {
-		return nil, false, errors.New("expires on session is not a string")
-	}
-	if expiresString == "" {
-		return nil, false, nil
-	}
-	expires, err := strconv.ParseInt(expiresString, 10, 64)
-	if err != nil {
-		return nil, false, fmt.Errorf("error parsing expires timestamp: %v", err)
-	}
 	if expires < time.Now().Unix() {
 		return nil, false, nil
 	}
 
-	nameObj, ok := session.Values()[UserNameKey]
+	name, ok := values.GetString(userNameKey)
 	if !ok {
-		return nil, false, nil
-	}
-	name, ok := nameObj.(string)
-	if !ok {
-		return nil, false, errors.New("user.name on session is not a string")
-	}
-	if name == "" {
 		return nil, false, nil
 	}
 
-	uidObj, ok := session.Values()[UserUIDKey]
+	uid, ok := values.GetString(userUIDKey)
 	if !ok {
 		return nil, false, nil
 	}
-	uid, ok := uidObj.(string)
-	if !ok {
-		return nil, false, errors.New("user.uid on session is not a string")
-	}
-	// Tolerate empty string UIDs in the session
 
 	return &user.DefaultInfo{
 		Name: name,
@@ -83,25 +76,28 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 }
 
 func (a *Authenticator) AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
-	session, err := a.store.Get(req, a.name)
-	if err != nil {
-		return false, err
-	}
-	values := session.Values()
-	values[UserNameKey] = user.GetName()
-	values[UserUIDKey] = user.GetUID()
-	values[ExpiresKey] = strconv.FormatInt(time.Now().Add(time.Duration(a.maxAge)*time.Second).Unix(), 10)
-	// TODO: should we save groups, scope, and extra in the session as well?
-	return false, a.store.Save(w, req)
+	return false, a.put(w, user.GetName(), user.GetUID(), time.Now().Add(a.maxAge).Unix())
 }
 
 func (a *Authenticator) InvalidateAuthentication(w http.ResponseWriter, req *http.Request) error {
-	session, err := a.store.Get(req, a.name)
-	if err != nil {
-		return err
+	// zero out all fields
+	return a.put(w, "", "", 0)
+}
+
+func (a *Authenticator) put(w http.ResponseWriter, name, uid string, expires int64) error {
+	values := Values{}
+
+	values[userNameKey] = name
+	values[userUIDKey] = uid
+
+	values[expKey] = expires
+
+	// TODO drop this logic in a release when mixed masters are no longer an issue
+	if expires == 0 {
+		values[expiresKey] = ""
+	} else {
+		values[expiresKey] = strconv.FormatInt(expires, 10)
 	}
-	session.Values()[UserNameKey] = ""
-	session.Values()[UserUIDKey] = ""
-	session.Values()[ExpiresKey] = ""
-	return a.store.Save(w, req)
+
+	return a.store.Put(w, values)
 }

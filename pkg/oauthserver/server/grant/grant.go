@@ -19,6 +19,7 @@ import (
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/scope"
+	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/server/headers"
@@ -99,7 +100,7 @@ func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, c
 
 // Install registers the grant handler into a mux. It is expected that the
 // provided prefix will serve all operations. Path MUST NOT end in a slash.
-func (l *Grant) Install(mux Mux, paths ...string) {
+func (l *Grant) Install(mux oauthserver.Mux, paths ...string) {
 	for _, path := range paths {
 		path = strings.TrimRight(path, "/")
 		mux.HandleFunc(path, l.ServeHTTP)

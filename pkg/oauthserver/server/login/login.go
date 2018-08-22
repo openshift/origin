@@ -14,6 +14,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
+	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 	"github.com/openshift/origin/pkg/oauthserver/prometheus"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
@@ -89,7 +90,7 @@ func NewLogin(provider string, csrf csrf.CSRF, auth PasswordAuthenticator, rende
 
 // Install registers the login handler into a mux. It is expected that the
 // provided prefix will serve all operations. Path MUST NOT end in a slash.
-func (l *Login) Install(mux Mux, paths ...string) {
+func (l *Login) Install(mux oauthserver.Mux, paths ...string) {
 	for _, path := range paths {
 		path = strings.TrimRight(path, "/")
 		mux.HandleFunc(path, l.ServeHTTP)

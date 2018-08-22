@@ -29,6 +29,7 @@ import (
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/placeholderchallenger"
@@ -73,8 +74,7 @@ const (
 // WithOAuth decorates the given handler by serving the OAuth2 endpoints while
 // passing through all other requests to the given handler.
 func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
-	baseMux := http.NewServeMux()
-	mux := c.possiblyWrapMux(baseMux)
+	mux := http.NewServeMux()
 
 	// pass through all other requests
 	mux.Handle("/", handler)
@@ -90,12 +90,12 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 
 	errorPageHandler, err := c.getErrorHandler()
 	if err != nil {
-		glog.Fatal(err)
+		return nil, err
 	}
 
 	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux, errorPageHandler)
 	if err != nil {
-		glog.Fatal(err)
+		return nil, err
 	}
 
 	tokentimeout := int32(0)
@@ -112,7 +112,10 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	}
 
 	grantChecker := registry.NewClientAuthorizationGrantChecker(c.ExtraOAuthConfig.OAuthClientAuthorizationClient)
-	grantHandler := c.getGrantHandler(mux, authRequestHandler, combinedOAuthClientGetter, c.ExtraOAuthConfig.OAuthClientAuthorizationClient)
+	grantHandler, err := c.getGrantHandler(mux, authRequestHandler, combinedOAuthClientGetter, c.ExtraOAuthConfig.OAuthClientAuthorizationClient)
+	if err != nil {
+		return nil, err
+	}
 
 	server := osinserver.New(
 		config,
@@ -140,7 +143,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.ExtraOAuthConfig.Options.MasterPublicURL, c.getOsinOAuthClient)
 	tokenRequestEndpoints.Install(mux, urls.OpenShiftOAuthAPIPrefix)
 
-	return baseMux, nil
+	return mux, nil
 }
 
 func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
@@ -169,20 +172,6 @@ func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
 	}
 
 	return osOAuthClient, nil
-}
-
-func (c *OAuthServerConfig) possiblyWrapMux(mux mux) mux {
-	// Register directly into the given mux
-	if c.ExtraOAuthConfig.HandlerWrapper == nil {
-		return mux
-	}
-
-	// Wrap all handlers before registering into the container's mux
-	// This lets us do things like defer session clearing to the end of a request
-	return &handlerWrapperMux{
-		mux:     mux,
-		wrapper: c.ExtraOAuthConfig.HandlerWrapper,
-	}
 }
 
 func (c *OAuthServerConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
@@ -262,7 +251,7 @@ func (c *OAuthServerConfig) getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
-func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux mux, errorHandler handlers.AuthenticationErrorHandler) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
+func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux oauthserver.Mux, errorHandler handlers.AuthenticationErrorHandler) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
 	authRequestHandler, err := c.getAuthenticationRequestHandler()
 	if err != nil {
 		return nil, nil, nil, err
@@ -277,10 +266,10 @@ func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux mux, errorHan
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *OAuthServerConfig) getGrantHandler(mux mux, auth authenticator.Request, clientregistry api.OAuthClientGetter, authregistry oauthclient.OAuthClientAuthorizationInterface) handlers.GrantHandler {
+func (c *OAuthServerConfig) getGrantHandler(mux oauthserver.Mux, auth authenticator.Request, clientregistry api.OAuthClientGetter, authregistry oauthclient.OAuthClientAuthorizationInterface) (handlers.GrantHandler, error) {
 	// check that the global default strategy is something we honor
 	if !configapi.ValidGrantHandlerTypes.Has(string(c.ExtraOAuthConfig.Options.GrantConfig.Method)) {
-		glog.Fatalf("No grant handler found that matches %v.  The OAuth server cannot start!", c.ExtraOAuthConfig.Options.GrantConfig.Method)
+		return nil, fmt.Errorf("No grant handler found that matches %v.  The OAuth server cannot start!", c.ExtraOAuthConfig.Options.GrantConfig.Method)
 	}
 
 	// Since any OAuth client could require prompting, we will unconditionally
@@ -292,7 +281,7 @@ func (c *OAuthServerConfig) getGrantHandler(mux mux, auth authenticator.Request,
 	return handlers.NewPerClientGrant(
 		handlers.NewRedirectGrant(openShiftApproveSubpath),
 		oauthapi.GrantHandlerType(c.ExtraOAuthConfig.Options.GrantConfig.Method),
-	)
+	), nil
 }
 
 // getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request
@@ -300,7 +289,11 @@ func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHan
 	if c.ExtraOAuthConfig.SessionAuth != nil {
 		// The session needs to know the authorize flow is done so it can invalidate the session
 		return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
-			_ = c.ExtraOAuthConfig.SessionAuth.InvalidateAuthentication(w, ar.HttpRequest)
+			if err := c.ExtraOAuthConfig.SessionAuth.InvalidateAuthentication(w, ar.HttpRequest); err != nil {
+				glog.V(5).Infof("error invaliding cookie session: %v", err)
+			}
+			// do not fail the OAuth flow if we cannot invalidate the cookie
+			// it will expire on its own regardless
 			return false, nil
 		})
 	}
@@ -311,7 +304,7 @@ func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHan
 	})
 }
 
-func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
+func (c *OAuthServerConfig) getAuthenticationHandler(mux oauthserver.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
 	// TODO: make this ordered once we can have more than one
 	challengers := map[string]handlers.AuthenticationChallenger{}
 

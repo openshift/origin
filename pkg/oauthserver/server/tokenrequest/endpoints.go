@@ -13,7 +13,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/oauth/urls"
-	"github.com/openshift/origin/pkg/oauthserver/server/login"
+	"github.com/openshift/origin/pkg/oauthserver"
 )
 
 type endpointDetails struct {
@@ -32,7 +32,7 @@ type endpointDetails struct {
 }
 
 type Endpoints interface {
-	Install(mux login.Mux, paths ...string)
+	Install(mux oauthserver.Mux, paths ...string)
 }
 
 func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli.Client, error)) Endpoints {
@@ -45,7 +45,7 @@ func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli
 
 // Install registers the request token endpoints into a mux. It is expected that the
 // provided prefix will serve all operations
-func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
+func (endpoints *endpointDetails) Install(mux oauthserver.Mux, paths ...string) {
 	for _, prefix := range paths {
 		mux.HandleFunc(path.Join(prefix, urls.RequestTokenEndpoint), endpoints.readyHandler(endpoints.requestToken))
 		mux.HandleFunc(path.Join(prefix, urls.DisplayTokenEndpoint), endpoints.readyHandler(endpoints.displayToken))
