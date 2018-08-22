@@ -6,12 +6,6 @@ import (
 	"github.com/RangelReale/osin"
 )
 
-// mux is an object that can register http handlers.
-type Mux interface {
-	Handle(pattern string, handler http.Handler)
-	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
-}
-
 // AuthorizeHandler populates an AuthorizeRequest or handles the request itself
 type AuthorizeHandler interface {
 	// HandleAuthorize does one of the following:

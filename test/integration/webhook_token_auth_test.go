@@ -37,6 +37,8 @@ func TestWebhookTokenAuthn(t *testing.T) {
 	authTestUser := "testuser"
 	authTestUID := "42"
 	authTestGroups := []string{"testgroup"}
+	// openshift will add the authenticated virtual group
+	expectedAuthTestGroups := append([]string{"system:authenticated"}, authTestGroups...)
 
 	expectedTokenPost := kauthn.TokenReview{
 		TypeMeta: metav1.TypeMeta{
@@ -184,8 +186,8 @@ func TestWebhookTokenAuthn(t *testing.T) {
 	if retrievedUser.UID != ktypes.UID(authTestUID) {
 		t.Errorf("expected username %v, got %v", authTestUID, retrievedUser.UID)
 	}
-	if !reflect.DeepEqual(retrievedUser.Groups, authTestGroups) {
-		t.Errorf("expected Groups %v, got %v", authTestGroups, retrievedUser.Groups)
+	if !reflect.DeepEqual(retrievedUser.Groups, expectedAuthTestGroups) {
+		t.Errorf("expected Groups %v, got %v", expectedAuthTestGroups, retrievedUser.Groups)
 	}
 	if !authServerWasCalled {
 		t.Errorf("Server was not called in the test")

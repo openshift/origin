@@ -19,7 +19,6 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	usergroup "github.com/openshift/api/user"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
@@ -65,13 +64,10 @@ func (r *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 			return nil, kerrs.NewForbidden(usergroup.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
 		}
 		name = user.GetName()
-
-		// remove the known virtual groups from the list if they are present
-		contextGroups := sets.NewString(user.GetGroups()...)
-		contextGroups.Delete(bootstrappolicy.UnauthenticatedGroup, bootstrappolicy.AuthenticatedGroup)
+		contextGroups := sets.NewString(user.GetGroups()...).List() // sort and deduplicate
 
 		// build a virtual user object using the context data
-		virtualUser := &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: name, UID: types.UID(user.GetUID())}, Groups: contextGroups.List()}
+		virtualUser := &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: name, UID: types.UID(user.GetUID())}, Groups: contextGroups}
 
 		if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
 			// The user the authentication layer has identified cannot be a valid persisted user
@@ -84,7 +80,15 @@ func (r *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 
 		// valid persisted user
 		if err == nil {
-			return obj, nil
+			// copy persisted user
+			persistedUser := obj.(*userapi.User).DeepCopy()
+			// and mutate it to include the complete list of groups from the request context
+			persistedUser.Groups = virtualUser.Groups
+			// favor the UID on the request since that is what we actually base decisions on
+			if len(virtualUser.UID) != 0 {
+				persistedUser.UID = virtualUser.UID
+			}
+			return persistedUser, nil
 		}
 
 		// server is broken

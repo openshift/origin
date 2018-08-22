@@ -13,9 +13,9 @@ func failed(reason string, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	query := url.Values{}
-	query.Set("reason", reason)
-	if then := req.FormValue("then"); then != "" {
-		query.Set("then", then)
+	query.Set(reasonParam, reason)
+	if then := req.FormValue(thenParam); len(then) != 0 {
+		query.Set(thenParam, then)
 	}
 	uri.RawQuery = query.Encode()
 	http.Redirect(w, req, uri.String(), http.StatusFound)

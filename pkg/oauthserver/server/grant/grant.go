@@ -19,9 +19,11 @@ import (
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/scope"
+	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/server/headers"
+	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 )
 
 const (
@@ -99,7 +101,7 @@ func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, c
 
 // Install registers the grant handler into a mux. It is expected that the
 // provided prefix will serve all operations. Path MUST NOT end in a slash.
-func (l *Grant) Install(mux Mux, paths ...string) {
+func (l *Grant) Install(mux oauthserver.Mux, paths ...string) {
 	for _, path := range paths {
 		path = strings.TrimRight(path, "/")
 		mux.HandleFunc(path, l.ServeHTTP)
@@ -143,13 +145,6 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	csrf, err := l.csrf.Generate(w, req)
-	if err != nil {
-		glog.Errorf("Unable to generate CSRF token: %v", err)
-		l.failed("Could not generate CSRF token", w, req)
-		return
-	}
-
 	grantedScopeNames := []string{}
 	grantedScopes := []Scope{}
 	requestedScopes := []Scope{}
@@ -185,7 +180,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		},
 		Values: GrantFormFields{
 			Then:        then,
-			CSRF:        csrf,
+			CSRF:        l.csrf.Generate(w, req),
 			ClientID:    client.Name,
 			UserName:    user.GetName(),
 			Scopes:      requestedScopes,
@@ -202,8 +197,8 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 }
 
 func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Request) {
-	if ok, err := l.csrf.Check(req, req.PostFormValue(csrfParam)); !ok || err != nil {
-		glog.Errorf("Unable to check CSRF token: %v", err)
+	if ok := l.csrf.Check(req, req.PostFormValue(csrfParam)); !ok {
+		glog.V(4).Infof("Invalid CSRF token: %s", req.PostFormValue(csrfParam))
 		l.failed("Invalid CSRF token", w, req)
 		return
 	}
@@ -281,7 +276,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		return
 	}
 	q := url.Query()
-	q.Set("scope", scopes)
+	q.Set(scopeParam, scopes)
 	url.RawQuery = q.Encode()
 	w.Header().Set("Location", url.String())
 	w.WriteHeader(http.StatusFound)
@@ -294,13 +289,13 @@ func (l *Grant) failed(reason string, w http.ResponseWriter, req *http.Request) 
 	l.render.Render(form, w, req)
 }
 func (l *Grant) redirect(reason string, w http.ResponseWriter, req *http.Request) {
-	then := req.FormValue("then")
+	then := req.FormValue(thenParam)
 
-	// TODO: validate then
-	if len(then) == 0 {
+	if !redirect.IsServerRelativeURL(then) {
 		l.failed(reason, w, req)
 		return
 	}
+
 	w.Header().Set("Location", then)
 	w.WriteHeader(http.StatusFound)
 }
