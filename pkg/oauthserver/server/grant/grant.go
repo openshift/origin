@@ -276,7 +276,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		return
 	}
 	q := url.Query()
-	q.Set("scope", scopes)
+	q.Set(scopeParam, scopes)
 	url.RawQuery = q.Encode()
 	w.Header().Set("Location", url.String())
 	w.WriteHeader(http.StatusFound)

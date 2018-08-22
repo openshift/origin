@@ -27,6 +27,7 @@ const (
 	csrfParam     = "csrf"
 	usernameParam = "username"
 	passwordParam = "password"
+	reasonParam   = "reason"
 
 	// these can be used by custom templates, and should not be changed
 	// these error codes are specific to the login flow.
@@ -134,7 +135,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	form.ErrorCode = req.URL.Query().Get("reason")
+	form.ErrorCode = req.URL.Query().Get(reasonParam)
 	if len(form.ErrorCode) > 0 {
 		if msg, hasMsg := errorMessages[form.ErrorCode]; hasMsg {
 			form.Error = msg
@@ -159,12 +160,12 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, "/", http.StatusFound)
 		return
 	}
-	username, password := req.FormValue("username"), req.FormValue("password")
-	if username == "" {
+	username, password := req.FormValue(usernameParam), req.FormValue(passwordParam)
+	if len(username) == 0 {
 		failed(errorCodeUserRequired, w, req)
 		return
 	}
-	var result string = metrics.SuccessResult
+	result := metrics.SuccessResult
 	defer func() {
 		metrics.RecordFormPasswordAuth(result)
 	}()

@@ -243,7 +243,8 @@ func (d *defaultState) Generate(w http.ResponseWriter, req *http.Request) (strin
 		"csrf": {d.csrf.Generate(w, req)},
 		"then": {then},
 	}
-	return encodeState(state)
+
+	return encodeState(state), nil
 }
 
 func (d *defaultState) Check(state string, req *http.Request) (bool, error) {
@@ -256,9 +257,8 @@ func (d *defaultState) Check(state string, req *http.Request) (bool, error) {
 		return false, fmt.Errorf("state did not contain a valid CSRF token")
 	}
 
-	then := values.Get("then")
-	if then == "" {
-		return false, errors.New("State did not contain a redirect")
+	if then := values.Get("then"); len(then) == 0 {
+		return false, errors.New("state did not contain a redirect")
 	}
 
 	return true, nil
@@ -272,7 +272,7 @@ func (d *defaultState) AuthenticationSucceeded(user user.Info, state string, w h
 
 	then := values.Get("then")
 	if len(then) == 0 {
-		return false, errors.New("No redirect given")
+		return false, errors.New("no redirect given")
 	}
 
 	http.Redirect(w, req, then, http.StatusFound)
@@ -335,8 +335,8 @@ func (d *defaultState) AuthenticationError(err error, w http.ResponseWriter, req
 }
 
 // URL-encode, then base-64 encode for OAuth providers that don't do a good job of treating the state param like an opaque value
-func encodeState(values url.Values) (string, error) {
-	return base64.URLEncoding.EncodeToString([]byte(values.Encode())), nil
+func encodeState(values url.Values) string {
+	return base64.URLEncoding.EncodeToString([]byte(values.Encode()))
 }
 
 func decodeState(state string) (url.Values, error) {
