@@ -302,6 +302,13 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 			defer o.rateLimit(oldObject)
 		}
 
+		// ignore objects that are being deleted
+		// sometimes objects get stuck in this state
+		// we do not want storage migration to fail in that case
+		if oldObject.GetDeletionTimestamp() != nil {
+			return migrate.ErrUnchanged
+		}
+
 		// we are relying on unstructured types being lossless and unchanging
 		// across a decode and encode round trip (otherwise this command will mutate data)
 		newObject, err := o.client.
