@@ -7,8 +7,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/pborman/uuid"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -30,6 +28,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 )
 
@@ -244,8 +243,8 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 			}
 
 			browserClient := oauthapi.OAuthClient{
-				Secret:                uuid.New(),
 				ObjectMeta:            metav1.ObjectMeta{Name: openShiftBrowserClientID},
+				Secret:                crypto.Random256BitsString(),
 				RespondWithChallenges: false,
 				RedirectURIs:          []string{urls.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
 				GrantMethod:           oauthapi.GrantHandlerAuto,
