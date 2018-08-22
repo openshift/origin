@@ -304,7 +304,6 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
-	// glog.Infof("Using %s as the s2i builder image", s.build.Spec.Strategy.SourceStrategy.From.Name)
 	glog.Infof("Generating dockerfile with builder image %s", s.build.Spec.Strategy.SourceStrategy.From.Name)
 	result, err := builder.Build(config)
 	for _, stage := range result.BuildInfo.Stages {
