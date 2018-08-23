@@ -151,6 +151,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildv1.Build) (*corev1.Pod
 			Resources:       build.Spec.Resources,
 		}
 		setupDockerSecrets(pod, &extractImageContentContainer, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
+		setupContainersConfigs(pod, &extractImageContentContainer)
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
 	}
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers,

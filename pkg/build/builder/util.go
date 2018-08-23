@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
@@ -187,4 +189,20 @@ func SafeForLoggingS2IConfig(config *s2iapi.Config) *s2iapi.Config {
 	}
 	newConfig.ScriptsURL, _ = s2iutil.SafeForLoggingURL(newConfig.ScriptsURL)
 	return &newConfig
+}
+
+// GetDockerAuthConfiguration provides a Docker authentication configuration when the
+// PullSecret is specified.
+func GetDockerAuthConfiguration(path string) (*docker.AuthConfigurations, error) {
+	glog.V(2).Infof("Checking for Docker config file for %s in path %s", dockercfg.PullAuthType, path)
+	dockercfgPath := dockercfg.GetDockercfgFile(path)
+	if len(dockercfgPath) == 0 {
+		return nil, fmt.Errorf("no docker config file found in '%s'", os.Getenv(dockercfg.PullAuthType))
+	}
+	glog.V(2).Infof("Using Docker config file %s", dockercfgPath)
+	r, err := os.Open(dockercfgPath)
+	if err != nil {
+		return nil, fmt.Errorf("'%s': %s", dockercfgPath, err)
+	}
+	return docker.NewAuthConfigurations(r)
 }
