@@ -679,8 +679,6 @@ func ValidateBuildLogOptions(opts *buildapi.BuildLogOptions) field.ErrorList {
 	return allErrs
 }
 
-var cIdentifierErrorMsg string = `must be a C identifier (mixed-case letters, numbers, and underscores): e.g. "my_name" or "MyName"`
-
 func ValidateStrategyEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
@@ -688,8 +686,8 @@ func ValidateStrategyEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorLis
 		idxPath := fldPath.Index(i)
 		if len(ev.Name) == 0 {
 			allErrs = append(allErrs, field.Required(idxPath.Child("name"), ""))
-		} else if len(kvalidation.IsCIdentifier(ev.Name)) > 0 {
-			allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), ev.Name, cIdentifierErrorMsg))
+		} else if errs := kvalidation.IsEnvVarName(ev.Name); len(errs) != 0 {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), ev.Name, strings.Join(errs, "; ")))
 		}
 		if ev.ValueFrom != nil && ev.ValueFrom.ResourceFieldRef != nil {
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("valueFrom").Child("ResourceFieldRef"), ev.Name, "ResourceFieldRef is not valid for valueFrom in build environment variables"))
