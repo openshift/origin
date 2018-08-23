@@ -15,7 +15,7 @@ import (
 	buildjenkinsbootstrapper "github.com/openshift/origin/pkg/build/apiserver/admission/jenkinsbootstrapper"
 	buildsecretinjector "github.com/openshift/origin/pkg/build/apiserver/admission/secretinjector"
 	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/apiserver/admission/strategyrestrictions"
-	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
+	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	ingressadmission "github.com/openshift/origin/pkg/network/apiserver/admission"
 	projectnodeenv "github.com/openshift/origin/pkg/project/apiserver/admission/nodeenv"
@@ -25,6 +25,8 @@ import (
 	quotarunonceduration "github.com/openshift/origin/pkg/quota/apiserver/admission/runonceduration"
 	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 	securityadmission "github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
+	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
+	validatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/validating"
 
 	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
@@ -99,6 +101,8 @@ var (
 		"ResourceQuota",
 		"openshift.io/ClusterResourceQuota",
 		"openshift.io/IngressAdmission",
+		mutatingwebhook.PluginName,
+		validatingwebhook.PluginName,
 	)
 
 	// DefaultOffPlugins includes plugins which require explicit configuration to run
@@ -118,8 +122,6 @@ var (
 		"EventRateLimit",
 		"PodSecurityPolicy",
 		"Initializers",
-		"ValidatingAdmissionWebhook",
-		"MutatingAdmissionWebhook",
 		"ExtendedResourceToleration",
 		expandpvcadmission.PluginName,
 
