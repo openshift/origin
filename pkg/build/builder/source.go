@@ -12,12 +12,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/image/types"
+	"github.com/containers/storage"
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/projectatomic/buildah"
+	"github.com/projectatomic/buildah/imagebuildah"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
+	//	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
+	//	"github.com/openshift/imagebuilder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -361,6 +367,32 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 	return tarHelper.ExtractTarStreamWithLogging(destDir, file, tarOutput)
 }
 
+func copyImageSourceFromFilesytem(sourceDir, destDir string) error {
+	// Setup destination directory
+	fi, err := os.Stat(destDir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		glog.V(4).Infof("Creating image destination directory: %s", destDir)
+		err := os.MkdirAll(destDir, 0755)
+		if err != nil {
+			return err
+		}
+	} else {
+		if !fi.IsDir() {
+			return fmt.Errorf("destination %s must be a directory", destDir)
+		}
+	}
+
+	out, err := exec.Command("cp", "-vr", sourceDir, destDir).CombinedOutput()
+	if err != nil {
+		return err
+	}
+	glog.V(4).Infof("copied input image content: %s", string(out))
+	return nil
+}
+
 func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []buildapiv1.ImageSourcePath, forcePull bool) error {
 	glog.V(4).Infof("Extracting image source from %s", image)
 	dockerAuth := docker.AuthConfiguration{}
@@ -382,54 +414,139 @@ func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, imag
 		}
 	}
 
-	exists := true
-	if !forcePull {
-		_, err := dockerClient.InspectImage(image)
-		if err == docker.ErrNoSuchImage {
-			exists = false
-		} else if err != nil {
-			return err
-		}
+	pullPolicy := buildah.PullIfMissing
+	if forcePull {
+		pullPolicy = buildah.PullAlways
 	}
 
-	if !exists || forcePull {
-		glog.V(0).Infof("Pulling image %q ...", image)
-		startTime := metav1.Now()
-		if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
-			return fmt.Errorf("error pulling image %v: %v", image, err)
-		}
-
-		timing.RecordNewStep(ctx, buildapiv1.StagePullImages, buildapiv1.StepPullInputImage, startTime, metav1.Now())
-
-	}
-
-	containerConfig := &docker.Config{Image: image}
-	if inspect, err := dockerClient.InspectImage(image); err != nil {
-		return err
-	} else {
-		// In case the Docker image does not specify the entrypoint
-		if len(inspect.Config.Entrypoint) == 0 && len(inspect.Config.Cmd) == 0 {
-			containerConfig.Entrypoint = []string{"/fake-entrypoint"}
-		}
-	}
-
-	// Create container to copy from
-	container, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Config: containerConfig})
+	store, err := storage.GetStore(daemonlessStoreOptions)
 	if err != nil {
-		return fmt.Errorf("error creating source image container: %v", err)
+		return err
 	}
-	defer dockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: container.ID})
+	opts := docker.BuildImageOptions{
+		Context:             ctx,
+		Name:                "devnull",
+		RmTmpContainer:      true,
+		ForceRmTmpContainer: true,
+		OutputStream:        os.Stdout,
+		Dockerfile:          "devnull",
+		//NoCache:             noCache,
+		Pull: forcePull,
+		//BuildArgs:           buildArgs,
+	}
 
-	tarHelper := tar.New(s2ifs.NewFileSystem())
-	tarHelper.SetExclusionPattern(nil)
+	var systemContext types.SystemContext
+	options := imagebuildah.BuildOptions{
+		//ContextDirectory: dir,
+		PullPolicy: pullPolicy,
+		//TransientMounts: transientMounts,
+		//Args:            args,
+		Output:        opts.Name,
+		Out:           opts.OutputStream,
+		Err:           opts.OutputStream,
+		ReportWriter:  opts.OutputStream,
+		OutputFormat:  imagebuildah.Dockerv2ImageFormat,
+		SystemContext: &systemContext,
+		NamespaceOptions: buildah.NamespaceOptions{
+			{Name: string(specs.NetworkNamespace), Host: true},
+		},
+		/*
+			CommonBuildOpts: &buildah.CommonBuildOptions{
+				Memory:       opts.Memory,
+				MemorySwap:   opts.Memswap,
+				CgroupParent: opts.CgroupParent,
+			},
+		*/
+		//Squash:                  squash,
+		//Layers:                  layers,
+		//NoCache:                 opts.NoCache,
+		//RemoveIntermediateCtrs:  opts.RmTmpContainer,
+		//ForceRmIntermediateCtrs: true,
+	}
+
+	builderOptions := buildah.BuilderOptions{
+		//Args:                  ib.Args,
+		FromImage:  image,
+		PullPolicy: pullPolicy,
+		//Registry:              b.registry,
+		//Transport:             b.transport,
+		//SignaturePolicyPath:   b.signaturePolicyPath,
+		ReportWriter:     options.ReportWriter,
+		SystemContext:    options.SystemContext,
+		Isolation:        options.Isolation,
+		NamespaceOptions: options.NamespaceOptions,
+		ConfigureNetwork: options.ConfigureNetwork,
+		CNIPluginPath:    options.CNIPluginPath,
+		CNIConfigDir:     options.CNIConfigDir,
+		IDMappingOptions: options.IDMappingOptions,
+		//CommonBuildOpts:       options.CommonBuildOptions,
+		DefaultMountsFilePath: options.DefaultMountsFilePath,
+	}
+	builder, err := buildah.NewBuilder(ctx, store, builderOptions)
+	if err != nil {
+		return err
+	}
+
+	mountPath, err := builder.Mount("inputimage")
+	if err != nil {
+		return fmt.Errorf("error mounting image content from image %s: %v", image, err)
+	}
 
 	for _, path := range paths {
-		glog.V(4).Infof("Extracting path %s from container %s to %s", path.SourcePath, container.ID, path.DestinationDir)
-		err := copyImageSource(dockerClient, container.ID, path.SourcePath, filepath.Join(buildDir, path.DestinationDir), tarHelper)
+		glog.V(4).Infof("Extracting path %s from image %s to %s", filepath.Join(mountPath, path.SourcePath), image, path.DestinationDir)
+		err := copyImageSourceFromFilesytem(path.SourcePath, filepath.Join(buildDir, path.DestinationDir))
 		if err != nil {
 			return fmt.Errorf("error copying source path %s to %s: %v", path.SourcePath, path.DestinationDir, err)
 		}
 	}
 
+	/*
+			exists := true
+			if !forcePull {
+				_, err := dockerClient.InspectImage(image)
+				if err == docker.ErrNoSuchImage {
+					exists = false
+				} else if err != nil {
+					return err
+				}
+			}
+
+			if !exists || forcePull {
+				glog.V(0).Infof("Pulling image %q ...", image)
+				startTime := metav1.Now()
+				if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
+					return fmt.Errorf("error pulling image %v: %v", image, err)
+				}
+				timing.RecordNewStep(ctx, buildapiv1.StagePullImages, buildapiv1.StepPullInputImage, startTime, metav1.Now())
+			}
+
+			containerConfig := &docker.Config{Image: image}
+			if inspect, err := dockerClient.InspectImage(image); err != nil {
+				return err
+			} else {
+				// In case the Docker image does not specify the entrypoint
+				if len(inspect.Config.Entrypoint) == 0 && len(inspect.Config.Cmd) == 0 {
+					containerConfig.Entrypoint = []string{"/fake-entrypoint"}
+				}
+			}
+
+			// Create container to copy from
+			container, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Config: containerConfig})
+			if err != nil {
+				return fmt.Errorf("error creating source image container: %v", err)
+			}
+			defer dockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: container.ID})
+
+			tarHelper := tar.New(s2ifs.NewFileSystem())
+			tarHelper.SetExclusionPattern(nil)
+
+		for _, path := range paths {
+			glog.V(4).Infof("Extracting path %s from container %s to %s", path.SourcePath, container.ID, path.DestinationDir)
+			err := copyImageSource(dockerClient, container.ID, path.SourcePath, filepath.Join(buildDir, path.DestinationDir), tarHelper)
+			if err != nil {
+				return fmt.Errorf("error copying source path %s to %s: %v", path.SourcePath, path.DestinationDir, err)
+			}
+		}
+	*/
 	return nil
 }
