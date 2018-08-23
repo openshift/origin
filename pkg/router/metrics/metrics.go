@@ -132,7 +132,7 @@ func (l Listener) Listen() {
 	m := cmux.New(tcpl)
 
 	// match HTTP first
-	httpl := m.Match(cmux.HTTP1Fast())
+	httpl := m.Match(cmux.HTTP1())
 	go func() {
 		s := &http.Server{
 			Handler: handler,
