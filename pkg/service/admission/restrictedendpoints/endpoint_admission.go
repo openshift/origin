@@ -67,6 +67,7 @@ type restrictedEndpointsAdmission struct {
 }
 
 var _ = initializer.WantsAuthorizer(&restrictedEndpointsAdmission{})
+var _ = admission.ValidationInterface(&restrictedEndpointsAdmission{})
 
 // ParseSimpleCIDRRules parses a list of CIDR strings
 func ParseSimpleCIDRRules(rules []string) (networks []*net.IPNet, err error) {
@@ -132,7 +133,7 @@ func (r *restrictedEndpointsAdmission) checkAccess(attr admission.Attributes) (b
 }
 
 // Admit determines if the endpoints object should be admitted
-func (r *restrictedEndpointsAdmission) Admit(a admission.Attributes) error {
+func (r *restrictedEndpointsAdmission) Validate(a admission.Attributes) error {
 	if a.GetResource().GroupResource() != kapi.Resource("endpoints") {
 		return nil
 	}

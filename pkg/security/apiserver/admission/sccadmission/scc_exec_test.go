@@ -99,7 +99,7 @@ func TestExecAdmit(t *testing.T) {
 		p.SetInternalKubeClientSet(tc)
 
 		attrs := kadmission.NewAttributesRecord(v.pod, v.oldPod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, &user.DefaultInfo{})
-		err := p.Admit(attrs)
+		err := p.Validate(attrs)
 
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s: expected no errors but received %v", k, err)
