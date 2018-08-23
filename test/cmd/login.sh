@@ -44,10 +44,10 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 # remove self-provisioner role from user and test login prompt before creating any projects
-os::cmd::expect_success "oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth --config='${login_kubeconfig}'"
+os::cmd::expect_success "oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
 os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u no-project-test-user -p anything" "You don't have any projects. Contact your system administrator to request a project"
 # make sure standard login prompt is printed once self-provisioner status is restored
-os::cmd::expect_success "oc adm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --config='${login_kubeconfig}'"
+os::cmd::expect_success "oc adm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
 os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u no-project-test-user -p anything" "You don't have any projects. You can try to create a new project, by running"
 # make sure `oc login` fails with unauthorized error
 os::cmd::expect_failure_and_text 'oc login <<< \n' 'Login failed \(401 Unauthorized\)'
@@ -87,7 +87,7 @@ os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list p
 
 # make sure we report an error if the config file we pass is not writable
 # Does not work inside of a container, determine why and reenable
-# os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test '--config=${templocation}/file' --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
+# os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test '--kubeconfig=${templocation}/file' --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
 echo "login warnings: ok"
 
 # login and create serviceaccount and test login and logout with a service account token
@@ -107,11 +107,12 @@ os::cmd::expect_success 'oc project project-foo'
 os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"
 os::cmd::expect_success_and_text 'oc whoami' 'test-user'
 os::cmd::expect_success_and_text "oc whoami --config='${login_kubeconfig}'" 'system:admin'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig='${login_kubeconfig}'" 'system:admin'
 os::cmd::expect_success_and_text 'oc whoami -t' '.'
 os::cmd::expect_success_and_text 'oc whoami -c' '.'
 
-# test config files from the --config flag
-os::cmd::expect_success "oc get services --config='${login_kubeconfig}'"
+# test config files from the --kubeconfig flag
+os::cmd::expect_success "oc get services --kubeconfig='${login_kubeconfig}'"
 # test config files from env vars
 os::cmd::expect_success "KUBECONFIG='${login_kubeconfig}' oc get services"
 os::test::junit::declare_suite_end
