@@ -12,6 +12,9 @@ type pluginHandlerWithNamespaceNameConditions struct {
 	namespacesToExclude sets.String
 }
 
+var _ admission.ValidationInterface = &pluginHandlerWithNamespaceNameConditions{}
+var _ admission.MutationInterface = &pluginHandlerWithNamespaceNameConditions{}
+
 func (p pluginHandlerWithNamespaceNameConditions) Handles(operation admission.Operation) bool {
 	return p.admissionPlugin.Handles(operation)
 }

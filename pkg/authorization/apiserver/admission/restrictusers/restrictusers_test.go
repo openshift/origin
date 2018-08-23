@@ -384,7 +384,7 @@ func TestAdmission(t *testing.T) {
 			&user.DefaultInfo{},
 		)
 
-		err = plugin.(admission.MutationInterface).Admit(attributes)
+		err = plugin.(admission.ValidationInterface).Validate(attributes)
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil:

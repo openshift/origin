@@ -44,10 +44,11 @@ type constraint struct {
 }
 
 var (
-	_ = admission.Interface(&constraint{})
 	_ = initializer.WantsAuthorizer(&constraint{})
 	_ = oadmission.WantsSecurityInformer(&constraint{})
 	_ = kadmission.WantsInternalKubeClientSet(&constraint{})
+	_ = admission.ValidationInterface(&constraint{})
+	_ = admission.MutationInterface(&constraint{})
 )
 
 // NewConstraint creates a new SCC constraint admission plugin.
