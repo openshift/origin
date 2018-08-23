@@ -1321,6 +1321,11 @@ func (r *podExecutor) Exec(script string) (string, error) {
 	return out, waitErr
 }
 
+func (r *podExecutor) CopyFromHost(local, remote string) error {
+	_, err := r.client.Run("cp").Args(local, fmt.Sprintf("%s:%s", r.podName, remote)).Output()
+	return err
+}
+
 // CreateTempFile stores the specified data in a temp dir/temp file
 // for the test who calls it
 func CreateTempFile(data string) (string, error) {
