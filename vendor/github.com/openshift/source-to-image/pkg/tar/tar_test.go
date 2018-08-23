@@ -524,8 +524,8 @@ func TestExtractTarStreamTimeout(t *testing.T) {
 	}
 	defer os.RemoveAll(destDir)
 	th := New(fs.NewFileSystem())
-	th.(*stiTar).timeout = 5 * time.Millisecond
-	time.AfterFunc(30*time.Millisecond, func() { writer.Close() })
+	th.(*stiTar).timeout = 10 * time.Millisecond
+	time.AfterFunc(20*time.Millisecond, func() { writer.Close() })
 	err = th.ExtractTarStream(destDir, reader)
 	if e, ok := err.(s2ierr.Error); err == nil || (ok && e.ErrorCode != s2ierr.TarTimeoutError) {
 		t.Errorf("Did not get the expected timeout error. err = %v", err)

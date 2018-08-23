@@ -1,5 +1,5 @@
 hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
-updated: 2018-08-17T10:23:00.048468-04:00
+updated: 2018-08-23T10:31:21.07059+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -819,7 +819,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: cb68976b78d5fdc64c52646f55d78bf6ea95883a
+  version: bccfa651752a8a9f963b9899b477dcffbe9be786
   subpackages:
   - apps
   - apps/v1
@@ -918,8 +918,10 @@ imports:
   - oauth/informers/externalversions/oauth/v1
   - oauth/listers/oauth/v1
   - project/clientset/versioned
+  - project/clientset/versioned/fake
   - project/clientset/versioned/scheme
   - project/clientset/versioned/typed/project/v1
+  - project/clientset/versioned/typed/project/v1/fake
   - quota/clientset/versioned
   - quota/clientset/versioned/scheme
   - quota/clientset/versioned/typed/quota/v1
@@ -990,15 +992,14 @@ imports:
   - pkg/operator/v1alpha1helpers
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: c2e19f18e28faa64433bc7ef634325eed8cd8a45
+  version: 8afc07017da4cc5bbe30462e2d06c4732f082600
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: 7b9adb2996ebb91a58fed6abdd9d9c2d7b58a53c
+  version: 1da6a9e2a0e13b74c8ed5d81e911843f18109ed0
   subpackages:
   - pkg/api
-  - pkg/api/constants
   - pkg/api/describe
   - pkg/api/validation
   - pkg/build
@@ -1442,7 +1443,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: 149bd9627054ed3ca4b92ab99d8b2246d0f5e444
+  version: 0b908666f6c964370af24212f499d77109c65937
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1510,7 +1511,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 60509ffe155278f9646a79aa2f086ddf8c7ad556
+  version: 6ed191a255a458ff4ea5104e316f782454b716a6
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1864,7 +1865,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: c235f75d4886e2f53d0d6bc908d862ef490f0ac7
+  version: ba16ba1a2f648ab15ea6b06848c51523abc07b3d
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

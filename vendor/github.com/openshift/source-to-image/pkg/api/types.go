@@ -15,6 +15,12 @@ import (
 
 var glog = utilglog.StderrLog
 
+// Image label namespace constants
+const (
+	DefaultNamespace    = "io.openshift.s2i."
+	KubernetesNamespace = "io.k8s."
+)
+
 // invalidFilenameCharacters contains a list of character we consider malicious
 // when injecting the directories into containers.
 const invalidFilenameCharacters = `;*?"<>|%#$!+{}&[],"'` + "`"
@@ -233,10 +239,6 @@ type Config struct {
 	// SecurityOpt are passed as options to the docker containers launched by s2i.
 	SecurityOpt []string
 
-	// KeepSymlinks indicates to copy symlinks as symlinks. Default behavior is to follow
-	// symlinks and copy files by content.
-	KeepSymlinks bool
-
 	// AsDockerfile indicates the path where the Dockerfile should be written instead of building
 	// a new image.
 	AsDockerfile string
@@ -244,9 +246,9 @@ type Config struct {
 	// ImageWorkDir is the default working directory for the builder image.
 	ImageWorkDir string
 
-	// ImageScriptsURL is the default location to find the assemble/run scripts for a builder image.
-	// This url can be a reference within the builder image if the scheme is specified as image://
-	ImageScriptsURL string
+	// ImageScriptsDir is the path to the directory containing the assemble/run scripts located within the builder image.
+	// It should be specified as an absolute path (e.g. "/usr/libexec/s2i")
+	ImageScriptsDir string
 }
 
 // EnvironmentSpec specifies a single environment variable.

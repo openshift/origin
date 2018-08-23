@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/source-to-image/pkg/util/cmd"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
@@ -41,25 +42,24 @@ type FileSystem interface {
 	Walk(string, filepath.WalkFunc) error
 	Readlink(string) (string, error)
 	Symlink(string, string) error
-	KeepSymlinks(bool)
-	ShouldKeepSymlinks() bool
 }
 
 // NewFileSystem creates a new instance of the default FileSystem
 // implementation
 func NewFileSystem() FileSystem {
 	return &fs{
-		fileModes:    make(map[string]os.FileMode),
-		keepSymlinks: false,
+		runner:    cmd.NewCommandRunner(),
+		fileModes: make(map[string]os.FileMode),
 	}
 }
 
 type fs struct {
+	runner cmd.CommandRunner
+
 	// on Windows, fileModes is used to track the UNIX file mode of every file we
 	// work with; m is used to synchronize access to fileModes.
-	fileModes    map[string]os.FileMode
-	m            sync.Mutex
-	keepSymlinks bool
+	fileModes map[string]os.FileMode
+	m         sync.Mutex
 }
 
 // FileInfo is a struct which implements os.FileInfo.  We use it (a) for test
@@ -190,49 +190,25 @@ func (h *fs) Copy(source string, dest string) (err error) {
 	return doCopy(h, source, dest)
 }
 
-// KeepSymlinks configures fs to copy symlinks from src as symlinks to dst.
-// Default behavior is to follow symlinks and copy files by content.
-func (h *fs) KeepSymlinks(k bool) {
-	h.keepSymlinks = k
-}
-
-// ShouldKeepSymlinks is exported only due to the design of fs util package
-// and how the tests are structured. It indicates whether the implementation
-// should copy symlinks as symlinks or follow symlinks and copy by content.
-func (h *fs) ShouldKeepSymlinks() bool {
-	return h.keepSymlinks
-}
-
-// If src is symlink and symlink copy has been enabled, copy as a symlink.
-// Otherwise ignore symlink and let rest of the code follow the symlink
-// and copy the content of the file
-func handleSymlink(h FileSystem, source, dest string) (bool, error) {
+func doCopy(h FileSystem, source, dest string) error {
+	// Our current symlink behaviour is broken.  We follow symlinks and copy the
+	// referenced file, and fail when a symlink is broken.  In all cases we
+	// should actually copy the symlink as is.  For now, at least catch the
+	// broken symlink case and copy the symlink rather than failing.
 	lstatinfo, lstaterr := h.Lstat(source)
 	_, staterr := h.Stat(source)
 	if lstaterr == nil &&
-		lstatinfo.Mode()&os.ModeSymlink != 0 {
-		if os.IsNotExist(staterr) {
-			glog.V(5).Infof("(broken) L %q -> %q", source, dest)
-		} else if h.ShouldKeepSymlinks() {
-			glog.V(5).Infof("L %q -> %q", source, dest)
-		} else {
-			// symlink not handled here, will copy the file content
-			return false, nil
-		}
+		lstatinfo.Mode()&os.ModeSymlink != 0 &&
+		os.IsNotExist(staterr) {
+		glog.V(5).Infof("(broken) L %q -> %q", source, dest)
 		linkdest, err := h.Readlink(source)
 		if err != nil {
-			return true, err
+			return err
 		}
-		return true, h.Symlink(linkdest, dest)
-	}
-	// symlink not handled here, will copy the file content
-	return false, nil
-}
 
-func doCopy(h FileSystem, source, dest string) error {
-	if handled, err := handleSymlink(h, source, dest); handled || err != nil {
-		return err
+		return h.Symlink(linkdest, dest)
 	}
+
 	sourcefile, err := h.Open(source)
 	if err != nil {
 		return err

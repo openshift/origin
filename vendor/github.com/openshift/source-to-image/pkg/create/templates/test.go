@@ -15,20 +15,16 @@ const TestRunScript = `#!/bin/bash
 IMAGE_NAME=${IMAGE_NAME-{{.ImageName}}-candidate}
 
 # Determining system utility executables (darwin compatibility check)
-READLINK_EXEC="readlink -zf"
-MKTEMP_EXEC="mktemp --suffix=.cid"
+READLINK_EXEC="readlink"
+MKTEMP_EXEC="mktemp"
 if [[ "$OSTYPE" =~ 'darwin' ]]; then
-  READLINK_EXEC="readlink"
-  MKTEMP_EXEC="mktemp"
   ! type -a "greadlink" &>"/dev/null" || READLINK_EXEC="greadlink"
   ! type -a "gmktemp" &>"/dev/null" || MKTEMP_EXEC="gmktemp"
 fi
 
-_dir="$(dirname "${BASH_SOURCE[0]}")"
-test_dir="$($READLINK_EXEC ${_dir} || echo ${_dir})"
-image_dir=$($READLINK_EXEC ${test_dir}/.. || echo ${test_dir}/..)
-scripts_url="${image_dir}/.s2i/bin"
-cid_file=$($MKTEMP_EXEC -u)
+test_dir="$($READLINK_EXEC -zf $(dirname "${BASH_SOURCE[0]}"))"
+image_dir=$($READLINK_EXEC -zf ${test_dir}/..)
+cid_file=$($MKTEMP_EXEC -u --suffix=.cid)
 
 # Since we built the candidate image locally, we don't want S2I to attempt to pull
 # it from Docker hub
@@ -46,15 +42,23 @@ container_exists() {
 }
 
 container_ip() {
-  docker inspect --format="{{"{{"}}(index .NetworkSettings.Ports \"$test_port/tcp\" 0).HostIp {{"}}"}}" $(cat $cid_file) | sed 's/0.0.0.0/localhost/'
+  if [ ! -z "$DOCKER_HOST" ] && [[ "$OSTYPE" =~ 'darwin' ]]; then
+    docker-machine ip
+  else
+    docker inspect --format="{{"{{"}} .NetworkSettings.IPAddress {{"}}"}}" $(cat $cid_file)
+  fi
 }
 
 container_port() {
-  docker inspect --format="{{"{{"}}(index .NetworkSettings.Ports \"$test_port/tcp\" 0).HostPort {{"}}"}}" "$(cat "${cid_file}")"
+  if [ ! -z "$DOCKER_HOST" ] && [[ "$OSTYPE" =~ 'darwin' ]]; then
+    docker inspect --format="{{"{{"}}(index .NetworkSettings.Ports \"$test_port/tcp\" 0).HostPort{{"}}"}}" "$(cat "${cid_file}")"
+  else
+    echo $test_port
+  fi
 }
 
 run_s2i_build() {
-  s2i build --incremental=true ${s2i_args} ${test_dir}/test-app ${IMAGE_NAME} ${IMAGE_NAME}-testapp
+  s2i build --incremental=true ${s2i_args} file://${test_dir}/test-app ${IMAGE_NAME} ${IMAGE_NAME}-testapp
 }
 
 prepare() {
@@ -72,7 +76,7 @@ prepare() {
 }
 
 run_test_application() {
-  docker run --rm --cidfile=${cid_file} -p ${test_port}:${test_port} ${IMAGE_NAME}-testapp
+  docker run --rm --cidfile=${cid_file} -p ${test_port} ${IMAGE_NAME}-testapp
 }
 
 cleanup() {

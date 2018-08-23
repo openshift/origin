@@ -28,7 +28,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/constants"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	s2itar "github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
@@ -37,6 +36,32 @@ import (
 )
 
 const (
+	// ScriptsURLEnvironment is a deprecated environment variable name that
+	// specifies where to look for S2I scripts. Use ScriptsURLLabel instead.
+	ScriptsURLEnvironment = "STI_SCRIPTS_URL"
+	// LocationEnvironment is a deprecated environment variable name that
+	// specifies where to place artifacts in a builder image. Use
+	// DestinationLabel instead.
+	LocationEnvironment = "STI_LOCATION"
+
+	// ScriptsURLLabel is the name of the Docker image LABEL that tells S2I where
+	// to look for the S2I scripts. This label is also copied into the output
+	// image.
+	// The previous name of this label was 'io.s2i.scripts-url'. This is now
+	// deprecated.
+	ScriptsURLLabel = api.DefaultNamespace + "scripts-url"
+
+	// AssembleUserLabel is the User that will be used in the assemble process
+	AssembleUserLabel = api.DefaultNamespace + "assemble-user"
+	// DestinationLabel is the name of the Docker image LABEL that tells S2I where
+	// to place the artifacts (scripts, sources) in the builder image.
+	// The previous name of this label was 'io.s2i.destination'. This is now
+	// deprecated
+	DestinationLabel = api.DefaultNamespace + "destination"
+	// AssembleInputFilesLabel is the name of the Docker image LABEL that tells S2I which
+	// files wil be copied from builder to a runtime image.
+	AssembleInputFilesLabel = api.DefaultNamespace + "assemble-input-files"
+
 	// DefaultDestination is the destination where the artifacts will be placed
 	// if DestinationLabel was not specified.
 	DefaultDestination = "/tmp"
@@ -679,11 +704,11 @@ func (d *stiDocker) GetAssembleInputFiles(image string) (string, error) {
 		return "", err
 	}
 
-	label := getLabel(imageMetadata, constants.AssembleInputFilesLabel)
+	label := getLabel(imageMetadata, AssembleInputFilesLabel)
 	if len(label) == 0 {
-		glog.V(0).Infof("warning: Image %q does not contain a value for the %s label", image, constants.AssembleInputFilesLabel)
+		glog.V(0).Infof("warning: Image %q does not contain a value for the %s label", image, AssembleInputFilesLabel)
 	} else {
-		glog.V(3).Infof("Image %q contains %s set to %q", image, constants.AssembleInputFilesLabel, label)
+		glog.V(3).Infof("Image %q contains %s set to %q", image, AssembleInputFilesLabel, label)
 	}
 	return label, nil
 }
@@ -693,27 +718,27 @@ func getScriptsURL(image *api.Image) string {
 	if image == nil {
 		return ""
 	}
-	scriptsURL := getLabel(image, constants.ScriptsURLLabel)
+	scriptsURL := getLabel(image, ScriptsURLLabel)
 
 	// For backward compatibility, support the old label schema
 	if len(scriptsURL) == 0 {
-		scriptsURL = getLabel(image, constants.DeprecatedScriptsURLLabel)
+		scriptsURL = getLabel(image, "io.s2i.scripts-url")
 		if len(scriptsURL) > 0 {
-			glog.V(0).Infof("warning: Image %s uses deprecated label '%s', please migrate it to %s instead!",
-				image.ID, constants.DeprecatedScriptsURLLabel, constants.ScriptsURLLabel)
+			glog.V(0).Infof("warning: Image %s uses deprecated label 'io.s2i.scripts-url', please migrate it to %s instead!",
+				image.ID, ScriptsURLLabel)
 		}
 	}
 	if len(scriptsURL) == 0 {
-		scriptsURL = getVariable(image, constants.ScriptsURLEnvironment)
+		scriptsURL = getVariable(image, ScriptsURLEnvironment)
 		if len(scriptsURL) != 0 {
 			glog.V(0).Infof("warning: Image %s uses deprecated environment variable %s, please migrate it to %s label instead!",
-				image.ID, constants.ScriptsURLEnvironment, constants.ScriptsURLLabel)
+				image.ID, ScriptsURLEnvironment, ScriptsURLLabel)
 		}
 	}
 	if len(scriptsURL) == 0 {
-		glog.V(0).Infof("warning: Image %s does not contain a value for the %s label", image.ID, constants.ScriptsURLLabel)
+		glog.V(0).Infof("warning: Image %s does not contain a value for the %s label", image.ID, ScriptsURLLabel)
 	} else {
-		glog.V(2).Infof("Image %s contains %s set to %q", image.ID, constants.ScriptsURLLabel, scriptsURL)
+		glog.V(2).Infof("Image %s contains %s set to %q", image.ID, ScriptsURLLabel, scriptsURL)
 	}
 
 	return scriptsURL
@@ -721,18 +746,18 @@ func getScriptsURL(image *api.Image) string {
 
 // getDestination finds a destination label in the image metadata
 func getDestination(image *api.Image) string {
-	if val := getLabel(image, constants.DestinationLabel); len(val) != 0 {
+	if val := getLabel(image, DestinationLabel); len(val) != 0 {
 		return val
 	}
 	// For backward compatibility, support the old label schema
-	if val := getLabel(image, constants.DeprecatedDestinationLabel); len(val) != 0 {
-		glog.V(0).Infof("warning: Image %s uses deprecated label '%s', please migrate it to %s instead!",
-			image.ID, constants.DeprecatedDestinationLabel, constants.DestinationLabel)
+	if val := getLabel(image, "io.s2i.destination"); len(val) != 0 {
+		glog.V(0).Infof("warning: Image %s uses deprecated label 'io.s2i.destination', please migrate it to %s instead!",
+			image.ID, DestinationLabel)
 		return val
 	}
-	if val := getVariable(image, constants.LocationEnvironment); len(val) != 0 {
+	if val := getVariable(image, LocationEnvironment); len(val) != 0 {
 		glog.V(0).Infof("warning: Image %s uses deprecated environment variable %s, please migrate it to %s label instead!",
-			image.ID, constants.LocationEnvironment, constants.DestinationLabel)
+			image.ID, LocationEnvironment, DestinationLabel)
 		return val
 	}
 
@@ -750,7 +775,7 @@ func constructCommand(opts RunContainerOptions, imageMetadata *api.Image, tarDes
 
 	// when calling assemble script with Stdin parameter set (the tar file)
 	// we need to first untar the whole archive and only then call the assemble script
-	if opts.Stdin != nil && (opts.Command == constants.Assemble || opts.Command == constants.Usage) {
+	if opts.Stdin != nil && (opts.Command == api.Assemble || opts.Command == api.Usage) {
 		untarAndRun := fmt.Sprintf("tar -C %s -xf - && %s", tarDestination, binaryToRun)
 
 		resultedCommand := untarAndRun

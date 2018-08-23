@@ -16,5 +16,10 @@ function cleanup() {
 trap "cleanup" EXIT
 
 os::util::ensure::gopath_binary_exists imagebuilder
+# image builds require RPMs to have been built
+os::build::release::check_for_rpms
+
+# we need to mount RPMs into the container builds for installation
+OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_OUTPUT_RPMPATH}/:/srv/origin-local-release/"
 
 os::build::images

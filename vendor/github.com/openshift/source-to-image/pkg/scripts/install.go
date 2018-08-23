@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/docker"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/util/fs"
@@ -52,10 +51,10 @@ const (
 
 var (
 	// RequiredScripts must be present to do an s2i build
-	RequiredScripts = []string{constants.Assemble, constants.Run}
+	RequiredScripts = []string{api.Assemble, api.Run}
 
 	// OptionalScripts may be provided when doing an s2i build
-	OptionalScripts = []string{constants.SaveArtifacts}
+	OptionalScripts = []string{api.SaveArtifacts}
 )
 
 // SetDestinationDir sets the destination where the scripts should be
@@ -91,7 +90,7 @@ func (s *URLScriptHandler) Install(r *api.InstallResult) error {
 	if err != nil {
 		return err
 	}
-	dst := filepath.Join(s.DestinationDir, constants.UploadScripts, r.Script)
+	dst := filepath.Join(s.DestinationDir, api.UploadScripts, r.Script)
 	if _, err := s.Download.Download(downloadURL, dst); err != nil {
 		if e, ok := err.(s2ierr.Error); ok {
 			if e.ErrorCode == s2ierr.ScriptsInsideImageError {
@@ -119,7 +118,7 @@ type SourceScriptHandler struct {
 // Get verifies if the script is present in the source directory and get the
 // installation result.
 func (s *SourceScriptHandler) Get(script string) *api.InstallResult {
-	location := filepath.Join(s.DestinationDir, constants.SourceScripts, script)
+	location := filepath.Join(s.DestinationDir, api.SourceScripts, script)
 	if s.fs.Exists(location) {
 		return &api.InstallResult{Script: script, URL: location}
 	}
@@ -140,7 +139,7 @@ func (s *SourceScriptHandler) String() string {
 
 // Install copies the script into upload directory and fix its permissions.
 func (s *SourceScriptHandler) Install(r *api.InstallResult) error {
-	dst := filepath.Join(s.DestinationDir, constants.UploadScripts, r.Script)
+	dst := filepath.Join(s.DestinationDir, api.UploadScripts, r.Script)
 	if err := s.fs.Rename(r.URL, dst); err != nil {
 		return err
 	}
@@ -232,7 +231,7 @@ func (m *DefaultScriptSourceManager) InstallRequired(scripts []string, dstDir st
 		}
 	}
 	if len(failedScripts) > 0 {
-		err = s2ierr.NewInstallRequiredError(failedScripts, constants.ScriptsURLLabel)
+		err = s2ierr.NewInstallRequiredError(failedScripts, docker.ScriptsURLLabel)
 	}
 	return result, err
 }

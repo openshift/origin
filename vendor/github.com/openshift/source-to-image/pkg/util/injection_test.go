@@ -1,7 +1,6 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -31,12 +30,9 @@ func TestCreateTruncateFilesScript(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to read %q: %v", name, err)
 	}
-	for _, f := range files {
-		if !strings.Contains(string(data), fmt.Sprintf("truncate -s0 %q", f)) {
-			t.Errorf("Expected script to contain truncate -s0 %q, got: %q", f, string(data))
-		}
+	if !strings.Contains(string(data), fmt.Sprintf("truncate -s0 %q", "/foo")) {
+		t.Errorf("Expected script to contain truncate -s0 \"/foo\", got: %q", string(data))
 	}
-
 	if !strings.Contains(string(data), fmt.Sprintf("truncate -s0 %q", "/tmp/rm-foo")) {
 		t.Errorf("Expected script to truncate itself, got: %q", string(data))
 	}
@@ -76,40 +72,6 @@ func TestListFilesToTruncate(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("Expected %q in resulting file list, got %+v", exp, files)
-		}
-	}
-}
-
-func TestCreateInjectionResultFile(t *testing.T) {
-	type testCase struct {
-		Error   error
-		IsEmpty bool
-	}
-
-	testCases := []testCase{
-		{Error: nil, IsEmpty: true},
-		{Error: errors.New("test error"), IsEmpty: false},
-	}
-
-	for _, tc := range testCases {
-		name, err := CreateInjectionResultFile(tc.Error)
-		defer os.Remove(name)
-		if err != nil {
-			t.Errorf("Failed to create result file: %v", err)
-		}
-		_, err = os.Stat(name)
-		if err != nil {
-			t.Errorf("Expected file %q to exists, got: %v", name, err)
-		}
-		data, err := ioutil.ReadFile(name)
-		if err != nil {
-			t.Errorf("Unable to read %q: %v", name, err)
-		}
-		if tc.IsEmpty && len(data) > 0 {
-			t.Errorf("Expected test file to be empty, got %s", string(data))
-		}
-		if !tc.IsEmpty && !strings.Contains(string(data), tc.Error.Error()) {
-			t.Errorf("Expected test file to contain %s, got %s", tc.Error.Error(), string(data))
 		}
 	}
 }
