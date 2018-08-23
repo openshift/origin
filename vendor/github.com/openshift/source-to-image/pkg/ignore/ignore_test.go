@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/util/fs"
 )
 
@@ -40,7 +39,7 @@ func baseTest(t *testing.T, patterns []string, filesToDel []string, filesToKeep 
 	t.Logf("working source dir %q", dpath)
 
 	// create s2iignore file
-	ipath := filepath.Join(dpath, constants.IgnoreFile)
+	ipath := filepath.Join(dpath, api.IgnoreFile)
 	ifile, ierr := os.Create(ipath)
 	defer ifile.Close()
 	if ierr != nil {

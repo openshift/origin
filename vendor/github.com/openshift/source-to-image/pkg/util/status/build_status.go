@@ -111,14 +111,6 @@ const (
 	// ReasonMessageOnBuildForbidden is the message associated with an image that
 	// uses the ONBUILD instruction when it's not allowed.
 	ReasonMessageOnBuildForbidden api.StepFailureMessage = "ONBUILD instructions not allowed in this context."
-
-	// ReasonAssembleUserForbidden is the failure reason associated with an image that
-	// uses a forbidden AssembleUser.
-	ReasonAssembleUserForbidden api.StepFailureReason = "AssembleUserForbidden"
-
-	// ReasonMessageAssembleUserForbidden is the failure reason associated with an image that
-	// uses a forbidden AssembleUser.
-	ReasonMessageAssembleUserForbidden api.StepFailureMessage = "Assemble user for S2I build is forbidden."
 )
 
 // NewFailureReason initializes a new failure reason that contains both the

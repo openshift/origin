@@ -9,13 +9,12 @@ import (
 	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/constants"
 )
 
 // GetEnvironment gets the .s2i/environment file located in the sources and
 // parse it into EnvironmentList.
 func GetEnvironment(path string) (api.EnvironmentList, error) {
-	envPath := filepath.Join(path, ".s2i", constants.Environment)
+	envPath := filepath.Join(path, ".s2i", api.Environment)
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
 		return nil, errors.New("no environment file found in application sources")
 	}

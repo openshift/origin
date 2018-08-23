@@ -7,6 +7,4 @@
 # For more information see the documentation:
 #	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
 #
-touch /tmp/artifact.txt
-cd /tmp
-tar cf - artifact.txt
+#tar cf - <your files here>

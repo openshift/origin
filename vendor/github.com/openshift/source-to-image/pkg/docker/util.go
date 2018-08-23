@@ -18,7 +18,6 @@ import (
 	"github.com/docker/docker/client"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/constants"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 	"github.com/openshift/source-to-image/pkg/util/user"
@@ -457,5 +456,5 @@ func extractAssembleUser(docker Docker, imageName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return imageData[constants.AssembleUserLabel], nil
+	return imageData[AssembleUserLabel], nil
 }

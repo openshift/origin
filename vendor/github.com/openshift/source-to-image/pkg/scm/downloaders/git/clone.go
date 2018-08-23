@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/util/fs"
 )
@@ -21,7 +20,7 @@ type Clone struct {
 // Download downloads the application source code from the Git repository
 // and checkout the Ref specified in the config.
 func (c *Clone) Download(config *api.Config) (*git.SourceInfo, error) {
-	targetSourceDir := filepath.Join(config.WorkingDir, constants.Source)
+	targetSourceDir := filepath.Join(config.WorkingDir, api.Source)
 	config.WorkingSourceDir = targetSourceDir
 
 	ref := config.Source.URL.Fragment
@@ -30,7 +29,7 @@ func (c *Clone) Download(config *api.Config) (*git.SourceInfo, error) {
 	}
 
 	if len(config.ContextDir) > 0 {
-		targetSourceDir = filepath.Join(config.WorkingDir, constants.ContextTmp)
+		targetSourceDir = filepath.Join(config.WorkingDir, api.ContextTmp)
 		glog.V(1).Infof("Downloading %q (%q) ...", config.Source, config.ContextDir)
 	} else {
 		glog.V(1).Infof("Downloading %q ...", config.Source)
@@ -75,7 +74,7 @@ func (c *Clone) Download(config *api.Config) (*git.SourceInfo, error) {
 
 	info := c.GetInfo(targetSourceDir)
 	if len(config.ContextDir) > 0 {
-		originalTargetDir := filepath.Join(config.WorkingDir, constants.Source)
+		originalTargetDir := filepath.Join(config.WorkingDir, api.Source)
 		c.RemoveDirectory(originalTargetDir)
 		path := filepath.Join(targetSourceDir, config.ContextDir)
 		err := c.CopyContents(path, originalTargetDir)

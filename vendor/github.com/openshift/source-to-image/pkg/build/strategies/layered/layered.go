@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/docker"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
@@ -93,7 +92,7 @@ func (builder *Layered) CreateDockerfile(config *api.Config) error {
 	scriptsDir := filepath.Join(getDestination(config), "scripts")
 	sourcesDir := filepath.Join(getDestination(config), "src")
 
-	uploadScriptsDir := path.Join(config.WorkingDir, constants.UploadScripts)
+	uploadScriptsDir := path.Join(config.WorkingDir, api.UploadScripts)
 
 	buffer.WriteString(fmt.Sprintf("FROM %s\n", builder.config.BuilderImage))
 	// only COPY scripts dir if required scripts are present, i.e. the dir is not empty;
@@ -189,7 +188,7 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 	// new image name
 	builder.config.BuilderImage = newBuilderImage
 	// see CreateDockerfile, conditional copy, location of scripts
-	scriptsIncluded := checkValidDirWithContents(path.Join(config.WorkingDir, constants.UploadScripts))
+	scriptsIncluded := checkValidDirWithContents(path.Join(config.WorkingDir, api.UploadScripts))
 	glog.V(2).Infof("Scripts dir has contents %v", scriptsIncluded)
 	if scriptsIncluded {
 		builder.config.ScriptsURL = "image://" + path.Join(getDestination(config), "scripts")
@@ -207,7 +206,7 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 
 	glog.V(2).Infof("Building %s using sti-enabled image", builder.config.Tag)
 	startTime = time.Now()
-	err = builder.scripts.Execute(constants.Assemble, config.AssembleUser, builder.config)
+	err = builder.scripts.Execute(api.Assemble, config.AssembleUser, builder.config)
 	buildResult.BuildInfo.Stages = api.RecordStageAndStepInfo(buildResult.BuildInfo.Stages, api.StageAssemble, api.StepAssembleBuildScripts, startTime, time.Now())
 	if err != nil {
 		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(

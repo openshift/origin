@@ -23,10 +23,8 @@ func Config(client docker.Client, config *api.Config) string {
 		if len(config.Description) > 0 {
 			fmt.Fprintf(out, "Description:\t%s\n", config.Description)
 		}
-		if len(config.AsDockerfile) == 0 {
-			describeBuilderImage(client, config, out)
-			describeRuntimeImage(config, out)
-		}
+		describeBuilderImage(client, config, out)
+		describeRuntimeImage(config, out)
 		fmt.Fprintf(out, "Source:\t%s\n", config.Source)
 		if len(config.ContextDir) > 0 {
 			fmt.Fprintf(out, "Context Directory:\t%s\n", config.ContextDir)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 )
 
@@ -12,7 +11,7 @@ import (
 // and source repository informations.
 func GenerateOutputImageLabels(info *git.SourceInfo, config *api.Config) map[string]string {
 	labels := map[string]string{}
-	namespace := constants.DefaultNamespace
+	namespace := api.DefaultNamespace
 	if len(config.LabelNamespace) > 0 {
 		namespace = config.LabelNamespace
 	}
@@ -25,13 +24,13 @@ func GenerateOutputImageLabels(info *git.SourceInfo, config *api.Config) map[str
 // GenerateLabelsFromConfig generate the labels based on build s2i Config
 func GenerateLabelsFromConfig(labels map[string]string, config *api.Config, namespace string) map[string]string {
 	if len(config.Description) > 0 {
-		labels[constants.KubernetesDescriptionLabel] = config.Description
+		labels[api.KubernetesNamespace+"description"] = config.Description
 	}
 
 	if len(config.DisplayName) > 0 {
-		labels[constants.KubernetesDisplayNameLabel] = config.DisplayName
+		labels[api.KubernetesNamespace+"display-name"] = config.DisplayName
 	} else if len(config.Tag) > 0 {
-		labels[constants.KubernetesDisplayNameLabel] = config.Tag
+		labels[api.KubernetesNamespace+"display-name"] = config.Tag
 	}
 
 	addBuildLabel(labels, "image", config.BuilderImage, namespace)

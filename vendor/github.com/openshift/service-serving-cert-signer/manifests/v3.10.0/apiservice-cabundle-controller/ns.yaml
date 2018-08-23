@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-service-cert-signer
-  labels:
-    openshift.io/run-level: "1"
