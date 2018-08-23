@@ -32490,7 +32490,7 @@ objects:
       spec:
         serviceAccountName: kube-dns
         containers:
-        - name: kube-proxy
+        - name: kube-dns
           image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["openshift", "start", "network"]
@@ -32580,6 +32580,8 @@ objects:
     - kind: ServiceAccount
       name: kube-proxy
       namespace: ${NAMESPACE}
+    - kind: Group
+      name: system:nodes
   roleRef:
     kind: ClusterRole
     name: system:node-proxier

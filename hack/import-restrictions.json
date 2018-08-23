@@ -50,7 +50,8 @@
       "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride",
       "github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate",
       "github.com/openshift/origin/pkg/cmd/server",
-      "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
+      "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
     ],
     "forbiddenImportPackageRoots": [
       "github.com/openshift/origin/pkg/apps/apiserver",
