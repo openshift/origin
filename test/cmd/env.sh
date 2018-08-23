@@ -11,7 +11,7 @@ os::cmd::expect_success_and_text 'oc set env dc/node --list' 'deploymentconfigs/
 os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" key-' 'deploymentconfig.apps.openshift.io/node updated'
 os::cmd::expect_failure_and_text 'oc set env dc --all --containers="node"' 'error: at least one environment variable must be provided'
 os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/node' 'error: at least one environment variable must be provided'
-os::cmd::expect_failure_and_text 'oc set env dc/node test#abc=1234' 'environment variables must be of the form key=value, but is "test#abc=1234"'
+os::cmd::expect_failure_and_text 'oc set env dc/node test#abc=1234' 'environment variable test#abc=1234 is invalid, a valid environment variable name must consist of alphabetic characters'
 
 # ensure deleting a var through --env does not result in an error message
 os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io/node updated'
