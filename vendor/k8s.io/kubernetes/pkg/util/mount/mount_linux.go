@@ -454,6 +454,10 @@ func (mounter *Mounter) ExistsPath(pathname string) (bool, error) {
 	return utilfile.FileExists(pathname)
 }
 
+func (mounter *Mounter) EvalHostSymlinks(pathname string) (string, error) {
+	return filepath.EvalSymlinks(pathname)
+}
+
 // formatAndMount uses unix utils to format and mount the given disk
 func (mounter *SafeFormatAndMount) formatAndMount(source string, target string, fstype string, options []string) error {
 	readOnly := false
