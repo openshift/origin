@@ -42,10 +42,10 @@ var _ = SIGDescribe("LimitRange", func() {
 	It("should create a LimitRange with defaults and ensure pod has those defaults applied.", func() {
 		By("Creating a LimitRange")
 
-		min := getResourceList("50m", "100Mi", "100Gi")
-		max := getResourceList("500m", "500Mi", "500Gi")
-		defaultLimit := getResourceList("500m", "500Mi", "500Gi")
-		defaultRequest := getResourceList("100m", "200Mi", "200Gi")
+		min := getResourceList("50m", "100Mi", "")
+		max := getResourceList("500m", "500Mi", "")
+		defaultLimit := getResourceList("500m", "500Mi", "")
+		defaultRequest := getResourceList("100m", "200Mi", "")
 		maxLimitRequestRatio := v1.ResourceList{}
 		limitRange := newLimitRange("limit-range", v1.LimitTypeContainer,
 			min, max,
