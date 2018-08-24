@@ -3,7 +3,7 @@
 #
 # The standard name for this image is openshift/origin-nginx-router
 #
-FROM openshift/origin-cli
+FROM openshift/origin-cli:v3.11.0
 
 ENV NGINX_VERSION 1.13.12-1.el7_4.ngx
 
