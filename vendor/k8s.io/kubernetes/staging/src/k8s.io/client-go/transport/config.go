@@ -56,6 +56,9 @@ type Config struct {
 
 	// Dial specifies the dial function for creating unencrypted TCP connections.
 	Dial func(ctx context.Context, network, address string) (net.Conn, error)
+
+	// CacheAnnotation allows bucketing of special kinds of config in the cache.
+	CacheAnnotation string
 }
 
 // ImpersonationConfig has all the available impersonation options

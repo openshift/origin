@@ -39,13 +39,14 @@ const idleConnsPerHost = 25
 var tlsCache = &tlsTransportCache{transports: make(map[tlsCacheKey]*http.Transport)}
 
 type tlsCacheKey struct {
-	insecure   bool
-	caData     string
-	certData   string
-	keyData    string
-	getCert    string
-	serverName string
-	dial       string
+	insecure        bool
+	caData          string
+	certData        string
+	keyData         string
+	getCert         string
+	serverName      string
+	dial            string
+	cacheAnnotation string
 }
 
 func (t tlsCacheKey) String() string {
@@ -60,6 +61,10 @@ func (c *tlsTransportCache) get(config *Config) (http.RoundTripper, error) {
 	key, err := tlsConfigKey(config)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(key.cacheAnnotation) > 0 {
+		fmt.Printf("#### checking with %q\n", key.cacheAnnotation)
 	}
 
 	// Ensure we only create a single transport for the given TLS options
@@ -106,12 +111,13 @@ func tlsConfigKey(c *Config) (tlsCacheKey, error) {
 		return tlsCacheKey{}, err
 	}
 	return tlsCacheKey{
-		insecure:   c.TLS.Insecure,
-		caData:     string(c.TLS.CAData),
-		certData:   string(c.TLS.CertData),
-		keyData:    string(c.TLS.KeyData),
-		getCert:    fmt.Sprintf("%p", c.TLS.GetCert),
-		serverName: c.TLS.ServerName,
-		dial:       fmt.Sprintf("%p", c.Dial),
+		insecure:        c.TLS.Insecure,
+		caData:          string(c.TLS.CAData),
+		certData:        string(c.TLS.CertData),
+		keyData:         string(c.TLS.KeyData),
+		getCert:         fmt.Sprintf("%p", c.TLS.GetCert),
+		serverName:      c.TLS.ServerName,
+		dial:            fmt.Sprintf("%p", c.Dial),
+		cacheAnnotation: c.CacheAnnotation,
 	}, nil
 }

@@ -25,6 +25,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
@@ -47,9 +49,10 @@ type proxyHandler struct {
 
 	// proxyClientCert/Key are the client cert used to identify this proxy. Backing APIServices use
 	// this to confirm the proxy's identity
-	proxyClientCert []byte
-	proxyClientKey  []byte
-	proxyTransport  *http.Transport
+	proxyClientCert        []byte
+	proxyClientKey         []byte
+	proxyTransport         *http.Transport
+	stallingProxyTransport *http.Transport
 
 	// Endpoints based routing to map from cluster IP to routable IP
 	serviceResolver ServiceResolver
@@ -68,6 +71,8 @@ type proxyHandlingInfo struct {
 	transportBuildingError error
 	// proxyRoundTripper is the re-useable portion of the transport.  It does not vary with any request.
 	proxyRoundTripper http.RoundTripper
+	// proxyRoundTripper is the re-useable portion of the transport.  It does not vary with any request.
+	stallingProxyRoundTripper http.RoundTripper
 	// serviceName is the name of the service this handler proxies to
 	serviceName string
 	// namespace is the namespace the service lives in
@@ -131,8 +136,13 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	rt := handlingInfo.proxyRoundTripper
+	if strings.Contains(req.URL.String(), "apis/build.openshift.io/v1/namespaces/foo2/buildconfigs/testlarge/instantiatebinary") {
+		rt = handlingInfo.stallingProxyRoundTripper
+	}
+
 	// we need to wrap the roundtripper in another roundtripper which will apply the front proxy headers
-	proxyRoundTripper, upgrade, err := maybeWrapForConnectionUpgrades(handlingInfo.restConfig, handlingInfo.proxyRoundTripper, req)
+	proxyRoundTripper, upgrade, err := maybeWrapForConnectionUpgrades(handlingInfo.restConfig, rt, req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -218,5 +228,23 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationapi.APIServic
 			glog.Warning(newInfo.transportBuildingError.Error())
 		}
 	}
+
+	var err error
+	stallingInfo := proxyHandlingInfo{
+		restConfig:       restclient.CopyConfig(newInfo.restConfig),
+		serviceName:      apiService.Spec.Service.Name,
+		serviceNamespace: apiService.Spec.Service.Namespace,
+		serviceAvailable: apiregistrationapi.IsAPIServiceConditionTrue(apiService, apiregistrationapi.Available),
+	}
+	stallingInfo.restConfig.CacheAnnotation = "stalling-consumer"
+	newInfo.stallingProxyRoundTripper, err = restclient.TransportFor(stallingInfo.restConfig)
+	if err == nil && r.proxyTransport != nil && r.proxyTransport.DialContext != nil {
+		switch transport := newInfo.stallingProxyRoundTripper.(type) {
+		case *http.Transport:
+			transport.DialContext = r.proxyTransport.DialContext
+		default:
+		}
+	}
+
 	r.handlingInfo.Store(newInfo)
 }
