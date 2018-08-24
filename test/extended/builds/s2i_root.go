@@ -10,6 +10,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
+	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
 const rootDockerfile = `FROM centos/nodejs-6-centos7
@@ -62,8 +63,8 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseFailed))
-			o.Expect(build.Status.Reason).To(o.BeEquivalentTo(buildapi.StatusReasonGenericBuildFailed))
-			o.Expect(build.Status.Message).To(o.BeEquivalentTo(buildapi.StatusMessageGenericBuildFailed))
+			o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonAssembleUserForbidden))
+			o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessageAssembleUserForbidden))
 
 			podname := build.Annotations[buildapi.BuildPodNameAnnotation]
 			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
