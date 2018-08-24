@@ -271,14 +271,6 @@ func (s *S2IBuilder) Build() error {
 		}
 	}
 
-	/*
-		dropCaps := os.Getenv(builderutil.DropCapabilities)
-		glog.V(4).Infof("The value of %s is [%s]", builderutil.DropCapabilities, dropCaps)
-		if len(dropCaps) > 0 {
-			config.DropCapabilities = strings.Split(dropCaps, ",")
-		}
-	*/
-
 	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {
 		var buffer bytes.Buffer
 		for _, ve := range errs {
@@ -335,6 +327,15 @@ func (s *S2IBuilder) Build() error {
 		Dockerfile:          defaultDockerfilePath,
 		NoCache:             false,
 		Pull:                s.build.Spec.Strategy.SourceStrategy.ForcePull,
+	}
+
+	if s.cgLimits != nil {
+		opts.CPUPeriod = s.cgLimits.CPUPeriod
+		opts.CPUQuota = s.cgLimits.CPUQuota
+		opts.CPUShares = s.cgLimits.CPUShares
+		opts.Memory = s.cgLimits.MemoryLimitBytes
+		opts.Memswap = s.cgLimits.MemorySwap
+		opts.CgroupParent = s.cgLimits.Parent
 	}
 
 	pullAuthConfigs, err := s.setupPullSecret()
