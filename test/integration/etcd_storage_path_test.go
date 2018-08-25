@@ -12,12 +12,15 @@ import (
 
 	"golang.org/x/net/context"
 
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	discocache "k8s.io/client-go/discovery/cached"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
@@ -475,6 +478,23 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		stub:             `{"metadata": {"name": "openshiftwebconsoleconfigs.webconsole.operator.openshift.io"},"spec": {"scope": "Cluster","group": "webconsole.operator.openshift.io","version": "v1alpha1","names": {"kind": "OpenShiftWebConsoleConfig","plural": "openshiftwebconsoleconfigs","singular": "openshiftwebconsoleconfig"}}}`,
 		expectedEtcdPath: "kubernetes.io/apiextensions.k8s.io/customresourcedefinitions/openshiftwebconsoleconfigs.webconsole.operator.openshift.io",
 	},
+	gvr("cr.bar.com", "v1", "foos"): {
+		stub:             `{"kind": "Foo", "apiVersion": "cr.bar.com/v1", "metadata": {"name": "cr1foo"}, "color": "blue"}`, // requires TypeMeta due to CRD scheme's UnstructuredObjectTyper
+		expectedEtcdPath: "kubernetes.io/cr.bar.com/foos/etcdstoragepathtestnamespace/cr1foo",
+	},
+	gvr("custom.fancy.com", "v2", "pants"): {
+		stub:             `{"kind": "Pant", "apiVersion": "custom.fancy.com/v2", "metadata": {"name": "cr2pant"}, "isFancy": true}`, // requires TypeMeta due to CRD scheme's UnstructuredObjectTyper
+		expectedEtcdPath: "kubernetes.io/custom.fancy.com/pants/cr2pant",
+	},
+	gvr("awesome.bears.com", "v1", "pandas"): {
+		stub:             `{"kind": "Panda", "apiVersion": "awesome.bears.com/v1", "metadata": {"name": "cr3panda"}, "weight": 100}`, // requires TypeMeta due to CRD scheme's UnstructuredObjectTyper
+		expectedEtcdPath: "kubernetes.io/awesome.bears.com/pandas/cr3panda",
+	},
+	gvr("awesome.bears.com", "v3", "pandas"): {
+		stub:             `{"kind": "Panda", "apiVersion": "awesome.bears.com/v3", "metadata": {"name": "cr4panda"}, "weight": 300}`, // requires TypeMeta due to CRD scheme's UnstructuredObjectTyper
+		expectedEtcdPath: "kubernetes.io/awesome.bears.com/pandas/cr4panda",
+		expectedGVK:      gvkP("awesome.bears.com", "v1", "Panda"),
+	},
 	// --
 
 	// k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1
@@ -837,6 +857,71 @@ func TestEtcd3StoragePath(t *testing.T) {
 	kubeConfig.Burst = 9999
 	kubeClient := kclientset.NewForConfigOrDie(kubeConfig)
 
+	// create CRDs so we can make sure that custom resources do not get lost
+	createTestCRDs(t, apiextensionsclientset.NewForConfigOrDie(kubeConfig),
+		// namespaced with legacy version field
+		&apiextensionsv1beta1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foos.cr.bar.com",
+			},
+			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+				Group:   "cr.bar.com",
+				Version: "v1",
+				Scope:   apiextensionsv1beta1.NamespaceScoped,
+				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+					Plural: "foos",
+					Kind:   "Foo",
+				},
+			},
+		},
+		// cluster scoped with legacy version field
+		&apiextensionsv1beta1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "pants.custom.fancy.com",
+			},
+			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+				Group:   "custom.fancy.com",
+				Version: "v2",
+				Scope:   apiextensionsv1beta1.ClusterScoped,
+				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+					Plural: "pants",
+					Kind:   "Pant",
+				},
+			},
+		},
+		// cluster scoped with versions field
+		&apiextensionsv1beta1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "pandas.awesome.bears.com",
+			},
+			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+				Group: "awesome.bears.com",
+				Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
+					{
+						Name:    "v1",
+						Served:  true,
+						Storage: true,
+					},
+					{
+						Name:    "v2",
+						Served:  false,
+						Storage: false,
+					},
+					{
+						Name:    "v3",
+						Served:  true,
+						Storage: false,
+					},
+				},
+				Scope: apiextensionsv1beta1.ClusterScoped,
+				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+					Plural: "pandas",
+					Kind:   "Panda",
+				},
+			},
+		},
+	)
+
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
 	mapper.Reset()
 
@@ -1129,6 +1214,10 @@ func jsonToMetaObject(stub string) (*metaObject, error) {
 	if err := json.Unmarshal([]byte(stub), &obj); err != nil {
 		return nil, err
 	}
+	// unset type meta fields - we only set these in the CRD test data and it makes
+	// any CRD test with an expectedGVK override fail the DeepDerivative test
+	obj.Kind = ""
+	obj.APIVersion = ""
 	return obj, nil
 }
 
@@ -1182,6 +1271,9 @@ func (c *allClient) create(stub, ns string, mapping *meta.RESTMapping, all *[]cl
 	namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
 	output, err := req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource.Resource).Body(strings.NewReader(stub)).Do().Get()
 	if err != nil {
+		if runtime.IsNotRegisteredError(err) {
+			return nil // just ignore cleanup of CRDs for now, this is better fixed by moving to the dynamic client
+		}
 		return err
 	}
 	*all = append(*all, cleanupData{output, mapping})
@@ -1350,4 +1442,54 @@ func diffMapKeys(a, b interface{}, stringer func(interface{}) string) []string {
 	}
 
 	return ret
+}
+
+// copied and modified from k8s.io/kubernetes/test/integration/master/crd_test.go#TestCRD
+
+func createTestCRDs(t *testing.T, client apiextensionsclientset.Interface, crds ...*apiextensionsv1beta1.CustomResourceDefinition) {
+	for _, crd := range crds {
+		createTestCRD(t, client, crd)
+	}
+}
+
+func createTestCRD(t *testing.T, client apiextensionsclientset.Interface, crd *apiextensionsv1beta1.CustomResourceDefinition) {
+	if _, err := client.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd); err != nil {
+		t.Fatalf("Failed to create %s CRD; %v", crd.Name, err)
+	}
+	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+		return crdExistsInDiscovery(client, crd), nil
+	}); err != nil {
+		t.Fatalf("Failed to see %s in discovery: %v", crd.Name, err)
+	}
+}
+
+func crdExistsInDiscovery(client apiextensionsclientset.Interface, crd *apiextensionsv1beta1.CustomResourceDefinition) bool {
+	var versions []string
+	if len(crd.Spec.Version) != 0 {
+		versions = append(versions, crd.Spec.Version)
+	}
+	for _, v := range crd.Spec.Versions {
+		if v.Served {
+			versions = append(versions, v.Name)
+		}
+	}
+	for _, v := range versions {
+		if !crdVersionExistsInDiscovery(client, crd, v) {
+			return false
+		}
+	}
+	return true
+}
+
+func crdVersionExistsInDiscovery(client apiextensionsclientset.Interface, crd *apiextensionsv1beta1.CustomResourceDefinition, version string) bool {
+	resourceList, err := client.Discovery().ServerResourcesForGroupVersion(crd.Spec.Group + "/" + version)
+	if err != nil {
+		return false
+	}
+	for _, resource := range resourceList.APIResources {
+		if resource.Name == crd.Spec.Names.Plural {
+			return true
+		}
+	}
+	return false
 }
