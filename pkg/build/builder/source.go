@@ -499,7 +499,8 @@ func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, imag
 			return fmt.Errorf("error copying source path %s to %s: %v", path.SourcePath, path.DestinationDir, err)
 		}
 	}
-
+	glog.Infof("copied all files over, sleeping")
+	time.Sleep(600 * time.Second)
 	/*
 			exists := true
 			if !forcePull {
