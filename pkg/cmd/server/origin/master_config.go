@@ -8,7 +8,6 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/audit"
-	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kinformers "k8s.io/client-go/informers"
@@ -51,9 +50,6 @@ type MasterConfig struct {
 	kubeAPIServerConfig      *kubeapiserver.Config
 	additionalPostStartHooks map[string]genericapiserver.PostStartHookFunc
 
-	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
-	RESTOptionsGetter genericregistry.RESTOptionsGetter
-
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
 	SubjectLocator rbacauthorizer.SubjectLocator
 
@@ -70,12 +66,6 @@ type MasterConfig struct {
 	// PrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from system components
 	// To apply different access control to a system component, create a client config specifically for that component.
 	PrivilegedLoopbackClientConfig restclient.Config
-
-	// PrivilegedLoopbackKubernetesClientsetExternal is the client used to call Kubernetes APIs from system components,
-	// built from KubeClientConfig. It should only be accessed via the *TestingClient() helper methods. To apply
-	// different access control to a system component, create a separate client/config specifically for
-	// that component.
-	PrivilegedLoopbackKubernetesClientsetExternal kclientsetexternal.Interface
 
 	AuditBackend audit.Backend
 
@@ -128,11 +118,6 @@ func BuildMasterConfig(
 			return nil, err
 		}
 		informers = realLoopbackInformers
-	}
-
-	restOptsGetter, err := openshiftapiserver.NewRESTOptionsGetter(options)
-	if err != nil {
-		return nil, err
 	}
 
 	privilegedLoopbackConfig, err := configapi.GetClientConfig(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
@@ -199,8 +184,6 @@ func BuildMasterConfig(
 		kubeAPIServerConfig:      kubeAPIServerConfig,
 		additionalPostStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 
-		RESTOptionsGetter: restOptsGetter,
-
 		RuleResolver:   openshiftapiserver.NewRuleResolver(informers.GetKubernetesInformers().Rbac().V1()),
 		SubjectLocator: subjectLocator,
 
@@ -215,8 +198,7 @@ func BuildMasterConfig(
 
 		RegistryHostnameRetriever: registryHostnameRetriever,
 
-		PrivilegedLoopbackClientConfig:                *privilegedLoopbackConfig,
-		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
+		PrivilegedLoopbackClientConfig: *privilegedLoopbackConfig,
 
 		InternalKubeInformers:  informers.GetInternalKubernetesInformers(),
 		ClientGoKubeInformers:  informers.GetKubernetesInformers(),
