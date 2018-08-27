@@ -10,6 +10,7 @@ import (
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/version"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -36,6 +37,19 @@ func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, 
 		if err := origincontrollers.RunControllerServer(*config.ServingInfo, kubeClient); err != nil {
 			return err
 		}
+	}
+
+	{
+		imageTemplate := variable.NewDefaultImageTemplate()
+		imageTemplate.Format = config.Deployer.ImageTemplateFormat.Format
+		imageTemplate.Latest = config.Deployer.ImageTemplateFormat.Latest
+		glog.Infof("DeploymentConfig controller using images from %q", imageTemplate.ExpandOrDie("<component>"))
+	}
+	{
+		imageTemplate := variable.NewDefaultImageTemplate()
+		imageTemplate.Format = config.Build.ImageTemplateFormat.Format
+		imageTemplate.Latest = config.Build.ImageTemplateFormat.Latest
+		glog.Infof("Build controller using images from %q", imageTemplate.ExpandOrDie("<component>"))
 	}
 
 	originControllerManager := func(stopCh <-chan struct{}) {
