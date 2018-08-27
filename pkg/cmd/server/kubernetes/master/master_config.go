@@ -121,16 +121,10 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 		}
 	}
 
-	server.Etcd.EnableGarbageCollection = true
-	server.Etcd.StorageConfig.Type = "etcd3"
-	server.Etcd.DefaultStorageMediaType = "application/json" // TODO(post-1.6.1-rebase): enable protobuf with etcd3 as upstream
-	server.Etcd.StorageConfig.Quorum = true
-	server.Etcd.StorageConfig.Prefix = masterConfig.EtcdStorageConfig.KubernetesStoragePrefix
-	server.Etcd.StorageConfig.ServerList = masterConfig.EtcdClientInfo.URLs
-	server.Etcd.StorageConfig.KeyFile = masterConfig.EtcdClientInfo.ClientCert.KeyFile
-	server.Etcd.StorageConfig.CertFile = masterConfig.EtcdClientInfo.ClientCert.CertFile
-	server.Etcd.StorageConfig.CAFile = masterConfig.EtcdClientInfo.CA
-	server.Etcd.DefaultWatchCacheSize = 0
+	server.Etcd, err = configprocessing.GetEtcdOptions(masterConfig.KubernetesMasterConfig.APIServerArguments, masterConfig.EtcdClientInfo, masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, nil)
+	if err != nil {
+		return nil, err
+	}
 
 	server.GenericServerRunOptions.CorsAllowedOriginList = masterConfig.CORSAllowedOrigins
 	server.GenericServerRunOptions.MaxRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight
