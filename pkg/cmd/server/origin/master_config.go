@@ -28,7 +28,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	_ "github.com/openshift/origin/pkg/printers/internalversion"
@@ -131,7 +130,7 @@ func BuildMasterConfig(
 		informers = realLoopbackInformers
 	}
 
-	restOptsGetter, err := originrest.StorageOptions(options)
+	restOptsGetter, err := restoptions.NewConfigGetter(options)
 	if err != nil {
 		return nil, err
 	}
