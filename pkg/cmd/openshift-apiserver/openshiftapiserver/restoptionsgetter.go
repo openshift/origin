@@ -1,9 +1,10 @@
-package restoptions
+package openshiftapiserver
 
 import (
 	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/server/options"
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
@@ -14,8 +15,7 @@ import (
 )
 
 // NewConfigGetter returns a restoptions.Getter implemented using information from the provided master config.
-// TODO: this class should either not need to know about configapi.MasterConfig, or not be in pkg/util
-func NewConfigGetter(masterOptions configapi.MasterConfig) (Getter, error) {
+func NewRESTOptionsGetter(masterOptions configapi.MasterConfig) (genericregistry.RESTOptionsGetter, error) {
 	var err error
 	targetRAMMB := 0
 	if targetRamString := masterOptions.KubernetesMasterConfig.APIServerArguments["target-ram-mb"]; len(targetRamString) == 1 {

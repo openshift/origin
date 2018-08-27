@@ -14,7 +14,6 @@ import (
 	"github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclientauthorization"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for oauth client authorizations against etcd
@@ -25,7 +24,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against oauth clients
-func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter, clientGetter oauthclient.Getter) (*REST, error) {
 	strategy := oauthclientauthorization.NewStrategy(clientGetter)
 
 	store := &registry.Store{

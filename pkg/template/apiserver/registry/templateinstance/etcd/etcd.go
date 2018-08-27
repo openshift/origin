@@ -16,7 +16,6 @@ import (
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/apiserver/registry/templateinstance"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST implements a RESTStorage for templateinstances against etcd
@@ -27,7 +26,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against templateinstances.
-func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationclient.AuthorizationV1Interface) (*REST, *StatusREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter, authorizationClient authorizationclient.AuthorizationV1Interface) (*REST, *StatusREST, error) {
 	strategy := templateinstance.NewStrategy(authorizationClient)
 
 	store := &registry.Store{

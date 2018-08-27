@@ -8,6 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/audit"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kinformers "k8s.io/client-go/informers"
@@ -39,7 +40,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // MasterConfig defines the required parameters for starting the OpenShift master
@@ -52,7 +52,7 @@ type MasterConfig struct {
 	additionalPostStartHooks map[string]genericapiserver.PostStartHookFunc
 
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
-	RESTOptionsGetter restoptions.Getter
+	RESTOptionsGetter genericregistry.RESTOptionsGetter
 
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
 	SubjectLocator rbacauthorizer.SubjectLocator
@@ -130,7 +130,7 @@ func BuildMasterConfig(
 		informers = realLoopbackInformers
 	}
 
-	restOptsGetter, err := restoptions.NewConfigGetter(options)
+	restOptsGetter, err := openshiftapiserver.NewRESTOptionsGetter(options)
 	if err != nil {
 		return nil, err
 	}

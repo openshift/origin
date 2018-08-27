@@ -27,7 +27,6 @@ import (
 	"github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST contains the REST storage for DeploymentConfig objects.
@@ -52,7 +51,7 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a deploymentConfigREST containing the REST storage for DeploymentConfig objects,
 // a statusREST containing the REST storage for changing the status of a DeploymentConfig,
 // and a scaleREST containing the REST storage for the Scale subresources of DeploymentConfigs.
-func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *ScaleREST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &appsapi.DeploymentConfig{} },
 		NewListFunc:              func() runtime.Object { return &appsapi.DeploymentConfigList{} },

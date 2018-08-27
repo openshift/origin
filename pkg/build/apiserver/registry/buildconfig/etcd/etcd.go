@@ -12,7 +12,6 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apiserver/registry/buildconfig"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type REST struct {
@@ -34,7 +33,7 @@ func (r *REST) ShortNames() []string {
 }
 
 // NewREST returns a RESTStorage object that will work against BuildConfig.
-func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &buildapi.BuildConfig{} },
 		NewListFunc:              func() runtime.Object { return &buildapi.BuildConfigList{} },
