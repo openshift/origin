@@ -1,5 +1,5 @@
 hash: f6c313daf71c664707bed1f649639897c0690fd47c45615bed5abf7c4971e086
-updated: 2018-07-09T09:13:12.866398637-04:00
+updated: 2018-08-28T13:35:56.762195271-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -500,7 +500,7 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: e89373fe6b4a7413d7acd6da1725b83ef713e6e4
+  version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
 - name: github.com/google/cadvisor
   version: 7de6d3a20159d0d4c404436989dcdbbcfb3b20ae
   repo: https://github.com/openshift/google-cadvisor.git
@@ -816,7 +816,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 6ef6704e604af539af656171d5c0bde774923a43
+  version: 7eef55a5dc24306c455777b9897ddc3cbeaf8b59
   subpackages:
   - apps/v1
   - authorization/v1
@@ -1802,7 +1802,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: a745c520ef9f526306f56ae7bd27e33d5062cb59
+  version: b706964a8b00e17af2e2595a9e346aa1f641a4a2
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
