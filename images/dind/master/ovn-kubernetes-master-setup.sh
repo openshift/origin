@@ -7,18 +7,19 @@ set -o pipefail
 source /usr/local/bin/openshift-dind-lib.sh
 source /data/dind-env
 
-function is-api-running() {
-  local config=$1
+function ensure-token() {
+  local token_file="${1}/ovn.token"
+  local kube_config=$2
 
-  /usr/local/bin/oc --config="${kube_config}" get --raw /healthz/ready &> /dev/null
+  /usr/local/bin/oc --config="${kube_config}" sa get-token ovn > ${token_file}
+  [[ -s "${token_file}" ]]
 }
 
 function ovn-kubernetes-master-setup() {
   local config_dir=$1
   local kube_config="${config_dir}/admin.kubeconfig"
 
-  local msg="apiserver to become alive"
-  os::util::wait-for-condition "${msg}" "is-api-running ${kube_config}"
+  os::util::wait-for-apiserver "${kube_config}"
 
   systemctl enable ovn-northd
   systemctl start ovn-northd
@@ -35,12 +36,14 @@ function ovn-kubernetes-master-setup() {
   # Create the service account for OVN stuff
   if ! /usr/local/bin/oc --config="${kube_config}" get serviceaccount ovn >/dev/null 2>&1; then
     /usr/local/bin/oc --config="${kube_config}" create serviceaccount ovn
-    /usr/local/bin/oc adm --config="${kube_config}" policy add-cluster-role-to-user cluster-admin -z ovn
+    /usr/local/bin/oc --config="${kube_config}" adm policy add-cluster-role-to-user cluster-admin -z ovn
+
     # rhbz#1383707: need to add ovn SA to anyuid SCC to allow pod annotation updates
-    /usr/local/bin/oc adm --config="${kube_config}" policy add-scc-to-user anyuid -z ovn
+    os::util::wait-for-anyuid "${kube_config}"
+    /usr/local/bin/oc --config="${kube_config}" adm policy add-scc-to-user anyuid -z ovn
   fi
 
-  /usr/local/bin/oc --config="${kube_config}" sa get-token ovn > ${config_dir}/ovn.token
+  os::util::wait-for-condition "kubernetes token" "ensure-token ${config_dir} ${kube_config}" "120"
 }
 
 if [[ -n "${OPENSHIFT_OVN_KUBERNETES}" ]]; then
