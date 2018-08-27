@@ -116,6 +116,9 @@ type Config struct {
 	// Version forces a specific version to be used (if registered)
 	// Do we need this?
 	// Version string
+
+	// CacheAnnotation allows bucketing of special kinds of config in the cache.
+	CacheAnnotation string
 }
 
 // ImpersonationConfig has all the available impersonation options
