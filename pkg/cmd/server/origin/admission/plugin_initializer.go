@@ -24,7 +24,6 @@ import (
 
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/build/apiserver/admission/jenkinsbootstrapper"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
@@ -47,7 +46,10 @@ type InformerAccess interface {
 }
 
 func NewPluginInitializer(
-	masterConfig configapi.MasterConfig,
+	externalImageRegistryHostname string,
+	internalImageRegistryHostname string,
+	cloudConfigFile string,
+	jenkinsConfig configapi.JenkinsPipelineConfig,
 	privilegedLoopbackConfig *rest.Config,
 	informers InformerAccess,
 	authorizer authorizer.Authorizer,
@@ -78,16 +80,12 @@ func NewPluginInitializer(
 		quotaRegistry.Add(imageEvaluators[i])
 	}
 
-	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(privilegedLoopbackConfig, masterConfig.ImagePolicyConfig.ExternalRegistryHostname, masterConfig.ImagePolicyConfig.InternalRegistryHostname)
+	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(privilegedLoopbackConfig, externalImageRegistryHostname, internalImageRegistryHostname)
 	if err != nil {
 		return nil, err
 	}
 
 	var cloudConfig []byte
-	cloudConfigFile, err := configprocessing.GetCloudProviderConfigFile(masterConfig.KubernetesMasterConfig.APIServerArguments)
-	if err != nil {
-		return nil, err
-	}
 	if cloudConfigFile != "" {
 		var err error
 		cloudConfig, err = ioutil.ReadFile(cloudConfigFile)
@@ -142,7 +140,7 @@ func NewPluginInitializer(
 		UserInformers:                informers.GetOpenshiftUserInformers(),
 	}
 	jenkinsPipelineConfigInitializer := &jenkinsbootstrapper.PluginInitializer{
-		JenkinsPipelineConfig: masterConfig.JenkinsPipelineConfig,
+		JenkinsPipelineConfig: jenkinsConfig,
 	}
 
 	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer, jenkinsPipelineConfigInitializer}, nil

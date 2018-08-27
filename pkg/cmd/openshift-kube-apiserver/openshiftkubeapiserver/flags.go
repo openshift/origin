@@ -194,7 +194,7 @@ func admissionFlags(kubeAPIServerConfig *configapi.MasterConfig) (map[string][]s
 
 	forceOn := []string{}
 	forceOff := []string{}
-	pluginConfig := map[string]configapi.AdmissionPluginConfig{}
+	pluginConfig := map[string]*configapi.AdmissionPluginConfig{}
 	for pluginName, config := range kubeAPIServerConfig.AdmissionConfig.DeepCopy().PluginConfig {
 		if len(config.Location) > 0 {
 			content, err := ioutil.ReadFile(config.Location)
@@ -210,7 +210,7 @@ func admissionFlags(kubeAPIServerConfig *configapi.MasterConfig) (map[string][]s
 				forceOn = append(forceOn, pluginName)
 				config.Location = ""
 				config.Configuration = &runtime.Unknown{Raw: content}
-				pluginConfig[pluginName] = *config
+				pluginConfig[pluginName] = config
 				continue
 			}
 
@@ -218,7 +218,7 @@ func admissionFlags(kubeAPIServerConfig *configapi.MasterConfig) (map[string][]s
 				forceOn = append(forceOn, pluginName)
 				config.Location = ""
 				config.Configuration = &runtime.Unknown{Raw: content}
-				pluginConfig[pluginName] = *config
+				pluginConfig[pluginName] = config
 
 			} else if defaultConfig.Disable {
 				forceOff = append(forceOff, pluginName)
@@ -232,7 +232,7 @@ func admissionFlags(kubeAPIServerConfig *configapi.MasterConfig) (map[string][]s
 		// if it wasn't a DefaultAdmissionConfig object, let the plugin deal with it
 		if defaultConfig, ok := config.Configuration.(*configapi.DefaultAdmissionConfig); !ok {
 			forceOn = append(forceOn, pluginName)
-			pluginConfig[pluginName] = *config
+			pluginConfig[pluginName] = config
 
 		} else if defaultConfig.Disable {
 			forceOff = append(forceOff, pluginName)

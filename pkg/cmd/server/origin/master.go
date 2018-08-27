@@ -33,7 +33,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	// make a shallow copy to let us twiddle a few things
 	// most of the config actually remains the same.  We only need to mess with a couple items
 	genericConfig := kubeAPIServerConfig
-	genericConfig.RESTOptionsGetter, err = openshiftapiserver.NewRESTOptionsGetter(c.Options)
+	genericConfig.RESTOptionsGetter, err = openshiftapiserver.NewRESTOptionsGetter(c.Options.KubernetesMasterConfig.APIServerArguments, c.Options.EtcdClientInfo, c.Options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		}
 	}
 
-	routeAllocator, err := configprocessing.RouteAllocator(c.Options)
+	routeAllocator, err := configprocessing.RouteAllocator(c.Options.RoutingConfig)
 	if err != nil {
 		return nil, err
 	}

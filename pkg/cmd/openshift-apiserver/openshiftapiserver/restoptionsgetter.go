@@ -15,10 +15,10 @@ import (
 )
 
 // NewConfigGetter returns a restoptions.Getter implemented using information from the provided master config.
-func NewRESTOptionsGetter(masterOptions configapi.MasterConfig) (genericregistry.RESTOptionsGetter, error) {
+func NewRESTOptionsGetter(startingFlags map[string][]string, etcdConnectionInfo configapi.EtcdConnectionInfo, storagePrefix string) (genericregistry.RESTOptionsGetter, error) {
 	var err error
 	targetRAMMB := 0
-	if targetRamString := masterOptions.KubernetesMasterConfig.APIServerArguments["target-ram-mb"]; len(targetRamString) == 1 {
+	if targetRamString := startingFlags["target-ram-mb"]; len(targetRamString) == 1 {
 		targetRAMMB, err = strconv.Atoi(targetRamString[0])
 		if err != nil {
 			return nil, err
@@ -26,9 +26,9 @@ func NewRESTOptionsGetter(masterOptions configapi.MasterConfig) (genericregistry
 	}
 
 	etcdOptions, err := configprocessing.GetEtcdOptions(
-		masterOptions.KubernetesMasterConfig.APIServerArguments,
-		masterOptions.EtcdClientInfo,
-		masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix,
+		startingFlags,
+		etcdConnectionInfo,
+		storagePrefix,
 		newHeuristicWatchCacheSizes(targetRAMMB),
 	)
 

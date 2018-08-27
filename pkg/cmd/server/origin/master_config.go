@@ -37,6 +37,7 @@ import (
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
@@ -146,7 +147,11 @@ func BuildMasterConfig(
 	clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(), informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
 	discoveryClient := cacheddiscovery.NewMemCacheClient(privilegedLoopbackKubeClientsetExternal.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	admissionInitializer, err := originadmission.NewPluginInitializer(options, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
+	cloudConfigFile, err := configprocessing.GetCloudProviderConfigFile(options.KubernetesMasterConfig.APIServerArguments)
+	if err != nil {
+		return nil, err
+	}
+	admissionInitializer, err := originadmission.NewPluginInitializer(options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname, cloudConfigFile, options.JenkinsPipelineConfig, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +166,7 @@ func BuildMasterConfig(
 		admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 	}
-	admission, err := originadmission.NewAdmissionChains(options, admissionInitializer, admissionDecorators)
+	admission, err := originadmission.NewAdmissionChains(options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"], options.AdmissionConfig.PluginConfig, options.AdmissionConfig.PluginOrderOverride, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}
