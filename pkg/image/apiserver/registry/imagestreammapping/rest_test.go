@@ -34,10 +34,10 @@ import (
 	imageetcd "github.com/openshift/origin/pkg/image/apiserver/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/apiserver/registry/imagestream/etcd"
-	"github.com/openshift/origin/pkg/util/restoptions"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	"k8s.io/apiserver/pkg/registry/generic"
 )
 
 const testDefaultRegistryURL = "defaultregistry:5000"
@@ -55,13 +55,15 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
 	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "image.openshift.io", Version: "v1"})
 	etcdClient := etcd.NewKV(server.V3Client)
+	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "images"}
 
-	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	imageStorage, err := imageetcd.NewREST(restOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
 	registry := registryhostname.TestingRegistryHostnameRetriever(testDefaultRegistry, "", "")
-	imageStreamStorage, _, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), registry, &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, &fake.RegistryWhitelister{}, imagestreametcd.NewEmptyLayerIndex())
+	imageStreamRESTOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "imagestreams"}
+	imageStreamStorage, _, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(imageStreamRESTOptions, registry, &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, &fake.RegistryWhitelister{}, imagestreametcd.NewEmptyLayerIndex())
 	if err != nil {
 		t.Fatal(err)
 	}

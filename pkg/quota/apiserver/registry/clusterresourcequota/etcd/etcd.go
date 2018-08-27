@@ -15,7 +15,6 @@ import (
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/apiserver/registry/clusterresourcequota"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type REST struct {
@@ -31,7 +30,7 @@ func (r *REST) ShortNames() []string {
 }
 
 // NewREST returns a RESTStorage object that will work against ClusterResourceQuota objects.
-func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
 		NewListFunc:              func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },

@@ -16,15 +16,16 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
-	"github.com/openshift/origin/pkg/util/restoptions"
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	"k8s.io/apiserver/pkg/registry/generic"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
 	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "image.openshift.io", Version: "v1"})
-	storage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "images"}
+	storage, err := NewREST(restOptions)
 	if err != nil {
 		t.Fatal(err)
 	}

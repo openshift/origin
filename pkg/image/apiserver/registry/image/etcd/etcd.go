@@ -12,7 +12,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageregistry "github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST implements a RESTStorage for images against etcd.
@@ -23,7 +22,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &imageapi.Image{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageList{} },
