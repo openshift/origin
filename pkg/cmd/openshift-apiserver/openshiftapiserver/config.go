@@ -25,10 +25,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	usercache "github.com/openshift/origin/pkg/user/cache"
+	"github.com/openshift/origin/pkg/util/restoptions"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -49,7 +49,7 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 	if err != nil {
 		return nil, err
 	}
-	restOptsGetter, err := originrest.StorageOptions(*openshiftAPIServerConfig)
+	restOptsGetter, err := restoptions.NewConfigGetter(*openshiftAPIServerConfig)
 	if err != nil {
 		return nil, err
 	}
