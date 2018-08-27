@@ -8,10 +8,10 @@ source /usr/local/bin/openshift-dind-lib.sh
 # Should set OPENSHIFT_NETWORK_PLUGIN
 source /data/dind-env
 
-function ensure-node-config() {
-  local deployed_config_path="/var/lib/origin/openshift.local.config/node"
-  local deployed_config_file="${deployed_config_path}/node-config.yaml"
+deployed_config_path="/var/lib/origin/openshift.local.config/node"
+deployed_config_file="${deployed_config_path}/node-config.yaml"
 
+function ensure-node-config() {
   local config_path="/data/openshift.local.config"
   local host
   host="$(hostname)"
@@ -109,4 +109,11 @@ EOF
   cp -r "${node_config_path}"/* "${deployed_config_path}/"
 }
 
+function run-hyperkube() {
+  local flags=$( /usr/local/bin/openshift-node-config "--config=${deployed_config_file}" )
+
+  eval "exec /usr/local/bin/hyperkube kubelet --v=${DEBUG_LOGLEVEL:-4} ${flags}"
+}
+
 ensure-node-config
+run-hyperkube

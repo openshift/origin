@@ -60,3 +60,31 @@ function os::util::is-master() {
    test -f "/etc/systemd/system/openshift-master.service"
 }
 readonly -f os::util::is-master
+
+# os::util::wait-for-apiserver waits up to 120s for the apiserver to become ready
+#
+# Globals:
+#  None
+# Arguments:
+#  - 1: path to a kubeconfig file
+# Returns:
+#  1 if the apiserver is not ready after the timeout, 0 otherwise
+function os::util::wait-for-apiserver() {
+  local kube_config=$1
+  os::util::wait-for-condition "apiserver" "/usr/local/bin/oc --config=${kube_config} get --raw /healthz/ready" "120"
+}
+readonly -f os::util::wait-for-apiserver
+
+# os::util::wait-for-anyuid waits up to 120s for the anyuid SCC to be created
+#
+# Globals:
+#  None
+# Arguments:
+#  - 1: path to a kubeconfig file
+# Returns:
+#  1 if the anyuid SCC is not created after the timeout, 0 otherwise
+function os::util::wait-for-anyuid() {
+  local kube_config=$1
+  os::util::wait-for-condition "anyuid" "/usr/local/bin/oc --config=${kube_config} get scc anyuid" "120"
+}
+readonly -f os::util::wait-for-anyuid

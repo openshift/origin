@@ -28,6 +28,10 @@ RUN systemctl enable openshift-master.service
 RUN mkdir -p /etc/systemd/system/openshift-node.service.d
 COPY master-node.conf /etc/systemd/system/openshift-node.service.d/
 
+COPY openshift-sdn-master-setup.service /etc/systemd/system/
+COPY openshift-sdn-master-setup.sh /usr/local/bin/
+RUN systemctl enable openshift-sdn-master-setup.service
+
 COPY ovn-kubernetes-master-setup.service /etc/systemd/system/
 COPY ovn-kubernetes-master-setup.sh /usr/local/bin/
 RUN systemctl enable ovn-kubernetes-master-setup.service
