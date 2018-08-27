@@ -95,14 +95,14 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		options               configapi.MasterConfig
-		admissionChainBuilder func(pluginNames []string, admissionConfigFilename string, options configapi.MasterConfig, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error)
+		admissionChainBuilder func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error)
 	}{
 		{
 			name: "stock everything",
 			options: configapi.MasterConfig{
 				KubernetesMasterConfig: configapi.KubernetesMasterConfig{},
 			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, options configapi.MasterConfig, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
+			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
 				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
 					t.Errorf("%s: expected %v, got %v", "stock everything", CombinedAdmissionControlPlugins, pluginNames)
 				}
@@ -117,7 +117,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 					PluginOrderOverride: []string{"foo"},
 				},
 			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, options configapi.MasterConfig, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
+			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
 				isKube := reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins)
 
 				expectedOrigin := []string{"foo"}
@@ -139,7 +139,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 					},
 				},
 			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, options configapi.MasterConfig, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
+			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
 				isKube := reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins)
 				isOrigin := reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins)
 				if !isKube && !isOrigin {
@@ -160,7 +160,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 					},
 				},
 			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, options configapi.MasterConfig, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
+			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
 				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
 					t.Errorf("%s: expected %v, got %v", "specified, non-conflicting plugin configs 01", CombinedAdmissionControlPlugins, pluginNames)
 				}
@@ -171,7 +171,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 
 	for _, tc := range testCases {
 		newAdmissionChainFunc = tc.admissionChainBuilder
-		_, _ = NewAdmissionChains(tc.options, nil, nil)
+		_, _ = NewAdmissionChains(tc.options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"], tc.options.AdmissionConfig.PluginConfig, tc.options.AdmissionConfig.PluginOrderOverride, nil, nil)
 	}
 }
 
