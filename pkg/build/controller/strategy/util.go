@@ -14,8 +14,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 
-	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/containers/storage"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -359,45 +359,45 @@ func copyEnvVarSlice(in []corev1.EnvVar) []corev1.EnvVar {
 
 // setupContainersConfigs sets up volumes for mounting the node's configuration which governs which
 // registries it knows about, whether or not they should be accessed with TLS, and signature policies.
-func setupContainersConfigs(pod *v1.Pod, container *v1.Container) {
+func setupContainersConfigs(pod *corev1.Pod, container *corev1.Container) {
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
-		v1.Volume{
+		corev1.Volume{
 			Name: "containerspolicyjson",
-			VolumeSource: v1.VolumeSource{
-				HostPath: &v1.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/etc/containers/policy.json",
 				},
 			},
 		},
-		v1.Volume{
+		corev1.Volume{
 			Name: "containersregistriesconf",
-			VolumeSource: v1.VolumeSource{
-				HostPath: &v1.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/etc/containers/registries.conf",
 				},
 			},
 		},
-		v1.Volume{
+		corev1.Volume{
 			Name: "containersregistriesd",
-			VolumeSource: v1.VolumeSource{
-				HostPath: &v1.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/etc/containers/registries.d",
 				},
 			},
 		},
 	)
 	container.VolumeMounts = append(container.VolumeMounts,
-		v1.VolumeMount{
+		corev1.VolumeMount{
 			Name:      "containerspolicyjson",
 			MountPath: "/etc/containers/policy.json",
 			ReadOnly:  true,
 		},
-		v1.VolumeMount{
+		corev1.VolumeMount{
 			Name:      "containersregistriesconf",
 			MountPath: "/etc/containers/registries.conf",
 			ReadOnly:  true,
 		},
-		v1.VolumeMount{
+		corev1.VolumeMount{
 			Name:      "containersregistriesd",
 			MountPath: "/etc/containers/registries.d",
 			ReadOnly:  true,
@@ -407,13 +407,13 @@ func setupContainersConfigs(pod *v1.Pod, container *v1.Container) {
 
 // setupContainersStorage borrows the appropriate storage directories from the node so
 // that we can share layers that we're using with the node
-func setupContainersStorage(pod *v1.Pod, container *v1.Container) {
+func setupContainersStorage(pod *corev1.Pod, container *corev1.Container) {
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-		v1.Volume{
+		corev1.Volume{
 			Name: "node-storage-root",
-			VolumeSource: v1.VolumeSource{
-				HostPath: &v1.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: storage.DefaultStoreOptions.GraphRoot,
 				},
 			},
@@ -421,7 +421,7 @@ func setupContainersStorage(pod *v1.Pod, container *v1.Container) {
 	)
 	container.VolumeMounts = append(container.VolumeMounts,
 		// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-		v1.VolumeMount{
+		corev1.VolumeMount{
 			Name:      "node-storage-root",
 			MountPath: storage.DefaultStoreOptions.GraphRoot,
 		},

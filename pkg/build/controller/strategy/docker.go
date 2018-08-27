@@ -175,7 +175,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build) (*v1.Pod, er
 	if s := build.Spec.Strategy.DockerStrategy; s != nil {
 		if policy := s.ImageOptimizationPolicy; policy != nil {
 			switch *policy {
-			case buildapi.ImageOptimizationDaemonless, buildapi.ImageOptimizationDaemonlessWithLayers, buildapi.ImageOptimizationDaemonlessSquashed:
+			case buildv1.ImageOptimizationDaemonless, buildv1.ImageOptimizationDaemonlessWithLayers, buildv1.ImageOptimizationDaemonlessSquashed:
 				setupSockets = false
 			}
 		}
