@@ -32,7 +32,6 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"golang.org/x/net/http2"
 )
 
 // JoinPreservingTrailingSlash does a path.Join of the specified elements,
@@ -109,9 +108,10 @@ func SetTransportDefaults(t *http.Transport) *http.Transport {
 	if s := os.Getenv("DISABLE_HTTP2"); len(s) > 0 {
 		glog.Infof("HTTP2 has been explicitly disabled")
 	} else {
-		if err := http2.ConfigureTransport(t); err != nil {
-			glog.Warningf("Transport failed http2 configuration: %v", err)
-		}
+		glog.Infof("HTTP2 has been explicitly disabled")
+		//if err := http2.ConfigureTransport(t); err != nil {
+		//	glog.Warningf("Transport failed http2 configuration: %v", err)
+		//}
 	}
 	return t
 }
