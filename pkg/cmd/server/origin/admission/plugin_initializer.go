@@ -22,14 +22,14 @@ import (
 	"k8s.io/kubernetes/pkg/quota/generic"
 	"k8s.io/kubernetes/pkg/quota/install"
 
-	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
+	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/build/apiserver/admission/jenkinsbootstrapper"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
@@ -40,10 +40,10 @@ import (
 type InformerAccess interface {
 	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 	GetKubernetesInformers() kexternalinformers.SharedInformerFactory
-	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
+	GetOpenshiftImageInformers() imagev1informer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
-	GetOpenshiftUserInformers() userinformer.SharedInformerFactory
+	GetOpenshiftUserInformers() userv1informer.SharedInformerFactory
 }
 
 func NewPluginInitializer(
@@ -63,7 +63,7 @@ func NewPluginInitializer(
 	if err != nil {
 		return nil, err
 	}
-	imageClient, err := imageclient.NewForConfig(privilegedLoopbackConfig)
+	imageClient, err := imagev1client.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +71,8 @@ func NewPluginInitializer(
 	// TODO make a union registry
 	quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
 	imageEvaluators := image.NewReplenishmentEvaluatorsForAdmission(
-		informers.GetInternalOpenshiftImageInformers().Image().InternalVersion().ImageStreams(),
-		imageClient.Image(),
+		informers.GetOpenshiftImageInformers().Image().V1().ImageStreams(),
+		imageClient.ImageV1(),
 	)
 	for i := range imageEvaluators {
 		quotaRegistry.Add(imageEvaluators[i])

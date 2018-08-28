@@ -20,16 +20,16 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
-	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
-	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
-	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
+	oauthv1informer "github.com/openshift/client-go/oauth/informers/externalversions"
+	routev1informer "github.com/openshift/client-go/route/informers/externalversions"
+	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	_ "github.com/openshift/origin/pkg/printers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -73,7 +73,7 @@ type MasterConfig struct {
 	InternalKubeInformers  kinternalinformers.SharedInformerFactory
 	ClientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
-	RouteInformers         routeinformer.SharedInformerFactory
+	RouteInformers         routev1informer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	SecurityInformers      securityinformer.SharedInformerFactory
 }
@@ -82,12 +82,12 @@ type InformerAccess interface {
 	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 	GetKubernetesInformers() kinformers.SharedInformerFactory
 
-	GetOpenshiftOauthInformers() oauthinformer.SharedInformerFactory
-	GetOpenshiftRouteInformers() routeinformer.SharedInformerFactory
-	GetOpenshiftUserInformers() userinformer.SharedInformerFactory
+	GetOpenshiftImageInformers() imagev1informer.SharedInformerFactory
+	GetOpenshiftOauthInformers() oauthv1informer.SharedInformerFactory
+	GetOpenshiftRouteInformers() routev1informer.SharedInformerFactory
+	GetOpenshiftUserInformers() userv1informer.SharedInformerFactory
 
 	GetInternalOpenshiftAuthorizationInformers() authorizationinformer.SharedInformerFactory
-	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
 

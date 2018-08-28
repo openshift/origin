@@ -27,7 +27,7 @@ import (
 )
 
 func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
-	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
+	informer := ctx.ImageInformers.Image().V1().ImageStreams()
 
 	buildClient, err := ctx.ClientBuilder.OpenshiftBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 	if err != nil {
@@ -147,8 +147,8 @@ func RunImageSignatureImportController(ctx *ControllerContext) (bool, error) {
 
 	controller := imagesignaturecontroller.NewSignatureImportController(
 		context.Background(),
-		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
-		ctx.InternalImageInformers.Image().InternalVersion().Images(),
+		ctx.ClientBuilder.OpenshiftImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ImageInformers.Image().V1().Images(),
 		resyncPeriod,
 		signatureFetchTimeout,
 		signatureImportLimit,
@@ -158,9 +158,9 @@ func RunImageSignatureImportController(ctx *ControllerContext) (bool, error) {
 }
 
 func RunImageImportController(ctx *ControllerContext) (bool, error) {
-	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
+	informer := ctx.ImageInformers.Image().V1().ImageStreams()
 	controller := imagecontroller.NewImageStreamController(
-		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ClientBuilder.OpenshiftImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
 		informer,
 	)
 	go controller.Run(5, ctx.Stop)
@@ -171,7 +171,7 @@ func RunImageImportController(ctx *ControllerContext) (bool, error) {
 	}
 
 	scheduledController := imagecontroller.NewScheduledImageStreamController(
-		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ClientBuilder.OpenshiftImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
 		informer,
 		imagecontroller.ScheduledImageStreamControllerOptions{
 			Resync: time.Duration(ctx.OpenshiftControllerConfig.ImageImport.ScheduledImageImportMinimumIntervalSeconds) * time.Second,

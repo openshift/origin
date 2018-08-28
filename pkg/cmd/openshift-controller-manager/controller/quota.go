@@ -24,8 +24,8 @@ func RunResourceQuotaManager(ctx *ControllerContext) (bool, error) {
 
 	imageEvaluators := image.NewReplenishmentEvaluators(
 		listerFuncForResource,
-		ctx.InternalImageInformers.Image().InternalVersion().ImageStreams(),
-		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(saName).Image())
+		ctx.ImageInformers.Image().V1().ImageStreams(),
+		ctx.ClientBuilder.OpenshiftImageClientOrDie(saName).Image())
 	resourceQuotaRegistry := generic.NewRegistry(imageEvaluators)
 
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
@@ -65,8 +65,8 @@ func RunClusterQuotaReconciliationController(ctx *ControllerContext) (bool, erro
 	resourceQuotaRegistry := generic.NewRegistry(quotaConfiguration.Evaluators())
 	imageEvaluators := image.NewReplenishmentEvaluators(
 		listerFuncForResource,
-		ctx.InternalImageInformers.Image().InternalVersion().ImageStreams(),
-		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(saName).Image())
+		ctx.ImageInformers.Image().V1().ImageStreams(),
+		ctx.ClientBuilder.OpenshiftImageClientOrDie(saName).Image())
 	for i := range imageEvaluators {
 		resourceQuotaRegistry.Add(imageEvaluators[i])
 	}
