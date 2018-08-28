@@ -7,6 +7,7 @@ import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
@@ -37,7 +38,7 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	haroldKubeClient, _, err := testutil.GetClientForUser(clusterAdminClientConfig, "harold")
+	haroldKubeClient, haroldClientConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -62,6 +63,24 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 	actualPod.Spec.Containers[0].Image = "something-nefarious"
 	if _, err := haroldKubeClient.Core().Pods(projectName).Update(actualPod); !isForbiddenBySCC(err) {
 		t.Fatalf("missing forbidden: %v", err)
+	}
+
+	// try to connect to /exec subresource as harold
+	haroldCorev1Rest := corev1client.NewForConfigOrDie(haroldClientConfig).RESTClient()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := &metav1.Status{}
+	err = haroldCorev1Rest.Post().
+		Resource("pods").
+		Namespace(projectName).
+		Name(actualPod.Name).
+		SubResource("exec").
+		Param("container", "first").
+		Do().
+		Into(result)
+	if !isForbiddenBySCCExecRestrictions(err) {
+		t.Fatalf("missing forbidden by SCCExecRestrictions: %v", err)
 	}
 
 	// try to lie about the privileged nature
@@ -230,6 +249,10 @@ func TestAllowedSCCViaRBAC(t *testing.T) {
 
 func isForbiddenBySCC(err error) bool {
 	return kapierror.IsForbidden(err) && strings.Contains(err.Error(), "unable to validate against any security context constraint")
+}
+
+func isForbiddenBySCCExecRestrictions(err error) bool {
+	return kapierror.IsForbidden(err) && strings.Contains(err.Error(), "pod's security context exceeds your permissions")
 }
 
 func getPrivilegedPod(name string) *kapi.Pod {
