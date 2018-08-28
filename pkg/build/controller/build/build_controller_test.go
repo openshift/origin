@@ -22,9 +22,13 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildclient "github.com/openshift/client-go/build/clientset/versioned"
-	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
-	buildinformers "github.com/openshift/client-go/build/informers/externalversions"
+	imagev1 "github.com/openshift/api/image/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/fake"
+	buildv1informer "github.com/openshift/client-go/build/informers/externalversions"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
@@ -32,10 +36,6 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinformersinternal "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageinternalclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imageinternalfakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
 // TestHandleBuild is the main test for build updates through the controller
@@ -301,7 +301,7 @@ func TestHandleBuild(t *testing.T) {
 			var patchedBuild *buildv1.Build
 			var appliedPatch string
 			buildClient := fakeBuildClient(tc.build)
-			buildClient.(*buildfake.Clientset).PrependReactor("patch", "builds",
+			buildClient.(*fakebuildv1client.Clientset).PrependReactor("patch", "builds",
 				func(action clientgotesting.Action) (bool, runtime.Object, error) {
 					if tc.errorOnBuildUpdate {
 						return true, nil, fmt.Errorf("error")
@@ -398,7 +398,7 @@ func TestWorkWithNewBuild(t *testing.T) {
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 	var patchedBuild *buildv1.Build
 	buildClient := fakeBuildClient(build)
-	buildClient.(*buildfake.Clientset).PrependReactor("patch", "builds", applyBuildPatchReaction(t, build, &patchedBuild))
+	buildClient.(*fakebuildv1client.Clientset).PrependReactor("patch", "builds", applyBuildPatchReaction(t, build, &patchedBuild))
 
 	bc := newFakeBuildController(buildClient, nil, nil, nil)
 	defer bc.stop()
@@ -446,7 +446,7 @@ func TestCreateBuildPod(t *testing.T) {
 }
 
 func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
-	imageStream := &imageapi.ImageStream{}
+	imageStream := &imagev1.ImageStream{}
 	imageStream.Namespace = "isnamespace"
 	imageStream.Name = "isname"
 	imageStream.Status.DockerImageRepository = "namespace/image-name"
@@ -514,7 +514,7 @@ func TestCreateBuildPodWithImageStreamMissing(t *testing.T) {
 }
 
 func TestCreateBuildPodWithImageStreamUnresolved(t *testing.T) {
-	imageStream := &imageapi.ImageStream{}
+	imageStream := &imagev1.ImageStream{}
 	imageStream.Namespace = "isnamespace"
 	imageStream.Name = "isname"
 	imageStream.Status.DockerImageRepository = ""
@@ -999,12 +999,12 @@ func pipelineStrategy(build *buildv1.Build) *buildv1.Build {
 	return build
 }
 
-func fakeImageClient(objects ...runtime.Object) imageinternalclientset.Interface {
-	return imageinternalfakeclient.NewSimpleClientset(objects...)
+func fakeImageClient(objects ...runtime.Object) imagev1client.Interface {
+	return fakeimagev1client.NewSimpleClientset(objects...)
 }
 
-func fakeBuildClient(objects ...runtime.Object) buildclient.Interface {
-	return buildfake.NewSimpleClientset(objects...)
+func fakeBuildClient(objects ...runtime.Object) buildv1client.Interface {
+	return fakebuildv1client.NewSimpleClientset(objects...)
 }
 
 func fakeKubeExternalClientSet(objects ...runtime.Object) kubernetes.Interface {
@@ -1022,8 +1022,8 @@ func fakeKubeExternalInformers(clientSet kubernetes.Interface) informers.SharedI
 type fakeBuildController struct {
 	*BuildController
 	kubeExternalInformers informers.SharedInformerFactory
-	buildInformers        buildinformers.SharedInformerFactory
-	imageInformers        imageinformersinternal.SharedInformerFactory
+	buildInformers        buildv1informer.SharedInformerFactory
+	imageInformers        imagev1informer.SharedInformerFactory
 	stopChan              chan struct{}
 }
 
@@ -1040,7 +1040,7 @@ func (c *fakeBuildController) stop() {
 	close(c.stopChan)
 }
 
-func newFakeBuildController(buildClient buildclient.Interface, imageClient imageinternalclientset.Interface, kubeExternalClient kubernetes.Interface, kubeInternalClient kubernetes.Interface) *fakeBuildController {
+func newFakeBuildController(buildClient buildv1client.Interface, imageClient imagev1client.Interface, kubeExternalClient kubernetes.Interface, kubeInternalClient kubernetes.Interface) *fakeBuildController {
 	if buildClient == nil {
 		buildClient = fakeBuildClient()
 	}
@@ -1058,14 +1058,14 @@ func newFakeBuildController(buildClient buildclient.Interface, imageClient image
 	}
 
 	kubeExternalInformers := fakeKubeExternalInformers(kubeExternalClient)
-	buildInformers := buildinformers.NewSharedInformerFactory(buildClient, 0)
-	imageInformers := imageinformersinternal.NewSharedInformerFactory(imageClient, 0)
+	buildInformers := buildv1informer.NewSharedInformerFactory(buildClient, 0)
+	imageInformers := imagev1informer.NewSharedInformerFactory(imageClient, 0)
 	stopChan := make(chan struct{})
 
 	params := &BuildControllerParams{
 		BuildInformer:       buildInformers.Build().V1().Builds(),
 		BuildConfigInformer: buildInformers.Build().V1().BuildConfigs(),
-		ImageStreamInformer: imageInformers.Image().InternalVersion().ImageStreams(),
+		ImageStreamInformer: imageInformers.Image().V1().ImageStreams(),
 		PodInformer:         kubeExternalInformers.Core().V1().Pods(),
 		SecretInformer:      kubeExternalInformers.Core().V1().Secrets(),
 		KubeClient:          kubeExternalClient,
