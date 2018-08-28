@@ -8,13 +8,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/client-go/kubernetes/fake"
 
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/generator"
 	mocks "github.com/openshift/origin/pkg/build/generator/test"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestCreateInstantiate(t *testing.T) {
@@ -28,26 +29,26 @@ func TestCreateInstantiate(t *testing.T) {
 		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: generator.TestingClient{
-			GetBuildConfigFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+			GetBuildConfigFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildv1.BuildConfig, error) {
 				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
-			UpdateBuildConfigFunc: func(ctx context.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigFunc: func(ctx context.Context, buildConfig *buildv1.BuildConfig) error {
 				return nil
 			},
-			CreateBuildFunc: func(ctx context.Context, build *buildapi.Build) error {
+			CreateBuildFunc: func(ctx context.Context, build *buildv1.Build) error {
 				return nil
 			},
-			GetBuildFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
-				return &buildapi.Build{}, nil
+			GetBuildFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildv1.Build, error) {
+				return &buildv1.Build{}, nil
 			},
-			GetImageStreamFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+			GetImageStreamFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStream, error) {
 				return imageStream, nil
 			},
-			GetImageStreamTagFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
-				return &imageapi.ImageStreamTag{Image: *image}, nil
+			GetImageStreamTagFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStreamTag, error) {
+				return &imagev1.ImageStreamTag{Image: *image}, nil
 			},
-			GetImageStreamImageFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
-				return &imageapi.ImageStreamImage{Image: *image}, nil
+			GetImageStreamImageFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStreamImage, error) {
+				return &imagev1.ImageStreamImage{Image: *image}, nil
 			},
 		}}}
 
