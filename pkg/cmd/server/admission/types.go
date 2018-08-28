@@ -6,7 +6,6 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
@@ -23,13 +22,6 @@ type WantsProjectCache interface {
 // WantsQuotaRegistry should be implemented by admission plugins that need a quota registry
 type WantsOriginQuotaRegistry interface {
 	SetOriginQuotaRegistry(quota.Registry)
-	admission.InitializationValidator
-}
-
-// WantsJenkinsPipelineConfig gives access to the JenkinsPipelineConfig.  This is a historical oddity.
-// It's likely that what we really wanted was this as an admission plugin config
-type WantsJenkinsPipelineConfig interface {
-	SetJenkinsPipelineConfig(jenkinsConfig configapi.JenkinsPipelineConfig)
 	admission.InitializationValidator
 }
 
