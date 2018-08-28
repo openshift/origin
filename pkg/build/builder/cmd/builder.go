@@ -17,6 +17,7 @@ import (
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/api/legacy"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
@@ -304,6 +305,14 @@ func RunExtractImageContent(out io.Writer) error {
 	cfg, err := newBuilderConfigFromEnvironment(out, true)
 	if err != nil {
 		return err
+	}
+	switch {
+	case bool(glog.V(4)):
+		serviceability.InitLogrus("DEBUG")
+	case bool(glog.V(2)):
+		serviceability.InitLogrus("INFO")
+	case bool(glog.V(0)):
+		serviceability.InitLogrus("WARN")
 	}
 	return cfg.extractImageContent()
 }

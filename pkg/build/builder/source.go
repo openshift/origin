@@ -12,12 +12,15 @@ import (
 	"strings"
 	"time"
 
+	//"github.com/sirupsen/logrus"
+
+	"github.com/containers/image/pkg/docker/config"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	//"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/projectatomic/buildah"
-	"github.com/projectatomic/buildah/imagebuildah"
+	//	"github.com/projectatomic/buildah/imagebuildah"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	//	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
@@ -394,160 +397,80 @@ func copyImageSourceFromFilesytem(sourceDir, destDir string) error {
 }
 
 func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []buildapiv1.ImageSourcePath, forcePull bool) error {
-	glog.V(4).Infof("Extracting image source from %s", image)
-	dockerAuth := docker.AuthConfiguration{}
-	if imageSecretIndex != -1 {
-		pullSecret := os.Getenv(fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, imageSecretIndex))
-		if len(pullSecret) > 0 {
-			authPresent := false
-			dockerAuth, authPresent = dockercfg.NewHelper().GetDockerAuth(image, fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, imageSecretIndex))
-			if authPresent {
-				glog.V(5).Infof("Registry server Address: %s", dockerAuth.ServerAddress)
-				glog.V(5).Infof("Registry server User Name: %s", dockerAuth.Username)
-				glog.V(5).Infof("Registry server Email: %s", dockerAuth.Email)
-				passwordPresent := "<<empty>>"
-				if len(dockerAuth.Password) > 0 {
-					passwordPresent = "<<non-empty>>"
-				}
-				glog.V(5).Infof("Registry server Password: %s", passwordPresent)
-			}
-		}
-	}
+	glog.V(4).Infof("Extracting image source from image %s", image)
 
 	pullPolicy := buildah.PullIfMissing
 	if forcePull {
 		pullPolicy = buildah.PullAlways
 	}
 
-	store, err := storage.GetStore(daemonlessStoreOptions)
+	tempDir, err := ioutil.TempDir(buildutil.BuildWorkDirMount, "buildah_storage")
+	if err != nil {
+		return fmt.Errorf("error setting up buildah storage tempdir: %v", err)
+	}
+	storeOptions := storage.DefaultStoreOptions
+	storeOptions.GraphDriverName = "overlay"
+	storeOptions.RunRoot = filepath.Join(tempDir, "runroot")
+	storeOptions.GraphRoot = filepath.Join(tempDir, "root")
+	store, err := storage.GetStore(storeOptions)
 	if err != nil {
 		return err
 	}
-	opts := docker.BuildImageOptions{
-		Context:             ctx,
-		Name:                "devnull",
-		RmTmpContainer:      true,
-		ForceRmTmpContainer: true,
-		OutputStream:        os.Stdout,
-		Dockerfile:          "devnull",
-		//NoCache:             noCache,
-		Pull: forcePull,
-		//BuildArgs:           buildArgs,
+
+	var auths *docker.AuthConfigurations
+	if imageSecretIndex != -1 {
+		pullSecretPath := os.Getenv(fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, imageSecretIndex))
+		if len(pullSecretPath) > 0 {
+			auths, err = GetDockerAuthConfiguration(pullSecretPath)
+			if err != nil {
+				return fmt.Errorf("error reading docker auth configuration: %v", err)
+			}
+		}
 	}
 
 	var systemContext types.SystemContext
-	options := imagebuildah.BuildOptions{
-		//ContextDirectory: dir,
-		PullPolicy: pullPolicy,
-		//TransientMounts: transientMounts,
-		//Args:            args,
-		Output:        opts.Name,
-		Out:           opts.OutputStream,
-		Err:           opts.OutputStream,
-		ReportWriter:  opts.OutputStream,
-		OutputFormat:  imagebuildah.Dockerv2ImageFormat,
-		SystemContext: &systemContext,
-		NamespaceOptions: buildah.NamespaceOptions{
-			{Name: string(specs.NetworkNamespace), Host: true},
-		},
-		/*
-			CommonBuildOpts: &buildah.CommonBuildOptions{
-				Memory:       opts.Memory,
-				MemorySwap:   opts.Memswap,
-				CgroupParent: opts.CgroupParent,
-			},
-		*/
-		//Squash:                  squash,
-		//Layers:                  layers,
-		//NoCache:                 opts.NoCache,
-		//RemoveIntermediateCtrs:  opts.RmTmpContainer,
-		//ForceRmIntermediateCtrs: true,
+	systemContext.AuthFilePath = filepath.Join(tempDir, "config.json")
+
+	// TODO remove this, get CAs+insecure registry config from host.
+	systemContext.OCIInsecureSkipTLSVerify = true
+	systemContext.DockerInsecureSkipTLSVerify = true
+
+	if auths != nil {
+		for registry, ac := range auths.Configs {
+			glog.Infof("Setting authentication for registry %q using %#v", registry, ac)
+			if err := config.SetAuthentication(&systemContext, registry, ac.Username, ac.Password); err != nil {
+				return err
+			}
+			if err := config.SetAuthentication(&systemContext, ac.ServerAddress, ac.Username, ac.Password); err != nil {
+				return err
+			}
+		}
 	}
 
 	builderOptions := buildah.BuilderOptions{
-		//Args:                  ib.Args,
-		FromImage:  image,
-		PullPolicy: pullPolicy,
-		//Registry:              b.registry,
-		//Transport:             b.transport,
-		//SignaturePolicyPath:   b.signaturePolicyPath,
-		ReportWriter:     options.ReportWriter,
-		SystemContext:    options.SystemContext,
-		Isolation:        options.Isolation,
-		NamespaceOptions: options.NamespaceOptions,
-		ConfigureNetwork: options.ConfigureNetwork,
-		CNIPluginPath:    options.CNIPluginPath,
-		CNIConfigDir:     options.CNIConfigDir,
-		IDMappingOptions: options.IDMappingOptions,
-		//CommonBuildOpts:       options.CommonBuildOptions,
-		DefaultMountsFilePath: options.DefaultMountsFilePath,
-	}
-	builder, err := buildah.NewBuilder(ctx, store, builderOptions)
-	if err != nil {
-		return err
+		FromImage:       image,
+		PullPolicy:      pullPolicy,
+		ReportWriter:    os.Stdout,
+		SystemContext:   &systemContext,
+		CommonBuildOpts: &buildah.CommonBuildOptions{},
 	}
 
-	mountPath, err := builder.Mount("inputimage")
+	builder, err := buildah.NewBuilder(ctx, store, builderOptions)
+	if err != nil {
+		return fmt.Errorf("error creating buildah builder: %v", err)
+	}
+
+	mountPath, err := builder.Mount("")
 	if err != nil {
 		return fmt.Errorf("error mounting image content from image %s: %v", image, err)
 	}
 
 	for _, path := range paths {
 		glog.V(4).Infof("Extracting path %s from image %s to %s", filepath.Join(mountPath, path.SourcePath), image, path.DestinationDir)
-		err := copyImageSourceFromFilesytem(path.SourcePath, filepath.Join(buildDir, path.DestinationDir))
+		err := copyImageSourceFromFilesytem(filepath.Join(mountPath, path.SourcePath), filepath.Join(buildDir, path.DestinationDir))
 		if err != nil {
 			return fmt.Errorf("error copying source path %s to %s: %v", path.SourcePath, path.DestinationDir, err)
 		}
 	}
-	glog.Infof("copied all files over, sleeping")
-	time.Sleep(600 * time.Second)
-	/*
-			exists := true
-			if !forcePull {
-				_, err := dockerClient.InspectImage(image)
-				if err == docker.ErrNoSuchImage {
-					exists = false
-				} else if err != nil {
-					return err
-				}
-			}
-
-			if !exists || forcePull {
-				glog.V(0).Infof("Pulling image %q ...", image)
-				startTime := metav1.Now()
-				if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
-					return fmt.Errorf("error pulling image %v: %v", image, err)
-				}
-				timing.RecordNewStep(ctx, buildapiv1.StagePullImages, buildapiv1.StepPullInputImage, startTime, metav1.Now())
-			}
-
-			containerConfig := &docker.Config{Image: image}
-			if inspect, err := dockerClient.InspectImage(image); err != nil {
-				return err
-			} else {
-				// In case the Docker image does not specify the entrypoint
-				if len(inspect.Config.Entrypoint) == 0 && len(inspect.Config.Cmd) == 0 {
-					containerConfig.Entrypoint = []string{"/fake-entrypoint"}
-				}
-			}
-
-			// Create container to copy from
-			container, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Config: containerConfig})
-			if err != nil {
-				return fmt.Errorf("error creating source image container: %v", err)
-			}
-			defer dockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: container.ID})
-
-			tarHelper := tar.New(s2ifs.NewFileSystem())
-			tarHelper.SetExclusionPattern(nil)
-
-		for _, path := range paths {
-			glog.V(4).Infof("Extracting path %s from container %s to %s", path.SourcePath, container.ID, path.DestinationDir)
-			err := copyImageSource(dockerClient, container.ID, path.SourcePath, filepath.Join(buildDir, path.DestinationDir), tarHelper)
-			if err != nil {
-				return fmt.Errorf("error copying source path %s to %s: %v", path.SourcePath, path.DestinationDir, err)
-			}
-		}
-	*/
 	return nil
 }
