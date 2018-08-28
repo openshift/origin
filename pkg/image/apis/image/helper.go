@@ -17,8 +17,8 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/api/image"
-	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
+	"github.com/openshift/origin/pkg/image/internal/digest"
 )
 
 const (

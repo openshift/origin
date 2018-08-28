@@ -13,6 +13,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -99,13 +100,7 @@ func FindMissingInputImageStreams(g osgraph.Graph, f osgraph.Namer) []osgraph.Ma
 
 					tagNode, _ := bcInputNode.(*imagegraph.ImageStreamTagNode)
 					imageStream := imageStreamNode.Object().(*imagev1.ImageStream)
-					found := false
-					for _, tag := range imageStream.Status.Tags {
-						if tag.Tag == tagNode.ImageTag() {
-							found = true
-							break
-						}
-					}
+					_, found := imageutil.StatusHasTag(imageStream, tagNode.ImageTag())
 					if !found {
 						markers = append(markers, getImageStreamTagMarker(g, f, bcInputNode, imageStreamNode, tagNode, bcNode))
 					}
