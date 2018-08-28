@@ -64,6 +64,10 @@ func TestEvaluateJSONPathExpression(t *testing.T) {
 			expectedError: "FindResults failed on annotation a: DoesntExist is not found",
 		},
 		{
+			expression:     "http://{.String}/{.DoesntExist}",
+			expectedResult: "http://teststring/",
+		},
+		{
 			expression:    "{.IntSlice[*]}",
 			expectedError: "3 JSONPath results found on annotation a",
 		},
