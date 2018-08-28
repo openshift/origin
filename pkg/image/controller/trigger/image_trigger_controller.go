@@ -21,10 +21,12 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/controller"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
+	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
-	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 	"github.com/openshift/origin/pkg/image/trigger"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -56,14 +58,14 @@ type TriggerSource struct {
 
 // tagRetriever implements trigger.TagRetriever over an image stream lister.
 type tagRetriever struct {
-	lister imageinternalversion.ImageStreamLister
+	lister imagev1lister.ImageStreamLister
 }
 
 var _ trigger.TagRetriever = tagRetriever{}
 
 // NewTagRetriever will return a tag retriever that can look up image stream tag
 // references from an image stream.
-func NewTagRetriever(lister imageinternalversion.ImageStreamLister) trigger.TagRetriever {
+func NewTagRetriever(lister imagev1lister.ImageStreamLister) trigger.TagRetriever {
 	return tagRetriever{lister}
 }
 
@@ -82,7 +84,7 @@ func (r tagRetriever) ImageStreamTag(namespace, name string) (ref string, rv int
 	if err != nil {
 		return "", 0, false
 	}
-	ref, ok = imageapi.ResolveLatestTaggedImage(is, tag)
+	ref, ok = imageutil.ResolveLatestTaggedImage(is, tag)
 	return ref, rv, ok
 }
 
@@ -126,12 +128,12 @@ type TriggerController struct {
 	// To allow injection of syncs for testing.
 	syncResourceFn func(key string) error
 	// used for unit testing
-	enqueueImageStreamFn func(is *imageapi.ImageStream)
+	enqueueImageStreamFn func(is *imagev1.ImageStream)
 	// Allows injection for testing, controls requeues on image errors
 	resourceFailureDelayFn func(requeue int) (time.Duration, bool)
 
 	// lister can list/get image streams from the shared informer's store
-	lister imageinternalversion.ImageStreamLister
+	lister imagev1lister.ImageStreamLister
 	// tagRetriever helps get the latest value of a tag
 	tagRetriever trigger.TagRetriever
 
@@ -153,7 +155,7 @@ func NewTriggerEventBroadcaster(client kv1core.CoreV1Interface) record.EventBroa
 }
 
 // NewTriggerController instantiates a trigger controller from the provided sources.
-func NewTriggerController(eventBroadcaster record.EventBroadcaster, isInformer imageinformer.ImageStreamInformer, sources ...TriggerSource) *TriggerController {
+func NewTriggerController(eventBroadcaster record.EventBroadcaster, isInformer imagev1informer.ImageStreamInformer, sources ...TriggerSource) *TriggerController {
 	lister := isInformer.Lister()
 	c := &TriggerController{
 		eventRecorder:    eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "image-trigger-controller"}),
@@ -232,15 +234,15 @@ func (c *TriggerController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (c *TriggerController) addImageStreamNotification(obj interface{}) {
-	is := obj.(*imageapi.ImageStream)
+	is := obj.(*imagev1.ImageStream)
 	c.enqueueImageStreamFn(is)
 }
 
 func (c *TriggerController) updateImageStreamNotification(old, cur interface{}) {
-	c.enqueueImageStreamFn(cur.(*imageapi.ImageStream))
+	c.enqueueImageStreamFn(cur.(*imagev1.ImageStream))
 }
 
-func (c *TriggerController) enqueueImageStream(is *imageapi.ImageStream) {
+func (c *TriggerController) enqueueImageStream(is *imagev1.ImageStream) {
 	key, err := controller.KeyFunc(is)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", is, err))

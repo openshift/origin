@@ -11,6 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -30,7 +31,7 @@ type GetSignaturesError struct {
 	error
 }
 
-func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *imageapi.Image) ([]imageapi.ImageSignature, error) {
+func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *imagev1.Image) ([]imagev1.ImageSignature, error) {
 	reference, err := docker.ParseReference("//" + image.DockerImageReference)
 	if err != nil {
 		return nil, err
@@ -41,7 +42,7 @@ func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *image
 		// registry, internal registry, etc...), do not fail with error to avoid
 		// spamming logs.
 		glog.V(4).Infof("Failed to get %q: %v", image.DockerImageReference, err)
-		return []imageapi.ImageSignature{}, nil
+		return []imagev1.ImageSignature{}, nil
 	}
 	defer source.Close()
 
@@ -51,12 +52,12 @@ func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *image
 	signatures, err := source.GetSignatures(ctx)
 	if err != nil {
 		glog.V(4).Infof("Failed to get signatures for %v due to: %v", source.Reference(), err)
-		return []imageapi.ImageSignature{}, GetSignaturesError{err}
+		return []imagev1.ImageSignature{}, GetSignaturesError{err}
 	}
 
-	ret := []imageapi.ImageSignature{}
+	ret := []imagev1.ImageSignature{}
 	for _, blob := range signatures {
-		sig := imageapi.ImageSignature{Type: imageapi.ImageSignatureTypeAtomicImageV1}
+		sig := imagev1.ImageSignature{Type: imageapi.ImageSignatureTypeAtomicImageV1}
 		// This will use the name of the image (sha256:xxxx) and the SHA256 of the
 		// signature itself as the signature name has to be unique for each
 		// signature.
