@@ -450,7 +450,22 @@ func (eit *EgressIPTracker) SetNodeOffline(nodeIP string, offline bool) {
 			eit.egressIPChanged(eg)
 		}
 	}
+
+	if node.requestedCIDRs.Len() != 0 {
+		eit.updateEgressCIDRs = true
+	}
+
 	eit.syncEgressIPs()
+}
+
+func (eit *EgressIPTracker) lookupNodeIP(ip string) string {
+	eit.Lock()
+	defer eit.Unlock()
+
+	if node := eit.nodesByNodeIP[ip]; node != nil {
+		return node.sdnIP
+	}
+	return ip
 }
 
 // Ping a node and return whether or not it is online. We do this by trying to open a TCP
@@ -459,13 +474,8 @@ func (eit *EgressIPTracker) SetNodeOffline(nodeIP string, offline bool) {
 // presumably will get a "connection refused" error; the code below assumes that anything
 // other than timing out indicates that the node is online.
 func (eit *EgressIPTracker) Ping(ip string, timeout time.Duration) bool {
-	eit.Lock()
-	defer eit.Unlock()
-
 	// If the caller used a public node IP, replace it with the SDN IP
-	if node := eit.nodesByNodeIP[ip]; node != nil {
-		ip = node.sdnIP
-	}
+	ip = eit.lookupNodeIP(ip)
 
 	conn, err := net.DialTimeout("tcp", ip+":9", timeout)
 	if conn != nil {
@@ -485,10 +495,10 @@ func (eit *EgressIPTracker) findEgressIPAllocation(ip net.IP, allocation map[str
 	otherNodes := false
 
 	for _, node := range eit.nodes {
-		egressIPs, exists := allocation[node.nodeName]
-		if !exists {
+		if node.offline {
 			continue
 		}
+		egressIPs := allocation[node.nodeName]
 		for _, parsed := range node.parsedCIDRs {
 			if parsed.Contains(ip) {
 				if bestNode != "" {
@@ -506,24 +516,22 @@ func (eit *EgressIPTracker) findEgressIPAllocation(ip net.IP, allocation map[str
 	return bestNode, otherNodes
 }
 
-// ReallocateEgressIPs returns a map from Node name to array-of-Egress-IP. Unchanged nodes are not included.
-func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
-	eit.Lock()
-	defer eit.Unlock()
+func (eit *EgressIPTracker) makeEmptyAllocation() (map[string][]string, map[string]bool) {
+	return make(map[string][]string), make(map[string]bool)
+}
 
-	allocation := make(map[string][]string)
-	changed := make(map[string]bool)
-	alreadyAllocated := make(map[string]bool)
+func (eit *EgressIPTracker) allocateExistingEgressIPs(allocation map[string][]string, alreadyAllocated map[string]bool) bool {
+	removedEgressIPs := false
+
 	for _, node := range eit.nodes {
 		if len(node.parsedCIDRs) > 0 {
 			allocation[node.nodeName] = make([]string, 0, node.requestedIPs.Len())
 		}
 	}
 	// For each active egress IP, if it still fits within some egress CIDR on its node,
-	// add it to that node's allocation. (Otherwise add the node to the "changed" map,
-	// since we'll be removing this egress IP from it.)
+	// add it to that node's allocation.
 	for egressIP, eip := range eit.egressIPs {
-		if eip.assignedNodeIP == "" {
+		if eip.assignedNodeIP == "" || alreadyAllocated[egressIP] {
 			continue
 		}
 		node := eip.nodes[0]
@@ -534,10 +542,10 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 				break
 			}
 		}
-		if found {
+		if found && !node.offline {
 			allocation[node.nodeName] = append(allocation[node.nodeName], egressIP)
 		} else {
-			changed[node.nodeName] = true
+			removedEgressIPs = true
 		}
 		// (We set alreadyAllocated even if the egressIP will be removed from
 		// its current node; we can't assign it to a new node until the next
@@ -545,6 +553,10 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 		alreadyAllocated[egressIP] = true
 	}
 
+	return removedEgressIPs
+}
+
+func (eit *EgressIPTracker) allocateNewEgressIPs(allocation map[string][]string, alreadyAllocated map[string]bool) {
 	// Allocate pending egress IPs that can only go to a single node
 	for egressIP, eip := range eit.egressIPs {
 		if alreadyAllocated[egressIP] || len(eip.namespaces) == 0 {
@@ -553,7 +565,6 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 		nodeName, otherNodes := eit.findEgressIPAllocation(eip.parsed, allocation)
 		if nodeName != "" && !otherNodes {
 			allocation[nodeName] = append(allocation[nodeName], egressIP)
-			changed[nodeName] = true
 			alreadyAllocated[egressIP] = true
 		}
 	}
@@ -565,15 +576,54 @@ func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
 		nodeName, _ := eit.findEgressIPAllocation(eip.parsed, allocation)
 		if nodeName != "" {
 			allocation[nodeName] = append(allocation[nodeName], egressIP)
-			changed[nodeName] = true
+		}
+	}
+}
+
+// ReallocateEgressIPs returns a map from Node name to array-of-Egress-IP for all auto-allocated egress IPs
+func (eit *EgressIPTracker) ReallocateEgressIPs() map[string][]string {
+	eit.Lock()
+	defer eit.Unlock()
+
+	allocation, alreadyAllocated := eit.makeEmptyAllocation()
+	removedEgressIPs := eit.allocateExistingEgressIPs(allocation, alreadyAllocated)
+	eit.allocateNewEgressIPs(allocation, alreadyAllocated)
+	if removedEgressIPs {
+		// Process the removals now; we'll get called again afterward and can
+		// check for balance then.
+		return allocation
+	}
+
+	// Compare the allocation to what we would have gotten if we started from scratch,
+	// to see if things have gotten too unbalanced. (In particular, if a node goes
+	// offline, gets emptied, and then comes back online, we want to move a bunch of
+	// egress IPs back onto that node.)
+	fullReallocation, alreadyAllocated := eit.makeEmptyAllocation()
+	eit.allocateNewEgressIPs(fullReallocation, alreadyAllocated)
+
+	emptyNodes := []string{}
+	for nodeName, fullEgressIPs := range fullReallocation {
+		incrementalEgressIPs := allocation[nodeName]
+		if len(incrementalEgressIPs) < len(fullEgressIPs)/2 {
+			emptyNodes = append(emptyNodes, nodeName)
 		}
 	}
 
-	// Remove unchanged nodes from the return value
-	for _, node := range eit.nodes {
-		if !changed[node.nodeName] {
-			delete(allocation, node.nodeName)
+	if len(emptyNodes) > 0 {
+		// Make a new incremental allocation, but skipping all of the egress IPs
+		// that got assigned to the "empty" nodes in the full reallocation; this
+		// will cause them to be dropped from their current nodes and then later
+		// reassigned (to one of the "empty" nodes, for balance).
+		allocation, alreadyAllocated = eit.makeEmptyAllocation()
+		for _, nodeName := range emptyNodes {
+			for _, egressIP := range fullReallocation[nodeName] {
+				alreadyAllocated[egressIP] = true
+			}
 		}
+		eit.allocateExistingEgressIPs(allocation, alreadyAllocated)
+		eit.allocateNewEgressIPs(allocation, alreadyAllocated)
+		eit.updateEgressCIDRs = true
 	}
+
 	return allocation
 }
