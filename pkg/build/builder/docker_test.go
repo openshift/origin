@@ -20,7 +20,7 @@ import (
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
 
-	"github.com/openshift/origin/pkg/git"
+	"github.com/openshift/library-go/pkg/git"
 )
 
 func TestInsertEnvAfterFrom(t *testing.T) {

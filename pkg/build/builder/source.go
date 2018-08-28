@@ -18,10 +18,10 @@ import (
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

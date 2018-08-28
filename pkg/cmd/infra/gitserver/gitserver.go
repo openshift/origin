@@ -12,8 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/gitserver"
-	"github.com/openshift/origin/pkg/gitserver/autobuild"
+	"github.com/openshift/library-go/pkg/gitserver"
+	"github.com/openshift/library-go/pkg/gitserver/autobuild"
 )
 
 const LogLevelEnv = "LOGLEVEL"

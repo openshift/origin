@@ -16,7 +16,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	"github.com/openshift/origin/pkg/gitserver"
+	"github.com/openshift/library-go/pkg/gitserver"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
