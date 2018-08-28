@@ -368,8 +368,8 @@ tests=("${1:-"${default_tests[@]}"}")
 
 # re-tag the latest service catalog image w/ the origin commit because we didn't
 # build it locally, so we need a tag that aligns with the other images we're going to test here.
-docker pull openshift/origin-service-catalog:latest
-docker tag openshift/origin-service-catalog:latest openshift/origin-service-catalog:${ORIGIN_COMMIT}
+docker pull openshift/origin-service-catalog:v3.10
+docker tag openshift/origin-service-catalog:v3.10 openshift/origin-service-catalog:${ORIGIN_COMMIT}
 
 echo "Running cluster up tests using tag $ORIGIN_COMMIT"
 
