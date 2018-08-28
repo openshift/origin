@@ -456,7 +456,7 @@ os::cmd::expect_success_and_text 'oc new-build --binary --image=ruby --strategy=
 os::cmd::expect_success 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run'
 # when latest does not exist, there are multiple partial matches (2.2, 2.3, 2.4, 2.5)
 os::cmd::expect_success 'oc delete imagestreamtag ruby:latest'
-os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\":'
+os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\"'
 # when only 2.5 exists, there is a single partial match (2.5)
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.2'
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.3'

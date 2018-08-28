@@ -89,7 +89,7 @@ type ErrMultipleMatches struct {
 }
 
 func (e ErrMultipleMatches) Error() string {
-	return fmt.Sprintf("multiple images or templates matched %q: %d", e.Value, len(e.Matches))
+	return fmt.Sprintf("multiple images or templates matched %q", e.Value)
 }
 
 // ErrNameRequired is the error returned by new-app when a name cannot be
