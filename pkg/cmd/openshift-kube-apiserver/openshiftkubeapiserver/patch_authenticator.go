@@ -31,13 +31,17 @@ import (
 	"github.com/openshift/origin/pkg/apiserver/authentication/oauth"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/request/paramtoken"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
+// TODO we can re-trim these args to the the kubeapiserver config again if we feel like it, but for now we need it to be
+// TODO obviously safe for 3.11
 func NewAuthenticator(
-	options configapi.MasterConfig,
+	servingInfo configapi.ServingInfo,
+	serviceAccountPublicKeyFiles []string, oauthConfig *configapi.OAuthConfig, authConfig configapi.MasterAuthConfig,
 	privilegedLoopbackConfig *rest.Config,
 	oauthClientLister oauthclientlister.OAuthClientLister,
 	groupInformer userinformer.GroupInformer,
@@ -58,13 +62,15 @@ func NewAuthenticator(
 	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
 	// once the cache is added, we won't be paying a double hop cost to etcd on each request, so the simplification will help.
 	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(kubeExternalClient)
-	apiClientCAs, err := configapi.GetAPIClientCertCAPool(options)
+	apiClientCAs, err := cmdutil.CertPoolFromFile(servingInfo.ClientCA)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	return newAuthenticator(
-		options,
+		serviceAccountPublicKeyFiles,
+		oauthConfig,
+		authConfig,
 		oauthClient.OAuthAccessTokens(),
 		oauthClientLister,
 		serviceAccountTokenGetter,
@@ -74,15 +80,15 @@ func NewAuthenticator(
 	)
 }
 
-func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper oauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *configapi.OAuthConfig, authConfig configapi.MasterAuthConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper oauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
 
 	// ServiceAccount token
-	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
+	if len(serviceAccountPublicKeyFiles) > 0 {
 		publicKeys := []interface{}{}
-		for _, keyFile := range config.ServiceAccountConfig.PublicKeyFiles {
+		for _, keyFile := range serviceAccountPublicKeyFiles {
 			readPublicKeys, err := cert.PublicKeysFromFile(keyFile)
 			if err != nil {
 				return nil, nil, fmt.Errorf("Error reading service account key file %s: %v", keyFile, err)
@@ -99,9 +105,9 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 	}
 
 	// OAuth token
-	if config.OAuthConfig != nil {
+	if oauthConfig != nil {
 		validators := []oauth.OAuthTokenValidator{oauth.NewExpirationValidator(), oauth.NewUIDValidator()}
-		if inactivityTimeout := config.OAuthConfig.TokenConfig.AccessTokenInactivityTimeoutSeconds; inactivityTimeout != nil {
+		if inactivityTimeout := oauthConfig.TokenConfig.AccessTokenInactivityTimeoutSeconds; inactivityTimeout != nil {
 			timeoutValidator := oauth.NewTimeoutValidator(accessTokenGetter, oauthClientLister, *inactivityTimeout, oauthvalidation.MinimumInactivityTimeoutSeconds)
 			validators = append(validators, timeoutValidator)
 			postStartHooks["openshift.io-TokenTimeoutUpdater"] = func(context genericapiserver.PostStartHookContext) error {
@@ -116,7 +122,7 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 			group.NewTokenGroupAdder(oauthTokenAuthenticator, []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 
-	for _, wta := range config.AuthConfig.WebhookTokenAuthenticators {
+	for _, wta := range authConfig.WebhookTokenAuthenticators {
 		ttl, err := time.ParseDuration(wta.CacheTTL)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Error parsing CacheTTL=%q: %v", wta.CacheTTL, err)
@@ -156,13 +162,13 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 
 	topLevelAuthenticators := []authenticator.Request{}
 	// if we have a front proxy providing authentication configuration, wire it up and it should come first
-	if config.AuthConfig.RequestHeader != nil {
+	if authConfig.RequestHeader != nil {
 		requestHeaderAuthenticator, err := headerrequest.NewSecure(
-			config.AuthConfig.RequestHeader.ClientCA,
-			config.AuthConfig.RequestHeader.ClientCommonNames,
-			config.AuthConfig.RequestHeader.UsernameHeaders,
-			config.AuthConfig.RequestHeader.GroupHeaders,
-			config.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
+			authConfig.RequestHeader.ClientCA,
+			authConfig.RequestHeader.ClientCommonNames,
+			authConfig.RequestHeader.UsernameHeaders,
+			authConfig.RequestHeader.GroupHeaders,
+			authConfig.RequestHeader.ExtraHeaderPrefixes,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Error building front proxy auth config: %v", err)

@@ -4,7 +4,6 @@ import (
 	"net"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -32,40 +31,6 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
-
-var expectedGroupPreferredVersions []string = []string{
-	// keep this sorted:
-	"admission.k8s.io/v1beta1", // not persisted
-	"admissionregistration.k8s.io/v1beta1",
-	"apps/v1",
-	"authentication.k8s.io/v1",
-	"authorization.k8s.io/v1",
-	"authorization.openshift.io/v1",
-	"autoscaling/v1",
-	"batch/v1",
-	"certificates.k8s.io/v1beta1",
-	"componentconfig/v1alpha1",
-	"events.k8s.io/v1beta1",
-	"extensions/v1beta1",
-	"imagepolicy.k8s.io/v1alpha1",
-	"networking.k8s.io/v1",
-	"policy/v1beta1",
-	"rbac.authorization.k8s.io/v1",
-	"scheduling.k8s.io/v1beta1",
-	"settings.k8s.io/v1alpha1",
-	"storage.k8s.io/v1",
-	"v1",
-}
-
-func TestPreferredGroupVersions(t *testing.T) {
-	s := kubeapiserveroptions.ToPreferredVersionString(legacyscheme.Scheme.PreferredVersionAllGroups())
-	expected := strings.Join(expectedGroupPreferredVersions, ",")
-	if s != expected {
-		t.Logf("expected: %#v", expected)
-		t.Logf("got: %#v", s)
-		t.Errorf("unexpected preferred group versions: %v", diff.StringDiff(expected, s))
-	}
-}
 
 func TestAPIServerDefaults(t *testing.T) {
 	defaults := kubeapiservercmdoptions.NewServerRunOptions()

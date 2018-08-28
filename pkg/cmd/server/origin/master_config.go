@@ -135,7 +135,10 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	authenticator, authenticatorPostStartHooks, err := openshiftkubeapiserver.NewAuthenticator(options, privilegedLoopbackConfig, informers.GetOpenshiftOauthInformers().Oauth().V1().OAuthClients().Lister(), informers.GetOpenshiftUserInformers().User().V1().Groups())
+	authenticator, authenticatorPostStartHooks, err := openshiftkubeapiserver.NewAuthenticator(
+		options.ServingInfo.ServingInfo,
+		options.ServiceAccountConfig.PublicKeyFiles, options.OAuthConfig, options.AuthConfig,
+		privilegedLoopbackConfig, informers.GetOpenshiftOauthInformers().Oauth().V1().OAuthClients().Lister(), informers.GetOpenshiftUserInformers().User().V1().Groups())
 	if err != nil {
 		return nil, err
 	}

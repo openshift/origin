@@ -40,3 +40,46 @@ func ConvertNetworkConfigToAdmissionConfig(masterConfig *configapi.MasterConfig)
 
 	return nil
 }
+
+func ConvertMasterConfigToKubeAPIServerConfig(input *configapi.MasterConfig) *configapi.KubeAPIServerConfig {
+	ret := &configapi.KubeAPIServerConfig{
+		// TODO this is likely to be a little weird.  I think we override most of this in the operator
+		ServingInfo:        input.ServingInfo,
+		CORSAllowedOrigins: input.CORSAllowedOrigins,
+
+		OAuthConfig:      input.OAuthConfig,
+		AuthConfig:       input.AuthConfig,
+		AggregatorConfig: input.AggregatorConfig,
+		AuditConfig:      input.AuditConfig,
+
+		StoragePrefix:  input.EtcdStorageConfig.OpenShiftStoragePrefix,
+		EtcdClientInfo: input.EtcdClientInfo,
+
+		KubeletClientInfo: input.KubeletClientInfo,
+
+		AdmissionPluginConfig: input.AdmissionConfig.PluginConfig,
+
+		ServicesSubnet:        input.KubernetesMasterConfig.ServicesSubnet,
+		ServicesNodePortRange: input.KubernetesMasterConfig.ServicesNodePortRange,
+
+		LegacyServiceServingCertSignerCABundle: input.ControllerConfig.ServiceServingCert.Signer.CertFile,
+
+		UserAgentMatchingConfig: input.PolicyConfig.UserAgentMatchingConfig,
+
+		ImagePolicyConfig: configapi.KubeAPIServerImagePolicyConfig{
+			InternalRegistryHostname: input.ImagePolicyConfig.InternalRegistryHostname,
+			ExternalRegistryHostname: input.ImagePolicyConfig.ExternalRegistryHostname,
+		},
+
+		ProjectConfig: configapi.KubeAPIServerProjectConfig{
+			DefaultNodeSelector: input.ProjectConfig.DefaultNodeSelector,
+		},
+
+		ServiceAccountPublicKeyFiles: input.ServiceAccountConfig.PublicKeyFiles,
+
+		// TODO this needs to be removed.
+		APIServerArguments: input.KubernetesMasterConfig.APIServerArguments,
+	}
+
+	return ret
+}

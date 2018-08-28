@@ -1757,3 +1757,84 @@ type ServerProjectConfig struct {
 	// If it is not specified, a default template is used.
 	ProjectRequestTemplate string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type KubeAPIServerConfig struct {
+	metav1.TypeMeta
+
+	// ServingInfo describes how to start serving
+	ServingInfo HTTPServingInfo
+
+	// CORSAllowedOrigins
+	CORSAllowedOrigins []string
+
+	// OAuthConfig, if present start the /oauth endpoint in this process
+	OAuthConfig *OAuthConfig
+
+	// AuthConfig configures authentication options in addition to the standard
+	// oauth token and client certificate authenticators
+	AuthConfig MasterAuthConfig
+
+	// AggregatorConfig has options for configuring the aggregator component of the API server.
+	AggregatorConfig AggregatorConfig
+
+	AuditConfig AuditConfig
+
+	// StoragePrefix is the path within etcd that the OpenShift resources will
+	// be rooted under. This value, if changed, will mean existing objects in etcd will
+	// no longer be located.
+	StoragePrefix string
+
+	// EtcdClientInfo contains information about how to connect to etcd
+	EtcdClientInfo EtcdConnectionInfo
+
+	// KubeletClientInfo contains information about how to connect to kubelets
+	KubeletClientInfo KubeletConnectionInfo
+
+	AdmissionPluginConfig map[string]*AdmissionPluginConfig
+
+	// ServicesSubnet is the subnet to use for assigning service IPs
+	ServicesSubnet string
+	// ServicesNodePortRange is the range to use for assigning service public ports on a host.
+	ServicesNodePortRange string
+
+	// TODO this should be removable in a later release after we've completed migration
+	LegacyServiceServingCertSignerCABundle string
+
+	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	// TODO I think we should just drop this feature.
+	UserAgentMatchingConfig UserAgentMatchingConfig
+
+	ImagePolicyConfig KubeAPIServerImagePolicyConfig
+
+	ProjectConfig KubeAPIServerProjectConfig
+
+	// ServiceAccountPublicKeyFiles is a list of files, each containing a PEM-encoded public RSA key.
+	// (If any file contains a private key, the public portion of the key is used)
+	// The list of public keys is used to verify presented service account tokens.
+	// Each key is tried in order until the list is exhausted or verification succeeds.
+	// If no keys are specified, no service account authentication will be available.
+	ServiceAccountPublicKeyFiles []string
+
+	// TODO this needs to be removed.
+	APIServerArguments ExtendedArguments
+}
+
+type KubeAPIServerImagePolicyConfig struct {
+	// InternalRegistryHostname sets the hostname for the default internal image
+	// registry. The value must be in "hostname[:port]" format.
+	// For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY
+	// environment variable but this setting overrides the environment variable.
+	InternalRegistryHostname string
+	// ExternalRegistryHostname sets the hostname for the default external image
+	// registry. The external hostname should be set only when the image registry
+	// is exposed externally. The value is used in 'publicDockerImageRepository'
+	// field in ImageStreams. The value must be in "hostname[:port]" format.
+	ExternalRegistryHostname string
+}
+
+type KubeAPIServerProjectConfig struct {
+	// DefaultNodeSelector holds default project node label selector
+	DefaultNodeSelector string
+}
