@@ -37,5 +37,5 @@ func (s *CloneREST) Create(ctx context.Context, obj runtime.Object, createValida
 		return nil, err
 	}
 
-	return s.generator.Clone(ctx, obj.(*buildapi.BuildRequest))
+	return s.generator.CloneInternal(ctx, obj.(*buildapi.BuildRequest))
 }
