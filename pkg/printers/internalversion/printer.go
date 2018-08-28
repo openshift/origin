@@ -63,7 +63,7 @@ var (
 	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
-	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET", "EGRESS IPS"}
+	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET", "EGRESS CIDRS", "EGRESS IPS"}
 	netNamespaceColumns        = []string{"NAME", "NETID", "EGRESS IPS"}
 	clusterNetworkColumns      = []string{"NAME", "CLUSTER NETWORKS", "SERVICE NETWORK", "PLUGIN NAME"}
 	egressNetworkPolicyColumns = []string{"NAME"}
@@ -1000,7 +1000,7 @@ func printGroupList(list *userapi.GroupList, w io.Writer, opts kprinters.PrintOp
 
 func printHostSubnet(h *networkapi.HostSubnet, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, h.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t[%s]\n", name, h.Host, h.HostIP, h.Subnet, strings.Join(h.EgressIPs, ", "))
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t[%s]\t[%s]\n", name, h.Host, h.HostIP, h.Subnet, strings.Join(h.EgressCIDRs, ", "), strings.Join(h.EgressIPs, ", "))
 	return err
 }
 
