@@ -99,18 +99,6 @@ func ExecuteTest(t *testing.T, suite string) {
 		defer e2e.CoreDump(TestContext.ReportDir)
 	}
 
-	switch syntheticSuite {
-	case "parallel.conformance.openshift.io":
-		if len(config.GinkgoConfig.FocusString) > 0 {
-			config.GinkgoConfig.FocusString += "|"
-		}
-		config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/parallel\\]"
-	case "serial.conformance.openshift.io":
-		if len(config.GinkgoConfig.FocusString) > 0 {
-			config.GinkgoConfig.FocusString += "|"
-		}
-		config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/serial\\]"
-	}
 	if config.GinkgoConfig.FocusString == "" && config.GinkgoConfig.SkipString == "" {
 		config.GinkgoConfig.SkipString = "Skipped"
 	}
@@ -148,6 +136,8 @@ func ExecuteTest(t *testing.T, suite string) {
 			isSerial := strings.Contains(name, "[Serial]")
 			isConformance := strings.Contains(name, "[Conformance]")
 			switch {
+			case isSerial && isConformance:
+				node.SetText(node.Text() + " [Suite:openshift/conformance/serial/minimal]")
 			case isSerial:
 				node.SetText(node.Text() + " [Suite:openshift/conformance/serial]")
 			case isConformance:
