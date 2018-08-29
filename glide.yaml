@@ -40,7 +40,8 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: release-3.9
+  repo:    https://github.com/JacobTanenbaum/api.git
+  version: fafca6370efc8466c0dc42bd39c1bbf3bd4af166
 - package: github.com/openshift/client-go
   version: release-3.9
 # this is pinned because it doesn't have branches
