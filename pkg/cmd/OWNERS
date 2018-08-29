@@ -1,6 +1,5 @@
 reviewers:
   - smarterclayton
-  - liggitt
   - mfojtik
   - soltysh
   - juanvallejo
@@ -14,7 +13,6 @@ reviewers:
   - dcbw
 approvers:
   - smarterclayton
-  - liggitt
   - mfojtik
   - enj
   - knobunc
