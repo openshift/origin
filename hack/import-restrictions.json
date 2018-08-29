@@ -635,6 +635,9 @@
       "github.com/openshift/origin/pkg/util/portutils",
       "github.com/openshift/origin/pkg/util/proc",
       "github.com/openshift/origin/pkg/version",
+
+      "vendor/github.com/openshift/library-go/pkg/network/networkapihelpers",
+
       "vendor/github.com/coreos/etcd/clientv3",
       "vendor/github.com/coreos/etcd/pkg/transport",
       "vendor/github.com/coreos/etcd/version",
