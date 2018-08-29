@@ -6,7 +6,6 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
@@ -17,7 +16,6 @@ import (
 type PluginInitializer struct {
 	ProjectCache                 *cache.ProjectCache
 	OriginQuotaRegistry          quota.Registry
-	JenkinsPipelineConfig        configapi.JenkinsPipelineConfig
 	RESTClientConfig             restclient.Config
 	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
 	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
@@ -34,9 +32,6 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	}
 	if wantsOriginQuotaRegistry, ok := plugin.(WantsOriginQuotaRegistry); ok {
 		wantsOriginQuotaRegistry.SetOriginQuotaRegistry(i.OriginQuotaRegistry)
-	}
-	if wantsJenkinsPipelineConfig, ok := plugin.(WantsJenkinsPipelineConfig); ok {
-		wantsJenkinsPipelineConfig.SetJenkinsPipelineConfig(i.JenkinsPipelineConfig)
 	}
 	if wantsRESTClientConfig, ok := plugin.(WantsRESTClientConfig); ok {
 		wantsRESTClientConfig.SetRESTClientConfig(i.RESTClientConfig)

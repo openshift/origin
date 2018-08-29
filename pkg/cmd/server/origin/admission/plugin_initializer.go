@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/quota/install"
 
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	"github.com/openshift/origin/pkg/build/apiserver/admission/jenkinsbootstrapper"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -133,7 +134,6 @@ func NewPluginInitializer(
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
 		ProjectCache:                 projectCache,
 		OriginQuotaRegistry:          quotaRegistry,
-		JenkinsPipelineConfig:        masterConfig.JenkinsPipelineConfig,
 		RESTClientConfig:             *privilegedLoopbackConfig,
 		ClusterResourceQuotaInformer: informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
@@ -141,6 +141,9 @@ func NewPluginInitializer(
 		SecurityInformers:            informers.GetInternalOpenshiftSecurityInformers(),
 		UserInformers:                informers.GetOpenshiftUserInformers(),
 	}
+	jenkinsPipelineConfigInitializer := &jenkinsbootstrapper.PluginInitializer{
+		JenkinsPipelineConfig: masterConfig.JenkinsPipelineConfig,
+	}
 
-	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
+	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer, jenkinsPipelineConfigInitializer}, nil
 }

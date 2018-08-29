@@ -46,7 +46,7 @@ type jenkinsBootstrapper struct {
 	jenkinsConfig configapi.JenkinsPipelineConfig
 }
 
-var _ = oadmission.WantsJenkinsPipelineConfig(&jenkinsBootstrapper{})
+var _ = WantsJenkinsPipelineConfig(&jenkinsBootstrapper{})
 var _ = oadmission.WantsRESTClientConfig(&jenkinsBootstrapper{})
 var _ = kadmission.WantsInternalKubeClientSet(&jenkinsBootstrapper{})
 var _ = kadmission.WantsRESTMapper(&jenkinsBootstrapper{})

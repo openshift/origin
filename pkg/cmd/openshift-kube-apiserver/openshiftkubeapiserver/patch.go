@@ -101,16 +101,12 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		openshiftPluginInitializer := &oadmission.PluginInitializer{
 			ProjectCache:                 projectCache,
 			OriginQuotaRegistry:          quotaRegistry,
-			JenkinsPipelineConfig:        kubeAPIServerConfig.JenkinsPipelineConfig,
 			RESTClientConfig:             *genericConfig.LoopbackClientConfig,
 			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 			ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 			RegistryHostnameRetriever:    registryHostnameRetriever,
 			SecurityInformers:            kubeAPIServerInformers.GetInternalOpenshiftSecurityInformers(),
 			UserInformers:                kubeAPIServerInformers.GetOpenshiftUserInformers(),
-		}
-		if err != nil {
-			return nil, err
 		}
 		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
 
