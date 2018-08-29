@@ -30,7 +30,6 @@ import (
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
@@ -73,15 +72,6 @@ var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, le
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
 // It returns an error if no KubernetesMasterConfig was defined.
 func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserveroptions.ServerRunOptions, error) {
-	host, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
-	if err != nil {
-		return nil, err
-	}
-	port, err := strconv.Atoi(portString)
-	if err != nil {
-		return nil, err
-	}
-
 	portRange, err := knet.ParsePortRange(masterConfig.KubernetesMasterConfig.ServicesNodePortRange)
 	if err != nil {
 		return nil, err
@@ -97,11 +87,10 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.ServiceNodePortRange = *portRange
 	server.Features.EnableProfiling = true
 
-	server.SecureServing.BindAddress = net.ParseIP(host)
-	server.SecureServing.BindPort = port
-	server.SecureServing.BindNetwork = masterConfig.ServingInfo.BindNetwork
-	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
-	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
+	server.SecureServing, err = configprocessing.ToServingOptions(masterConfig.ServingInfo)
+	if err != nil {
+		return nil, err
+	}
 	server.InsecureServing.BindPort = 0
 
 	// disable anonymous authentication
@@ -121,29 +110,15 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 		}
 	}
 
-	server.Etcd.EnableGarbageCollection = true
-	server.Etcd.StorageConfig.Type = "etcd3"
-	server.Etcd.DefaultStorageMediaType = "application/json" // TODO(post-1.6.1-rebase): enable protobuf with etcd3 as upstream
-	server.Etcd.StorageConfig.Quorum = true
-	server.Etcd.StorageConfig.Prefix = masterConfig.EtcdStorageConfig.KubernetesStoragePrefix
-	server.Etcd.StorageConfig.ServerList = masterConfig.EtcdClientInfo.URLs
-	server.Etcd.StorageConfig.KeyFile = masterConfig.EtcdClientInfo.ClientCert.KeyFile
-	server.Etcd.StorageConfig.CertFile = masterConfig.EtcdClientInfo.ClientCert.CertFile
-	server.Etcd.StorageConfig.CAFile = masterConfig.EtcdClientInfo.CA
-	server.Etcd.DefaultWatchCacheSize = 0
+	server.Etcd, err = configprocessing.GetEtcdOptions(masterConfig.KubernetesMasterConfig.APIServerArguments, masterConfig.EtcdClientInfo, masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, nil)
+	if err != nil {
+		return nil, err
+	}
 
 	server.GenericServerRunOptions.CorsAllowedOriginList = masterConfig.CORSAllowedOrigins
 	server.GenericServerRunOptions.MaxRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight
 	server.GenericServerRunOptions.MaxMutatingRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight / 2
 	server.GenericServerRunOptions.MinRequestTimeout = masterConfig.ServingInfo.RequestTimeoutSeconds
-	for _, nc := range masterConfig.ServingInfo.NamedCertificates {
-		sniCert := utilflag.NamedCertKey{
-			CertFile: nc.CertFile,
-			KeyFile:  nc.KeyFile,
-			Names:    nc.Names,
-		}
-		server.SecureServing.SNICertKeys = append(server.SecureServing.SNICertKeys, sniCert)
-	}
 
 	server.KubeletConfig.ReadOnlyPort = 0
 	server.KubeletConfig.Port = masterConfig.KubeletClientInfo.Port

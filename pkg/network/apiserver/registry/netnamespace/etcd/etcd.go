@@ -12,7 +12,6 @@ import (
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/apiserver/registry/netnamespace"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for sdn against etcd
@@ -23,7 +22,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against netnamespaces
-func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &networkapi.NetNamespace{} },
 		NewListFunc:              func() runtime.Object { return &networkapi.NetNamespaceList{} },
