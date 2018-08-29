@@ -405,6 +405,10 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 					}
 				}
 			}
+
+			if out.VXLANPort == 0 {
+				out.VXLANPort = 4789
+			}
 			return nil
 		},
 		func(in *internal.MasterNetworkConfig, out *MasterNetworkConfig, s conversion.Scope) error {
@@ -415,6 +419,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 				out.DeprecatedHostSubnetLength = in.ClusterNetworks[0].HostSubnetLength
 				out.DeprecatedClusterNetworkCIDR = in.ClusterNetworks[0].CIDR
 			}
+			out.VXLANPort = in.VXLANPort
 			return nil
 		},
 		func(in *AuditConfig, out *internal.AuditConfig, s conversion.Scope) error {

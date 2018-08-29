@@ -6873,6 +6873,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								},
 							},
 						},
+						"vxlanPort": {
+							SchemaProps: spec.SchemaProps{
+								Description: "VXLANPort sets the VXLAN destination port used by the cluster. It is set by the master configuration file on startup and cannot be edited manually. Valid values for VXLANPort are integers 1-65535 inclusive and if unset defaults to 4789. Changing VXLANPort allows users to resolve issues between openshift SDN and other software trying to use the same VXLAN destination port.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
 					},
 					Required: []string{"serviceNetwork", "clusterNetworks"},
 				},
@@ -10632,8 +10639,15 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"adminConsolePublicURL": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AdminConsolePublicURL is an optional, public URL of the OpenShift admin console. If specified, the web console will add a link to the admin console in a context selector in its masthead.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 					},
-					Required: []string{"consolePublicURL", "masterPublicURL", "loggingPublicURL", "metricsPublicURL", "logoutPublicURL"},
+					Required: []string{"consolePublicURL", "masterPublicURL", "loggingPublicURL", "metricsPublicURL", "logoutPublicURL", "adminConsolePublicURL"},
 				},
 			},
 			Dependencies: []string{},
