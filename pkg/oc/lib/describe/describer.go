@@ -688,22 +688,12 @@ func DescribeImage(image *imageapi.Image, imageName string) (string, error) {
 		case 1:
 			formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
 		default:
-			info := []string{}
-			if image.DockerImageLayers[0].LayerSize > 0 {
-				info = append(info, fmt.Sprintf("first layer %s", units.HumanSize(float64(image.DockerImageLayers[0].LayerSize))))
+			formatString(out, "Image Size", fmt.Sprintf("%s in %d layers", units.HumanSize(float64(image.DockerImageMetadata.Size)), len(image.DockerImageLayers)))
+			var layers []string
+			for _, layer := range image.DockerImageLayers {
+				layers = append(layers, fmt.Sprintf("%s\t%s", units.HumanSize(float64(layer.LayerSize)), layer.Name))
 			}
-			for i := l - 1; i > 0; i-- {
-				if image.DockerImageLayers[i].LayerSize == 0 {
-					continue
-				}
-				info = append(info, fmt.Sprintf("last binary layer %s", units.HumanSize(float64(image.DockerImageLayers[i].LayerSize))))
-				break
-			}
-			if len(info) > 0 {
-				formatString(out, "Image Size", fmt.Sprintf("%s (%s)", units.HumanSize(float64(image.DockerImageMetadata.Size)), strings.Join(info, ", ")))
-			} else {
-				formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
-			}
+			formatString(out, "Layers", strings.Join(layers, "\n"))
 		}
 		if len(image.Signatures) > 0 {
 			for _, s := range image.Signatures {

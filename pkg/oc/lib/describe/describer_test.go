@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"text/tabwriter"
@@ -15,6 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	"github.com/openshift/api/image/docker10"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -437,5 +439,70 @@ func TestDescribeBuildSpec(t *testing.T) {
 		if got := b.String(); !strings.Contains(got, tt.want) {
 			t.Errorf("describeBuildSpec(%+v, out) = %q, should contain %q", tt.spec, got, tt.want)
 		}
+	}
+}
+
+func TestDescribeImage(t *testing.T) {
+	tests := []struct {
+		image imageapi.Image
+		want  []string
+	}{
+		{
+			image: imageapi.Image{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+			},
+			want: []string{"Name:.+test"},
+		},
+		{
+			image: imageapi.Image{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				DockerImageLayers: []imageapi.ImageLayer{
+					{Name: "sha256:1234", LayerSize: 3409},
+					{Name: "sha256:5678", LayerSize: 1024},
+				},
+			},
+			want: []string{
+				"Layers:.+3.409kB\\ssha256:1234",
+				"1.024kB\\ssha256:5678",
+				"Image Size:.+0B in 2 layers",
+			},
+		},
+		{
+			image: imageapi.Image{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				DockerImageMetadata: docker10.DockerImage{
+					Size: 4430,
+				},
+				DockerImageLayers: []imageapi.ImageLayer{
+					{Name: "sha256:1234", LayerSize: 3409},
+					{Name: "sha256:5678", LayerSize: 1024},
+				},
+			},
+			want: []string{
+				"Layers:.+3.409kB\\ssha256:1234",
+				"1.024kB\\ssha256:5678",
+				"Image Size:.+4.43kB in 2 layers",
+			},
+		},
+	}
+	for i := range tests {
+		tt := tests[i]
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			out, err := DescribeImage(&tt.image, tt.image.Name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, match := range tt.want {
+				if got := out; !regexp.MustCompile(match).MatchString(got) {
+					t.Errorf("%s\nshould contain %q", got, match)
+				}
+			}
+		})
 	}
 }
