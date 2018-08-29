@@ -575,6 +575,12 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 		}
 		e2e.Logf("\n%s\n", out)
 	}
+	out, err = oc.Run("get").Args("istag", "-o", "wide").Output()
+	if err != nil {
+		e2e.Logf("Error getting image stream tags: %v", err)
+	}
+	e2e.Logf("\n%s\n", out)
+
 }
 
 func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {
