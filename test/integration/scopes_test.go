@@ -1,19 +1,34 @@
 package integration
 
 import (
+	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	apiserveruser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/rest"
+	rbacapiv1 "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	rbacvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	projectapiv1 "github.com/openshift/api/project/v1"
+	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	projectclient "github.com/openshift/client-go/project/clientset/versioned"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/client/impersonatingclient"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -408,4 +423,163 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		}
 	}
 
+}
+
+func TestUnknownScopes(t *testing.T) {
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	projectName := "hammer-project"
+	userName := "harold"
+	_, haroldClientConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, userName)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Here we test ScopesToVisibleNamespaces
+	// we do this first so we wait for project and related data to appear in
+	// the caches only once
+	userInfo := apiserveruser.DefaultInfo{
+		Name: userName,
+		Extra: map[string][]string{
+			authorizationapi.ScopesKey: {"user:list-projects", "bad"}}}
+	impersonatingConfig := impersonatingclient.NewImpersonatingConfig(&userInfo, *clusterAdminClientConfig)
+	projectClient := projectclient.NewForConfigOrDie(&impersonatingConfig)
+
+	var projects *projectapiv1.ProjectList
+	err = wait.Poll(100*time.Millisecond, 30*time.Second,
+		func() (bool, error) {
+			projects, err = projectClient.ProjectV1().Projects().List(metav1.ListOptions{})
+			if err != nil {
+				return false, err
+			}
+			return len(projects.Items) > 0, nil
+		})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(projects.Items) == 0 {
+		t.Fatalf("Timed out waiting for project")
+	}
+	if len(projects.Items) != 1 {
+		t.Fatalf("Expected only 1 project, got %d", len(projects.Items))
+	}
+	if projects.Items[0].Name != projectName {
+		t.Fatalf("Expected project named %s got %s", projectName, projects.Items[0].Name)
+	}
+
+	badScopesUserInfo := apiserveruser.DefaultInfo{
+		Name: userName,
+		Extra: map[string][]string{
+			authorizationapi.ScopesKey: {"bad"}}}
+	badScopesImpersonatingConfig := impersonatingclient.NewImpersonatingConfig(
+		&badScopesUserInfo, *clusterAdminClientConfig)
+	badScopesProjectClient := projectclient.NewForConfigOrDie(&badScopesImpersonatingConfig)
+	projects, err = badScopesProjectClient.ProjectV1().Projects().List(metav1.ListOptions{})
+	if err == nil {
+		t.Fatalf("Expected forbidden error, but got no error")
+	}
+	expectedError := "scopes [bad] prevent this action, additionally the following non-fatal errors were reported"
+	if !kapierrors.IsForbidden(err) || !strings.Contains(err.Error(), expectedError) {
+		t.Fatalf("Expected error '%s', but the returned error was '%v'", expectedError, err)
+	}
+
+	// And here we test ScopesToRules interactons
+	authzv1client := authorizationv1typedclient.NewForConfigOrDie(haroldClientConfig)
+
+	// Test with valid scopes as baseline
+	rulesReview := &authorizationv1.SelfSubjectRulesReview{
+		Spec: authorizationv1.SelfSubjectRulesReviewSpec{
+			Scopes: []string{"user:info", "role:admin:*"},
+		},
+	}
+	referenceRulesReviewObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(rulesReview)
+	if err != nil {
+		t.Fatalf("unexpected error getting SelfSubjectRulesReview: %v", err)
+	}
+	if len(referenceRulesReviewObj.Status.Rules) == 0 {
+		t.Fatalf("Expected some rules for user harold")
+	}
+
+	// Try adding bad scopes and check we have the same perms as baseline
+	rulesReviewWithBad := &authorizationv1.SelfSubjectRulesReview{
+		Spec: authorizationv1.SelfSubjectRulesReviewSpec{
+			Scopes: []string{"user:info", "role:admin:*", "user:bad", "role:bad", "bad"},
+		},
+	}
+	rulesReviewWithBadObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(rulesReviewWithBad)
+	if err != nil {
+		t.Fatalf("unexpected error getting SelfSubjectRulesReview: %v", err)
+	}
+
+	//Check same rules
+	if !reflect.DeepEqual(referenceRulesReviewObj.Status.Rules,
+		rulesReviewWithBadObj.Status.Rules) {
+		t.Fatalf("Expected rules: '%v', got '%v'",
+			referenceRulesReviewObj.Status.Rules,
+			rulesReviewWithBadObj.Status.Rules)
+	}
+
+	// Make sure no rules (beyond baseline) when only bad scopes are present
+	rulesReviewOnlyBad := &authorizationv1.SelfSubjectRulesReview{
+		Spec: authorizationv1.SelfSubjectRulesReviewSpec{
+			Scopes: []string{"user:bad", "role:bad", "bad"},
+		},
+	}
+	rulesReviewOnlyBadObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(rulesReviewOnlyBad)
+	if err != nil {
+		t.Fatalf("unexpected error getting SelfSubjectRulesReview: %v", err)
+	}
+
+	//Check same rules
+	rbacv1Rules, err := authzv1_To_rbacv1_PolicyRules(rulesReviewOnlyBadObj.Status.Rules)
+	if err != nil {
+		t.Fatalf("Unexpected error converting rules: %v", err)
+	}
+
+	// finally we can try covers both ways to assure the rules are
+	// semantically identical
+	equal, diffRules := checkEqualRules(rbacv1Rules, []rbacv1.PolicyRule{authorizationapi.DiscoveryRule})
+	if !equal {
+		t.Fatalf("Unmatching Rules when using unknown scopes: %v", diffRules)
+	}
+
+}
+
+//convert SSRR result: authzv1 -> authz -> rbac -> rbacv1
+func authzv1_To_rbacv1_PolicyRules(authzv1Rules []authorizationv1.PolicyRule) ([]rbacv1.PolicyRule, error) {
+	authzRules := make([]authorizationapi.PolicyRule, len(authzv1Rules))
+	for index := range authzv1Rules {
+		err := authorizationapiv1.Convert_v1_PolicyRule_To_authorization_PolicyRule(&authzv1Rules[index], &authzRules[index], nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	rbacRules := rbacconversion.Convert_api_PolicyRules_To_rbac_PolicyRules(authzRules)
+	rbacv1Rules := make([]rbacv1.PolicyRule, len(rbacRules))
+	for index := range rbacRules {
+		err := rbacapiv1.Convert_rbac_PolicyRule_To_v1_PolicyRule(&rbacRules[index], &rbacv1Rules[index], nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return rbacv1Rules, nil
+}
+
+func checkEqualRules(a, b []rbacv1.PolicyRule) (bool, []rbacv1.PolicyRule) {
+	covers, diffRules := rbacvalidation.Covers(a, b)
+	if covers {
+		covers, diffRules = rbacvalidation.Covers(b, a)
+	}
+	return covers, diffRules
 }

@@ -112,7 +112,7 @@ func (s *REST) Watch(ctx context.Context, options *metainternal.ListOptions) (wa
 
 	includeAllExistingProjects := (options != nil) && options.ResourceVersion == "0"
 
-	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], s.authCache.GetClusterRoleLister())
+	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], s.authCache.GetClusterRoleLister(), true)
 	if err != nil {
 		return nil, err
 	}

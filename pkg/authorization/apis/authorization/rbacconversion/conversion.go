@@ -41,7 +41,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 func Convert_authorization_ClusterRole_To_rbac_ClusterRole(in *authorizationapi.ClusterRole, out *rbac.ClusterRole, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
-	out.Rules = convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
+	out.Rules = Convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
 	out.AggregationRule = in.AggregationRule.DeepCopy()
 	return nil
 }
@@ -49,7 +49,7 @@ func Convert_authorization_ClusterRole_To_rbac_ClusterRole(in *authorizationapi.
 func Convert_authorization_Role_To_rbac_Role(in *authorizationapi.Role, out *rbac.Role, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
-	out.Rules = convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
+	out.Rules = Convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
 	return nil
 }
 
@@ -81,7 +81,7 @@ func Convert_authorization_RoleBinding_To_rbac_RoleBinding(in *authorizationapi.
 	return nil
 }
 
-func convert_api_PolicyRules_To_rbac_PolicyRules(in []authorizationapi.PolicyRule) []rbac.PolicyRule {
+func Convert_api_PolicyRules_To_rbac_PolicyRules(in []authorizationapi.PolicyRule) []rbac.PolicyRule {
 	rules := make([]rbac.PolicyRule, 0, len(in))
 	for _, rule := range in {
 		// Origin's authorizer's RuleMatches func ignores rules that have AttributeRestrictions.

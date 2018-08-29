@@ -3,7 +3,6 @@ package scope
 import (
 	"fmt"
 
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -30,12 +29,12 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorize
 		return authorizer.DecisionNoOpinion, "", nil
 	}
 
-	nonFatalErrors := []error{}
+	nonFatalErrors := ""
 
 	// scopeResolutionErrors aren't fatal.  If any of the scopes we find allow this, then the overall scope limits allow it
 	rules, err := ScopesToRules(scopes, attributes.GetNamespace(), a.clusterRoleGetter)
 	if err != nil {
-		nonFatalErrors = append(nonFatalErrors, err)
+		nonFatalErrors = fmt.Sprintf(", additionally the following non-fatal errors were reported: %v", err)
 	}
 
 	// check rules against attributes
@@ -44,5 +43,5 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorize
 	}
 
 	// the scope prevent this.  We need to authoritatively deny
-	return authorizer.DecisionDeny, fmt.Sprintf("scopes %v prevent this action", scopes), kerrors.NewAggregate(nonFatalErrors)
+	return authorizer.DecisionDeny, fmt.Sprintf("scopes %v prevent this action%s", scopes, nonFatalErrors), nil
 }
