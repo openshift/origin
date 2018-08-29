@@ -18,7 +18,7 @@ func NewOpenshiftNonAPIConfig(generiConfig *genericapiserver.Config, kubeInforme
 			SharedInformerFactory: kubeInformers,
 		},
 	}
-	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(*kubeAPIServerConfig)
+	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(kubeAPIServerConfig.OAuthConfig, kubeAPIServerConfig.AuthConfig.OAuthMetadataFile)
 	if err != nil {
 		return nil, err
 	}

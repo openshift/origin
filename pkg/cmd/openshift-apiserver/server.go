@@ -3,7 +3,6 @@ package openshift_apiserver
 import (
 	"github.com/golang/glog"
 
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/pkg/version"
@@ -12,12 +11,10 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
-func RunOpenShiftAPIServer(masterConfig *configapi.MasterConfig) error {
+func RunOpenShiftAPIServer(serverConfig *configapi.OpenshiftAPIServerConfig) error {
 	util.InitLogrus()
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{
@@ -29,17 +26,7 @@ func RunOpenShiftAPIServer(masterConfig *configapi.MasterConfig) error {
 		},
 	})
 
-	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
-	if len(validationResults.Warnings) != 0 {
-		for _, warning := range validationResults.Warnings {
-			glog.Warningf("%v", warning)
-		}
-	}
-	if len(validationResults.Errors) != 0 {
-		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
-	}
-
-	openshiftAPIServerRuntimeConfig, err := openshiftapiserver.NewOpenshiftAPIConfig(masterConfig)
+	openshiftAPIServerRuntimeConfig, err := openshiftapiserver.NewOpenshiftAPIConfig(serverConfig)
 	if err != nil {
 		return err
 	}
@@ -50,12 +37,7 @@ func RunOpenShiftAPIServer(masterConfig *configapi.MasterConfig) error {
 	// this sets up the openapi endpoints
 	preparedOpenshiftAPIServer := openshiftAPIServer.GenericAPIServer.PrepareRun()
 
-	glog.Infof("Starting master on %s (%s)", masterConfig.ServingInfo.BindAddress, version.Get().String())
-	glog.Infof("Public master address is %s", masterConfig.MasterPublicURL)
-	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = masterConfig.ImageConfig.Format
-	imageTemplate.Latest = masterConfig.ImageConfig.Latest
-	glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
+	glog.Infof("Starting master on %s (%s)", serverConfig.ServingInfo.BindAddress, version.Get().String())
 
 	if err := preparedOpenshiftAPIServer.Run(utilwait.NeverStop); err != nil {
 		return err

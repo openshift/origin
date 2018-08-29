@@ -12,7 +12,6 @@ import (
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/apiserver/registry/brokertemplateinstance"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST implements a RESTStorage for brokertemplateinstances against etcd
@@ -23,7 +22,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against brokertemplateinstances.
-func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &templateapi.BrokerTemplateInstance{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.BrokerTemplateInstanceList{} },

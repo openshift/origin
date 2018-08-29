@@ -25,15 +25,14 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
 )
 
-func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*OpenshiftAPIConfig, error) {
-	kubeClientConfig, err := configapi.GetClientConfig(openshiftAPIServerConfig.MasterClients.OpenShiftLoopbackKubeConfig, openshiftAPIServerConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+func NewOpenshiftAPIConfig(newConfig *configapi.OpenshiftAPIServerConfig) (*OpenshiftAPIConfig, error) {
+	kubeClientConfig, err := configapi.GetClientConfig(newConfig.MasterClients.OpenShiftLoopbackKubeConfig, newConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -45,11 +44,11 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 
 	openshiftVersion := version.Get()
 
-	backend, policyChecker, err := configprocessing.GetAuditConfig(openshiftAPIServerConfig.AuditConfig)
+	backend, policyChecker, err := configprocessing.GetAuditConfig(newConfig.AuditConfig)
 	if err != nil {
 		return nil, err
 	}
-	restOptsGetter, err := originrest.StorageOptions(*openshiftAPIServerConfig)
+	restOptsGetter, err := NewRESTOptionsGetter(newConfig.APIServerArguments, newConfig.EtcdClientInfo, newConfig.StoragePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +91,7 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 	// these are defaulted sanely during complete
 	//DiscoveryAddresses discovery.Addresses
 
-	genericConfig.CorsAllowedOriginList = openshiftAPIServerConfig.CORSAllowedOrigins
+	genericConfig.CorsAllowedOriginList = newConfig.CORSAllowedOrigins
 	genericConfig.Version = &openshiftVersion
 	// we don't use legacy audit anymore
 	genericConfig.LegacyAuditWriter = nil
@@ -102,20 +101,20 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 	genericConfig.BuildHandlerChainFunc = OpenshiftHandlerChain
 	genericConfig.LegacyAPIGroupPrefixes = configprocessing.LegacyAPIGroupPrefixes
 	genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
-	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(*openshiftAPIServerConfig)
+	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(nil)
 	genericConfig.SwaggerConfig = defaultSwaggerConfig()
 	genericConfig.RESTOptionsGetter = restOptsGetter
 	// previously overwritten.  I don't know why
 	genericConfig.RequestTimeout = time.Duration(60) * time.Second
-	genericConfig.MinRequestTimeout = openshiftAPIServerConfig.ServingInfo.RequestTimeoutSeconds
-	genericConfig.MaxRequestsInFlight = openshiftAPIServerConfig.ServingInfo.MaxRequestsInFlight
-	genericConfig.MaxMutatingRequestsInFlight = openshiftAPIServerConfig.ServingInfo.MaxRequestsInFlight / 2
+	genericConfig.MinRequestTimeout = newConfig.ServingInfo.RequestTimeoutSeconds
+	genericConfig.MaxRequestsInFlight = newConfig.ServingInfo.MaxRequestsInFlight
+	genericConfig.MaxMutatingRequestsInFlight = newConfig.ServingInfo.MaxRequestsInFlight / 2
 	genericConfig.LongRunningFunc = configprocessing.IsLongRunningRequest
 
 	// I'm just hoping this works.  I don't think we use it.
 	//MergedResourceConfig *serverstore.ResourceConfig
 
-	servingOptions, err := configprocessing.ToServingOptions(openshiftAPIServerConfig.ServingInfo)
+	servingOptions, err := configprocessing.ToServingOptions(newConfig.ServingInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -123,12 +122,12 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 		return nil, err
 	}
 	authenticationOptions := genericapiserveroptions.NewDelegatingAuthenticationOptions()
-	authenticationOptions.RemoteKubeConfigFile = openshiftAPIServerConfig.MasterClients.OpenShiftLoopbackKubeConfig
+	authenticationOptions.RemoteKubeConfigFile = newConfig.MasterClients.OpenShiftLoopbackKubeConfig
 	if err := authenticationOptions.ApplyTo(&genericConfig.Authentication, genericConfig.SecureServing, genericConfig.OpenAPIConfig); err != nil {
 		return nil, err
 	}
 	authorizationOptions := genericapiserveroptions.NewDelegatingAuthorizationOptions()
-	authorizationOptions.RemoteKubeConfigFile = openshiftAPIServerConfig.MasterClients.OpenShiftLoopbackKubeConfig
+	authorizationOptions.RemoteKubeConfigFile = newConfig.MasterClients.OpenShiftLoopbackKubeConfig
 	if err := authorizationOptions.ApplyTo(&genericConfig.Authorization); err != nil {
 		return nil, err
 	}
@@ -142,14 +141,18 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 	}); err != nil {
 		return nil, err
 	}
-	projectCache, err := NewProjectCache(informers.internalKubernetesInformers.Core().InternalVersion().Namespaces(), kubeClientConfig, openshiftAPIServerConfig.ProjectConfig.DefaultNodeSelector)
+	projectCache, err := NewProjectCache(informers.internalKubernetesInformers.Core().InternalVersion().Namespaces(), kubeClientConfig, newConfig.ProjectConfig.DefaultNodeSelector)
 	if err != nil {
 		return nil, err
 	}
 	clusterQuotaMappingController := NewClusterQuotaMappingController(informers.internalKubernetesInformers.Core().InternalVersion().Namespaces(), informers.quotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
 	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeClient.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	admissionInitializer, err := originadmission.NewPluginInitializer(*openshiftAPIServerConfig, kubeClientConfig, informers, genericConfig.Authorization.Authorizer, projectCache, restMapper, clusterQuotaMappingController)
+	cloudConfigFile, err := configprocessing.GetCloudProviderConfigFile(newConfig.APIServerArguments)
+	if err != nil {
+		return nil, err
+	}
+	admissionInitializer, err := originadmission.NewPluginInitializer(newConfig.ImagePolicyConfig.ExternalRegistryHostname, newConfig.ImagePolicyConfig.InternalRegistryHostname, cloudConfigFile, newConfig.JenkinsPipelineConfig, kubeClientConfig, informers, genericConfig.Authorization.Authorizer, projectCache, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}
@@ -164,12 +167,12 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 		admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 	}
-	genericConfig.AdmissionControl, err = originadmission.NewAdmissionChains(*openshiftAPIServerConfig, admissionInitializer, admissionDecorators)
+	genericConfig.AdmissionControl, err = originadmission.NewAdmissionChains([]string{}, newConfig.AdmissionPluginConfig, []string{}, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}
 
-	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(kubeClientConfig, openshiftAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostname, openshiftAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname)
+	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(kubeClientConfig, newConfig.ImagePolicyConfig.ExternalRegistryHostname, newConfig.ImagePolicyConfig.InternalRegistryHostname)
 	if err != nil {
 		return nil, err
 	}
@@ -180,12 +183,12 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 	sccStorage := sccstorage.NewREST(genericConfig.RESTOptionsGetter)
 
 	var caData []byte
-	if len(openshiftAPIServerConfig.ImagePolicyConfig.AdditionalTrustedCA) != 0 {
-		glog.V(2).Infof("Image import using additional CA path: %s", openshiftAPIServerConfig.ImagePolicyConfig.AdditionalTrustedCA)
+	if len(newConfig.ImagePolicyConfig.AdditionalTrustedCA) != 0 {
+		glog.V(2).Infof("Image import using additional CA path: %s", newConfig.ImagePolicyConfig.AdditionalTrustedCA)
 		var err error
-		caData, err = ioutil.ReadFile(openshiftAPIServerConfig.ImagePolicyConfig.AdditionalTrustedCA)
+		caData, err = ioutil.ReadFile(newConfig.ImagePolicyConfig.AdditionalTrustedCA)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read CA bundle %s for image importing: %v", openshiftAPIServerConfig.ImagePolicyConfig.AdditionalTrustedCA, err)
+			return nil, fmt.Errorf("failed to read CA bundle %s for image importing: %v", newConfig.ImagePolicyConfig.AdditionalTrustedCA, err)
 		}
 	}
 
@@ -196,7 +199,7 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 		informers.GetKubernetesInformers().Rbac().V1(),
 	)
 
-	routeAllocator, err := configprocessing.RouteAllocator(*openshiftAPIServerConfig)
+	routeAllocator, err := configprocessing.RouteAllocator(newConfig.RoutingConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -216,21 +219,19 @@ func NewOpenshiftAPIConfig(openshiftAPIServerConfig *configapi.MasterConfig) (*O
 			SubjectLocator:                     subjectLocator,
 			LimitVerifier:                      imageLimitVerifier,
 			RegistryHostnameRetriever:          registryHostnameRetriever,
-			AllowedRegistriesForImport:         openshiftAPIServerConfig.ImagePolicyConfig.AllowedRegistriesForImport,
-			MaxImagesBulkImportedPerRepository: openshiftAPIServerConfig.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
+			AllowedRegistriesForImport:         newConfig.ImagePolicyConfig.AllowedRegistriesForImport,
+			MaxImagesBulkImportedPerRepository: newConfig.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
 			AdditionalTrustedCA:                caData,
 			RouteAllocator:                     routeAllocator,
 			ProjectAuthorizationCache:          projectAuthorizationCache,
 			ProjectCache:                       projectCache,
-			ProjectRequestTemplate:             openshiftAPIServerConfig.ProjectConfig.ProjectRequestTemplate,
-			ProjectRequestMessage:              openshiftAPIServerConfig.ProjectConfig.ProjectRequestMessage,
+			ProjectRequestTemplate:             newConfig.ProjectConfig.ProjectRequestTemplate,
+			ProjectRequestMessage:              newConfig.ProjectConfig.ProjectRequestMessage,
 			ClusterQuotaMappingController:      clusterQuotaMappingController,
 			RESTMapper:                         restMapper,
 			SCCStorage:                         sccStorage,
+			ServiceAccountMethod:               newConfig.ServiceAccountOAuthGrantMethod,
 		},
-	}
-	if openshiftAPIServerConfig.OAuthConfig != nil {
-		ret.ExtraConfig.ServiceAccountMethod = openshiftAPIServerConfig.OAuthConfig.GrantConfig.ServiceAccountMethod
 	}
 
 	return ret, ret.ExtraConfig.Validate()

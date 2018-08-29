@@ -174,19 +174,18 @@ func fixupAdmissionPlugins(plugins []string) []string {
 }
 
 func NewAdmissionChains(
-	options configapi.MasterConfig,
+	admissionConfigFiles []string,
+	pluginConfig map[string]*configapi.AdmissionPluginConfig,
+	// TODO don't allow this when we upgrade to the next release.
+	pluginOrderOverride []string,
 	admissionInitializer admission.PluginInitializer,
 	admissionDecorator admission.Decorator,
 ) (admission.Interface, error) {
 	admissionPluginConfigFilename := ""
-	if len(options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"]) > 0 {
-		admissionPluginConfigFilename = options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"][0]
+	if len(admissionConfigFiles) > 0 {
+		admissionPluginConfigFilename = admissionConfigFiles[0]
 
 	} else {
-		pluginConfig := map[string]configapi.AdmissionPluginConfig{}
-		for pluginName, config := range options.AdmissionConfig.PluginConfig {
-			pluginConfig[pluginName] = *config
-		}
 		upstreamAdmissionConfig, err := ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
 		if err != nil {
 			return nil, err
@@ -209,12 +208,12 @@ func NewAdmissionChains(
 	}
 
 	admissionPluginNames := CombinedAdmissionControlPlugins
-	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
-		admissionPluginNames = options.AdmissionConfig.PluginOrderOverride
+	if len(pluginOrderOverride) > 0 {
+		admissionPluginNames = pluginOrderOverride
 	}
 	admissionPluginNames = fixupAdmissionPlugins(admissionPluginNames)
 
-	admissionChain, err := newAdmissionChainFunc(admissionPluginNames, admissionPluginConfigFilename, options, admissionInitializer, admissionDecorator)
+	admissionChain, err := newAdmissionChainFunc(admissionPluginNames, admissionPluginConfigFilename, admissionInitializer, admissionDecorator)
 
 	if err != nil {
 		return nil, err
@@ -226,7 +225,7 @@ func NewAdmissionChains(
 // newAdmissionChainFunc is for unit testing only.  You should NEVER OVERRIDE THIS outside of a unit test.
 var newAdmissionChainFunc = newAdmissionChain
 
-func newAdmissionChain(pluginNames []string, admissionConfigFilename string, options configapi.MasterConfig, admissionInitializer admission.PluginInitializer, admissionDecorator admission.Decorator) (admission.Interface, error) {
+func newAdmissionChain(pluginNames []string, admissionConfigFilename string, admissionInitializer admission.PluginInitializer, admissionDecorator admission.Decorator) (admission.Interface, error) {
 	plugins := []admission.Interface{}
 	for _, pluginName := range pluginNames {
 		var (
@@ -334,7 +333,7 @@ func splitStream(config io.Reader) (io.Reader, io.Reader, error) {
 	return bytes.NewBuffer(configBytes), bytes.NewBuffer(configBytes), nil
 }
 
-func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
+func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]*configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
 	ret := &apiserver.AdmissionConfiguration{}
 
 	for _, pluginName := range sets.StringKeySet(in).List() {

@@ -30,7 +30,6 @@ import (
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
@@ -53,17 +52,15 @@ import (
 	endpointsstorage "k8s.io/kubernetes/pkg/registry/core/endpoint/storage"
 	kversion "k8s.io/kubernetes/pkg/version"
 
+	"github.com/openshift/api/security"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
-
-	// TODO fix this install, it is required for TestPreferredGroupVersions to pass
-	"github.com/openshift/api/security"
-	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 )
 
 var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, legacy.RESTPrefix)
@@ -73,15 +70,6 @@ var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, le
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
 // It returns an error if no KubernetesMasterConfig was defined.
 func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserveroptions.ServerRunOptions, error) {
-	host, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
-	if err != nil {
-		return nil, err
-	}
-	port, err := strconv.Atoi(portString)
-	if err != nil {
-		return nil, err
-	}
-
 	portRange, err := knet.ParsePortRange(masterConfig.KubernetesMasterConfig.ServicesNodePortRange)
 	if err != nil {
 		return nil, err
@@ -97,11 +85,10 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.ServiceNodePortRange = *portRange
 	server.Features.EnableProfiling = true
 
-	server.SecureServing.BindAddress = net.ParseIP(host)
-	server.SecureServing.BindPort = port
-	server.SecureServing.BindNetwork = masterConfig.ServingInfo.BindNetwork
-	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
-	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
+	server.SecureServing, err = configprocessing.ToServingOptions(masterConfig.ServingInfo)
+	if err != nil {
+		return nil, err
+	}
 	server.InsecureServing.BindPort = 0
 
 	// disable anonymous authentication
@@ -121,29 +108,15 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 		}
 	}
 
-	server.Etcd.EnableGarbageCollection = true
-	server.Etcd.StorageConfig.Type = "etcd3"
-	server.Etcd.DefaultStorageMediaType = "application/json" // TODO(post-1.6.1-rebase): enable protobuf with etcd3 as upstream
-	server.Etcd.StorageConfig.Quorum = true
-	server.Etcd.StorageConfig.Prefix = masterConfig.EtcdStorageConfig.KubernetesStoragePrefix
-	server.Etcd.StorageConfig.ServerList = masterConfig.EtcdClientInfo.URLs
-	server.Etcd.StorageConfig.KeyFile = masterConfig.EtcdClientInfo.ClientCert.KeyFile
-	server.Etcd.StorageConfig.CertFile = masterConfig.EtcdClientInfo.ClientCert.CertFile
-	server.Etcd.StorageConfig.CAFile = masterConfig.EtcdClientInfo.CA
-	server.Etcd.DefaultWatchCacheSize = 0
+	server.Etcd, err = configprocessing.GetEtcdOptions(masterConfig.KubernetesMasterConfig.APIServerArguments, masterConfig.EtcdClientInfo, masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, nil)
+	if err != nil {
+		return nil, err
+	}
 
 	server.GenericServerRunOptions.CorsAllowedOriginList = masterConfig.CORSAllowedOrigins
 	server.GenericServerRunOptions.MaxRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight
 	server.GenericServerRunOptions.MaxMutatingRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight / 2
 	server.GenericServerRunOptions.MinRequestTimeout = masterConfig.ServingInfo.RequestTimeoutSeconds
-	for _, nc := range masterConfig.ServingInfo.NamedCertificates {
-		sniCert := utilflag.NamedCertKey{
-			CertFile: nc.CertFile,
-			KeyFile:  nc.KeyFile,
-			Names:    nc.Names,
-		}
-		server.SecureServing.SNICertKeys = append(server.SecureServing.SNICertKeys, sniCert)
-	}
 
 	server.KubeletConfig.ReadOnlyPort = 0
 	server.KubeletConfig.Port = masterConfig.KubeletClientInfo.Port
@@ -405,6 +378,8 @@ func (rc *incompleteKubeMasterConfig) Complete(
 		return nil, err
 	}
 
+	_, oauthMetadata, _ := oauthutil.PrepOauthMetadata(masterConfig.OAuthConfig, masterConfig.AuthConfig.OAuthMetadataFile)
+
 	// override config values
 	kubeVersion := kversion.Get()
 	genericConfig.Version = &kubeVersion
@@ -413,7 +388,7 @@ func (rc *incompleteKubeMasterConfig) Complete(
 	genericConfig.Authorization.Authorizer = kubeAuthorizer          // this is used to fulfill the kube SAR endpoints
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
-	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(masterConfig)
+	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(oauthMetadata)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
 	genericConfig.LegacyAPIGroupPrefixes = configprocessing.LegacyAPIGroupPrefixes

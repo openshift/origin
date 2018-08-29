@@ -23,7 +23,6 @@ import (
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
 	"github.com/openshift/origin/pkg/user/apiserver/registry/user"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for users against etcd
@@ -34,7 +33,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against users
-func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &userapi.User{} },
 		NewListFunc:              func() runtime.Object { return &userapi.UserList{} },
