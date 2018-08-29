@@ -95,3 +95,5 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer() error {
 
 	return RunOpenShiftKubeAPIServerServer(masterConfig)
 }
+
+// test change do not merge
