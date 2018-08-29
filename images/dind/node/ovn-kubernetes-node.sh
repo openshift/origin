@@ -42,7 +42,7 @@ EOF
   local node_config="${config_dir}/node-config.yaml"
   local master_config="${master_dir}/master-config.yaml"
   cluster_cidr=$(python -c "import yaml; stream = file('${master_config}', 'r'); y = yaml.load(stream); print y['networkConfig']['clusterNetworks'][0]['cidr']")
-  apiserver=$(grep server ${kube_config} | cut -f 6 -d' ')
+  apiserver=$(awk '/server:/ { print $2; exit }' ${kube_config})
   ovn_master_ip=$(echo -n ${apiserver} | cut -d "/" -f 3 | cut -d ":" -f 1)
 
   # Ensure GENEVE's UDP port isn't firewalled

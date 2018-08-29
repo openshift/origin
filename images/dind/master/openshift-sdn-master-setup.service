@@ -1,0 +1,11 @@
+[Unit]
+Description=Master setup for openshift-sdn network plugin
+Requires=openshift-master.service
+After=openshift-master.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/openshift-sdn-master-setup.sh
+
+[Install]
+WantedBy=openshift-master.service

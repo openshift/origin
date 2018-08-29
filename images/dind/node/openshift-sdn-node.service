@@ -1,10 +1,10 @@
 [Unit]
-Description=OpenShift Node
+Description=OpenShift SDN node
 Requires=network.target
 After=docker.target network.target
 
 [Service]
-ExecStart=/usr/local/bin/openshift-node.sh
+ExecStart=/usr/local/bin/openshift-sdn-node.sh
 WorkingDirectory=/var/lib/origin
 Restart=on-failure
 RestartSec=5

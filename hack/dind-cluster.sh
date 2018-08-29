@@ -712,6 +712,8 @@ function copy-runtime() {
   local origin_root=$1
   local target=$2
 
+  cp "$(os::util::find::built_binary hyperkube)" "${target}"
+  cp "$(os::util::find::built_binary openshift-node-config)" "${target}"
   cp "$(os::util::find::built_binary openshift)" "${target}"
   cp "$(os::util::find::built_binary oc)" "${target}"
   cp "$(os::util::find::built_binary host-local)" "${target}"
