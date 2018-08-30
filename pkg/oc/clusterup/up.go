@@ -35,9 +35,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/clusteradd/components/registry"
-	"github.com/openshift/origin/pkg/oc/clusteradd/components/service-catalog"
-	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/components"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
@@ -90,12 +87,9 @@ type ClusterUpConfig struct {
 	ImageTemplate variable.ImageTemplate
 	ImageTag      string
 
-	DockerMachine         string
-	SkipRegistryCheck     bool
-	PortForwarding        bool
-	ClusterAdd            *cobra.Command
-	UserEnabledComponents []string
-	KubeOnly              bool
+	DockerMachine  string
+	PortForwarding bool
+	KubeOnly       bool
 
 	// BaseTempDir is the directory to use as the root for temp directories
 	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't
@@ -106,7 +100,6 @@ type ClusterUpConfig struct {
 	UseExistingConfig bool
 	ServerLogLevel    int
 
-	ComponentsToEnable       *components.Components
 	HostVolumesDir           string
 	HostConfigDir            string
 	WriteConfig              bool
@@ -117,7 +110,6 @@ type ClusterUpConfig struct {
 	AdditionalIPs            []string
 	UseNsenterMount          bool
 	PublicHostname           string
-	RoutingSuffix            string
 	HostPersistentVolumesDir string
 	HTTPProxy                string
 	HTTPSProxy               string
@@ -141,19 +133,13 @@ type ClusterUpConfig struct {
 	genericclioptions.IOStreams
 }
 
-func NewClusterUpConfig(streams genericclioptions.IOStreams, clusterAdd *cobra.Command) *ClusterUpConfig {
+func NewClusterUpConfig(streams genericclioptions.IOStreams) *ClusterUpConfig {
 	return &ClusterUpConfig{
-		UserEnabledComponents: []string{"*"},
-
 		UsePorts:       openshift.BasePorts,
 		PortForwarding: defaultPortForwarding(),
 		DNSPort:        openshift.DefaultDNSPort,
 
 		ImageTemplate: variable.NewDefaultImageTemplate(),
-
-		// We pass cluster add as a command to prevent anyone from ever cheating with their wiring. You either work from flags or
-		// or you don't work.  You cannot add glue of any sort.
-		ClusterAdd: clusterAdd,
 
 		IOStreams: streams,
 	}
@@ -161,8 +147,8 @@ func NewClusterUpConfig(streams genericclioptions.IOStreams, clusterAdd *cobra.C
 }
 
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
-func NewCmdUp(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams, clusterAdd *cobra.Command) *cobra.Command {
-	config := NewClusterUpConfig(streams, clusterAdd)
+func NewCmdUp(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams) *cobra.Command {
+	config := NewClusterUpConfig(streams)
 	cmd := &cobra.Command{
 		Use:     name,
 		Short:   "Start OpenShift on Docker with reasonable defaults",
@@ -186,51 +172,16 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&c.ImageTag, "tag", "", "Specify an explicit version for OpenShift images")
 	flags.MarkHidden("tag")
 	flags.StringVar(&c.ImageTemplate.Format, "image", c.ImageTemplate.Format, "Specify the images to use for OpenShift")
-	flags.BoolVar(&c.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
-	flags.StringVar(&c.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
 	flags.StringVar(&c.BaseDir, "base-dir", c.BaseDir, "Directory on Docker host for cluster up configuration")
 	flags.BoolVar(&c.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
 	flags.BoolVar(&c.PortForwarding, "forward-ports", c.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
-	flags.StringSliceVar(&c.UserEnabledComponents, "enable", c.UserEnabledComponents, fmt.Sprintf(""+
-		"A list of components to enable.  '*' enables all on-by-default components, 'foo' enables the component "+
-		"named 'foo', '-foo' disables the component named 'foo'.\nAll components: %s\nDisabled-by-default components: %s",
-		strings.Join(knownComponents.List(), ", "), strings.Join(componentsDisabledByDefault.List(), ", ")))
 	flags.BoolVar(&c.KubeOnly, "kube-only", c.KubeOnly, "Only install Kubernetes, no OpenShift apiserver or controllers.  Alpha, for development only.  Can result in an unstable cluster.")
 	flags.MarkHidden("kube-only")
 	flags.StringVar(&c.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&c.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&c.NoProxy, "no-proxy", c.NoProxy, "List of hosts or subnets for which a proxy should not be used")
-}
-
-var (
-	knownComponents = sets.NewString(
-		"centos-imagestreams",
-		"registry",
-		"rhel-imagestreams",
-		"router",
-		"sample-templates",
-		"persistent-volumes",
-		"automation-service-broker",
-		"service-catalog",
-		"template-service-broker",
-		"web-console",
-	)
-
-	componentsDisabledByDefault = sets.NewString(
-		"automation-service-broker",
-		"service-catalog",
-		"template-service-broker")
-)
-
-func init() {
-	switch defaultImageStreams {
-	case "centos7":
-		componentsDisabledByDefault.Insert("rhel-imagestreams")
-	case "rhel7":
-		componentsDisabledByDefault.Insert("centos-imagestreams")
-	}
 }
 
 func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *cobra.Command) error {
@@ -289,43 +240,6 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 		if err := os.MkdirAll(c.BaseDir, os.ModePerm); err != nil {
 			return fmt.Errorf("unable to create base directory %q: %v", c.BaseDir, err)
 		}
-	}
-
-	// When users run the cluster up for the first time we store the list of components the cluster up runs with
-	// into a "components.json" file inside base directory.
-	// On the second run, we won't allow users to specify new or delete existing components when the base directory
-	// was already initialized.
-	if _, err := os.Stat(filepath.Join(c.BaseDir, "components.json")); err == nil {
-		// If user tries to specify --enabled on non-empty cluster up base dir, give him an error
-		if !sets.NewString(c.UserEnabledComponents...).Equal(sets.NewString("*")) {
-			if _, err := os.Stat(filepath.Join(c.BaseDir, "components.json")); err == nil {
-				return fmt.Errorf("cannot use --enable when the cluster is already initialized, use cluster add instead")
-			}
-		}
-		componentFile, err := os.Open(filepath.Join(c.BaseDir, "components.json"))
-		if err != nil {
-			return fmt.Errorf("unable to read components.json file: %v", err)
-		}
-		defer componentFile.Close()
-		c.ComponentsToEnable, err = components.ReadComponentsEnabled(componentFile)
-		if err != nil {
-			return fmt.Errorf("unable to parse components.json file: %v", err)
-		}
-	} else {
-		// This is initial cluster up run on empty base dir
-		c.ComponentsToEnable = components.NewComponentsEnabled()
-		for _, currComponent := range knownComponents.UnsortedList() {
-			if isComponentEnabled(currComponent, componentsDisabledByDefault, c.UserEnabledComponents...) {
-				c.ComponentsToEnable.Add(currComponent)
-			}
-		}
-		// Store enabled components into file so on the second run we know what to enable
-		componentFile, err := os.Create(filepath.Join(c.BaseDir, "components.json"))
-		if err != nil {
-			return fmt.Errorf("unable to write components.json file: %v", err)
-		}
-		defer componentFile.Close()
-		components.WriteComponentsEnabled(componentFile, c.ComponentsToEnable)
 	}
 
 	// Get a Docker client.
@@ -414,9 +328,6 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 	}
 	glog.V(3).Infof("Using %q as primary server IP and %q as additional IPs", c.ServerIP, strings.Join(c.AdditionalIPs, ","))
 
-	if len(c.RoutingSuffix) == 0 {
-		c.RoutingSuffix = c.ServerIP + ".nip.io"
-	}
 	// this used to be done in the openshift start method, but its mutating state.
 	if len(c.HTTPProxy) > 0 || len(c.HTTPSProxy) > 0 {
 		c.updateNoProxy()
@@ -455,13 +366,6 @@ func (c *ClusterUpConfig) Check() error {
 	}
 	if versions.LessThan(ver.APIVersion, dockerAPIVersion122) {
 		return fmt.Errorf("unsupported Docker version %s, need at least %s", ver.APIVersion, dockerAPIVersion122)
-	}
-
-	if !c.SkipRegistryCheck {
-		c.printProgress("Checking if insecured registry is configured properly in Docker")
-		if err := c.checkDockerInsecureRegistry(); err != nil {
-			return err
-		}
 	}
 
 	// Networking checks
@@ -527,23 +431,6 @@ func (c *ClusterUpConfig) Start() error {
 	c.printProgress("Adding default OAuthClient redirect URIs")
 	if err := c.ensureDefaultRedirectURIs(c.Out); err != nil {
 		return err
-	}
-
-	if len(c.ComponentsToEnable.Enabled) > 0 {
-		args := append([]string{}, "--image="+c.ImageTemplate.Format)
-		args = append(args, "--base-dir="+c.BaseDir)
-		if len(c.ImageTag) > 0 {
-			args = append(args, "--tag="+c.ImageTag)
-		}
-		args = append(args, c.ComponentsToEnable.Enabled...)
-
-		if err := c.ClusterAdd.ParseFlags(args); err != nil {
-			return err
-		}
-		glog.V(2).Infof("oc cluster add %v", args)
-		if err := c.ClusterAdd.RunE(c.ClusterAdd, args); err != nil {
-			return err
-		}
 	}
 
 	if c.ShouldCreateUser() {
@@ -672,21 +559,6 @@ func (c *ClusterUpConfig) checkOpenShiftImage() error {
 	return nil
 }
 
-// checkDockerInsecureRegistry checks to see if the Docker daemon has an appropriate insecure registry argument set so that our services can access the registry
-func (c *ClusterUpConfig) checkDockerInsecureRegistry() error {
-	configured, hasEntries, err := c.DockerHelper().InsecureRegistryIsConfigured(openshift.DefaultSvcCIDR)
-	if err != nil {
-		return err
-	}
-	if !configured {
-		if hasEntries {
-			return errors.ErrInvalidInsecureRegistryArgument()
-		}
-		return errors.ErrNoInsecureRegistryArgument()
-	}
-	return nil
-}
-
 // checkPortForwardingPrerequisites checks that socat is installed when port forwarding is enabled
 // Socat needs to be installed manually on MacOS
 func checkPortForwardingPrerequisites() error {
@@ -784,7 +656,7 @@ func (c *ClusterUpConfig) determineServerIP() (string, []string, error) {
 
 // updateNoProxy will add some default values to the NO_PROXY setting if they are not present
 func (c *ClusterUpConfig) updateNoProxy() {
-	values := []string{"127.0.0.1", c.ServerIP, "localhost", service_catalog.ServiceCatalogServiceIP, registry.RegistryServiceClusterIP}
+	values := []string{"127.0.0.1", c.ServerIP, "localhost"}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
 		values = append(values, ipFromServer)
@@ -860,7 +732,7 @@ func (c *ClusterUpConfig) serverInfo(out io.Writer) {
 // and those on the Docker daemon and generates appropriate warnings.
 func (c *ClusterUpConfig) checkProxySettings() string {
 	warnings := []string{}
-	dockerHTTPProxy, dockerHTTPSProxy, dockerNoProxy, err := c.DockerHelper().GetDockerProxySettings()
+	dockerHTTPProxy, dockerHTTPSProxy, _, err := c.DockerHelper().GetDockerProxySettings()
 	if err != nil {
 		return "Unexpected error: " + err.Error()
 	}
@@ -880,15 +752,6 @@ func (c *ClusterUpConfig) checkProxySettings() string {
 		warnings = append(warnings, fmt.Sprintf("An HTTPS proxy (%s) is configured for the Docker daemon, but you did not specify one for cluster up", dockerHTTPSProxy))
 	} else if c.HTTPSProxy != dockerHTTPSProxy {
 		warnings = append(warnings, fmt.Sprintf("The HTTPS proxy configured for the Docker daemon (%s) is not the same one you specified for cluster up", dockerHTTPSProxy))
-	}
-
-	if len(dockerHTTPProxy) > 0 || len(dockerHTTPSProxy) > 0 {
-		dockerNoProxyList := strings.Split(dockerNoProxy, ",")
-		dockerNoProxySet := sets.NewString(dockerNoProxyList...)
-		if !dockerNoProxySet.Has(registry.RegistryServiceClusterIP) {
-			warnings = append(warnings, fmt.Sprintf("A proxy is configured for Docker, however %[1]s is not included in its NO_PROXY list.\n"+
-				"   %[1]s needs to be included in the Docker daemon's NO_PROXY environment variable so pushes to the local OpenShift registry can succeed.", registry.RegistryServiceClusterIP))
-		}
 	}
 
 	if len(warnings) > 0 {

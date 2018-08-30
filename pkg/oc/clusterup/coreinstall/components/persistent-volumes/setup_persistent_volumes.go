@@ -23,7 +23,7 @@ import (
 	securityclient "github.com/openshift/client-go/security/clientset/versioned"
 	securitytypedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
+	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 )
 

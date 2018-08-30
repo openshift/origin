@@ -4,11 +4,12 @@ import (
 	"path"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
+
+	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/tmpformac"
 )
 
-func MakeOpenShiftAPIServerConfig(existingMasterConfig string, routingSuffix, basedir string) (string, error) {
+func MakeOpenShiftAPIServerConfig(existingMasterConfig string, basedir string) (string, error) {
 	configDir := path.Join(basedir, OpenShiftAPIServerDirName)
 	glog.V(1).Infof("Copying kube-apiserver config to local directory %s", configDir)
 	err := tmpformac.CopyDirectory(existingMasterConfig, configDir)
@@ -24,9 +25,6 @@ func MakeOpenShiftAPIServerConfig(existingMasterConfig string, routingSuffix, ba
 	}
 
 	masterconfig.ServingInfo.BindAddress = "0.0.0.0:8445"
-
-	// hardcode the route suffix to the old default.  If anyone wants to change it, they can modify their config.
-	masterconfig.RoutingConfig.Subdomain = routingSuffix
 
 	// use the generated service serving cert
 	masterconfig.ServingInfo.CertFile = "/var/serving-cert/tls.crt"
