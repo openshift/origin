@@ -21,14 +21,15 @@ const (
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
-func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+// TODO switch back to taking a kubeapiserver config.  For now make it obviously safe for 3.11
+func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string, oauthConfig *configapi.OAuthConfig, userAgentMatchingConfig configapi.UserAgentMatchingConfig) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
 	extraPostStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 
-	webconsoleProxyHandler, err := newWebConsoleProxy(kubeInformers, kubeAPIServerConfig)
+	webconsoleProxyHandler, err := newWebConsoleProxy(kubeInformers, legacyServiceServingCertSignerCABundle)
 	if err != nil {
 		return nil, nil, err
 	}
-	oauthServerHandler, newPostStartHooks, err := NewOAuthServerHandler(genericConfig, kubeAPIServerConfig)
+	oauthServerHandler, newPostStartHooks, err := NewOAuthServerHandler(genericConfig, oauthConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -47,7 +48,7 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers inf
 			}
 
 			// these are after the kube handler
-			handler := versionSkewFilter(apiHandler, kubeAPIServerConfig)
+			handler := versionSkewFilter(apiHandler, userAgentMatchingConfig)
 
 			// this is the normal kube handler chain
 			handler = genericapiserver.DefaultBuildHandlerChain(handler, genericConfig)
@@ -62,7 +63,7 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers inf
 			// these handlers are actually separate API servers which have their own handler chains.
 			// our server embeds these
 			handler = withConsoleRedirection(handler, webconsoleProxyHandler, accessor)
-			handler = withOAuthRedirection(kubeAPIServerConfig, handler, oauthServerHandler)
+			handler = withOAuthRedirection(oauthConfig, handler, oauthServerHandler)
 
 			return handler
 		},
@@ -70,8 +71,8 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers inf
 		nil
 }
 
-func newWebConsoleProxy(kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig) (http.Handler, error) {
-	caBundle, err := ioutil.ReadFile(kubeAPIServerConfig.ControllerConfig.ServiceServingCert.Signer.CertFile)
+func newWebConsoleProxy(kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string) (http.Handler, error) {
+	caBundle, err := ioutil.ReadFile(legacyServiceServingCertSignerCABundle)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +83,8 @@ func newWebConsoleProxy(kubeInformers informers.SharedInformerFactory, kubeAPISe
 	return proxyHandler, nil
 }
 
-func withOAuthRedirection(kubeAPIServerConfig *configapi.MasterConfig, handler, oauthServerHandler http.Handler) http.Handler {
-	if kubeAPIServerConfig.OAuthConfig == nil {
+func withOAuthRedirection(oauthConfig *configapi.OAuthConfig, handler, oauthServerHandler http.Handler) http.Handler {
+	if oauthConfig == nil {
 		return handler
 	}
 

@@ -52,17 +52,15 @@ import (
 	endpointsstorage "k8s.io/kubernetes/pkg/registry/core/endpoint/storage"
 	kversion "k8s.io/kubernetes/pkg/version"
 
+	"github.com/openshift/api/security"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
-
-	// TODO fix this install, it is required for TestPreferredGroupVersions to pass
-	"github.com/openshift/api/security"
-	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 )
 
 var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, legacy.RESTPrefix)
@@ -380,6 +378,8 @@ func (rc *incompleteKubeMasterConfig) Complete(
 		return nil, err
 	}
 
+	_, oauthMetadata, _ := oauthutil.PrepOauthMetadata(masterConfig.OAuthConfig, masterConfig.AuthConfig.OAuthMetadataFile)
+
 	// override config values
 	kubeVersion := kversion.Get()
 	genericConfig.Version = &kubeVersion
@@ -388,7 +388,7 @@ func (rc *incompleteKubeMasterConfig) Complete(
 	genericConfig.Authorization.Authorizer = kubeAuthorizer          // this is used to fulfill the kube SAR endpoints
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
-	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(masterConfig)
+	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(oauthMetadata)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
 	genericConfig.LegacyAPIGroupPrefixes = configprocessing.LegacyAPIGroupPrefixes

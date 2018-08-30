@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/informers"
 )
 
-func NewOpenshiftNonAPIConfig(generiConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig) (*OpenshiftNonAPIConfig, error) {
+func NewOpenshiftNonAPIConfig(generiConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, oauthConfig *configapi.OAuthConfig, authConfig configapi.MasterAuthConfig) (*OpenshiftNonAPIConfig, error) {
 	var err error
 	ret := &OpenshiftNonAPIConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{
@@ -18,7 +18,7 @@ func NewOpenshiftNonAPIConfig(generiConfig *genericapiserver.Config, kubeInforme
 			SharedInformerFactory: kubeInformers,
 		},
 	}
-	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(*kubeAPIServerConfig)
+	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(oauthConfig, authConfig.OAuthMetadataFile)
 	if err != nil {
 		return nil, err
 	}

@@ -15,9 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func ConfigToFlags(kubeAPIServerConfig *configapi.MasterConfig) ([]string, error) {
+func ConfigToFlags(kubeAPIServerConfig *configapi.KubeAPIServerConfig) ([]string, error) {
 	args := map[string][]string{}
-	for key, slice := range kubeAPIServerConfig.KubernetesMasterConfig.APIServerArguments {
+	for key, slice := range kubeAPIServerConfig.APIServerArguments {
 		for _, val := range slice {
 			args[key] = append(args[key], val)
 		}
@@ -100,7 +100,7 @@ func ConfigToFlags(kubeAPIServerConfig *configapi.MasterConfig) ([]string, error
 
 	// TODO, we need to set these in order to enable the right admission plugins in each of the servers
 	// TODO this is needed for a viable cluster up
-	admissionFlags, err := admissionFlags(kubeAPIServerConfig)
+	admissionFlags, err := admissionFlags(kubeAPIServerConfig.AdmissionPluginConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func ConfigToFlags(kubeAPIServerConfig *configapi.MasterConfig) ([]string, error
 	setIfUnset(args, "etcd-cafile", kubeAPIServerConfig.EtcdClientInfo.CA)
 	setIfUnset(args, "etcd-certfile", kubeAPIServerConfig.EtcdClientInfo.ClientCert.CertFile)
 	setIfUnset(args, "etcd-keyfile", kubeAPIServerConfig.EtcdClientInfo.ClientCert.KeyFile)
-	setIfUnset(args, "etcd-prefix", kubeAPIServerConfig.EtcdStorageConfig.KubernetesStoragePrefix)
+	setIfUnset(args, "etcd-prefix", kubeAPIServerConfig.StoragePrefix)
 	setIfUnset(args, "etcd-servers", kubeAPIServerConfig.EtcdClientInfo.URLs...)
 	setIfUnset(args, "insecure-port", "0")
 	setIfUnset(args, "kubelet-certificate-authority", kubeAPIServerConfig.KubeletClientInfo.CA)
@@ -143,8 +143,8 @@ func ConfigToFlags(kubeAPIServerConfig *configapi.MasterConfig) ([]string, error
 	setIfUnset(args, "requestheader-group-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.GroupHeaders...)
 	setIfUnset(args, "requestheader-username-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.UsernameHeaders...)
 	setIfUnset(args, "secure-port", portString)
-	setIfUnset(args, "service-cluster-ip-range", kubeAPIServerConfig.KubernetesMasterConfig.ServicesSubnet)
-	setIfUnset(args, "service-node-port-range", kubeAPIServerConfig.KubernetesMasterConfig.ServicesNodePortRange)
+	setIfUnset(args, "service-cluster-ip-range", kubeAPIServerConfig.ServicesSubnet)
+	setIfUnset(args, "service-node-port-range", kubeAPIServerConfig.ServicesNodePortRange)
 	setIfUnset(args, "storage-backend", "etcd3")
 	setIfUnset(args, "storage-media-type", "application/vnd.kubernetes.protobuf")
 	setIfUnset(args, "tls-cert-file", kubeAPIServerConfig.ServingInfo.ServerCert.CertFile)
@@ -172,9 +172,9 @@ func ConfigToFlags(kubeAPIServerConfig *configapi.MasterConfig) ([]string, error
 
 // currently for cluster up, audit is just broken.
 // TODO fix this
-func auditFlags(kubeAPIServerConfig *configapi.MasterConfig) map[string][]string {
+func auditFlags(kubeAPIServerConfig *configapi.KubeAPIServerConfig) map[string][]string {
 	args := map[string][]string{}
-	for key, slice := range kubeAPIServerConfig.KubernetesMasterConfig.APIServerArguments {
+	for key, slice := range kubeAPIServerConfig.APIServerArguments {
 		for _, val := range slice {
 			args[key] = append(args[key], val)
 		}
@@ -189,13 +189,14 @@ func setIfUnset(cmdLineArgs map[string][]string, key string, value ...string) {
 	}
 }
 
-func admissionFlags(kubeAPIServerConfig *configapi.MasterConfig) (map[string][]string, error) {
+func admissionFlags(admissionPluginConfig map[string]*configapi.AdmissionPluginConfig) (map[string][]string, error) {
 	args := map[string][]string{}
 
 	forceOn := []string{}
 	forceOff := []string{}
-	pluginConfig := map[string]configapi.AdmissionPluginConfig{}
-	for pluginName, config := range kubeAPIServerConfig.AdmissionConfig.DeepCopy().PluginConfig {
+	pluginConfig := map[string]*configapi.AdmissionPluginConfig{}
+	for pluginName, origConfig := range admissionPluginConfig {
+		config := origConfig.DeepCopy()
 		if len(config.Location) > 0 {
 			content, err := ioutil.ReadFile(config.Location)
 			if err != nil {
@@ -210,7 +211,7 @@ func admissionFlags(kubeAPIServerConfig *configapi.MasterConfig) (map[string][]s
 				forceOn = append(forceOn, pluginName)
 				config.Location = ""
 				config.Configuration = &runtime.Unknown{Raw: content}
-				pluginConfig[pluginName] = *config
+				pluginConfig[pluginName] = config
 				continue
 			}
 
@@ -218,7 +219,7 @@ func admissionFlags(kubeAPIServerConfig *configapi.MasterConfig) (map[string][]s
 				forceOn = append(forceOn, pluginName)
 				config.Location = ""
 				config.Configuration = &runtime.Unknown{Raw: content}
-				pluginConfig[pluginName] = *config
+				pluginConfig[pluginName] = config
 
 			} else if defaultConfig.Disable {
 				forceOff = append(forceOff, pluginName)
@@ -232,7 +233,7 @@ func admissionFlags(kubeAPIServerConfig *configapi.MasterConfig) (map[string][]s
 		// if it wasn't a DefaultAdmissionConfig object, let the plugin deal with it
 		if defaultConfig, ok := config.Configuration.(*configapi.DefaultAdmissionConfig); !ok {
 			forceOn = append(forceOn, pluginName)
-			pluginConfig[pluginName] = *config
+			pluginConfig[pluginName] = config
 
 		} else if defaultConfig.Disable {
 			forceOff = append(forceOff, pluginName)

@@ -13,8 +13,8 @@ import (
 
 // TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that
 // we can run this in a pod.  This is an indication of leaky abstraction because it spent too much time in openshift start
-func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config, kubeAPIServerConfig *configapi.MasterConfig) (*oauthserver.OAuthServerConfig, error) {
-	oauthServerConfig, err := oauthserver.NewOAuthServerConfig(*kubeAPIServerConfig.OAuthConfig, genericConfig.LoopbackClientConfig)
+func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config, oauthConfig *configapi.OAuthConfig) (*oauthserver.OAuthServerConfig, error) {
+	oauthServerConfig, err := oauthserver.NewOAuthServerConfig(*oauthConfig, genericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -37,17 +37,17 @@ func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config
 	oauthServerConfig.ExtraOAuthConfig.KubeClient = kubeClient
 
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
-	oauthServerConfig.ExtraOAuthConfig.AssetPublicAddresses = []string{kubeAPIServerConfig.OAuthConfig.AssetPublicURL}
+	oauthServerConfig.ExtraOAuthConfig.AssetPublicAddresses = []string{oauthConfig.AssetPublicURL}
 
 	return oauthServerConfig, nil
 }
 
-func NewOAuthServerHandler(genericConfig *genericapiserver.Config, kubeAPIServerConfig *configapi.MasterConfig) (http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
-	if kubeAPIServerConfig.OAuthConfig == nil {
+func NewOAuthServerHandler(genericConfig *genericapiserver.Config, oauthConfig *configapi.OAuthConfig) (http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+	if oauthConfig == nil {
 		return http.NotFoundHandler(), nil, nil
 	}
 
-	config, err := NewOAuthServerConfigFromMasterConfig(genericConfig, kubeAPIServerConfig)
+	config, err := NewOAuthServerConfigFromMasterConfig(genericConfig, oauthConfig)
 	if err != nil {
 		return nil, nil, err
 	}

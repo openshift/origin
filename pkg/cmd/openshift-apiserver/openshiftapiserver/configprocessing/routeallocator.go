@@ -6,10 +6,10 @@ import (
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 )
 
-func RouteAllocator(openshiftAPIServerConfig configapi.MasterConfig) (*routeallocationcontroller.RouteAllocationController, error) {
+func RouteAllocator(routingConfig configapi.RoutingConfig) (*routeallocationcontroller.RouteAllocationController, error) {
 	factory := routeallocationcontroller.RouteAllocationControllerFactory{}
 
-	plugin, err := routeplugin.NewSimpleAllocationPlugin(openshiftAPIServerConfig.RoutingConfig.Subdomain)
+	plugin, err := routeplugin.NewSimpleAllocationPlugin(routingConfig.Subdomain)
 	if err != nil {
 		return nil, err
 	}

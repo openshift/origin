@@ -33,7 +33,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	// most of the config actually remains the same.  We only need to mess with a couple items
 	genericConfig := kubeAPIServerConfig
 	var err error
-	genericConfig.RESTOptionsGetter, err = openshiftapiserver.NewRESTOptionsGetter(c.Options)
+	genericConfig.RESTOptionsGetter, err = openshiftapiserver.NewRESTOptionsGetter(c.Options.KubernetesMasterConfig.APIServerArguments, c.Options.EtcdClientInfo, c.Options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		}
 	}
 
-	routeAllocator, err := configprocessing.RouteAllocator(c.Options)
+	routeAllocator, err := configprocessing.RouteAllocator(c.Options.RoutingConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationT
 }
 
 func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
-	openshiftNonAPIConfig, err := openshiftkubeapiserver.NewOpenshiftNonAPIConfig(&kubeAPIServerConfig, c.ClientGoKubeInformers, &c.Options)
+	openshiftNonAPIConfig, err := openshiftkubeapiserver.NewOpenshiftNonAPIConfig(&kubeAPIServerConfig, c.ClientGoKubeInformers, c.Options.OAuthConfig, c.Options.AuthConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,9 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(
+		c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers,
+		c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile, c.Options.OAuthConfig, c.Options.PolicyConfig.UserAgentMatchingConfig)
 	if err != nil {
 		return err
 	}

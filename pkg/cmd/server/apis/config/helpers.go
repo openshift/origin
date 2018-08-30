@@ -313,11 +313,6 @@ func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	return transport
 }
 
-// GetAPIClientCertCAPool returns the cert pool used to validate client certificates to the API server
-func GetAPIClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
-	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
-}
-
 // GetNamedCertificateMap returns a map of strings to *tls.Certificate, suitable for use in tls.Config#NamedCertificates
 // Returns an error if any of the certs cannot be loaded, or do not match the configured name
 // Returns nil if len(namedCertificates) == 0

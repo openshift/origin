@@ -14,7 +14,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 )
 
@@ -88,10 +90,18 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer() error {
 	if err != nil {
 		return err
 	}
-
 	if err := ConvertNetworkConfigToAdmissionConfig(masterConfig); err != nil {
 		return err
 	}
+	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
+	if len(validationResults.Warnings) != 0 {
+		for _, warning := range validationResults.Warnings {
+			glog.Warningf("%v", warning)
+		}
+	}
+	if len(validationResults.Errors) != 0 {
+		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
+	}
 
-	return RunOpenShiftKubeAPIServerServer(masterConfig)
+	return RunOpenShiftKubeAPIServerServer(ConvertMasterConfigToKubeAPIServerConfig(masterConfig))
 }

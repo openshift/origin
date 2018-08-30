@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
@@ -17,12 +16,11 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 )
 
-func RunOpenShiftKubeAPIServerServer(masterConfig *configapi.MasterConfig) error {
+func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *configapi.KubeAPIServerConfig) error {
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{
 		AllowPrivileged: true,
@@ -32,16 +30,6 @@ func RunOpenShiftKubeAPIServerServer(masterConfig *configapi.MasterConfig) error
 			HostIPCSources:     []string{kubelettypes.ApiserverSource, kubelettypes.FileSource},
 		},
 	})
-
-	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
-	if len(validationResults.Warnings) != 0 {
-		for _, warning := range validationResults.Warnings {
-			glog.Warningf("%v", warning)
-		}
-	}
-	if len(validationResults.Errors) != 0 {
-		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
-	}
 
 	bootstrappolicy.ClusterRoles = bootstrappolicy.OpenshiftClusterRoles
 	bootstrappolicy.ClusterRoleBindings = bootstrappolicy.OpenshiftClusterRoleBindings
@@ -59,12 +47,12 @@ func RunOpenShiftKubeAPIServerServer(masterConfig *configapi.MasterConfig) error
 		return kubeOff
 	}
 
-	configPatchFn, serverPatchContext := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(genericapiserver.NewEmptyDelegate(), masterConfig)
+	configPatchFn, serverPatchContext := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(genericapiserver.NewEmptyDelegate(), kubeAPIServerConfig)
 	app.OpenShiftKubeAPIServerConfigPatch = configPatchFn
 	app.OpenShiftKubeAPIServerServerPatch = serverPatchContext.PatchServer
 
 	cmd := app.NewAPIServerCommand(utilwait.NeverStop)
-	args, err := openshiftkubeapiserver.ConfigToFlags(masterConfig)
+	args, err := openshiftkubeapiserver.ConfigToFlags(kubeAPIServerConfig)
 	if err != nil {
 		return err
 	}
