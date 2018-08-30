@@ -332,6 +332,8 @@ var (
 			`SELinux relabeling`, // https://github.com/openshift/origin/issues/7287 still broken
 			`Volumes CephFS`,     // permission denied, selinux?
 
+			`should support inline execution and attach`, // https://bugzilla.redhat.com/show_bug.cgi?id=1624041
+
 			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
 		},
 		// tests too slow to be part of conformance
