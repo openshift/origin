@@ -405,7 +405,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(dcName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				latestVersion := dc.Status.LatestVersion
-				err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+				err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
 					dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(dcName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					latestVersion = dc.Status.LatestVersion
