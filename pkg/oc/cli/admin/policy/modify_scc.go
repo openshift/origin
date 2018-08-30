@@ -3,19 +3,18 @@ package policy
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	securityclient "github.com/openshift/client-go/security/clientset/versioned"
-	securitytypedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	securityv1typedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 )
 
 const (
@@ -39,8 +38,12 @@ var (
 )
 
 type SCCModificationOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	ToPrinter func(string) (printers.ResourcePrinter, error)
+
 	SCCName      string
-	SCCInterface securitytypedclient.SecurityContextConstraintsInterface
+	SCCInterface securityv1typedclient.SecurityContextConstraintsInterface
 	SANames      []string
 
 	DefaultSubjectNamespace string
@@ -50,14 +53,13 @@ type SCCModificationOptions struct {
 	DryRun  bool
 	Output  string
 
-	PrintObj func(runtime.Object) error
-
 	genericclioptions.IOStreams
 }
 
 func NewSCCModificationOptions(streams genericclioptions.IOStreams) *SCCModificationOptions {
 	return &SCCModificationOptions{
-		IOStreams: streams,
+		PrintFlags: genericclioptions.NewPrintFlags("added to").WithTypeSetter(scheme.Scheme),
+		IOStreams:  streams,
 	}
 }
 
@@ -75,7 +77,7 @@ func NewCmdAddSCCToGroup(name, fullName string, f kcmdutil.Factory, streams gene
 	}
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -96,7 +98,7 @@ func NewCmdAddSCCToUser(name, fullName string, f kcmdutil.Factory, streams gener
 	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -113,7 +115,7 @@ func NewCmdRemoveSCCFromGroup(name, fullName string, f kcmdutil.Factory, streams
 	}
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -133,7 +135,7 @@ func NewCmdRemoveSCCFromUser(name, fullName string, f kcmdutil.Factory, streams 
 	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -152,19 +154,24 @@ func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Co
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
-	o.PrintObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, o.Out)
+	o.ToPrinter = func(message string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = message
+		if o.DryRun {
+			o.PrintFlags.Complete("%s (dry run)")
+		}
+
+		return o.PrintFlags.ToPrinter()
 	}
 
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	securityClient, err := securityclient.NewForConfig(clientConfig)
+	securityClient, err := securityv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = securityClient.Security().SecurityContextConstraints()
+	o.SCCInterface = securityClient.SecurityContextConstraints()
 
 	o.DefaultSubjectNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
@@ -184,26 +191,30 @@ func (o *SCCModificationOptions) CompleteGroups(f kcmdutil.Factory, cmd *cobra.C
 	}
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	o.PrintObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, o.Out)
+	o.ToPrinter = func(message string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = message
+		if o.DryRun {
+			o.PrintFlags.Complete("%s (dry run)")
+		}
+
+		return o.PrintFlags.ToPrinter()
 	}
 
 	o.IsGroup = true
 	o.SCCName = args[0]
 	o.Subjects = buildSubjects([]string{}, args[1:])
 
-	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
-
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	securityClient, err := securityclient.NewForConfig(clientConfig)
+	securityClient, err := securityv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = securityClient.Security().SecurityContextConstraints()
+	o.SCCInterface = securityClient.SecurityContextConstraints()
 
 	o.DefaultSubjectNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
@@ -226,13 +237,15 @@ func (o *SCCModificationOptions) AddSCC() error {
 	scc.Users = append(scc.Users, usersToAdd...)
 	scc.Groups = append(scc.Groups, groupsToAdd...)
 
-	if len(o.Output) > 0 && o.PrintObj != nil {
-		return o.PrintObj(scc)
+	message := successMessage(true, o.IsGroup, users, groups)
+
+	p, err := o.ToPrinter(message)
+	if err != nil {
+		return err
 	}
 
 	if o.DryRun {
-		printSuccess(o.SCCName, true, o.IsGroup, users, groups, o.DryRun, o.Out)
-		return nil
+		return p.PrintObj(scc, o.Out)
 	}
 
 	_, err = o.SCCInterface.Update(scc)
@@ -240,8 +253,7 @@ func (o *SCCModificationOptions) AddSCC() error {
 		return err
 	}
 
-	printSuccess(o.SCCName, true, o.IsGroup, users, groups, o.DryRun, o.Out)
-	return nil
+	return p.PrintObj(scc, o.Out)
 }
 
 func (o *SCCModificationOptions) RemoveSCC() error {
@@ -257,13 +269,15 @@ func (o *SCCModificationOptions) RemoveSCC() error {
 	scc.Users = remainingUsers
 	scc.Groups = remainingGroups
 
-	if len(o.Output) > 0 && o.PrintObj != nil {
-		return o.PrintObj(scc)
+	message := successMessage(false, o.IsGroup, users, groups)
+
+	p, err := o.ToPrinter(message)
+	if err != nil {
+		return err
 	}
 
 	if o.DryRun {
-		printSuccess(o.SCCName, false, o.IsGroup, users, groups, o.DryRun, o.Out)
-		return nil
+		return p.PrintObj(scc, o.Out)
 	}
 
 	_, err = o.SCCInterface.Update(scc)
@@ -271,8 +285,7 @@ func (o *SCCModificationOptions) RemoveSCC() error {
 		return err
 	}
 
-	printSuccess(o.SCCName, false, o.IsGroup, users, groups, o.DryRun, o.Out)
-	return nil
+	return p.PrintObj(scc, o.Out)
 }
 
 func diff(lhsSlice, rhsSlice []string) (lhsOnly []string, rhsOnly []string) {
@@ -297,11 +310,10 @@ func singleDiff(lhsSlice, rhsSlice []string) (lhsOnly []string) {
 	return lhsOnly
 }
 
-// prints affirmative output
-func printSuccess(scc string, didAdd bool, isGroup bool, usersToAdd, groupsToAdd []string, dryRun bool, out io.Writer) {
+// generate affirmative output
+func successMessage(didAdd bool, isGroup bool, usersToAdd, groupsToAdd []string) string {
 	verb := "removed from"
 	allTargets := fmt.Sprintf("%q", usersToAdd)
-	dryRunText := ""
 
 	if isGroup {
 		allTargets = fmt.Sprintf("%q", groupsToAdd)
@@ -313,10 +325,5 @@ func printSuccess(scc string, didAdd bool, isGroup bool, usersToAdd, groupsToAdd
 		verb += " groups"
 	}
 
-	msg := "scc %q %s: %s%s"
-	if dryRun {
-		dryRunText = " (dry run)"
-	}
-
-	fmt.Fprintf(out, msg+"\n", scc, verb, allTargets, dryRunText)
+	return fmt.Sprintf("%s: %s", verb, allTargets)
 }

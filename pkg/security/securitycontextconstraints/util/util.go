@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
+	securityv1 "github.com/openshift/api/security/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
@@ -114,7 +115,16 @@ func GetVolumeFSType(v api.Volume) (securityapi.FSType, error) {
 }
 
 // fsTypeToStringSet converts an FSType slice to a string set.
-func FSTypeToStringSet(fsTypes []securityapi.FSType) sets.String {
+func FSTypeToStringSetInternal(fsTypes []securityapi.FSType) sets.String {
+	set := sets.NewString()
+	for _, v := range fsTypes {
+		set.Insert(string(v))
+	}
+	return set
+}
+
+// fsTypeToStringSet converts an FSType slice to a string set.
+func FSTypeToStringSet(fsTypes []securityv1.FSType) sets.String {
 	set := sets.NewString()
 	for _, v := range fsTypes {
 		set.Insert(string(v))

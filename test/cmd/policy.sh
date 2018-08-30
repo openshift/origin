@@ -156,16 +156,16 @@ os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user -o y
 os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user --dry-run' "Removing admin from users \[namespaced\-user\] in project ${project}"
 
 os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user -o yaml' '\- namespaced\-user'
-os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user --dry-run' 'scc "anyuid" added to: \["namespaced\-user"\] \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid added to: \["namespaced\-user"\] \(dry run\)'
 
 os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup -o yaml' '\- testgroup'
-os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup --dry-run' 'scc "anyuid" added to groups: \["testgroup"\] \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid added to groups: \["testgroup"\] \(dry run\)'
 
 os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-user anyuid namespaced-user -o yaml' '\- namespaced\-user'
-os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-user anyuid namespaced-user --dry-run' 'scc "anyuid" removed from: \["namespaced\-user"\] \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-user anyuid namespaced-user --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid removed from: \["namespaced\-user"\] \(dry run\)'
 
 os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-group anyuid testgroup -o yaml' '\- testgroup'
-os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-group anyuid testgroup --dry-run' 'scc "anyuid" removed from groups: \["testgroup"\] \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-group anyuid testgroup --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid removed from groups: \["testgroup"\] \(dry run\)'
 
 # ensure system:authenticated users can not create custom builds by default, but can if explicitly granted access
 os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom' 'system:authenticated'

@@ -9,25 +9,30 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
-	authorization "github.com/openshift/api/authorization"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/print"
 )
 
 // ReconcileClusterRolesRecommendedName is the recommended command name
 const ReconcileClusterRolesRecommendedName = "reconcile-cluster-roles"
 
 type ReconcileClusterRolesOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	// RolesToReconcile says which roles should be reconciled.  An empty or nil slice means
 	// reconcile all of them.
 	RolesToReconcile []string
@@ -71,6 +76,8 @@ var (
 
 func NewReconcileClusterRolesOptions(streams genericclioptions.IOStreams) *ReconcileClusterRolesOptions {
 	return &ReconcileClusterRolesOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme).WithDefaultOutput("yaml"),
+
 		Union:     true,
 		IOStreams: streams,
 	}
@@ -94,10 +101,8 @@ func NewCmdReconcileClusterRoles(name, fullName string, f kcmdutil.Factory, stre
 
 	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "If true, specify that cluster roles should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
 	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves modified cluster roles.")
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().Lookup("output").DefValue = "yaml"
-	cmd.Flags().Lookup("output").Value.Set("yaml")
 
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -114,16 +119,21 @@ func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f kcmdutil.F
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
 	mapper, err := f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
 	for _, resourceString := range args {
-		resource, name, err := osutil.ResolveResource(authorization.Resource("clusterroles"), resourceString, mapper)
+		resource, name, err := osutil.ResolveResource(authorizationv1.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {
 			return err
 		}
-		if authorization.Resource("clusterroles") != resource {
+		if authorizationv1.Resource("clusterroles") != resource {
 			return fmt.Errorf("%v is not a valid resource type for this command", resource)
 		}
 		if len(name) == 0 {
@@ -162,12 +172,12 @@ func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Comma
 	}
 
 	if (len(o.Output) != 0) && !o.Confirmed {
-		list := &kapi.List{}
-		for _, item := range changedClusterRoles {
-			list.Items = append(list.Items, item)
+		objs := []runtime.Object{}
+		for _, obj := range changedClusterRoles {
+			objs = append(objs, obj)
 		}
-		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
-		if err := fn(list); err != nil {
+
+		if err := printObjectList(objs, o.Printer, o.Output, o.Out); err != nil {
 			return err
 		}
 	}

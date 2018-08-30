@@ -8,16 +8,16 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/api/security"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/util"
 	policycmd "github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 // SCC is a Diagnostic to check that the default securitycontextconstraints are present and contain the expected permissions.
 type SCC struct {
-	SCCClient securitytypedclient.SecurityContextConstraintsInterface
+	SCCClient securityv1client.SecurityContextConstraintsInterface
 	SARClient authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 

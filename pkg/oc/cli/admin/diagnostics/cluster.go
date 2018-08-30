@@ -13,6 +13,7 @@ import (
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
@@ -94,6 +95,10 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	if err != nil {
 		return nil, err
 	}
+	securityClientV1, err := securityv1client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
 	networkClient, err := networkclient.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -134,7 +139,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		case clustdiags.ClusterRoleBindingsName:
 			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: kubeClient.RbacV1().ClusterRoleBindings(), SARClient: kclusterClient.Authorization()}
 		case clustdiags.SccName:
-			d = &clustdiags.SCC{SCCClient: securityClient.Security().SecurityContextConstraints(), SARClient: kclusterClient.Authorization()}
+			d = &clustdiags.SCC{SCCClient: securityClientV1.SecurityContextConstraints(), SARClient: kclusterClient.Authorization()}
 		case clustdiags.MetricsApiProxyName:
 			d = &clustdiags.MetricsApiProxy{KubeClient: kclusterClient}
 		case clustdiags.ServiceExternalIPsName:

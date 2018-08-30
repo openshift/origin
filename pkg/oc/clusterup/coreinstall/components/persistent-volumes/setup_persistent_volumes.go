@@ -19,6 +19,7 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
 	securityclient "github.com/openshift/client-go/security/clientset/versioned"
 	securitytypedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
@@ -232,6 +233,9 @@ func addClusterRole(rbacClient rbacv1client.RbacV1Interface, role, user string) 
 
 func addSCCToServiceAccount(securityClient securitytypedclient.SecurityContextConstraintsGetter, scc, sa, namespace string, out io.Writer) error {
 	modifySCC := policy.SCCModificationOptions{
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
+
 		SCCName:      scc,
 		SCCInterface: securityClient.SecurityContextConstraints(),
 		Subjects: []corev1.ObjectReference{
