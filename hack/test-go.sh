@@ -131,7 +131,7 @@ if [[ -n "${junit_report}" ]]; then
     os::util::ensure::built_binary_exists 'gotest2junit'
     report_file="$( mktemp "${ARTIFACT_DIR}/unit_report_XXXXX" ).xml"
 
-    go test -json ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}" | gotest2junit > "${report_file}"
+    go test -tags="${OS_GOFLAGS_TAGS-}" -json ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}" | gotest2junit > "${report_file}"
     test_return_code="${PIPESTATUS[0]}"
 
     gzip "${test_error_file}" -c > "${ARTIFACT_DIR}/unit-error.log.gz"
@@ -163,7 +163,7 @@ elif [[ -n "${coverage_output_dir}" ]]; then
         mkdir -p "${coverage_output_dir}/${test_package}"
         local_gotest_flags="${gotest_flags} -coverprofile=${coverage_output_dir}/${test_package}/profile.out"
 
-        go test ${local_gotest_flags} ${test_package}
+        go test -tags="${OS_GOFLAGS_TAGS-}" ${local_gotest_flags} ${test_package}
     done
 
     # assemble all profiles and generate a coverage report
@@ -183,5 +183,5 @@ elif [[ -n "${dlv_debug}" ]]; then
     dlv test ${test_packages}
 else
     # we need to generate neither jUnit XML nor coverage reports
-    go test ${gotest_flags} ${test_packages}
+    go test -tags="${OS_GOFLAGS_TAGS-}" ${gotest_flags} ${test_packages}
 fi
