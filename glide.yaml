@@ -69,7 +69,8 @@ import:
   repo:    git@github.com:openshift/kubernetes
   version: release-1.8.5
 - package: github.com/openshift/api
-  version: release-3.8
+  repo:    https://github.com/JacobTanenbaum/api.git
+  version: 3e03ff51f7f1e00e24cb9f73f15ef5f9c55f8c31
 - package: github.com/openshift/client-go
   version: release-3.8
 - package: github.com/opencontainers/runc
