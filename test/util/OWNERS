@@ -1,6 +1,5 @@
 reviewers:
   - smarterclayton
-  - liggitt
   - deads2k
   - mfojtik
   - miminar
@@ -8,7 +7,6 @@ reviewers:
   - sosiouxme
 approvers:
   - smarterclayton
-  - liggitt
   - deads2k
   - mfojtik
   - soltysh
