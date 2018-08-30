@@ -1106,13 +1106,7 @@ func pruneISTagHistory(
 	imageStream *imagev1.ImageStream,
 	tag string,
 ) (tagUpdated, tagDeleted bool) {
-	var history imagev1.NamedTagEventList
-	for _, t := range imageStream.Status.Tags {
-		if t.Tag == tag {
-			history = t
-			break
-		}
-	}
+	history, _ := imageutil.StatusHasTag(imageStream, tag)
 	newHistory := imagev1.NamedTagEventList{Tag: tag}
 
 	for _, tagEvent := range history.Items {

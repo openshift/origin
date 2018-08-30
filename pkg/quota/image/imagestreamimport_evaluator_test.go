@@ -3,13 +3,14 @@ package image
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 )
 
@@ -18,23 +19,23 @@ const maxTestImportTagsPerRepository = 5
 func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 	for _, tc := range []struct {
 		name            string
-		iss             []imageapi.ImageStream
-		isiSpec         imageapi.ImageStreamImportSpec
+		iss             []imagev1.ImageStream
+		isiSpec         imagev1.ImageStreamImportSpec
 		expectedISCount int64
 	}{
 		{
 			name: "nothing to import",
-			isiSpec: imageapi.ImageStreamImportSpec{
+			isiSpec: imagev1.ImageStreamImportSpec{
 				Import: true,
 			},
 		},
 
 		{
 			name: "dry run",
-			isiSpec: imageapi.ImageStreamImportSpec{
+			isiSpec: imagev1.ImageStreamImportSpec{
 				Import: false,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{
+				Repository: &imagev1.RepositoryImportSpec{
+					From: corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "docker.io/library/fedora",
 					},
@@ -44,10 +45,10 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 
 		{
 			name: "wrong from kind",
-			isiSpec: imageapi.ImageStreamImportSpec{
+			isiSpec: imagev1.ImageStreamImportSpec{
 				Import: true,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{
+				Repository: &imagev1.RepositoryImportSpec{
+					From: corev1.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "test",
 						Name:      imageapi.JoinImageStreamImage("someis", imagetest.BaseImageWith1LayerDigest),
@@ -59,10 +60,10 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 
 		{
 			name: "import from repository to empty project",
-			isiSpec: imageapi.ImageStreamImportSpec{
+			isiSpec: imagev1.ImageStreamImportSpec{
 				Import: true,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{
+				Repository: &imagev1.RepositoryImportSpec{
+					From: corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "docker.io/fedora",
 					},
@@ -73,7 +74,7 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 
 		{
 			name: "import from repository to existing image stream",
-			iss: []imageapi.ImageStream{
+			iss: []imagev1.ImageStream{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
@@ -87,10 +88,10 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			isiSpec: imageapi.ImageStreamImportSpec{
+			isiSpec: imagev1.ImageStreamImportSpec{
 				Import: true,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{
+				Repository: &imagev1.RepositoryImportSpec{
+					From: corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "docker.io/fedora",
 					},
@@ -102,7 +103,7 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 
 		{
 			name: "import from repository to non-empty project",
-			iss: []imageapi.ImageStream{
+			iss: []imagev1.ImageStream{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
@@ -110,10 +111,10 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			isiSpec: imageapi.ImageStreamImportSpec{
+			isiSpec: imagev1.ImageStreamImportSpec{
 				Import: true,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{
+				Repository: &imagev1.RepositoryImportSpec{
+					From: corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "docker.io/library/fedora",
 					},
@@ -124,11 +125,11 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 
 		{
 			name: "import images",
-			isiSpec: imageapi.ImageStreamImportSpec{
+			isiSpec: imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "docker.io/library/fedora:f23",
 						},
@@ -140,18 +141,18 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 
 		{
 			name: "import image and repository",
-			isiSpec: imageapi.ImageStreamImportSpec{
+			isiSpec: imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "docker.io/centos:latest",
 						},
 					},
 				},
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{
+				Repository: &imagev1.RepositoryImportSpec{
+					From: corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "docker.io/library/fedora",
 					},
@@ -160,14 +161,14 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 			expectedISCount: 1,
 		},
 	} {
-		imageInformers := imageinformer.NewSharedInformerFactory(imageinternal.NewSimpleClientset(), 0)
-		isInformer := imageInformers.Image().InternalVersion().ImageStreams()
+		imageInformers := imagev1informer.NewSharedInformerFactory(fakeimagev1client.NewSimpleClientset(), 0)
+		isInformer := imageInformers.Image().V1().ImageStreams()
 		for _, is := range tc.iss {
 			isInformer.Informer().GetIndexer().Add(&is)
 		}
 		evaluator := NewImageStreamImportEvaluator(isInformer.Lister())
 
-		isi := &imageapi.ImageStreamImport{
+		isi := &imagev1.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "test",
 				Name:      "is",

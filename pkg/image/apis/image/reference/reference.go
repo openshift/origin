@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
-	"github.com/openshift/origin/pkg/image/apis/image/internal/reference"
+	"github.com/openshift/origin/pkg/image/internal/digest"
+	"github.com/openshift/origin/pkg/image/internal/reference"
 )
 
 // DockerImageReference points to a Docker image.

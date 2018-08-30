@@ -7,8 +7,8 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
 
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 )
 
 // ImageStreamControllerOptions represents a configuration for the scheduled image stream
@@ -61,11 +61,11 @@ func (opts ScheduledImageStreamControllerOptions) GetRateLimiter() flowcontrol.R
 }
 
 // NewImageStreamController returns a new image stream import controller.
-func NewImageStreamController(client imageclient.Interface, informer imageinformer.ImageStreamInformer) *ImageStreamController {
+func NewImageStreamController(client imagev1client.Interface, informer imagev1informer.ImageStreamInformer) *ImageStreamController {
 	controller := &ImageStreamController{
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ImageStreamController"),
 
-		client:       client.Image(),
+		client:       client.ImageV1(),
 		lister:       informer.Lister(),
 		listerSynced: informer.Informer().HasSynced,
 
@@ -83,13 +83,13 @@ func NewImageStreamController(client imageclient.Interface, informer imageinform
 
 // NewScheduledImageStreamController returns a new scheduled image stream import
 // controller.
-func NewScheduledImageStreamController(client imageclient.Interface, informer imageinformer.ImageStreamInformer, opts ScheduledImageStreamControllerOptions) *ScheduledImageStreamController {
+func NewScheduledImageStreamController(client imagev1client.Interface, informer imagev1informer.ImageStreamInformer, opts ScheduledImageStreamControllerOptions) *ScheduledImageStreamController {
 	bucketLimiter := flowcontrol.NewTokenBucketRateLimiter(opts.BucketsToQPS(), 1)
 
 	controller := &ScheduledImageStreamController{
 		enabled:       opts.Enabled,
 		rateLimiter:   opts.GetRateLimiter(),
-		client:        client.Image(),
+		client:        client.ImageV1().RESTClient(),
 		lister:        informer.Lister(),
 		listerSynced:  informer.Informer().HasSynced,
 		importCounter: NewImportMetricCounter(),

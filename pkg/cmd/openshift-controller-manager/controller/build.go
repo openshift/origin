@@ -22,7 +22,7 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 
 	buildInformer := ctx.BuildInformers.Build().V1().Builds()
 	buildConfigInformer := ctx.BuildInformers.Build().V1().BuildConfigs()
-	imageStreamInformer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
+	imageStreamInformer := ctx.ImageInformers.Image().V1().ImageStreams()
 	podInformer := ctx.KubernetesInformers.Core().V1().Pods()
 	secretInformer := ctx.KubernetesInformers.Core().V1().Secrets()
 

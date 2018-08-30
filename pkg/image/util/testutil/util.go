@@ -11,6 +11,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -32,15 +33,15 @@ func MakeDockerImageReference(ns, isName, imageID string) string {
 
 // GetFakeImageStreamListHandler creates a test handler that lists given image streams matching requested
 // namespace. Additionally, a shared image stream will be listed if the requested namespace is "shared".
-func GetFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) clientgotesting.ReactionFunc {
-	sharedISs := []imageapi.ImageStream{*GetSharedImageStream("shared", "is")}
+func GetFakeImageStreamListHandler(t *testing.T, iss ...imagev1.ImageStream) clientgotesting.ReactionFunc {
+	sharedISs := []imagev1.ImageStream{*GetSharedImageStream("shared", "is")}
 	allISs := append(sharedISs, iss...)
 
 	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
 		case clientgotesting.ListAction:
-			res := &imageapi.ImageStreamList{
-				Items: []imageapi.ImageStream{},
+			res := &imagev1.ImageStreamList{
+				Items: []imagev1.ImageStream{},
 			}
 			for _, is := range allISs {
 				if is.Namespace == a.GetNamespace() {
@@ -59,8 +60,8 @@ func GetFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) cl
 // GetFakeImageStreamGetHandler creates a test handler to be used as a reactor with  core.Fake client
 // that handles Get request on image stream resource. Matching is from given image stream list will be
 // returned if found. Additionally, a shared image stream may be requested.
-func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) clientgotesting.ReactionFunc {
-	sharedISs := []imageapi.ImageStream{*GetSharedImageStream("shared", "is")}
+func GetFakeImageStreamGetHandler(t *testing.T, iss ...imagev1.ImageStream) clientgotesting.ReactionFunc {
+	sharedISs := []imagev1.ImageStream{*GetSharedImageStream("shared", "is")}
 	allISs := append(sharedISs, iss...)
 
 	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -83,8 +84,8 @@ func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) cli
 
 // GetSharedImageStream returns an image stream having all the testing images tagged in its status under
 // latest tag.
-func GetSharedImageStream(namespace, name string) *imageapi.ImageStream {
-	tevList := imageapi.TagEventList{}
+func GetSharedImageStream(namespace, name string) *imagev1.ImageStream {
+	tevList := []imagev1.TagEvent{}
 	for _, imgName := range []string{
 		BaseImageWith1LayerDigest,
 		BaseImageWith2LayersDigest,
@@ -92,21 +93,24 @@ func GetSharedImageStream(namespace, name string) *imageapi.ImageStream {
 		ChildImageWith3LayersDigest,
 		MiscImageDigest,
 	} {
-		tevList.Items = append(tevList.Items,
-			imageapi.TagEvent{
+		tevList = append(tevList,
+			imagev1.TagEvent{
 				DockerImageReference: MakeDockerImageReference("test", "is", imgName),
 				Image:                imgName,
 			})
 	}
 
-	sharedIS := imageapi.ImageStream{
+	sharedIS := imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				"latest": tevList,
+		Status: imagev1.ImageStreamStatus{
+			Tags: []imagev1.NamedTagEventList{
+				{
+					Tag:   "latest",
+					Items: tevList,
+				},
 			},
 		},
 	}

@@ -8,8 +8,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 const reasonUnknown = "Unknown"
@@ -34,7 +36,7 @@ func NewImportMetricCounter() *ImportMetricCounter {
 // increments the counters. The given error will be used to construct reason of the error_count metric unless
 // any reason is found in the image stream import object. It's safe to call this method with any of the
 // parameters nil.
-func (c *ImportMetricCounter) Increment(isi *imageapi.ImageStreamImport, err error) {
+func (c *ImportMetricCounter) Increment(isi *imagev1.ImageStreamImport, err error) {
 	if isi == nil {
 		if err == nil {
 			return
@@ -67,7 +69,7 @@ func (c *ImportMetricCounter) Increment(isi *imageapi.ImageStreamImport, err err
 
 // countRepositoryImport increments either success or error counter if the isimport contains repository
 // request.
-func (c *ImportMetricCounter) countRepositoryImport(isi *imageapi.ImageStreamImport, err error) {
+func (c *ImportMetricCounter) countRepositoryImport(isi *imagev1.ImageStreamImport, err error) {
 	errInfo := getIsImportRepositoryInfo(isi)
 	if errInfo == nil {
 		return
@@ -103,7 +105,7 @@ func (c *ImportMetricCounter) Collect() (metrics.ImportSuccessCounts, metrics.Im
 
 // getIsImportRepositoryInfo returns an import error info if the given isi contains repository request.
 // If the request succeeded, its Reason will be empty.
-func getIsImportRepositoryInfo(isi *imageapi.ImageStreamImport) *metrics.ImportErrorInfo {
+func getIsImportRepositoryInfo(isi *imagev1.ImageStreamImport) *metrics.ImportErrorInfo {
 	if isi.Status.Repository == nil || isi.Spec.Repository == nil {
 		return nil
 	}
@@ -126,7 +128,7 @@ func getIsImportRepositoryInfo(isi *imageapi.ImageStreamImport) *metrics.ImportE
 // enumerateIsImportStatuses iterates over images of the given image stream import. For any valid recorded
 // import the cb callback will be colled with the obtains information.
 // If the image import is successful, the object passed to the cb will contain empty Reason.
-func enumerateIsImportStatuses(isi *imageapi.ImageStreamImport, cb func(*metrics.ImportErrorInfo)) {
+func enumerateIsImportStatuses(isi *imagev1.ImageStreamImport, cb func(*metrics.ImportErrorInfo)) {
 	if len(isi.Status.Images) == 0 {
 		return
 	}
@@ -141,7 +143,8 @@ func enumerateIsImportStatuses(isi *imageapi.ImageStreamImport, cb func(*metrics
 			if imgRef == nil {
 				continue
 			}
-			registry = imgRef.DockerClientDefaults().Registry
+			imageutil.SetDockerClientDefaults(imgRef)
+			registry = imgRef.Registry
 		}
 
 		info := mkImportInfo(registry, &status.Status)
@@ -153,11 +156,11 @@ func enumerateIsImportStatuses(isi *imageapi.ImageStreamImport, cb func(*metrics
 }
 
 func getImageDockerReferenceForImage(
-	isi *imageapi.ImageStreamImport,
+	isi *imagev1.ImageStreamImport,
 	index int,
-) (*imageapi.DockerImageReference, error) {
+) (*imagev1.DockerImageReference, error) {
 	var (
-		imgRef imageapi.DockerImageReference
+		imgRef imagev1.DockerImageReference
 		err    error
 	)
 
@@ -166,7 +169,7 @@ func getImageDockerReferenceForImage(
 	if index >= 0 && index < len(isi.Spec.Images) {
 		imgSpec := &isi.Spec.Images[index]
 		if imgSpec.From.Kind == "DockerImage" {
-			imgRef, err = imageapi.ParseDockerImageReference(imgSpec.From.Name)
+			imgRef, err = imageutil.ParseDockerImageReference(imgSpec.From.Name)
 			if err == nil {
 				return &imgRef, nil
 			}
@@ -185,7 +188,7 @@ func getImageDockerReferenceForImage(
 		return nil, err
 	}
 
-	imgRef, err = imageapi.ParseDockerImageReference(img.DockerImageReference)
+	imgRef, err = imageutil.ParseDockerImageReference(img.DockerImageReference)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"failed to parse isi.status.images[%d].image.dockerImageReference %q: %v",

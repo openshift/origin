@@ -7,19 +7,22 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 var ErrNotImportable = errors.New("requested image cannot be imported")
@@ -27,12 +30,12 @@ var ErrNotImportable = errors.New("requested image cannot be imported")
 // Notifier provides information about when the controller makes a decision
 type Notifier interface {
 	// Importing is invoked when the controller is going to import an image stream
-	Importing(stream *imageapi.ImageStream)
+	Importing(stream *imagev1.ImageStream)
 }
 
 type ImageStreamController struct {
 	// image stream client
-	client imageclient.ImageInterface
+	client imagev1typedclient.ImageV1Interface
 
 	// queue contains replication controllers that need to be synced.
 	queue workqueue.RateLimitingInterface
@@ -40,7 +43,7 @@ type ImageStreamController struct {
 	syncHandler func(isKey string) error
 
 	// lister can list/get image streams from a shared informer's cache
-	lister imageinformer.ImageStreamLister
+	lister imagev1lister.ImageStreamLister
 	// listerSynced makes sure the is store is synced before reconciling streams
 	listerSynced cache.InformerSynced
 
@@ -79,17 +82,17 @@ func (c *ImageStreamController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (c *ImageStreamController) addImageStream(obj interface{}) {
-	if stream, ok := obj.(*imageapi.ImageStream); ok {
+	if stream, ok := obj.(*imagev1.ImageStream); ok {
 		c.enqueueImageStream(stream)
 	}
 }
 
 func (c *ImageStreamController) updateImageStream(old, cur interface{}) {
-	curStream, ok := cur.(*imageapi.ImageStream)
+	curStream, ok := cur.(*imagev1.ImageStream)
 	if !ok {
 		return
 	}
-	oldStream, ok := old.(*imageapi.ImageStream)
+	oldStream, ok := old.(*imagev1.ImageStream)
 	if !ok {
 		return
 	}
@@ -103,7 +106,7 @@ func (c *ImageStreamController) updateImageStream(old, cur interface{}) {
 	c.enqueueImageStream(curStream)
 }
 
-func (c *ImageStreamController) enqueueImageStream(stream *imageapi.ImageStream) {
+func (c *ImageStreamController) enqueueImageStream(stream *imagev1.ImageStream) {
 	key, err := kcontroller.KeyFunc(stream)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for image stream %#v: %v", stream, err))
@@ -156,32 +159,32 @@ func (c *ImageStreamController) syncImageStream(key string) error {
 	}
 
 	glog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
-	result, err := handleImageStream(stream, c.client, c.notifier)
+	result, err := handleImageStream(stream, c.client.RESTClient(), c.notifier)
 	c.importCounter.Increment(result, err)
 	return err
 }
 
 // tagImportable is true if the given TagReference is importable by this controller
-func tagImportable(tagRef imageapi.TagReference) bool {
+func tagImportable(tagRef imagev1.TagReference) bool {
 	return !(tagRef.From == nil || tagRef.From.Kind != "DockerImage" || tagRef.Reference)
 }
 
 // tagNeedsImport is true if the observed tag generation for this tag is older than the
 // specified tag generation (if no tag generation is specified, the controller does not
 // need to import this tag).
-func tagNeedsImport(stream *imageapi.ImageStream, tag string, tagRef imageapi.TagReference, importWhenGenerationNil bool) bool {
+func tagNeedsImport(stream *imagev1.ImageStream, tagRef imagev1.TagReference, importWhenGenerationNil bool) bool {
 	if !tagImportable(tagRef) {
 		return false
 	}
 	if tagRef.Generation == nil {
 		return importWhenGenerationNil
 	}
-	return *tagRef.Generation > imageapi.LatestObservedTagGeneration(stream, tag)
+	return *tagRef.Generation > imageutil.LatestObservedTagGeneration(stream, tagRef.Name)
 }
 
 // needsImport returns true if the provided image stream should have tags imported. Partial is returned
 // as true if the spec.dockerImageRepository does not need to be refreshed (if only tags have to be imported).
-func needsImport(stream *imageapi.ImageStream) (ok bool, partial bool) {
+func needsImport(stream *imagev1.ImageStream) (ok bool, partial bool) {
 	if stream.Annotations == nil || len(stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]) == 0 {
 		if len(stream.Spec.DockerImageRepository) > 0 {
 			return true, false
@@ -195,8 +198,8 @@ func needsImport(stream *imageapi.ImageStream) (ok bool, partial bool) {
 		}
 	}
 	// find any tags with a newer generation than their status
-	for tag, tagRef := range stream.Spec.Tags {
-		if tagNeedsImport(stream, tag, tagRef, false) {
+	for _, tagRef := range stream.Spec.Tags {
+		if tagNeedsImport(stream, tagRef, false) {
 			return true, true
 		}
 	}
@@ -224,10 +227,10 @@ func needsImport(stream *imageapi.ImageStream) (ok bool, partial bool) {
 //
 // Notifier, if passed, will be invoked if the stream is going to be imported.
 func handleImageStream(
-	stream *imageapi.ImageStream,
-	client imageclient.ImageInterface,
+	stream *imagev1.ImageStream,
+	client rest.Interface,
 	notifier Notifier,
-) (*imageapi.ImageStreamImport, error) {
+) (*imagev1.ImageStreamImport, error) {
 	ok, partial := needsImport(stream)
 	if !ok {
 		return nil, nil
@@ -238,21 +241,21 @@ func handleImageStream(
 		notifier.Importing(stream)
 	}
 
-	isi := &imageapi.ImageStreamImport{
+	isi := &imagev1.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            stream.Name,
 			Namespace:       stream.Namespace,
 			ResourceVersion: stream.ResourceVersion,
 			UID:             stream.UID,
 		},
-		Spec: imageapi.ImageStreamImportSpec{Import: true},
+		Spec: imagev1.ImageStreamImportSpec{Import: true},
 	}
-	for tag, tagRef := range stream.Spec.Tags {
+	for _, tagRef := range stream.Spec.Tags {
 		if tagImportable(tagRef) &&
-			(tagNeedsImport(stream, tag, tagRef, true) || !partial) {
-			isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
-				From:            kapi.ObjectReference{Kind: "DockerImage", Name: tagRef.From.Name},
-				To:              &kapi.LocalObjectReference{Name: tag},
+			(tagNeedsImport(stream, tagRef, true) || !partial) {
+			isi.Spec.Images = append(isi.Spec.Images, imagev1.ImageImportSpec{
+				From:            corev1.ObjectReference{Kind: "DockerImage", Name: tagRef.From.Name},
+				To:              &corev1.LocalObjectReference{Name: tagRef.Name},
 				ImportPolicy:    tagRef.ImportPolicy,
 				ReferencePolicy: tagRef.ReferencePolicy,
 			})
@@ -260,16 +263,25 @@ func handleImageStream(
 	}
 	if repo := stream.Spec.DockerImageRepository; !partial && len(repo) > 0 {
 		insecure := stream.Annotations[imageapi.InsecureRepositoryAnnotation] == "true"
-		isi.Spec.Repository = &imageapi.RepositoryImportSpec{
-			From:         kapi.ObjectReference{Kind: "DockerImage", Name: repo},
-			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
+		isi.Spec.Repository = &imagev1.RepositoryImportSpec{
+			From:         corev1.ObjectReference{Kind: "DockerImage", Name: repo},
+			ImportPolicy: imagev1.TagImportPolicy{Insecure: insecure},
 		}
 	}
 	if isi.Spec.Repository == nil && len(isi.Spec.Images) == 0 {
 		glog.V(4).Infof("Did not find any tags or repository needing import")
 		return nil, nil
 	}
-	result, err := client.ImageStreamImports(stream.Namespace).CreateWithoutTimeout(isi)
+	// use RESTClient directly here to be able to extend request timeout
+	result := &imagev1.ImageStreamImport{}
+	err := client.Post().
+		Namespace(stream.Namespace).
+		Resource(imagev1.Resource("imagestreamimports").Resource).
+		Body(isi).
+		// this instructs the api server to allow our request to take up to an hour - chosen as a high boundary
+		Timeout(time.Hour).
+		Do().
+		Into(result)
 	if err != nil {
 		if apierrs.IsNotFound(err) && isStatusErrorKind(err, "imageStream") {
 			return result, ErrNotImportable

@@ -11,18 +11,18 @@ import (
 	ktesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/controller"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	imagev1 "github.com/openshift/api/image/v1"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 )
 
 var (
-	noSignatures        = []imageapi.ImageSignature{}
-	singleFakeSignature = []imageapi.ImageSignature{{
+	noSignatures        = []imagev1.ImageSignature{}
+	singleFakeSignature = []imagev1.ImageSignature{{
 		ObjectMeta: metav1.ObjectMeta{Name: "fake@1111111"},
 		Content:    []byte(`fake`),
 	}}
-	multipleSignatures = []imageapi.ImageSignature{
+	multipleSignatures = []imagev1.ImageSignature{
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "fake@1111111"},
 			Content:    []byte(`fake`),
@@ -37,10 +37,10 @@ var (
 func TestSignatureImport(t *testing.T) {
 	testCases := []struct {
 		name               string
-		image              *imageapi.Image
+		image              *imagev1.Image
 		expectNoUpdate     bool
 		limit              int
-		expect, signatures []imageapi.ImageSignature
+		expect, signatures []imagev1.ImageSignature
 	}{
 		{
 			name:           "no-op",
@@ -91,11 +91,11 @@ func TestSignatureImport(t *testing.T) {
 	for _, tc := range testCases {
 		stopChannel := make(chan struct{})
 		fetchChannel := make(chan struct{})
-		updateChannel := make(chan *imageapi.Image)
+		updateChannel := make(chan *imagev1.Image)
 		client, _, controller, factory := controllerSetup([]runtime.Object{tc.image}, t, tc.limit, stopChannel)
 		client.PrependReactor("update", "images", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
 			obj := action.(ktesting.UpdateAction).GetObject()
-			updateChannel <- obj.(*imageapi.Image)
+			updateChannel <- obj.(*imagev1.Image)
 			return true, obj, nil
 		})
 
@@ -134,28 +134,28 @@ func TestSignatureImport(t *testing.T) {
 }
 
 type fakeSignatureRetriever struct {
-	signatures  []imageapi.ImageSignature
+	signatures  []imagev1.ImageSignature
 	fetchCalled chan struct{}
 }
 
-func newSignatureRetriever(s []imageapi.ImageSignature, ch chan struct{}) *fakeSignatureRetriever {
+func newSignatureRetriever(s []imagev1.ImageSignature, ch chan struct{}) *fakeSignatureRetriever {
 	return &fakeSignatureRetriever{signatures: s, fetchCalled: ch}
 }
 
-func (f *fakeSignatureRetriever) DownloadImageSignatures(image *imageapi.Image) ([]imageapi.ImageSignature, error) {
+func (f *fakeSignatureRetriever) DownloadImageSignatures(image *imagev1.Image) ([]imagev1.ImageSignature, error) {
 	close(f.fetchCalled)
 	return f.signatures, nil
 }
 
-func controllerSetup(startingImages []runtime.Object, t *testing.T, limit int, stopCh <-chan struct{}) (*imagefake.Clientset, *watch.FakeWatcher, *SignatureImportController, imageinformer.SharedInformerFactory) {
-	imageclient := imagefake.NewSimpleClientset(startingImages...)
+func controllerSetup(startingImages []runtime.Object, t *testing.T, limit int, stopCh <-chan struct{}) (*fakeimagev1client.Clientset, *watch.FakeWatcher, *SignatureImportController, imagev1informer.SharedInformerFactory) {
+	imageclient := fakeimagev1client.NewSimpleClientset(startingImages...)
 	fakeWatch := watch.NewFake()
-	informerFactory := imageinformer.NewSharedInformerFactory(imageclient, controller.NoResyncPeriodFunc())
+	informerFactory := imagev1informer.NewSharedInformerFactory(imageclient, controller.NoResyncPeriodFunc())
 
 	controller := NewSignatureImportController(
 		context.Background(),
 		imageclient,
-		informerFactory.Image().InternalVersion().Images(),
+		informerFactory.Image().V1().Images(),
 		30*time.Second,
 		10*time.Second,
 		limit,
@@ -165,8 +165,8 @@ func controllerSetup(startingImages []runtime.Object, t *testing.T, limit int, s
 	return imageclient, fakeWatch, controller, informerFactory
 }
 
-func makeImage(name, dockerRef string, signatures []imageapi.ImageSignature) *imageapi.Image {
-	i := imageapi.Image{}
+func makeImage(name, dockerRef string, signatures []imagev1.ImageSignature) *imagev1.Image {
+	i := imagev1.Image{}
 	i.Name = name
 	i.DockerImageReference = dockerRef
 	i.Signatures = signatures

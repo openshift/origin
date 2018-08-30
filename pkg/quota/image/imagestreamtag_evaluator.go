@@ -14,9 +14,10 @@ import (
 	"k8s.io/kubernetes/pkg/quota/generic"
 
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 var imageStreamTagResources = []kapi.ResourceName{
@@ -24,13 +25,13 @@ var imageStreamTagResources = []kapi.ResourceName{
 }
 
 type imageStreamTagEvaluator struct {
-	store     imageinternalversion.ImageStreamLister
-	istGetter imageclient.ImageStreamTagsGetter
+	store     imagev1lister.ImageStreamLister
+	istGetter imagev1typedclient.ImageStreamTagsGetter
 }
 
 // NewImageStreamTagEvaluator computes resource usage of ImageStreamsTags. Its sole purpose is to handle
 // UPDATE admission operations on imageStreamTags resource.
-func NewImageStreamTagEvaluator(store imageinternalversion.ImageStreamLister, istGetter imageclient.ImageStreamTagsGetter) kquota.Evaluator {
+func NewImageStreamTagEvaluator(store imagev1lister.ImageStreamLister, istGetter imagev1typedclient.ImageStreamTagsGetter) kquota.Evaluator {
 	return &imageStreamTagEvaluator{
 		store:     store,
 		istGetter: istGetter,
@@ -39,7 +40,7 @@ func NewImageStreamTagEvaluator(store imageinternalversion.ImageStreamLister, is
 
 // Constraints checks that given object is an image stream tag
 func (i *imageStreamTagEvaluator) Constraints(required []kapi.ResourceName, object runtime.Object) error {
-	if _, ok := object.(*imageapi.ImageStreamTag); !ok {
+	if _, ok := object.(*imagev1.ImageStreamTag); !ok {
 		return fmt.Errorf("unexpected input object %v", object)
 	}
 	return nil
@@ -72,7 +73,7 @@ func (i *imageStreamTagEvaluator) MatchingResources(input []kapi.ResourceName) [
 }
 
 func (i *imageStreamTagEvaluator) Usage(item runtime.Object) (kapi.ResourceList, error) {
-	ist, ok := item.(*imageapi.ImageStreamTag)
+	ist, ok := item.(*imagev1.ImageStreamTag)
 	if !ok {
 		return kapi.ResourceList{}, nil
 	}

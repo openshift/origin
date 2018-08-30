@@ -7,12 +7,12 @@ import (
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/flowcontrol"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
 )
 
@@ -26,10 +26,10 @@ type ScheduledImageStreamController struct {
 	enabled bool
 
 	// image stream client
-	client imageclient.ImageInterface
+	client rest.Interface
 
 	// lister can list/get image streams from a shared informer's cache
-	lister imageinformer.ImageStreamLister
+	lister imagev1lister.ImageStreamLister
 	// listerSynced makes sure the is store is synced before reconciling streams
 	listerSynced cache.InformerSynced
 
@@ -45,7 +45,7 @@ type ScheduledImageStreamController struct {
 
 // Importing is invoked when the controller decides to import a stream in order to push back
 // the next schedule time.
-func (s *ScheduledImageStreamController) Importing(stream *imageapi.ImageStream) {
+func (s *ScheduledImageStreamController) Importing(stream *imagev1.ImageStream) {
 	if !s.enabled {
 		return
 	}
@@ -80,16 +80,16 @@ func (s *ScheduledImageStreamController) Run(stopCh <-chan struct{}) {
 }
 
 func (s *ScheduledImageStreamController) addImageStream(obj interface{}) {
-	stream := obj.(*imageapi.ImageStream)
+	stream := obj.(*imagev1.ImageStream)
 	s.enqueueImageStream(stream)
 }
 
 func (s *ScheduledImageStreamController) updateImageStream(old, cur interface{}) {
-	curStream, ok := cur.(*imageapi.ImageStream)
+	curStream, ok := cur.(*imagev1.ImageStream)
 	if !ok {
 		return
 	}
-	oldStream, ok := old.(*imageapi.ImageStream)
+	oldStream, ok := old.(*imagev1.ImageStream)
 	if !ok {
 		return
 	}
@@ -111,7 +111,7 @@ func (s *ScheduledImageStreamController) deleteImageStream(obj interface{}) {
 }
 
 // enqueueImageStream ensures an image stream is checked for scheduling
-func (s *ScheduledImageStreamController) enqueueImageStream(stream *imageapi.ImageStream) {
+func (s *ScheduledImageStreamController) enqueueImageStream(stream *imagev1.ImageStream) {
 	if !s.enabled {
 		return
 	}
@@ -175,7 +175,7 @@ func (s *ScheduledImageStreamController) syncTimedByName(namespace, name string)
 }
 
 // resetScheduledTags artificially increments the generation on the tags that should be imported.
-func resetScheduledTags(stream *imageapi.ImageStream) {
+func resetScheduledTags(stream *imagev1.ImageStream) {
 	next := stream.Generation + 1
 	for tag, tagRef := range stream.Spec.Tags {
 		if tagImportable(tagRef) && tagRef.ImportPolicy.Scheduled {
@@ -186,7 +186,7 @@ func resetScheduledTags(stream *imageapi.ImageStream) {
 }
 
 // needsScheduling returns true if this image stream has any scheduled tags
-func needsScheduling(stream *imageapi.ImageStream) bool {
+func needsScheduling(stream *imagev1.ImageStream) bool {
 	for _, tagRef := range stream.Spec.Tags {
 		if tagImportable(tagRef) && tagRef.ImportPolicy.Scheduled {
 			return true

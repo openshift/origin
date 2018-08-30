@@ -14,8 +14,9 @@ import (
 	"k8s.io/kubernetes/pkg/quota/generic"
 
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 var imageStreamImportResources = []kapi.ResourceName{
@@ -23,13 +24,13 @@ var imageStreamImportResources = []kapi.ResourceName{
 }
 
 type imageStreamImportEvaluator struct {
-	store imageinternalversion.ImageStreamLister
+	store imagev1lister.ImageStreamLister
 }
 
 // NewImageStreamImportEvaluator computes resource usage for ImageStreamImport objects. This particular kind
 // is a virtual resource. It depends on ImageStream usage evaluator to compute image numbers before the
 // the admission can work.
-func NewImageStreamImportEvaluator(store imageinternalversion.ImageStreamLister) kquota.Evaluator {
+func NewImageStreamImportEvaluator(store imagev1lister.ImageStreamLister) kquota.Evaluator {
 	return &imageStreamImportEvaluator{
 		store: store,
 	}
@@ -37,7 +38,7 @@ func NewImageStreamImportEvaluator(store imageinternalversion.ImageStreamLister)
 
 // Constraints checks that given object is an image stream import.
 func (i *imageStreamImportEvaluator) Constraints(required []kapi.ResourceName, object runtime.Object) error {
-	if _, ok := object.(*imageapi.ImageStreamImport); !ok {
+	if _, ok := object.(*imagev1.ImageStreamImport); !ok {
 		return fmt.Errorf("unexpected input object %v", object)
 	}
 	return nil
@@ -69,7 +70,7 @@ func (i *imageStreamImportEvaluator) MatchingResources(input []kapi.ResourceName
 }
 
 func (i *imageStreamImportEvaluator) Usage(item runtime.Object) (kapi.ResourceList, error) {
-	isi, ok := item.(*imageapi.ImageStreamImport)
+	isi, ok := item.(*imagev1.ImageStreamImport)
 	if !ok {
 		return kapi.ResourceList{}, fmt.Errorf("item is not an ImageStreamImport: %T", item)
 	}

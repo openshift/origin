@@ -13,19 +13,20 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/controller"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
+	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	informers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imagelister "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 type SignatureDownloader interface {
-	DownloadImageSignatures(*imageapi.Image) ([]imageapi.ImageSignature, error)
+	DownloadImageSignatures(*imagev1.Image) ([]imagev1.ImageSignature, error)
 }
 
 type SignatureImportController struct {
-	imageClient imageclient.Interface
-	imageLister imagelister.ImageLister
+	imageClient imagev1client.Interface
+	imageLister imagev1lister.ImageLister
 
 	imageHasSynced cache.InformerSynced
 
@@ -38,7 +39,7 @@ type SignatureImportController struct {
 	fetcher SignatureDownloader
 }
 
-func NewSignatureImportController(ctx context.Context, imageClient imageclient.Interface, imageInformer informers.ImageInformer, resyncInterval, fetchTimeout time.Duration, limit int) *SignatureImportController {
+func NewSignatureImportController(ctx context.Context, imageClient imagev1client.Interface, imageInformer imagev1informer.ImageInformer, resyncInterval, fetchTimeout time.Duration, limit int) *SignatureImportController {
 	controller := &SignatureImportController{
 		queue:                workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		imageClient:          imageClient,
@@ -50,12 +51,12 @@ func NewSignatureImportController(ctx context.Context, imageClient imageclient.I
 
 	imageInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			image := obj.(*imageapi.Image)
+			image := obj.(*imagev1.Image)
 			glog.V(4).Infof("Adding image %s", image.Name)
 			controller.enqueueImage(obj)
 		},
 		UpdateFunc: func(old, cur interface{}) {
-			image := cur.(*imageapi.Image)
+			image := cur.(*imagev1.Image)
 			glog.V(4).Infof("Updating image %s", image.Name)
 			controller.enqueueImage(cur)
 		},
@@ -114,7 +115,7 @@ func (s *SignatureImportController) work() bool {
 }
 
 func (s *SignatureImportController) enqueueImage(obj interface{}) {
-	_, ok := obj.(*imageapi.Image)
+	_, ok := obj.(*imagev1.Image)
 	if !ok {
 		return
 	}

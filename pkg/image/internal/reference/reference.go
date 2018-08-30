@@ -27,7 +27,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
+	"github.com/openshift/origin/pkg/image/internal/digest"
 )
 
 const (

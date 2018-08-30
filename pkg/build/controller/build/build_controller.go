@@ -27,9 +27,12 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildclient "github.com/openshift/client-go/build/clientset/versioned"
-	buildinformer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
-	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	buildv1informer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
+	buildv1lister "github.com/openshift/client-go/build/listers/build/v1"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
+	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	"github.com/openshift/origin/pkg/api/imagereferencemutators"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client"
@@ -40,8 +43,7 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
-	imagelister "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -118,8 +120,8 @@ func (q *resourceTriggerQueue) Pop(key string) []string {
 // where a service account determines access to secrets used in pods.
 type BuildController struct {
 	buildPatcher      buildmanualclient.BuildPatcher
-	buildLister       buildlister.BuildLister
-	buildConfigGetter buildlister.BuildConfigLister
+	buildLister       buildv1lister.BuildLister
+	buildConfigGetter buildv1lister.BuildConfigLister
 	buildDeleter      buildmanualclient.BuildDeleter
 	podClient         ktypedclient.PodsGetter
 	kubeClient        kubernetes.Interface
@@ -128,10 +130,10 @@ type BuildController struct {
 	imageStreamQueue *resourceTriggerQueue
 	buildConfigQueue workqueue.RateLimitingInterface
 
-	buildStore       buildlister.BuildLister
+	buildStore       buildv1lister.BuildLister
 	secretStore      v1lister.SecretLister
 	podStore         v1lister.PodLister
-	imageStreamStore imagelister.ImageStreamLister
+	imageStreamStore imagev1lister.ImageStreamLister
 
 	podInformer   cache.SharedIndexInformer
 	buildInformer cache.SharedIndexInformer
@@ -152,13 +154,13 @@ type BuildController struct {
 // BuildControllerParams is the set of parameters needed to
 // create a new BuildController
 type BuildControllerParams struct {
-	BuildInformer       buildinformer.BuildInformer
-	BuildConfigInformer buildinformer.BuildConfigInformer
-	ImageStreamInformer imageinformers.ImageStreamInformer
+	BuildInformer       buildv1informer.BuildInformer
+	BuildConfigInformer buildv1informer.BuildConfigInformer
+	ImageStreamInformer imagev1informer.ImageStreamInformer
 	PodInformer         kubeinformers.PodInformer
 	SecretInformer      kubeinformers.SecretInformer
 	KubeClient          kubernetes.Interface
-	BuildClient         buildclient.Interface
+	BuildClient         buildv1client.Interface
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
@@ -596,7 +598,7 @@ func unresolvedImageStreamReferences(m imagereferencemutators.ImageReferenceMuta
 
 // resolveImageStreamLocation transforms the provided reference into a string pointing to the integrated registry,
 // or returns an error.
-func resolveImageStreamLocation(ref *corev1.ObjectReference, lister imagelister.ImageStreamLister, defaultNamespace string) (string, error) {
+func resolveImageStreamLocation(ref *corev1.ObjectReference, lister imagev1lister.ImageStreamLister, defaultNamespace string) (string, error) {
 	namespace := ref.Namespace
 	if len(namespace) == 0 {
 		namespace = defaultNamespace
@@ -648,7 +650,7 @@ func resolveImageStreamLocation(ref *corev1.ObjectReference, lister imagelister.
 	return repo.Exact(), nil
 }
 
-func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagelister.ImageStreamLister, defaultNamespace string) (*corev1.ObjectReference, error) {
+func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagev1lister.ImageStreamLister, defaultNamespace string) (*corev1.ObjectReference, error) {
 	namespace := ref.Namespace
 	if len(namespace) == 0 {
 		namespace = defaultNamespace
@@ -664,7 +666,7 @@ func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagelister.Ima
 		}
 		return nil, fmt.Errorf("the referenced image stream %s/%s could not be found: %v", namespace, name, err)
 	}
-	event, err := imageapi.ResolveImageID(stream, imageID)
+	event, err := imageutil.ResolveImageID(stream, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -674,7 +676,7 @@ func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagelister.Ima
 	return &corev1.ObjectReference{Kind: "DockerImage", Name: event.DockerImageReference}, nil
 }
 
-func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagelister.ImageStreamLister, defaultNamespace string) (*corev1.ObjectReference, error) {
+func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagev1lister.ImageStreamLister, defaultNamespace string) (*corev1.ObjectReference, error) {
 	namespace := ref.Namespace
 	if len(namespace) == 0 {
 		namespace = defaultNamespace
@@ -690,7 +692,7 @@ func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagelister.Image
 		}
 		return nil, fmt.Errorf("the referenced image stream %s/%s could not be found: %v", namespace, name, err)
 	}
-	if newRef, ok := imageapi.ResolveLatestTaggedImage(stream, tag); ok {
+	if newRef, ok := imageutil.ResolveLatestTaggedImage(stream, tag); ok {
 		return &corev1.ObjectReference{Kind: "DockerImage", Name: newRef}, nil
 	}
 	return nil, fmt.Errorf("the referenced image stream tag %s/%s does not exist", namespace, ref.Name)
@@ -1310,7 +1312,7 @@ func (bc *BuildController) enqueueBuildForPod(pod *corev1.Pod) {
 // Because builds are level driven when resolving images, we are not concerned with duplicate
 // build events.
 func (bc *BuildController) imageStreamAdded(obj interface{}) {
-	stream := obj.(*imageapi.ImageStream)
+	stream := obj.(*imagev1.ImageStream)
 	for _, buildKey := range bc.imageStreamQueue.Pop(resourceName(stream.Namespace, stream.Name)) {
 		bc.buildQueue.Add(buildKey)
 	}
