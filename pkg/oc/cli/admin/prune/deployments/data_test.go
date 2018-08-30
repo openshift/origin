@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 func mockDeploymentConfig(namespace, name string) *appsv1.DeploymentConfig {
@@ -28,7 +27,7 @@ func withCreated(item *corev1.ReplicationController, creationTimestamp metav1.Ti
 	return item
 }
 
-func withStatus(item *corev1.ReplicationController, status appsapi.DeploymentStatus) *corev1.ReplicationController {
+func withStatus(item *corev1.ReplicationController, status appsv1.DeploymentStatus) *corev1.ReplicationController {
 	item.Annotations[appsv1.DeploymentStatusAnnotation] = string(status)
 	return item
 }

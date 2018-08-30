@@ -16,7 +16,6 @@ import (
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -87,7 +86,7 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 
 			rev := appsutil.DeploymentVersionFor(rc)
 			status := appsutil.AnnotationFor(rc, appsv1.DeploymentStatusAnnotation)
-			cause := rc.Annotations[appsapi.DeploymentStatusReasonAnnotation]
+			cause := rc.Annotations[appsv1.DeploymentStatusReasonAnnotation]
 			if len(cause) == 0 {
 				cause = "<unknown>"
 			}
