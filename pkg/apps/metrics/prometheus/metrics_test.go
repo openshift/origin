@@ -9,12 +9,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcorelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 var (
@@ -24,7 +23,7 @@ var (
 
 func mockRC(name string, version int, annotations map[string]string, generation int64, creationTime metav1.Time) *corev1.ReplicationController {
 	r := &corev1.ReplicationController{}
-	annotations[appsutil.DeploymentConfigAnnotation] = name
+	annotations[appsv1.DeploymentConfigAnnotation] = name
 	r.SetName(name + fmt.Sprintf("-%d", version))
 	r.SetNamespace("test")
 	r.SetCreationTimestamp(creationTime)
@@ -60,7 +59,7 @@ func TestCollect(t *testing.T) {
 			cancelled: 0,
 			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsutil.DeploymentStatusAnnotation: string(appsutil.DeploymentStatusComplete),
+					appsv1.DeploymentStatusAnnotation: string(appsv1.DeploymentStatusComplete),
 				}, 0, timeNow),
 			},
 		},
@@ -74,9 +73,9 @@ func TestCollect(t *testing.T) {
 			timestamp:     float64(timeNow.Unix()),
 			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsutil.DeploymentCancelledAnnotation: appsutil.DeploymentCancelledAnnotationValue,
-					appsutil.DeploymentStatusAnnotation:    string(appsutil.DeploymentStatusFailed),
-					appsutil.DeploymentVersionAnnotation:   "1",
+					appsv1.DeploymentCancelledAnnotation: "true",
+					appsv1.DeploymentStatusAnnotation:    string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation:   "1",
 				}, 0, timeNow),
 			},
 		},
@@ -90,8 +89,8 @@ func TestCollect(t *testing.T) {
 			timestamp:     float64(timeNow.Unix()),
 			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusFailed),
-					appsutil.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 			},
 		},
@@ -105,20 +104,20 @@ func TestCollect(t *testing.T) {
 			timestamp:     float64(timeNow.Unix()),
 			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusFailed),
-					appsutil.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 				mockRC("foo", 2, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusFailed),
-					appsutil.DeploymentVersionAnnotation: "2",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "2",
 				}, 0, timeNow),
 				mockRC("foo", 3, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusFailed),
-					appsutil.DeploymentVersionAnnotation: "3",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "3",
 				}, 0, timeNow),
 				mockRC("foo", 4, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusFailed),
-					appsutil.DeploymentVersionAnnotation: "4",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "4",
 				}, 0, timeNow),
 			},
 		},
@@ -132,16 +131,16 @@ func TestCollect(t *testing.T) {
 			timestamp:     float64(timeNow.Unix()),
 			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusComplete),
-					appsutil.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusComplete),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 				mockRC("foo", 2, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusFailed),
-					appsutil.DeploymentVersionAnnotation: "2",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "2",
 				}, 0, timeNow),
 				mockRC("foo", 3, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusComplete),
-					appsutil.DeploymentVersionAnnotation: "3",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusComplete),
+					appsv1.DeploymentVersionAnnotation: "3",
 				}, 0, timeNow),
 			},
 		},
@@ -157,8 +156,8 @@ func TestCollect(t *testing.T) {
 			timestamp: 0,
 			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusRunning),
-					appsutil.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusRunning),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 			},
 		},
@@ -174,16 +173,16 @@ func TestCollect(t *testing.T) {
 			timestamp: 0,
 			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusComplete),
-					appsutil.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusComplete),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 				mockRC("foo", 2, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusComplete),
-					appsutil.DeploymentVersionAnnotation: "2",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusComplete),
+					appsv1.DeploymentVersionAnnotation: "2",
 				}, 0, timeNow),
 				mockRC("foo", 3, map[string]string{
-					appsutil.DeploymentStatusAnnotation:  string(appsutil.DeploymentStatusRunning),
-					appsutil.DeploymentVersionAnnotation: "3",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusRunning),
+					appsv1.DeploymentVersionAnnotation: "3",
 				}, 0, timeNow),
 			},
 		},

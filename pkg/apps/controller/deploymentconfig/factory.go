@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,8 +19,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	appsv1api "github.com/openshift/api/apps/v1"
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
 	appsv1informer "github.com/openshift/client-go/apps/informers/externalversions/apps/v1"
 	metrics "github.com/openshift/origin/pkg/apps/metrics/prometheus"
 )
@@ -30,7 +29,7 @@ import (
 func NewDeploymentConfigController(
 	dcInformer appsv1informer.DeploymentConfigInformer,
 	rcInformer kcoreinformers.ReplicationControllerInformer,
-	appsClientset appsclient.Interface,
+	appsClientset appsv1client.Interface,
 	kubeClientset kclientset.Interface,
 ) *DeploymentConfigController {
 	eventBroadcaster := record.NewBroadcaster()
@@ -97,28 +96,28 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (c *DeploymentConfigController) addDeploymentConfig(obj interface{}) {
-	dc := obj.(*appsv1api.DeploymentConfig)
+	dc := obj.(*appsv1.DeploymentConfig)
 	glog.V(4).Infof("Adding deployment config %s/%s", dc.Namespace, dc.Name)
 	c.enqueueDeploymentConfig(dc)
 }
 
 func (c *DeploymentConfigController) updateDeploymentConfig(old, cur interface{}) {
-	newDc := cur.(*appsv1api.DeploymentConfig)
-	oldDc := old.(*appsv1api.DeploymentConfig)
+	newDc := cur.(*appsv1.DeploymentConfig)
+	oldDc := old.(*appsv1.DeploymentConfig)
 
 	glog.V(4).Infof("Updating deployment config %s/%s", oldDc.Namespace, oldDc.Name)
 	c.enqueueDeploymentConfig(newDc)
 }
 
 func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
-	dc, ok := obj.(*appsv1api.DeploymentConfig)
+	dc, ok := obj.(*appsv1.DeploymentConfig)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %+v", obj))
 			return
 		}
-		dc, ok = tombstone.Obj.(*appsv1api.DeploymentConfig)
+		dc, ok = tombstone.Obj.(*appsv1.DeploymentConfig)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a deployment config: %+v", obj))
 			return
@@ -128,16 +127,16 @@ func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
 	c.enqueueDeploymentConfig(dc)
 }
 
-func (c *DeploymentConfigController) getConfigForController(rc *v1.ReplicationController) (*appsv1api.DeploymentConfig, error) {
-	dcName := rc.Annotations[appsutil.DeploymentConfigAnnotation]
+func (c *DeploymentConfigController) getConfigForController(rc *v1.ReplicationController) (*appsv1.DeploymentConfig, error) {
+	dcName := rc.Annotations[appsv1.DeploymentConfigAnnotation]
 	obj, exists, err := c.dcIndex.GetByKey(rc.Namespace + "/" + dcName)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(schema.GroupResource{Group: appsv1api.GroupName, Resource: "deploymentconfig"}, dcName)
+		return nil, errors.NewNotFound(schema.GroupResource{Group: appsv1.GroupName, Resource: "deploymentconfig"}, dcName)
 	}
-	return obj.(*appsv1api.DeploymentConfig), nil
+	return obj.(*appsv1.DeploymentConfig), nil
 }
 
 // updateReplicationController figures out which deploymentconfig is managing this replication
@@ -182,7 +181,7 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 	}
 }
 
-func (c *DeploymentConfigController) enqueueDeploymentConfig(dc *appsv1api.DeploymentConfig) {
+func (c *DeploymentConfigController) enqueueDeploymentConfig(dc *appsv1.DeploymentConfig) {
 	key, err := kcontroller.KeyFunc(dc)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", dc, err))

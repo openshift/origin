@@ -40,11 +40,11 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 }
 
 func TestDeployer_deployScenarios(t *testing.T) {
-	mkd := func(version int64, status appsutil.DeploymentStatus, replicas int32, desired int32) *corev1.ReplicationController {
+	mkd := func(version int64, status appsv1.DeploymentStatus, replicas int32, desired int32) *corev1.ReplicationController {
 		deployment := mkdeployment(version, status)
 		deployment.Spec.Replicas = &replicas
 		if desired > 0 {
-			deployment.Annotations[appsutil.DesiredReplicasAnnotation] = strconv.Itoa(int(desired))
+			deployment.Annotations[appsv1.DesiredReplicasAnnotation] = strconv.Itoa(int(desired))
 		}
 		return deployment
 	}
@@ -63,7 +63,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"initial deployment",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsutil.DeploymentStatusNew, 0, 3),
+				mkd(1, appsv1.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			0, 1,
@@ -74,9 +74,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"last deploy failed",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsutil.DeploymentStatusComplete, 3, 0),
-				mkd(2, appsutil.DeploymentStatusFailed, 1, 3),
-				mkd(3, appsutil.DeploymentStatusNew, 0, 3),
+				mkd(1, appsv1.DeploymentStatusComplete, 3, 0),
+				mkd(2, appsv1.DeploymentStatusFailed, 1, 3),
+				mkd(3, appsv1.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			1, 3,
@@ -89,9 +89,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"sequential complete",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsutil.DeploymentStatusComplete, 0, 0),
-				mkd(2, appsutil.DeploymentStatusComplete, 3, 0),
-				mkd(3, appsutil.DeploymentStatusNew, 0, 3),
+				mkd(1, appsv1.DeploymentStatusComplete, 0, 0),
+				mkd(2, appsv1.DeploymentStatusComplete, 3, 0),
+				mkd(3, appsv1.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			2, 3,
@@ -102,9 +102,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"sequential failure",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsutil.DeploymentStatusFailed, 1, 3),
-				mkd(2, appsutil.DeploymentStatusFailed, 1, 3),
-				mkd(3, appsutil.DeploymentStatusNew, 0, 3),
+				mkd(1, appsv1.DeploymentStatusFailed, 1, 3),
+				mkd(2, appsv1.DeploymentStatusFailed, 1, 3),
+				mkd(3, appsv1.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			0, 3,
@@ -118,9 +118,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"version mismatch",
 			// existing deployments
 			[]*corev1.ReplicationController{
-				mkd(1, appsutil.DeploymentStatusComplete, 0, 0),
-				mkd(2, appsutil.DeploymentStatusNew, 3, 0),
-				mkd(3, appsutil.DeploymentStatusComplete, 0, 3),
+				mkd(1, appsv1.DeploymentStatusComplete, 0, 0),
+				mkd(2, appsv1.DeploymentStatusNew, 3, 0),
+				mkd(3, appsv1.DeploymentStatusComplete, 0, 3),
 			},
 			// from and to version
 			3, 2,
@@ -210,9 +210,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 	}
 }
 
-func mkdeployment(version int64, status appsutil.DeploymentStatus) *corev1.ReplicationController {
+func mkdeployment(version int64, status appsv1.DeploymentStatus) *corev1.ReplicationController {
 	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(version))
-	deployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(status)
+	deployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(status)
 	return deployment
 }
 

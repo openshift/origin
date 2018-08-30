@@ -172,7 +172,7 @@ func DumpBuilds(oc *CLI) {
 
 func GetDeploymentConfigPods(oc *CLI, dcName string, version int64) (*kapiv1.PodList, error) {
 	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d",
-		appsutil.DeployerPodForDeploymentLabel, dcName, version)).String()})
+		appsv1.DeployerPodForDeploymentLabel, dcName, version)).String()})
 }
 
 func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {

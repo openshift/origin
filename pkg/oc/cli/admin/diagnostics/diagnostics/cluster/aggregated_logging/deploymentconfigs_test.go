@@ -8,7 +8,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/log"
 )
 
@@ -45,7 +44,7 @@ func (f *fakeDeploymentConfigsDiagnostic) addDeployConfigFor(component string) {
 func (f *fakeDeploymentConfigsDiagnostic) addPodFor(comp string, state kapi.PodPhase) {
 	annotations := map[string]string{}
 	if comp != testSkipAnnotation {
-		annotations[appsutil.DeploymentConfigAnnotation] = comp
+		annotations[appsv1.DeploymentConfigAnnotation] = comp
 	}
 	pod := kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{

@@ -17,10 +17,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -287,10 +287,10 @@ func getController(pod *corev1.Pod) string {
 	if bc, ok := pod.Annotations[buildapi.BuildAnnotation]; ok {
 		return fmt.Sprintf("Build: %s/%s", pod.Namespace, bc)
 	}
-	if dc, ok := pod.Annotations[appsutil.DeploymentAnnotation]; ok {
+	if dc, ok := pod.Annotations[appsv1.DeploymentAnnotation]; ok {
 		return fmt.Sprintf("Deployment: %s/%s", pod.Namespace, dc)
 	}
-	if dc, ok := pod.Annotations[appsutil.DeploymentPodAnnotation]; ok {
+	if dc, ok := pod.Annotations[appsv1.DeploymentPodAnnotation]; ok {
 		return fmt.Sprintf("Deployer: %s/%s", pod.Namespace, dc)
 	}
 

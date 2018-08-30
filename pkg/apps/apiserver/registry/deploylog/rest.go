@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/api/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -141,7 +142,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 	// success message. If it is running or failed, retrieve the log from the deployer pod.
 	status := appsutil.DeploymentStatusFor(target)
 	switch status {
-	case appsutil.DeploymentStatusNew, appsutil.DeploymentStatusPending:
+	case appsv1.DeploymentStatusNew, appsv1.DeploymentStatusPending:
 		if deployLogOpts.NoWait {
 			glog.V(4).Infof("Deployment %s is in %s state. No logs to retrieve yet.", labelForDeployment, status)
 			return &genericrest.LocationStreamer{}, nil
@@ -165,7 +166,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 				return nil, err
 			}
 		}
-	case appsutil.DeploymentStatusComplete:
+	case appsv1.DeploymentStatusComplete:
 		podName, err = r.returnApplicationPodName(target)
 		if err != nil {
 			return nil, err

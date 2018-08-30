@@ -46,14 +46,12 @@ import (
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
-	conditions "github.com/openshift/origin/pkg/oc/lib/conditions"
+	"github.com/openshift/origin/pkg/oc/lib/conditions"
 	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
 
 const (
-	debugPodLabelName = "debug.openshift.io/name"
-
 	debugPodAnnotationSourceContainer = "debug.openshift.io/source-container"
 	debugPodAnnotationSourceResource  = "debug.openshift.io/source-resource"
 )
@@ -482,7 +480,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *corev1.Pod, con
 		return nil, nil // ID is needed for later lookup
 	}
 
-	dcname := pod.Annotations[appsutil.DeploymentConfigAnnotation]
+	dcname := pod.Annotations[appsv1.DeploymentConfigAnnotation]
 	if dcname == "" {
 		return nil, nil // Pod doesn't appear to have been created by a DeploymentConfig
 	}

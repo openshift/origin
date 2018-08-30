@@ -607,7 +607,7 @@ func TestTriggers_configChange(t *testing.T) {
 			return err
 		}
 
-		liveDeployment.Annotations[appsutil.DeploymentStatusAnnotation] = string(appsutil.DeploymentStatusComplete)
+		liveDeployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(appsv1.DeploymentStatusComplete)
 
 		// update the deployment
 		_, err = kc.Core().ReplicationControllers(namespace).Update(liveDeployment)

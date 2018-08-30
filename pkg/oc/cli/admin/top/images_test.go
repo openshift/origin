@@ -7,8 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/image/dockerlayer"
 )
@@ -472,7 +472,7 @@ func TestImagesTop(t *testing.T) {
 			pods: &corev1.PodList{
 				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsutil.DeploymentPodAnnotation: "deployer1"}},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsv1.DeploymentPodAnnotation: "deployer1"}},
 						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
 						Status:     corev1.PodStatus{Phase: corev1.PodPending},
 					},
@@ -512,7 +512,7 @@ func TestImagesTop(t *testing.T) {
 			pods: &corev1.PodList{
 				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsutil.DeploymentPodAnnotation: "deployer1"}},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsv1.DeploymentPodAnnotation: "deployer1"}},
 						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
 						Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 					},
@@ -552,7 +552,7 @@ func TestImagesTop(t *testing.T) {
 			pods: &corev1.PodList{
 				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsutil.DeploymentAnnotation: "deplyment1"}},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsv1.DeploymentAnnotation: "deplyment1"}},
 						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
 						Status:     corev1.PodStatus{Phase: corev1.PodPending},
 					},
@@ -592,7 +592,7 @@ func TestImagesTop(t *testing.T) {
 			pods: &corev1.PodList{
 				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsutil.DeploymentAnnotation: "deplyment1"}},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{appsv1.DeploymentAnnotation: "deplyment1"}},
 						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
 						Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 					},
