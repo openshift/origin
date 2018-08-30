@@ -19,7 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/createerrortemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate"
-	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics"
 	"github.com/openshift/origin/pkg/oc/cli/admin/groups"
 	"github.com/openshift/origin/pkg/oc/cli/admin/ipfailover"
 	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
@@ -93,7 +92,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		{
 			Message: "Maintenance:",
 			Commands: []*cobra.Command{
-				diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, f, streams),
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, streams),
 				buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, streams),
 				migrate.NewCommandMigrate(
