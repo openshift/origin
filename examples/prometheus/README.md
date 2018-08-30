@@ -165,10 +165,18 @@ builds where the fact they have not started could be cited as resulting from use
 
 NOTE:  OpenShift Online monitors builds in a fashion similar to this today.
 
-> sum(rate(openshift_build_total{phase="Error"}[10m])) / sum((rate(openshift_build_total{phase="Complete"}[10m]) + rate(openshift_build_total{phase="Error"}[10m]))) * 100
+> sum(openshift_build_total{job="kubernetes-apiservers",phase="Error"})/(sum(openshift_build_total{job="kubernetes-apiservers",phase=~"Complete|Error"})) * 100
 
-Calculates the error rate for builds over the last 10 minutes, where the error might indicate issues with the cluster or namespace.  Note, it ignores build in the "Failed" and "Cancelled" phases, as builds typically end up in
+Calculates the error rate for builds, where the error might indicate issues with the cluster or namespace.  Note, it ignores builds in the "Failed" and "Cancelled" phases, as builds typically end up in
 one of those phases as the result of a user choice or error.  Administrators after some experience with their cluster could decide what is an acceptable error rate and monitor when it is exceeded.
+
+> ((sum(openshift_build_total{job="kubernetes-apiservers",phase="Complete"})-
+> sum(openshift_build_total{job="kubernetes-apiservers",phase="Complete"} offset 1h))  / 
+> (sum(openshift_build_total{job="kubernetes-apiservers",phase=\~"Failed|Complete|Error"}) - 
+> (sum(openshift_build_total{job="kubernetes-apiservers",phase=\~"Failed|Complete|Error"} offset 1h)))) * 100
+
+Calculates the percentage of builds that were successful in the last hour.  Note that this value is only accurate if no pruning of builds
+is performed, otherwise it is impossible to determine how many builds ran (successfully or otherwise) in the last hour.
 
 > predict_linear(openshift_build_total{phase="Error"}[1h],3600)
 
