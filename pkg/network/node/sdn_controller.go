@@ -99,7 +99,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 		}
 	}
 
-	if !plugin.oc.AlreadySetUp() {
+	if !plugin.oc.AlreadySetUp(plugin.networkInfo.VXLANPort) {
 		return false
 	}
 
@@ -192,7 +192,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 func (plugin *OsdnNode) setup(clusterNetworkCIDRs []string, localSubnetCIDR, localSubnetGateway, gwCIDR string) error {
 	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
 
-	if err := plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway); err != nil {
+	if err := plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway, plugin.networkInfo.VXLANPort); err != nil {
 		return err
 	}
 

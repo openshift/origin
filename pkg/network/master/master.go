@@ -58,7 +58,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 	for _, entry := range networkConfig.ClusterNetworks {
 		clusterNetworkEntries = append(clusterNetworkEntries, networkapi.ClusterNetworkEntry{CIDR: entry.CIDR, HostSubnetLength: entry.HostSubnetLength})
 	}
-	master.networkInfo, err = common.ParseNetworkInfo(clusterNetworkEntries, networkConfig.ServiceNetworkCIDR)
+	master.networkInfo, err = common.ParseNetworkInfo(clusterNetworkEntries, networkConfig.ServiceNetworkCIDR, &networkConfig.VXLANPort)
 	if err != nil {
 		return err
 	}
@@ -78,6 +78,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 		ClusterNetworks: parsedClusterNetworkEntries,
 		ServiceNetwork:  master.networkInfo.ServiceNetwork.String(),
 		PluginName:      networkConfig.NetworkPluginName,
+		VXLANPort:       &networkConfig.VXLANPort,
 
 		// Need to set these for backward compat
 		Network:          parsedClusterNetworkEntries[0].CIDR,

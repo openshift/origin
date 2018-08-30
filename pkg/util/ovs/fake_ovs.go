@@ -3,6 +3,7 @@ package ovs
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // ovsFake implements a fake ovs.Interface for testing purposes
@@ -15,8 +16,9 @@ import (
 type ovsFake struct {
 	bridge string
 
-	ports map[string]int
-	flows ovsFlows
+	ports     map[string]int
+	vxlanPort string //* ONLY IN 3.9 to make vxlan backport doable
+	flows     ovsFlows
 }
 
 // NewFake returns a new ovs.Interface
@@ -81,6 +83,13 @@ func (fake *ovsFake) AddPort(port string, ofportRequest int, properties ...strin
 		}
 		fake.ports[port] = ofport
 	}
+
+	//* ONLY IN 3.9
+	for _, property := range properties {
+		if strings.HasPrefix(property, "options:dst_port=") {
+			fake.vxlanPort = property[17:]
+		}
+	}
 	return ofport, nil
 }
 
@@ -106,6 +115,9 @@ func (fake *ovsFake) Destroy(table, record string) error {
 }
 
 func (fake *ovsFake) Get(table, record, column string) (string, error) {
+	if column == "options:dst_port" {
+		return fmt.Sprintf("\"%s\"", fake.vxlanPort), nil
+	}
 	return "", nil
 }
 

@@ -22,6 +22,7 @@ type ClusterNetwork struct {
 	HostSubnetLength uint32
 	ServiceNetwork   string
 	PluginName       string
+	VXLANPort        *uint32
 }
 
 type ClusterNetworkEntry struct {

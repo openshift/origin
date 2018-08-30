@@ -76,6 +76,7 @@ networkConfig:
   clusterNetworkCIDR: 10.1.0.0/16
   hostSubnetLength: 8
   networkPluginName: ""
+  vxlanPort: 4789
 oauthConfig:
   assetPublicURL: https://172.17.42.1:8443/console/
   grantConfig:

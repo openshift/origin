@@ -45,6 +45,7 @@ func ClusterNetworkListContains(clusterNetworks []ClusterNetwork, ipaddr net.IP)
 type NetworkInfo struct {
 	ClusterNetworks []ClusterNetwork
 	ServiceNetwork  *net.IPNet
+	VXLANPort       uint32
 }
 
 type ClusterNetwork struct {
@@ -52,7 +53,7 @@ type ClusterNetwork struct {
 	HostSubnetLength uint32
 }
 
-func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNetwork string) (*NetworkInfo, error) {
+func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNetwork string, vxlanPort *uint32) (*NetworkInfo, error) {
 	var cns []ClusterNetwork
 
 	for _, entry := range clusterNetwork {
@@ -76,9 +77,15 @@ func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNe
 		glog.Errorf("Configured serviceNetworkCIDR value %q is invalid; treating it as %q", serviceNetwork, sn.String())
 	}
 
+	if vxlanPort == nil {
+		tmp := uint32(4789)
+		vxlanPort = &tmp
+	}
+
 	return &NetworkInfo{
 		ClusterNetworks: cns,
 		ServiceNetwork:  sn,
+		VXLANPort:       *vxlanPort,
 	}, nil
 }
 
@@ -166,7 +173,7 @@ func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error)
 		return nil, err
 	}
 
-	return ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork)
+	return ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork, cn.VXLANPort)
 }
 
 type ResourceName string
