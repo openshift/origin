@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
 	"github.com/openshift/origin/pkg/oc/cli/image/archive"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
+	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
 
 var (
@@ -110,7 +111,7 @@ func NewOptions(streams genericclioptions.IOStreams) *Options {
 		Paths: []string{"/:."},
 
 		IOStreams:      streams,
-		MaxPerRegistry: 3,
+		MaxPerRegistry: 1,
 	}
 }
 
@@ -138,8 +139,6 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	flag.StringSliceVar(&o.Paths, "path", o.Paths, "Extract only part of an image. Must be SRC:DST where SRC is the path within the image and DST a local directory. If not specified the default is to extract everything to the current directory.")
 	flag.BoolVar(&o.OnlyFiles, "only-files", o.OnlyFiles, "Only extract regular files and directories from the image.")
 
-	flag.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent requests allowed per registry.")
-
 	return cmd
 }
 
@@ -148,13 +147,20 @@ type LayerFilter interface {
 }
 
 type Mapping struct {
-	Image    string
+	// Name is provided for caller convenience for associating image callback metadata with a mapping
+	Name string
+	// Image is the raw input image to extract
+	Image string
+	// ImageRef is the parsed version of the raw input image
 	ImageRef imagereference.DockerImageReference
-
+	// LayerFilter can select which images to load
 	LayerFilter LayerFilter
-
+	// From is the directory or file in the image to extract
 	From string
-	To   string
+	// To is the directory to extract the contents of the directory or the named file into.
+	To string
+	// ConditionFn is invoked before extracting the content and allows the set of images to be filtered.
+	ConditionFn func(m *Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error)
 }
 
 func parseMappings(images, paths []string) ([]Mapping, error) {
@@ -249,89 +255,106 @@ func (o *Options) Run() error {
 	ctx := context.Background()
 	fromContext := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
 
-	for _, mapping := range o.Mappings {
-		from := mapping.ImageRef
-
-		repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.Insecure)
-		if err != nil {
-			return err
-		}
-
-		srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, from, repo, o.FilterOptions.Include)
-		if err != nil {
-			return fmt.Errorf("unable to read image %s: %v", from, err)
-		}
-
-		imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), location)
-		if err != nil {
-			return fmt.Errorf("unable to parse image %s: %v", from, err)
-		}
-
-		var alter alterations
-		if o.OnlyFiles {
-			alter = append(alter, filesOnly{})
-		}
-		if len(mapping.From) > 0 {
-			switch {
-			case strings.HasSuffix(mapping.From, "/"):
-				alter = append(alter, newCopyFromDirectory(mapping.From))
-			default:
-				name, parent := path.Base(mapping.From), path.Dir(mapping.From)
-				if name == "." || parent == "." {
-					return fmt.Errorf("unexpected directory from mapping %s", mapping.From)
-				}
-				alter = append(alter, newCopyFromPattern(parent, name))
-			}
-		}
-
-		filteredLayers := layers
-		if mapping.LayerFilter != nil {
-			filteredLayers, err = mapping.LayerFilter.Filter(filteredLayers)
-			if err != nil {
-				return fmt.Errorf("unable to filter layers for %s: %v", from, err)
-			}
-		}
-
-		for i := range filteredLayers {
-			layer := &filteredLayers[i]
-
-			err := func() error {
-				fromBlobs := repo.Blobs(ctx)
-
-				glog.V(5).Infof("Extracting from layer: %#v", layer)
-
-				// source
-				r, err := fromBlobs.Open(ctx, layer.Digest)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	q := workqueue.New(o.MaxPerRegistry, stopCh)
+	return q.Try(func(q workqueue.Try) {
+		for _, mapping := range o.Mappings {
+			from := mapping.ImageRef
+			q.Try(func() error {
+				repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.Insecure)
 				if err != nil {
-					return fmt.Errorf("unable to access the source layer %s: %v", layer.Digest, err)
-				}
-				defer r.Close()
-
-				options := &archive.TarOptions{
-					AlterHeaders: alter,
-					Chown:        preserveOwnership,
-				}
-
-				if o.DryRun {
-					return printLayer(os.Stdout, r, mapping.To, options)
-				}
-
-				glog.V(4).Infof("Extracting layer %s with options %#v", layer.Digest, options)
-				if _, err := archive.ApplyLayer(mapping.To, r, options); err != nil {
 					return err
 				}
-				return nil
-			}()
-			if err != nil {
-				return err
-			}
-		}
 
-		if o.ImageMetadataCallback != nil {
-			o.ImageMetadataCallback(&mapping, srcDigest, imageConfig)
+				srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, from, repo, o.FilterOptions.Include)
+				if err != nil {
+					return fmt.Errorf("unable to read image %s: %v", from, err)
+				}
+
+				imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), location)
+				if err != nil {
+					return fmt.Errorf("unable to parse image %s: %v", from, err)
+				}
+
+				if mapping.ConditionFn != nil {
+					ok, err := mapping.ConditionFn(&mapping, srcDigest, imageConfig)
+					if err != nil {
+						return fmt.Errorf("unable to check whether to include image %s: %v", from, err)
+					}
+					if !ok {
+						glog.V(2).Infof("Filtered out image %s with digest %s from being extracted", from, srcDigest)
+						return nil
+					}
+				}
+
+				var alter alterations
+				if o.OnlyFiles {
+					alter = append(alter, filesOnly{})
+				}
+				if len(mapping.From) > 0 {
+					switch {
+					case strings.HasSuffix(mapping.From, "/"):
+						alter = append(alter, newCopyFromDirectory(mapping.From))
+					default:
+						name, parent := path.Base(mapping.From), path.Dir(mapping.From)
+						if name == "." || parent == "." {
+							return fmt.Errorf("unexpected directory from mapping %s", mapping.From)
+						}
+						alter = append(alter, newCopyFromPattern(parent, name))
+					}
+				}
+
+				filteredLayers := layers
+				if mapping.LayerFilter != nil {
+					filteredLayers, err = mapping.LayerFilter.Filter(filteredLayers)
+					if err != nil {
+						return fmt.Errorf("unable to filter layers for %s: %v", from, err)
+					}
+				}
+
+				for i := range filteredLayers {
+					layer := &filteredLayers[i]
+
+					err := func() error {
+						fromBlobs := repo.Blobs(ctx)
+
+						glog.V(5).Infof("Extracting from layer: %#v", layer)
+
+						// source
+						r, err := fromBlobs.Open(ctx, layer.Digest)
+						if err != nil {
+							return fmt.Errorf("unable to access the source layer %s: %v", layer.Digest, err)
+						}
+						defer r.Close()
+
+						options := &archive.TarOptions{
+							AlterHeaders: alter,
+							Chown:        preserveOwnership,
+						}
+
+						if o.DryRun {
+							return printLayer(os.Stdout, r, mapping.To, options)
+						}
+
+						glog.V(4).Infof("Extracting layer %s with options %#v", layer.Digest, options)
+						if _, err := archive.ApplyLayer(mapping.To, r, options); err != nil {
+							return err
+						}
+						return nil
+					}()
+					if err != nil {
+						return err
+					}
+				}
+
+				if o.ImageMetadataCallback != nil {
+					o.ImageMetadataCallback(&mapping, srcDigest, imageConfig)
+				}
+				return nil
+			})
 		}
-	}
-	return nil
+	})
 }
 
 func printLayer(w io.Writer, r io.Reader, path string, options *archive.TarOptions) error {
