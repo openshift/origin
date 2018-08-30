@@ -1,5 +1,5 @@
-hash: b325e53c9a66f0683984f734790e4fed557a747b712fb06ec6b560ad6049540d
-updated: 2018-01-10T10:35:41.333126-05:00
+hash: 1cdf4cb1830808a30d331a6ee27d42d0fcfd13f6b5cc4674d0505ff9179940da
+updated: 2018-08-30T09:28:49.851655925-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -61,7 +61,6 @@ imports:
   - service/ecr
   - service/elb
   - service/kms
-  - service/route53
   - service/s3
   - service/s3/s3iface
   - service/s3/s3manager
@@ -387,7 +386,7 @@ imports:
   subpackages:
   - log
 - name: github.com/emicklei/go-restful-swagger12
-  version: 885875a92c2ab7d6222e257e41f6ca2c1f010b4e
+  version: 5e28dc7157ebd9247a268c26dd1bee7818aa33f7
   repo: https://github.com/openshift/emicklei-go-restful-swagger12
 - name: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
@@ -661,7 +660,6 @@ imports:
   version: e47cf1f2e83a02443d7115c54f838be8ee959644
   subpackages:
   - client
-  - client/v2
   - models
   - pkg/escape
 - name: github.com/jmespath/go-jmespath
@@ -777,8 +775,6 @@ imports:
   version: d59fa0ac68bb5dd932ee8d24eed631cdd519efc3
   subpackages:
   - format
-  - gstruct
-  - gstruct/errors
   - internal/assertion
   - internal/asyncassertion
   - internal/oraclematcher
@@ -825,7 +821,8 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: e9879b89dfe3162e9e36d0288d9179135c3ab7ec
+  version: 3e03ff51f7f1e00e24cb9f73f15ef5f9c55f8c31
+  repo: https://github.com/JacobTanenbaum/api.git
   subpackages:
   - apps/v1
   - authorization/v1
@@ -1002,7 +999,7 @@ imports:
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skynetservices/skydns
-  version: 30763c4e568fe411f1663af553c063cec8879929
+  version: 775ef406696380ce92b76e72421e86b6868905d8
   repo: https://github.com/openshift/skynetservices-skydns
   subpackages:
   - cache
@@ -1019,8 +1016,6 @@ imports:
   version: e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63
 - name: github.com/spf13/cobra
   version: f62e98d28ab7ad31d707ba837a966378465c7b57
-  subpackages:
-  - doc
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
@@ -1187,13 +1182,9 @@ imports:
   - compute/v0.beta
   - compute/v1
   - container/v1
-  - dns/v1
   - gensupport
   - googleapi
   - googleapi/internal/uritemplates
-  - logging/v2beta1
-  - monitoring/v3
-  - pubsub/v1
 - name: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
   subpackages:
