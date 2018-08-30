@@ -689,8 +689,6 @@ func (p *glusterfsVolumeProvisioner) Provision() (*v1.PersistentVolume, error) {
 	}
 	p.provisionerConfig = *cfg
 
-	glog.V(4).Infof("creating volume with configuration %+v", p.provisionerConfig)
-
 	gidTable, err := p.plugin.getGidTable(scName, cfg.gidMin, cfg.gidMax)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get gidTable: %v", err)
@@ -1120,7 +1118,7 @@ func (plugin *glusterfsPlugin) ExpandVolumeDevice(spec *volume.Spec, newSize res
 		return oldSize, err
 	}
 
-	glog.V(4).Infof("expanding volume: %q with configuration: %+v", volumeID, cfg)
+	glog.V(4).Infof("expanding volume: %q", volumeID)
 
 	//Create REST server connection
 	cli := gcli.NewClient(cfg.url, cfg.user, cfg.secretValue)
