@@ -9886,7 +9886,7 @@ items:
       app: serving-cert
   spec:
     containers:
-    - image: nginx:latest
+    - image: nginx:1.15.3
       name: serve
       command:
         - /usr/sbin/nginx
@@ -10312,7 +10312,7 @@ objects:
       app: secure-endpoint
   spec:
     containers:
-    - image: nginx:latest
+    - image: nginx:1.15.3
       name: serve
       command:
         - /usr/sbin/nginx
