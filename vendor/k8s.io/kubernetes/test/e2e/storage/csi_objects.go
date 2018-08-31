@@ -322,7 +322,7 @@ func csiHostPathPod(
 					Name: "socket-dir",
 					VolumeSource: v1.VolumeSource{
 						HostPath: &v1.HostPathVolumeSource{
-							Path: "/var/lib/kubelet/plugins/csi-hostpath",
+							Path: "/tmp/var/lib/kubelet/plugins/csi-hostpath",
 							Type: &hostPathType,
 						},
 					},
@@ -331,7 +331,7 @@ func csiHostPathPod(
 					Name: "mountpoint-dir",
 					VolumeSource: v1.VolumeSource{
 						HostPath: &v1.HostPathVolumeSource{
-							Path: "/var/lib/kubelet/pods",
+							Path: "/tmp/var/lib/kubelet/pods",
 							Type: &hostPathType,
 						},
 					},
