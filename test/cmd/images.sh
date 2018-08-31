@@ -136,6 +136,7 @@ os::cmd::expect_success 'oc describe istag/mysql:latest'
 os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Environment:'
 os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Image Created:'
 os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Image Name:'
+os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Layers:'
 name=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
 imagename="isimage/mysql@${name:0:15}"
 os::cmd::expect_success "oc describe ${imagename}"
