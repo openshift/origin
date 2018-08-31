@@ -5,24 +5,21 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
 
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -57,15 +54,6 @@ func bold(v interface{}) string {
 	return "\033[1m" + toString(v) + "\033[0m"
 }
 
-// DEPRECATED:
-func convertEnvInternal(env []api.EnvVar) map[string]string {
-	result := make(map[string]string, len(env))
-	for _, e := range env {
-		result[e.Name] = toString(e.Value)
-	}
-	return result
-}
-
 func convertEnv(env []corev1.EnvVar) map[string]string {
 	result := make(map[string]string, len(env))
 	for _, e := range env {
@@ -74,7 +62,7 @@ func convertEnv(env []corev1.EnvVar) map[string]string {
 	return result
 }
 
-func formatEnv(env api.EnvVar) string {
+func formatEnv(env corev1.EnvVar) string {
 	if env.ValueFrom != nil && env.ValueFrom.FieldRef != nil {
 		return fmt.Sprintf("%s=<%s>", env.Name, env.ValueFrom.FieldRef.FieldPath)
 	}
@@ -177,15 +165,15 @@ type DescribeWebhook struct {
 
 // webhookDescribe returns a map of webhook trigger types and its corresponding
 // information.
-func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace string, c rest.Interface) map[string][]DescribeWebhook {
+func webHooksDescribe(triggers []buildv1.BuildTriggerPolicy, name, namespace string, c rest.Interface) map[string][]DescribeWebhook {
 	result := map[string][]DescribeWebhook{}
 
 	for _, trigger := range triggers {
 		var allowEnv *bool
 
 		switch trigger.Type {
-		case buildapi.GitHubWebHookBuildTriggerType, buildapi.GitLabWebHookBuildTriggerType, buildapi.BitbucketWebHookBuildTriggerType:
-		case buildapi.GenericWebHookBuildTriggerType:
+		case buildv1.GitHubWebHookBuildTriggerType, buildv1.GitLabWebHookBuildTriggerType, buildv1.BitbucketWebHookBuildTriggerType:
+		case buildv1.GenericWebHookBuildTriggerType:
 			allowEnv = &trigger.GenericWebHook.AllowEnv
 
 		default:
@@ -195,15 +183,7 @@ func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace st
 
 		var urlStr string
 		webhookClient := buildmanualclient.NewWebhookURLClient(c, namespace)
-
-		triggerExternal := &buildv1.BuildTriggerPolicy{}
-
-		if err := legacyscheme.Scheme.Convert(&trigger, triggerExternal, nil); err != nil {
-			// TODO: report error?
-			continue
-		}
-
-		u, err := webhookClient.WebHookURL(name, triggerExternal)
+		u, err := webhookClient.WebHookURL(name, &trigger)
 		if err != nil {
 			urlStr = fmt.Sprintf("<error: %s>", err.Error())
 		} else {
@@ -219,18 +199,6 @@ func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace st
 	}
 
 	return result
-}
-
-var reLongImageID = regexp.MustCompile(`[a-f0-9]{60,}$`)
-
-// shortenImagePullSpec returns a version of the pull spec intended for
-// display, which may result in the image not being usable via cut-and-paste
-// for users.
-func shortenImagePullSpec(spec string) string {
-	if reLongImageID.MatchString(spec) {
-		return spec[:len(spec)-50]
-	}
-	return spec
 }
 
 func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) {

@@ -5,6 +5,9 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
+// PredicateFunc is testing an argument and decides does it meet some criteria or not.
+type PredicateFunc func(interface{}) bool
+
 // FilterBuilds returns array of builds that satisfies predicate function.
 func FilterBuilds(builds []buildv1.Build, predicate PredicateFunc) []buildv1.Build {
 	if len(builds) == 0 {
