@@ -143,6 +143,13 @@ func (o *AppendImageOptions) Complete(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, arg := range args {
+		if arg == "-" {
+			if o.LayerStream != nil {
+				return fmt.Errorf("you may only specify '-' as an argument one time")
+			}
+			o.LayerStream = o.In
+			continue
+		}
 		fi, err := os.Stat(arg)
 		if err != nil {
 			return fmt.Errorf("invalid argument: %s", err)
@@ -150,8 +157,8 @@ func (o *AppendImageOptions) Complete(cmd *cobra.Command, args []string) error {
 		if fi.IsDir() {
 			return fmt.Errorf("invalid argument: %s is a directory", arg)
 		}
+		o.LayerFiles = append(o.LayerFiles, arg)
 	}
-	o.LayerFiles = args
 
 	return nil
 }
@@ -270,6 +277,11 @@ func (o *AppendImageOptions) Run() error {
 		if err := json.Unmarshal([]byte(o.MetaPatch), base); err != nil {
 			return fmt.Errorf("unable to patch image from --meta: %v", err)
 		}
+	}
+
+	if glog.V(4) {
+		configJSON, _ := json.MarshalIndent(base, "", "  ")
+		glog.Infof("output config:\n%s", configJSON)
 	}
 
 	numLayers := len(layers)
