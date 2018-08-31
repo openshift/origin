@@ -15,9 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -42,7 +42,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			return false, err
 		}
 
-		build, err := cli.InternalBuildClient().Build().Builds(cli.Namespace()).Get("cakephp-mysql-example-1", metav1.GetOptions{})
+		build, err := cli.BuildClient().Build().Builds(cli.Namespace()).Get("cakephp-mysql-example-1", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil
@@ -60,10 +60,10 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 		// if the instantiation has settled, quit
 		switch build.Status.Phase {
-		case buildapi.BuildPhaseCancelled, buildapi.BuildPhaseError, buildapi.BuildPhaseFailed:
+		case buildv1.BuildPhaseCancelled, buildv1.BuildPhaseError, buildv1.BuildPhaseFailed:
 			return true, nil
 
-		case buildapi.BuildPhaseComplete:
+		case buildv1.BuildPhaseComplete:
 			var progressing, available *appsv1.DeploymentCondition
 			for i, condition := range dc.Status.Conditions {
 				switch condition.Type {

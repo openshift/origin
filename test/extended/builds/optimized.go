@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -18,7 +18,7 @@ var _ = g.Describe("[Feature:Builds] Optimized image builds", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc             = exutil.NewCLI("build-dockerfile-env", exutil.KubeConfigPath())
-		skipLayers     = buildapi.ImageOptimizationSkipLayers
+		skipLayers     = buildv1.ImageOptimizationSkipLayers
 		testDockerfile = `
 FROM centos:7
 RUN yum list installed
@@ -50,17 +50,17 @@ USER 1001
 
 		g.It("should succeed [Conformance]", func() {
 			g.By("creating a build directly")
-			build, err := oc.AdminBuildClient().Build().Builds(oc.Namespace()).Create(&buildapi.Build{
+			build, err := oc.AdminBuildClient().Build().Builds(oc.Namespace()).Create(&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "optimized",
 				},
-				Spec: buildapi.BuildSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Source: buildapi.BuildSource{
+				Spec: buildv1.BuildSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Source: buildv1.BuildSource{
 							Dockerfile: &testDockerfile,
 						},
-						Strategy: buildapi.BuildStrategy{
-							DockerStrategy: &buildapi.DockerBuildStrategy{
+						Strategy: buildv1.BuildStrategy{
+							DockerStrategy: &buildv1.DockerBuildStrategy{
 								ImageOptimizationPolicy: &skipLayers,
 							},
 						},

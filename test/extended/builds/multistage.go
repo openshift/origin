@@ -9,10 +9,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	core "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -48,23 +47,23 @@ COPY --from=test /usr/bin/curl /test/
 
 		g.It("should succeed [Conformance]", func() {
 			g.By("creating a build directly")
-			build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Create(&buildapi.Build{
+			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Create(&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "multi-stage",
 				},
-				Spec: buildapi.BuildSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Source: buildapi.BuildSource{
+				Spec: buildv1.BuildSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Source: buildv1.BuildSource{
 							Dockerfile: &testDockerfile,
-							Images: []buildapi.ImageSource{
-								{From: core.ObjectReference{Kind: "DockerImage", Name: "centos:7"}, As: []string{"scratch"}},
+							Images: []buildv1.ImageSource{
+								{From: corev1.ObjectReference{Kind: "DockerImage", Name: "centos:7"}, As: []string{"scratch"}},
 							},
 						},
-						Strategy: buildapi.BuildStrategy{
-							DockerStrategy: &buildapi.DockerBuildStrategy{},
+						Strategy: buildv1.BuildStrategy{
+							DockerStrategy: &buildv1.DockerBuildStrategy{},
 						},
-						Output: buildapi.BuildOutput{
-							To: &core.ObjectReference{
+						Output: buildv1.BuildOutput{
+							To: &corev1.ObjectReference{
 								Kind: "DockerImage",
 								Name: fmt.Sprintf("docker-registry.default.svc:5000/%s/multi-stage:v1", oc.Namespace()),
 							},

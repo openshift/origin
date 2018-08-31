@@ -4,6 +4,12 @@ package util
 
 var (
 	WhitelistEnvVarNames = []string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
+
+	// DefaultSuccessfulBuildsHistoryLimit is the default number of successful builds to retain
+	DefaultSuccessfulBuildsHistoryLimit = int32(5)
+
+	// DefaultFailedBuildsHistoryLimit is the default number of failed builds to retain
+	DefaultFailedBuildsHistoryLimit = int32(5)
 )
 
 const (
@@ -94,6 +100,7 @@ const (
 	StatusMessageOutOfMemoryKilled               = "The build pod was killed due to an out of memory condition."
 	StatusMessageUnresolvableEnvironmentVariable = "Unable to resolve build environment variable reference."
 	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account secrets for this build."
+	StatusMessagePostCommitHookFailed            = "Build failed because of post commit hook."
 )
 
 const (

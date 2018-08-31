@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-
 	"net/url"
 	"os"
 	"regexp"
@@ -14,12 +13,12 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	exurl "github.com/openshift/origin/test/extended/util/url"
 )
@@ -320,12 +319,12 @@ func (j *JenkinsRef) GetJobConsoleLogsAndMatchViaBuildResult(br *exutil.BuildRes
 			return "", fmt.Errorf("BuildResult oc should have been set up during BuildResult construction")
 		}
 		var err error // interestingly, removing this line and using := on the next got a compile error
-		br.Build, err = br.Oc.InternalBuildClient().Build().Builds(br.Oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+		br.Build, err = br.Oc.BuildClient().Build().Builds(br.Oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
 	}
-	bldURI := br.Build.Annotations[buildapi.BuildJenkinsLogURLAnnotation]
+	bldURI := br.Build.Annotations[buildutil.BuildJenkinsLogURLAnnotation]
 	if len(bldURI) > 0 {
 		// need to strip the route host...WaitForContent will prepend the svc ip:port we need to use in ext tests
 		url, err := url.Parse(bldURI)
@@ -344,7 +343,7 @@ func (j *JenkinsRef) GetLastJobConsoleLogs(jobName string) (string, error) {
 }
 
 // Finds the pod running Jenkins
-func FindJenkinsPod(oc *exutil.CLI) *kapiv1.Pod {
+func FindJenkinsPod(oc *exutil.CLI) *corev1.Pod {
 	pods, err := exutil.GetApplicationPods(oc, "jenkins")
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
@@ -393,7 +392,7 @@ func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, 
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for build to finish")
-		err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), snapshotImageStream+"-1", exutil.CheckBuildSuccess, exutil.CheckBuildFailed, exutil.CheckBuildCancelled)
+		err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), snapshotImageStream+"-1", exutil.CheckBuildSuccess, exutil.CheckBuildFailed, exutil.CheckBuildCancelled)
 		if err != nil {
 			exutil.DumpBuildLogs(snapshotImageStream, oc)
 		}
@@ -414,26 +413,26 @@ func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, 
 }
 
 func ProcessLogURLAnnotations(oc *exutil.CLI, t *exutil.BuildResult) (*url.URL, error) {
-	if len(t.Build.Annotations[buildapi.BuildJenkinsLogURLAnnotation]) == 0 {
+	if len(t.Build.Annotations[buildutil.BuildJenkinsLogURLAnnotation]) == 0 {
 		return nil, fmt.Errorf("build %s does not contain a Jenkins URL annotation", t.BuildName)
 	}
-	jenkinsLogURL, err := url.Parse(t.Build.Annotations[buildapi.BuildJenkinsLogURLAnnotation])
+	jenkinsLogURL, err := url.Parse(t.Build.Annotations[buildutil.BuildJenkinsLogURLAnnotation])
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse jenkins log URL (%s): %v", t.Build.Annotations[buildapi.BuildJenkinsLogURLAnnotation], err)
+		return nil, fmt.Errorf("cannot parse jenkins log URL (%s): %v", t.Build.Annotations[buildutil.BuildJenkinsLogURLAnnotation], err)
 	}
-	if len(t.Build.Annotations[buildapi.BuildJenkinsConsoleLogURLAnnotation]) == 0 {
+	if len(t.Build.Annotations[buildutil.BuildJenkinsConsoleLogURLAnnotation]) == 0 {
 		return nil, fmt.Errorf("build %s does not contain a Jenkins Console URL annotation", t.BuildName)
 	}
-	_, err = url.Parse(t.Build.Annotations[buildapi.BuildJenkinsConsoleLogURLAnnotation])
+	_, err = url.Parse(t.Build.Annotations[buildutil.BuildJenkinsConsoleLogURLAnnotation])
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse jenkins console log URL (%s): %v", t.Build.Annotations[buildapi.BuildJenkinsConsoleLogURLAnnotation], err)
+		return nil, fmt.Errorf("cannot parse jenkins console log URL (%s): %v", t.Build.Annotations[buildutil.BuildJenkinsConsoleLogURLAnnotation], err)
 	}
-	if len(t.Build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation]) == 0 {
+	if len(t.Build.Annotations[buildutil.BuildJenkinsBlueOceanLogURLAnnotation]) == 0 {
 		return nil, fmt.Errorf("build %s does not contain a Jenkins BlueOcean URL annotation", t.BuildName)
 	}
-	_, err = url.Parse(t.Build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation])
+	_, err = url.Parse(t.Build.Annotations[buildutil.BuildJenkinsBlueOceanLogURLAnnotation])
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse jenkins log blueocean URL (%s): %v", t.Build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation], err)
+		return nil, fmt.Errorf("cannot parse jenkins log blueocean URL (%s): %v", t.Build.Annotations[buildutil.BuildJenkinsBlueOceanLogURLAnnotation], err)
 	}
 	return jenkinsLogURL, nil
 }
@@ -441,7 +440,7 @@ func ProcessLogURLAnnotations(oc *exutil.CLI, t *exutil.BuildResult) (*url.URL, 
 func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 	var err error
 	if t.Build == nil {
-		t.Build, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(t.BuildName, metav1.GetOptions{})
+		t.Build, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(t.BuildName, metav1.GetOptions{})
 		if err != nil {
 			return "", fmt.Errorf("cannot retrieve build %s: %v", t.BuildName, err)
 		}

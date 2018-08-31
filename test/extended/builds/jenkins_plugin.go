@@ -13,10 +13,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -43,14 +42,14 @@ func loadFixture(oc *exutil.CLI, filename string) {
 
 func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]string) {
 
-	buildList, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+	buildList, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Ensure that expected start-build environment variables were injected
 	for _, build := range buildList.Items {
 		e2e.Logf("Found build: %q", build.GetName())
 		if strings.HasPrefix(build.GetName(), buildPrefix) {
-			envs := []kapi.EnvVar{}
+			envs := []corev1.EnvVar{}
 			if build.Spec.Strategy.DockerStrategy != nil && build.Spec.Strategy.DockerStrategy.Env != nil {
 				envs = build.Spec.Strategy.DockerStrategy.Env
 			} else if build.Spec.Strategy.SourceStrategy != nil && build.Spec.Strategy.SourceStrategy.Env != nil {
@@ -75,11 +74,11 @@ func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]str
 }
 
 // Stands up a simple pod which can be used for exec commands
-func initExecPod(oc *exutil.CLI) *kapiv1.Pod {
+func initExecPod(oc *exutil.CLI) *corev1.Pod {
 	// Create a running pod in which we can execute our commands
 	oc.Run("run").Args("centos", "--image", "centos:7", "--command", "--", "sleep", "1800").Execute()
 
-	var targetPod *kapiv1.Pod
+	var targetPod *corev1.Pod
 	err := wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
 		pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{})
 		o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
@@ -389,7 +388,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 
 			g.It("jenkins-plugin test trigger build DSL", func() {
 
-				buildsBefore, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				buildsBefore, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				data, err := j.BuildDSLJob(oc.Namespace(),
@@ -412,12 +411,12 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-					buildsAfter, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					buildsAfter, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					return (len(buildsAfter.Items) != len(buildsBefore.Items)), nil
 				})
 
-				buildsAfter, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				buildsAfter, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(buildsAfter.Items)).To(o.Equal(len(buildsBefore.Items) + 1))
 

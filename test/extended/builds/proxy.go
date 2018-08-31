@@ -7,7 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -61,7 +61,7 @@ var _ = g.Describe("[Feature:Builds][Slow] the s2i build should support proxies"
 				o.Expect(buildLog).To(o.ContainSubstring(`unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to 127.0.0.1:3128`))
 
 				g.By("verifying the build sample-build-1 status")
-				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseFailed))
+				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildv1.BuildPhaseFailed))
 			})
 		})
 

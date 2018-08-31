@@ -12,7 +12,9 @@ import (
 
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	builderutil "github.com/openshift/origin/pkg/build/builder/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -21,7 +23,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 
 	var (
 		// convert the s2i failure cases to our own StatusReason
-		reasonAssembleFailed  = buildapi.StatusReason(s2istatus.ReasonAssembleFailed)
+		reasonAssembleFailed  = buildv1.StatusReason(s2istatus.ReasonAssembleFailed)
 		messageAssembleFailed = string(s2istatus.ReasonMessageAssembleFailed)
 		postCommitHookFixture = exutil.FixturePath("testdata", "builds", "statusfail-postcommithook.yaml")
 		fetchDockerSrc        = exutil.FixturePath("testdata", "builds", "statusfail-fetchsourcedocker.yaml")
@@ -68,18 +70,18 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPostCommitHookFailed))
-				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePostCommitHookFailed))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonPostCommitHookFailed))
+				o.Expect(build.Status.Message).To(o.Equal(buildutil.StatusMessagePostCommitHookFailed))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 
 				// wait for the build to be updated w/ completiontimestamp which should also mean the logsnippet
 				// is set if one is going to be set.
 				err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
 					// note this is the same build variable used in the test scope
-					build, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+					build, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 					if err != nil {
 						return true, err
 					}
@@ -103,12 +105,12 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
-				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonFetchSourceFailed))
+				o.Expect(build.Status.Message).To(o.Equal(builderutil.StatusMessageFetchSourceFailed))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
 		})
 
@@ -122,12 +124,12 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
-				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonFetchSourceFailed))
+				o.Expect(build.Status.Message).To(o.Equal(builderutil.StatusMessageFetchSourceFailed))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
 		})
 
@@ -141,19 +143,19 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				var build *buildapi.Build
+				var build *buildv1.Build
 				wait.PollImmediate(200*time.Millisecond, 30*time.Second, func() (bool, error) {
-					build, err = oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
-					if build.Status.Reason != buildapi.StatusReasonOutOfMemoryKilled {
+					build, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+					if build.Status.Reason != buildv1.StatusReasonOutOfMemoryKilled {
 						return false, nil
 					}
 					return true, nil
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonOutOfMemoryKilled))
-				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageOutOfMemoryKilled))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonOutOfMemoryKilled))
+				o.Expect(build.Status.Message).To(o.Equal(buildutil.StatusMessageOutOfMemoryKilled))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
 		})
 
@@ -167,12 +169,12 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonInvalidContextDirectory))
-				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageInvalidContextDirectory))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonInvalidContextDirectory))
+				o.Expect(build.Status.Message).To(o.Equal(builderutil.StatusMessageInvalidContextDirectory))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
 		})
 
@@ -186,12 +188,12 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPullBuilderImageFailed))
-				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePullBuilderImageFailed))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonPullBuilderImageFailed))
+				o.Expect(build.Status.Message).To(o.Equal(builderutil.StatusMessagePullBuilderImageFailed))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
 		})
 
@@ -205,12 +207,12 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPushImageToRegistryFailed))
-				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePushImageToRegistryFailed))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonPushImageToRegistryFailed))
+				o.Expect(build.Status.Message).To(o.Equal(builderutil.StatusMessagePushImageToRegistryFailed))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
 		})
 
@@ -224,12 +226,12 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(reasonAssembleFailed))
 				o.Expect(build.Status.Message).To(o.Equal(messageAssembleFailed))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
 		})
 
@@ -243,12 +245,12 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
-				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonGenericBuildFailed))
-				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageGenericBuildFailed))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonGenericBuildFailed))
+				o.Expect(build.Status.Message).To(o.Equal(builderutil.StatusMessageGenericBuildFailed))
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
 		})
 	})
