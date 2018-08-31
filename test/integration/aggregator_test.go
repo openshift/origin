@@ -80,7 +80,7 @@ func TestAggregator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

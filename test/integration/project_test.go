@@ -9,6 +9,7 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,12 +19,13 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -46,7 +48,7 @@ func TestProjectIsNamespace(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminProjectClient := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project()
-	kubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -117,9 +119,9 @@ func TestProjectLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build()
+	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -138,36 +140,36 @@ func TestProjectLifecycle(t *testing.T) {
 		t.Errorf("Expected an error on creation of a Kubernetes resource because namespace does not exist")
 	}
 
-	build := &buildapi.Build{
+	build := &buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "buildid",
 			Namespace: "test",
 			Labels: map[string]string{
-				buildapi.BuildConfigLabel:    "mock-build-config",
-				buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+				buildutil.BuildConfigLabel:    "mock-build-config",
+				buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 			},
 		},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
+		Spec: buildv1.BuildSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Source: buildv1.BuildSource{
+					Git: &buildv1.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
 					ContextDir: "context",
 				},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				Strategy: buildv1.BuildStrategy{
+					DockerStrategy: &buildv1.DockerBuildStrategy{},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "repository/data",
 					},
 				},
 			},
 		},
-		Status: buildapi.BuildStatus{
-			Phase: buildapi.BuildPhaseNew,
+		Status: buildv1.BuildStatus{
+			Phase: buildv1.BuildPhaseNew,
 		},
 	}
 

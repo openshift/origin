@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -40,13 +41,22 @@ func KubeConfigPath() string {
 	return filepath.Join(GetBaseDir(), "openshift.local.config", "master", "admin.kubeconfig")
 }
 
-func GetClusterAdminKubeClient(adminKubeConfigFile string) (kclientset.Interface, error) {
+func GetClusterAdminKubeInternalClient(adminKubeConfigFile string) (kclientset.Interface, error) {
 	clientConfig, err := GetClusterAdminClientConfig(adminKubeConfigFile)
 	if err != nil {
 		return nil, err
 	}
 
 	return kclientset.NewForConfig(clientConfig)
+}
+
+func GetClusterAdminKubeClient(adminKubeConfigFile string) (kubernetes.Interface, error) {
+	clientConfig, err := GetClusterAdminClientConfig(adminKubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return kubernetes.NewForConfig(clientConfig)
 }
 
 func GetClusterAdminClientConfig(adminKubeConfigFile string) (*restclient.Config, error) {

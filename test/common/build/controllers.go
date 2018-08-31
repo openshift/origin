@@ -8,19 +8,19 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	testutil "github.com/openshift/origin/test/util"
 )
 
@@ -59,30 +59,30 @@ type testingT interface {
 	Skipped() bool
 }
 
-func mockBuild() *buildapi.Build {
-	return &buildapi.Build{
+func mockBuild() *buildv1.Build {
+	return &buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "mock-build",
 			Labels: map[string]string{
-				"label1":                     "value1",
-				"label2":                     "value2",
-				buildapi.BuildConfigLabel:    "mock-build-config",
-				buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+				"label1":                      "value1",
+				"label2":                      "value2",
+				buildutil.BuildConfigLabel:    "mock-build-config",
+				buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 			},
 		},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
+		Spec: buildv1.BuildSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Source: buildv1.BuildSource{
+					Git: &buildv1.GitBuildSource{
 						URI: "http://my.docker/build",
 					},
 					ContextDir: "context",
 				},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				Strategy: buildv1.BuildStrategy{
+					DockerStrategy: &buildv1.DockerBuildStrategy{},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "namespace/builtimage",
 					},
@@ -92,7 +92,7 @@ func mockBuild() *buildapi.Build {
 	}
 }
 
-func RunBuildControllerTest(t testingT, buildClient buildtypedclient.BuildsGetter, kClientset kclientset.Interface) {
+func RunBuildControllerTest(t testingT, buildClient buildv1clienttyped.BuildsGetter, kClientset kubernetes.Interface) {
 	// Setup an error channel
 	errChan := make(chan error) // go routines will send a message on this channel if an error occurs. Once this happens the test is over
 
@@ -115,13 +115,13 @@ func RunBuildControllerTest(t testingT, buildClient buildtypedclient.BuildsGette
 			if e.Type != watchapi.Modified {
 				errChan <- fmt.Errorf("received an unexpected event of type: %s with object: %#v", e.Type, e.Object)
 			}
-			build, ok := e.Object.(*buildapi.Build)
+			build, ok := e.Object.(*buildv1.Build)
 			if !ok {
 				errChan <- fmt.Errorf("received something other than build: %#v", e.Object)
 				break
 			}
 			// If unexpected status, throw error
-			if build.Status.Phase != buildapi.BuildPhasePending && build.Status.Phase != buildapi.BuildPhaseNew {
+			if build.Status.Phase != buildv1.BuildPhasePending && build.Status.Phase != buildv1.BuildPhaseNew {
 				errChan <- fmt.Errorf("received unexpected build status: %s", build.Status.Phase)
 				break
 			}
@@ -130,8 +130,8 @@ func RunBuildControllerTest(t testingT, buildClient buildtypedclient.BuildsGette
 	}()
 
 	// Watch build pods as they are created
-	podWatch, err := kClientset.Core().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name",
-		buildinternalhelpers.GetBuildPodName(b)).String()})
+	podWatch, err := kClientset.CoreV1().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name",
+		buildutil.GetBuildPodName(b)).String()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,8 +160,8 @@ func RunBuildControllerTest(t testingT, buildClient buildtypedclient.BuildsGette
 }
 
 type buildControllerPodState struct {
-	PodPhase   kapi.PodPhase
-	BuildPhase buildapi.BuildPhase
+	PodPhase   corev1.PodPhase
+	BuildPhase buildv1.BuildPhase
 }
 
 type buildControllerPodTest struct {
@@ -169,7 +169,7 @@ type buildControllerPodTest struct {
 	States []buildControllerPodState
 }
 
-func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.BuildsGetter, kClient kclientset.Interface) {
+func RunBuildControllerPodSyncTest(t testingT, buildClient buildv1clienttyped.BuildsGetter, kClient kubernetes.Interface) {
 	ns := testutil.Namespace()
 
 	tests := []buildControllerPodTest{
@@ -177,8 +177,8 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 			Name: "running state test",
 			States: []buildControllerPodState{
 				{
-					PodPhase:   kapi.PodRunning,
-					BuildPhase: buildapi.BuildPhaseRunning,
+					PodPhase:   corev1.PodRunning,
+					BuildPhase: buildv1.BuildPhaseRunning,
 				},
 			},
 		},
@@ -186,12 +186,12 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 			Name: "build succeeded",
 			States: []buildControllerPodState{
 				{
-					PodPhase:   kapi.PodRunning,
-					BuildPhase: buildapi.BuildPhaseRunning,
+					PodPhase:   corev1.PodRunning,
+					BuildPhase: buildv1.BuildPhaseRunning,
 				},
 				{
-					PodPhase:   kapi.PodSucceeded,
-					BuildPhase: buildapi.BuildPhaseComplete,
+					PodPhase:   corev1.PodSucceeded,
+					BuildPhase: buildv1.BuildPhaseComplete,
 				},
 			},
 		},
@@ -199,20 +199,20 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 			Name: "build failed",
 			States: []buildControllerPodState{
 				{
-					PodPhase:   kapi.PodRunning,
-					BuildPhase: buildapi.BuildPhaseRunning,
+					PodPhase:   corev1.PodRunning,
+					BuildPhase: buildv1.BuildPhaseRunning,
 				},
 				{
-					PodPhase:   kapi.PodFailed,
-					BuildPhase: buildapi.BuildPhaseFailed,
+					PodPhase:   corev1.PodFailed,
+					BuildPhase: buildv1.BuildPhaseFailed,
 				},
 			},
 		},
 	}
 	for _, test := range tests {
 		// Setup communications channels
-		podReadyChan := make(chan *kapi.Pod) // Will receive a value when a build pod is ready
-		errChan := make(chan error)          // Will receive a value when an error occurs
+		podReadyChan := make(chan *corev1.Pod) // Will receive a value when a build pod is ready
+		errChan := make(chan error)            // Will receive a value when an error occurs
 
 		// Create a build
 		b, err := buildClient.Builds(ns).Create(mockBuild())
@@ -221,29 +221,29 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 		}
 
 		// Watch build pod for transition to pending
-		podWatch, err := kClient.Core().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name",
-			buildinternalhelpers.GetBuildPodName(b)).String()})
+		podWatch, err := kClient.CoreV1().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name",
+			buildutil.GetBuildPodName(b)).String()})
 		if err != nil {
 			t.Fatal(err)
 		}
 		go func() {
 			for e := range podWatch.ResultChan() {
-				pod, ok := e.Object.(*kapi.Pod)
+				pod, ok := e.Object.(*corev1.Pod)
 				if !ok {
 					t.Fatalf("%s: unexpected object received: %#v\n", test.Name, e.Object)
 				}
 				glog.Infof("pod watch event received for pod %s/%s: %v, pod phase: %v", pod.Namespace, pod.Name, e.Type, pod.Status.Phase)
-				if pod.Status.Phase == kapi.PodPending {
+				if pod.Status.Phase == corev1.PodPending {
 					podReadyChan <- pod
 					break
 				}
 			}
 		}()
 
-		var pod *kapi.Pod
+		var pod *corev1.Pod
 		select {
 		case pod = <-podReadyChan:
-			if pod.Status.Phase != kapi.PodPending {
+			if pod.Status.Phase != corev1.PodPending {
 				t.Errorf("Got wrong pod phase: %s", pod.Status.Phase)
 				podWatch.Stop()
 				continue
@@ -259,7 +259,7 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 		for _, state := range test.States {
 			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				// Update pod state and verify that corresponding build state happens accordingly
-				pod, err := kClient.Core().Pods(ns).Get(pod.Name, metav1.GetOptions{})
+				pod, err := kClient.CoreV1().Pods(ns).Get(pod.Name, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
@@ -267,19 +267,19 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 					return fmt.Errorf("another client altered the pod phase to %s: %#v", state.PodPhase, pod)
 				}
 				pod.Status.Phase = state.PodPhase
-				if pod.Status.Phase == kapi.PodSucceeded {
-					pod.Status.ContainerStatuses = []kapi.ContainerStatus{
+				if pod.Status.Phase == corev1.PodSucceeded {
+					pod.Status.ContainerStatuses = []corev1.ContainerStatus{
 						{
 							Name: "container",
-							State: kapi.ContainerState{
-								Terminated: &kapi.ContainerStateTerminated{
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
 									ExitCode: 0,
 								},
 							},
 						},
 					}
 				}
-				_, err = kClient.Core().Pods(ns).UpdateStatus(pod)
+				_, err = kClient.CoreV1().Pods(ns).UpdateStatus(pod)
 				return err
 			}); err != nil {
 				t.Fatal(err)
@@ -297,7 +297,7 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 					done := false
 					for e := range buildWatch.ResultChan() {
 						var ok bool
-						b, ok = e.Object.(*buildapi.Build)
+						b, ok = e.Object.(*buildv1.Build)
 						if !ok {
 							errChan <- fmt.Errorf("unexpected object received: %#v", e.Object)
 							return
@@ -361,7 +361,7 @@ func waitForWatch(t testingT, name string, w watchapi.Interface) *watchapi.Event
 	}
 }
 
-func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedclient.BuildInterface, clusterAdminImageClient imagetypedclient.ImageInterface) {
+func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1clienttyped.BuildV1Interface, clusterAdminImageClient imagev1clienttyped.ImageV1Interface) {
 	const (
 		tag              = "latest"
 		streamName       = "test-image-trigger-repo"
@@ -409,7 +409,7 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedcli
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild := event.Object.(*buildapi.Build)
+	newBuild := event.Object.(*buildv1.Build)
 	strategy := newBuild.Spec.Strategy
 	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:"+tag {
 		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
@@ -426,7 +426,7 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedcli
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild = event.Object.(*buildapi.Build)
+	newBuild = event.Object.(*buildv1.Build)
 	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
 	if newBuild.Spec.Output.To.Name != "test-image-trigger-repo:outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
@@ -450,7 +450,7 @@ WaitLoop:
 			break WaitLoop
 		}
 	}
-	updatedConfig := event.Object.(*buildapi.BuildConfig)
+	updatedConfig := event.Object.(*buildv1.BuildConfig)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
@@ -480,13 +480,13 @@ WaitLoop2:
 	}
 
 	// trigger a build by posting a new image
-	if _, err := clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
+	if _, err := clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(&imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testutil.Namespace(),
 			Name:      imageStream.Name,
 		},
 		Tag: tag,
-		Image: imageapi.Image{
+		Image: imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ref-2-random",
 			},
@@ -499,7 +499,7 @@ WaitLoop2:
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild = event.Object.(*buildapi.Build)
+	newBuild = event.Object.(*buildv1.Build)
 	strategy = newBuild.Spec.Strategy
 	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
@@ -515,7 +515,7 @@ WaitLoop2:
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild = event.Object.(*buildapi.Build)
+	newBuild = event.Object.(*buildv1.Build)
 	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
 	if newBuild.Spec.Output.To.Name != "test-image-trigger-repo:outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
@@ -538,13 +538,13 @@ WaitLoop3:
 			break WaitLoop3
 		}
 	}
-	updatedConfig = event.Object.(*buildapi.BuildConfig)
+	updatedConfig = event.Object.(*buildv1.BuildConfig)
 	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }
 
-func RunBuildDeleteTest(t testingT, clusterAdminClient buildtypedclient.BuildsGetter, clusterAdminKubeClientset kclientset.Interface) {
+func RunBuildDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface) {
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
@@ -556,7 +556,7 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient buildtypedclient.BuildsGe
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -567,7 +567,7 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient buildtypedclient.BuildsGe
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild := event.Object.(*buildapi.Build)
+	newBuild := event.Object.(*buildv1.Build)
 
 	// initial pod creation for build
 	event = waitForWatch(t, "build pod created", podWatch)
@@ -581,8 +581,8 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient buildtypedclient.BuildsGe
 	if e, a := watchapi.Deleted, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	pod := event.Object.(*kapi.Pod)
-	if expected := buildinternalhelpers.GetBuildPodName(newBuild); pod.Name != expected {
+	pod := event.Object.(*corev1.Pod)
+	if expected := buildutil.GetBuildPodName(newBuild); pod.Name != expected {
 		t.Fatalf("Expected pod %s to be deleted, but pod %s was deleted", expected, pod.Name)
 	}
 
@@ -608,7 +608,7 @@ func waitForWatchType(t testingT, name string, w watchapi.Interface, expect watc
 	return nil
 }
 
-func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildtypedclient.BuildsGetter, clusterAdminKubeClientset kclientset.Interface) {
+func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface) {
 
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
@@ -621,7 +621,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildtypedclien
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -632,14 +632,14 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildtypedclien
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild := event.Object.(*buildapi.Build)
+	newBuild := event.Object.(*buildv1.Build)
 	buildName := newBuild.Name
 	podName := newBuild.Name + "-build"
 
 	// initial pod creation for build
 	for {
 		event = waitForWatch(t, "build pod created", podWatch)
-		newPod := event.Object.(*kapi.Pod)
+		newPod := event.Object.(*corev1.Pod)
 		if newPod.Name == podName {
 			break
 		}
@@ -652,7 +652,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildtypedclien
 	// we just triggered
 	for {
 		event = waitForWatch(t, "build updated to pending", buildWatch)
-		newBuild = event.Object.(*buildapi.Build)
+		newBuild = event.Object.(*buildv1.Build)
 		if newBuild.Name == buildName {
 			break
 		}
@@ -660,32 +660,32 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildtypedclien
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	if newBuild.Status.Phase != buildapi.BuildPhasePending {
+	if newBuild.Status.Phase != buildv1.BuildPhasePending {
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildinternalhelpers.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
+	clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Status.Phase != buildapi.BuildPhaseError {
+	newBuild = event.Object.(*buildv1.Build)
+	if newBuild.Status.Phase != buildv1.BuildPhaseError {
 		t.Fatalf("expected build status to be marked error, but was marked %s", newBuild.Status.Phase)
 	}
 
 	foundFailed := false
 
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-		events, err := clusterAdminKubeClientset.Core().Events(testutil.Namespace()).Search(legacyscheme.Scheme, newBuild)
+		events, err := clusterAdminKubeClientset.CoreV1().Events(testutil.Namespace()).Search(legacyscheme.Scheme, newBuild)
 		if err != nil {
 			t.Fatalf("error getting build events: %v", err)
 			return false, fmt.Errorf("error getting build events: %v", err)
 		}
 		for _, event := range events.Items {
-			if event.Reason == buildapi.BuildFailedEventReason {
+			if event.Reason == buildutil.BuildFailedEventReason {
 				foundFailed = true
-				expect := fmt.Sprintf(buildapi.BuildFailedEventMessage, newBuild.Namespace, newBuild.Name)
+				expect := fmt.Sprintf(buildutil.BuildFailedEventMessage, newBuild.Namespace, newBuild.Name)
 				if event.Message != expect {
 					return false, fmt.Errorf("expected failed event message to be %s, got %s", expect, event.Message)
 				}
@@ -705,7 +705,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildtypedclien
 	}
 }
 
-func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildtypedclient.BuildsGetter, clusterAdminKubeClientset kclientset.Interface) {
+func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface) {
 
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
@@ -718,7 +718,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildtypedclie
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -729,7 +729,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildtypedclie
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild := event.Object.(*buildapi.Build)
+	newBuild := event.Object.(*buildv1.Build)
 
 	// initial pod creation for build
 	event = waitForWatch(t, "build pod created", podWatch)
@@ -742,34 +742,34 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildtypedclie
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 
-	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Status.Phase != buildapi.BuildPhasePending {
+	newBuild = event.Object.(*buildv1.Build)
+	if newBuild.Status.Phase != buildv1.BuildPhasePending {
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	newBuild.Status.Phase = buildapi.BuildPhaseComplete
+	newBuild.Status.Phase = buildv1.BuildPhaseComplete
 	clusterAdminClient.Builds(testutil.Namespace()).Update(newBuild)
 	event = waitForWatch(t, "build updated to complete", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Status.Phase != buildapi.BuildPhaseComplete {
+	newBuild = event.Object.(*buildv1.Build)
+	if newBuild.Status.Phase != buildv1.BuildPhaseComplete {
 		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildinternalhelpers.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
+	clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	time.Sleep(10 * time.Second)
 	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	if newBuild.Status.Phase != buildapi.BuildPhaseComplete {
-		t.Fatalf("build status was updated to %s after deleting pod, should have stayed as %s", newBuild.Status.Phase, buildapi.BuildPhaseComplete)
+	if newBuild.Status.Phase != buildv1.BuildPhaseComplete {
+		t.Fatalf("build status was updated to %s after deleting pod, should have stayed as %s", newBuild.Status.Phase, buildv1.BuildPhaseComplete)
 	}
 }
 
-func RunBuildConfigChangeControllerTest(t testingT, clusterAdminBuildClient buildtypedclient.BuildInterface) {
+func RunBuildConfigChangeControllerTest(t testingT, clusterAdminBuildClient buildv1clienttyped.BuildV1Interface) {
 	config := configChangeBuildConfig()
 	created, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
@@ -798,32 +798,33 @@ func RunBuildConfigChangeControllerTest(t testingT, clusterAdminBuildClient buil
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	if bc := event.Object.(*buildapi.BuildConfig); bc.Status.LastVersion == 0 {
+	if bc := event.Object.(*buildv1.BuildConfig); bc.Status.LastVersion == 0 {
 		t.Fatalf("expected build config lastversion to be greater than zero after build")
 	}
 }
 
-func configChangeBuildConfig() *buildapi.BuildConfig {
-	bc := &buildapi.BuildConfig{}
+func configChangeBuildConfig() *buildv1.BuildConfig {
+	bc := &buildv1.BuildConfig{}
 	bc.Name = "testcfgbc"
 	bc.Namespace = testutil.Namespace()
-	bc.Spec.Source.Git = &buildapi.GitBuildSource{}
+	bc.Spec.Source.Git = &buildv1.GitBuildSource{}
 	bc.Spec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
-	bc.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
-	configChangeTrigger := buildapi.BuildTriggerPolicy{Type: buildapi.ConfigChangeBuildTriggerType}
+	bc.Spec.Strategy.DockerStrategy = &buildv1.DockerBuildStrategy{}
+	configChangeTrigger := buildv1.BuildTriggerPolicy{Type: buildv1.ConfigChangeBuildTriggerType}
 	bc.Spec.Triggers = append(bc.Spec.Triggers, configChangeTrigger)
 	return bc
 }
 
-func mockImageStream2(registryHostname, tag string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
+func mockImageStream2(registryHostname, tag string) *imagev1.ImageStream {
+	return &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-image-trigger-repo"},
 
-		Spec: imageapi.ImageStreamSpec{
+		Spec: imagev1.ImageStreamSpec{
 			DockerImageRepository: registryHostname + "/openshift/test-image-trigger",
-			Tags: map[string]imageapi.TagReference{
-				tag: {
-					From: &kapi.ObjectReference{
+			Tags: []imagev1.TagReference{
+				{
+					Name: tag,
+					From: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: registryHostname + "/openshift/test-image-trigger:" + tag,
 					},
@@ -833,12 +834,12 @@ func mockImageStream2(registryHostname, tag string) *imageapi.ImageStream {
 	}
 }
 
-func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.ImageStreamMapping {
+func mockImageStreamMapping(stream, image, tag, reference string) *imagev1.ImageStreamMapping {
 	// create a mapping to an image that doesn't exist
-	return &imageapi.ImageStreamMapping{
+	return &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: stream},
 		Tag:        tag,
-		Image: imageapi.Image{
+		Image: imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: image,
 			},
@@ -847,45 +848,45 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.Imag
 	}
 }
 
-func imageChangeBuildConfig(name string, strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
-	return &buildapi.BuildConfig{
+func imageChangeBuildConfig(name string, strategy buildv1.BuildStrategy) *buildv1.BuildConfig {
+	return &buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: testutil.Namespace(),
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
-		Spec: buildapi.BuildConfigSpec{
+		Spec: buildv1.BuildConfigSpec{
 
-			RunPolicy: buildapi.BuildRunPolicyParallel,
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
+			RunPolicy: buildv1.BuildRunPolicyParallel,
+			CommonSpec: buildv1.CommonSpec{
+				Source: buildv1.BuildSource{
+					Git: &buildv1.GitBuildSource{
 						URI: "git://github.com/openshift/ruby-hello-world.git",
 					},
 					ContextDir: "contextimage",
 				},
 				Strategy: strategy,
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "test-image-trigger-repo:outputtag",
 					},
 				},
 			},
-			Triggers: []buildapi.BuildTriggerPolicy{
+			Triggers: []buildv1.BuildTriggerPolicy{
 				{
-					Type:        buildapi.ImageChangeBuildTriggerType,
-					ImageChange: &buildapi.ImageChangeTrigger{},
+					Type:        buildv1.ImageChangeBuildTriggerType,
+					ImageChange: &buildv1.ImageChangeTrigger{},
 				},
 			},
 		},
 	}
 }
 
-func stiStrategy(kind, name string) buildapi.BuildStrategy {
-	return buildapi.BuildStrategy{
-		SourceStrategy: &buildapi.SourceBuildStrategy{
-			From: kapi.ObjectReference{
+func stiStrategy(kind, name string) buildv1.BuildStrategy {
+	return buildv1.BuildStrategy{
+		SourceStrategy: &buildv1.SourceBuildStrategy{
+			From: corev1.ObjectReference{
 				Kind: kind,
 				Name: name,
 			},

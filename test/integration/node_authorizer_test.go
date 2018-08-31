@@ -39,7 +39,7 @@ func TestNodeAuthorizer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	superuserClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	superuserClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

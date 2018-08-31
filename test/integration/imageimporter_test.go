@@ -418,7 +418,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	kc, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kc, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

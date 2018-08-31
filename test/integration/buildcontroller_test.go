@@ -3,16 +3,16 @@ package integration
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 
-	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -73,7 +73,8 @@ func TestConcurrentBuildConfigControllers(t *testing.T) {
 	build.RunBuildConfigChangeControllerTest(t, buildClient)
 }
 
-func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedclient.BuildInterface, imagetypedclient.ImageInterface, kclientset.Interface, func()) {
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildv1clienttyped.BuildV1Interface, imagev1clienttyped.ImageV1Interface,
+	kubernetes.Interface, func()) {
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)
@@ -88,14 +89,18 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{
+	clusterAdminKubeInternalClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeInternalClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -123,8 +128,8 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 			t.Fatal(err)
 		}
 	}
-	return buildtypedclient.NewForConfigOrDie(clusterAdminClientConfig),
-		imagetypedclient.NewForConfigOrDie(clusterAdminClientConfig),
+	return buildv1clienttyped.NewForConfigOrDie(clusterAdminClientConfig),
+		imagev1clienttyped.NewForConfigOrDie(clusterAdminClientConfig),
 		clusterAdminKubeClientset,
 		func() {
 			testserver.CleanupMasterEtcd(t, master)

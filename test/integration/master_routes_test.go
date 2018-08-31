@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -26,8 +27,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	webconsoleconfigv1 "github.com/openshift/api/webconsole/v1"
-	build "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"k8s.io/client-go/rest"
@@ -205,7 +205,7 @@ func TestRootRedirect(t *testing.T) {
 		t.Fatalf("Unextecpted error: %v", err)
 	}
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("Unextecpted error: %v", err)
 	}
@@ -381,7 +381,7 @@ func TestApiGroupPreferredVersions(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	kclientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kclientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -429,7 +429,7 @@ func TestApiGroups(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	kclientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kclientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -495,7 +495,7 @@ func TestApiGroups(t *testing.T) {
 
 	t.Logf("Creating a Build")
 	originalBuild := testBuild()
-	_, err = buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build().Builds(ns).Create(originalBuild)
+	_, err = buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build().Builds(ns).Create(originalBuild)
 	if err != nil {
 		t.Fatalf("Unexpected BuildConfig create error: %v", err)
 	}
@@ -547,24 +547,24 @@ func anonymousHttpTransport(clusterAdminKubeConfig string) (*http.Transport, err
 	}), nil
 }
 
-func testBuild() *build.Build {
-	return &build.Build{
+func testBuild() *buildv1.Build {
+	return &buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
-		Spec: build.BuildSpec{
-			CommonSpec: build.CommonSpec{
-				Source: build.BuildSource{
-					Git: &build.GitBuildSource{
+		Spec: buildv1.BuildSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Source: buildv1.BuildSource{
+					Git: &buildv1.GitBuildSource{
 						URI: "git://github.com/openshift/ruby-hello-world.git",
 					},
 					ContextDir: "contextimage",
 				},
-				Strategy: build.BuildStrategy{
-					DockerStrategy: &build.DockerBuildStrategy{},
+				Strategy: buildv1.BuildStrategy{
+					DockerStrategy: &buildv1.DockerBuildStrategy{},
 				},
-				Output: build.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "test-image-trigger-repo:outputtag",
 					},

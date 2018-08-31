@@ -27,7 +27,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oauth/scope"
@@ -60,7 +60,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	defer oauthServer.Close()
 	redirectURL := oauthServer.URL + "/oauthcallback"
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -597,7 +597,7 @@ func runOAuthFlow(
 
 		whoamiConfig := restclient.AnonymousClientConfig(clusterAdminClientConfig)
 		whoamiConfig.BearerToken = accessData.AccessToken
-		whoamiBuildClient := buildclient.NewForConfigOrDie(whoamiConfig).Build()
+		whoamiBuildClient := buildv1client.NewForConfigOrDie(whoamiConfig).Build()
 		whoamiUserClient := userclient.NewForConfigOrDie(whoamiConfig)
 
 		_, err = whoamiBuildClient.Builds(projectName).List(metav1.ListOptions{})

@@ -16,17 +16,17 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	buildclient "github.com/openshift/client-go/build/clientset/versioned"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	buildtestutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-var buildPodAdmissionTestTimeout time.Duration = 30 * time.Second
+var buildPodAdmissionTestTimeout = 30 * time.Second
 
 func TestBuildDefaultGitHTTPProxy(t *testing.T) {
 	httpProxy := "http://my.test.proxy:12345"
@@ -218,35 +218,35 @@ func TestBuildOverrideAnnotations(t *testing.T) {
 	}
 }
 
-func buildPodAdmissionTestCustomBuild() *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{
+func buildPodAdmissionTestCustomBuild() *buildv1.Build {
+	build := &buildv1.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
-			buildapi.BuildConfigLabel:    "mock-build-config",
-			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+			buildutil.BuildConfigLabel:    "mock-build-config",
+			buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 		},
 	}}
 	build.Name = "test-custom-build"
-	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://test/src"}
-	build.Spec.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{}
+	build.Spec.Source.Git = &buildv1.GitBuildSource{URI: "http://test/src"}
+	build.Spec.Strategy.CustomStrategy = &buildv1.CustomBuildStrategy{}
 	build.Spec.Strategy.CustomStrategy.From.Kind = "DockerImage"
 	build.Spec.Strategy.CustomStrategy.From.Name = "test/image"
 	return build
 }
 
-func buildPodAdmissionTestDockerBuild() *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{
+func buildPodAdmissionTestDockerBuild() *buildv1.Build {
+	build := &buildv1.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
-			buildapi.BuildConfigLabel:    "mock-build-config",
-			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+			buildutil.BuildConfigLabel:    "mock-build-config",
+			buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 		},
 	}}
 	build.Name = "test-build"
-	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://test/src"}
-	build.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+	build.Spec.Source.Git = &buildv1.GitBuildSource{URI: "http://test/src"}
+	build.Spec.Strategy.DockerStrategy = &buildv1.DockerBuildStrategy{}
 	return build
 }
 
-func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclientset kclientset.Interface, build *buildapi.Build) (*buildv1.Build,
+func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclientset kclientset.Interface, build *buildv1.Build) (*buildv1.Build,
 	*v1.Pod) {
 
 	ns := testutil.Namespace()
@@ -258,7 +258,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 	watchOpt := metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(
 			"metadata.name",
-			buildinternalhelpers.GetBuildPodName(build),
+			buildutil.GetBuildPodName(build),
 		).String(),
 	}
 	podWatch, err := kclientset.Core().Pods(ns).Watch(watchOpt)
@@ -319,7 +319,7 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]*configapi
 	if err != nil {
 		t.Fatal(err)
 	}
-	internalClusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	internalClusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

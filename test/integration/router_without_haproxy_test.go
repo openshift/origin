@@ -295,7 +295,7 @@ func launchApi(t *testing.T) (routeclientset.Interface, projectclientset.Interfa
 		return nil, nil, nil, nil, err
 	}
 
-	kc, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kc, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -26,11 +26,11 @@ func TestGCDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	newBuildClient, err := buildclient.NewForConfig(clusterAdminConfig)
+	newBuildClient, err := buildv1client.NewForConfig(clusterAdminConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,12 +40,12 @@ func TestGCDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	buildConfig := &buildapi.BuildConfig{}
+	buildConfig := &buildv1.BuildConfig{}
 	buildConfig.Name = "bc"
-	buildConfig.Spec.RunPolicy = buildapi.BuildRunPolicyParallel
+	buildConfig.Spec.RunPolicy = buildv1.BuildRunPolicyParallel
 	buildConfig.GenerateName = "buildconfig-"
 	buildConfig.Spec.Strategy = strategyForType(t, "source")
-	buildConfig.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
+	buildConfig.Spec.Source.Git = &buildv1.GitBuildSource{URI: "example.org"}
 
 	firstBuildConfig, err := newBuildClient.Build().BuildConfigs(ns).Create(buildConfig)
 	if err != nil {

@@ -11,9 +11,10 @@ import (
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	"github.com/openshift/api/build"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -36,8 +37,8 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 	clusterAdminClientConfig, projectAdminKubeClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, false)
 	defer fn()
 
-	clients := map[string]buildclient.Interface{"admin": projectAdminClient, "editor": projectEditorClient}
-	builds := map[string]*buildapi.Build{}
+	clients := map[string]buildv1client.Interface{"admin": projectAdminClient, "editor": projectEditorClient}
+	builds := map[string]*buildv1.Build{}
 
 	restrictedStrategies := make(map[string]int)
 	for key, val := range buildStrategyTypesRestricted() {
@@ -112,8 +113,8 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 	clusterAdminClientConfig, projectAdminKubeClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, true)
 	defer fn()
 
-	clients := map[string]buildclient.Interface{"admin": projectAdminClient, "editor": projectEditorClient}
-	buildConfigs := map[string]*buildapi.BuildConfig{}
+	clients := map[string]buildv1client.Interface{"admin": projectAdminClient, "editor": projectEditorClient}
+	buildConfigs := map[string]*buildv1.BuildConfig{}
 	restrictedStrategies := make(map[string]int)
 	for key, val := range buildStrategyTypesRestricted() {
 		restrictedStrategies[val] = key
@@ -184,7 +185,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 	}
 }
 
-func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClientConfig *rest.Config, projectAdminKubeClient kclientset.Interface, projectAdminClient, projectEditorClient buildclient.Interface, cleanup func()) {
+func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClientConfig *rest.Config, projectAdminKubeClient kclientset.Interface, projectAdminClient, projectEditorClient buildv1client.Interface, cleanup func()) {
 	namespace := testutil.Namespace()
 	var clusterAdminKubeConfig string
 	var masterConfig *configapi.MasterConfig
@@ -213,12 +214,12 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	projectAdminClient = buildclient.NewForConfigOrDie(projectAdminConfig)
+	projectAdminClient = buildv1client.NewForConfigOrDie(projectAdminConfig)
 	_, projectEditorConfig, err = testutil.GetClientForUser(clusterAdminClientConfig, "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	projectEditorClient = buildclient.NewForConfigOrDie(projectEditorConfig)
+	projectEditorClient = buildv1client.NewForConfigOrDie(projectEditorConfig)
 
 	addJoe := &policy.RoleModificationOptions{
 		RoleBindingNamespace: namespace,
@@ -259,7 +260,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	}
 
 	if includeControllers {
-		clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+		clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -319,68 +320,68 @@ func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminAuthori
 	}
 }
 
-func strategyForType(t *testing.T, strategy string) buildapi.BuildStrategy {
-	buildStrategy := buildapi.BuildStrategy{}
+func strategyForType(t *testing.T, strategy string) buildv1.BuildStrategy {
+	buildStrategy := buildv1.BuildStrategy{}
 	switch strategy {
 	case "docker":
-		buildStrategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+		buildStrategy.DockerStrategy = &buildv1.DockerBuildStrategy{}
 	case "custom":
-		buildStrategy.CustomStrategy = &buildapi.CustomBuildStrategy{}
+		buildStrategy.CustomStrategy = &buildv1.CustomBuildStrategy{}
 		buildStrategy.CustomStrategy.From.Kind = "DockerImage"
 		buildStrategy.CustomStrategy.From.Name = "test/builderimage:latest"
 	case "source":
-		buildStrategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
+		buildStrategy.SourceStrategy = &buildv1.SourceBuildStrategy{}
 		buildStrategy.SourceStrategy.From.Kind = "DockerImage"
 		buildStrategy.SourceStrategy.From.Name = "test/builderimage:latest"
 	case "jenkinspipeline":
-		buildStrategy.JenkinsPipelineStrategy = &buildapi.JenkinsPipelineBuildStrategy{}
+		buildStrategy.JenkinsPipelineStrategy = &buildv1.JenkinsPipelineBuildStrategy{}
 	default:
 		t.Fatalf("unknown strategy: %#v", strategy)
 	}
 	return buildStrategy
 }
 
-func createBuild(t *testing.T, buildInterface buildtypedclient.BuildResourceInterface, strategy string) (*buildapi.Build, error) {
-	build := &buildapi.Build{}
+func createBuild(t *testing.T, buildInterface buildv1clienttyped.BuildInterface, strategy string) (*buildv1.Build, error) {
+	build := &buildv1.Build{}
 	build.ObjectMeta.Labels = map[string]string{
-		buildapi.BuildConfigLabel:    "mock-build-config",
-		buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+		buildutil.BuildConfigLabel:    "mock-build-config",
+		buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 	}
 	build.GenerateName = strings.ToLower(string(strategy)) + "-build-"
 	build.Spec.Strategy = strategyForType(t, strategy)
-	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
+	build.Spec.Source.Git = &buildv1.GitBuildSource{URI: "example.org"}
 
 	return buildInterface.Create(build)
 }
 
-func updateBuild(t *testing.T, buildInterface buildtypedclient.BuildResourceInterface, build *buildapi.Build) (*buildapi.Build, error) {
+func updateBuild(t *testing.T, buildInterface buildv1clienttyped.BuildInterface, build *buildv1.Build) (*buildv1.Build, error) {
 	build.Labels = map[string]string{"updated": "true"}
 	return buildInterface.Update(build)
 }
 
-func createBuildConfig(t *testing.T, buildConfigInterface buildtypedclient.BuildConfigInterface, strategy string) (*buildapi.BuildConfig, error) {
-	buildConfig := &buildapi.BuildConfig{}
-	buildConfig.Spec.RunPolicy = buildapi.BuildRunPolicyParallel
+func createBuildConfig(t *testing.T, buildConfigInterface buildv1clienttyped.BuildConfigInterface, strategy string) (*buildv1.BuildConfig, error) {
+	buildConfig := &buildv1.BuildConfig{}
+	buildConfig.Spec.RunPolicy = buildv1.BuildRunPolicyParallel
 	buildConfig.GenerateName = strings.ToLower(string(strategy)) + "-buildconfig-"
 	buildConfig.Spec.Strategy = strategyForType(t, strategy)
-	buildConfig.Spec.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
+	buildConfig.Spec.Source.Git = &buildv1.GitBuildSource{URI: "example.org"}
 
 	return buildConfigInterface.Create(buildConfig)
 }
 
-func cloneBuild(t *testing.T, buildInterface buildtypedclient.BuildResourceInterface, build *buildapi.Build) (*buildapi.Build, error) {
-	req := &buildapi.BuildRequest{}
+func cloneBuild(t *testing.T, buildInterface buildv1clienttyped.BuildInterface, build *buildv1.Build) (*buildv1.Build, error) {
+	req := &buildv1.BuildRequest{}
 	req.Name = build.Name
 	return buildInterface.Clone(build.Name, req)
 }
 
-func instantiateBuildConfig(t *testing.T, buildConfigInterface buildtypedclient.BuildConfigInterface, buildConfig *buildapi.BuildConfig) (*buildapi.Build, error) {
-	req := &buildapi.BuildRequest{}
+func instantiateBuildConfig(t *testing.T, buildConfigInterface buildv1clienttyped.BuildConfigInterface, buildConfig *buildv1.BuildConfig) (*buildv1.Build, error) {
+	req := &buildv1.BuildRequest{}
 	req.Name = buildConfig.Name
 	return buildConfigInterface.Instantiate(buildConfig.Name, req)
 }
 
-func updateBuildConfig(t *testing.T, buildConfigInterface buildtypedclient.BuildConfigInterface, buildConfig *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
+func updateBuildConfig(t *testing.T, buildConfigInterface buildv1clienttyped.BuildConfigInterface, buildConfig *buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
 	buildConfig.Labels = map[string]string{"updated": "true"}
 	return buildConfigInterface.Update(buildConfig)
 }

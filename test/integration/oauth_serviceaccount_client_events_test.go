@@ -229,7 +229,7 @@ func setupTestOAuthServer() (*testServer, error) {
 		}
 	}))
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		return nil, err
 	}

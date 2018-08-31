@@ -68,7 +68,7 @@ func TestEndpointAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting kube client: %v", err)
 	}

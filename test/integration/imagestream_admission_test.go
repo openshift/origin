@@ -476,7 +476,7 @@ func setupImageStreamAdmissionTest(t *testing.T) (kclientset.Interface, imagecli
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	kClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
