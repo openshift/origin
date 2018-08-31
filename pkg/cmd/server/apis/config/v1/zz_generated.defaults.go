@@ -5,6 +5,7 @@
 package v1
 
 import (
+	v1 "github.com/openshift/api/legacyconfig/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 )
@@ -13,13 +14,13 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&BuildDefaultsConfig{}, func(obj interface{}) { SetObjectDefaults_BuildDefaultsConfig(obj.(*BuildDefaultsConfig)) })
-	scheme.AddTypeDefaultingFunc(&MasterConfig{}, func(obj interface{}) { SetObjectDefaults_MasterConfig(obj.(*MasterConfig)) })
-	scheme.AddTypeDefaultingFunc(&NodeConfig{}, func(obj interface{}) { SetObjectDefaults_NodeConfig(obj.(*NodeConfig)) })
+	scheme.AddTypeDefaultingFunc(&v1.BuildDefaultsConfig{}, func(obj interface{}) { SetObjectDefaults_BuildDefaultsConfig(obj.(*v1.BuildDefaultsConfig)) })
+	scheme.AddTypeDefaultingFunc(&v1.MasterConfig{}, func(obj interface{}) { SetObjectDefaults_MasterConfig(obj.(*v1.MasterConfig)) })
+	scheme.AddTypeDefaultingFunc(&v1.NodeConfig{}, func(obj interface{}) { SetObjectDefaults_NodeConfig(obj.(*v1.NodeConfig)) })
 	return nil
 }
 
-func SetObjectDefaults_BuildDefaultsConfig(in *BuildDefaultsConfig) {
+func SetObjectDefaults_BuildDefaultsConfig(in *v1.BuildDefaultsConfig) {
 	for i := range in.Env {
 		a := &in.Env[i]
 		if a.ValueFrom != nil {
@@ -32,7 +33,7 @@ func SetObjectDefaults_BuildDefaultsConfig(in *BuildDefaultsConfig) {
 	core_v1.SetDefaults_ResourceList(&in.Resources.Requests)
 }
 
-func SetObjectDefaults_MasterConfig(in *MasterConfig) {
+func SetObjectDefaults_MasterConfig(in *v1.MasterConfig) {
 	SetDefaults_MasterConfig(in)
 	SetDefaults_ServingInfo(&in.ServingInfo.ServingInfo)
 	SetDefaults_EtcdStorageConfig(&in.EtcdStorageConfig)
@@ -60,7 +61,7 @@ func SetObjectDefaults_MasterConfig(in *MasterConfig) {
 	}
 }
 
-func SetObjectDefaults_NodeConfig(in *NodeConfig) {
+func SetObjectDefaults_NodeConfig(in *v1.NodeConfig) {
 	SetDefaults_NodeConfig(in)
 	SetDefaults_ServingInfo(&in.ServingInfo)
 	if in.MasterClientConnectionOverrides != nil {
