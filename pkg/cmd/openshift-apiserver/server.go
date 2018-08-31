@@ -14,7 +14,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 func RunOpenShiftAPIServer(masterConfig *configapi.MasterConfig) error {
@@ -51,11 +50,6 @@ func RunOpenShiftAPIServer(masterConfig *configapi.MasterConfig) error {
 	preparedOpenshiftAPIServer := openshiftAPIServer.GenericAPIServer.PrepareRun()
 
 	glog.Infof("Starting master on %s (%s)", masterConfig.ServingInfo.BindAddress, version.Get().String())
-	glog.Infof("Public master address is %s", masterConfig.MasterPublicURL)
-	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = masterConfig.ImageConfig.Format
-	imageTemplate.Latest = masterConfig.ImageConfig.Latest
-	glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
 	if err := preparedOpenshiftAPIServer.Run(utilwait.NeverStop); err != nil {
 		return err

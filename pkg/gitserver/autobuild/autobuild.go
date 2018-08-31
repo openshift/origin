@@ -13,9 +13,9 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/origin/pkg/gitserver"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
@@ -24,7 +24,7 @@ import (
 type AutoLinkBuilds struct {
 	Namespaces []string
 	Builders   []kapi.ObjectReference
-	Client     buildclientinternal.BuildConfigsGetter
+	Client     buildv1clienttyped.BuildConfigsGetter
 
 	CurrentNamespace string
 
@@ -46,7 +46,7 @@ func NewAutoLinkBuildsFromEnvironment() (*AutoLinkBuilds, error) {
 	if err != nil {
 		return nil, err
 	}
-	buildClient, err := buildclient.NewForConfig(clientConfig)
+	buildClient, err := buildv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func clientFromConfig(path string) (*restclient.Config, string, error) {
 func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
 	log.Printf("Linking build configs in namespace(s) %v to the gitserver", a.Namespaces)
 	errs := []error{}
-	builders := []*buildapi.BuildConfig{}
+	builders := []*buildv1.BuildConfig{}
 	for _, namespace := range a.Namespaces {
 		list, err := a.Client.BuildConfigs(namespace).List(metav1.ListOptions{})
 		if err != nil {
@@ -200,7 +200,7 @@ func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
 	return clones, errors.NewAggregate(errs)
 }
 
-func hasItem(items []*buildapi.BuildConfig, item kapi.ObjectReference) bool {
+func hasItem(items []*buildv1.BuildConfig, item kapi.ObjectReference) bool {
 	for _, c := range items {
 		if c.Namespace == item.Namespace && c.Name == item.Name {
 			return true

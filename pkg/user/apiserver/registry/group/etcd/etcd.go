@@ -11,7 +11,6 @@ import (
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/apiserver/registry/group"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST implements a RESTStorage for groups against etcd
@@ -20,7 +19,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against groups
-func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &userapi.Group{} },
 		NewListFunc:              func() runtime.Object { return &userapi.GroupList{} },

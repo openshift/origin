@@ -6,8 +6,8 @@ import (
 
 	"github.com/gonum/graph"
 
+	"github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubeedges "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 )
 
@@ -21,11 +21,11 @@ func FindDuelingReplicationControllers(g osgraph.Graph, f osgraph.Namer) []osgra
 	for _, uncastRCNode := range g.NodesByKind(kubegraph.ReplicationControllerNodeKind) {
 		rcNode := uncastRCNode.(*kubegraph.ReplicationControllerNode)
 
-		for _, uncastPodNode := range g.PredecessorNodesByEdgeKind(rcNode, kubeedges.ManagedByControllerEdgeKind) {
+		for _, uncastPodNode := range g.PredecessorNodesByEdgeKind(rcNode, appsgraph.ManagedByControllerEdgeKind) {
 			podNode := uncastPodNode.(*kubegraph.PodNode)
 
 			// check to see if this pod is managed by more than one RC
-			uncastOwningRCs := g.SuccessorNodesByEdgeKind(podNode, kubeedges.ManagedByControllerEdgeKind)
+			uncastOwningRCs := g.SuccessorNodesByEdgeKind(podNode, appsgraph.ManagedByControllerEdgeKind)
 			if len(uncastOwningRCs) > 1 {
 				involvedRCNames := []string{}
 				relatedNodes := []graph.Node{uncastPodNode}

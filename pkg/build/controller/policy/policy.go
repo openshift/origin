@@ -6,9 +6,9 @@ import (
 
 	"github.com/golang/glog"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -16,10 +16,10 @@ import (
 // The run policy controls how and when the new builds are 'run'.
 type RunPolicy interface {
 	// IsRunnable returns true of the given build should be executed.
-	IsRunnable(*buildapi.Build) (bool, error)
+	IsRunnable(*buildv1.Build) (bool, error)
 
 	// Handles returns true if the run policy handles a specific policy
-	Handles(buildapi.BuildRunPolicy) bool
+	Handles(buildv1.BuildRunPolicy) bool
 }
 
 // GetAllRunPolicies returns a set of all run policies.
@@ -32,7 +32,7 @@ func GetAllRunPolicies(lister buildlister.BuildLister, updater buildclient.Build
 }
 
 // ForBuild picks the appropriate run policy for the given build.
-func ForBuild(build *buildapi.Build, policies []RunPolicy) RunPolicy {
+func ForBuild(build *buildv1.Build, policies []RunPolicy) RunPolicy {
 	buildPolicy := buildRunPolicy(build)
 	for _, s := range policies {
 		if s.Handles(buildPolicy) {
@@ -48,11 +48,11 @@ func ForBuild(build *buildapi.Build, policies []RunPolicy) RunPolicy {
 // serial builds should always run alone.
 func hasRunningSerialBuild(lister buildlister.BuildLister, namespace, buildConfigName string) bool {
 	var hasRunningBuilds bool
-	buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b *buildapi.Build) bool {
+	buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b *buildv1.Build) bool {
 		switch b.Status.Phase {
-		case buildapi.BuildPhasePending, buildapi.BuildPhaseRunning:
+		case buildv1.BuildPhasePending, buildv1.BuildPhaseRunning:
 			switch buildRunPolicy(b) {
-			case buildapi.BuildRunPolicySerial, buildapi.BuildRunPolicySerialLatestOnly:
+			case buildv1.BuildRunPolicySerial, buildv1.BuildRunPolicySerialLatestOnly:
 				hasRunningBuilds = true
 			}
 		}
@@ -65,17 +65,17 @@ func hasRunningSerialBuild(lister buildlister.BuildLister, namespace, buildConfi
 // build configuration. It also returns the indication whether there are
 // currently running builds, to make sure there is no race-condition between
 // re-listing the builds.
-func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigName string) ([]*buildapi.Build, bool, error) {
+func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigName string) ([]*buildv1.Build, bool, error) {
 	var (
-		nextBuild           *buildapi.Build
+		nextBuild           *buildv1.Build
 		hasRunningBuilds    bool
 		previousBuildNumber int64
 	)
-	builds, err := buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b *buildapi.Build) bool {
+	builds, err := buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b *buildv1.Build) bool {
 		switch b.Status.Phase {
-		case buildapi.BuildPhasePending, buildapi.BuildPhaseRunning:
+		case buildv1.BuildPhasePending, buildv1.BuildPhaseRunning:
 			hasRunningBuilds = true
-		case buildapi.BuildPhaseNew:
+		case buildv1.BuildPhaseNew:
 			return true
 		}
 		return false
@@ -84,13 +84,13 @@ func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigNa
 		return nil, hasRunningBuilds, err
 	}
 
-	nextParallelBuilds := []*buildapi.Build{}
+	nextParallelBuilds := []*buildv1.Build{}
 	for i, b := range builds {
 		buildNumber, err := buildNumber(b)
 		if err != nil {
 			return nil, hasRunningBuilds, err
 		}
-		if buildRunPolicy(b) == buildapi.BuildRunPolicyParallel {
+		if buildRunPolicy(b) == buildv1.BuildRunPolicyParallel {
 			nextParallelBuilds = append(nextParallelBuilds, b)
 		}
 		if previousBuildNumber == 0 || buildNumber < previousBuildNumber {
@@ -98,10 +98,10 @@ func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigNa
 			previousBuildNumber = buildNumber
 		}
 	}
-	nextBuilds := []*buildapi.Build{}
+	nextBuilds := []*buildv1.Build{}
 	// if the next build is a parallel build, then start all the queued parallel builds,
 	// otherwise just start the next build if there is one.
-	if nextBuild != nil && buildRunPolicy(nextBuild) == buildapi.BuildRunPolicyParallel {
+	if nextBuild != nil && buildRunPolicy(nextBuild) == buildv1.BuildRunPolicyParallel {
 		nextBuilds = nextParallelBuilds
 	} else if nextBuild != nil {
 		nextBuilds = append(nextBuilds, nextBuild)
@@ -110,27 +110,27 @@ func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigNa
 }
 
 // buildNumber returns the given build number.
-func buildNumber(build *buildapi.Build) (int64, error) {
+func buildNumber(build *buildv1.Build) (int64, error) {
 	annotations := build.GetAnnotations()
-	if stringNumber, ok := annotations[buildapi.BuildNumberAnnotation]; ok {
+	if stringNumber, ok := annotations[buildutil.BuildNumberAnnotation]; ok {
 		return strconv.ParseInt(stringNumber, 10, 64)
 	}
-	return 0, fmt.Errorf("build %s/%s does not have %s annotation", build.Namespace, build.Name, buildapi.BuildNumberAnnotation)
+	return 0, fmt.Errorf("build %s/%s does not have %s annotation", build.Namespace, build.Name, buildutil.BuildNumberAnnotation)
 }
 
 // buildRunPolicy returns the scheduling policy for the build based on the "queued" label.
-func buildRunPolicy(build *buildapi.Build) buildapi.BuildRunPolicy {
+func buildRunPolicy(build *buildv1.Build) buildv1.BuildRunPolicy {
 	labels := build.GetLabels()
-	if value, found := labels[buildapi.BuildRunPolicyLabel]; found {
+	if value, found := labels[buildutil.BuildRunPolicyLabel]; found {
 		switch value {
 		case "Parallel":
-			return buildapi.BuildRunPolicyParallel
+			return buildv1.BuildRunPolicyParallel
 		case "Serial":
-			return buildapi.BuildRunPolicySerial
+			return buildv1.BuildRunPolicySerial
 		case "SerialLatestOnly":
-			return buildapi.BuildRunPolicySerialLatestOnly
+			return buildv1.BuildRunPolicySerialLatestOnly
 		}
 	}
 	glog.V(5).Infof("Build %s/%s does not have start policy label set, using default (Serial)", build.Namespace, build.Name)
-	return buildapi.BuildRunPolicySerial
+	return buildv1.BuildRunPolicySerial
 }

@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/api/imagereferencemutators"
+	imagereferencemutators "github.com/openshift/origin/pkg/api/imagereferencemutators/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"

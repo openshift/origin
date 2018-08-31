@@ -3,7 +3,7 @@ package haproxy
 import (
 	"fmt"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 	templateutil "github.com/openshift/origin/pkg/router/template/util"
 )
 
@@ -30,7 +30,7 @@ func generateHttpMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
 	needsHttpMap := false
 	if len(cfg.Termination) == 0 {
 		needsHttpMap = true
-	} else if (cfg.Termination == routeapi.TLSTerminationEdge || cfg.Termination == routeapi.TLSTerminationReencrypt) && cfg.InsecurePolicy == routeapi.InsecureEdgeTerminationPolicyAllow {
+	} else if (cfg.Termination == routev1.TLSTerminationEdge || cfg.Termination == routev1.TLSTerminationReencrypt) && cfg.InsecurePolicy == routev1.InsecureEdgeTerminationPolicyAllow {
 		needsHttpMap = true
 	}
 
@@ -46,7 +46,7 @@ func generateHttpMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
 
 // generateEdgeReencryptMapEntry generates a map entry for edge secured hosts.
 func generateEdgeReencryptMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
-	if len(cfg.Host) == 0 || (cfg.Termination != routeapi.TLSTerminationEdge && cfg.Termination != routeapi.TLSTerminationReencrypt) {
+	if len(cfg.Host) == 0 || (cfg.Termination != routev1.TLSTerminationEdge && cfg.Termination != routev1.TLSTerminationReencrypt) {
 		return nil
 	}
 
@@ -58,7 +58,7 @@ func generateEdgeReencryptMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
 
 // generateHttpRedirectMapEntry generates a map entry for redirecting insecure/http hosts.
 func generateHttpRedirectMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
-	if len(cfg.Host) > 0 && cfg.InsecurePolicy == routeapi.InsecureEdgeTerminationPolicyRedirect {
+	if len(cfg.Host) > 0 && cfg.InsecurePolicy == routev1.InsecureEdgeTerminationPolicyRedirect {
 		return &HAProxyMapEntry{
 			Key:   templateutil.GenerateRouteRegexp(cfg.Host, cfg.Path, cfg.IsWildcard),
 			Value: cfg.Name,
@@ -70,7 +70,7 @@ func generateHttpRedirectMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
 
 // generateTCPMapEntry generates a map entry for passthrough/secure hosts.
 func generateTCPMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
-	if len(cfg.Host) > 0 && len(cfg.Path) == 0 && (cfg.Termination == routeapi.TLSTerminationPassthrough || cfg.Termination == routeapi.TLSTerminationReencrypt) {
+	if len(cfg.Host) > 0 && len(cfg.Path) == 0 && (cfg.Termination == routev1.TLSTerminationPassthrough || cfg.Termination == routev1.TLSTerminationReencrypt) {
 		return &HAProxyMapEntry{
 			Key:   templateutil.GenerateRouteRegexp(cfg.Host, "", cfg.IsWildcard),
 			Value: fmt.Sprintf("%s:%s", templateutil.GenerateBackendNamePrefix(cfg.Termination), cfg.Name),
@@ -82,7 +82,7 @@ func generateTCPMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
 
 // generateSNIPassthroughMapEntry generates a map entry for SNI passthrough hosts.
 func generateSNIPassthroughMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
-	if len(cfg.Host) > 0 && len(cfg.Path) == 0 && cfg.Termination == routeapi.TLSTerminationPassthrough {
+	if len(cfg.Host) > 0 && len(cfg.Path) == 0 && cfg.Termination == routev1.TLSTerminationPassthrough {
 		return &HAProxyMapEntry{
 			Key:   templateutil.GenerateRouteRegexp(cfg.Host, "", cfg.IsWildcard),
 			Value: "1",
@@ -94,7 +94,7 @@ func generateSNIPassthroughMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
 
 // generateCertConfigMapEntry generates a cert config map entry.
 func generateCertConfigMapEntry(cfg *BackendConfig) *HAProxyMapEntry {
-	if len(cfg.Host) > 0 && (cfg.Termination == routeapi.TLSTerminationEdge || cfg.Termination == routeapi.TLSTerminationReencrypt) && cfg.HasCertificate {
+	if len(cfg.Host) > 0 && (cfg.Termination == routev1.TLSTerminationEdge || cfg.Termination == routev1.TLSTerminationReencrypt) && cfg.HasCertificate {
 		return &HAProxyMapEntry{
 			Key:   fmt.Sprintf("%s.pem", cfg.Name),
 			Value: templateutil.GenCertificateHostName(cfg.Host, cfg.IsWildcard),

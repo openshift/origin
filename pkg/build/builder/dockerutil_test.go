@@ -130,7 +130,7 @@ func TestDockerPush(t *testing.T) {
 		return nil
 	}
 	fd := &FakeDocker{pushImageFunc: verifyFunc}
-	pushImage(fd, "test/image", docker.AuthConfiguration{})
+	dockerPushImage(fd, "test/image", docker.AuthConfiguration{})
 }
 
 func TestTagImage(t *testing.T) {
@@ -142,7 +142,7 @@ func TestTagImage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		dockerClient := &FakeDocker{}
-		tagImage(dockerClient, tt.old, tt.new)
+		dockerTagImage(dockerClient, tt.old, tt.new)
 		got := dockerClient.callLog
 		tagOpts := docker.TagImageOptions{
 			Repo:  tt.newRepo,
@@ -181,13 +181,13 @@ func TestPushImage(t *testing.T) {
 
 	//expect succ
 	testImageName = "repo_foo_bar:tag_test_succ_foo_bar"
-	if _, err := pushImage(fakeDocker, testImageName, testAuth); err != nil {
+	if _, err := dockerPushImage(fakeDocker, testImageName, testAuth); err != nil {
 		t.Errorf("Unexpect push image : %v, want succ", err)
 	}
 
 	//expect fail
 	testImageName = "repo_foo_bar:tag_test_err_exist_foo_bar"
-	_, err := pushImage(fakeDocker, testImageName, testAuth)
+	_, err := dockerPushImage(fakeDocker, testImageName, testAuth)
 	if err == nil {
 		t.Errorf("Unexpect push image : %v, want error", err)
 	}
@@ -198,7 +198,7 @@ func TestPushImage(t *testing.T) {
 
 	//expect fail
 	testImageName = "repo_foo_bar:tag_test_err_no_exist_foo_bar"
-	if _, err := pushImage(fakeDocker, testImageName, testAuth); err == nil {
+	if _, err := dockerPushImage(fakeDocker, testImageName, testAuth); err == nil {
 		t.Errorf("Unexpect push image : %v, want error", err)
 	}
 	defer func() { fooBarRunTimes = 0 }()
@@ -227,13 +227,13 @@ func TestPullImage(t *testing.T) {
 
 	//expect succ
 	testImageName = "repo_test_succ_foo_bar"
-	if err := pullImage(fakeDocker, testImageName, testAuth); err != nil {
+	if err := dockerPullImage(fakeDocker, testImageName, testAuth); err != nil {
 		t.Errorf("Unexpect pull image : %v, want succ", err)
 	}
 
 	//expect fail
 	testImageName = "repo_test_err_exist_foo_bar"
-	err := pullImage(fakeDocker, testImageName, testAuth)
+	err := dockerPullImage(fakeDocker, testImageName, testAuth)
 	if err == nil {
 		t.Errorf("Unexpect pull image : %v, want error", err)
 	}
@@ -244,7 +244,7 @@ func TestPullImage(t *testing.T) {
 
 	//expect fail
 	testImageName = "repo_test_err_no_exist_foo_bar"
-	if err := pullImage(fakeDocker, testImageName, testAuth); err == nil {
+	if err := dockerPullImage(fakeDocker, testImageName, testAuth); err == nil {
 		t.Errorf("Unexpect pull image : %v, want error", err)
 	}
 	defer func() { fooBarRunTimes = 0 }()
@@ -436,7 +436,7 @@ func TestPushImageDigests(t *testing.T) {
 		}
 		testAuth := docker.AuthConfiguration{}
 
-		digest, err := pushImage(fakeDocker, "testimage/"+tc.Filename, testAuth)
+		digest, err := dockerPushImage(fakeDocker, "testimage/"+tc.Filename, testAuth)
 		if err != nil && !tc.ExpectErr {
 			t.Errorf("[%s] Unexpected error: %v", tc.Filename, err)
 			continue

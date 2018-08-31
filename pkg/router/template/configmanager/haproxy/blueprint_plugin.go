@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 	templaterouter "github.com/openshift/origin/pkg/router/template"
 )
 
@@ -21,7 +21,7 @@ func NewBlueprintPlugin(cm templaterouter.ConfigManager) *BlueprintPlugin {
 }
 
 // HandleRoute processes watch events on blueprint routes.
-func (p *BlueprintPlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+func (p *BlueprintPlugin) HandleRoute(eventType watch.EventType, route *routev1.Route) error {
 	switch eventType {
 	case watch.Added, watch.Modified:
 		p.manager.AddBlueprint(route)

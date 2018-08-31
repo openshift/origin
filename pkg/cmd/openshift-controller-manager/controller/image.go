@@ -29,7 +29,7 @@ import (
 func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 	informer := ctx.InternalImageInformers.Image().InternalVersion().ImageStreams()
 
-	buildClient, err := ctx.ClientBuilder.OpenshiftInternalBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	buildClient, err := ctx.ClientBuilder.OpenshiftBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
@@ -55,8 +55,8 @@ func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 	}
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildconfigs"},
-		Informer:  ctx.InternalBuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
-		Store:     ctx.InternalBuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
+		Informer:  ctx.BuildInformers.Build().V1().BuildConfigs().Informer(),
+		Store:     ctx.BuildInformers.Build().V1().BuildConfigs().Informer().GetIndexer(),
 		TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
 		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.Core().RESTClient()),
 	})

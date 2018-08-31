@@ -8,17 +8,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	buildapiv1 "github.com/openshift/api/build/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildclient "github.com/openshift/client-go/build/clientset/versioned"
 	buildetcd "github.com/openshift/origin/pkg/build/apiserver/registry/build/etcd"
 	"github.com/openshift/origin/pkg/build/apiserver/registry/buildclone"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/apiserver/registry/buildconfig"
 	buildconfigetcd "github.com/openshift/origin/pkg/build/apiserver/registry/buildconfig/etcd"
 	"github.com/openshift/origin/pkg/build/apiserver/registry/buildconfiginstantiate"
 	buildlogregistry "github.com/openshift/origin/pkg/build/apiserver/registry/buildlog"
-	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
@@ -87,8 +89,8 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 
 	parameterCodec := runtime.NewParameterCodec(c.ExtraConfig.Scheme)
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(buildapiv1.GroupName, c.ExtraConfig.Scheme, parameterCodec, c.ExtraConfig.Codecs)
-	apiGroupInfo.VersionedResourcesStorageMap[buildapiv1.SchemeGroupVersion.Version] = v1Storage
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(buildv1.GroupName, c.ExtraConfig.Scheme, parameterCodec, c.ExtraConfig.Codecs)
+	apiGroupInfo.VersionedResourcesStorageMap[buildv1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
 	}
@@ -105,14 +107,25 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	kubeClient, err := kubernetes.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	buildClient, err := buildclientset.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	buildClient, err := buildclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
+	// TODO: This is for generator which still use internal clients
+	internalBuildClient, err := buildinternalclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: This is for generator which still use internal clients
+	internalKubeClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	imageClient, err := imageclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
@@ -126,24 +139,25 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
+	// TODO: Move this to external versions at some point. The generator is only consumed by API server.
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			Builds:            buildClient.Build(),
-			BuildConfigs:      buildClient.Build(),
+			Builds:            internalBuildClient,
+			BuildConfigs:      internalBuildClient,
 			ImageStreams:      imageClient.Image(),
 			ImageStreamImages: imageClient.Image(),
 			ImageStreamTags:   imageClient.Image(),
 		},
-		ServiceAccounts: kubeInternalClient.Core(),
-		Secrets:         kubeInternalClient.Core(),
+		ServiceAccounts: internalKubeClient.Core(),
+		Secrets:         internalKubeClient.Core(),
 	}
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
-		buildClient.Build(),
-		kubeInternalClient.Core(),
-		// We use the buildapiv1 schemegroup to encode the Build that gets
+		buildClient.BuildV1(),
+		kubeClient.CoreV1(),
+		// We use the buildv1 schemegroup to encode the Build that gets
 		// returned. As such, we need to make sure that the GroupVersion we use
 		// is the same API version that the storage is going to be used for.
-		buildapiv1.SchemeGroupVersion,
+		buildv1.GroupVersion,
 		map[string]webhook.Plugin{
 			"generic":   generic.New(),
 			"github":    github.New(),
@@ -155,12 +169,12 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage := map[string]rest.Storage{}
 	v1Storage["builds"] = buildStorage
 	v1Storage["builds/clone"] = buildclone.NewStorage(buildGenerator)
-	v1Storage["builds/log"] = buildlogregistry.NewREST(buildClient.Build(), kubeInternalClient.Core())
+	v1Storage["builds/log"] = buildlogregistry.NewREST(buildClient.BuildV1(), kubeClient.CoreV1())
 	v1Storage["builds/details"] = buildDetailsStorage
 
 	v1Storage["buildConfigs"] = buildConfigStorage
 	v1Storage["buildConfigs/webhooks"] = buildConfigWebHooks
 	v1Storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
-	v1Storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildClient.Build(), kubeInternalClient.Core(), c.ExtraConfig.KubeAPIServerClientConfig)
+	v1Storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildClient.BuildV1(), c.ExtraConfig.KubeAPIServerClientConfig)
 	return v1Storage, nil
 }

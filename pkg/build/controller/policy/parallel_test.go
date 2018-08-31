@@ -3,14 +3,14 @@ package policy
 import (
 	"testing"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 func TestParallelIsRunnableNewBuilds(t *testing.T) {
-	allNewBuilds := []buildapi.Build{
-		addBuild("build-1", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
-		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
-		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
+	allNewBuilds := []buildv1.Build{
+		addBuild("build-1", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
+		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
+		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 	}
 	client := newTestClient(allNewBuilds)
 	policy := ParallelPolicy{BuildLister: client.Lister(), BuildUpdater: client}
@@ -26,10 +26,10 @@ func TestParallelIsRunnableNewBuilds(t *testing.T) {
 }
 
 func TestParallelIsRunnableMixedBuilds(t *testing.T) {
-	mixedBuilds := []buildapi.Build{
-		addBuild("build-4", "sample-bc", buildapi.BuildPhaseRunning, buildapi.BuildRunPolicyParallel),
-		addBuild("build-6", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
-		addBuild("build-5", "sample-bc", buildapi.BuildPhasePending, buildapi.BuildRunPolicyParallel),
+	mixedBuilds := []buildv1.Build{
+		addBuild("build-4", "sample-bc", buildv1.BuildPhaseRunning, buildv1.BuildRunPolicyParallel),
+		addBuild("build-6", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
+		addBuild("build-5", "sample-bc", buildv1.BuildPhasePending, buildv1.BuildRunPolicyParallel),
 	}
 	client := newTestClient(mixedBuilds)
 	policy := ParallelPolicy{BuildLister: client.Lister(), BuildUpdater: client}
@@ -45,10 +45,10 @@ func TestParallelIsRunnableMixedBuilds(t *testing.T) {
 }
 
 func TestParallelIsRunnableWithSerialRunning(t *testing.T) {
-	mixedBuilds := []buildapi.Build{
-		addBuild("build-7", "sample-bc", buildapi.BuildPhaseRunning, buildapi.BuildRunPolicySerial),
-		addBuild("build-8", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
-		addBuild("build-9", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
+	mixedBuilds := []buildv1.Build{
+		addBuild("build-7", "sample-bc", buildv1.BuildPhaseRunning, buildv1.BuildRunPolicySerial),
+		addBuild("build-8", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
+		addBuild("build-9", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 	}
 	client := newTestClient(mixedBuilds)
 	policy := ParallelPolicy{BuildLister: client.Lister(), BuildUpdater: client}

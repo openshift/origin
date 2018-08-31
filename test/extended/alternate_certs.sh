@@ -52,24 +52,24 @@ OPENSHIFT_ON_PANIC=crash openshift start master \
 OS_PID=$!
 
 # Wait for the server to be up
-os::cmd::try_until_success "oc whoami --config=master/admin.kubeconfig"
+os::cmd::try_until_success "oc whoami --kubeconfig=master/admin.kubeconfig"
 
 # Verify the server is serving with the custom and internal CAs, and that the generated ca-bundle.crt works for both
 os::cmd::expect_success_and_text "curl -vvv https://localhost:${API_PORT} --cacert master/ca-bundle.crt -s 2>&1" 'my-custom-ca'
 os::cmd::expect_success_and_text "curl -vvv https://127.0.0.1:${API_PORT} --cacert master/ca-bundle.crt -s 2>&1" 'openshift-signer'
 
 # Verify kubeconfigs have connectivity to hosts serving with custom and generated certs
-os::cmd::expect_success_and_text "oc whoami --config=master/admin.kubeconfig"                                        'system:admin'
-os::cmd::expect_success_and_text "oc whoami --config=master/admin.kubeconfig --server=https://localhost:${API_PORT}" 'system:admin'
-os::cmd::expect_success_and_text "oc whoami --config=master/admin.kubeconfig --server=https://127.0.0.1:${API_PORT}" 'system:admin'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=master/admin.kubeconfig"                                        'system:admin'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=master/admin.kubeconfig --server=https://localhost:${API_PORT}" 'system:admin'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=master/admin.kubeconfig --server=https://127.0.0.1:${API_PORT}" 'system:admin'
 
-os::cmd::expect_success_and_text "oc whoami --config=master/openshift-master.kubeconfig"                                        'system:openshift-master'
-os::cmd::expect_success_and_text "oc whoami --config=master/openshift-master.kubeconfig --server=https://localhost:${API_PORT}" 'system:openshift-master'
-os::cmd::expect_success_and_text "oc whoami --config=master/openshift-master.kubeconfig --server=https://127.0.0.1:${API_PORT}" 'system:openshift-master'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=master/openshift-master.kubeconfig"                                        'system:openshift-master'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=master/openshift-master.kubeconfig --server=https://localhost:${API_PORT}" 'system:openshift-master'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=master/openshift-master.kubeconfig --server=https://127.0.0.1:${API_PORT}" 'system:openshift-master'
 
-os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig"                                        'system:node:mynode'
-os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig --server=https://localhost:${API_PORT}" 'system:node:mynode'
-os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig --server=https://127.0.0.1:${API_PORT}" 'system:node:mynode'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=node-mynode/node.kubeconfig"                                        'system:node:mynode'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=node-mynode/node.kubeconfig --server=https://localhost:${API_PORT}" 'system:node:mynode'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig=node-mynode/node.kubeconfig --server=https://127.0.0.1:${API_PORT}" 'system:node:mynode'
 
 os::test::junit::declare_suite_end
 

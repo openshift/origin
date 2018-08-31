@@ -50,7 +50,8 @@
       "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride",
       "github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate",
       "github.com/openshift/origin/pkg/cmd/server",
-      "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
+      "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
     ],
     "forbiddenImportPackageRoots": [
       "github.com/openshift/origin/pkg/apps/apiserver",
@@ -63,6 +64,53 @@
       "github.com/openshift/origin/pkg/security/apiserver",
       "github.com/openshift/origin/pkg/template/apiserver",
       "github.com/openshift/origin/pkg/user/apiserver"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/apps/generated",
+      "github.com/openshift/origin/pkg/build/generated",
+      "github.com/openshift/origin/pkg/image/generated",
+      "github.com/openshift/origin/pkg/network/generated",
+      "github.com/openshift/origin/pkg/oauth/generated",
+      "github.com/openshift/origin/pkg/project/generated",
+      "github.com/openshift/origin/pkg/quota/generated",
+      "github.com/openshift/origin/pkg/security/generated",
+      "github.com/openshift/origin/pkg/template/generated",
+      "github.com/openshift/origin/pkg/user/generated",
+      "github.com/openshift/origin/pkg/apps/apiserver",
+      "github.com/openshift/origin/pkg/build/apiserver",
+      "github.com/openshift/origin/pkg/image/apiserver",
+      "github.com/openshift/origin/pkg/network/apiserver",
+      "github.com/openshift/origin/pkg/oauth/apiserver",
+      "github.com/openshift/origin/pkg/project/apiserver",
+      "github.com/openshift/origin/pkg/quota/apiserver",
+      "github.com/openshift/origin/pkg/security/apiserver",
+      "github.com/openshift/origin/pkg/template/apiserver",
+      "github.com/openshift/origin/pkg/user/apiserver",
+      "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride",
+      "github.com/openshift/origin/pkg/oc",
+      "github.com/openshift/origin/pkg/cmd/server",
+      "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/origin/pkg/apps/generated",
+      "github.com/openshift/origin/pkg/network/generated",
+      "github.com/openshift/origin/pkg/oauth/generated",
+      "github.com/openshift/origin/pkg/project/generated",
+      "github.com/openshift/origin/pkg/route/generated",
+      "github.com/openshift/origin/pkg/security/generated",
+      "github.com/openshift/origin/pkg/template/generated",
+      "github.com/openshift/origin/pkg/user/generated"
     ],
     "allowedImportPackageRoots": [
       "vendor",
@@ -185,7 +233,7 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
-      "github.com/openshift/origin/pkg/build/buildapihelpers",
+      "github.com/openshift/origin/pkg/build/apis/build/internal_helpers",
       "github.com/openshift/origin/pkg/image/apis/image"
     ]
   },
@@ -399,10 +447,7 @@
       "vendor/golang.org",
       "vendor/github.com/RangelReale/osin",
       "vendor/github.com/RangelReale/osincli",
-      "vendor/github.com/pborman/uuid",
-      "vendor/github.com/gorilla/securecookie",
       "vendor/github.com/gorilla/sessions",
-      "vendor/github.com/gorilla/context",
       "vendor/github.com/gophercloud/gophercloud",
       "vendor/gopkg.in/ldap.v2",
       "vendor/github.com/prometheus/client_golang/prometheus",
@@ -455,7 +500,6 @@
       "vendor/github.com/openshift/client-go",
       "vendor/github.com/openshift/imagebuilder",
       "vendor/github.com/openshift/source-to-image",
-      "vendor/github.com/pborman/uuid",
       "vendor/github.com/prometheus/client_golang",
       "vendor/github.com/RangelReale/osincli",
       "vendor/github.com/spf13/cobra",
@@ -477,15 +521,15 @@
       "vendor/github.com/davecgh/go-spew/spew",
 
       "github.com/openshift/origin/pkg/authorization/generated",
-      "github.com/openshift/origin/pkg/build/apis/build/v1",
       "github.com/openshift/origin/pkg/build/generated",
-	  "github.com/openshift/origin/pkg/image/apis/image/v1",
+      "github.com/openshift/origin/pkg/image/apis/image/v1",
       "github.com/openshift/origin/pkg/image/generated",
-	  "github.com/openshift/origin/pkg/image/util",
+      "github.com/openshift/origin/pkg/image/util",
       "github.com/openshift/origin/pkg/network/generated",
       "github.com/openshift/origin/pkg/oauth/generated",
       "github.com/openshift/origin/pkg/project/generated",
       "github.com/openshift/origin/pkg/quota/generated",
+      "github.com/openshift/origin/pkg/route/apis/route/v1",
       "github.com/openshift/origin/pkg/route/generated",
       "github.com/openshift/origin/pkg/template/apis/template/v1",
       "github.com/openshift/origin/pkg/template/client/v1",
@@ -513,8 +557,8 @@
       "github.com/openshift/origin/pkg/build/apis/build",
       "github.com/openshift/origin/pkg/build/apis/build/install",
       "github.com/openshift/origin/pkg/build/buildapihelpers",
+      "github.com/openshift/origin/pkg/build/apis/build/internal_helpers",
       "github.com/openshift/origin/pkg/build/client",
-      "github.com/openshift/origin/pkg/build/client/internalversion",
       "github.com/openshift/origin/pkg/build/client/v1",
       "github.com/openshift/origin/pkg/build/util",
       "github.com/openshift/origin/pkg/bulk",
@@ -540,7 +584,6 @@
       "github.com/openshift/origin/pkg/cmd/util/variable",
       "github.com/openshift/origin/pkg/git",
       "github.com/openshift/origin/pkg/image/apis/image",
-      "github.com/openshift/origin/pkg/image/apis/image/install",
       "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
       "github.com/openshift/origin/pkg/image/apis/image/docker10",
       "github.com/openshift/origin/pkg/image/apis/image/reference",
@@ -561,18 +604,17 @@
       "github.com/openshift/origin/pkg/oauthserver/server/selectprovider",
       "github.com/openshift/origin/pkg/oauth/urls",
       "github.com/openshift/origin/pkg/oauth/util",
-      "github.com/openshift/origin/pkg/pod/envresolve",
+      "github.com/openshift/origin/pkg/pod/envresolve/internal_version",
       "github.com/openshift/origin/pkg/printers/internalversion",
       "github.com/openshift/origin/pkg/project/apis/project",
       "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated",
       "github.com/openshift/origin/pkg/quota/apis/quota",
       "github.com/openshift/origin/pkg/route/apis/route",
-      "github.com/openshift/origin/pkg/route/apis/route/validation",
+      "github.com/openshift/origin/pkg/route/controller/routeapihelpers",
       "github.com/openshift/origin/pkg/route/generator",
       "github.com/openshift/origin/pkg/security/apis/security",
-      "github.com/openshift/origin/pkg/security/securitycontextconstraints",
       "github.com/openshift/origin/pkg/security/securitycontextconstraints/util",
-      "github.com/openshift/origin/pkg/service/admission",
+      "github.com/openshift/origin/pkg/service/admission/externalipranger",
       "github.com/openshift/origin/pkg/template/apis/template",
       "github.com/openshift/origin/pkg/template/apis/template/validation",
       "github.com/openshift/origin/pkg/template/client/internalversion",
@@ -599,7 +641,6 @@
       "vendor/github.com/miekg/dns",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
-      "vendor/k8s.io/kubernetes/pkg/api/ref",
       "vendor/k8s.io/kubernetes/pkg/controller",
       "vendor/k8s.io/kubernetes/pkg/controller/deployment/util",
       "vendor/k8s.io/kubernetes/pkg/credentialprovider",

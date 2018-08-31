@@ -28,13 +28,13 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	)
 
 	g.BeforeEach(func() {
-		svc, err := oc.AdminKubeClient().Core().Services("default").Get("router", metav1.GetOptions{})
+		var err error
+		routerIP, err = waitForRouterServiceIP(oc)
 		if kapierrs.IsNotFound(err) {
 			g.Skip("no router installed on the cluster")
 			return
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
-		routerIP = svc.Spec.ClusterIP
 	})
 
 	g.Describe("The HAProxy router", func() {

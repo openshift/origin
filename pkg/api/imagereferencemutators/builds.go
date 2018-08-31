@@ -1,22 +1,22 @@
 package imagereferencemutators
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 type buildSpecMutator struct {
-	spec    *buildapi.CommonSpec
-	oldSpec *buildapi.CommonSpec
+	spec    *buildv1.CommonSpec
+	oldSpec *buildv1.CommonSpec
 	path    *field.Path
 	output  bool
 }
 
 // NewBuildMutator returns an ImageReferenceMutator that includes the output field.
-func NewBuildMutator(build *buildapi.Build) ImageReferenceMutator {
+func NewBuildMutator(build *buildv1.Build) ImageReferenceMutator {
 	return &buildSpecMutator{
 		spec:   &build.Spec.CommonSpec,
 		path:   field.NewPath("spec"),
@@ -24,7 +24,7 @@ func NewBuildMutator(build *buildapi.Build) ImageReferenceMutator {
 	}
 }
 
-func hasIdenticalImageSourceObjectReference(spec *buildapi.CommonSpec, ref kapi.ObjectReference) bool {
+func hasIdenticalImageSourceObjectReference(spec *buildv1.CommonSpec, ref corev1.ObjectReference) bool {
 	if spec == nil {
 		return false
 	}
@@ -36,7 +36,7 @@ func hasIdenticalImageSourceObjectReference(spec *buildapi.CommonSpec, ref kapi.
 	return false
 }
 
-func hasIdenticalStrategyFrom(spec, oldSpec *buildapi.CommonSpec) bool {
+func hasIdenticalStrategyFrom(spec, oldSpec *buildv1.CommonSpec) bool {
 	if oldSpec == nil {
 		return false
 	}
@@ -57,7 +57,7 @@ func hasIdenticalStrategyFrom(spec, oldSpec *buildapi.CommonSpec) bool {
 	return false
 }
 
-func hasIdenticalObjectReference(ref, oldRef *kapi.ObjectReference) bool {
+func hasIdenticalObjectReference(ref, oldRef *corev1.ObjectReference) bool {
 	if ref == nil || oldRef == nil {
 		return false
 	}

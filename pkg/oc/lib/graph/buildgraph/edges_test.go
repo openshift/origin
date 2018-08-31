@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	nodes "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -22,12 +23,12 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 	g := osgraph.New()
 
 	fn := func(namespace string, g osgraph.Interface) {
-		bc := &buildapi.BuildConfig{}
+		bc := &buildv1.BuildConfig{}
 		bc.Namespace = namespace
 		bc.Name = "the-bc"
 		nodes.EnsureBuildConfigNode(g, bc)
 
-		b := &buildapi.Build{}
+		b := &buildv1.Build{}
 		b.Namespace = namespace
 		b.Name = "the-build"
 		b.Labels = map[string]string{buildapi.BuildConfigLabel: "the-bc"}

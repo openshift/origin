@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"reflect"
 
@@ -14,7 +13,6 @@ import (
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
-	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
@@ -26,7 +24,8 @@ import (
 	ingressadmission "github.com/openshift/origin/pkg/network/apiserver/admission"
 	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
-	serviceadmit "github.com/openshift/origin/pkg/service/admission"
+	"github.com/openshift/origin/pkg/service/admission/externalipranger"
+	"github.com/openshift/origin/pkg/service/admission/restrictedendpoints"
 )
 
 var (
@@ -62,8 +61,8 @@ var (
 		"ResourceQuota",
 	}
 
-	// kubeAdmissionPlugins gives the in-order default admission chain for kube resources.
-	kubeAdmissionPlugins = []string{
+	// KubeAdmissionPlugins gives the in-order default admission chain for kube resources.
+	KubeAdmissionPlugins = []string{
 		"AlwaysAdmit",
 		"NamespaceAutoProvision",
 		"NamespaceExists",
@@ -74,8 +73,8 @@ var (
 		"OriginPodNodeEnvironment",
 		"PodNodeSelector",
 		overrideapi.PluginName,
-		serviceadmit.ExternalIPPluginName,
-		serviceadmit.RestrictedEndpointsPluginName,
+		externalipranger.ExternalIPPluginName,
+		restrictedendpoints.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
@@ -113,7 +112,7 @@ var (
 	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
 	// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
 	// the order specified in the openshift and kube chains must match the order here.
-	combinedAdmissionControlPlugins = []string{
+	CombinedAdmissionControlPlugins = []string{
 		"AlwaysAdmit",
 		"NamespaceAutoProvision",
 		"NamespaceExists",
@@ -130,8 +129,8 @@ var (
 		"OriginPodNodeEnvironment",
 		"PodNodeSelector",
 		overrideapi.PluginName,
-		serviceadmit.ExternalIPPluginName,
-		serviceadmit.RestrictedEndpointsPluginName,
+		externalipranger.ExternalIPPluginName,
+		restrictedendpoints.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
@@ -188,7 +187,7 @@ func NewAdmissionChains(
 		for pluginName, config := range options.AdmissionConfig.PluginConfig {
 			pluginConfig[pluginName] = *config
 		}
-		upstreamAdmissionConfig, err := convertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
+		upstreamAdmissionConfig, err := ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +208,7 @@ func NewAdmissionChains(
 		admissionPluginConfigFilename = tempFile.Name()
 	}
 
-	admissionPluginNames := combinedAdmissionControlPlugins
+	admissionPluginNames := CombinedAdmissionControlPlugins
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
@@ -234,57 +233,18 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 			plugin admission.Interface
 		)
 
-		switch pluginName {
-		case serviceadmit.ExternalIPPluginName:
-			// this needs to be moved upstream to be part of core config
-			reject, admit, err := serviceadmit.ParseRejectAdmitCIDRRules(options.NetworkConfig.ExternalIPNetworkCIDRs)
-			if err != nil {
-				// should have been caught with validation
-				return nil, err
-			}
-			allowIngressIP := false
-			if _, ipNet, err := net.ParseCIDR(options.NetworkConfig.IngressIPNetworkCIDR); err == nil && !ipNet.IP.IsUnspecified() {
-				allowIngressIP = true
-			}
-			plugin = serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP)
-			admissionInitializer.Initialize(plugin)
-
-		case serviceadmit.RestrictedEndpointsPluginName:
-			// we need to set some customer parameters, so create by hand
-			var restricted []string
-			restricted = append(restricted, options.NetworkConfig.ServiceNetworkCIDR)
-			for _, cidr := range options.NetworkConfig.ClusterNetworks {
-				restricted = append(restricted, cidr.CIDR)
-			}
-			restrictedNetworks, err := serviceadmit.ParseSimpleCIDRRules(restricted)
-			if err != nil {
-				// should have been caught with validation
-				return nil, err
-			}
-			plugin = serviceadmit.NewRestrictedEndpointsAdmission(restrictedNetworks)
-			admissionInitializer.Initialize(plugin)
-
-		case saadmit.PluginName:
-			// we need to set some custom parameters on the service account admission controller, so create that one by hand
-			saAdmitter := saadmit.NewServiceAccount()
-			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
-			plugin = saAdmitter
-			admissionInitializer.Initialize(plugin)
-
-		default:
-			// TODO this needs to be refactored to use the admission scheme we created upstream.  I think this holds us for the rebase.
-			pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename, configapi.Scheme)
-			if err != nil {
-				return nil, err
-			}
-			plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer, admissionDecorator)
-			if err != nil {
-				// should have been caught with validation
-				return nil, err
-			}
-			if plugin == nil {
-				continue
-			}
+		// TODO this needs to be refactored to use the admission scheme we created upstream.  I think this holds us for the rebase.
+		pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename, configapi.Scheme)
+		if err != nil {
+			return nil, err
+		}
+		plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer, admissionDecorator)
+		if err != nil {
+			// should have been caught with validation
+			return nil, err
+		}
+		if plugin == nil {
+			continue
 		}
 
 		plugins = append(plugins, plugin)
@@ -374,7 +334,7 @@ func splitStream(config io.Reader) (io.Reader, io.Reader, error) {
 	return bytes.NewBuffer(configBytes), bytes.NewBuffer(configBytes), nil
 }
 
-func convertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
+func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
 	ret := &apiserver.AdmissionConfiguration{}
 
 	for _, pluginName := range sets.StringKeySet(in).List() {

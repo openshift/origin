@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -146,7 +145,7 @@ func (d *dataSet) ListDeploymentsByDeploymentConfig(deploymentConfig *appsv1.Dep
 	key := &corev1.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   deploymentConfig.Namespace,
-			Annotations: map[string]string{appsapi.DeploymentConfigAnnotation: deploymentConfig.Name},
+			Annotations: map[string]string{appsutil.DeploymentConfigAnnotation: deploymentConfig.Name},
 		},
 	}
 	items, err := d.deploymentIndexer.Index("deploymentConfig", key)

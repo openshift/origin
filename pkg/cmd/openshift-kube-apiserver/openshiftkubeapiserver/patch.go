@@ -1,56 +1,58 @@
 package openshiftkubeapiserver
 
 import (
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	usercache "github.com/openshift/origin/pkg/user/cache"
+	"fmt"
+	"time"
+
 	"k8s.io/apiserver/pkg/admission"
+	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/apiserver/pkg/server/options"
 	clientgoinformers "k8s.io/client-go/informers"
 	kexternalinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/quota/generic"
+	"k8s.io/kubernetes/pkg/quota/install"
 
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	"github.com/openshift/origin/pkg/admission/namespaceconditions"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
+	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
-
-	"fmt"
-	"time"
-
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 type KubeAPIServerServerPatchContext struct {
 	initialized bool
 
-	RESTMapper         *restmapper.DeferredDiscoveryRESTMapper
 	postStartHooks     map[string]genericapiserver.PostStartHookFunc
 	informerStartFuncs []func(stopCh <-chan struct{})
 }
 
-type KubeAPIServerConfigFunc func(config *master.Config, internalInformers internalinformers.SharedInformerFactory, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer, stopCh <-chan struct{}) (genericapiserver.DelegationTarget, error)
-
-func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.DelegationTarget, kubeAPIServerConfig *configapi.MasterConfig) (KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
+func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.DelegationTarget, kubeAPIServerConfig *configapi.MasterConfig) (app.KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
 	patchContext := &KubeAPIServerServerPatchContext{
 		postStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 	}
-	return func(config *master.Config, internalInformers internalinformers.SharedInformerFactory, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer, stopCh <-chan struct{}) (genericapiserver.DelegationTarget, error) {
-		kubeAPIServerInformers, err := NewInformers(internalInformers, kubeInformers, config.GenericConfig.LoopbackClientConfig)
+	return func(genericConfig *genericapiserver.Config, internalInformers internalinformers.SharedInformerFactory, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) (genericapiserver.DelegationTarget, error) {
+		kubeAPIServerInformers, err := NewInformers(internalInformers, kubeInformers, genericConfig.LoopbackClientConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -58,44 +60,76 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// AUTHENTICATOR
 		authenticator, postStartHooks, err := NewAuthenticator(
 			*kubeAPIServerConfig,
-			config.GenericConfig.LoopbackClientConfig,
+			genericConfig.LoopbackClientConfig,
 			kubeAPIServerInformers.OpenshiftOAuthInformers.Oauth().V1().OAuthClients().Lister(),
 			kubeAPIServerInformers.OpenshiftUserInformers.User().V1().Groups())
 		if err != nil {
 			return nil, err
 		}
-		config.GenericConfig.Authentication.Authenticator = authenticator
+		genericConfig.Authentication.Authenticator = authenticator
 		for key, fn := range postStartHooks {
 			patchContext.postStartHooks[key] = fn
 		}
 		// END AUTHENTICATOR
 
 		// AUTHORIZER
+		genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
 		authorizer := NewAuthorizer(internalInformers, kubeInformers)
-		config.GenericConfig.Authorization.Authorizer = authorizer
+		genericConfig.Authorization.Authorizer = authorizer
 		// END AUTHORIZER
 
 		// ADMISSION
-		projectCache, err := openshiftapiserver.NewProjectCache(kubeAPIServerInformers.InternalKubernetesInformers.Core().InternalVersion().Namespaces(), config.GenericConfig.LoopbackClientConfig, kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector)
+		projectCache, err := openshiftapiserver.NewProjectCache(kubeAPIServerInformers.InternalKubernetesInformers.Core().InternalVersion().Namespaces(), genericConfig.LoopbackClientConfig, kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector)
 		if err != nil {
 			return nil, err
 		}
 		clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(kubeAPIServerInformers.InternalKubernetesInformers.Core().InternalVersion().Namespaces(), kubeAPIServerInformers.InternalOpenshiftQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
-		kubeClient, err := kubernetes.NewForConfig(config.GenericConfig.LoopbackClientConfig)
+		patchContext.postStartHooks["quota.openshift.io-clusterquotamapping"] = func(context genericapiserver.PostStartHookContext) error {
+			go clusterQuotaMappingController.Run(5, context.StopCh)
+			return nil
+		}
+		kubeClient, err := kubernetes.NewForConfig(genericConfig.LoopbackClientConfig)
 		if err != nil {
 			return nil, err
 		}
-		discoveryClient := cacheddiscovery.NewMemCacheClient(kubeClient.Discovery())
-		restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-		admissionInitializer, err := originadmission.NewPluginInitializer(*kubeAPIServerConfig, config.GenericConfig.LoopbackClientConfig, kubeAPIServerInformers, config.GenericConfig.Authorization.Authorizer, projectCache, restMapper, clusterQuotaMappingController)
+		registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(genericConfig.LoopbackClientConfig, kubeAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostname, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname)
 		if err != nil {
 			return nil, err
 		}
-		*pluginInitializers = []admission.PluginInitializer{admissionInitializer}
+		// TODO make a union registry
+		quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
+		openshiftPluginInitializer := &oadmission.PluginInitializer{
+			ProjectCache:                 projectCache,
+			OriginQuotaRegistry:          quotaRegistry,
+			JenkinsPipelineConfig:        kubeAPIServerConfig.JenkinsPipelineConfig,
+			RESTClientConfig:             *genericConfig.LoopbackClientConfig,
+			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+			ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
+			RegistryHostnameRetriever:    registryHostnameRetriever,
+			SecurityInformers:            kubeAPIServerInformers.GetInternalOpenshiftSecurityInformers(),
+			UserInformers:                kubeAPIServerInformers.GetOpenshiftUserInformers(),
+		}
+		if err != nil {
+			return nil, err
+		}
+		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
+
+		// set up the decorators we need
+		namespaceLabelDecorator := namespaceconditions.NamespaceLabelConditions{
+			NamespaceClient: kubeClient.CoreV1(),
+			NamespaceLister: kubeInformers.Core().V1().Namespaces().Lister(),
+
+			SkipLevelZeroNames: originadmission.SkipRunLevelZeroPlugins,
+			SkipLevelOneNames:  originadmission.SkipRunLevelOnePlugins,
+		}
+		options.AdmissionDecorator = admission.Decorators{
+			admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
+			admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
+		}
 		// END ADMISSION
 
 		// HANDLER CHAIN (with oauth server and web console)
-		config.GenericConfig.BuildHandlerChainFunc, postStartHooks, err = BuildHandlerChain(config.GenericConfig, kubeInformers, kubeAPIServerConfig, stopCh)
+		genericConfig.BuildHandlerChainFunc, postStartHooks, err = BuildHandlerChain(genericConfig, kubeInformers, kubeAPIServerConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +139,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// END HANDLER CHAIN
 
 		// CONSTRUCT DELEGATE
-		nonAPIServerConfig, err := NewOpenshiftNonAPIConfig(config.GenericConfig, kubeInformers, kubeAPIServerConfig)
+		nonAPIServerConfig, err := NewOpenshiftNonAPIConfig(genericConfig, kubeInformers, kubeAPIServerConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +150,6 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// END CONSTRUCT DELEGATE
 
 		patchContext.informerStartFuncs = append(patchContext.informerStartFuncs, kubeAPIServerInformers.Start)
-		patchContext.RESTMapper = restMapper
 		patchContext.initialized = true
 
 		return openshiftNonAPIServer.GenericAPIServer, nil
@@ -135,15 +168,6 @@ func (c *KubeAPIServerServerPatchContext) PatchServer(server *master.Master) err
 		for _, fn := range c.informerStartFuncs {
 			fn(context.StopCh)
 		}
-		return nil
-	})
-	server.GenericAPIServer.AddPostStartHookOrDie("openshift.io-restmapperupdater", func(context genericapiserver.PostStartHookContext) error {
-		c.RESTMapper.Reset()
-		go func() {
-			wait.Until(func() {
-				c.RESTMapper.Reset()
-			}, 10*time.Second, context.StopCh)
-		}()
 		return nil
 	})
 

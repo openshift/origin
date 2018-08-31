@@ -17,7 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
@@ -86,11 +86,11 @@ type RouterInterface interface {
 	DeleteEndpoints(id string)
 
 	// AddRoute attempts to add a route to the router.
-	AddRoute(route *routeapi.Route)
+	AddRoute(route *routev1.Route)
 	// RemoveRoute removes the given route
-	RemoveRoute(route *routeapi.Route)
+	RemoveRoute(route *routev1.Route)
 	// HasRoute indicates whether the router is configured with the given route
-	HasRoute(route *routeapi.Route) bool
+	HasRoute(route *routev1.Route) bool
 	// Reduce the list of routes to only these namespaces
 	FilterNamespaces(namespaces sets.String)
 	// Commit applies the changes in the background. It kicks off a rate-limited
@@ -202,7 +202,7 @@ func (p *TemplatePlugin) HandleNode(eventType watch.EventType, node *kapi.Node) 
 // TODO: this function can probably be collapsed with the router itself, as a function that
 //   determines which component needs to be recalculated (which template) and then does so
 //   on demand.
-func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routev1.Route) error {
 	switch eventType {
 	case watch.Added, watch.Modified:
 		p.Router.AddRoute(route)

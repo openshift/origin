@@ -7,9 +7,9 @@ import (
 
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
-	"golang.org/x/oauth2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kuser "k8s.io/apiserver/pkg/authentication/user"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
@@ -19,161 +19,152 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-type testUser struct {
-	UserName string
-	UserUID  string
-	Err      error
-}
-
-func (u *testUser) ConvertToAuthorizeToken(_ interface{}, token *oauthapi.OAuthAuthorizeToken) error {
-	token.UserName = u.UserName
-	token.UserUID = u.UserUID
-	return u.Err
-}
-
-func (u *testUser) ConvertToAccessToken(_ interface{}, token *oauthapi.OAuthAccessToken) error {
-	token.UserName = u.UserName
-	token.UserUID = u.UserUID
-	return u.Err
-}
-
-func (u *testUser) ConvertFromAuthorizeToken(*oauthapi.OAuthAuthorizeToken) (interface{}, error) {
-	return u.UserName, u.Err
-}
-
-func (u *testUser) ConvertFromAccessToken(*oauthapi.OAuthAccessToken) (interface{}, error) {
-	return u.UserName, u.Err
-}
-
 func TestOAuthStorage(t *testing.T) {
-	masterOptions, err := testserver.DefaultMasterOptions()
+	masterOptions, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatal(err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
-	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterOptions)
-	if err != nil {
-		t.Fatal(err)
-	}
+	clusterAdminClientConfig := testutil.GetClusterAdminClientConfigOrDie(clusterAdminKubeConfig)
+	oauthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
 
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	oauthClient, err := oauthclient.NewForConfig(clusterAdminClientConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// build our custom osin.Storage via OAuth tokens and client REST APIs
+	storage := registrystorage.New(oauthClient.OAuthAccessTokens(), oauthClient.OAuthAuthorizeTokens(), oauthClient.OAuthClients(), 0)
 
-	user := &testUser{UserName: "test", UserUID: "1"}
-	storage := registrystorage.New(oauthClient.OAuthAccessTokens(), oauthClient.OAuthAuthorizeTokens(), oauthClient.OAuthClients(), user, 0)
+	const (
+		// virtual user that we inject into the OAuth flow
+		testUser = "test-uid"
+		testUID  = "007"
 
+		// OAuth client that is used via the osin.Storage interface
+		testClient         = "test-client"
+		testClientSecret0  = "secret0"
+		testClientSecret1  = "secret1"
+		testClientRedirect = "/assert"
+
+		// The OAuth endpoints we use, see github.com/openshift/origin/pkg/oauth/urls
+		authorizePath = "/authorize"
+		tokenPath     = "/token"
+	)
+
+	// build a test server that authorizes any request that comes in
 	oauthServer := osinserver.New(
 		osinserver.NewDefaultServerConfig(),
 		storage,
 		osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
-			ar.UserData = "test"
-			ar.Authorized = true
+			ar.UserData = &kuser.DefaultInfo{Name: testUser, UID: testUID} // inject a virtual user
+			ar.Authorized = true                                           // consider everything authorized
 			return false, nil
 		}),
 		osinserver.AccessHandlerFunc(func(ar *osin.AccessRequest, w http.ResponseWriter) error {
-			ar.UserData = "test"
-			ar.Authorized = true
-			ar.GenerateRefresh = false
+			ar.UserData = ar.AuthorizeData.UserData // pass the input user through
+			ar.Authorized = true                    // consider everything authorized
 			return nil
 		}),
 		osinserver.NewDefaultErrorHandler(),
 	)
+
+	// mux to handle the various OAuth endpoints
 	mux := http.NewServeMux()
 	oauthServer.Install(mux, "")
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	ch := make(chan *osincli.AccessData, 1)
+	// build the server that responds to the OAuth client redirect URI and completes the OAuth code flow
+	tokenChannel := make(chan string, 1)
+	// we have a closure around these uninitialized variables since they rely on the server's URL
 	var oaclient *osincli.Client
 	var authReq *osincli.AuthorizeRequest
 	assertServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data, err := authReq.HandleRequest(r)
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatal(err)
 		}
 		tokenReq := oaclient.NewAccessRequest(osincli.AUTHORIZATION_CODE, data)
 		token, err := tokenReq.GetToken()
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatal(err)
 		}
-		ch <- token
+		tokenChannel <- token.AccessToken
 	}))
 
-	oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
-		ObjectMeta:        metav1.ObjectMeta{Name: "test"},
-		Secret:            "secret",
-		AdditionalSecrets: []string{"secret1"},
-		RedirectURIs:      []string{assertServer.URL + "/assert"},
-	})
-	storedClient, err := storage.GetClient("test")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !osin.CheckClientSecret(storedClient, "secret") {
-		t.Fatalf("unexpected stored client: %#v", storedClient)
-	}
-	if !osin.CheckClientSecret(storedClient, "secret1") {
-		t.Fatalf("unexpected stored client: %#v", storedClient)
-	}
-	if osin.CheckClientSecret(storedClient, "secret2") {
-		t.Fatalf("unexpected stored client: %#v", storedClient)
-	}
-
+	// now that we know all of the test servers' URLs, we can construct the
+	// osincli.Client that can exchange the code for an access token
 	oaclientConfig := &osincli.ClientConfig{
-		ClientId:     "test",
-		ClientSecret: "secret",
-		RedirectUrl:  assertServer.URL + "/assert",
-		AuthorizeUrl: server.URL + "/authorize",
-		TokenUrl:     server.URL + "/token",
+		ClientId:     testClient,
+		ClientSecret: testClientSecret0,
+		RedirectUrl:  assertServer.URL + testClientRedirect,
+		AuthorizeUrl: server.URL + authorizePath,
+		TokenUrl:     server.URL + tokenPath,
 	}
-	osinclient, err := osincli.NewClient(oaclientConfig)
+	// initialize the assert server osincli.Client and osincli.AuthorizeRequest
+	oaclient, err = osincli.NewClient(oaclientConfig)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatal(err)
 	}
-	oaclient = osinclient // initialize the assert server client as well
 	authReq = oaclient.NewAuthorizeRequest(osincli.CODE)
 
-	config := &oauth2.Config{
-		ClientID:     "test",
-		ClientSecret: "",
-		Scopes:       []string{"user:info"},
-		RedirectURL:  assertServer.URL + "/assert",
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  server.URL + "/authorize",
-			TokenURL: server.URL + "/token",
-		},
-	}
-	url := config.AuthCodeURL("")
-	client := http.Client{ /*CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			t.Logf("redirect (%d): to %s, %#v", len(via), req.URL, req)
-			return nil
-		}*/}
-
-	resp, err := client.Get(url)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected response: %#v", resp)
-	}
-
-	token := <-ch
-	if token.AccessToken == "" {
-		t.Errorf("unexpected access token: %#v", token)
+	// test 1:
+	// create the OpenShift OAuth client and validate that is works via osin.Storage interface
+	{
+		if _, err := oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+			ObjectMeta:        metav1.ObjectMeta{Name: testClient},
+			Secret:            testClientSecret0,
+			AdditionalSecrets: []string{testClientSecret1},
+			RedirectURIs:      []string{assertServer.URL + testClientRedirect},
+		}); err != nil {
+			t.Fatal(err)
+		}
+		storedClient, err := storage.GetClient(testClient)
+		if err != nil {
+			t.Fatalf("unexpected get client error: %v", err)
+		}
+		if !osin.CheckClientSecret(storedClient, testClientSecret0) {
+			t.Fatalf("unexpected stored client secret failure: %#v", storedClient)
+		}
+		if !osin.CheckClientSecret(storedClient, testClientSecret1) {
+			t.Fatalf("unexpected stored client secret failure: %#v", storedClient)
+		}
+		if osin.CheckClientSecret(storedClient, "secret2") {
+			t.Fatalf("unexpected stored client secret success: %#v", storedClient)
+		}
 	}
 
-	actualToken, err := oauthClient.OAuthAccessTokens().Get(token.AccessToken, metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if actualToken.UserUID != "1" || actualToken.UserName != "test" {
-		t.Errorf("unexpected stored token: %#v", actualToken)
+	// test 2:
+	// validate that the token matches the user we injected via our osin.Storage
+	{
+		// make a GET request to start the code flow
+		// since the http client automatically follows redirects and the test server
+		// considers every request to be authorized, this is all we need to do to get a token
+		resp, err := http.DefaultClient.Get(authReq.GetAuthorizeUrl().String())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected response: %#v", resp)
+		}
+
+		// retrieve the token from the assert server
+		var token string
+		select {
+		case token = <-tokenChannel:
+		default:
+			// do not hang forever, there must be a token in the channel if the GET completed
+			t.Fatal("unable to retrieve access token")
+		}
+
+		if len(token) == 0 {
+			t.Fatalf("unexpected empty access token: %#v", token)
+		}
+
+		actualToken, err := oauthClient.OAuthAccessTokens().Get(token, metav1.GetOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if actualToken.UserUID != testUID || actualToken.UserName != testUser {
+			t.Fatalf("unexpected stored token: %#v", actualToken)
+		}
 	}
 }

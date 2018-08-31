@@ -20,7 +20,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/api/imagereferencemutators"
+	internalimagereferencemutators "github.com/openshift/origin/pkg/api/imagereferencemutators/internalversion"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -236,7 +236,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 		return nil
 	}
 	glog.V(5).Infof("running image policy admission for %s:%s/%s", attr.GetKind(), attr.GetNamespace(), attr.GetName())
-	m, err := imagereferencemutators.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
+	m, err := internalimagereferencemutators.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
 	if err != nil {
 		return apierrs.NewForbidden(gr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
 	}
@@ -245,7 +245,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 		m = &mutationPreventer{m}
 	}
 
-	annotations, _ := imagereferencemutators.GetAnnotationAccessor(attr.GetObject())
+	annotations, _ := internalimagereferencemutators.GetAnnotationAccessor(attr.GetObject())
 
 	// load exclusion rules from the namespace cache
 	var excluded sets.String
@@ -265,10 +265,10 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 }
 
 type mutationPreventer struct {
-	m imagereferencemutators.ImageReferenceMutator
+	m internalimagereferencemutators.ImageReferenceMutator
 }
 
-func (m *mutationPreventer) Mutate(fn imagereferencemutators.ImageReferenceMutateFunc) field.ErrorList {
+func (m *mutationPreventer) Mutate(fn internalimagereferencemutators.ImageReferenceMutateFunc) field.ErrorList {
 	return m.m.Mutate(func(ref *kapi.ObjectReference) error {
 		original := ref.DeepCopy()
 		if err := fn(ref); err != nil {

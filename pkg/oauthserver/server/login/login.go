@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/golang/glog"
@@ -14,11 +13,13 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
+	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 	"github.com/openshift/origin/pkg/oauthserver/prometheus"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
 	"github.com/openshift/origin/pkg/oauthserver/server/headers"
+	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 )
 
 const (
@@ -26,6 +27,7 @@ const (
 	csrfParam     = "csrf"
 	usernameParam = "username"
 	passwordParam = "password"
+	reasonParam   = "reason"
 
 	// these can be used by custom templates, and should not be changed
 	// these error codes are specific to the login flow.
@@ -89,7 +91,7 @@ func NewLogin(provider string, csrf csrf.CSRF, auth PasswordAuthenticator, rende
 
 // Install registers the login handler into a mux. It is expected that the
 // provided prefix will serve all operations. Path MUST NOT end in a slash.
-func (l *Login) Install(mux Mux, paths ...string) {
+func (l *Login) Install(mux oauthserver.Mux, paths ...string) {
 	for _, path := range paths {
 		path = strings.TrimRight(path, "/")
 		mux.HandleFunc(path, l.ServeHTTP)
@@ -106,17 +108,6 @@ func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
-}
-
-func isServerRelativeURL(then string) bool {
-	if len(then) == 0 {
-		return false
-	}
-	u, err := url.Parse(then)
-	if err != nil {
-		return false
-	}
-	return len(u.Scheme) == 0 && len(u.Host) == 0 && strings.HasPrefix(u.Path, "/")
 }
 
 func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
@@ -137,14 +128,14 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 			Password: passwordParam,
 		},
 	}
-	if then := req.URL.Query().Get("then"); isServerRelativeURL(then) {
+	if then := req.URL.Query().Get(thenParam); redirect.IsServerRelativeURL(then) {
 		form.Values.Then = then
 	} else {
 		http.Redirect(w, req, "/", http.StatusFound)
 		return
 	}
 
-	form.ErrorCode = req.URL.Query().Get("reason")
+	form.ErrorCode = req.URL.Query().Get(reasonParam)
 	if len(form.ErrorCode) > 0 {
 		if msg, hasMsg := errorMessages[form.ErrorCode]; hasMsg {
 			form.Error = msg
@@ -153,32 +144,28 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	csrf, err := l.csrf.Generate(w, req)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to generate CSRF token: %v", err))
-	}
-	form.Values.CSRF = csrf
+	form.Values.CSRF = l.csrf.Generate(w, req)
 
 	l.render.Render(form, w, req)
 }
 
 func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
-	if ok, err := l.csrf.Check(req, req.FormValue("csrf")); !ok || err != nil {
-		utilruntime.HandleError(fmt.Errorf("Unable to check CSRF token: %v", err))
+	if ok := l.csrf.Check(req, req.FormValue(csrfParam)); !ok {
+		glog.V(4).Infof("Invalid CSRF token: %s", req.FormValue(csrfParam))
 		failed(errorCodeTokenExpired, w, req)
 		return
 	}
-	then := req.FormValue("then")
-	if !isServerRelativeURL(then) {
+	then := req.FormValue(thenParam)
+	if !redirect.IsServerRelativeURL(then) {
 		http.Redirect(w, req, "/", http.StatusFound)
 		return
 	}
-	username, password := req.FormValue("username"), req.FormValue("password")
-	if username == "" {
+	username, password := req.FormValue(usernameParam), req.FormValue(passwordParam)
+	if len(username) == 0 {
 		failed(errorCodeUserRequired, w, req)
 		return
 	}
-	var result string = metrics.SuccessResult
+	result := metrics.SuccessResult
 	defer func() {
 		metrics.RecordFormPasswordAuth(result)
 	}()

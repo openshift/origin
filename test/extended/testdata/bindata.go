@@ -32224,16 +32224,21 @@ objects:
         restartPolicy: OnFailure
         serviceAccount: automation-broker-apb
         containers:
-        - image: docker.io/automationbroker/automation-broker-apb:latest
+        - image: docker.io/automationbroker/automation-broker-apb:${TAG}
           name: automation-broker-apb
-          args: [ "provision", "-e", "broker_name=${NAMESPACE}" ]
+          args: [ 'provision', '--extra-vars', '{ "broker_name": "${NAMESPACE}" }' ]
 
 
 parameters:
 - description: Namespace of the project that is being deploy
-  displayname: broker client cert key
+  displayname: Namespace
   name: NAMESPACE
   value: "openshift-automation-service-broker"
+
+- description: Image Tag to deploy
+  displayname: Image Tag
+  name: TAG
+  value: "latest"
 `)
 
 func installAutomationservicebrokerInstallYamlBytes() ([]byte, error) {
@@ -32485,7 +32490,7 @@ objects:
       spec:
         serviceAccountName: kube-dns
         containers:
-        - name: kube-proxy
+        - name: kube-dns
           image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["openshift", "start", "network"]
@@ -32575,6 +32580,8 @@ objects:
     - kind: ServiceAccount
       name: kube-proxy
       namespace: ${NAMESPACE}
+    - kind: Group
+      name: system:nodes
   roleRef:
     kind: ClusterRole
     name: system:node-proxier

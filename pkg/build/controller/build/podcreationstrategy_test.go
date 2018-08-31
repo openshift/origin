@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/api/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 type testPodCreationStrategy struct {
@@ -14,7 +14,7 @@ type testPodCreationStrategy struct {
 	err error
 }
 
-func (s *testPodCreationStrategy) CreateBuildPod(b *buildapi.Build) (*v1.Pod, error) {
+func (s *testPodCreationStrategy) CreateBuildPod(b *buildv1.Build) (*v1.Pod, error) {
 	return s.pod, s.err
 }
 
@@ -23,17 +23,17 @@ func TestStrategyCreateBuildPod(t *testing.T) {
 	sourceBuildPod := &v1.Pod{}
 	customBuildPod := &v1.Pod{}
 
-	dockerBuild := &buildapi.Build{}
-	dockerBuild.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+	dockerBuild := &buildv1.Build{}
+	dockerBuild.Spec.Strategy.DockerStrategy = &buildv1.DockerBuildStrategy{}
 
-	sourceBuild := &buildapi.Build{}
-	sourceBuild.Spec.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
+	sourceBuild := &buildv1.Build{}
+	sourceBuild.Spec.Strategy.SourceStrategy = &buildv1.SourceBuildStrategy{}
 
-	customBuild := &buildapi.Build{}
-	customBuild.Spec.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{}
+	customBuild := &buildv1.Build{}
+	customBuild.Spec.Strategy.CustomStrategy = &buildv1.CustomBuildStrategy{}
 
-	pipelineBuild := &buildapi.Build{}
-	pipelineBuild.Spec.Strategy.JenkinsPipelineStrategy = &buildapi.JenkinsPipelineBuildStrategy{}
+	pipelineBuild := &buildv1.Build{}
+	pipelineBuild.Spec.Strategy.JenkinsPipelineStrategy = &buildv1.JenkinsPipelineBuildStrategy{}
 
 	strategy := &typeBasedFactoryStrategy{
 		dockerBuildStrategy: &testPodCreationStrategy{pod: dockerBuildPod},
@@ -49,7 +49,7 @@ func TestStrategyCreateBuildPod(t *testing.T) {
 
 	tests := []struct {
 		strategy    buildPodCreationStrategy
-		build       *buildapi.Build
+		build       *buildv1.Build
 		expectedPod *v1.Pod
 		expectError bool
 	}{
@@ -75,7 +75,7 @@ func TestStrategyCreateBuildPod(t *testing.T) {
 		},
 		{
 			strategy:    strategy,
-			build:       &buildapi.Build{},
+			build:       &buildv1.Build{},
 			expectError: true,
 		},
 		{

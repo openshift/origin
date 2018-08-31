@@ -21,7 +21,6 @@ func TestHandler(t *testing.T) {
 func TestRedirectingStateValidCSRF(t *testing.T) {
 	fakeCSRF := &csrf.FakeCSRF{
 		Token: "xyz",
-		Err:   nil,
 	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
@@ -45,7 +44,6 @@ func TestRedirectingStateValidCSRF(t *testing.T) {
 func TestRedirectingStateInvalidCSRF(t *testing.T) {
 	fakeCSRF := &csrf.FakeCSRF{
 		Token: "xyz",
-		Err:   nil,
 	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
@@ -57,16 +55,15 @@ func TestRedirectingStateInvalidCSRF(t *testing.T) {
 
 	req2, _ := http.NewRequest("GET", "http://www.example.com/callback", nil)
 
-	// Change the CSRF validator so it returns invalid (but no error)
-	fakeCSRF.Token = "abc"
-	if _, err := redirectingState.Check(state, req2); err == nil {
-		t.Fatalf("Expected error, got none")
+	// Initial check passes as valid with no error
+	if ok, err := redirectingState.Check(state, req2); !ok || err != nil {
+		t.Fatalf("Expected valid and no error, got: %v %v", ok, err)
 	}
 
-	// Change the CSRF validator so it returns an error
-	fakeCSRF.Err = errors.New("CSRF error")
-	if _, err := redirectingState.Check(state, req2); err == nil {
-		t.Fatalf("Expected error, got none")
+	// Change the CSRF validator so it returns invalid and an error
+	fakeCSRF.Token = "abc"
+	if ok, err := redirectingState.Check(state, req2); ok || err == nil {
+		t.Fatalf("Expected invalid and error, got: %v %v", ok, err)
 	}
 }
 
@@ -75,7 +72,6 @@ func TestRedirectingStateSuccess(t *testing.T) {
 
 	fakeCSRF := &csrf.FakeCSRF{
 		Token: "xyz",
-		Err:   nil,
 	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
@@ -107,7 +103,6 @@ func TestRedirectingStateOAuthError(t *testing.T) {
 
 	fakeCSRF := &csrf.FakeCSRF{
 		Token: "xyz",
-		Err:   nil,
 	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
@@ -139,7 +134,6 @@ func TestRedirectingStateOAuthError(t *testing.T) {
 func TestRedirectingStateError(t *testing.T) {
 	fakeCSRF := &csrf.FakeCSRF{
 		Token: "xyz",
-		Err:   nil,
 	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 

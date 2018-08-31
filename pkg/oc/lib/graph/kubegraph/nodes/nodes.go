@@ -2,16 +2,15 @@ package nodes
 
 import (
 	"github.com/gonum/graph"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 
-	kapps "k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kappsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
 
-func EnsurePodNode(g osgraph.MutableUniqueGraph, pod *kapi.Pod) *PodNode {
+func EnsurePodNode(g osgraph.MutableUniqueGraph, pod *corev1.Pod) *PodNode {
 	podNodeName := PodNodeName(pod)
 	podNode := osgraph.EnsureUnique(g,
 		podNodeName,
@@ -26,7 +25,7 @@ func EnsurePodNode(g osgraph.MutableUniqueGraph, pod *kapi.Pod) *PodNode {
 	return podNode
 }
 
-func EnsurePodSpecNode(g osgraph.MutableUniqueGraph, podSpec *kapi.PodSpec, namespace string, ownerName osgraph.UniqueName) *PodSpecNode {
+func EnsurePodSpecNode(g osgraph.MutableUniqueGraph, podSpec *corev1.PodSpec, namespace string, ownerName osgraph.UniqueName) *PodSpecNode {
 	return osgraph.EnsureUnique(g,
 		PodSpecNodeName(podSpec, ownerName),
 		func(node osgraph.Node) graph.Node {
@@ -36,7 +35,7 @@ func EnsurePodSpecNode(g osgraph.MutableUniqueGraph, podSpec *kapi.PodSpec, name
 }
 
 // EnsureServiceNode adds the provided service to the graph if it does not already exist.
-func EnsureServiceNode(g osgraph.MutableUniqueGraph, svc *kapi.Service) *ServiceNode {
+func EnsureServiceNode(g osgraph.MutableUniqueGraph, svc *corev1.Service) *ServiceNode {
 	return osgraph.EnsureUnique(g,
 		ServiceNodeName(svc),
 		func(node osgraph.Node) graph.Node {
@@ -46,7 +45,7 @@ func EnsureServiceNode(g osgraph.MutableUniqueGraph, svc *kapi.Service) *Service
 }
 
 // FindOrCreateSyntheticServiceNode returns the existing service node or creates a synthetic node in its place
-func FindOrCreateSyntheticServiceNode(g osgraph.MutableUniqueGraph, svc *kapi.Service) *ServiceNode {
+func FindOrCreateSyntheticServiceNode(g osgraph.MutableUniqueGraph, svc *corev1.Service) *ServiceNode {
 	return osgraph.EnsureUnique(g,
 		ServiceNodeName(svc),
 		func(node osgraph.Node) graph.Node {
@@ -55,7 +54,7 @@ func FindOrCreateSyntheticServiceNode(g osgraph.MutableUniqueGraph, svc *kapi.Se
 	).(*ServiceNode)
 }
 
-func EnsureServiceAccountNode(g osgraph.MutableUniqueGraph, o *kapi.ServiceAccount) *ServiceAccountNode {
+func EnsureServiceAccountNode(g osgraph.MutableUniqueGraph, o *corev1.ServiceAccount) *ServiceAccountNode {
 	return osgraph.EnsureUnique(g,
 		ServiceAccountNodeName(o),
 		func(node osgraph.Node) graph.Node {
@@ -64,7 +63,7 @@ func EnsureServiceAccountNode(g osgraph.MutableUniqueGraph, o *kapi.ServiceAccou
 	).(*ServiceAccountNode)
 }
 
-func FindOrCreateSyntheticServiceAccountNode(g osgraph.MutableUniqueGraph, o *kapi.ServiceAccount) *ServiceAccountNode {
+func FindOrCreateSyntheticServiceAccountNode(g osgraph.MutableUniqueGraph, o *corev1.ServiceAccount) *ServiceAccountNode {
 	return osgraph.EnsureUnique(g,
 		ServiceAccountNodeName(o),
 		func(node osgraph.Node) graph.Node {
@@ -73,7 +72,7 @@ func FindOrCreateSyntheticServiceAccountNode(g osgraph.MutableUniqueGraph, o *ka
 	).(*ServiceAccountNode)
 }
 
-func EnsureSecretNode(g osgraph.MutableUniqueGraph, o *kapi.Secret) *SecretNode {
+func EnsureSecretNode(g osgraph.MutableUniqueGraph, o *corev1.Secret) *SecretNode {
 	return osgraph.EnsureUnique(g,
 		SecretNodeName(o),
 		func(node osgraph.Node) graph.Node {
@@ -86,7 +85,7 @@ func EnsureSecretNode(g osgraph.MutableUniqueGraph, o *kapi.Secret) *SecretNode 
 	).(*SecretNode)
 }
 
-func FindOrCreateSyntheticSecretNode(g osgraph.MutableUniqueGraph, o *kapi.Secret) *SecretNode {
+func FindOrCreateSyntheticSecretNode(g osgraph.MutableUniqueGraph, o *corev1.Secret) *SecretNode {
 	return osgraph.EnsureUnique(g,
 		SecretNodeName(o),
 		func(node osgraph.Node) graph.Node {
@@ -100,7 +99,7 @@ func FindOrCreateSyntheticSecretNode(g osgraph.MutableUniqueGraph, o *kapi.Secre
 }
 
 // EnsureReplicationControllerNode adds a graph node for the ReplicationController if it does not already exist.
-func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.ReplicationController) *ReplicationControllerNode {
+func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *corev1.ReplicationController) *ReplicationControllerNode {
 	rcNodeName := ReplicationControllerNodeName(rc)
 	rcNode := osgraph.EnsureUnique(g,
 		rcNodeName,
@@ -116,7 +115,7 @@ func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.Repl
 }
 
 // EnsureReplicaSetNode adds a graph node for the ReplicaSet if it does not already exist.
-func EnsureReplicaSetNode(g osgraph.MutableUniqueGraph, rs *extensions.ReplicaSet) *ReplicaSetNode {
+func EnsureReplicaSetNode(g osgraph.MutableUniqueGraph, rs *kappsv1.ReplicaSet) *ReplicaSetNode {
 	rsNodeName := ReplicaSetNodeName(rs)
 	rsNode := osgraph.EnsureUnique(g,
 		rsNodeName,
@@ -131,7 +130,7 @@ func EnsureReplicaSetNode(g osgraph.MutableUniqueGraph, rs *extensions.ReplicaSe
 	return rsNode
 }
 
-func EnsureReplicaSetSpecNode(g osgraph.MutableUniqueGraph, rsSpec *extensions.ReplicaSetSpec, namespace string, ownerName osgraph.UniqueName) *ReplicaSetSpecNode {
+func EnsureReplicaSetSpecNode(g osgraph.MutableUniqueGraph, rsSpec *kappsv1.ReplicaSetSpec, namespace string, ownerName osgraph.UniqueName) *ReplicaSetSpecNode {
 	rsSpecName := ReplicaSetSpecNodeName(rsSpec, ownerName)
 	rsSpecNode := osgraph.EnsureUnique(g,
 		rsSpecName,
@@ -146,7 +145,7 @@ func EnsureReplicaSetSpecNode(g osgraph.MutableUniqueGraph, rsSpec *extensions.R
 	return rsSpecNode
 }
 
-func FindOrCreateSyntheticReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.ReplicationController) *ReplicationControllerNode {
+func FindOrCreateSyntheticReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *corev1.ReplicationController) *ReplicationControllerNode {
 	return osgraph.EnsureUnique(g,
 		ReplicationControllerNodeName(rc),
 		func(node osgraph.Node) graph.Node {
@@ -155,7 +154,7 @@ func FindOrCreateSyntheticReplicationControllerNode(g osgraph.MutableUniqueGraph
 	).(*ReplicationControllerNode)
 }
 
-func FindOrCreateSyntheticDeploymentNode(g osgraph.MutableUniqueGraph, deployment *extensions.Deployment) *DeploymentNode {
+func FindOrCreateSyntheticDeploymentNode(g osgraph.MutableUniqueGraph, deployment *kappsv1.Deployment) *DeploymentNode {
 	return osgraph.EnsureUnique(
 		g,
 		DeploymentNodeName(deployment),
@@ -165,7 +164,7 @@ func FindOrCreateSyntheticDeploymentNode(g osgraph.MutableUniqueGraph, deploymen
 	).(*DeploymentNode)
 }
 
-func EnsureReplicationControllerSpecNode(g osgraph.MutableUniqueGraph, rcSpec *kapi.ReplicationControllerSpec, namespace string, ownerName osgraph.UniqueName) *ReplicationControllerSpecNode {
+func EnsureReplicationControllerSpecNode(g osgraph.MutableUniqueGraph, rcSpec *corev1.ReplicationControllerSpec, namespace string, ownerName osgraph.UniqueName) *ReplicationControllerSpecNode {
 	rcSpecName := ReplicationControllerSpecNodeName(rcSpec, ownerName)
 	rcSpecNode := osgraph.EnsureUnique(g,
 		rcSpecName,
@@ -182,7 +181,7 @@ func EnsureReplicationControllerSpecNode(g osgraph.MutableUniqueGraph, rcSpec *k
 	return rcSpecNode
 }
 
-func EnsurePodTemplateSpecNode(g osgraph.MutableUniqueGraph, ptSpec *kapi.PodTemplateSpec, namespace string, ownerName osgraph.UniqueName) *PodTemplateSpecNode {
+func EnsurePodTemplateSpecNode(g osgraph.MutableUniqueGraph, ptSpec *corev1.PodTemplateSpec, namespace string, ownerName osgraph.UniqueName) *PodTemplateSpecNode {
 	ptSpecName := PodTemplateSpecNodeName(ptSpec, ownerName)
 	ptSpecNode := osgraph.EnsureUnique(g,
 		ptSpecName,
@@ -197,7 +196,7 @@ func EnsurePodTemplateSpecNode(g osgraph.MutableUniqueGraph, ptSpec *kapi.PodTem
 	return ptSpecNode
 }
 
-func EnsurePersistentVolumeClaimNode(g osgraph.MutableUniqueGraph, pvc *kapi.PersistentVolumeClaim) *PersistentVolumeClaimNode {
+func EnsurePersistentVolumeClaimNode(g osgraph.MutableUniqueGraph, pvc *corev1.PersistentVolumeClaim) *PersistentVolumeClaimNode {
 	return osgraph.EnsureUnique(g,
 		PersistentVolumeClaimNodeName(pvc),
 		func(node osgraph.Node) graph.Node {
@@ -206,7 +205,7 @@ func EnsurePersistentVolumeClaimNode(g osgraph.MutableUniqueGraph, pvc *kapi.Per
 	).(*PersistentVolumeClaimNode)
 }
 
-func FindOrCreateSyntheticPVCNode(g osgraph.MutableUniqueGraph, pvc *kapi.PersistentVolumeClaim) *PersistentVolumeClaimNode {
+func FindOrCreateSyntheticPVCNode(g osgraph.MutableUniqueGraph, pvc *corev1.PersistentVolumeClaim) *PersistentVolumeClaimNode {
 	return osgraph.EnsureUnique(g,
 		PersistentVolumeClaimNodeName(pvc),
 		func(node osgraph.Node) graph.Node {
@@ -215,7 +214,7 @@ func FindOrCreateSyntheticPVCNode(g osgraph.MutableUniqueGraph, pvc *kapi.Persis
 	).(*PersistentVolumeClaimNode)
 }
 
-func EnsureHorizontalPodAutoscalerNode(g osgraph.MutableUniqueGraph, hpa *autoscaling.HorizontalPodAutoscaler) *HorizontalPodAutoscalerNode {
+func EnsureHorizontalPodAutoscalerNode(g osgraph.MutableUniqueGraph, hpa *autoscalingv1.HorizontalPodAutoscaler) *HorizontalPodAutoscalerNode {
 	return osgraph.EnsureUnique(g,
 		HorizontalPodAutoscalerNodeName(hpa),
 		func(node osgraph.Node) graph.Node {
@@ -224,7 +223,7 @@ func EnsureHorizontalPodAutoscalerNode(g osgraph.MutableUniqueGraph, hpa *autosc
 	).(*HorizontalPodAutoscalerNode)
 }
 
-func EnsureStatefulSetNode(g osgraph.MutableUniqueGraph, statefulSet *kapps.StatefulSet) *StatefulSetNode {
+func EnsureStatefulSetNode(g osgraph.MutableUniqueGraph, statefulSet *kappsv1.StatefulSet) *StatefulSetNode {
 	nodeName := StatefulSetNodeName(statefulSet)
 	node := osgraph.EnsureUnique(g,
 		nodeName,
@@ -239,7 +238,7 @@ func EnsureStatefulSetNode(g osgraph.MutableUniqueGraph, statefulSet *kapps.Stat
 	return node
 }
 
-func EnsureStatefulSetSpecNode(g osgraph.MutableUniqueGraph, spec *kapps.StatefulSetSpec, namespace string, ownerName osgraph.UniqueName) *StatefulSetSpecNode {
+func EnsureStatefulSetSpecNode(g osgraph.MutableUniqueGraph, spec *kappsv1.StatefulSetSpec, namespace string, ownerName osgraph.UniqueName) *StatefulSetSpecNode {
 	specName := StatefulSetSpecNodeName(spec, ownerName)
 	specNode := osgraph.EnsureUnique(g,
 		specName,
@@ -254,7 +253,7 @@ func EnsureStatefulSetSpecNode(g osgraph.MutableUniqueGraph, spec *kapps.Statefu
 	return specNode
 }
 
-func EnsureDeploymentNode(g osgraph.MutableUniqueGraph, deployment *extensions.Deployment) *DeploymentNode {
+func EnsureDeploymentNode(g osgraph.MutableUniqueGraph, deployment *kappsv1.Deployment) *DeploymentNode {
 	nodeName := DeploymentNodeName(deployment)
 	node := osgraph.EnsureUnique(g,
 		nodeName,
@@ -269,7 +268,7 @@ func EnsureDeploymentNode(g osgraph.MutableUniqueGraph, deployment *extensions.D
 	return node
 }
 
-func EnsureDeploymentSpecNode(g osgraph.MutableUniqueGraph, spec *extensions.DeploymentSpec, namespace string, ownerName osgraph.UniqueName) *DeploymentSpecNode {
+func EnsureDeploymentSpecNode(g osgraph.MutableUniqueGraph, spec *kappsv1.DeploymentSpec, namespace string, ownerName osgraph.UniqueName) *DeploymentSpecNode {
 	specName := DeploymentSpecNodeName(spec, ownerName)
 	specNode := osgraph.EnsureUnique(g,
 		specName,
@@ -285,7 +284,7 @@ func EnsureDeploymentSpecNode(g osgraph.MutableUniqueGraph, spec *extensions.Dep
 }
 
 // EnsureDaemonSetNode adds the provided daemon set to the graph if it does not exist
-func EnsureDaemonSetNode(g osgraph.MutableUniqueGraph, ds *extensions.DaemonSet) *DaemonSetNode {
+func EnsureDaemonSetNode(g osgraph.MutableUniqueGraph, ds *kappsv1.DaemonSet) *DaemonSetNode {
 	dsName := DaemonSetNodeName(ds)
 	dsNode := osgraph.EnsureUnique(
 		g,
@@ -301,7 +300,7 @@ func EnsureDaemonSetNode(g osgraph.MutableUniqueGraph, ds *extensions.DaemonSet)
 	return dsNode
 }
 
-func FindOrCreateSyntheticDaemonSetNode(g osgraph.MutableUniqueGraph, ds *extensions.DaemonSet) *DaemonSetNode {
+func FindOrCreateSyntheticDaemonSetNode(g osgraph.MutableUniqueGraph, ds *kappsv1.DaemonSet) *DaemonSetNode {
 	return osgraph.EnsureUnique(
 		g,
 		DaemonSetNodeName(ds),
@@ -311,7 +310,7 @@ func FindOrCreateSyntheticDaemonSetNode(g osgraph.MutableUniqueGraph, ds *extens
 	).(*DaemonSetNode)
 }
 
-func FindOrCreateSyntheticReplicaSetNode(g osgraph.MutableUniqueGraph, rs *extensions.ReplicaSet) *ReplicaSetNode {
+func FindOrCreateSyntheticReplicaSetNode(g osgraph.MutableUniqueGraph, rs *kappsv1.ReplicaSet) *ReplicaSetNode {
 	return osgraph.EnsureUnique(
 		g,
 		ReplicaSetNodeName(rs),

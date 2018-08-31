@@ -1,6 +1,7 @@
 package copy
 
 import (
+	"context"
 	"strings"
 
 	"github.com/containers/image/manifest"
@@ -37,14 +38,23 @@ func (os *orderedSet) append(s string) {
 	}
 }
 
-// determineManifestConversion updates manifestUpdates to convert manifest to a supported MIME type, if necessary and canModifyManifest.
-// Note that the conversion will only happen later, through src.UpdatedImage
+// determineManifestConversion updates ic.manifestUpdates to convert manifest to a supported MIME type, if necessary and ic.canModifyManifest.
+// Note that the conversion will only happen later, through ic.src.UpdatedImage
 // Returns the preferred manifest MIME type (whether we are converting to it or using it unmodified),
 // and a list of other possible alternatives, in order.
-func determineManifestConversion(manifestUpdates *types.ManifestUpdateOptions, src types.Image, destSupportedManifestMIMETypes []string, canModifyManifest bool) (string, []string, error) {
-	_, srcType, err := src.Manifest()
+func (ic *imageCopier) determineManifestConversion(ctx context.Context, destSupportedManifestMIMETypes []string, forceManifestMIMEType string) (string, []string, error) {
+	_, srcType, err := ic.src.Manifest(ctx)
 	if err != nil { // This should have been cached?!
 		return "", nil, errors.Wrap(err, "Error reading manifest")
+	}
+	normalizedSrcType := manifest.NormalizedMIMEType(srcType)
+	if srcType != normalizedSrcType {
+		logrus.Debugf("Source manifest MIME type %s, treating it as %s", srcType, normalizedSrcType)
+		srcType = normalizedSrcType
+	}
+
+	if forceManifestMIMEType != "" {
+		destSupportedManifestMIMETypes = []string{forceManifestMIMEType}
 	}
 
 	if len(destSupportedManifestMIMETypes) == 0 {
@@ -67,10 +77,10 @@ func determineManifestConversion(manifestUpdates *types.ManifestUpdateOptions, s
 	if _, ok := supportedByDest[srcType]; ok {
 		prioritizedTypes.append(srcType)
 	}
-	if !canModifyManifest {
-		// We could also drop the !canModifyManifest parameter and have the caller
+	if !ic.canModifyManifest {
+		// We could also drop the !ic.canModifyManifest check and have the caller
 		// make the choice; it is already doing that to an extent, to improve error
-		// messages.  But it is nice to hide the “if !canModifyManifest, do no conversion”
+		// messages.  But it is nice to hide the “if !ic.canModifyManifest, do no conversion”
 		// special case in here; the caller can then worry (or not) only about a good UI.
 		logrus.Debugf("We can't modify the manifest, hoping for the best...")
 		return srcType, []string{}, nil // Take our chances - FIXME? Or should we fail without trying?
@@ -94,9 +104,18 @@ func determineManifestConversion(manifestUpdates *types.ManifestUpdateOptions, s
 	}
 	preferredType := prioritizedTypes.list[0]
 	if preferredType != srcType {
-		manifestUpdates.ManifestMIMEType = preferredType
+		ic.manifestUpdates.ManifestMIMEType = preferredType
 	} else {
 		logrus.Debugf("... will first try using the original manifest unmodified")
 	}
 	return preferredType, prioritizedTypes.list[1:], nil
+}
+
+// isMultiImage returns true if img is a list of images
+func isMultiImage(ctx context.Context, img types.UnparsedImage) (bool, error) {
+	_, mt, err := img.Manifest(ctx)
+	if err != nil {
+		return false, err
+	}
+	return manifest.MIMETypeIsMultiImage(mt), nil
 }

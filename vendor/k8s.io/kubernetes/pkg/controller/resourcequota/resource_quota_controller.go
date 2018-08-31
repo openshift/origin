@@ -161,12 +161,14 @@ func NewResourceQuotaController(options *ResourceQuotaControllerOptions) (*Resou
 
 		rq.quotaMonitor = qm
 
-		// do initial quota monitor setup.  If we have a discovery failure here, it's ok. We'll discover more resources when
-		// a later sync happens.
+		// do initial quota monitor setup.  If we have a discovery failure here, it's ok. We'll discover more resources when a later sync happens.
 		resources, err := GetQuotableResources(options.DiscoveryFunc)
-		if err != nil {
+		if discovery.IsGroupDiscoveryFailedError(err) {
 			utilruntime.HandleError(fmt.Errorf("initial discovery check failure, continuing and counting on future sync update: %v", err))
+		} else if err != nil {
+			return nil, err
 		}
+
 		if err = qm.SyncMonitors(resources); err != nil {
 			utilruntime.HandleError(fmt.Errorf("initial monitor sync has error: %v", err))
 		}
@@ -416,19 +418,24 @@ func (rq *ResourceQuotaController) replenishQuota(groupResource schema.GroupReso
 		}
 	}
 }
-
-// Sync periodically resyncs the controller when new resources are observed from discovery.
 func (rq *ResourceQuotaController) Sync(discoveryFunc NamespacedResourcesFunc, period time.Duration, stopCh <-chan struct{}) {
 	// Something has changed, so track the new state and perform a sync.
 	oldResources := make(map[schema.GroupVersionResource]struct{})
 	wait.Until(func() {
-		// Get the current resource list from discovery.  A failure here will (should?) prevent updates to the sync list.
-		// TODO I suspect that this should actually tolerate the addition of resources on discovery failure, but may need more
-		// TODO fine grained inspection of errors on failures to know which resources could/should be removed.
+		// Get the current resource list from discovery.
 		newResources, err := GetQuotableResources(discoveryFunc)
 		if err != nil {
 			utilruntime.HandleError(err)
-			return
+
+			if discovery.IsGroupDiscoveryFailedError(err) && len(newResources) > 0 {
+				// In partial discovery cases, don't remove any existing informers, just add new ones
+				for k, v := range oldResources {
+					newResources[k] = v
+				}
+			} else {
+				// short circuit in non-discovery error cases or if discovery returned zero resources
+				return
+			}
 		}
 
 		// Decide whether discovery has reported a change.

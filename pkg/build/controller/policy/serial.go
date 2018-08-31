@@ -1,9 +1,9 @@
 package policy
 
 import (
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -18,7 +18,7 @@ type SerialPolicy struct {
 }
 
 // IsRunnable implements the RunPolicy interface.
-func (s *SerialPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
+func (s *SerialPolicy) IsRunnable(build *buildv1.Build) (bool, error) {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return true, nil
@@ -31,6 +31,6 @@ func (s *SerialPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 }
 
 // Handles returns true for the build run serial policy
-func (s *SerialPolicy) Handles(policy buildapi.BuildRunPolicy) bool {
-	return policy == buildapi.BuildRunPolicySerial
+func (s *SerialPolicy) Handles(policy buildv1.BuildRunPolicy) bool {
+	return policy == buildv1.BuildRunPolicySerial
 }

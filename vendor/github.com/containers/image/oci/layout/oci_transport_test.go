@@ -1,15 +1,29 @@
 package layout
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
+	_ "github.com/containers/image/internal/testing/explicitfilepath-tmpdir"
 	"github.com/containers/image/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestGetManifestDescriptor is testing a regression issue where a nil error was being wrapped,
+// this causes the returned error to be nil as well and the user wasn't getting a proper error output.
+//
+// More info: https://github.com/projectatomic/skopeo/issues/496
+func TestGetManifestDescriptor(t *testing.T) {
+	imageRef, err := NewReference("fixtures/two_images_manifest", "")
+	require.NoError(t, err)
+
+	_, err = imageRef.(ociReference).getManifestDescriptor()
+	assert.EqualError(t, err, ErrMoreThanOneImage.Error())
+}
 
 func TestTransportName(t *testing.T) {
 	assert.Equal(t, "oci", Transport.Name())
@@ -22,10 +36,7 @@ func TestTransportParseReference(t *testing.T) {
 func TestTransportValidatePolicyConfigurationScope(t *testing.T) {
 	for _, scope := range []string{
 		"/etc",
-		"/etc:notlatest",
 		"/this/does/not/exist",
-		"/this/does/not/exist:notlatest",
-		"/:strangecornercase",
 	} {
 		err := Transport.ValidatePolicyConfigurationScope(scope)
 		assert.NoError(t, err, scope)
@@ -38,9 +49,6 @@ func TestTransportValidatePolicyConfigurationScope(t *testing.T) {
 		"/has/./dot",
 		"/has/dot/../dot",
 		"/trailing/slash/",
-		"/etc:invalid'tag!value@",
-		"/path:with/colons",
-		"/path:with/colons/and:tag",
 	} {
 		err := Transport.ValidatePolicyConfigurationScope(scope)
 		assert.Error(t, err, scope)
@@ -64,48 +72,57 @@ func testParseReference(t *testing.T, fn func(string) (types.ImageReference, err
 		"relativepath",
 		tmpDir + "/thisdoesnotexist",
 	} {
-		for _, tag := range []struct{ suffix, tag string }{
-			{":notlatest", "notlatest"},
-			{"", "latest"},
+		for _, image := range []struct{ suffix, image string }{
+			{":notlatest:image", "notlatest:image"},
+			{":latestimage", "latestimage"},
+			{":", ""},
+			{"", ""},
 		} {
-			input := path + tag.suffix
+			input := path + image.suffix
 			ref, err := fn(input)
 			require.NoError(t, err, input)
 			ociRef, ok := ref.(ociReference)
 			require.True(t, ok)
 			assert.Equal(t, path, ociRef.dir, input)
-			assert.Equal(t, tag.tag, ociRef.tag, input)
+			assert.Equal(t, image.image, ociRef.image, input)
 		}
 	}
 
-	_, err = fn(tmpDir + "/with:multiple:colons:and:tag")
-	assert.Error(t, err)
-
-	_, err = fn(tmpDir + ":invalid'tag!value@")
+	_, err = fn(tmpDir + ":invalid'image!value@")
 	assert.Error(t, err)
 }
 
 func TestNewReference(t *testing.T) {
-	const tagValue = "tagValue"
+	const (
+		imageValue   = "imageValue"
+		noImageValue = ""
+	)
 
 	tmpDir, err := ioutil.TempDir("", "oci-transport-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	ref, err := NewReference(tmpDir, tagValue)
+	ref, err := NewReference(tmpDir, imageValue)
 	require.NoError(t, err)
 	ociRef, ok := ref.(ociReference)
 	require.True(t, ok)
 	assert.Equal(t, tmpDir, ociRef.dir)
-	assert.Equal(t, tagValue, ociRef.tag)
+	assert.Equal(t, imageValue, ociRef.image)
 
-	_, err = NewReference(tmpDir+"/thisparentdoesnotexist/something", tagValue)
+	ref, err = NewReference(tmpDir, noImageValue)
+	require.NoError(t, err)
+	ociRef, ok = ref.(ociReference)
+	require.True(t, ok)
+	assert.Equal(t, tmpDir, ociRef.dir)
+	assert.Equal(t, noImageValue, ociRef.image)
+
+	_, err = NewReference(tmpDir+"/thisparentdoesnotexist/something", imageValue)
 	assert.Error(t, err)
 
-	_, err = NewReference(tmpDir+"/has:colon", tagValue)
+	_, err = NewReference(tmpDir, "invalid'image!value@")
 	assert.Error(t, err)
 
-	_, err = NewReference(tmpDir, "invalid'tag!value@")
+	_, err = NewReference(tmpDir+"/has:colon", imageValue)
 	assert.Error(t, err)
 }
 
@@ -127,14 +144,14 @@ func refToTempOCI(t *testing.T) (ref types.ImageReference, tmpDir string) {
 				"os": "linux"
 			},
 			"annotations": {
-				"org.opencontainers.image.ref.name": "tagValue"
+				"org.opencontainers.image.ref.name": "imageValue"
 			}
 		}
 		]
 	}
 `
 	ioutil.WriteFile(filepath.Join(tmpDir, "index.json"), []byte(m), 0644)
-	ref, err = NewReference(tmpDir, "tagValue")
+	ref, err = NewReference(tmpDir, "imageValue")
 	require.NoError(t, err)
 	return ref, tmpDir
 }
@@ -151,8 +168,8 @@ func TestReferenceStringWithinTransport(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	for _, c := range []struct{ input, result string }{
-		{"/dir1:notlatest", "/dir1:notlatest"}, // Explicit tag
-		{"/dir2", "/dir2:latest"},              // Default tag
+		{"/dir1:notlatest:notlatest", "/dir1:notlatest:notlatest"}, // Explicit image
+		{"/dir3:", "/dir3:"},                                       // No image
 	} {
 		ref, err := ParseReference(tmpDir + c.input)
 		require.NoError(t, err, c.input)
@@ -176,17 +193,17 @@ func TestReferencePolicyConfigurationIdentity(t *testing.T) {
 	ref, tmpDir := refToTempOCI(t)
 	defer os.RemoveAll(tmpDir)
 
-	assert.Equal(t, tmpDir+":tagValue", ref.PolicyConfigurationIdentity())
+	assert.Equal(t, tmpDir, ref.PolicyConfigurationIdentity())
 	// A non-canonical path.  Test just one, the various other cases are
 	// tested in explicitfilepath.ResolvePathToFullyExplicit.
-	ref, err := NewReference(tmpDir+"/.", "tag2")
+	ref, err := NewReference(tmpDir+"/.", "image2")
 	require.NoError(t, err)
-	assert.Equal(t, tmpDir+":tag2", ref.PolicyConfigurationIdentity())
+	assert.Equal(t, tmpDir, ref.PolicyConfigurationIdentity())
 
 	// "/" as a corner case.
-	ref, err = NewReference("/", "tag3")
+	ref, err = NewReference("/", "image3")
 	require.NoError(t, err)
-	assert.Equal(t, "/:tag3", ref.PolicyConfigurationIdentity())
+	assert.Equal(t, "/", ref.PolicyConfigurationIdentity())
 }
 
 func TestReferencePolicyConfigurationNamespaces(t *testing.T) {
@@ -205,18 +222,18 @@ func TestReferencePolicyConfigurationNamespaces(t *testing.T) {
 	// It would be nice to test a deeper hierarchy, but it is not obvious what
 	// deeper path is always available in the various distros, AND is not likely
 	// to contains a symbolic link.
-	for _, path := range []string{"/etc/skel", "/etc/skel/./."} {
+	for _, path := range []string{"/usr/share", "/usr/share/./."} {
 		_, err := os.Lstat(path)
 		require.NoError(t, err)
-		ref, err := NewReference(path, "sometag")
+		ref, err := NewReference(path, "someimage")
 		require.NoError(t, err)
 		ns := ref.PolicyConfigurationNamespaces()
 		require.NotNil(t, ns)
-		assert.Equal(t, []string{"/etc/skel", "/etc"}, ns)
+		assert.Equal(t, []string{"/usr/share", "/usr"}, ns)
 	}
 
 	// "/" as a corner case.
-	ref, err := NewReference("/", "tag3")
+	ref, err := NewReference("/", "image3")
 	require.NoError(t, err)
 	assert.Equal(t, []string{}, ref.PolicyConfigurationNamespaces())
 }
@@ -224,21 +241,21 @@ func TestReferencePolicyConfigurationNamespaces(t *testing.T) {
 func TestReferenceNewImage(t *testing.T) {
 	ref, tmpDir := refToTempOCI(t)
 	defer os.RemoveAll(tmpDir)
-	_, err := ref.NewImage(nil)
+	_, err := ref.NewImage(context.Background(), nil)
 	assert.Error(t, err)
 }
 
 func TestReferenceNewImageSource(t *testing.T) {
 	ref, tmpDir := refToTempOCI(t)
 	defer os.RemoveAll(tmpDir)
-	_, err := ref.NewImageSource(nil, nil)
+	_, err := ref.NewImageSource(context.Background(), nil)
 	assert.NoError(t, err)
 }
 
 func TestReferenceNewImageDestination(t *testing.T) {
 	ref, tmpDir := refToTempOCI(t)
 	defer os.RemoveAll(tmpDir)
-	dest, err := ref.NewImageDestination(nil)
+	dest, err := ref.NewImageDestination(context.Background(), nil)
 	assert.NoError(t, err)
 	defer dest.Close()
 }
@@ -246,7 +263,7 @@ func TestReferenceNewImageDestination(t *testing.T) {
 func TestReferenceDeleteImage(t *testing.T) {
 	ref, tmpDir := refToTempOCI(t)
 	defer os.RemoveAll(tmpDir)
-	err := ref.DeleteImage(nil)
+	err := ref.DeleteImage(context.Background(), nil)
 	assert.Error(t, err)
 }
 
@@ -273,9 +290,21 @@ func TestReferenceBlobPath(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 	ociRef, ok := ref.(ociReference)
 	require.True(t, ok)
-	bp, err := ociRef.blobPath("sha256:" + hex)
+	bp, err := ociRef.blobPath("sha256:"+hex, "")
 	assert.NoError(t, err)
 	assert.Equal(t, tmpDir+"/blobs/sha256/"+hex, bp)
+}
+
+func TestReferenceSharedBlobPathShared(t *testing.T) {
+	const hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	ref, tmpDir := refToTempOCI(t)
+	defer os.RemoveAll(tmpDir)
+	ociRef, ok := ref.(ociReference)
+	require.True(t, ok)
+	bp, err := ociRef.blobPath("sha256:"+hex, "/external/path")
+	assert.NoError(t, err)
+	assert.Equal(t, "/external/path/sha256/"+hex, bp)
 }
 
 func TestReferenceBlobPathInvalid(t *testing.T) {
@@ -285,7 +314,7 @@ func TestReferenceBlobPathInvalid(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 	ociRef, ok := ref.(ociReference)
 	require.True(t, ok)
-	_, err := ociRef.blobPath(hex)
+	_, err := ociRef.blobPath(hex, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unexpected digest reference "+hex)
 }

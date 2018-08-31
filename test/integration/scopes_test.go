@@ -16,7 +16,6 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
@@ -53,7 +52,7 @@ func TestScopedTokens(t *testing.T) {
 
 	whoamiOnlyToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
-		ClientName: oauthserver.OpenShiftCLIClientID,
+		ClientName: "openshift-challenging-client",
 		ExpiresIn:  200,
 		Scopes:     []string{scope.UserInfo},
 		UserName:   userName,
@@ -157,7 +156,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	nonEscalatingEditToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: oauthserver.OpenShiftCLIClientID,
+		ClientName: "openshift-challenging-client",
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*"},
 		UserName:   userName,
@@ -180,7 +179,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	escalatingEditToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: oauthserver.OpenShiftCLIClientID,
+		ClientName: "openshift-challenging-client",
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*:!"},
 		UserName:   userName,

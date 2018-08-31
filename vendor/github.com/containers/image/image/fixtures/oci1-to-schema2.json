@@ -20,7 +20,8 @@
       {
          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
          "size": 11739507,
-         "digest": "sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9"
+         "digest": "sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9",
+         "urls": ["https://layer.url"]
       },
       {
          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",

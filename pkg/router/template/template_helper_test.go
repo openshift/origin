@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
-func buildServiceAliasConfig(name, namespace, host, path string, termination routeapi.TLSTerminationType, policy routeapi.InsecureEdgeTerminationPolicyType, wildcard bool) ServiceAliasConfig {
+func buildServiceAliasConfig(name, namespace, host, path string, termination routev1.TLSTerminationType, policy routev1.InsecureEdgeTerminationPolicyType, wildcard bool) ServiceAliasConfig {
 	certs := make(map[string]Certificate)
-	if termination != routeapi.TLSTerminationPassthrough {
+	if termination != routev1.TLSTerminationPassthrough {
 		certs[host] = Certificate{
 			ID:       fmt.Sprintf("id_%s", host),
 			Contents: "abcdefghijklmnopqrstuvwxyz",
@@ -36,24 +36,24 @@ func buildServiceAliasConfig(name, namespace, host, path string, termination rou
 func buildTestTemplateState() map[string]ServiceAliasConfig {
 	state := make(map[string]ServiceAliasConfig)
 
-	state["stg:api-route"] = buildServiceAliasConfig("api-route", "stg", "api-stg.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
-	state["prod:api-route"] = buildServiceAliasConfig("api-route", "prod", "api-prod.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
-	state["test:api-route"] = buildServiceAliasConfig("api-route", "test", "zzz-production.wildcard.test", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
-	state["dev:api-route"] = buildServiceAliasConfig("api-route", "dev", "3dev.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyAllow, false)
-	state["prod:api-path-route"] = buildServiceAliasConfig("api-path-route", "prod", "api-prod.127.0.0.1.nip.io", "/x/y/z", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyNone, false)
+	state["stg:api-route"] = buildServiceAliasConfig("api-route", "stg", "api-stg.127.0.0.1.nip.io", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyRedirect, false)
+	state["prod:api-route"] = buildServiceAliasConfig("api-route", "prod", "api-prod.127.0.0.1.nip.io", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyRedirect, false)
+	state["test:api-route"] = buildServiceAliasConfig("api-route", "test", "zzz-production.wildcard.test", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyRedirect, false)
+	state["dev:api-route"] = buildServiceAliasConfig("api-route", "dev", "3dev.127.0.0.1.nip.io", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyAllow, false)
+	state["prod:api-path-route"] = buildServiceAliasConfig("api-path-route", "prod", "api-prod.127.0.0.1.nip.io", "/x/y/z", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyNone, false)
 
-	state["prod:pt-route"] = buildServiceAliasConfig("pt-route", "prod", "passthrough-prod.127.0.0.1.nip.io", "", routeapi.TLSTerminationPassthrough, routeapi.InsecureEdgeTerminationPolicyNone, false)
+	state["prod:pt-route"] = buildServiceAliasConfig("pt-route", "prod", "passthrough-prod.127.0.0.1.nip.io", "", routev1.TLSTerminationPassthrough, routev1.InsecureEdgeTerminationPolicyNone, false)
 
-	state["prod:wildcard-route"] = buildServiceAliasConfig("wildcard-route", "prod", "api-stg.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyNone, true)
-	state["devel2:foo-wildcard-route"] = buildServiceAliasConfig("foo-wildcard-route", "devel2", "devel1.foo.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyAllow, true)
-	state["devel2:foo-wildcard-test"] = buildServiceAliasConfig("foo-wildcard-test", "devel2", "something.foo.wildcard.test", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyAllow, true)
-	state["dev:pt-route"] = buildServiceAliasConfig("pt-route", "dev", "passthrough-dev.127.0.0.1.nip.io", "", routeapi.TLSTerminationPassthrough, routeapi.InsecureEdgeTerminationPolicyNone, false)
-	state["dev:reencrypt-route"] = buildServiceAliasConfig("reencrypt-route", "dev", "reencrypt-dev.127.0.0.1.nip.io", "", routeapi.TLSTerminationReencrypt, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
+	state["prod:wildcard-route"] = buildServiceAliasConfig("wildcard-route", "prod", "api-stg.127.0.0.1.nip.io", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyNone, true)
+	state["devel2:foo-wildcard-route"] = buildServiceAliasConfig("foo-wildcard-route", "devel2", "devel1.foo.127.0.0.1.nip.io", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyAllow, true)
+	state["devel2:foo-wildcard-test"] = buildServiceAliasConfig("foo-wildcard-test", "devel2", "something.foo.wildcard.test", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyAllow, true)
+	state["dev:pt-route"] = buildServiceAliasConfig("pt-route", "dev", "passthrough-dev.127.0.0.1.nip.io", "", routev1.TLSTerminationPassthrough, routev1.InsecureEdgeTerminationPolicyNone, false)
+	state["dev:reencrypt-route"] = buildServiceAliasConfig("reencrypt-route", "dev", "reencrypt-dev.127.0.0.1.nip.io", "", routev1.TLSTerminationReencrypt, routev1.InsecureEdgeTerminationPolicyRedirect, false)
 
-	state["dev:admin-route"] = buildServiceAliasConfig("admin-route", "dev", "3app-admin.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyNone, false)
+	state["dev:admin-route"] = buildServiceAliasConfig("admin-route", "dev", "3app-admin.127.0.0.1.nip.io", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyNone, false)
 
-	state["prod:backend-route"] = buildServiceAliasConfig("backend-route", "prod", "backend-app.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
-	state["zzz:zed-route"] = buildServiceAliasConfig("zed-route", "zzz", "zed.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyAllow, false)
+	state["prod:backend-route"] = buildServiceAliasConfig("backend-route", "prod", "backend-app.127.0.0.1.nip.io", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyRedirect, false)
+	state["zzz:zed-route"] = buildServiceAliasConfig("zed-route", "zzz", "zed.127.0.0.1.nip.io", "", routev1.TLSTerminationEdge, routev1.InsecureEdgeTerminationPolicyAllow, false)
 
 	return state
 }
@@ -547,7 +547,7 @@ func TestGetHTTPAliasesGroupedByHost(t *testing.T) {
 		},
 		"project3.route3": {
 			Host:           "example.net",
-			TLSTermination: routeapi.TLSTerminationPassthrough,
+			TLSTermination: routev1.TLSTerminationPassthrough,
 		},
 	}
 
@@ -604,17 +604,17 @@ func TestGetPrimaryAliasKey(t *testing.T) {
 				"project1:route-3": {
 					Host:           "example.com",
 					Path:           "/",
-					TLSTermination: routeapi.TLSTerminationEdge,
+					TLSTermination: routev1.TLSTerminationEdge,
 				},
 				"project1:route-1": {
 					Host:           "example.com",
 					Path:           "/path1",
-					TLSTermination: routeapi.TLSTerminationEdge,
+					TLSTermination: routev1.TLSTerminationEdge,
 				},
 				"project1:route-2": {
 					Host:           "example.com",
 					Path:           "/path2",
-					TLSTermination: routeapi.TLSTerminationEdge,
+					TLSTermination: routev1.TLSTerminationEdge,
 				},
 				"project1:route-4": {
 					Host: "example.com",
@@ -629,17 +629,17 @@ func TestGetPrimaryAliasKey(t *testing.T) {
 				"project1:route-3": {
 					Host:           "example.com",
 					Path:           "/",
-					TLSTermination: routeapi.TLSTerminationReencrypt,
+					TLSTermination: routev1.TLSTerminationReencrypt,
 				},
 				"project1:route-1": {
 					Host:           "example.com",
 					Path:           "/path1",
-					TLSTermination: routeapi.TLSTerminationReencrypt,
+					TLSTermination: routev1.TLSTerminationReencrypt,
 				},
 				"project1:route-2": {
 					Host:           "example.com",
 					Path:           "/path2",
-					TLSTermination: routeapi.TLSTerminationReencrypt,
+					TLSTermination: routev1.TLSTerminationReencrypt,
 				},
 				"project1:route-4": {
 					Host: "example.com",

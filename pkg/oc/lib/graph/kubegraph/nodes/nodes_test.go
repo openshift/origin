@@ -3,7 +3,7 @@ package nodes
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
@@ -11,7 +11,7 @@ import (
 func TestPodSpecNode(t *testing.T) {
 	g := osgraph.New()
 
-	pod := &kapi.Pod{}
+	pod := &corev1.Pod{}
 	pod.Namespace = "ns"
 	pod.Name = "foo"
 	pod.Spec.NodeName = "any-host"
@@ -38,10 +38,10 @@ func TestPodSpecNode(t *testing.T) {
 func TestReplicationControllerSpecNode(t *testing.T) {
 	g := osgraph.New()
 
-	rc := &kapi.ReplicationController{}
+	rc := &corev1.ReplicationController{}
 	rc.Namespace = "ns"
 	rc.Name = "foo"
-	rc.Spec.Template = &kapi.PodTemplateSpec{}
+	rc.Spec.Template = &corev1.PodTemplateSpec{}
 
 	rcNode := EnsureReplicationControllerNode(g, rc)
 

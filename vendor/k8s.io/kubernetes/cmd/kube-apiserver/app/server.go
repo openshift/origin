@@ -169,13 +169,17 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 	if err != nil {
 		return nil, err
 	}
-	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, genericapiserver.NewEmptyDelegate())
+	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, StartingDelegate)
 	if err != nil {
 		return nil, err
 	}
 
 	kubeAPIServer, err := CreateKubeAPIServer(kubeAPIServerConfig, apiExtensionsServer.GenericAPIServer, sharedInformers, versionedInformers, admissionPostStartHook)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := PatchKubeAPIServerServer(kubeAPIServer); err != nil {
 		return nil, err
 	}
 
@@ -399,6 +403,7 @@ func CreateKubeAPIServerConfig(
 func BuildGenericConfig(
 	s *options.ServerRunOptions,
 	proxyTransport *http.Transport,
+
 ) (
 	genericConfig *genericapiserver.Config,
 	sharedInformers informers.SharedInformerFactory,
@@ -542,6 +547,12 @@ func BuildGenericConfig(
 		return
 	}
 
+	StartingDelegate, err = PatchKubeAPIServerConfig(genericConfig, sharedInformers, versionedInformers, &pluginInitializers)
+	if err != nil {
+		lastErr = fmt.Errorf("failed to patch: %v", err)
+		return
+	}
+
 	err = s.Admission.ApplyTo(
 		genericConfig,
 		versionedInformers,
@@ -633,6 +644,8 @@ func BuildStorageFactory(s *options.ServerRunOptions, apiResourceConfig *servers
 	if err != nil {
 		return nil, fmt.Errorf("error in initializing storage factory: %s", err)
 	}
+
+	storageFactory.SetResourceEtcdPrefix(schema.GroupResource{Group: "apiregistration.k8s.io", Resource: "apiservices"}, "apiservices")
 
 	storageFactory.AddCohabitatingResources(networking.Resource("networkpolicies"), extensions.Resource("networkpolicies"))
 	storageFactory.AddCohabitatingResources(apps.Resource("deployments"), extensions.Resource("deployments"))

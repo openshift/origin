@@ -27,6 +27,7 @@ import (
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -446,6 +447,10 @@ func (m *Master) Start() error {
 		// start etcd if configured to run in process
 		if m.config.EtcdConfig != nil {
 			etcdserver.RunEtcd(m.config.EtcdConfig)
+		}
+
+		if err := openshift_kube_apiserver.ConvertNetworkConfigToAdmissionConfig(m.config); err != nil {
+			return err
 		}
 
 		// ensure connectivity to etcd before calling BuildMasterConfig,

@@ -1,19 +1,22 @@
+// +build !containers_image_ostree_stub
+
 package ostree
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/containers/image/directory/explicitfilepath"
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/image"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 )
 
 const defaultOSTreeRepo = "/ostree/repo"
@@ -64,6 +67,11 @@ type ostreeReference struct {
 	repo       string
 }
 
+type ostreeImageCloser struct {
+	types.ImageCloser
+	size int64
+}
+
 func (t ostreeTransport) ParseReference(ref string) (types.ImageReference, error) {
 	var repo = ""
 	var image = ""
@@ -82,24 +90,15 @@ func NewReference(image string, repo string) (types.ImageReference, error) {
 	// image is not _really_ in a containers/image/docker/reference format;
 	// as far as the libOSTree ociimage/* namespace is concerned, it is more or
 	// less an arbitrary string with an implied tag.
-	// We use the reference.* parsers basically for the default tag name in
-	// reference.TagNameOnly, and incidentally for some character set and length
-	// restrictions.
-	var ostreeImage reference.Named
-	s := strings.SplitN(image, ":", 2)
-
-	named, err := reference.WithName(s[0])
+	// Parse the image using reference.ParseNormalizedNamed so that we can
+	// check whether the images has a tag specified and we can add ":latest" if needed
+	ostreeImage, err := reference.ParseNormalizedNamed(image)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(s) == 1 {
-		ostreeImage = reference.TagNameOnly(named)
-	} else {
-		ostreeImage, err = reference.WithTag(named, s[1])
-		if err != nil {
-			return nil, err
-		}
+	if reference.IsNameOnly(ostreeImage) {
+		image = image + ":latest"
 	}
 
 	resolved, err := explicitfilepath.ResolvePathToFullyExplicit(repo)
@@ -117,12 +116,12 @@ func NewReference(image string, repo string) (types.ImageReference, error) {
 	// This is necessary to prevent directory paths returned by PolicyConfigurationNamespaces
 	// from being ambiguous with values of PolicyConfigurationIdentity.
 	if strings.Contains(resolved, ":") {
-		return nil, errors.Errorf("Invalid OSTreeCI reference %s@%s: path %s contains a colon", image, repo, resolved)
+		return nil, errors.Errorf("Invalid OSTree reference %s@%s: path %s contains a colon", image, repo, resolved)
 	}
 
 	return ostreeReference{
-		image:      ostreeImage.String(),
-		branchName: encodeOStreeRef(ostreeImage.String()),
+		image:      image,
+		branchName: encodeOStreeRef(image),
 		repo:       resolved,
 	}, nil
 }
@@ -175,36 +174,54 @@ func (ref ostreeReference) PolicyConfigurationNamespaces() []string {
 	return res
 }
 
-// NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
-// The caller must call .Close() on the returned Image.
-// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
-// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
-func (ref ostreeReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
-	return nil, errors.New("Reading ostree: images is currently not supported")
+func (s *ostreeImageCloser) Size() (int64, error) {
+	return s.size, nil
 }
 
-// NewImageSource returns a types.ImageSource for this reference,
-// asking the backend to use a manifest from requestedManifestMIMETypes if possible.
-// nil requestedManifestMIMETypes means manifest.DefaultRequestedManifestMIMETypes.
+// NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.
+// The caller must call .Close() on the returned ImageCloser.
+// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
+func (ref ostreeReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
+	var tmpDir string
+	if sys == nil || sys.OSTreeTmpDirPath == "" {
+		tmpDir = os.TempDir()
+	} else {
+		tmpDir = sys.OSTreeTmpDirPath
+	}
+	src, err := newImageSource(tmpDir, ref)
+	if err != nil {
+		return nil, err
+	}
+	return image.FromSource(ctx, sys, src)
+}
+
+// NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
-func (ref ostreeReference) NewImageSource(ctx *types.SystemContext, requestedManifestMIMETypes []string) (types.ImageSource, error) {
-	return nil, errors.New("Reading ostree: images is currently not supported")
+func (ref ostreeReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
+	var tmpDir string
+	if sys == nil || sys.OSTreeTmpDirPath == "" {
+		tmpDir = os.TempDir()
+	} else {
+		tmpDir = sys.OSTreeTmpDirPath
+	}
+	return newImageSource(tmpDir, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
-func (ref ostreeReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
+func (ref ostreeReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
 	var tmpDir string
-	if ctx == nil || ctx.OSTreeTmpDirPath == "" {
+	if sys == nil || sys.OSTreeTmpDirPath == "" {
 		tmpDir = os.TempDir()
 	} else {
-		tmpDir = ctx.OSTreeTmpDirPath
+		tmpDir = sys.OSTreeTmpDirPath
 	}
 	return newImageDestination(ref, tmpDir)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
-func (ref ostreeReference) DeleteImage(ctx *types.SystemContext) error {
+func (ref ostreeReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	return errors.Errorf("Deleting images not implemented for ostree: images")
 }
 

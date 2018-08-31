@@ -8,21 +8,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 )
 
 const gitRepositoryAnnotationKey = "openshift.io/git-repository"
 
-func GetRepositoryBuildConfigs(c buildclient.Interface, name string, out io.Writer) error {
+func GetRepositoryBuildConfigs(c buildv1client.Interface, name string, out io.Writer) error {
 
 	ns := os.Getenv("POD_NAMESPACE")
-	buildConfigList, err := c.Build().BuildConfigs(ns).List(metav1.ListOptions{})
+	buildConfigList, err := c.BuildV1().BuildConfigs(ns).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	matchingBuildConfigs := []*buildapi.BuildConfig{}
+	matchingBuildConfigs := []*buildv1.BuildConfig{}
 
 	for i := range buildConfigList.Items {
 		bc := &buildConfigList.Items[i]
@@ -53,12 +53,12 @@ func GetRepositoryBuildConfigs(c buildclient.Interface, name string, out io.Writ
 }
 
 // GetClient returns a build client.
-func GetClient() (buildclient.Interface, error) {
+func GetClient() (buildv1client.Interface, error) {
 	clientConfig, err := restclient.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client config: %v", err)
 	}
-	buildClient, err := buildclient.NewForConfig(clientConfig)
+	buildClient, err := buildv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error obtaining OpenShift client: %v", err)
 	}

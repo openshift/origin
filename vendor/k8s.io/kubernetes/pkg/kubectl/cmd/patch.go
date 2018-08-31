@@ -190,14 +190,16 @@ func (o *PatchOptions) RunPatch() error {
 		return fmt.Errorf("unable to parse %q: %v", o.Patch, err)
 	}
 
-	r := o.builder.
+	b := o.builder.
 		Unstructured().
 		ContinueOnError().
 		NamespaceParam(o.namespace).DefaultNamespace().
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
+		LocalParam(o.Local).
 		ResourceTypeOrNameArgs(false, o.args...).
-		Flatten().
-		Do()
+		Flatten()
+
+	r := b.Do()
 	err = r.Err()
 	if err != nil {
 		return err
@@ -208,14 +210,15 @@ func (o *PatchOptions) RunPatch() error {
 		if err != nil {
 			return err
 		}
+		count++
 		name, namespace := info.Name, info.Namespace
-		mapping := info.ResourceMapping()
-		client, err := o.unstructuredClientForMapping(mapping)
-		if err != nil {
-			return err
-		}
-
 		if !o.Local && !o.dryRun {
+			mapping := info.ResourceMapping()
+			client, err := o.unstructuredClientForMapping(mapping)
+			if err != nil {
+				return err
+			}
+
 			helper := resource.NewHelper(client, mapping)
 			patchedObj, err := helper.Patch(namespace, name, patchType, patchBytes)
 			if err != nil {
@@ -234,28 +237,20 @@ func (o *PatchOptions) RunPatch() error {
 					patchedObj = recordedObj
 				}
 			}
-			count++
-
-			// After computing whether we changed data, refresh the resource info with the resulting object
-			if err := info.Refresh(patchedObj, true); err != nil {
-				return err
-			}
 
 			printer, err := o.ToPrinter(patchOperation(didPatch))
 			if err != nil {
 				return err
 			}
-			return printer.PrintObj(info.Object, o.Out)
+			return printer.PrintObj(patchedObj, o.Out)
 		}
-
-		count++
 
 		originalObjJS, err := runtime.Encode(unstructured.UnstructuredJSONScheme, info.Object)
 		if err != nil {
 			return err
 		}
 
-		originalPatchedObjJS, err := getPatchedJSON(patchType, originalObjJS, patchBytes, mapping.GroupVersionKind, scheme.Scheme)
+		originalPatchedObjJS, err := getPatchedJSON(patchType, originalObjJS, patchBytes, info.Object.GetObjectKind().GroupVersionKind(), scheme.Scheme)
 		if err != nil {
 			return err
 		}
@@ -267,21 +262,11 @@ func (o *PatchOptions) RunPatch() error {
 
 		didPatch := !reflect.DeepEqual(info.Object, targetObj)
 
-		// TODO: if we ever want to go generic, this allows a clean -o yaml without trying to print columns or anything
-		// rawExtension := &runtime.Unknown{
-		//	Raw: originalPatchedObjJS,
-		// }
-		if didPatch {
-			if err := info.Refresh(targetObj, true); err != nil {
-				return err
-			}
-		}
-
 		printer, err := o.ToPrinter(patchOperation(didPatch))
 		if err != nil {
 			return err
 		}
-		return printer.PrintObj(info.Object, o.Out)
+		return printer.PrintObj(targetObj, o.Out)
 	})
 	if err != nil {
 		return err

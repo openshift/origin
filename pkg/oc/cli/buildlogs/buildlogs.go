@@ -13,8 +13,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
+	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	buildmanualclient "github.com/openshift/origin/pkg/build/client/v1"
 	"github.com/openshift/origin/pkg/oc/cli/logs"
 )
 
@@ -37,7 +37,7 @@ type BuildLogsOptions struct {
 
 	Name        string
 	Namespace   string
-	BuildClient buildv1client.Interface
+	BuildClient buildclient.Interface
 
 	genericclioptions.IOStreams
 }
@@ -86,7 +86,7 @@ func (o *BuildLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 	if err != nil {
 		return err
 	}
-	o.BuildClient, err = buildv1client.NewForConfig(clientConfig)
+	o.BuildClient, err = buildclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (o *BuildLogsOptions) RunBuildLogs() error {
 		Follow: o.Follow,
 		NoWait: o.NoWait,
 	}
-	readCloser, err := buildclientv1.NewBuildLogClient(o.BuildClient.BuildV1().RESTClient(), o.Namespace).Logs(o.Name, opts).Stream()
+	readCloser, err := buildmanualclient.NewBuildLogClient(o.BuildClient.BuildV1().RESTClient(), o.Namespace).Logs(o.Name, opts).Stream()
 	if err != nil {
 		return err
 	}

@@ -2,8 +2,13 @@ package ioutils
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 // Implement io.Reader
@@ -31,9 +36,7 @@ func TestReaderErrWrapperReadOnError(t *testing.T) {
 		called = true
 	})
 	_, err := wrapper.Read([]byte{})
-	if err == nil || !strings.Contains(err.Error(), "error reader always fail") {
-		t.Fatalf("readErrWrapper should returned an error")
-	}
+	assert.EqualError(t, err, "error reader always fail")
 	if !called {
 		t.Fatalf("readErrWrapper should have call the anonymous function on failure")
 	}
@@ -73,4 +76,18 @@ func (p *perpetualReader) Read(buf []byte) (n int, err error) {
 		buf[i] = 'a'
 	}
 	return len(buf), nil
+}
+
+func TestCancelReadCloser(t *testing.T) {
+	ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	cancelReadCloser := NewCancelReadCloser(ctx, ioutil.NopCloser(&perpetualReader{}))
+	for {
+		var buf [128]byte
+		_, err := cancelReadCloser.Read(buf[:])
+		if err == context.DeadlineExceeded {
+			break
+		} else if err != nil {
+			t.Fatalf("got unexpected error: %v", err)
+		}
+	}
 }

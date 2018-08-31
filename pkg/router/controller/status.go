@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -13,16 +14,16 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	client "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
-	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
+	routev1 "github.com/openshift/api/route/v1"
+	client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	routelisters "github.com/openshift/client-go/route/listers/route/v1"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/util/writerlease"
 )
 
 // RejectionRecorder is an object capable of recording why a route was rejected
 type RejectionRecorder interface {
-	RecordRouteRejection(route *routeapi.Route, reason, message string)
+	RecordRouteRejection(route *routev1.Route, reason, message string)
 }
 
 // LogRejections writes rejection messages to the log.
@@ -30,7 +31,7 @@ var LogRejections = logRecorder{}
 
 type logRecorder struct{}
 
-func (logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
+func (logRecorder) RecordRouteRejection(route *routev1.Route, reason, message string) {
 	glog.V(3).Infof("Rejected route %s in namespace %s: %s: %s", route.Name, route.Namespace, reason, message)
 }
 
@@ -75,12 +76,12 @@ func getRfc3339Timestamp() metav1.Time {
 var nowFn = getRfc3339Timestamp
 
 // HandleRoute attempts to admit the provided route on watch add / modifications.
-func (a *StatusAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+func (a *StatusAdmitter) HandleRoute(eventType watch.EventType, route *routev1.Route) error {
 	switch eventType {
 	case watch.Added, watch.Modified:
-		performIngressConditionUpdate("admit", a.lease, a.tracker, a.client, a.lister, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
-			Type:   routeapi.RouteAdmitted,
-			Status: kapi.ConditionTrue,
+		performIngressConditionUpdate("admit", a.lease, a.tracker, a.client, a.lister, route, a.routerName, a.routerCanonicalHostname, routev1.RouteIngressCondition{
+			Type:   routev1.RouteAdmitted,
+			Status: corev1.ConditionTrue,
 		})
 	}
 	return a.plugin.HandleRoute(eventType, route)
@@ -103,17 +104,17 @@ func (a *StatusAdmitter) Commit() error {
 }
 
 // RecordRouteRejection attempts to update the route status with a reason for a route being rejected.
-func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, message string) {
-	performIngressConditionUpdate("reject", a.lease, a.tracker, a.client, a.lister, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
-		Type:    routeapi.RouteAdmitted,
-		Status:  kapi.ConditionFalse,
+func (a *StatusAdmitter) RecordRouteRejection(route *routev1.Route, reason, message string) {
+	performIngressConditionUpdate("reject", a.lease, a.tracker, a.client, a.lister, route, a.routerName, a.routerCanonicalHostname, routev1.RouteIngressCondition{
+		Type:    routev1.RouteAdmitted,
+		Status:  corev1.ConditionFalse,
 		Reason:  reason,
 		Message: message,
 	})
 }
 
 // performIngressConditionUpdate updates the route to the appropriate status for the provided condition.
-func performIngressConditionUpdate(action string, lease writerlease.Lease, tracker ContentionTracker, oc client.RoutesGetter, lister routelisters.RouteLister, route *routeapi.Route, routerName, hostName string, condition routeapi.RouteIngressCondition) {
+func performIngressConditionUpdate(action string, lease writerlease.Lease, tracker ContentionTracker, oc client.RoutesGetter, lister routelisters.RouteLister, route *routev1.Route, routerName, hostName string, condition routev1.RouteIngressCondition) {
 	attempts := 3
 	key := string(route.UID)
 	routeNamespace, routeName := route.Namespace, route.Name
@@ -177,7 +178,7 @@ func performIngressConditionUpdate(action string, lease writerlease.Lease, track
 // recordIngressCondition updates the matching ingress on the route (or adds a new one) with the specified
 // condition, returning whether the route was updated or created, the time assigned to the condition, and
 // a pointer to the current ingress record.
-func recordIngressCondition(route *routeapi.Route, name, hostName string, condition routeapi.RouteIngressCondition) (changed, created bool, at time.Time, latest, original *routeapi.RouteIngress) {
+func recordIngressCondition(route *routev1.Route, name, hostName string, condition routev1.RouteIngressCondition) (changed, created bool, at time.Time, latest, original *routev1.RouteIngress) {
 	for i := range route.Status.Ingress {
 		existing := &route.Status.Ingress[i]
 		if existing.RouterName != name {
@@ -221,12 +222,12 @@ func recordIngressCondition(route *routeapi.Route, name, hostName string, condit
 	}
 
 	// add a new ingress
-	route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{
+	route.Status.Ingress = append(route.Status.Ingress, routev1.RouteIngress{
 		RouterName:              name,
 		Host:                    route.Spec.Host,
 		WildcardPolicy:          route.Spec.WildcardPolicy,
 		RouterCanonicalHostname: hostName,
-		Conditions: []routeapi.RouteIngressCondition{
+		Conditions: []routev1.RouteIngressCondition{
 			condition,
 		},
 	})
@@ -239,11 +240,11 @@ func recordIngressCondition(route *routeapi.Route, name, hostName string, condit
 
 // findMostRecentIngress returns the name of the ingress status with the most recent Admitted condition transition time,
 // or an empty string if no such ingress exists.
-func findMostRecentIngress(route *routeapi.Route) string {
+func findMostRecentIngress(route *routev1.Route) string {
 	var newest string
 	var recent time.Time
 	for _, ingress := range route.Status.Ingress {
-		if condition := findCondition(&ingress, routeapi.RouteAdmitted); condition != nil && condition.LastTransitionTime != nil {
+		if condition := findCondition(&ingress, routev1.RouteAdmitted); condition != nil && condition.LastTransitionTime != nil {
 			if condition.LastTransitionTime.Time.After(recent) {
 				recent = condition.LastTransitionTime.Time
 				newest = ingress.RouterName
@@ -254,7 +255,7 @@ func findMostRecentIngress(route *routeapi.Route) string {
 }
 
 // findCondition locates the first condition that corresponds to the requested type.
-func findCondition(ingress *routeapi.RouteIngress, t routeapi.RouteIngressConditionType) (_ *routeapi.RouteIngressCondition) {
+func findCondition(ingress *routev1.RouteIngress, t routev1.RouteIngressConditionType) (_ *routev1.RouteIngressCondition) {
 	for i, existing := range ingress.Conditions {
 		if existing.Type != t {
 			continue

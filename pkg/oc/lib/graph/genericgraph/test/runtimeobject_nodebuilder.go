@@ -2,75 +2,72 @@ package test
 
 import (
 	"fmt"
-	"path/filepath"
+	"io/ioutil"
 	"reflect"
 
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/rest/fake"
-	"k8s.io/client-go/restmapper"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 
-	_ "github.com/openshift/origin/pkg/api/install"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/api"
+	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // typeToEnsureMethod stores types to Ensure*Node methods
 var typeToEnsureMethod = map[reflect.Type]reflect.Value{}
 
 func init() {
-	if err := RegisterEnsureNode(&imageapi.Image{}, imagegraph.EnsureImageNode); err != nil {
+	if err := RegisterEnsureNode(&imagev1.Image{}, imagegraph.EnsureImageNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&imageapi.ImageStream{}, imagegraph.EnsureImageStreamNode); err != nil {
+	if err := RegisterEnsureNode(&imagev1.ImageStream{}, imagegraph.EnsureImageStreamNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&appsapi.DeploymentConfig{}, appsgraph.EnsureDeploymentConfigNode); err != nil {
+	if err := RegisterEnsureNode(&appsv1.DeploymentConfig{}, appsgraph.EnsureDeploymentConfigNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&buildapi.BuildConfig{}, buildgraph.EnsureBuildConfigNode); err != nil {
+	if err := RegisterEnsureNode(&buildv1.BuildConfig{}, buildgraph.EnsureBuildConfigNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&buildapi.Build{}, buildgraph.EnsureBuildNode); err != nil {
+	if err := RegisterEnsureNode(&buildv1.Build{}, buildgraph.EnsureBuildNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&routeapi.Route{}, routegraph.EnsureRouteNode); err != nil {
+	if err := RegisterEnsureNode(&routev1.Route{}, routegraph.EnsureRouteNode); err != nil {
 		panic(err)
 	}
 
-	if err := RegisterEnsureNode(&kapi.Pod{}, kubegraph.EnsurePodNode); err != nil {
+	if err := RegisterEnsureNode(&corev1.Pod{}, kubegraph.EnsurePodNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&kapi.Service{}, kubegraph.EnsureServiceNode); err != nil {
+	if err := RegisterEnsureNode(&corev1.Service{}, kubegraph.EnsureServiceNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&kapi.ServiceAccount{}, kubegraph.EnsureServiceAccountNode); err != nil {
+	if err := RegisterEnsureNode(&corev1.ServiceAccount{}, kubegraph.EnsureServiceAccountNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&kapi.Secret{}, kubegraph.EnsureSecretNode); err != nil {
+	if err := RegisterEnsureNode(&corev1.Secret{}, kubegraph.EnsureSecretNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&kapi.ReplicationController{}, kubegraph.EnsureReplicationControllerNode); err != nil {
+	if err := RegisterEnsureNode(&corev1.ReplicationController{}, kubegraph.EnsureReplicationControllerNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&kapi.PersistentVolumeClaim{}, kubegraph.EnsurePersistentVolumeClaimNode); err != nil {
+	if err := RegisterEnsureNode(&corev1.PersistentVolumeClaim{}, kubegraph.EnsurePersistentVolumeClaimNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&autoscaling.HorizontalPodAutoscaler{}, kubegraph.EnsureHorizontalPodAutoscalerNode); err != nil {
+	if err := RegisterEnsureNode(&autoscalingv1.HorizontalPodAutoscaler{}, kubegraph.EnsureHorizontalPodAutoscalerNode); err != nil {
 	}
 }
 
@@ -96,7 +93,7 @@ func EnsureNode(g osgraph.Graph, obj interface{}) error {
 
 	ensureMethod, exists := typeToEnsureMethod[reflectedContainedType]
 	if !exists {
-		return fmt.Errorf("%v is not registered", reflectedContainedType)
+		return fmt.Errorf("%v is not registered: %#v", reflectedContainedType, obj)
 	}
 
 	callEnsureNode(g, reflect.ValueOf(obj), ensureMethod)
@@ -129,40 +126,36 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 	g := osgraph.New()
 	objs := []runtime.Object{}
 
-	abspath, err := filepath.Abs(path)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return g, objs, err
 	}
-
-	builder := resource.NewFakeBuilder(
-		func(version schema.GroupVersion) (resource.RESTClient, error) {
-			return &fake.RESTClient{}, nil
-		},
-		func() (meta.RESTMapper, error) {
-			return testrestmapper.TestOnlyStaticRESTMapper(ocscheme.ReadingInternalScheme), nil
-		},
-		func() (restmapper.CategoryExpander, error) {
-			return resource.FakeCategoryExpander, nil
-		})
-
-	r := builder.
-		WithScheme(ocscheme.ReadingInternalScheme).
-		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{abspath}}).
-		Flatten().
-		Do()
-
-	if r.Err() != nil {
-		return g, objs, r.Err()
-	}
-
-	infos, err := r.Infos()
+	scheme := runtime.NewScheme()
+	kubernetesscheme.AddToScheme(scheme)
+	api.Install(scheme)
+	legacy.InstallExternalLegacyAll(scheme)
+	codecs := serializer.NewCodecFactory(scheme)
+	decoder := codecs.UniversalDeserializer()
+	obj, err := runtime.Decode(decoder, data)
 	if err != nil {
 		return g, objs, err
 	}
-	for _, info := range infos {
-		objs = append(objs, info.Object)
+	if !meta.IsListType(obj) {
+		objs = []runtime.Object{obj}
+	} else {
+		list, err := meta.ExtractList(obj)
+		if err != nil {
+			return g, objs, err
+		}
+		errs := runtime.DecodeList(list, decoder)
+		if len(errs) > 0 {
+			return g, objs, errs[0]
+		}
+		objs = list
+	}
 
-		if err := EnsureNode(g, info.Object); err != nil {
+	for _, obj := range objs {
+		if err := EnsureNode(g, obj); err != nil {
 			return g, objs, err
 		}
 	}

@@ -19,14 +19,13 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	buildapiv1 "github.com/openshift/api/build/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildtypedclient "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	buildwait "github.com/openshift/origin/pkg/build/apiserver/registry/wait"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -78,14 +77,14 @@ func (s *InstantiateREST) Create(ctx context.Context, obj runtime.Object, create
 
 func (s *InstantiateREST) ProducesObject(verb string) interface{} {
 	// for documentation purposes
-	return buildapiv1.Build{}
+	return buildv1.Build{}
 }
 
 func (s *InstantiateREST) ProducesMIMETypes(verb string) []string {
 	return nil // no additional mime types
 }
 
-func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtypedclient.BuildsGetter, podClient kcoreclient.PodsGetter, inClientConfig *restclient.Config) *BinaryInstantiateREST {
+func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtypedclient.BuildsGetter, inClientConfig *restclient.Config) *BinaryInstantiateREST {
 	clientConfig := restclient.CopyConfig(inClientConfig)
 	clientConfig.APIPath = "/api"
 	clientConfig.GroupVersion = &schema.GroupVersion{Version: "v1"}
@@ -94,7 +93,6 @@ func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtype
 	return &BinaryInstantiateREST{
 		Generator:    generator,
 		BuildClient:  buildClient,
-		PodClient:    podClient,
 		ClientConfig: clientConfig,
 		Timeout:      5 * time.Minute,
 	}
@@ -103,7 +101,6 @@ func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtype
 type BinaryInstantiateREST struct {
 	Generator    *generator.BuildGenerator
 	BuildClient  buildtypedclient.BuildsGetter
-	PodClient    kcoreclient.PodsGetter
 	ClientConfig *restclient.Config
 	Timeout      time.Duration
 }
@@ -139,7 +136,7 @@ func (r *BinaryInstantiateREST) ConnectMethods() []string {
 
 func (r *BinaryInstantiateREST) ProducesObject(verb string) interface{} {
 	// for documentation purposes
-	return buildapiv1.Build{}
+	return buildv1.Build{}
 }
 
 func (r *BinaryInstantiateREST) ProducesMIMETypes(verb string) []string {
@@ -229,7 +226,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		h.cancelBuild(build)
 	}()
 
-	latest, ok, err := buildwait.WaitForRunningBuild(h.r.BuildClient, build, remaining)
+	latest, ok, err := buildwait.WaitForRunningBuild(h.r.BuildClient, build.Namespace, build.Name, remaining)
 
 	switch {
 	// err checks, no ok check, needs to occur before ref to latest
@@ -239,23 +236,23 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
 	case !ok:
 		return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, h.r.Timeout), 0)
-	case latest.Status.Phase == buildapi.BuildPhaseError:
+	case latest.Status.Phase == buildv1.BuildPhaseError:
 		// don't cancel the build if it reached a terminal state on its own
 		cancel = false
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, buildutil.NoBuildLogsMessage))
-	case latest.Status.Phase == buildapi.BuildPhaseFailed:
+	case latest.Status.Phase == buildv1.BuildPhaseFailed:
 		// don't cancel the build if it reached a terminal state on its own
 		cancel = false
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s failed: %s: %s", build.Name, build.Status.Reason, build.Status.Message))
-	case latest.Status.Phase == buildapi.BuildPhaseCancelled:
+	case latest.Status.Phase == buildv1.BuildPhaseCancelled:
 		// don't cancel the build if it reached a terminal state on its own
 		cancel = false
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, buildutil.NoBuildLogsMessage))
-	case latest.Status.Phase != buildapi.BuildPhaseRunning:
+	case latest.Status.Phase != buildv1.BuildPhaseRunning:
 		return nil, errors.NewBadRequest(fmt.Sprintf("cannot upload file to build %s with status %s", build.Name, latest.Status.Phase))
 	}
 
-	buildPodName := buildapihelpers.GetBuildPodName(build)
+	buildPodName := buildinternalhelpers.GetBuildPodName(build)
 	opts := &kapi.PodAttachOptions{
 		Stdin:     true,
 		Container: buildstrategy.GitCloneContainer,

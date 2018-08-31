@@ -6,7 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
+
 	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -17,28 +21,33 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/utils/clock"
 
-	"github.com/golang/glog"
-	"github.com/prometheus/client_golang/prometheus"
-
 	templatev1 "github.com/openshift/api/template/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	templatev1clienttyped "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
+	templatev1informer "github.com/openshift/client-go/template/informers/externalversions/template/v1"
+	templatelister "github.com/openshift/client-go/template/listers/template/v1"
 	"github.com/openshift/origin/pkg/authorization/util"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client/templateprocessing"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
-const readinessTimeout = time.Hour
+const (
+	readinessTimeout = time.Hour
+
+	WaitForReadyAnnotation    = "template.alpha.openshift.io/wait-for-ready"
+	TemplateInstanceOwner     = "template.openshift.io/template-instance-owner"
+	TemplateInstanceFinalizer = "template.openshift.io/finalizer"
+)
+
+var (
+	TimeoutErr = errors.New("timeout while waiting for template instance to be ready")
+)
 
 // TemplateInstanceController watches for new TemplateInstance objects and
 // instantiates the template contained within, using parameters read from a
@@ -50,14 +59,14 @@ type TemplateInstanceController struct {
 	// (discuss w/ deads what this means)
 	dynamicRestMapper meta.RESTMapper
 	dynamicClient     dynamic.Interface
-	templateClient    templateclient.Interface
+	templateClient    templatev1clienttyped.TemplateV1Interface
 
 	// FIXME: Remove then cient when the build configs are able to report the
 	//				status of the last build.
-	buildClient buildclient.Interface
+	buildClient buildv1client.Interface
 
 	sarClient authorizationclient.SubjectAccessReviewsGetter
-	kc        kclientsetinternal.Interface
+	kc        kubernetes.Interface
 
 	lister   templatelister.TemplateInstanceLister
 	informer cache.SharedIndexInformer
@@ -70,7 +79,7 @@ type TemplateInstanceController struct {
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, sarClient authorizationclient.SubjectAccessReviewsGetter, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, sarClient authorizationclient.SubjectAccessReviewsGetter, kc kubernetes.Interface, buildClient buildv1client.Interface, templateClient templatev1clienttyped.TemplateV1Interface, informer templatev1informer.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
 		dynamicRestMapper: dynamicRestMapper,
 		dynamicClient:     dynamicClient,
@@ -87,10 +96,10 @@ func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicCli
 
 	c.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			c.enqueue(obj.(*templateapi.TemplateInstance))
+			c.enqueue(obj.(*templatev1.TemplateInstance))
 		},
 		UpdateFunc: func(_, obj interface{}) {
-			c.enqueue(obj.(*templateapi.TemplateInstance))
+			c.enqueue(obj.(*templatev1.TemplateInstance))
 		},
 		DeleteFunc: func(obj interface{}) {
 		},
@@ -103,7 +112,7 @@ func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicCli
 
 // getTemplateInstance returns the TemplateInstance from the shared informer,
 // given its key (dequeued from c.queue).
-func (c *TemplateInstanceController) getTemplateInstance(key string) (*templateapi.TemplateInstance, error) {
+func (c *TemplateInstanceController) getTemplateInstance(key string) (*templatev1.TemplateInstance, error) {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return nil, err
@@ -122,8 +131,8 @@ func (c *TemplateInstanceController) sync(key string) error {
 		return err
 	}
 
-	if TemplateInstanceHasCondition(templateInstanceOriginal, templateapi.TemplateInstanceReady, kapi.ConditionTrue) ||
-		TemplateInstanceHasCondition(templateInstanceOriginal, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+	if TemplateInstanceHasCondition(templateInstanceOriginal, templatev1.TemplateInstanceReady, corev1.ConditionTrue) ||
+		TemplateInstanceHasCondition(templateInstanceOriginal, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
 		return nil
 	}
 
@@ -136,63 +145,63 @@ func (c *TemplateInstanceController) sync(key string) error {
 		if err != nil {
 			glog.V(4).Infof("TemplateInstance controller: instantiate %s returned %v", key, err)
 
-			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
-				Type:    templateapi.TemplateInstanceInstantiateFailure,
-				Status:  kapi.ConditionTrue,
+			templateInstanceSetCondition(templateInstanceCopy, templatev1.TemplateInstanceCondition{
+				Type:    templatev1.TemplateInstanceInstantiateFailure,
+				Status:  corev1.ConditionTrue,
 				Reason:  "Failed",
 				Message: formatError(err),
 			})
-			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceInstantiateFailure)).Inc()
+			templateInstanceCompleted.WithLabelValues(string(templatev1.TemplateInstanceInstantiateFailure)).Inc()
 		}
 	}
 
-	if !TemplateInstanceHasCondition(templateInstanceCopy, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+	if !TemplateInstanceHasCondition(templateInstanceCopy, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
 		ready, err := c.checkReadiness(templateInstanceCopy)
 		if err != nil && !kerrors.IsTimeout(err) {
 			// NB: kerrors.IsTimeout() is true in the case of an API server
 			// timeout, not the timeout caused by readinessTimeout expiring.
 			glog.V(4).Infof("TemplateInstance controller: checkReadiness %s returned %v", key, err)
 
-			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
-				Type:    templateapi.TemplateInstanceInstantiateFailure,
-				Status:  kapi.ConditionTrue,
+			templateInstanceSetCondition(templateInstanceCopy, templatev1.TemplateInstanceCondition{
+				Type:    templatev1.TemplateInstanceInstantiateFailure,
+				Status:  corev1.ConditionTrue,
 				Reason:  "Failed",
 				Message: formatError(err),
 			})
-			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
-				Type:    templateapi.TemplateInstanceReady,
-				Status:  kapi.ConditionFalse,
+			templateInstanceSetCondition(templateInstanceCopy, templatev1.TemplateInstanceCondition{
+				Type:    templatev1.TemplateInstanceReady,
+				Status:  corev1.ConditionFalse,
 				Reason:  "Failed",
 				Message: "See InstantiateFailure condition for error message",
 			})
-			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceInstantiateFailure)).Inc()
+			templateInstanceCompleted.WithLabelValues(string(templatev1.TemplateInstanceInstantiateFailure)).Inc()
 
 		} else if ready {
-			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
-				Type:   templateapi.TemplateInstanceReady,
-				Status: kapi.ConditionTrue,
+			templateInstanceSetCondition(templateInstanceCopy, templatev1.TemplateInstanceCondition{
+				Type:   templatev1.TemplateInstanceReady,
+				Status: corev1.ConditionTrue,
 				Reason: "Created",
 			})
-			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceReady)).Inc()
+			templateInstanceCompleted.WithLabelValues(string(templatev1.TemplateInstanceReady)).Inc()
 
 		} else {
-			templateInstanceSetCondition(templateInstanceCopy, templateapi.TemplateInstanceCondition{
-				Type:    templateapi.TemplateInstanceReady,
-				Status:  kapi.ConditionFalse,
+			templateInstanceSetCondition(templateInstanceCopy, templatev1.TemplateInstanceCondition{
+				Type:    templatev1.TemplateInstanceReady,
+				Status:  corev1.ConditionFalse,
 				Reason:  "Waiting",
 				Message: "Waiting for instantiated objects to report ready",
 			})
 		}
 	}
 
-	_, err = c.templateClient.Template().TemplateInstances(templateInstanceCopy.Namespace).UpdateStatus(templateInstanceCopy)
+	_, err = c.templateClient.TemplateInstances(templateInstanceCopy.Namespace).UpdateStatus(templateInstanceCopy)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("TemplateInstance status update failed: %v", err))
 		return err
 	}
 
-	if !TemplateInstanceHasCondition(templateInstanceCopy, templateapi.TemplateInstanceReady, kapi.ConditionTrue) &&
-		!TemplateInstanceHasCondition(templateInstanceCopy, templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+	if !TemplateInstanceHasCondition(templateInstanceCopy, templatev1.TemplateInstanceReady, corev1.ConditionTrue) &&
+		!TemplateInstanceHasCondition(templateInstanceCopy, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
 		c.enqueueAfter(templateInstanceCopy, c.readinessLimiter.When(key))
 	} else {
 		c.readinessLimiter.Forget(key)
@@ -201,9 +210,9 @@ func (c *TemplateInstanceController) sync(key string) error {
 	return nil
 }
 
-func (c *TemplateInstanceController) checkReadiness(templateInstance *templateapi.TemplateInstance) (bool, error) {
+func (c *TemplateInstanceController) checkReadiness(templateInstance *templatev1.TemplateInstance) (bool, error) {
 	if c.clock.Now().After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
-		return false, fmt.Errorf("Timeout")
+		return false, TimeoutErr
 	}
 
 	extra := map[string][]string{}
@@ -247,7 +256,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 			return false, kerrors.NewNotFound(mapping.Resource.GroupResource(), object.Ref.Name)
 		}
 
-		if strings.ToLower(obj.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
+		if strings.ToLower(obj.GetAnnotations()[WaitForReadyAnnotation]) != "true" {
 			continue
 		}
 
@@ -256,7 +265,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 			return false, err
 		}
 		if failed {
-			return false, fmt.Errorf("Readiness failed on %s %s/%s", object.Ref.Kind, object.Ref.Namespace, object.Ref.Name)
+			return false, fmt.Errorf("readiness failed on %s %s/%s", object.Ref.Kind, object.Ref.Namespace, object.Ref.Name)
 		}
 		if !ready {
 			return false, nil
@@ -315,10 +324,10 @@ func (c *TemplateInstanceController) processNextWorkItem() bool {
 
 // enqueue adds a TemplateInstance to c.queue.  This function is called on the
 // shared informer goroutine.
-func (c *TemplateInstanceController) enqueue(templateInstance *templateapi.TemplateInstance) {
+func (c *TemplateInstanceController) enqueue(templateInstance *templatev1.TemplateInstance) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(templateInstance)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", templateInstance, err))
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", templateInstance, err))
 		return
 	}
 
@@ -326,10 +335,10 @@ func (c *TemplateInstanceController) enqueue(templateInstance *templateapi.Templ
 }
 
 // enqueueAfter adds a TemplateInstance to c.queue after a duration.
-func (c *TemplateInstanceController) enqueueAfter(templateInstance *templateapi.TemplateInstance, duration time.Duration) {
+func (c *TemplateInstanceController) enqueueAfter(templateInstance *templatev1.TemplateInstance, duration time.Duration) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(templateInstance)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", templateInstance, err))
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", templateInstance, err))
 		return
 	}
 
@@ -339,7 +348,7 @@ func (c *TemplateInstanceController) enqueueAfter(templateInstance *templateapi.
 // instantiate instantiates the objects contained in a TemplateInstance.  Any
 // parameters for instantiation are contained in the Secret linked to the
 // TemplateInstance.
-func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.TemplateInstance) error {
+func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.TemplateInstance) error {
 	if templateInstance.Spec.Requester == nil || templateInstance.Spec.Requester.Username == "" {
 		return fmt.Errorf("spec.requester.username not set")
 	}
@@ -356,19 +365,19 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		Extra:  extra,
 	}
 
-	var secret *kapi.Secret
+	var secret *corev1.Secret
 	if templateInstance.Spec.Secret != nil {
 		if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: templateInstance.Namespace,
 			Verb:      "get",
-			Group:     kapi.GroupName,
+			Group:     corev1.GroupName,
 			Resource:  "secrets",
 			Name:      templateInstance.Spec.Secret.Name,
 		}); err != nil {
 			return err
 		}
 
-		s, err := c.kc.Core().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name, metav1.GetOptions{})
+		s, err := c.kc.CoreV1().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name, metav1.GetOptions{})
 		secret = s
 		if err != nil {
 			return err
@@ -390,7 +399,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: templateInstance.Namespace,
 		Verb:      "create",
-		Group:     templateapi.GroupName,
+		Group:     templatev1.GroupName,
 		Resource:  "templateconfigs",
 		Name:      template.Name,
 	}); err != nil {
@@ -413,7 +422,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		if labels == nil {
 			labels = make(map[string]string)
 		}
-		labels[templateapi.TemplateInstanceOwner] = string(templateInstance.UID)
+		labels[TemplateInstanceOwner] = string(templateInstance.UID)
 		obj.SetLabels(labels)
 	}
 
@@ -481,7 +490,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 				continue
 			}
 
-			owner, ok := freshGottenObj.GetLabels()[templateapi.TemplateInstanceOwner]
+			owner, ok := freshGottenObj.GetLabels()[TemplateInstanceOwner]
 			// if the labels match, it's already our object so pretend we created
 			// it successfully.
 			if ok && owner == string(templateInstance.UID) {
@@ -497,8 +506,8 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		}
 
 		templateInstance.Status.Objects = append(templateInstance.Status.Objects,
-			templateapi.TemplateInstanceObject{
-				Ref: kapi.ObjectReference{
+			templatev1.TemplateInstanceObject{
+				Ref: corev1.ObjectReference{
 					Kind:       restMapping.GroupVersionKind.Kind,
 					Namespace:  namespace,
 					Name:       createObj.GetName(),
@@ -513,13 +522,13 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	// TODO perhaps this should be done in a strategy long term.
 	hasFinalizer := false
 	for _, v := range templateInstance.Finalizers {
-		if v == templateapi.TemplateInstanceFinalizer {
+		if v == TemplateInstanceFinalizer {
 			hasFinalizer = true
 			break
 		}
 	}
 	if !hasFinalizer {
-		templateInstance.Finalizers = append(templateInstance.Finalizers, templateapi.TemplateInstanceFinalizer)
+		templateInstance.Finalizers = append(templateInstance.Finalizers, TemplateInstanceFinalizer)
 	}
 	if len(allErrors) > 0 {
 		return utilerrors.NewAggregate(allErrors)
@@ -542,7 +551,7 @@ func formatError(err error) string {
 	return err.Error()
 }
 
-func TemplateInstanceHasCondition(templateInstance *templateapi.TemplateInstance, typ templateapi.TemplateInstanceConditionType, status kapi.ConditionStatus) bool {
+func TemplateInstanceHasCondition(templateInstance *templatev1.TemplateInstance, typ templatev1.TemplateInstanceConditionType, status corev1.ConditionStatus) bool {
 	for _, c := range templateInstance.Status.Conditions {
 		if c.Type == typ && c.Status == status {
 			return true
@@ -551,7 +560,7 @@ func TemplateInstanceHasCondition(templateInstance *templateapi.TemplateInstance
 	return false
 }
 
-func templateInstanceSetCondition(templateInstance *templateapi.TemplateInstance, condition templateapi.TemplateInstanceCondition) {
+func templateInstanceSetCondition(templateInstance *templatev1.TemplateInstance, condition templatev1.TemplateInstanceCondition) {
 	condition.LastTransitionTime = metav1.Now()
 
 	for i, c := range templateInstance.Status.Conditions {

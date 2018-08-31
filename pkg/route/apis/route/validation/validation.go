@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -218,125 +217,6 @@ func sanitizePEM(data []byte) ([]byte, error) {
 		}
 	}
 	return buf.Bytes(), nil
-}
-
-// ExtendedValidateRoute performs an extended validation on the route
-// including checking that the TLS config is valid. It also sanitizes
-// the contents of valid certificates by removing any data that
-// is not recognizable PEM blocks on the incoming route.
-func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
-	tlsConfig := route.Spec.TLS
-	result := field.ErrorList{}
-
-	if tlsConfig == nil {
-		return result
-	}
-
-	tlsFieldPath := field.NewPath("spec").Child("tls")
-	if errs := validateTLS(route, tlsFieldPath); len(errs) != 0 {
-		result = append(result, errs...)
-	}
-
-	// TODO: Check if we can be stricter with validating the certificate
-	//       is for the route hostname. Don't want existing routes to
-	//       break, so disable the hostname validation for now.
-	// hostname := route.Spec.Host
-	hostname := ""
-	var verifyOptions *x509.VerifyOptions
-
-	if len(tlsConfig.CACertificate) > 0 {
-		certPool := x509.NewCertPool()
-		if certs, err := cert.ParseCertsPEM([]byte(tlsConfig.CACertificate)); err != nil {
-			errmsg := fmt.Sprintf("failed to parse CA certificate: %v", err)
-			result = append(result, field.Invalid(tlsFieldPath.Child("caCertificate"), "redacted ca certificate data", errmsg))
-		} else {
-			for _, cert := range certs {
-				certPool.AddCert(cert)
-			}
-			if data, err := sanitizePEM([]byte(tlsConfig.CACertificate)); err != nil {
-				result = append(result, field.Invalid(tlsFieldPath.Child("caCertificate"), "redacted ca certificate data", err.Error()))
-			} else {
-				tlsConfig.CACertificate = string(data)
-			}
-		}
-
-		verifyOptions = &x509.VerifyOptions{
-			DNSName:       hostname,
-			Intermediates: certPool,
-			Roots:         certPool,
-		}
-	}
-
-	if len(tlsConfig.Certificate) > 0 {
-		if _, err := validateCertificatePEM(tlsConfig.Certificate, verifyOptions); err != nil {
-			result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), "redacted certificate data", err.Error()))
-		} else {
-			if data, err := sanitizePEM([]byte(tlsConfig.Certificate)); err != nil {
-				result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), "redacted certificate data", err.Error()))
-			} else {
-				tlsConfig.Certificate = string(data)
-			}
-		}
-
-		certKeyBytes := []byte{}
-		certKeyBytes = append(certKeyBytes, []byte(tlsConfig.Certificate)...)
-		if len(tlsConfig.Key) > 0 {
-			certKeyBytes = append(certKeyBytes, byte('\n'))
-			certKeyBytes = append(certKeyBytes, []byte(tlsConfig.Key)...)
-		}
-
-		if _, err := tls.X509KeyPair(certKeyBytes, certKeyBytes); err != nil {
-			result = append(result, field.Invalid(tlsFieldPath.Child("key"), "redacted key data", err.Error()))
-		}
-	}
-
-	if len(tlsConfig.Key) > 0 {
-		if data, err := sanitizePEM([]byte(tlsConfig.Key)); err != nil {
-			result = append(result, field.Invalid(tlsFieldPath.Child("key"), "redacted key data", err.Error()))
-		} else {
-			tlsConfig.Key = string(data)
-		}
-	}
-
-	if len(tlsConfig.DestinationCACertificate) > 0 {
-		if _, err := cert.ParseCertsPEM([]byte(tlsConfig.DestinationCACertificate)); err != nil {
-			errmsg := fmt.Sprintf("failed to parse destination CA certificate: %v", err)
-			result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), "redacted destination ca certificate data", errmsg))
-		} else {
-			if data, err := sanitizePEM([]byte(tlsConfig.DestinationCACertificate)); err != nil {
-				result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), "redacted destination ca certificate data", err.Error()))
-			} else {
-				tlsConfig.DestinationCACertificate = string(data)
-			}
-		}
-	}
-
-	return result
-}
-
-// ValidateHostName checks that a route's host name satisfies DNS requirements.
-func ValidateHostName(route *routeapi.Route) field.ErrorList {
-	result := field.ErrorList{}
-	if len(route.Spec.Host) < 1 {
-		return result
-	}
-
-	specPath := field.NewPath("spec")
-	hostPath := specPath.Child("host")
-
-	if len(kvalidation.IsDNS1123Subdomain(route.Spec.Host)) != 0 {
-		result = append(result, field.Invalid(hostPath, route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
-	}
-
-	segments := strings.Split(route.Spec.Host, ".")
-	for _, s := range segments {
-		errs := kvalidation.IsDNS1123Label(s)
-		for _, e := range errs {
-			result = append(result, field.Invalid(hostPath, route.Spec.Host, e))
-		}
-	}
-
-	return result
 }
 
 // validateTLS tests fields for different types of TLS combinations are set.  Called

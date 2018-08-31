@@ -15,7 +15,7 @@ function ovn-kubernetes-master() {
 
   local master_config="${config_dir}/master-config.yaml"
   cluster_cidr=$(python -c "import yaml; stream = file('${master_config}', 'r'); y = yaml.load(stream); print y['networkConfig']['clusterNetworks'][0]['cidr']")
-  apiserver=$(oc --config="${kube_config}" config view -o custom-columns=server:clusters[0].cluster.server | grep http)
+  apiserver=$(oc --config="${kube_config}" config view -o go-template='{{ (index .clusters 0).cluster.server }}')
   ovn_master_ip=$(echo -n ${apiserver} | cut -d "/" -f 3 | cut -d ":" -f 1)
 
   echo "Enabling and start ovn-kubernetes master services"

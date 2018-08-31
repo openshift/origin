@@ -314,16 +314,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	// When creating a new config, use Protobuf
 	configapi.SetProtobufClientDefaults(config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 
-	// Default storage backend to etcd3 with protobuf storage for our innate config when starting both
-	// Kubernetes and etcd.
-	if config.EtcdConfig != nil {
-		if len(config.KubernetesMasterConfig.APIServerArguments) == 0 {
-			config.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{}
-			config.KubernetesMasterConfig.APIServerArguments["storage-media-type"] = []string{"application/vnd.kubernetes.protobuf"}
-			config.KubernetesMasterConfig.APIServerArguments["storage-backend"] = []string{"etcd3"}
-		}
-	}
-
 	return config, nil
 }
 

@@ -1,0 +1,553 @@
+#!/bin/bash
+#
+# bash completion file for core oci-runtime-tool commands
+#
+# This script provides completion of:
+#  - commands and their options
+#  - filepaths
+#
+# To enable the completions either:
+#  - place this file in /usr/share/bash-completion/completions
+#  or
+#  - copy this file to e.g. ~/.oci-runtime-tool-completion.sh and add the line
+#    below to your .bashrc after bash completion features are loaded
+#    . ~/.oci-runtime-tool-completion.sh
+#
+# Configuration:
+#
+
+
+# Note for developers:
+# Please arrange options sorted alphabetically by long name with the short
+# options immediately following their corresponding long form.
+# This order should be applied to lists, alternatives and code blocks.
+
+__oci-runtime-tool_previous_extglob_setting=$(shopt -p extglob)
+shopt -s extglob
+
+__oci-runtime-tool_pos_first_nonflag() {
+	local argument_flags=$1
+
+	local counter=$((${subcommand_pos:-${command_pos}} + 1))
+	while [ $counter -le $cword ]; do
+		if [ -n "$argument_flags" ] && eval "case '${words[$counter]}' in $argument_flags) true ;; *) false ;; esac"; then
+			(( counter++ ))
+		else
+			case "${words[$counter]}" in
+				-*)
+					;;
+				*)
+					break
+					;;
+			esac
+		fi
+		(( counter++ ))
+	done
+
+	echo $counter
+}
+
+# Transforms a multiline list of strings into a single line string
+# with the words separated by "|".
+# This is used to prepare arguments to __oci-runtime-tool_pos_first_nonflag().
+__oci-runtime-tool_to_alternatives() {
+	local parts=( $1 )
+	local IFS='|'
+	echo "${parts[*]}"
+}
+
+# Transforms a multiline list of options into an extglob pattern
+# suitable for use in case statements.
+__oci-runtime-tool_to_extglob() {
+	local extglob=$( __oci-runtime-tool_to_alternatives "$1" )
+	echo "@($extglob)"
+}
+
+# Subcommand processing.
+# Locates the first occurrence of any of the subcommands contained in the
+# first argument. In case of a match, calls the corresponding completion
+# function and returns 0.
+# If no match is found, 1 is returned. The calling function can then
+# continue processing its completion.
+#
+# TODO if the preceding command has options that accept arguments and an
+# argument is equal ot one of the subcommands, this is falsely detected as
+# a match.
+__oci-runtime-tool_subcommands() {
+	local subcommands="$1"
+
+	local counter=$(($command_pos + 1))
+	while [ $counter -lt $cword ]; do
+		case "${words[$counter]}" in
+			$(__oci-runtime-tool_to_extglob "$subcommands") )
+				subcommand_pos=$counter
+				local subcommand=${words[$counter]}
+				local completions_func=_oci-runtime-tool_${command}_${subcommand}
+				declare -F $completions_func >/dev/null && $completions_func
+				return 0
+				;;
+		esac
+		(( counter++ ))
+	done
+	return 1
+}
+
+# List groups
+__oci-runtime-tool_groups() {
+	cut -d: -f 1 /etc/group
+}
+
+# List installed hooks
+__oci-runtime-tool_hooks() {
+	ls /usr/libexec/oci/hooks.d/*
+}
+
+# suppress trailing whitespace
+__oci-runtime-tool_nospace() {
+	# compopt is not available in ancient bash versions
+	type compopt &>/dev/null && compopt -o nospace
+}
+
+__oci-runtime-tool_complete_log_level() {
+	COMPREPLY=( $( compgen -W "
+		debug
+		error
+		fatal
+		info
+		panic
+		warn
+	" -- "$cur" ) )
+}
+
+__oci-runtime-tool_complete_compliance_level() {
+	COMPREPLY=( $( compgen -W "
+		may
+		should
+		must
+	" -- "$cur" ) )
+}
+
+__oci-runtime-tool_complete_propagations() {
+	COMPREPLY=( $( compgen -W "
+		private
+		rprivate
+		shared
+		rshared
+		slave
+		rslave
+		unbindable
+		runbindable
+	" -- "$cur" ) )
+}
+
+# a selection of the available arches that is most likely of interest in the
+# context of oci-runtime-tool containers.
+__oci-runtime-tool_complete_seccomp_arches() {
+	COMPREPLY=( $( compgen -W "
+		x86
+		amd64
+		x32
+		arm
+		arm64
+		mips
+		mips64
+		mips64n32
+		mipsel
+		mipsel64
+		mipsel64n32
+		ppc
+		ppc64
+		ppc64le
+		s390
+		s390x
+		parisc
+		parisc64
+	" -- "$cur" ) )
+}
+
+# a selection of the available actions that is most likely of interest in the
+# context of oci-runtime-tool containers.
+__oci-runtime-tool_complete_seccomp_actions() {
+	COMPREPLY=( $( compgen -W "
+		allow
+		errno
+		kill
+		trace
+		trap
+	" -- "$cur" ) )
+}
+__oci-runtime-tool_complete_capabilities() {
+	# The list of capabilities is defined in types.go, ALL was added manually.
+	COMPREPLY=( $( compgen -W "
+		CAP_ALL
+		CAP_AUDIT_CONTROL
+		CAP_AUDIT_WRITE
+		CAP_AUDIT_READ
+		CAP_BLOCK_SUSPEND
+		CAP_CHOWN
+		CAP_DAC_OVERRIDE
+		CAP_DAC_READ_SEARCH
+		CAP_FOWNER
+		CAP_FSETID
+		CAP_IPC_LOCK
+		CAP_IPC_OWNER
+		CAP_KILL
+		CAP_LEASE
+		CAP_LINUX_IMMUTABLE
+		CAP_MAC_ADMIN
+		CAP_MAC_OVERRIDE
+		CAP_MKNOD
+		CAP_NET_ADMIN
+		CAP_NET_BIND_SERVICE
+		CAP_NET_BROADCAST
+		CAP_NET_RAW
+		CAP_SETFCAP
+		CAP_SETGID
+		CAP_SETPCAP
+		CAP_SETUID
+		CAP_SYS_ADMIN
+		CAP_SYS_BOOT
+		CAP_SYS_CHROOT
+		CAP_SYSLOG
+		CAP_SYS_MODULE
+		CAP_SYS_NICE
+		CAP_SYS_PACCT
+		CAP_SYS_PTRACE
+		CAP_SYS_RAWIO
+		CAP_SYS_RESOURCE
+		CAP_SYS_TIME
+		CAP_SYS_TTY_CONFIG
+		CAP_WAKE_ALARM
+	" -- "$cur" ) )
+}
+
+
+# global options that may appear after the oci-runtime-tool command
+_oci-runtime-tool_oci-runtime-tool() {
+	local options_with_args="
+		--log-level
+	"
+
+	local options_with_args="
+		--compliance-level
+	"
+
+	local boolean_options="
+		--help -h
+		--host-specific
+		--version -v
+	"
+
+	local all_options="$options_with_args $boolean_options"
+
+	case "$prev" in
+		--log-level)
+			__oci-runtime-tool_complete_log_level
+			return
+			;;
+		--compliance-level)
+			__oci-runtime-tool_complete_compliance_level
+			return
+			;;
+	esac
+
+	case "$cur" in
+		-*)
+			COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
+			;;
+		*)
+			local counter=$( __oci-runtime-tool_pos_first_nonflag $(__oci-runtime-tool_to_extglob "$options_with_args") )
+			if [ $cword -eq $counter ]; then
+				COMPREPLY=( $( compgen -W "${commands[*]} help" -- "$cur" ) )
+			fi
+			;;
+	esac
+}
+
+_oci-runtime-tool_validate() {
+	case "$prev" in
+		--path)
+			case "$cur" in
+				*:*)
+					# TODO somehow do _filedir for stuff inside the image, if it's already specified (which is also somewhat difficult to determine)
+					;;
+				'')
+					COMPREPLY=( $( compgen -W '/' -- "$cur" ) )
+					__oci-runtime-tool_nospace
+					;;
+				/*)
+					_filedir
+					__oci-runtime-tool_nospace
+					;;
+			esac
+			return
+			;;
+
+		--platform)
+ 			COMPREPLY=( $( compgen -W "linux solaris windows" -- "$cur" ) ) 
+ 			return
+ 			;;
+	esac
+
+	case "$cur" in
+		-*)
+			COMPREPLY=( $( compgen -W "--path --platform --help -h" -- "$cur" ) )
+			;;
+	esac
+
+}
+
+_oci-runtime-tool_help() {
+	local counter=$(__oci-runtime-tool_pos_first_nonflag)
+	if [ $cword -eq $counter ]; then
+		COMPREPLY=( $( compgen -W "${commands[*]}" -- "$cur" ) )
+	fi
+}
+
+_oci-runtime-tool_generate() {
+	local options_with_args="
+		--args
+		--env
+		--env-file
+		--hooks-poststart-add
+		--hooks-poststop-add
+		--hooks-prestart-add
+		--hostname
+		--label
+		--linux-apparmor
+		--linux-blkio-leaf-weight
+		--linux-blkio-leaf-weight-device
+		--linux-blkio-read-bps-device
+		--linux-blkio-read-iops-device
+		--linux-blkio-weight
+		--linux-blkio-weight-device
+		--linux-blkio-write-bps-device
+		--linux-blkio-write-iops-device
+		--linux-cgroups-path
+		--linux-cpu-period
+		--linux-cpu-quota
+		--linux-cpus
+		--linux-cpu-shares
+		--linux-device-add
+		--linux-device-remove
+		--linux-device-cgroup-add
+		--linux-device-cgroup-remove
+		--linux-gidmappings
+		--linux-hugepage-limits-add
+		--linux-hugepage-limits-drop
+		--linux-intelRdt-l3CacheSchema
+		--linux-masked-paths
+		--linux-mem-kernel-limit
+		--linux-mem-kernel-tcp
+		--linux-mem-limit
+		--linux-mem-reservation
+		--linux-mems
+		--linux-mem-swap
+		--linux-mem-swappiness
+		--linux-mount-label
+		--linux-namespace-add
+		--linux-namespace-remove
+		--linux-network-classid
+		--linux-network-priorities
+		--linux-oom-score-adj
+		--linux-pids-limit
+		--linux-readonly-paths
+		--linux-realtime-period
+		--linux-realtime-runtime
+		--linux-rootfs-propagation
+		--linux-seccomp-allow
+		--linux-seccomp-arch
+		--linux-seccomp-default
+		--linux-seccomp-default-force
+		--linux-seccomp-errno
+		--linux-seccomp-kill
+		--linux-seccomp-remove
+		--linux-seccomp-trace
+		--linux-seccomp-trap
+		--linux-selinux-label
+		--linux-sysctl
+		--linux-uidmappings
+		--mounts-add
+		--mounts-remove
+		--os
+		--output
+		--process-cap-add-ambient
+		--process-cap-add-bounding
+		--process-cap-add-effective
+		--process-cap-add-inheritable
+		--process-cap-add-permitted
+		--process-cap-drop-ambient
+		--process-cap-drop-bounding
+		--process-cap-drop-effective
+		--process-cap-drop-inheritable
+		--process-cap-drop-permitted
+		--process-consolesize
+		--process-cwd
+		--process-gid
+		--process-groups
+		--process-rlimits-add
+		--process-rlimits-remove
+		--process-uid
+		--process-username
+		--rootfs-path
+		--solaris-anet
+		--solaris-capped-cpu-ncpus
+		--solaris-capped-memory-physical
+		--solaris-capped-memory-swap
+		--solaris-limitpriv1
+		--solaris-max-shm-memory
+		 --solaris-milestone
+		--template
+		--windows-hyperv-utilityVMPath
+		--windows-layer-folders
+		--windows-network
+		--windows-resources-cpu
+		--windows-resources-memory-limit
+		--windows-resources-storage
+	"
+
+	local boolean_options="
+		--help -h
+		--hooks-poststart-remove-all
+		--hooks-poststop-remove-all
+		--hooks-prestart-remove-all
+		--linux-device-remove-all
+		--linux-disable-oom-kill
+		--linux-namespace-remove-all
+		--linux-seccomp-only
+		--linux-seccomp-remove-all
+		--mounts-remove-all
+		--privileged
+		--process-cap-drop-all
+		--process-no-new-privileges
+		--process-rlimits-remove-all
+		--process-terminal
+		--rootfs-readonly
+		--windows-ignore-flushes-during-boot
+		--windows-servicing
+	"
+
+	local all_options="$options_with_args $boolean_options"
+
+	case "$prev" in
+		--env|-e)
+			COMPREPLY=( $( compgen -e -- "$cur" ) )
+			__oci-runtime-tool_nospace
+			return
+			;;
+
+		--env-file)
+			_filedir
+			__oci-runtime-tool_nospace
+			return
+			;;
+
+		--hooks-poststart-add|--hooks-poststop-add|--hooks-prestart-add)
+			COMPREPLY=( $( compgen -W "$( __oci-runtime-tool_hooks )" -- "$cur" ) )
+			__oci-runtime-tool_nospace
+			return
+			;;
+
+		--linux-rootfs-propagation)
+			__oci-runtime-tool_complete_propagations
+			return
+			;;
+
+		--linux-seccomp-arch)
+			__oci-runtime-tool_complete_seccomp_arches
+			return
+			;;
+
+		--linux-seccomp-default)
+			__oci-runtime-tool_complete_seccomp_actions
+			return
+			;;
+
+		--process-cap-add-ambient|--process-cap-add-bounding|--process-cap-add-effective|--process-cap-add-inheritable|--process-cap-add-permitted|--process-cap-drop-ambient|--process-cap-drop-bounding|--process-cap-drop-effective|--process-cap-drop-inheritable|--process-cap-drop-permitted)
+			__oci-runtime-tool_complete_capabilities
+			return
+			;;
+
+		--process-gid)
+			_gids
+			return
+			;;
+
+		--process-groups)
+			COMPREPLY=( $( compgen -W "$( __oci-runtime-tool_groups )" -- "$cur" ) )
+			__oci-runtime-tool_nospace
+			return
+			;;
+
+		--process-uid)
+			_uids
+			return
+			;;
+
+		--rootfs-path|--process-cwd)
+			case "$cur" in
+				*:*)
+					# TODO somehow do _filedir for stuff inside the image, if it's already specified (which is also somewhat difficult to determine)
+					;;
+				'')
+					COMPREPLY=( $( compgen -W '/' -- "$cur" ) )
+					__oci-runtime-tool_nospace
+					;;
+				*)
+					_filedir
+					__oci-runtime-tool_nospace
+					;;
+			esac
+			return
+			;;
+	esac
+
+	case "$cur" in
+		-*)
+			COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
+			;;
+	esac
+}
+
+_oci-runtime-tool() {
+	local previous_extglob_setting=$(shopt -p extglob)
+	shopt -s extglob
+
+	local commands=(
+		validate
+		generate
+	)
+
+	COMPREPLY=()
+	local cur prev words cword
+	_get_comp_words_by_ref -n : cur prev words cword
+
+	local command='oci-runtime-tool' command_pos=0 subcommand_pos
+	local counter=1
+	while [ $counter -lt $cword ]; do
+		case "${words[$counter]}" in
+			-*)
+				;;
+			=)
+				(( counter++ ))
+				;;
+			*)
+				command="${words[$counter]}"
+				command_pos=$counter
+				break
+				;;
+		esac
+		(( counter++ ))
+	done
+
+	local completions_func=_oci-runtime-tool_${command}
+	declare -F $completions_func >/dev/null && $completions_func
+
+	eval "$previous_extglob_setting"
+	return 0
+}
+
+eval "$__oci-runtime-tool_previous_extglob_setting"
+unset __oci-runtime-tool_previous_extglob_setting
+
+complete -F _oci-runtime-tool oci-runtime-tool

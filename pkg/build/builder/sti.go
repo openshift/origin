@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	dockerclient "github.com/fsouza/go-dockerclient"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
@@ -329,12 +330,12 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	if push {
-		if err = tagImage(s.dockerClient, buildTag, pushTag); err != nil {
+		if err = s.tagImage(buildTag, pushTag); err != nil {
 			return err
 		}
 	}
 
-	if err = removeImage(s.dockerClient, buildTag); err != nil {
+	if err = s.removeImage(buildTag); err != nil {
 		glog.V(0).Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
@@ -351,7 +352,7 @@ func (s *S2IBuilder) Build() error {
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		startTime = metav1.Now()
-		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+		digest, err := s.pushImage(pushTag, pushAuthConfig)
 
 		timing.RecordNewStep(ctx, buildapiv1.StagePushImage, buildapiv1.StepPushImage, startTime, metav1.Now())
 
@@ -372,6 +373,45 @@ func (s *S2IBuilder) Build() error {
 		glog.V(0).Infof("Push successful")
 	}
 	return nil
+}
+
+func (s *S2IBuilder) tagImage(image, name string) error {
+	if s := s.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				return tagDaemonlessImage(image, name)
+			}
+		}
+	}
+
+	return dockerTagImage(s.dockerClient, image, name)
+}
+
+func (s *S2IBuilder) removeImage(name string) error {
+	if s := s.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				return removeDaemonlessImage(name)
+			}
+		}
+	}
+
+	return dockerRemoveImage(s.dockerClient, name)
+}
+
+func (s *S2IBuilder) pushImage(name string, authConfig dockerclient.AuthConfiguration) (string, error) {
+	if s := s.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				return "", pushDaemonlessImage(name, authConfig)
+			}
+		}
+	}
+
+	return dockerPushImage(s.dockerClient, name, authConfig)
 }
 
 // buildEnvVars returns a map with build metadata to be inserted into Docker

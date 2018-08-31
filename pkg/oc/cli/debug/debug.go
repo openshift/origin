@@ -39,10 +39,10 @@ import (
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -139,21 +139,17 @@ type DebugOptions struct {
 }
 
 func NewDebugOptions(streams genericclioptions.IOStreams) *DebugOptions {
+	attachOpts := kcmd.NewAttachOptions(streams)
+	attachOpts.TTY = true
+	attachOpts.Stdin = true
 	return &DebugOptions{
 		PrintFlags:         genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme),
 		IOStreams:          streams,
 		Timeout:            15 * time.Minute,
 		KeepInitContainers: true,
 		AsUser:             -1,
-		Attach: kcmd.AttachOptions{
-			StreamOptions: kcmd.StreamOptions{
-				IOStreams: streams,
-				TTY:       true,
-				Stdin:     true,
-			},
-			Attach: &kcmd.DefaultRemoteAttach{},
-		},
-		LogsForObject: polymorphichelpers.LogsForObjectFn,
+		Attach:             *attachOpts,
+		LogsForObject:      polymorphichelpers.LogsForObjectFn,
 	}
 }
 
@@ -486,7 +482,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *corev1.Pod, con
 		return nil, nil // ID is needed for later lookup
 	}
 
-	dcname := pod.Annotations[appsapi.DeploymentConfigAnnotation]
+	dcname := pod.Annotations[appsutil.DeploymentConfigAnnotation]
 	if dcname == "" {
 		return nil, nil // Pod doesn't appear to have been created by a DeploymentConfig
 	}
@@ -573,8 +569,11 @@ func (o *DebugOptions) getContainerImageCommand(pod *corev1.Pod, container *core
 		return nil, fmt.Errorf("error: no usable image found")
 	}
 
-	dockerImage, err := imageutil.GetImageMetadata(image)
-	if err != nil {
+	if err := imageutil.ImageWithMetadata(image); err != nil {
+		return nil, err
+	}
+	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+	if !ok {
 		return nil, err
 	}
 

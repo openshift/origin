@@ -6,28 +6,29 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	"github.com/openshift/origin/pkg/build/buildscheme"
-	clientv1 "k8s.io/api/core/v1"
+
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kexternalclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildutil "github.com/openshift/origin/pkg/build/controller/common"
-	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion/build/internalversion"
-	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
-	buildgenerator "github.com/openshift/origin/pkg/build/generator"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	buildinformer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	"github.com/openshift/origin/pkg/build/buildscheme"
+	buildmanualclient "github.com/openshift/origin/pkg/build/client"
+	buildcommon "github.com/openshift/origin/pkg/build/controller/common"
+	"github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 const (
@@ -53,10 +54,10 @@ func IsFatal(err error) bool {
 }
 
 type BuildConfigController struct {
-	buildConfigInstantiator buildclient.BuildConfigInstantiator
+	buildConfigInstantiator buildmanualclient.BuildConfigInstantiator
 	buildConfigGetter       buildlister.BuildConfigLister
 	buildLister             buildlister.BuildLister
-	buildDeleter            buildclient.BuildDeleter
+	buildDeleter            buildmanualclient.BuildDeleter
 
 	buildConfigInformer cache.SharedIndexInformer
 
@@ -67,13 +68,13 @@ type BuildConfigController struct {
 	recorder record.EventRecorder
 }
 
-func NewBuildConfigController(buildInternalClient buildinternalclient.Interface, kubeExternalClient kexternalclientset.Interface, buildConfigInformer buildinformer.BuildConfigInformer, buildInformer buildinformer.BuildInformer) *BuildConfigController {
+func NewBuildConfigController(buildInternalClient buildclient.Interface, kubeExternalClient kubernetes.Interface, buildConfigInformer buildinformer.BuildConfigInformer, buildInformer buildinformer.BuildInformer) *BuildConfigController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeExternalClient.CoreV1().Events("")})
 
-	buildClient := buildclient.NewClientBuildClient(buildInternalClient)
+	buildClient := buildmanualclient.NewClientBuildClient(buildInternalClient)
 	buildConfigGetter := buildConfigInformer.Lister()
-	buildConfigInstantiator := buildclient.NewClientBuildConfigInstantiatorClient(buildInternalClient)
+	buildConfigInstantiator := buildmanualclient.NewClientBuildConfigInstantiatorClient(buildInternalClient)
 	buildLister := buildInformer.Lister()
 
 	c := &BuildConfigController{
@@ -85,7 +86,7 @@ func NewBuildConfigController(buildInternalClient buildinternalclient.Interface,
 		buildConfigInformer: buildConfigInformer.Informer(),
 
 		queue:    workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		recorder: eventBroadcaster.NewRecorder(buildscheme.EncoderScheme, clientv1.EventSource{Component: "buildconfig-controller"}),
+		recorder: eventBroadcaster.NewRecorder(buildscheme.EncoderScheme, corev1.EventSource{Component: "buildconfig-controller"}),
 	}
 
 	c.buildConfigInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -97,14 +98,14 @@ func NewBuildConfigController(buildInternalClient buildinternalclient.Interface,
 	return c
 }
 
-func (c *BuildConfigController) handleBuildConfig(bc *buildapi.BuildConfig) error {
+func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error {
 	glog.V(4).Infof("Handling BuildConfig %s", bcDesc(bc))
 
-	if err := buildutil.HandleBuildPruning(bc.Name, bc.Namespace, c.buildLister, c.buildConfigGetter, c.buildDeleter); err != nil {
+	if err := buildcommon.HandleBuildPruning(bc.Name, bc.Namespace, c.buildLister, c.buildConfigGetter, c.buildDeleter); err != nil {
 		utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", bc.Namespace, bc.Name, err))
 	}
 
-	hasChangeTrigger := buildapihelpers.HasTriggerType(buildapi.ConfigChangeBuildTriggerType, bc)
+	hasChangeTrigger := buildapihelpers.HasTriggerType(buildv1.ConfigChangeBuildTriggerType, bc)
 
 	if !hasChangeTrigger {
 		return nil
@@ -116,13 +117,13 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildapi.BuildConfig) erro
 
 	glog.V(4).Infof("Running build for BuildConfig %s", bcDesc(bc))
 
-	buildTriggerCauses := []buildapi.BuildTriggerCause{}
+	buildTriggerCauses := []buildv1.BuildTriggerCause{}
 	// instantiate new build
 	lastVersion := int64(0)
-	request := &buildapi.BuildRequest{
+	request := &buildv1.BuildRequest{
 		TriggeredBy: append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseConfigMsg,
+			buildv1.BuildTriggerCause{
+				Message: util.BuildTriggerCauseConfigMsg,
 			}),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      bc.Name,
@@ -135,18 +136,18 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildapi.BuildConfig) erro
 		if kerrors.IsConflict(err) {
 			instantiateErr = fmt.Errorf("unable to instantiate Build for BuildConfig %s due to a conflicting update: %v", bcDesc(bc), err)
 			utilruntime.HandleError(instantiateErr)
-		} else if buildgenerator.IsFatal(err) || kerrors.IsNotFound(err) || kerrors.IsBadRequest(err) || kerrors.IsForbidden(err) {
+		} else if buildutil.IsFatalGeneratorError(err) || kerrors.IsNotFound(err) || kerrors.IsBadRequest(err) || kerrors.IsForbidden(err) {
 			instantiateErr = fmt.Errorf("gave up on Build for BuildConfig %s due to fatal error: %v", bcDesc(bc), err)
 			utilruntime.HandleError(instantiateErr)
 			// Fixes https://github.com/openshift/origin/issues/16557
 			// Caused by a race condition between the ImageChangeTrigger and BuildConfigChangeTrigger
 			if !strings.Contains(instantiateErr.Error(), "does not match the build request LastVersion(0)") {
-				c.recorder.Event(bc, kapi.EventTypeWarning, "BuildConfigInstantiateFailed", instantiateErr.Error())
+				c.recorder.Event(bc, corev1.EventTypeWarning, "BuildConfigInstantiateFailed", instantiateErr.Error())
 			}
 			return &configControllerFatalError{err.Error()}
 		} else {
 			instantiateErr = fmt.Errorf("error instantiating Build from BuildConfig %s: %v", bcDesc(bc), err)
-			c.recorder.Event(bc, kapi.EventTypeWarning, "BuildConfigInstantiateFailed", instantiateErr.Error())
+			c.recorder.Event(bc, corev1.EventTypeWarning, "BuildConfigInstantiateFailed", instantiateErr.Error())
 			utilruntime.HandleError(instantiateErr)
 		}
 		return instantiateErr
@@ -157,19 +158,19 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildapi.BuildConfig) erro
 // buildConfigAdded is called by the buildconfig informer event handler whenever a
 // buildconfig is created
 func (c *BuildConfigController) buildConfigAdded(obj interface{}) {
-	bc := obj.(*buildapi.BuildConfig)
+	bc := obj.(*buildv1.BuildConfig)
 	c.enqueueBuildConfig(bc)
 }
 
 // buildConfigUpdated gets called by the buildconfig informer event handler whenever a
 // buildconfig is updated or there is a relist of buildconfigs
 func (c *BuildConfigController) buildConfigUpdated(old, cur interface{}) {
-	bc := cur.(*buildapi.BuildConfig)
+	bc := cur.(*buildv1.BuildConfig)
 	c.enqueueBuildConfig(bc)
 }
 
 // enqueueBuild adds the given build to the queue.
-func (c *BuildConfigController) enqueueBuildConfig(bc *buildapi.BuildConfig) {
+func (c *BuildConfigController) enqueueBuildConfig(bc *buildv1.BuildConfig) {
 	key, err := kcontroller.KeyFunc(bc)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("couldn't get key for buildconfig %#v: %v", bc, err))
@@ -257,7 +258,7 @@ func (c *BuildConfigController) handleError(err error, key interface{}) {
 }
 
 // getBuildConfigByKey looks up a buildconfig by key in the buildConfigInformer cache
-func (c *BuildConfigController) getBuildConfigByKey(key string) (*buildapi.BuildConfig, error) {
+func (c *BuildConfigController) getBuildConfigByKey(key string) (*buildv1.BuildConfig, error) {
 	obj, exists, err := c.buildConfigInformer.GetIndexer().GetByKey(key)
 	if err != nil {
 		glog.V(2).Infof("Unable to retrieve buildconfig %s from store: %v", key, err)
@@ -268,9 +269,9 @@ func (c *BuildConfigController) getBuildConfigByKey(key string) (*buildapi.Build
 		return nil, nil
 	}
 
-	return obj.(*buildapi.BuildConfig), nil
+	return obj.(*buildv1.BuildConfig), nil
 }
 
-func bcDesc(bc *buildapi.BuildConfig) string {
+func bcDesc(bc *buildv1.BuildConfig) string {
 	return fmt.Sprintf("%s/%s (%d)", bc.Namespace, bc.Name, bc.Status.LastVersion)
 }

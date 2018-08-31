@@ -11,11 +11,13 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	kclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	buildtestutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -66,8 +68,13 @@ func TestBuildDefaultEnvironment(t *testing.T) {
 	})
 	defer fn()
 	build, _ := runBuildPodAdmissionTest(t, oclient, kclientset, buildPodAdmissionTestDockerBuild())
-	if actual := build.Spec.Strategy.DockerStrategy.Env; !reflect.DeepEqual(env, actual) {
-		t.Errorf("Resulting build did not get expected environment: %v", actual)
+
+	internalDockerStrategy := &buildapi.DockerBuildStrategy{}
+	if err := legacyscheme.Scheme.Convert(build.Spec.Strategy.DockerStrategy, internalDockerStrategy, nil); err != nil {
+		t.Errorf("Failed to convert build strategy: %v", err)
+	}
+	if actual := internalDockerStrategy.Env; !reflect.DeepEqual(env, actual) {
+		t.Errorf("Resulting build did not get expected environment: %+#v", actual)
 	}
 }
 
@@ -78,7 +85,12 @@ func TestBuildDefaultLabels(t *testing.T) {
 	})
 	defer fn()
 	build, _ := runBuildPodAdmissionTest(t, oclient, kclientset, buildPodAdmissionTestDockerBuild())
-	if actual := build.Spec.Output.ImageLabels; !reflect.DeepEqual(labels, actual) {
+
+	internalOutput := &buildapi.BuildOutput{}
+	if err := legacyscheme.Scheme.Convert(&build.Spec.Output, internalOutput, nil); err != nil {
+		t.Errorf("Failed to convert build output: %v", err)
+	}
+	if actual := internalOutput.ImageLabels; !reflect.DeepEqual(labels, actual) {
 		t.Errorf("Resulting build did not get expected labels: %v", actual)
 	}
 }
@@ -173,7 +185,11 @@ func TestBuildOverrideLabels(t *testing.T) {
 	})
 	defer fn()
 	build, _ := runBuildPodAdmissionTest(t, oclient, kclientset, buildPodAdmissionTestDockerBuild())
-	if actual := build.Spec.Output.ImageLabels; !reflect.DeepEqual(labels, actual) {
+	internalOutput := &buildapi.BuildOutput{}
+	if err := legacyscheme.Scheme.Convert(&build.Spec.Output, internalOutput, nil); err != nil {
+		t.Errorf("Failed to convert build output: %v", err)
+	}
+	if actual := internalOutput.ImageLabels; !reflect.DeepEqual(labels, actual) {
 		t.Errorf("Resulting build did not get expected labels: %v", actual)
 	}
 }
@@ -230,7 +246,8 @@ func buildPodAdmissionTestDockerBuild() *buildapi.Build {
 	return build
 }
 
-func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclientset kclientset.Interface, build *buildapi.Build) (*buildapi.Build, *v1.Pod) {
+func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclientset kclientset.Interface, build *buildapi.Build) (*buildv1.Build,
+	*v1.Pod) {
 
 	ns := testutil.Namespace()
 	_, err := client.Build().Builds(ns).Create(build)
@@ -241,7 +258,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 	watchOpt := metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(
 			"metadata.name",
-			buildapihelpers.GetBuildPodName(build),
+			buildinternalhelpers.GetBuildPodName(build),
 		).String(),
 	}
 	podWatch, err := kclientset.Core().Pods(ns).Watch(watchOpt)
@@ -249,7 +266,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 		t.Fatalf("%v", err)
 	}
 	type resultObjs struct {
-		build *buildapi.Build
+		build *buildv1.Build
 		pod   *v1.Pod
 	}
 	result := make(chan resultObjs)

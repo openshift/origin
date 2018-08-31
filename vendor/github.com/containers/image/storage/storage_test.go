@@ -1,3 +1,5 @@
+// +build !containers_image_storage_stub
+
 package storage
 
 import (
@@ -134,14 +136,12 @@ func TestParse(t *testing.T) {
 	}
 	_references := []storageReference{
 		{
-			name:      ref.(*storageReference).name,
-			reference: verboseName(ref.(*storageReference).name),
+			named:     ref.(*storageReference).named,
 			id:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			transport: transport,
 		},
 		{
-			name:      ref.(*storageReference).name,
-			reference: verboseName(ref.(*storageReference).name),
+			named:     ref.(*storageReference).named,
 			transport: transport,
 		},
 		{
@@ -149,8 +149,7 @@ func TestParse(t *testing.T) {
 			transport: transport,
 		},
 		{
-			name:      ref.DockerReference(),
-			reference: verboseName(ref.DockerReference()),
+			named:     ref.DockerReference(),
 			transport: transport,
 		},
 	}
@@ -163,8 +162,14 @@ func TestParse(t *testing.T) {
 		if ref.id != reference.id {
 			t.Fatalf("ParseReference(%q) failed to extract ID", s)
 		}
-		if ref.reference != reference.reference {
-			t.Fatalf("ParseReference(%q) failed to extract reference (%q!=%q)", s, ref.reference, reference.reference)
+		if reference.named == nil {
+			if ref.named != nil {
+				t.Fatalf("ParseReference(%q) set non-nil named", s)
+			}
+		} else {
+			if ref.named.String() != reference.named.String() {
+				t.Fatalf("ParseReference(%q) failed to extract reference (%q!=%q)", s, ref.named.String(), reference.named.String())
+			}
 		}
 	}
 }
@@ -350,7 +355,7 @@ func TestWriteRead(t *testing.T) {
 	}
 
 	for _, manifestFmt := range manifests {
-		dest, err := ref.NewImageDestination(systemContext())
+		dest, err := ref.NewImageDestination(context.Background(), systemContext())
 		if err != nil {
 			t.Fatalf("NewImageDestination(%q) returned error %v", ref.StringWithinTransport(), err)
 		}
@@ -361,23 +366,23 @@ func TestWriteRead(t *testing.T) {
 			t.Fatalf("NewImageDestination(%q) changed the reference to %q", ref.StringWithinTransport(), dest.Reference().StringWithinTransport())
 		}
 		t.Logf("supported manifest MIME types: %v", dest.SupportedManifestMIMETypes())
-		if err := dest.SupportsSignatures(); err != nil {
+		if err := dest.SupportsSignatures(context.Background()); err != nil {
 			t.Fatalf("Destination image doesn't support signatures: %v", err)
 		}
-		t.Logf("compress layers: %v", dest.ShouldCompressLayers())
+		t.Logf("compress layers: %v", dest.DesiredLayerCompression())
 		compression := archive.Uncompressed
-		if dest.ShouldCompressLayers() {
+		if dest.DesiredLayerCompression() == types.Compress {
 			compression = archive.Gzip
 		}
 		digest, decompressedSize, size, blob := makeLayer(t, compression)
-		if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+		if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 			Size:   size,
 			Digest: digest,
-		}); err != nil {
+		}, false); err != nil {
 			t.Fatalf("Error saving randomly-generated layer to destination: %v", err)
 		}
 		t.Logf("Wrote randomly-generated layer %q (%d/%d bytes) to destination", digest, size, decompressedSize)
-		if _, err := dest.PutBlob(bytes.NewBufferString(config), configInfo); err != nil {
+		if _, err := dest.PutBlob(context.Background(), bytes.NewBufferString(config), configInfo, false); err != nil {
 			t.Fatalf("Error saving config to destination: %v", err)
 		}
 		manifest := strings.Replace(manifestFmt, "%lh", digest.String(), -1)
@@ -388,24 +393,24 @@ func TestWriteRead(t *testing.T) {
 		manifest = strings.Replace(manifest, "%li", li, -1)
 		manifest = strings.Replace(manifest, "%ci", sum.Hex(), -1)
 		t.Logf("this manifest is %q", manifest)
-		if err := dest.PutManifest([]byte(manifest)); err != nil {
+		if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
 			t.Fatalf("Error saving manifest to destination: %v", err)
 		}
-		if err := dest.PutSignatures(signatures); err != nil {
+		if err := dest.PutSignatures(context.Background(), signatures); err != nil {
 			t.Fatalf("Error saving signatures to destination: %v", err)
 		}
-		if err := dest.Commit(); err != nil {
+		if err := dest.Commit(context.Background()); err != nil {
 			t.Fatalf("Error committing changes to destination: %v", err)
 		}
 		dest.Close()
 
-		img, err := ref.NewImage(systemContext())
+		img, err := ref.NewImage(context.Background(), systemContext())
 		if err != nil {
 			t.Fatalf("NewImage(%q) returned error %v", ref.StringWithinTransport(), err)
 		}
 		imageConfigInfo := img.ConfigInfo()
 		if imageConfigInfo.Digest != "" {
-			blob, err := img.ConfigBlob()
+			blob, err := img.ConfigBlob(context.Background())
 			if err != nil {
 				t.Fatalf("image %q claimed there was a config blob, but couldn't produce it: %v", ref.StringWithinTransport(), err)
 			}
@@ -421,7 +426,7 @@ func TestWriteRead(t *testing.T) {
 		if layerInfos == nil {
 			t.Fatalf("image for %q returned empty layer list", ref.StringWithinTransport())
 		}
-		imageInfo, err := img.Inspect()
+		imageInfo, err := img.Inspect(context.Background())
 		if err != nil {
 			t.Fatalf("Inspect(%q) returned error %v", ref.StringWithinTransport(), err)
 		}
@@ -429,33 +434,31 @@ func TestWriteRead(t *testing.T) {
 			t.Fatalf("Image %q claims to have been created at time 0", ref.StringWithinTransport())
 		}
 
-		src, err := ref.NewImageSource(systemContext(), []string{})
+		src, err := ref.NewImageSource(context.Background(), systemContext())
 		if err != nil {
 			t.Fatalf("NewImageSource(%q) returned error %v", ref.StringWithinTransport(), err)
 		}
 		if src == nil {
 			t.Fatalf("NewImageSource(%q) returned no source", ref.StringWithinTransport())
 		}
+		// Note that we would strip a digest here, but not a tag.
 		if src.Reference().StringWithinTransport() != ref.StringWithinTransport() {
 			// As long as it's only the addition of an ID suffix, that's okay.
 			if !strings.HasPrefix(src.Reference().StringWithinTransport(), ref.StringWithinTransport()+"@") {
 				t.Fatalf("NewImageSource(%q) changed the reference to %q", ref.StringWithinTransport(), src.Reference().StringWithinTransport())
 			}
 		}
-		retrievedManifest, manifestType, err := src.GetManifest()
+		_, manifestType, err := src.GetManifest(context.Background(), nil)
 		if err != nil {
 			t.Fatalf("GetManifest(%q) returned error %v", ref.StringWithinTransport(), err)
 		}
 		t.Logf("this manifest's type appears to be %q", manifestType)
-		if string(retrievedManifest) != manifest {
-			t.Fatalf("NewImageSource(%q) changed the manifest: %q was %q", ref.StringWithinTransport(), string(retrievedManifest), manifest)
-		}
 		sum = ddigest.SHA256.FromBytes([]byte(manifest))
-		_, _, err = src.GetTargetManifest(sum)
+		_, _, err = src.GetManifest(context.Background(), &sum)
 		if err == nil {
-			t.Fatalf("GetTargetManifest(%q) is supposed to fail", ref.StringWithinTransport())
+			t.Fatalf("GetManifest(%q) with an instanceDigest is supposed to fail", ref.StringWithinTransport())
 		}
-		sigs, err := src.GetSignatures(context.Background())
+		sigs, err := src.GetSignatures(context.Background(), nil)
 		if err != nil {
 			t.Fatalf("GetSignatures(%q) returned error %v", ref.StringWithinTransport(), err)
 		}
@@ -470,9 +473,13 @@ func TestWriteRead(t *testing.T) {
 				t.Fatalf("Signature %d was corrupted", i)
 			}
 		}
+		_, err = src.GetSignatures(context.Background(), &sum)
+		if err == nil {
+			t.Fatalf("GetSignatures(%q) with instanceDigest is supposed to fail", ref.StringWithinTransport())
+		}
 		for _, layerInfo := range layerInfos {
 			buf := bytes.Buffer{}
-			layer, size, err := src.GetBlob(layerInfo)
+			layer, size, err := src.GetBlob(context.Background(), layerInfo)
 			if err != nil {
 				t.Fatalf("Error reading layer %q from %q", layerInfo.Digest, ref.StringWithinTransport())
 			}
@@ -498,7 +505,7 @@ func TestWriteRead(t *testing.T) {
 		}
 		src.Close()
 		img.Close()
-		err = ref.DeleteImage(systemContext())
+		err = ref.DeleteImage(context.Background(), systemContext())
 		if err != nil {
 			t.Fatalf("DeleteImage(%q) returned error %v", ref.StringWithinTransport(), err)
 		}
@@ -520,7 +527,7 @@ func TestDuplicateName(t *testing.T) {
 		t.Fatalf("ParseReference returned nil reference")
 	}
 
-	dest, err := ref.NewImageDestination(systemContext())
+	dest, err := ref.NewImageDestination(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageDestination(%q, first pass) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -528,18 +535,34 @@ func TestDuplicateName(t *testing.T) {
 		t.Fatalf("NewImageDestination(%q, first pass) returned no destination", ref.StringWithinTransport())
 	}
 	digest, _, size, blob := makeLayer(t, archive.Uncompressed)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 		Size:   size,
 		Digest: digest,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer to destination, first pass: %v", err)
 	}
-	if err := dest.Commit(); err != nil {
+	manifest := fmt.Sprintf(`
+	        {
+		    "schemaVersion": 2,
+		    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+		    "layers": [
+			{
+			    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+			    "digest": "%s",
+			    "size": %d
+			}
+		    ]
+		}
+	`, digest, size)
+	if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
+		t.Fatalf("Error storing manifest to destination: %v", err)
+	}
+	if err := dest.Commit(context.Background()); err != nil {
 		t.Fatalf("Error committing changes to destination, first pass: %v", err)
 	}
 	dest.Close()
 
-	dest, err = ref.NewImageDestination(systemContext())
+	dest, err = ref.NewImageDestination(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageDestination(%q, second pass) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -547,13 +570,29 @@ func TestDuplicateName(t *testing.T) {
 		t.Fatalf("NewImageDestination(%q, second pass) returned no destination", ref.StringWithinTransport())
 	}
 	digest, _, size, blob = makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 		Size:   int64(size),
 		Digest: digest,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer to destination, second pass: %v", err)
 	}
-	if err := dest.Commit(); err != nil {
+	manifest = fmt.Sprintf(`
+	        {
+		    "schemaVersion": 2,
+		    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+		    "layers": [
+			{
+			    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+			    "digest": "%s",
+			    "size": %d
+			}
+		    ]
+		}
+	`, digest, size)
+	if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
+		t.Fatalf("Error storing manifest to destination: %v", err)
+	}
+	if err := dest.Commit(context.Background()); err != nil {
 		t.Fatalf("Error committing changes to destination, second pass: %v", err)
 	}
 	dest.Close()
@@ -574,7 +613,7 @@ func TestDuplicateID(t *testing.T) {
 		t.Fatalf("ParseReference returned nil reference")
 	}
 
-	dest, err := ref.NewImageDestination(systemContext())
+	dest, err := ref.NewImageDestination(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageDestination(%q, first pass) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -582,18 +621,34 @@ func TestDuplicateID(t *testing.T) {
 		t.Fatalf("NewImageDestination(%q, first pass) returned no destination", ref.StringWithinTransport())
 	}
 	digest, _, size, blob := makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 		Size:   size,
 		Digest: digest,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer to destination, first pass: %v", err)
 	}
-	if err := dest.Commit(); err != nil {
+	manifest := fmt.Sprintf(`
+	        {
+		    "schemaVersion": 2,
+		    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+		    "layers": [
+			{
+			    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+			    "digest": "%s",
+			    "size": %d
+			}
+		    ]
+		}
+	`, digest, size)
+	if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
+		t.Fatalf("Error storing manifest to destination: %v", err)
+	}
+	if err := dest.Commit(context.Background()); err != nil {
 		t.Fatalf("Error committing changes to destination, first pass: %v", err)
 	}
 	dest.Close()
 
-	dest, err = ref.NewImageDestination(systemContext())
+	dest, err = ref.NewImageDestination(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageDestination(%q, second pass) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -601,13 +656,29 @@ func TestDuplicateID(t *testing.T) {
 		t.Fatalf("NewImageDestination(%q, second pass) returned no destination", ref.StringWithinTransport())
 	}
 	digest, _, size, blob = makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 		Size:   int64(size),
 		Digest: digest,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer to destination, second pass: %v", err)
 	}
-	if err := dest.Commit(); errors.Cause(err) != storage.ErrDuplicateID {
+	manifest = fmt.Sprintf(`
+	        {
+		    "schemaVersion": 2,
+		    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+		    "layers": [
+			{
+			    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+			    "digest": "%s",
+			    "size": %d
+			}
+		    ]
+		}
+	`, digest, size)
+	if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
+		t.Fatalf("Error storing manifest to destination: %v", err)
+	}
+	if err := dest.Commit(context.Background()); errors.Cause(err) != storage.ErrDuplicateID {
 		if err != nil {
 			t.Fatalf("Wrong error committing changes to destination, second pass: %v", err)
 		}
@@ -631,7 +702,7 @@ func TestDuplicateNameID(t *testing.T) {
 		t.Fatalf("ParseReference returned nil reference")
 	}
 
-	dest, err := ref.NewImageDestination(systemContext())
+	dest, err := ref.NewImageDestination(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageDestination(%q, first pass) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -639,18 +710,34 @@ func TestDuplicateNameID(t *testing.T) {
 		t.Fatalf("NewImageDestination(%q, first pass) returned no destination", ref.StringWithinTransport())
 	}
 	digest, _, size, blob := makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 		Size:   size,
 		Digest: digest,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer to destination, first pass: %v", err)
 	}
-	if err := dest.Commit(); err != nil {
+	manifest := fmt.Sprintf(`
+	        {
+		    "schemaVersion": 2,
+		    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+		    "layers": [
+			{
+			    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+			    "digest": "%s",
+			    "size": %d
+			}
+		    ]
+		}
+	`, digest, size)
+	if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
+		t.Fatalf("Error storing manifest to destination: %v", err)
+	}
+	if err := dest.Commit(context.Background()); err != nil {
 		t.Fatalf("Error committing changes to destination, first pass: %v", err)
 	}
 	dest.Close()
 
-	dest, err = ref.NewImageDestination(systemContext())
+	dest, err = ref.NewImageDestination(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageDestination(%q, second pass) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -658,13 +745,29 @@ func TestDuplicateNameID(t *testing.T) {
 		t.Fatalf("NewImageDestination(%q, second pass) returned no destination", ref.StringWithinTransport())
 	}
 	digest, _, size, blob = makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 		Size:   int64(size),
 		Digest: digest,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer to destination, second pass: %v", err)
 	}
-	if err := dest.Commit(); errors.Cause(err) != storage.ErrDuplicateID {
+	manifest = fmt.Sprintf(`
+	        {
+		    "schemaVersion": 2,
+		    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+		    "layers": [
+			{
+			    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+			    "digest": "%s",
+			    "size": %d
+			}
+		    ]
+		}
+	`, digest, size)
+	if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
+		t.Fatalf("Error storing manifest to destination: %v", err)
+	}
+	if err := dest.Commit(context.Background()); errors.Cause(err) != storage.ErrDuplicateID {
 		if err != nil {
 			t.Fatalf("Wrong error committing changes to destination, second pass: %v", err)
 		}
@@ -734,25 +837,28 @@ func TestSize(t *testing.T) {
 		t.Fatalf("ParseReference returned nil reference")
 	}
 
-	dest, err := ref.NewImageDestination(systemContext())
+	dest, err := ref.NewImageDestination(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageDestination(%q) returned error %v", ref.StringWithinTransport(), err)
 	}
 	if dest == nil {
 		t.Fatalf("NewImageDestination(%q) returned no destination", ref.StringWithinTransport())
 	}
-	digest1, _, size1, blob := makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBufferString(config), configInfo, false); err != nil {
+		t.Fatalf("Error saving config to destination: %v", err)
+	}
+	digest1, usize1, size1, blob := makeLayer(t, archive.Gzip)
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 		Size:   size1,
 		Digest: digest1,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer 1 to destination: %v", err)
 	}
-	digest2, _, size2, blob := makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob), types.BlobInfo{
+	digest2, usize2, size2, blob := makeLayer(t, archive.Gzip)
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob), types.BlobInfo{
 		Size:   size2,
 		Digest: digest2,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer 2 to destination: %v", err)
 	}
 	manifest := fmt.Sprintf(`
@@ -778,15 +884,15 @@ func TestSize(t *testing.T) {
 		    ]
 		}
 	`, configInfo.Size, configInfo.Digest, digest1, size1, digest2, size2)
-	if err := dest.PutManifest([]byte(manifest)); err != nil {
+	if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
 		t.Fatalf("Error storing manifest to destination: %v", err)
 	}
-	if err := dest.Commit(); err != nil {
+	if err := dest.Commit(context.Background()); err != nil {
 		t.Fatalf("Error committing changes to destination: %v", err)
 	}
 	dest.Close()
 
-	img, err := ref.NewImage(systemContext())
+	img, err := ref.NewImage(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImage(%q) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -794,8 +900,8 @@ func TestSize(t *testing.T) {
 	if usize == -1 || err != nil {
 		t.Fatalf("Error calculating image size: %v", err)
 	}
-	if int(usize) != layerSize*2+len(manifest) {
-		t.Fatalf("Unexpected image size: %d != %d + %d + %d", usize, layerSize, layerSize, len(manifest))
+	if int(usize) != len(config)+int(usize1)+int(usize2)+len(manifest) {
+		t.Fatalf("Unexpected image size: %d != %d + %d + %d + %d", usize, len(config), usize1, usize2, len(manifest))
 	}
 	img.Close()
 }
@@ -822,7 +928,7 @@ func TestDuplicateBlob(t *testing.T) {
 		t.Fatalf("ParseReference returned nil reference")
 	}
 
-	dest, err := ref.NewImageDestination(systemContext())
+	dest, err := ref.NewImageDestination(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageDestination(%q) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -830,29 +936,29 @@ func TestDuplicateBlob(t *testing.T) {
 		t.Fatalf("NewImageDestination(%q) returned no destination", ref.StringWithinTransport())
 	}
 	digest1, _, size1, blob1 := makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob1), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob1), types.BlobInfo{
 		Size:   size1,
 		Digest: digest1,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer 1 to destination (first copy): %v", err)
 	}
 	digest2, _, size2, blob2 := makeLayer(t, archive.Gzip)
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob2), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob2), types.BlobInfo{
 		Size:   size2,
 		Digest: digest2,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer 2 to destination (first copy): %v", err)
 	}
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob1), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob1), types.BlobInfo{
 		Size:   size1,
 		Digest: digest1,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer 1 to destination (second copy): %v", err)
 	}
-	if _, err := dest.PutBlob(bytes.NewBuffer(blob2), types.BlobInfo{
+	if _, err := dest.PutBlob(context.Background(), bytes.NewBuffer(blob2), types.BlobInfo{
 		Size:   size2,
 		Digest: digest2,
-	}); err != nil {
+	}, false); err != nil {
 		t.Fatalf("Error saving randomly-generated layer 2 to destination (second copy): %v", err)
 	}
 	manifest := fmt.Sprintf(`
@@ -888,19 +994,19 @@ func TestDuplicateBlob(t *testing.T) {
 		    ]
 		}
 	`, configInfo.Size, configInfo.Digest, digest1, size1, digest2, size2, digest1, size1, digest2, size2)
-	if err := dest.PutManifest([]byte(manifest)); err != nil {
+	if err := dest.PutManifest(context.Background(), []byte(manifest)); err != nil {
 		t.Fatalf("Error storing manifest to destination: %v", err)
 	}
-	if err := dest.Commit(); err != nil {
+	if err := dest.Commit(context.Background()); err != nil {
 		t.Fatalf("Error committing changes to destination: %v", err)
 	}
 	dest.Close()
 
-	img, err := ref.NewImage(systemContext())
+	img, err := ref.NewImage(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImage(%q) returned error %v", ref.StringWithinTransport(), err)
 	}
-	src, err := ref.NewImageSource(systemContext(), nil)
+	src, err := ref.NewImageSource(context.Background(), systemContext())
 	if err != nil {
 		t.Fatalf("NewImageSource(%q) returned error %v", ref.StringWithinTransport(), err)
 	}
@@ -909,7 +1015,11 @@ func TestDuplicateBlob(t *testing.T) {
 		t.Fatalf("ImageSource is not a storage image")
 	}
 	layers := []string{}
-	for _, layerInfo := range img.LayerInfos() {
+	layersInfo, err := img.LayerInfosForCopy(context.Background())
+	if err != nil {
+		t.Fatalf("LayerInfosForCopy() returned error %v", err)
+	}
+	for _, layerInfo := range layersInfo {
 		rc, _, layerID, err := source.getBlobAndLayerID(layerInfo)
 		if err != nil {
 			t.Fatalf("getBlobAndLayerID(%q) returned error %v", layerInfo.Digest, err)

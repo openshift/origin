@@ -7,14 +7,14 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/record"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 )
 
 func TestHandleBuildConfig(t *testing.T) {
 	tests := []struct {
 		name              string
-		bc                *buildapi.BuildConfig
+		bc                *buildv1.BuildConfig
 		expectBuild       bool
 		instantiatorError bool
 		expectErr         bool
@@ -79,32 +79,32 @@ type testInstantiator struct {
 	err         bool
 }
 
-func (i *testInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+func (i *testInstantiator) Instantiate(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error) {
 	i.requestName = request.Name
 	if i.err {
 		return nil, fmt.Errorf("error")
 	}
-	return &buildapi.Build{}, nil
+	return &buildv1.Build{}, nil
 }
 
-func baseBuildConfig() *buildapi.BuildConfig {
-	bc := &buildapi.BuildConfig{}
+func baseBuildConfig() *buildv1.BuildConfig {
+	bc := &buildv1.BuildConfig{}
 	bc.Name = "testBuildConfig"
-	bc.Spec.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
+	bc.Spec.Strategy.SourceStrategy = &buildv1.SourceBuildStrategy{}
 	bc.Spec.Strategy.SourceStrategy.From.Name = "builderimage:latest"
 	bc.Spec.Strategy.SourceStrategy.From.Kind = "ImageStreamTag"
 	return bc
 }
 
-func buildConfigWithConfigChangeTrigger() *buildapi.BuildConfig {
+func buildConfigWithConfigChangeTrigger() *buildv1.BuildConfig {
 	bc := baseBuildConfig()
-	configChangeTrigger := buildapi.BuildTriggerPolicy{}
-	configChangeTrigger.Type = buildapi.ConfigChangeBuildTriggerType
+	configChangeTrigger := buildv1.BuildTriggerPolicy{}
+	configChangeTrigger.Type = buildv1.ConfigChangeBuildTriggerType
 	bc.Spec.Triggers = append(bc.Spec.Triggers, configChangeTrigger)
 	return bc
 }
 
-func buildConfigWithNonZeroLastVersion() *buildapi.BuildConfig {
+func buildConfigWithNonZeroLastVersion() *buildv1.BuildConfig {
 	bc := buildConfigWithConfigChangeTrigger()
 	bc.Status.LastVersion = 1
 	return bc
@@ -112,7 +112,7 @@ func buildConfigWithNonZeroLastVersion() *buildapi.BuildConfig {
 
 type okBuildLister struct{}
 
-func (okc *okBuildLister) List(label labels.Selector) ([]*buildapi.Build, error) {
+func (okc *okBuildLister) List(label labels.Selector) ([]*buildv1.Build, error) {
 	return nil, nil
 }
 
@@ -120,31 +120,31 @@ func (okc *okBuildLister) Builds(ns string) buildlister.BuildNamespaceLister {
 	return okc
 }
 
-func (okc *okBuildLister) Get(name string) (*buildapi.Build, error) {
+func (okc *okBuildLister) Get(name string) (*buildv1.Build, error) {
 	return nil, nil
 }
 
 type okBuildDeleter struct{}
 
-func (okc *okBuildDeleter) DeleteBuild(*buildapi.Build) error {
+func (okc *okBuildDeleter) DeleteBuild(*buildv1.Build) error {
 	return nil
 }
 
 type okBuildConfigGetter struct {
-	BuildConfig *buildapi.BuildConfig
+	BuildConfig *buildv1.BuildConfig
 }
 
-func (okc *okBuildConfigGetter) Get(name string) (*buildapi.BuildConfig, error) {
+func (okc *okBuildConfigGetter) Get(name string) (*buildv1.BuildConfig, error) {
 	if okc.BuildConfig != nil {
 		return okc.BuildConfig, nil
 	}
-	return &buildapi.BuildConfig{}, nil
+	return &buildv1.BuildConfig{}, nil
 }
 
 func (okc *okBuildConfigGetter) BuildConfigs(ns string) buildlister.BuildConfigNamespaceLister {
 	return okc
 }
 
-func (okc *okBuildConfigGetter) List(label labels.Selector) ([]*buildapi.BuildConfig, error) {
+func (okc *okBuildConfigGetter) List(label labels.Selector) ([]*buildv1.BuildConfig, error) {
 	return nil, fmt.Errorf("not implemented")
 }

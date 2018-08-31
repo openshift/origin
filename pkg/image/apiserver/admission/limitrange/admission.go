@@ -140,7 +140,7 @@ func (a *imageLimitRangerPlugin) ValidateLimit(limitRange *kapi.LimitRange, kind
 	}
 
 	image := &isObj.Image
-	if err := util.ImageWithMetadata(image); err != nil {
+	if err := util.InternalImageWithMetadata(image); err != nil {
 		return err
 	}
 

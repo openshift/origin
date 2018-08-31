@@ -207,9 +207,11 @@ func imageStreamTagScheduled(g osgraph.Graph, input graph.Node, base ImageTagLoc
 	for _, uncastImageStreamNode := range g.SuccessorNodesByEdgeKind(input, imageedges.ReferencedImageStreamGraphEdgeKind) {
 		imageStreamNode := uncastImageStreamNode.(*imagegraph.ImageStreamNode)
 		if imageStreamNode.ImageStream != nil {
-			if tag, ok := imageStreamNode.ImageStream.Spec.Tags[base.ImageTag()]; ok {
-				scheduled = tag.ImportPolicy.Scheduled
-				return
+			for _, tag := range imageStreamNode.ImageStream.Spec.Tags {
+				if tag.Name == base.ImageTag() {
+					scheduled = tag.ImportPolicy.Scheduled
+					return
+				}
 			}
 		}
 	}

@@ -83,6 +83,7 @@ BuildRequires:  systemd
 BuildRequires:  bsdtar
 BuildRequires:  golang >= %{golang_version}
 BuildRequires:  krb5-devel
+BuildRequires:  libseccomp-devel
 BuildRequires:  rsync
 Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
@@ -152,6 +153,8 @@ Provides:       tuned-profiles-%{name}-node
 Summary:        %{product_name} Client binaries for Linux
 Obsoletes:      openshift-clients < %{package_refactor_version}
 Requires:       bash-completion
+# Provided by containers-common or skopeo-containers, depending on the release.
+Requires:       /etc/containers/registries.conf
 
 %description clients
 %{summary}
@@ -304,6 +307,9 @@ done
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
+# stub filed required to ensure config is not reverted during upgrades
+install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
+
 # Install man1 man pages
 install -d -m 0755 %{buildroot}%{_mandir}/man1
 install -m 0644 docs/man/man1/* %{buildroot}%{_mandir}/man1/
@@ -385,6 +391,7 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %files node
 %{_bindir}/openshift-node-config
 %{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
+%config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
 

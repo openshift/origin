@@ -2,6 +2,7 @@ package image
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -29,36 +30,45 @@ func manifestOCI1FromFixture(t *testing.T, src types.ImageSource, fixture string
 }
 
 func manifestOCI1FromComponentsLikeFixture(configBlob []byte) genericManifest {
-	return manifestOCI1FromComponents(descriptorOCI1{descriptor: descriptor{
+	return manifestOCI1FromComponents(imgspecv1.Descriptor{
 		MediaType: imgspecv1.MediaTypeImageConfig,
 		Size:      5940,
 		Digest:    "sha256:9ca4bda0a6b3727a6ffcc43e981cad0f24e2ec79d338f6ba325b4dfd0756fb8f",
-	}}, nil, configBlob, []descriptorOCI1{
-		{descriptor: descriptor{
+		Annotations: map[string]string{
+			"test-annotation-1": "one",
+		},
+	}, nil, configBlob, []imgspecv1.Descriptor{
+		{
 			MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			Digest:    "sha256:6a5a5368e0c2d3e5909184fa28ddfd56072e7ff3ee9a945876f7eee5896ef5bb",
 			Size:      51354364,
-		}},
-		{descriptor: descriptor{
+		},
+		{
 			MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			Digest:    "sha256:1bbf5d58d24c47512e234a5623474acf65ae00d4d1414272a893204f44cc680c",
 			Size:      150,
-		}},
-		{descriptor: descriptor{
+		},
+		{
 			MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			Digest:    "sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9",
 			Size:      11739507,
-		}},
-		{descriptor: descriptor{
+			URLs: []string{
+				"https://layer.url",
+			},
+		},
+		{
 			MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			Digest:    "sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
 			Size:      8841833,
-		}},
-		{descriptor: descriptor{
+			Annotations: map[string]string{
+				"test-annotation-2": "two",
+			},
+		},
+		{
 			MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			Digest:    "sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
 			Size:      291,
-		}},
+		},
 	})
 }
 
@@ -118,6 +128,10 @@ func TestManifestOCI1ConfigInfo(t *testing.T) {
 		assert.Equal(t, types.BlobInfo{
 			Size:   5940,
 			Digest: "sha256:9ca4bda0a6b3727a6ffcc43e981cad0f24e2ec79d338f6ba325b4dfd0756fb8f",
+			Annotations: map[string]string{
+				"test-annotation-1": "one",
+			},
+			MediaType: "application/vnd.oci.image.config.v1+json",
 		}, m.ConfigInfo())
 	}
 }
@@ -156,7 +170,7 @@ func TestManifestOCI1ConfigBlob(t *testing.T) {
 			src = nil
 		}
 		m := manifestOCI1FromFixture(t, src, "oci1.json")
-		blob, err := m.ConfigBlob()
+		blob, err := m.ConfigBlob(context.Background())
 		if c.blob != nil {
 			assert.NoError(t, err)
 			assert.Equal(t, c.blob, blob)
@@ -172,7 +186,7 @@ func TestManifestOCI1ConfigBlob(t *testing.T) {
 	// This just tests that the manifest can be created; we test that the parsed
 	// values are correctly returned in tests for the individual getter methods.
 	m := manifestOCI1FromComponentsLikeFixture(configBlob)
-	cb, err := m.ConfigBlob()
+	cb, err := m.ConfigBlob(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, configBlob, cb)
 }
@@ -184,24 +198,35 @@ func TestManifestOCI1LayerInfo(t *testing.T) {
 	} {
 		assert.Equal(t, []types.BlobInfo{
 			{
-				Digest: "sha256:6a5a5368e0c2d3e5909184fa28ddfd56072e7ff3ee9a945876f7eee5896ef5bb",
-				Size:   51354364,
+				Digest:    "sha256:6a5a5368e0c2d3e5909184fa28ddfd56072e7ff3ee9a945876f7eee5896ef5bb",
+				Size:      51354364,
+				MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			},
 			{
-				Digest: "sha256:1bbf5d58d24c47512e234a5623474acf65ae00d4d1414272a893204f44cc680c",
-				Size:   150,
+				Digest:    "sha256:1bbf5d58d24c47512e234a5623474acf65ae00d4d1414272a893204f44cc680c",
+				Size:      150,
+				MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			},
 			{
 				Digest: "sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9",
 				Size:   11739507,
+				URLs: []string{
+					"https://layer.url",
+				},
+				MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			},
 			{
 				Digest: "sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
 				Size:   8841833,
+				Annotations: map[string]string{
+					"test-annotation-2": "two",
+				},
+				MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			},
 			{
-				Digest: "sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
-				Size:   291,
+				Digest:    "sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
+				Size:      291,
+				MediaType: imgspecv1.MediaTypeImageLayerGzip,
 			},
 		}, m.LayerInfos())
 	}
@@ -221,30 +246,37 @@ func TestManifestOCI1EmbeddedDockerReferenceConflicts(t *testing.T) {
 	}
 }
 
-func TestManifestOCI1ImageInspectInfo(t *testing.T) {
+func TestManifestOCI1Inspect(t *testing.T) {
 	configJSON, err := ioutil.ReadFile("fixtures/oci1-config.json")
 	require.NoError(t, err)
 
 	m := manifestOCI1FromComponentsLikeFixture(configJSON)
-	ii, err := m.imageInspectInfo()
+	ii, err := m.Inspect(context.Background())
 	require.NoError(t, err)
+	created := time.Date(2016, 9, 23, 23, 20, 45, 789764590, time.UTC)
 	assert.Equal(t, types.ImageInspectInfo{
 		Tag:           "",
-		Created:       time.Date(2016, 9, 23, 23, 20, 45, 789764590, time.UTC),
+		Created:       &created,
 		DockerVersion: "1.12.1",
 		Labels:        map[string]string{},
 		Architecture:  "amd64",
 		Os:            "linux",
-		Layers:        nil,
+		Layers: []string{
+			"sha256:6a5a5368e0c2d3e5909184fa28ddfd56072e7ff3ee9a945876f7eee5896ef5bb",
+			"sha256:1bbf5d58d24c47512e234a5623474acf65ae00d4d1414272a893204f44cc680c",
+			"sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9",
+			"sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
+			"sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
+		},
 	}, *ii)
 
 	// nil configBlob will trigger an error in m.ConfigBlob()
 	m = manifestOCI1FromComponentsLikeFixture(nil)
-	_, err = m.imageInspectInfo()
+	_, err = m.Inspect(context.Background())
 	assert.Error(t, err)
 
 	m = manifestOCI1FromComponentsLikeFixture([]byte("invalid JSON"))
-	_, err = m.imageInspectInfo()
+	_, err = m.Inspect(context.Background())
 	assert.Error(t, err)
 }
 
@@ -292,12 +324,12 @@ func TestManifestOCI1UpdatedImage(t *testing.T) {
 
 	// LayerInfos:
 	layerInfos := append(original.LayerInfos()[1:], original.LayerInfos()[0])
-	res, err := original.UpdatedImage(types.ManifestUpdateOptions{
+	res, err := original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		LayerInfos: layerInfos,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, layerInfos, res.LayerInfos())
-	_, err = original.UpdatedImage(types.ManifestUpdateOptions{
+	_, err = original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		LayerInfos: append(layerInfos, layerInfos[0]),
 	})
 	assert.Error(t, err)
@@ -306,7 +338,7 @@ func TestManifestOCI1UpdatedImage(t *testing.T) {
 	// … is ignored
 	embeddedRef, err := reference.ParseNormalizedNamed("busybox")
 	require.NoError(t, err)
-	res, err = original.UpdatedImage(types.ManifestUpdateOptions{
+	res, err = original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		EmbeddedDockerReference: embeddedRef,
 	})
 	require.NoError(t, err)
@@ -320,7 +352,7 @@ func TestManifestOCI1UpdatedImage(t *testing.T) {
 	for _, mime := range []string{
 		manifest.DockerV2Schema2MediaType,
 	} {
-		_, err = original.UpdatedImage(types.ManifestUpdateOptions{
+		_, err = original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 			ManifestMIMEType: mime,
 			InformationOnly: types.ManifestUpdateInformation{
 				Destination: &memoryImageDest{ref: originalSrc.ref},
@@ -332,7 +364,7 @@ func TestManifestOCI1UpdatedImage(t *testing.T) {
 		imgspecv1.MediaTypeImageManifest, // This indicates a confused caller, not a no-op.
 		"this is invalid",
 	} {
-		_, err = original.UpdatedImage(types.ManifestUpdateOptions{
+		_, err = original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 			ManifestMIMEType: mime,
 		})
 		assert.Error(t, err, mime)
@@ -350,12 +382,12 @@ func TestManifestOCI1UpdatedImage(t *testing.T) {
 func TestConvertToManifestSchema2(t *testing.T) {
 	originalSrc := newOCI1ImageSource(t, "httpd-copy:latest")
 	original := manifestOCI1FromFixture(t, originalSrc, "oci1.json")
-	res, err := original.UpdatedImage(types.ManifestUpdateOptions{
+	res, err := original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		ManifestMIMEType: manifest.DockerV2Schema2MediaType,
 	})
 	require.NoError(t, err)
 
-	convertedJSON, mt, err := res.Manifest()
+	convertedJSON, mt, err := res.Manifest(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, manifest.DockerV2Schema2MediaType, mt)
 

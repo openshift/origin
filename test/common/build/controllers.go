@@ -17,7 +17,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -130,7 +130,8 @@ func RunBuildControllerTest(t testingT, buildClient buildtypedclient.BuildsGette
 	}()
 
 	// Watch build pods as they are created
-	podWatch, err := kClientset.Core().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapihelpers.GetBuildPodName(b)).String()})
+	podWatch, err := kClientset.Core().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name",
+		buildinternalhelpers.GetBuildPodName(b)).String()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +221,8 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 		}
 
 		// Watch build pod for transition to pending
-		podWatch, err := kClient.Core().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapihelpers.GetBuildPodName(b)).String()})
+		podWatch, err := kClient.Core().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name",
+			buildinternalhelpers.GetBuildPodName(b)).String()})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -580,7 +582,7 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient buildtypedclient.BuildsGe
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	pod := event.Object.(*kapi.Pod)
-	if expected := buildapihelpers.GetBuildPodName(newBuild); pod.Name != expected {
+	if expected := buildinternalhelpers.GetBuildPodName(newBuild); pod.Name != expected {
 		t.Fatalf("Expected pod %s to be deleted, but pod %s was deleted", expected, pod.Name)
 	}
 
@@ -662,7 +664,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildtypedclien
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapihelpers.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
+	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildinternalhelpers.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -756,7 +758,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildtypedclie
 		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapihelpers.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
+	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildinternalhelpers.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	time.Sleep(10 * time.Second)
 	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name, metav1.GetOptions{})
 	if err != nil {

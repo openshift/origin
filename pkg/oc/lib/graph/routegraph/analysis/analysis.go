@@ -6,13 +6,14 @@ import (
 
 	"github.com/gonum/graph"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
+	routev1 "github.com/openshift/api/route/v1"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 	routeedges "github.com/openshift/origin/pkg/oc/lib/graph/routegraph"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
 )
 
 const (
@@ -167,8 +168,8 @@ func FindRouteAdmissionFailures(g osgraph.Graph, f osgraph.Namer) []osgraph.Mark
 		routeNode := uncastRouteNode.(*routegraph.RouteNode)
 	Route:
 		for _, ingress := range routeNode.Status.Ingress {
-			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
-			case kapi.ConditionFalse:
+			switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routev1.RouteAdmitted); status {
+			case corev1.ConditionFalse:
 				markers = append(markers, osgraph.Marker{
 					Node: routeNode,
 
@@ -212,7 +213,7 @@ func FindPathBasedPassthroughRoutes(g osgraph.Graph, f osgraph.Namer) []osgraph.
 	for _, uncastRouteNode := range g.NodesByKind(routegraph.RouteNodeKind) {
 		routeNode := uncastRouteNode.(*routegraph.RouteNode)
 
-		if len(routeNode.Spec.Path) > 0 && routeNode.Spec.TLS != nil && routeNode.Spec.TLS.Termination == routeapi.TLSTerminationPassthrough {
+		if len(routeNode.Spec.Path) > 0 && routeNode.Spec.TLS != nil && routeNode.Spec.TLS.Termination == routev1.TLSTerminationPassthrough {
 			markers = append(markers, osgraph.Marker{
 				Node: routeNode,
 

@@ -43,7 +43,7 @@ func loadFixture(oc *exutil.CLI, filename string) {
 
 func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]string) {
 
-	buildList, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+	buildList, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Ensure that expected start-build environment variables were injected
@@ -389,7 +389,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 
 			g.It("jenkins-plugin test trigger build DSL", func() {
 
-				buildsBefore, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				buildsBefore, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				data, err := j.BuildDSLJob(oc.Namespace(),
@@ -412,12 +412,12 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-					buildsAfter, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					buildsAfter, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					return (len(buildsAfter.Items) != len(buildsBefore.Items)), nil
 				})
 
-				buildsAfter, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				buildsAfter, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(buildsAfter.Items)).To(o.Equal(len(buildsBefore.Items) + 1))
 

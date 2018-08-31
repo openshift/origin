@@ -10,9 +10,8 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/openshift/api"
-	"github.com/openshift/api/authorization"
-	"github.com/openshift/api/quota"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/legacy"
@@ -22,6 +21,10 @@ import (
 )
 
 func main() {
+	if reexec.Init() {
+		return
+	}
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
@@ -35,9 +38,6 @@ func main() {
 	// the kubectl scheme expects to have all the recognizable external types it needs to consume.  Install those here.
 	api.Install(scheme.Scheme)
 	legacy.InstallExternalLegacyAll(scheme.Scheme)
-	// TODO fix up the install for the "all types"
-	authorization.Install(scheme.Scheme)
-	quota.Install(scheme.Scheme)
 
 	// the legacyscheme is used in kubectl and expects to have the internal types registered.  Explicitly wire our types here.
 	// this does

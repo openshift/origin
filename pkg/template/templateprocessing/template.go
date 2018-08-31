@@ -86,15 +86,17 @@ func (p *Processor) Process(template *templateapi.Template) field.ErrorList {
 		// referenced namespace.
 		stripNamespace(item)
 
-		// this changes oapi GVKs to groupified GVKs so they can be submitted to modern, aggregated servers
-		gvk := item.GetObjectKind().GroupVersionKind()
-		legacygroupification.OAPIToGroupifiedGVK(&gvk)
-		item.GetObjectKind().SetGroupVersionKind(gvk)
-
 		newItem, err := p.SubstituteParameters(paramMap, item)
 		if err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("parameters"), template.Parameters, err.Error()))
 		}
+
+		// this changes oapi GVKs to groupified GVKs so they can be submitted to modern, aggregated servers
+		// It is done after substitution in case someone substitutes a kind.
+		gvk := item.GetObjectKind().GroupVersionKind()
+		legacygroupification.OAPIToGroupifiedGVK(&gvk)
+		item.GetObjectKind().SetGroupVersionKind(gvk)
+
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"),
 				template.ObjectLabels, fmt.Sprintf("label could not be applied: %v", err)))

@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"context"
 	"io"
 	"os"
 
@@ -15,11 +16,7 @@ type archiveImageDestination struct {
 	writer               io.Closer
 }
 
-func newImageDestination(ctx *types.SystemContext, ref archiveReference) (types.ImageDestination, error) {
-	if ref.destinationRef == nil {
-		return nil, errors.Errorf("docker-archive: destination reference not supplied (must be of form <path>:<reference:tag>)")
-	}
-
+func newImageDestination(sys *types.SystemContext, ref archiveReference) (types.ImageDestination, error) {
 	// ref.path can be either a pipe or a regular file
 	// in the case of a pipe, we require that we can open it for write
 	// in the case of a regular file, we don't want to overwrite any pre-existing file
@@ -39,11 +36,20 @@ func newImageDestination(ctx *types.SystemContext, ref archiveReference) (types.
 		return nil, errors.New("docker-archive doesn't support modifying existing images")
 	}
 
+	tarDest := tarfile.NewDestination(fh, ref.destinationRef)
+	if sys != nil && sys.DockerArchiveAdditionalTags != nil {
+		tarDest.AddRepoTags(sys.DockerArchiveAdditionalTags)
+	}
 	return &archiveImageDestination{
-		Destination: tarfile.NewDestination(fh, ref.destinationRef),
+		Destination: tarDest,
 		ref:         ref,
 		writer:      fh,
 	}, nil
+}
+
+// DesiredLayerCompression indicates if layers must be compressed, decompressed or preserved
+func (d *archiveImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return types.Decompress
 }
 
 // Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
@@ -61,6 +67,6 @@ func (d *archiveImageDestination) Close() error {
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-func (d *archiveImageDestination) Commit() error {
-	return d.Destination.Commit()
+func (d *archiveImageDestination) Commit(ctx context.Context) error {
+	return d.Destination.Commit(ctx)
 }

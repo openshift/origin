@@ -5,31 +5,31 @@ import (
 	"reflect"
 	"testing"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 	templateutil "github.com/openshift/origin/pkg/router/template/util"
 )
 
-func getTestTerminations() []routeapi.TLSTerminationType {
-	return []routeapi.TLSTerminationType{
-		routeapi.TLSTerminationType(""),
-		routeapi.TLSTerminationEdge,
-		routeapi.TLSTerminationReencrypt,
-		routeapi.TLSTerminationPassthrough,
-		routeapi.TLSTerminationType("invalid"),
+func getTestTerminations() []routev1.TLSTerminationType {
+	return []routev1.TLSTerminationType{
+		routev1.TLSTerminationType(""),
+		routev1.TLSTerminationEdge,
+		routev1.TLSTerminationReencrypt,
+		routev1.TLSTerminationPassthrough,
+		routev1.TLSTerminationType("invalid"),
 	}
 }
 
-func getTestInsecurePolicies() []routeapi.InsecureEdgeTerminationPolicyType {
-	return []routeapi.InsecureEdgeTerminationPolicyType{
-		routeapi.InsecureEdgeTerminationPolicyNone,
-		routeapi.InsecureEdgeTerminationPolicyAllow,
-		routeapi.InsecureEdgeTerminationPolicyRedirect,
-		routeapi.InsecureEdgeTerminationPolicyType("hsts"),
-		routeapi.InsecureEdgeTerminationPolicyType("invalid2"),
+func getTestInsecurePolicies() []routev1.InsecureEdgeTerminationPolicyType {
+	return []routev1.InsecureEdgeTerminationPolicyType{
+		routev1.InsecureEdgeTerminationPolicyNone,
+		routev1.InsecureEdgeTerminationPolicyAllow,
+		routev1.InsecureEdgeTerminationPolicyRedirect,
+		routev1.InsecureEdgeTerminationPolicyType("hsts"),
+		routev1.InsecureEdgeTerminationPolicyType("invalid2"),
 	}
 }
 
-func testBackendConfig(name, host, path string, wildcard bool, termination routeapi.TLSTerminationType, insecurePolicy routeapi.InsecureEdgeTerminationPolicyType, hascert bool) *BackendConfig {
+func testBackendConfig(name, host, path string, wildcard bool, termination routev1.TLSTerminationType, insecurePolicy routev1.InsecureEdgeTerminationPolicyType, hascert bool) *BackendConfig {
 	return &BackendConfig{
 		Name:           name,
 		Host:           host,
@@ -204,12 +204,12 @@ func TestGenerateHttpMapEntry(t *testing.T) {
 		expectation *HAProxyMapEntry
 	}
 
-	buildTestExpectation := func(name, key string, termination routeapi.TLSTerminationType, policy routeapi.InsecureEdgeTerminationPolicyType) *HAProxyMapEntry {
+	buildTestExpectation := func(name, key string, termination routev1.TLSTerminationType, policy routev1.InsecureEdgeTerminationPolicyType) *HAProxyMapEntry {
 		if len(key) == 0 {
 			return nil
 		}
 
-		if len(termination) > 0 && (policy != routeapi.InsecureEdgeTerminationPolicyAllow || (termination != routeapi.TLSTerminationEdge && termination != routeapi.TLSTerminationReencrypt)) {
+		if len(termination) > 0 && (policy != routev1.InsecureEdgeTerminationPolicyAllow || (termination != routev1.TLSTerminationEdge && termination != routev1.TLSTerminationReencrypt)) {
 			return nil
 		}
 
@@ -324,12 +324,12 @@ func TestGenerateEdgeReencryptMapEntry(t *testing.T) {
 		expectation *HAProxyMapEntry
 	}
 
-	buildTestExpectation := func(name, key string, termination routeapi.TLSTerminationType) *HAProxyMapEntry {
+	buildTestExpectation := func(name, key string, termination routev1.TLSTerminationType) *HAProxyMapEntry {
 		if len(key) == 0 {
 			return nil
 		}
 
-		if termination == routeapi.TLSTerminationEdge || termination == routeapi.TLSTerminationReencrypt {
+		if termination == routev1.TLSTerminationEdge || termination == routev1.TLSTerminationReencrypt {
 			value := fmt.Sprintf("%s:%s", templateutil.GenerateBackendNamePrefix(termination), name)
 			return &HAProxyMapEntry{Key: key, Value: value}
 		}
@@ -444,12 +444,12 @@ func TestGenerateHttpRedirectMapEntry(t *testing.T) {
 		expectation *HAProxyMapEntry
 	}
 
-	buildTestExpectation := func(name, key string, policy routeapi.InsecureEdgeTerminationPolicyType) *HAProxyMapEntry {
+	buildTestExpectation := func(name, key string, policy routev1.InsecureEdgeTerminationPolicyType) *HAProxyMapEntry {
 		if len(key) == 0 {
 			return nil
 		}
 
-		if policy == routeapi.InsecureEdgeTerminationPolicyRedirect {
+		if policy == routev1.InsecureEdgeTerminationPolicyRedirect {
 			return &HAProxyMapEntry{Key: key, Value: name}
 		}
 
@@ -563,12 +563,12 @@ func TestGenerateTCPMapEntry(t *testing.T) {
 		expectation *HAProxyMapEntry
 	}
 
-	buildTestExpectation := func(name, key string, termination routeapi.TLSTerminationType) *HAProxyMapEntry {
+	buildTestExpectation := func(name, key string, termination routev1.TLSTerminationType) *HAProxyMapEntry {
 		if len(key) == 0 {
 			return nil
 		}
 
-		if termination == routeapi.TLSTerminationPassthrough || termination == routeapi.TLSTerminationReencrypt {
+		if termination == routev1.TLSTerminationPassthrough || termination == routev1.TLSTerminationReencrypt {
 			return &HAProxyMapEntry{Key: key, Value: name}
 		}
 
@@ -580,7 +580,7 @@ func TestGenerateTCPMapEntry(t *testing.T) {
 		for _, termination := range getTestTerminations() {
 			for _, policy := range getTestInsecurePolicies() {
 				backendKey := fmt.Sprintf("be_secure:%s", tt.backendKey)
-				if termination == routeapi.TLSTerminationPassthrough {
+				if termination == routev1.TLSTerminationPassthrough {
 					backendKey = fmt.Sprintf("be_tcp:%s", tt.backendKey)
 				}
 				testCases = append(testCases, &testCase{
@@ -686,12 +686,12 @@ func TestGenerateSNIPassthroughMapEntry(t *testing.T) {
 		expectation *HAProxyMapEntry
 	}
 
-	buildTestExpectation := func(name, key string, termination routeapi.TLSTerminationType) *HAProxyMapEntry {
+	buildTestExpectation := func(name, key string, termination routev1.TLSTerminationType) *HAProxyMapEntry {
 		if len(key) == 0 {
 			return nil
 		}
 
-		if termination == routeapi.TLSTerminationPassthrough {
+		if termination == routev1.TLSTerminationPassthrough {
 			return &HAProxyMapEntry{Key: key, Value: "1"}
 		}
 
@@ -805,8 +805,8 @@ func TestGenerateCertConfigMapEntry(t *testing.T) {
 		expectation *HAProxyMapEntry
 	}
 
-	buildTestExpectation := func(host, key string, wildcard bool, termination routeapi.TLSTerminationType, hascert bool) *HAProxyMapEntry {
-		if len(key) == 0 || !hascert || (termination != routeapi.TLSTerminationEdge && termination != routeapi.TLSTerminationReencrypt) {
+	buildTestExpectation := func(host, key string, wildcard bool, termination routev1.TLSTerminationType, hascert bool) *HAProxyMapEntry {
+		if len(key) == 0 || !hascert || (termination != routev1.TLSTerminationEdge && termination != routev1.TLSTerminationReencrypt) {
 			return nil
 		}
 

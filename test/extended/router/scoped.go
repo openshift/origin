@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -11,13 +10,16 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1conversions "github.com/openshift/origin/pkg/route/apis/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -48,19 +50,10 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		image := os.Getenv("OS_IMAGE_PREFIX")
-		if len(image) == 0 {
-			image = "openshift/origin"
-		}
-		image += "-haproxy-router"
+		routerImage, _ := exutil.FindImageFormatString(oc)
+		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 
-		if dc, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{}); err == nil {
-			if len(dc.Spec.Template.Spec.Containers) > 0 && dc.Spec.Template.Spec.Containers[0].Image != "" {
-				image = dc.Spec.Template.Spec.Containers[0].Image
-			}
-		}
-
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+image).Execute()
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -161,8 +154,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			e2e.Logf("Selected: %#v, All: %#v", ingress, r.Status.Ingress)
 			o.Expect(ingress).NotTo(o.BeNil())
 			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-1", ns)))
-			status, condition := routeapi.IngressConditionStatus(ingress, routeapi.RouteAdmitted)
-			o.Expect(status).To(o.Equal(kapi.ConditionTrue))
+			external := routev1.RouteIngress{}
+			err = routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(ingress, &external, nil)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted)
+			o.Expect(status).To(o.Equal(corev1.ConditionTrue))
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})
 
@@ -220,8 +216,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			ingress := ingressForName(r, "test-override-domains")
 			o.Expect(ingress).NotTo(o.BeNil())
 			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-override-domain-2", ns)))
-			status, condition := routeapi.IngressConditionStatus(ingress, routeapi.RouteAdmitted)
-			o.Expect(status).To(o.Equal(kapi.ConditionTrue))
+			external := routev1.RouteIngress{}
+			err = routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(ingress, &external, nil)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted)
+			o.Expect(status).To(o.Equal(corev1.ConditionTrue))
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})
 	})

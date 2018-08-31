@@ -18,6 +18,11 @@ func Kind(kind string) schema.GroupKind {
 }
 
 // DEPRECATED
+func GroupVersionKind(kind string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{Group: GroupName, Version: GroupVersion.Version, Kind: kind}
+}
+
+// DEPRECATED
 func Resource(resource string) schema.GroupResource {
 	return schema.GroupResource{Group: GroupName, Resource: resource}
 }

@@ -5,11 +5,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
 
-func EnsureImageNode(g osgraph.MutableUniqueGraph, img *imageapi.Image) graph.Node {
+func EnsureImageNode(g osgraph.MutableUniqueGraph, img *imagev1.Image) graph.Node {
 	return osgraph.EnsureUnique(g,
 		ImageNodeName(img),
 		func(node osgraph.Node) graph.Node {
@@ -21,13 +22,13 @@ func EnsureImageNode(g osgraph.MutableUniqueGraph, img *imageapi.Image) graph.No
 // EnsureAllImageStreamTagNodes creates all the ImageStreamTagNodes that are guaranteed to be present based on the ImageStream.
 // This is different than inferring the presence of an object, since the IST is an object derived from a join between the ImageStream
 // and the Image it references.
-func EnsureAllImageStreamTagNodes(g osgraph.MutableUniqueGraph, is *imageapi.ImageStream) []*ImageStreamTagNode {
+func EnsureAllImageStreamTagNodes(g osgraph.MutableUniqueGraph, is *imagev1.ImageStream) []*ImageStreamTagNode {
 	ret := []*ImageStreamTagNode{}
 
-	for tag := range is.Status.Tags {
-		ist := &imageapi.ImageStreamTag{}
+	for _, tag := range is.Status.Tags {
+		ist := &imagev1.ImageStreamTag{}
 		ist.Namespace = is.Namespace
-		ist.Name = imageapi.JoinImageStreamTag(is.Name, tag)
+		ist.Name = imageapi.JoinImageStreamTag(is.Name, tag.Tag)
 
 		istNode := EnsureImageStreamTagNode(g, ist)
 		ret = append(ret, istNode)
@@ -37,7 +38,7 @@ func EnsureAllImageStreamTagNodes(g osgraph.MutableUniqueGraph, is *imageapi.Ima
 }
 
 func FindImage(g osgraph.MutableUniqueGraph, imageName string) *ImageNode {
-	n := g.Find(ImageNodeName(&imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: imageName}}))
+	n := g.Find(ImageNodeName(&imagev1.Image{ObjectMeta: metav1.ObjectMeta{Name: imageName}}))
 	if imageNode, ok := n.(*ImageNode); ok {
 		return imageNode
 	}
@@ -67,8 +68,8 @@ func EnsureDockerRepositoryNode(g osgraph.MutableUniqueGraph, name, tag string) 
 
 // MakeImageStreamTagObjectMeta returns an ImageStreamTag that has enough information to join the graph, but it is not
 // based on a full IST object.  This can be used to properly initialize the graph without having to retrieve all ISTs
-func MakeImageStreamTagObjectMeta(namespace, name, tag string) *imageapi.ImageStreamTag {
-	return &imageapi.ImageStreamTag{
+func MakeImageStreamTagObjectMeta(namespace, name, tag string) *imagev1.ImageStreamTag {
+	return &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      imageapi.JoinImageStreamTag(name, tag),
@@ -78,8 +79,8 @@ func MakeImageStreamTagObjectMeta(namespace, name, tag string) *imageapi.ImageSt
 
 // MakeImageStreamTagObjectMeta2 returns an ImageStreamTag that has enough information to join the graph, but it is not
 // based on a full IST object.  This can be used to properly initialize the graph without having to retrieve all ISTs
-func MakeImageStreamTagObjectMeta2(namespace, name string) *imageapi.ImageStreamTag {
-	return &imageapi.ImageStreamTag{
+func MakeImageStreamTagObjectMeta2(namespace, name string) *imagev1.ImageStreamTag {
+	return &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
@@ -88,7 +89,7 @@ func MakeImageStreamTagObjectMeta2(namespace, name string) *imageapi.ImageStream
 }
 
 // EnsureImageStreamTagNode adds a graph node for the specific tag in an Image Stream if it does not already exist.
-func EnsureImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *imageapi.ImageStreamTag) *ImageStreamTagNode {
+func EnsureImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *imagev1.ImageStreamTag) *ImageStreamTagNode {
 	return osgraph.EnsureUnique(g,
 		ImageStreamTagNodeName(ist),
 		func(node osgraph.Node) graph.Node {
@@ -98,7 +99,7 @@ func EnsureImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *imageapi.ImageS
 }
 
 // FindOrCreateSyntheticImageStreamTagNode returns the existing ISTNode or creates a synthetic node in its place
-func FindOrCreateSyntheticImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *imageapi.ImageStreamTag) *ImageStreamTagNode {
+func FindOrCreateSyntheticImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *imagev1.ImageStreamTag) *ImageStreamTagNode {
 	return osgraph.EnsureUnique(g,
 		ImageStreamTagNodeName(ist),
 		func(node osgraph.Node) graph.Node {
@@ -109,8 +110,8 @@ func FindOrCreateSyntheticImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *
 
 // MakeImageStreamImageObjectMeta returns an ImageStreamImage that has enough information to join the graph, but it is not
 // based on a full ISI object.  This can be used to properly initialize the graph without having to retrieve all ISIs
-func MakeImageStreamImageObjectMeta(namespace, name string) *imageapi.ImageStreamImage {
-	return &imageapi.ImageStreamImage{
+func MakeImageStreamImageObjectMeta(namespace, name string) *imagev1.ImageStreamImage {
+	return &imagev1.ImageStreamImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
@@ -121,7 +122,7 @@ func MakeImageStreamImageObjectMeta(namespace, name string) *imageapi.ImageStrea
 // EnsureImageStreamImageNode adds a graph node for the specific ImageStreamImage if it
 // does not already exist.
 func EnsureImageStreamImageNode(g osgraph.MutableUniqueGraph, namespace, name string) graph.Node {
-	isi := &imageapi.ImageStreamImage{
+	isi := &imagev1.ImageStreamImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
@@ -136,7 +137,7 @@ func EnsureImageStreamImageNode(g osgraph.MutableUniqueGraph, namespace, name st
 }
 
 // FindOrCreateSyntheticImageStreamImageNode returns the existing ISINode or creates a synthetic node in its place
-func FindOrCreateSyntheticImageStreamImageNode(g osgraph.MutableUniqueGraph, isi *imageapi.ImageStreamImage) *ImageStreamImageNode {
+func FindOrCreateSyntheticImageStreamImageNode(g osgraph.MutableUniqueGraph, isi *imagev1.ImageStreamImage) *ImageStreamImageNode {
 	return osgraph.EnsureUnique(g,
 		ImageStreamImageNodeName(isi),
 		func(node osgraph.Node) graph.Node {
@@ -146,7 +147,7 @@ func FindOrCreateSyntheticImageStreamImageNode(g osgraph.MutableUniqueGraph, isi
 }
 
 // EnsureImageStreamNode adds a graph node for the Image Stream if it does not already exist.
-func EnsureImageStreamNode(g osgraph.MutableUniqueGraph, is *imageapi.ImageStream) graph.Node {
+func EnsureImageStreamNode(g osgraph.MutableUniqueGraph, is *imagev1.ImageStream) graph.Node {
 	return osgraph.EnsureUnique(g,
 		ImageStreamNodeName(is),
 		func(node osgraph.Node) graph.Node {
@@ -156,7 +157,7 @@ func EnsureImageStreamNode(g osgraph.MutableUniqueGraph, is *imageapi.ImageStrea
 }
 
 // FindOrCreateSyntheticImageStreamNode returns the existing ISNode or creates a synthetic node in its place
-func FindOrCreateSyntheticImageStreamNode(g osgraph.MutableUniqueGraph, is *imageapi.ImageStream) *ImageStreamNode {
+func FindOrCreateSyntheticImageStreamNode(g osgraph.MutableUniqueGraph, is *imagev1.ImageStream) *ImageStreamNode {
 	return osgraph.EnsureUnique(g,
 		ImageStreamNodeName(is),
 		func(node osgraph.Node) graph.Node {

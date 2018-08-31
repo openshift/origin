@@ -44,21 +44,21 @@ func (err InvalidPolicyFormatError) Error() string {
 // DefaultPolicy returns the default policy of the system.
 // Most applications should be using this method to get the policy configured
 // by the system administrator.
-// ctx should usually be nil, can be set to override the default.
+// sys should usually be nil, can be set to override the default.
 // NOTE: When this function returns an error, report it to the user and abort.
 // DO NOT hard-code fallback policies in your application.
-func DefaultPolicy(ctx *types.SystemContext) (*Policy, error) {
-	return NewPolicyFromFile(defaultPolicyPath(ctx))
+func DefaultPolicy(sys *types.SystemContext) (*Policy, error) {
+	return NewPolicyFromFile(defaultPolicyPath(sys))
 }
 
 // defaultPolicyPath returns a path to the default policy of the system.
-func defaultPolicyPath(ctx *types.SystemContext) string {
-	if ctx != nil {
-		if ctx.SignaturePolicyPath != "" {
-			return ctx.SignaturePolicyPath
+func defaultPolicyPath(sys *types.SystemContext) string {
+	if sys != nil {
+		if sys.SignaturePolicyPath != "" {
+			return sys.SignaturePolicyPath
 		}
-		if ctx.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(ctx.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
+		if sys.RootForImplicitAbsolutePaths != "" {
+			return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
 		}
 	}
 	return systemDefaultPolicyPath
@@ -70,7 +70,11 @@ func NewPolicyFromFile(fileName string) (*Policy, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewPolicyFromBytes(contents)
+	policy, err := NewPolicyFromBytes(contents)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid policy in %q", fileName)
+	}
+	return policy, nil
 }
 
 // NewPolicyFromBytes returns a policy parsed from the specified blob.

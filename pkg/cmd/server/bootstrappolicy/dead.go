@@ -76,4 +76,7 @@ func init() {
 
 	// this was replaced by the node authorizer
 	addDeadClusterRoleBinding("system:nodes", "system:node")
+
+	// this was replaced by an openshift specific role and binding
+	addDeadClusterRoleBinding("system:discovery-binding", "system:discovery")
 }

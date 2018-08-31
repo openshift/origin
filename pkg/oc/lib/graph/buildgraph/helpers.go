@@ -5,6 +5,7 @@ import (
 
 	"github.com/gonum/graph"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -35,11 +36,11 @@ func RelevantBuilds(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (*build
 
 	for i := range allBuilds {
 		switch allBuilds[i].Build.Status.Phase {
-		case buildapi.BuildPhaseComplete:
+		case buildv1.BuildPhaseComplete:
 			if lastSuccessfulBuild == nil {
 				lastSuccessfulBuild = allBuilds[i]
 			}
-		case buildapi.BuildPhaseFailed, buildapi.BuildPhaseCancelled, buildapi.BuildPhaseError:
+		case buildv1.BuildPhaseFailed, buildv1.BuildPhaseCancelled, buildv1.BuildPhaseError:
 			if lastUnsuccessfulBuild == nil {
 				lastUnsuccessfulBuild = allBuilds[i]
 			}
@@ -51,7 +52,7 @@ func RelevantBuilds(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (*build
 	return lastSuccessfulBuild, lastUnsuccessfulBuild, activeBuilds
 }
 
-func belongsToBuildConfig(config *buildapi.BuildConfig, b *buildapi.Build) bool {
+func belongsToBuildConfig(config *buildv1.BuildConfig, b *buildv1.Build) bool {
 	if b.Labels == nil {
 		return false
 	}

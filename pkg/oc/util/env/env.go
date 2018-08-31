@@ -59,7 +59,7 @@ func parseIntoEnvVar(spec []string, defaultReader io.Reader, envVarType string) 
 			parts := strings.SplitN(envSpec, "=", 2)
 			n, v := parts[0], parts[1]
 			if errs := validation.IsEnvVarName(n); len(errs) != 0 {
-				return nil, nil, fmt.Errorf("%ss must be of the form key=value, but is %q", envVarType, envSpec)
+				return nil, nil, fmt.Errorf("%s %s is invalid, %s", envVarType, envSpec, strings.Join(errs, "; "))
 			}
 			exists.Insert(n)
 			env = append(env, kapi.EnvVar{

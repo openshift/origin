@@ -7,20 +7,21 @@ import (
 	"github.com/golang/glog"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/route/apis/route/validation"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller/hostindex"
 )
 
 // RouteHostFunc returns a host for a route. It may return an empty string.
-type RouteHostFunc func(*routeapi.Route) string
+type RouteHostFunc func(*routev1.Route) string
 
 // HostForRoute returns the host set on the route.
-func HostForRoute(route *routeapi.Route) string {
+func HostForRoute(route *routev1.Route) string {
 	return route.Spec.Host
 }
 
@@ -57,7 +58,7 @@ func NewUniqueHost(plugin router.Plugin, disableOwnershipCheck bool, recorder Re
 }
 
 // RoutesForHost is a helper that allows routes to be retrieved.
-func (p *UniqueHost) RoutesForHost(host string) ([]*routeapi.Route, bool) {
+func (p *UniqueHost) RoutesForHost(host string) ([]*routev1.Route, bool) {
 	routes, ok := p.index.RoutesForHost(host)
 	return routes, ok
 }
@@ -84,7 +85,7 @@ func (p *UniqueHost) HandleNode(eventType watch.EventType, node *kapi.Node) erro
 // TODO: this function can probably be collapsed with the router itself, as a function that
 //   determines which component needs to be recalculated (which template) and then does so
 //   on demand.
-func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routev1.Route) error {
 	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(route.Namespace) {
 		return nil
 	}
@@ -101,7 +102,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 
 	// Validate that the route host name conforms to DNS requirements.
 	// Defends against routes created before validation rules were added for host names.
-	if errs := validation.ValidateHostName(route); len(errs) > 0 {
+	if errs := ValidateHostName(route); len(errs) > 0 {
 		glog.V(4).Infof("Route %s - invalid host name %s", routeName, host)
 		errMessages := make([]string, len(errs))
 		for i := 0; i < len(errs); i++ {
@@ -179,11 +180,11 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 
 			// we were not added because another route is covering us
 			removed = true
-			var owner *routeapi.Route
+			var owner *routev1.Route
 			if old, ok := p.index.RoutesForHost(host); ok && len(old) > 0 {
 				owner = old[0]
 			} else {
-				owner = &routeapi.Route{}
+				owner = &routev1.Route{}
 				owner.Name = "<unknown>"
 			}
 			glog.V(4).Infof("Route %s cannot take %s from %s/%s", routeName, host, owner.Namespace, owner.Name)
@@ -223,7 +224,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 // the provided namespace list.
 func (p *UniqueHost) HandleNamespaces(namespaces sets.String) error {
 	p.allowedNamespaces = namespaces
-	p.index.Filter(func(route *routeapi.Route) bool {
+	p.index.Filter(func(route *routev1.Route) bool {
 		return namespaces.Has(route.Namespace)
 	})
 	return p.plugin.HandleNamespaces(namespaces)
@@ -235,6 +236,31 @@ func (p *UniqueHost) Commit() error {
 }
 
 // routeNameKey returns a unique name for a given route
-func routeNameKey(route *routeapi.Route) string {
+func routeNameKey(route *routev1.Route) string {
 	return fmt.Sprintf("%s/%s", route.Namespace, route.Name)
+}
+
+// ValidateHostName checks that a route's host name satisfies DNS requirements.
+func ValidateHostName(route *routev1.Route) field.ErrorList {
+	result := field.ErrorList{}
+	if len(route.Spec.Host) < 1 {
+		return result
+	}
+
+	specPath := field.NewPath("spec")
+	hostPath := specPath.Child("host")
+
+	if len(kvalidation.IsDNS1123Subdomain(route.Spec.Host)) != 0 {
+		result = append(result, field.Invalid(hostPath, route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
+	}
+
+	segments := strings.Split(route.Spec.Host, ".")
+	for _, s := range segments {
+		errs := kvalidation.IsDNS1123Label(s)
+		for _, e := range errs {
+			result = append(result, field.Invalid(hostPath, route.Spec.Host, e))
+		}
+	}
+
+	return result
 }

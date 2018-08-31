@@ -23,7 +23,7 @@ func RunNamespaceSecurityAllocationController(ctx *ControllerContext) (bool, err
 	if err != nil {
 		return true, err
 	}
-	securityClient, err := ctx.ClientBuilder.OpenshiftV1SecurityClient(bootstrappolicy.InfraNamespaceSecurityAllocationControllerServiceAccountName)
+	securityClient, err := ctx.ClientBuilder.OpenshiftSecurityClient(bootstrappolicy.InfraNamespaceSecurityAllocationControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}

@@ -7,14 +7,16 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
+	kappsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -32,19 +34,19 @@ var (
 )
 
 // ImageList turns the given images into ImageList.
-func ImageList(images ...imageapi.Image) imageapi.ImageList {
-	return imageapi.ImageList{
+func ImageList(images ...imagev1.Image) imagev1.ImageList {
+	return imagev1.ImageList{
 		Items: images,
 	}
 }
 
 // AgedImage creates a test image with specified age.
-func AgedImage(id, ref string, ageInMinutes int64, layers ...string) imageapi.Image {
+func AgedImage(id, ref string, ageInMinutes int64, layers ...string) imagev1.Image {
 	return CreatedImage(id, ref, time.Now().Add(time.Duration(ageInMinutes)*time.Minute*-1), layers...)
 }
 
 // CreatedImage creates a test image with the CreationTime set to the given timestamp.
-func CreatedImage(id, ref string, created time.Time, layers ...string) imageapi.Image {
+func CreatedImage(id, ref string, created time.Time, layers ...string) imagev1.Image {
 	if len(layers) == 0 {
 		layers = []string{Layer1, Layer2, Layer3, Layer4, Layer5}
 	}
@@ -54,22 +56,26 @@ func CreatedImage(id, ref string, created time.Time, layers ...string) imageapi.
 }
 
 // SizedImage returns a test image of given size.
-func SizedImage(id, ref string, size int64, configName *string) imageapi.Image {
+func SizedImage(id, ref string, size int64, configName *string) imagev1.Image {
 	image := ImageWithLayers(id, ref, configName, Layer1, Layer2, Layer3, Layer4, Layer5)
 	image.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1) * time.Minute))
-	image.DockerImageMetadata.Size = size
+	dockerImageMetadata, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+	if !ok {
+		panic("Failed casting DockerImageMetadata")
+	}
+	dockerImageMetadata.Size = size
 
 	return image
 }
 
 // Image returns a default test image object 120 minutes old.
-func Image(id, ref string) imageapi.Image {
+func Image(id, ref string) imagev1.Image {
 	return AgedImage(id, ref, 120)
 }
 
 // Image returns a default test image referencing the given layers.
-func ImageWithLayers(id, ref string, configName *string, layers ...string) imageapi.Image {
-	image := imageapi.Image{
+func ImageWithLayers(id, ref string, configName *string, layers ...string) imagev1.Image {
+	image := imagev1.Image{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: id,
 			Annotations: map[string]string{
@@ -80,24 +86,29 @@ func ImageWithLayers(id, ref string, configName *string, layers ...string) image
 		DockerImageManifestMediaType: schema1.MediaTypeManifest,
 	}
 
+	image.DockerImageMetadata = runtime.RawExtension{
+		Object: &dockerv10.DockerImage{},
+	}
 	if configName != nil {
-		image.DockerImageMetadata = imageapi.DockerImage{
-			ID: *configName,
+		image.DockerImageMetadata = runtime.RawExtension{
+			Object: &dockerv10.DockerImage{
+				ID: *configName,
+			},
 		}
 		image.DockerImageConfig = fmt.Sprintf("{Digest: %s}", *configName)
 		image.DockerImageManifestMediaType = schema2.MediaTypeManifest
 	}
 
-	image.DockerImageLayers = []imageapi.ImageLayer{}
+	image.DockerImageLayers = []imagev1.ImageLayer{}
 	for _, layer := range layers {
-		image.DockerImageLayers = append(image.DockerImageLayers, imageapi.ImageLayer{Name: layer})
+		image.DockerImageLayers = append(image.DockerImageLayers, imagev1.ImageLayer{Name: layer})
 	}
 
 	return image
 }
 
 // UnmanagedImage creates a test image object lacking managed by OpenShift annotation.
-func UnmanagedImage(id, ref string, hasAnnotations bool, annotation, value string) imageapi.Image {
+func UnmanagedImage(id, ref string, hasAnnotations bool, annotation, value string) imagev1.Image {
 	image := ImageWithLayers(id, ref, nil)
 	if !hasAnnotations {
 		image.Annotations = nil
@@ -109,27 +120,27 @@ func UnmanagedImage(id, ref string, hasAnnotations bool, annotation, value strin
 }
 
 // PodList turns the given pods into PodList.
-func PodList(pods ...kapi.Pod) kapi.PodList {
-	return kapi.PodList{
+func PodList(pods ...corev1.Pod) corev1.PodList {
+	return corev1.PodList{
 		Items: pods,
 	}
 }
 
 // Pod creates and returns a pod having the given docker image references.
-func Pod(namespace, name string, phase kapi.PodPhase, containerImages ...string) kapi.Pod {
+func Pod(namespace, name string, phase corev1.PodPhase, containerImages ...string) corev1.Pod {
 	return AgedPod(namespace, name, phase, -1, containerImages...)
 }
 
 // AgedPod creates and returns a pod of particular age.
-func AgedPod(namespace, name string, phase kapi.PodPhase, ageInMinutes int64, containerImages ...string) kapi.Pod {
-	pod := kapi.Pod{
+func AgedPod(namespace, name string, phase corev1.PodPhase, ageInMinutes int64, containerImages ...string) corev1.Pod {
+	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			SelfLink:  "/pod/" + name,
+			SelfLink:  "/api/v1/pods/" + name,
 		},
 		Spec: PodSpecInternal(containerImages...),
-		Status: kapi.PodStatus{
+		Status: corev1.PodStatus{
 			Phase: phase,
 		},
 	}
@@ -142,12 +153,12 @@ func AgedPod(namespace, name string, phase kapi.PodPhase, ageInMinutes int64, co
 }
 
 // PodSpecInternal creates a pod specification having the given docker image references.
-func PodSpecInternal(containerImages ...string) kapi.PodSpec {
-	spec := kapi.PodSpec{
-		Containers: []kapi.Container{},
+func PodSpecInternal(containerImages ...string) corev1.PodSpec {
+	spec := corev1.PodSpec{
+		Containers: []corev1.Container{},
 	}
 	for _, image := range containerImages {
-		container := kapi.Container{
+		container := corev1.Container{
 			Image: image,
 		}
 		spec.Containers = append(spec.Containers, container)
@@ -170,25 +181,25 @@ func PodSpec(containerImages ...string) corev1.PodSpec {
 }
 
 // StreamList turns the given streams into StreamList.
-func StreamList(streams ...imageapi.ImageStream) imageapi.ImageStreamList {
-	return imageapi.ImageStreamList{
+func StreamList(streams ...imagev1.ImageStream) imagev1.ImageStreamList {
+	return imagev1.ImageStreamList{
 		Items: streams,
 	}
 }
 
 // Stream creates and returns a test ImageStream object 1 minute old
-func Stream(registry, namespace, name string, tags map[string]imageapi.TagEventList) imageapi.ImageStream {
+func Stream(registry, namespace, name string, tags []imagev1.NamedTagEventList) imagev1.ImageStream {
 	return AgedStream(registry, namespace, name, -1, tags)
 }
 
 // Stream creates and returns a test ImageStream object of given age.
-func AgedStream(registry, namespace, name string, ageInMinutes int64, tags map[string]imageapi.TagEventList) imageapi.ImageStream {
-	stream := imageapi.ImageStream{
+func AgedStream(registry, namespace, name string, ageInMinutes int64, tags []imagev1.NamedTagEventList) imagev1.ImageStream {
+	stream := imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
-		Status: imageapi.ImageStreamStatus{
+		Status: imagev1.ImageStreamStatus{
 			DockerImageRepository: fmt.Sprintf("%s/%s/%s", registry, namespace, name),
 			Tags: tags,
 		},
@@ -202,46 +213,30 @@ func AgedStream(registry, namespace, name string, ageInMinutes int64, tags map[s
 }
 
 // Stream creates an ImageStream object and returns a pointer to it.
-func StreamPtr(registry, namespace, name string, tags map[string]imageapi.TagEventList) *imageapi.ImageStream {
+func StreamPtr(registry, namespace, name string, tags []imagev1.NamedTagEventList) *imagev1.ImageStream {
 	s := Stream(registry, namespace, name, tags)
 	return &s
 }
 
-// Tags creates a map of tags for image stream status.
-func Tags(list ...namedTagEventList) map[string]imageapi.TagEventList {
-	m := make(map[string]imageapi.TagEventList, len(list))
-	for _, tag := range list {
-		m[tag.name] = tag.events
-	}
-	return m
-}
-
-type namedTagEventList struct {
-	name   string
-	events imageapi.TagEventList
-}
-
 // Tag creates tag entries for Tags function.
-func Tag(name string, events ...imageapi.TagEvent) namedTagEventList {
-	return namedTagEventList{
-		name: name,
-		events: imageapi.TagEventList{
-			Items: events,
-		},
+func Tag(name string, events ...imagev1.TagEvent) imagev1.NamedTagEventList {
+	return imagev1.NamedTagEventList{
+		Tag:   name,
+		Items: events,
 	}
 }
 
 // TagEvent creates a TagEvent object.
-func TagEvent(id, ref string) imageapi.TagEvent {
-	return imageapi.TagEvent{
+func TagEvent(id, ref string) imagev1.TagEvent {
+	return imagev1.TagEvent{
 		Image:                id,
 		DockerImageReference: ref,
 	}
 }
 
 // YoungTagEvent creates a TagEvent with the given created timestamp.
-func YoungTagEvent(id, ref string, created metav1.Time) imageapi.TagEvent {
-	return imageapi.TagEvent{
+func YoungTagEvent(id, ref string, created metav1.Time) imagev1.TagEvent {
+	return imagev1.TagEvent{
 		Image:                id,
 		Created:              created,
 		DockerImageReference: ref,
@@ -249,22 +244,22 @@ func YoungTagEvent(id, ref string, created metav1.Time) imageapi.TagEvent {
 }
 
 // RCList turns the given replication controllers into RCList.
-func RCList(rcs ...kapi.ReplicationController) kapi.ReplicationControllerList {
-	return kapi.ReplicationControllerList{
+func RCList(rcs ...corev1.ReplicationController) corev1.ReplicationControllerList {
+	return corev1.ReplicationControllerList{
 		Items: rcs,
 	}
 }
 
 // RC creates and returns a ReplicationController.
-func RC(namespace, name string, containerImages ...string) kapi.ReplicationController {
-	return kapi.ReplicationController{
+func RC(namespace, name string, containerImages ...string) corev1.ReplicationController {
+	return corev1.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			SelfLink:  "/rc/" + name,
+			SelfLink:  "/api/v1/replicationcontrollers/" + name,
 		},
-		Spec: kapi.ReplicationControllerSpec{
-			Template: &kapi.PodTemplateSpec{
+		Spec: corev1.ReplicationControllerSpec{
+			Template: &corev1.PodTemplateSpec{
 				Spec: PodSpecInternal(containerImages...),
 			},
 		},
@@ -272,22 +267,22 @@ func RC(namespace, name string, containerImages ...string) kapi.ReplicationContr
 }
 
 // DSList turns the given daemon sets into DaemonSetList.
-func DSList(dss ...kapisext.DaemonSet) kapisext.DaemonSetList {
-	return kapisext.DaemonSetList{
+func DSList(dss ...kappsv1.DaemonSet) kappsv1.DaemonSetList {
+	return kappsv1.DaemonSetList{
 		Items: dss,
 	}
 }
 
 // DS creates and returns a DaemonSet object.
-func DS(namespace, name string, containerImages ...string) kapisext.DaemonSet {
-	return kapisext.DaemonSet{
+func DS(namespace, name string, containerImages ...string) kappsv1.DaemonSet {
+	return kappsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			SelfLink:  "/ds/" + name,
+			SelfLink:  "/apis/apps/v1/daemonsets/" + name,
 		},
-		Spec: kapisext.DaemonSetSpec{
-			Template: kapi.PodTemplateSpec{
+		Spec: kappsv1.DaemonSetSpec{
+			Template: corev1.PodTemplateSpec{
 				Spec: PodSpecInternal(containerImages...),
 			},
 		},
@@ -295,22 +290,22 @@ func DS(namespace, name string, containerImages ...string) kapisext.DaemonSet {
 }
 
 // DeploymentList turns the given deployments into DeploymentList.
-func DeploymentList(deployments ...kapisext.Deployment) kapisext.DeploymentList {
-	return kapisext.DeploymentList{
+func DeploymentList(deployments ...kappsv1.Deployment) kappsv1.DeploymentList {
+	return kappsv1.DeploymentList{
 		Items: deployments,
 	}
 }
 
 // Deployment creates and returns aDeployment object.
-func Deployment(namespace, name string, containerImages ...string) kapisext.Deployment {
-	return kapisext.Deployment{
+func Deployment(namespace, name string, containerImages ...string) kappsv1.Deployment {
+	return kappsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			SelfLink:  "/deployment/" + name,
+			SelfLink:  "/apis/apps/v1/deployments/" + name,
 		},
-		Spec: kapisext.DeploymentSpec{
-			Template: kapi.PodTemplateSpec{
+		Spec: kappsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
 				Spec: PodSpecInternal(containerImages...),
 			},
 		},
@@ -330,7 +325,7 @@ func DC(namespace, name string, containerImages ...string) appsv1.DeploymentConf
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			SelfLink:  "/dc/" + name,
+			SelfLink:  "/apis/apps.openshift.io/v1/deploymentconfigs/" + name,
 		},
 		Spec: appsv1.DeploymentConfigSpec{
 			Template: &corev1.PodTemplateSpec{
@@ -341,22 +336,22 @@ func DC(namespace, name string, containerImages ...string) appsv1.DeploymentConf
 }
 
 // RSList turns the given replica set into ReplicaSetList.
-func RSList(rss ...kapisext.ReplicaSet) kapisext.ReplicaSetList {
-	return kapisext.ReplicaSetList{
+func RSList(rss ...kappsv1.ReplicaSet) kappsv1.ReplicaSetList {
+	return kappsv1.ReplicaSetList{
 		Items: rss,
 	}
 }
 
 // RS creates and returns a ReplicaSet object.
-func RS(namespace, name string, containerImages ...string) kapisext.ReplicaSet {
-	return kapisext.ReplicaSet{
+func RS(namespace, name string, containerImages ...string) kappsv1.ReplicaSet {
+	return kappsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			SelfLink:  "/rs/" + name,
+			SelfLink:  "/apis/apps/v1/replicasets/" + name,
 		},
-		Spec: kapisext.ReplicaSetSpec{
-			Template: kapi.PodTemplateSpec{
+		Spec: kappsv1.ReplicaSetSpec{
+			Template: corev1.PodTemplateSpec{
 				Spec: PodSpecInternal(containerImages...),
 			},
 		},
@@ -364,59 +359,59 @@ func RS(namespace, name string, containerImages ...string) kapisext.ReplicaSet {
 }
 
 // BCList turns the given build configs into BuildConfigList.
-func BCList(bcs ...buildapi.BuildConfig) buildapi.BuildConfigList {
-	return buildapi.BuildConfigList{
+func BCList(bcs ...buildv1.BuildConfig) buildv1.BuildConfigList {
+	return buildv1.BuildConfigList{
 		Items: bcs,
 	}
 }
 
 // BC creates and returns a BuildConfig object.
-func BC(namespace, name, strategyType, fromKind, fromNamespace, fromName string) buildapi.BuildConfig {
-	return buildapi.BuildConfig{
+func BC(namespace, name, strategyType, fromKind, fromNamespace, fromName string) buildv1.BuildConfig {
+	return buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			SelfLink:  "/bc/" + name,
+			SelfLink:  "/apis/build.openshift.io/v1/buildconfigs/" + name,
 		},
-		Spec: buildapi.BuildConfigSpec{
+		Spec: buildv1.BuildConfigSpec{
 			CommonSpec: CommonSpec(strategyType, fromKind, fromNamespace, fromName),
 		},
 	}
 }
 
 // BuildList turns the given builds into BuildList.
-func BuildList(builds ...buildapi.Build) buildapi.BuildList {
-	return buildapi.BuildList{
+func BuildList(builds ...buildv1.Build) buildv1.BuildList {
+	return buildv1.BuildList{
 		Items: builds,
 	}
 }
 
 // Build creates and returns a Build object.
-func Build(namespace, name, strategyType, fromKind, fromNamespace, fromName string) buildapi.Build {
-	return buildapi.Build{
+func Build(namespace, name, strategyType, fromKind, fromNamespace, fromName string) buildv1.Build {
+	return buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			SelfLink:  "/build/" + name,
+			SelfLink:  "/apis/build.openshift.io/v1/builds/" + name,
 		},
-		Spec: buildapi.BuildSpec{
+		Spec: buildv1.BuildSpec{
 			CommonSpec: CommonSpec(strategyType, fromKind, fromNamespace, fromName),
 		},
 	}
 }
 
 // LimitList turns the given limits into LimitRanges.
-func LimitList(limits ...int64) []*kapi.LimitRange {
-	list := make([]*kapi.LimitRange, len(limits))
+func LimitList(limits ...int64) []*corev1.LimitRange {
+	list := make([]*corev1.LimitRange, 0, len(limits))
 	for _, limit := range limits {
 		quantity := resource.NewQuantity(limit, resource.BinarySI)
-		list = append(list, &kapi.LimitRange{
-			Spec: kapi.LimitRangeSpec{
-				Limits: []kapi.LimitRangeItem{
+		list = append(list, &corev1.LimitRange{
+			Spec: corev1.LimitRangeSpec{
+				Limits: []corev1.LimitRangeItem{
 					{
-						Type: imageapi.LimitTypeImage,
-						Max: kapi.ResourceList{
-							kapi.ResourceStorage: *quantity,
+						Type: imagev1.LimitTypeImage,
+						Max: corev1.ResourceList{
+							corev1.ResourceStorage: *quantity,
 						},
 					},
 				},
@@ -427,30 +422,30 @@ func LimitList(limits ...int64) []*kapi.LimitRange {
 }
 
 // CommonSpec creates and returns CommonSpec object.
-func CommonSpec(strategyType, fromKind, fromNamespace, fromName string) buildapi.CommonSpec {
-	spec := buildapi.CommonSpec{
-		Strategy: buildapi.BuildStrategy{},
+func CommonSpec(strategyType, fromKind, fromNamespace, fromName string) buildv1.CommonSpec {
+	spec := buildv1.CommonSpec{
+		Strategy: buildv1.BuildStrategy{},
 	}
 	switch strategyType {
 	case "source":
-		spec.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{
-			From: kapi.ObjectReference{
+		spec.Strategy.SourceStrategy = &buildv1.SourceBuildStrategy{
+			From: corev1.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
 				Name:      fromName,
 			},
 		}
 	case "docker":
-		spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{
-			From: &kapi.ObjectReference{
+		spec.Strategy.DockerStrategy = &buildv1.DockerBuildStrategy{
+			From: &corev1.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
 				Name:      fromName,
 			},
 		}
 	case "custom":
-		spec.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{
-			From: kapi.ObjectReference{
+		spec.Strategy.CustomStrategy = &buildv1.CustomBuildStrategy{
+			From: corev1.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
 				Name:      fromName,

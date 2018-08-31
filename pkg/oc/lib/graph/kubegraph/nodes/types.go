@@ -4,41 +4,40 @@ import (
 	"fmt"
 	"reflect"
 
-	kapps "k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	kappsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
 
 var (
-	ServiceNodeKind                   = reflect.TypeOf(kapi.Service{}).Name()
-	PodNodeKind                       = reflect.TypeOf(kapi.Pod{}).Name()
-	PodSpecNodeKind                   = reflect.TypeOf(kapi.PodSpec{}).Name()
-	PodTemplateSpecNodeKind           = reflect.TypeOf(kapi.PodTemplateSpec{}).Name()
-	ReplicationControllerNodeKind     = reflect.TypeOf(kapi.ReplicationController{}).Name()
-	ReplicationControllerSpecNodeKind = reflect.TypeOf(kapi.ReplicationControllerSpec{}).Name()
-	ServiceAccountNodeKind            = reflect.TypeOf(kapi.ServiceAccount{}).Name()
-	SecretNodeKind                    = reflect.TypeOf(kapi.Secret{}).Name()
-	PersistentVolumeClaimNodeKind     = reflect.TypeOf(kapi.PersistentVolumeClaim{}).Name()
-	HorizontalPodAutoscalerNodeKind   = reflect.TypeOf(autoscaling.HorizontalPodAutoscaler{}).Name()
-	StatefulSetNodeKind               = reflect.TypeOf(kapps.StatefulSet{}).Name()
-	StatefulSetSpecNodeKind           = reflect.TypeOf(kapps.StatefulSetSpec{}).Name()
-	DeploymentNodeKind                = reflect.TypeOf(extensions.Deployment{}).Name()
-	DeploymentSpecNodeKind            = reflect.TypeOf(extensions.DeploymentSpec{}).Name()
-	ReplicaSetNodeKind                = reflect.TypeOf(extensions.ReplicaSet{}).Name()
-	ReplicaSetSpecNodeKind            = reflect.TypeOf(extensions.ReplicaSetSpec{}).Name()
-	DaemonSetNodeKind                 = reflect.TypeOf(extensions.DaemonSet{}).Name()
+	ServiceNodeKind                   = reflect.TypeOf(corev1.Service{}).Name()
+	PodNodeKind                       = reflect.TypeOf(corev1.Pod{}).Name()
+	PodSpecNodeKind                   = reflect.TypeOf(corev1.PodSpec{}).Name()
+	PodTemplateSpecNodeKind           = reflect.TypeOf(corev1.PodTemplateSpec{}).Name()
+	ReplicationControllerNodeKind     = reflect.TypeOf(corev1.ReplicationController{}).Name()
+	ReplicationControllerSpecNodeKind = reflect.TypeOf(corev1.ReplicationControllerSpec{}).Name()
+	ServiceAccountNodeKind            = reflect.TypeOf(corev1.ServiceAccount{}).Name()
+	SecretNodeKind                    = reflect.TypeOf(corev1.Secret{}).Name()
+	PersistentVolumeClaimNodeKind     = reflect.TypeOf(corev1.PersistentVolumeClaim{}).Name()
+	HorizontalPodAutoscalerNodeKind   = reflect.TypeOf(autoscalingv1.HorizontalPodAutoscaler{}).Name()
+	StatefulSetNodeKind               = reflect.TypeOf(kappsv1.StatefulSet{}).Name()
+	StatefulSetSpecNodeKind           = reflect.TypeOf(kappsv1.StatefulSetSpec{}).Name()
+	DeploymentNodeKind                = reflect.TypeOf(kappsv1.Deployment{}).Name()
+	DeploymentSpecNodeKind            = reflect.TypeOf(kappsv1.DeploymentSpec{}).Name()
+	ReplicaSetNodeKind                = reflect.TypeOf(kappsv1.ReplicaSet{}).Name()
+	ReplicaSetSpecNodeKind            = reflect.TypeOf(kappsv1.ReplicaSetSpec{}).Name()
+	DaemonSetNodeKind                 = reflect.TypeOf(kappsv1.DaemonSet{}).Name()
 )
 
-func ServiceNodeName(o *kapi.Service) osgraph.UniqueName {
+func ServiceNodeName(o *corev1.Service) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(ServiceNodeKind, o)
 }
 
 type ServiceNode struct {
 	osgraph.Node
-	*kapi.Service
+	*corev1.Service
 
 	IsFound bool
 }
@@ -59,13 +58,13 @@ func (n ServiceNode) Found() bool {
 	return n.IsFound
 }
 
-func PodNodeName(o *kapi.Pod) osgraph.UniqueName {
+func PodNodeName(o *corev1.Pod) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(PodNodeKind, o)
 }
 
 type PodNode struct {
 	osgraph.Node
-	*kapi.Pod
+	*corev1.Pod
 }
 
 func (n PodNode) Object() interface{} {
@@ -84,13 +83,13 @@ func (*PodNode) Kind() string {
 	return PodNodeKind
 }
 
-func PodSpecNodeName(o *kapi.PodSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+func PodSpecNodeName(o *corev1.PodSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
 	return osgraph.UniqueName(fmt.Sprintf("%s|%v", PodSpecNodeKind, ownerName))
 }
 
 type PodSpecNode struct {
 	osgraph.Node
-	*kapi.PodSpec
+	*corev1.PodSpec
 	Namespace string
 
 	OwnerName osgraph.UniqueName
@@ -112,13 +111,13 @@ func (*PodSpecNode) Kind() string {
 	return PodSpecNodeKind
 }
 
-func ReplicaSetNodeName(o *extensions.ReplicaSet) osgraph.UniqueName {
+func ReplicaSetNodeName(o *kappsv1.ReplicaSet) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(ReplicaSetNodeKind, o)
 }
 
 type ReplicaSetNode struct {
 	osgraph.Node
-	ReplicaSet *extensions.ReplicaSet
+	ReplicaSet *kappsv1.ReplicaSet
 
 	IsFound bool
 }
@@ -143,13 +142,13 @@ func (*ReplicaSetNode) Kind() string {
 	return ReplicaSetNodeKind
 }
 
-func ReplicaSetSpecNodeName(o *extensions.ReplicaSetSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+func ReplicaSetSpecNodeName(o *kappsv1.ReplicaSetSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
 	return osgraph.UniqueName(fmt.Sprintf("%s|%v", ReplicaSetSpecNodeKind, ownerName))
 }
 
 type ReplicaSetSpecNode struct {
 	osgraph.Node
-	ReplicaSetSpec *extensions.ReplicaSetSpec
+	ReplicaSetSpec *kappsv1.ReplicaSetSpec
 	Namespace      string
 
 	OwnerName osgraph.UniqueName
@@ -171,13 +170,13 @@ func (*ReplicaSetSpecNode) Kind() string {
 	return ReplicaSetSpecNodeKind
 }
 
-func ReplicationControllerNodeName(o *kapi.ReplicationController) osgraph.UniqueName {
+func ReplicationControllerNodeName(o *corev1.ReplicationController) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(ReplicationControllerNodeKind, o)
 }
 
 type ReplicationControllerNode struct {
 	osgraph.Node
-	ReplicationController *kapi.ReplicationController
+	ReplicationController *corev1.ReplicationController
 
 	IsFound bool
 }
@@ -202,13 +201,13 @@ func (*ReplicationControllerNode) Kind() string {
 	return ReplicationControllerNodeKind
 }
 
-func ReplicationControllerSpecNodeName(o *kapi.ReplicationControllerSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+func ReplicationControllerSpecNodeName(o *corev1.ReplicationControllerSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
 	return osgraph.UniqueName(fmt.Sprintf("%s|%v", ReplicationControllerSpecNodeKind, ownerName))
 }
 
 type ReplicationControllerSpecNode struct {
 	osgraph.Node
-	ReplicationControllerSpec *kapi.ReplicationControllerSpec
+	ReplicationControllerSpec *corev1.ReplicationControllerSpec
 	Namespace                 string
 
 	OwnerName osgraph.UniqueName
@@ -230,13 +229,13 @@ func (*ReplicationControllerSpecNode) Kind() string {
 	return ReplicationControllerSpecNodeKind
 }
 
-func PodTemplateSpecNodeName(o *kapi.PodTemplateSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+func PodTemplateSpecNodeName(o *corev1.PodTemplateSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
 	return osgraph.UniqueName(fmt.Sprintf("%s|%v", PodTemplateSpecNodeKind, ownerName))
 }
 
 type PodTemplateSpecNode struct {
 	osgraph.Node
-	*kapi.PodTemplateSpec
+	*corev1.PodTemplateSpec
 	Namespace string
 
 	OwnerName osgraph.UniqueName
@@ -258,13 +257,13 @@ func (*PodTemplateSpecNode) Kind() string {
 	return PodTemplateSpecNodeKind
 }
 
-func ServiceAccountNodeName(o *kapi.ServiceAccount) osgraph.UniqueName {
+func ServiceAccountNodeName(o *corev1.ServiceAccount) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(ServiceAccountNodeKind, o)
 }
 
 type ServiceAccountNode struct {
 	osgraph.Node
-	*kapi.ServiceAccount
+	*corev1.ServiceAccount
 
 	IsFound bool
 }
@@ -285,13 +284,13 @@ func (*ServiceAccountNode) Kind() string {
 	return ServiceAccountNodeKind
 }
 
-func SecretNodeName(o *kapi.Secret) osgraph.UniqueName {
+func SecretNodeName(o *corev1.Secret) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(SecretNodeKind, o)
 }
 
 type SecretNode struct {
 	osgraph.Node
-	*kapi.Secret
+	*corev1.Secret
 
 	IsFound bool
 }
@@ -312,13 +311,13 @@ func (*SecretNode) Kind() string {
 	return SecretNodeKind
 }
 
-func PersistentVolumeClaimNodeName(o *kapi.PersistentVolumeClaim) osgraph.UniqueName {
+func PersistentVolumeClaimNodeName(o *corev1.PersistentVolumeClaim) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(PersistentVolumeClaimNodeKind, o)
 }
 
 type PersistentVolumeClaimNode struct {
 	osgraph.Node
-	PersistentVolumeClaim *kapi.PersistentVolumeClaim
+	PersistentVolumeClaim *corev1.PersistentVolumeClaim
 
 	IsFound bool
 }
@@ -343,13 +342,13 @@ func (n PersistentVolumeClaimNode) UniqueName() osgraph.UniqueName {
 	return PersistentVolumeClaimNodeName(n.PersistentVolumeClaim)
 }
 
-func HorizontalPodAutoscalerNodeName(o *autoscaling.HorizontalPodAutoscaler) osgraph.UniqueName {
+func HorizontalPodAutoscalerNodeName(o *autoscalingv1.HorizontalPodAutoscaler) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(HorizontalPodAutoscalerNodeKind, o)
 }
 
 type HorizontalPodAutoscalerNode struct {
 	osgraph.Node
-	HorizontalPodAutoscaler *autoscaling.HorizontalPodAutoscaler
+	HorizontalPodAutoscaler *autoscalingv1.HorizontalPodAutoscaler
 }
 
 func (n HorizontalPodAutoscalerNode) Object() interface{} {
@@ -368,13 +367,13 @@ func (n HorizontalPodAutoscalerNode) UniqueName() osgraph.UniqueName {
 	return HorizontalPodAutoscalerNodeName(n.HorizontalPodAutoscaler)
 }
 
-func DeploymentNodeName(o *extensions.Deployment) osgraph.UniqueName {
+func DeploymentNodeName(o *kappsv1.Deployment) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(DeploymentNodeKind, o)
 }
 
 type DeploymentNode struct {
 	osgraph.Node
-	Deployment *extensions.Deployment
+	Deployment *kappsv1.Deployment
 
 	IsFound bool
 }
@@ -399,13 +398,13 @@ func (*DeploymentNode) Kind() string {
 	return DeploymentNodeKind
 }
 
-func DeploymentSpecNodeName(o *extensions.DeploymentSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+func DeploymentSpecNodeName(o *kappsv1.DeploymentSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
 	return osgraph.UniqueName(fmt.Sprintf("%s|%v", DeploymentSpecNodeKind, ownerName))
 }
 
 type DeploymentSpecNode struct {
 	osgraph.Node
-	DeploymentSpec *extensions.DeploymentSpec
+	DeploymentSpec *kappsv1.DeploymentSpec
 	Namespace      string
 
 	OwnerName osgraph.UniqueName
@@ -427,13 +426,13 @@ func (*DeploymentSpecNode) Kind() string {
 	return DeploymentSpecNodeKind
 }
 
-func StatefulSetNodeName(o *kapps.StatefulSet) osgraph.UniqueName {
+func StatefulSetNodeName(o *kappsv1.StatefulSet) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(StatefulSetNodeKind, o)
 }
 
 type StatefulSetNode struct {
 	osgraph.Node
-	StatefulSet *kapps.StatefulSet
+	StatefulSet *kappsv1.StatefulSet
 
 	IsFound bool
 }
@@ -458,13 +457,13 @@ func (*StatefulSetNode) Kind() string {
 	return StatefulSetNodeKind
 }
 
-func StatefulSetSpecNodeName(o *kapps.StatefulSetSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+func StatefulSetSpecNodeName(o *kappsv1.StatefulSetSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
 	return osgraph.UniqueName(fmt.Sprintf("%s|%v", StatefulSetSpecNodeKind, ownerName))
 }
 
 type StatefulSetSpecNode struct {
 	osgraph.Node
-	StatefulSetSpec *kapps.StatefulSetSpec
+	StatefulSetSpec *kappsv1.StatefulSetSpec
 	Namespace       string
 
 	OwnerName osgraph.UniqueName
@@ -486,13 +485,13 @@ func (*StatefulSetSpecNode) Kind() string {
 	return StatefulSetSpecNodeKind
 }
 
-func DaemonSetNodeName(o *extensions.DaemonSet) osgraph.UniqueName {
+func DaemonSetNodeName(o *kappsv1.DaemonSet) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(DaemonSetNodeKind, o)
 }
 
 type DaemonSetNode struct {
 	osgraph.Node
-	DaemonSet *extensions.DaemonSet
+	DaemonSet *kappsv1.DaemonSet
 
 	IsFound bool
 }

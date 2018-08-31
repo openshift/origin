@@ -1,19 +1,21 @@
 package test
 
 import (
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
-type TestBuild buildapi.Build
+type TestBuild buildv1.Build
 
 func Build() *TestBuild {
-	b := (*TestBuild)(&buildapi.Build{})
+	b := (*TestBuild)(&buildv1.Build{})
+	b.Kind = "Build"
+	b.APIVersion = "build.openshift.io/v1"
 	b.Name = "TestBuild"
 	b.WithDockerStrategy()
-	b.Spec.Source.Git = &buildapi.GitBuildSource{
+	b.Spec.Source.Git = &buildv1.GitBuildSource{
 		URI: "http://test.build/source",
 	}
-	b.Spec.TriggeredBy = []buildapi.BuildTriggerCause{}
+	b.Spec.TriggeredBy = []buildv1.BuildTriggerCause{}
 	return b
 }
 
@@ -28,13 +30,13 @@ func (b *TestBuild) clearStrategy() {
 
 func (b *TestBuild) WithDockerStrategy() *TestBuild {
 	b.clearStrategy()
-	b.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+	b.Spec.Strategy.DockerStrategy = &buildv1.DockerBuildStrategy{}
 	return b
 }
 
 func (b *TestBuild) WithSourceStrategy() *TestBuild {
 	b.clearStrategy()
-	strategy := &buildapi.SourceBuildStrategy{}
+	strategy := &buildv1.SourceBuildStrategy{}
 	strategy.From.Name = "builder/image"
 	strategy.From.Kind = "DockerImage"
 	b.Spec.Strategy.SourceStrategy = strategy
@@ -43,14 +45,14 @@ func (b *TestBuild) WithSourceStrategy() *TestBuild {
 
 func (b *TestBuild) WithCustomStrategy() *TestBuild {
 	b.clearStrategy()
-	strategy := &buildapi.CustomBuildStrategy{}
+	strategy := &buildv1.CustomBuildStrategy{}
 	strategy.From.Name = "builder/image"
 	strategy.From.Kind = "DockerImage"
 	b.Spec.Strategy.CustomStrategy = strategy
 	return b
 }
 
-func (b *TestBuild) WithImageLabels(labels []buildapi.ImageLabel) *TestBuild {
+func (b *TestBuild) WithImageLabels(labels []buildv1.ImageLabel) *TestBuild {
 	b.Spec.Output.ImageLabels = labels
 	return b
 }
@@ -60,6 +62,6 @@ func (b *TestBuild) WithNodeSelector(ns map[string]string) *TestBuild {
 	return b
 }
 
-func (b *TestBuild) AsBuild() *buildapi.Build {
-	return (*buildapi.Build)(b)
+func (b *TestBuild) AsBuild() *buildv1.Build {
+	return (*buildv1.Build)(b)
 }

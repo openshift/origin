@@ -93,7 +93,7 @@ func (r *REST) Get(ctx context.Context, id string, options *metav1.GetOptions) (
 	if err != nil {
 		return nil, err
 	}
-	if err := util.ImageWithMetadata(image); err != nil {
+	if err := util.InternalImageWithMetadata(image); err != nil {
 		return nil, err
 	}
 	image.DockerImageManifest = ""
