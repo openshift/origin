@@ -23,7 +23,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/set"
 )
@@ -182,7 +181,7 @@ func (o RetryOptions) Run() error {
 
 		if !appsutil.IsFailedDeployment(rc) {
 			message := fmt.Sprintf("rollout #%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion,
-				strings.ToLower(appsutil.AnnotationFor(rc, appsutil.DeploymentStatusAnnotation)))
+				strings.ToLower(appsutil.AnnotationFor(rc, appsv1.DeploymentStatusAnnotation)))
 			if appsutil.IsCompleteDeployment(rc) {
 				message += fmt.Sprintf("You can start a new deployment with 'oc rollout latest dc/%s'.", config.Name)
 			} else {
@@ -212,9 +211,9 @@ func (o RetryOptions) Run() error {
 		}
 
 		patches := set.CalculatePatchesExternal([]*resource.Info{{Object: rc, Mapping: mapping}}, func(info *resource.Info) (bool, error) {
-			rc.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
-			delete(rc.Annotations, appsapi.DeploymentStatusReasonAnnotation)
-			delete(rc.Annotations, appsutil.DeploymentCancelledAnnotation)
+			rc.Annotations[appsv1.DeploymentStatusAnnotation] = string(appsv1.DeploymentStatusNew)
+			delete(rc.Annotations, appsv1.DeploymentStatusReasonAnnotation)
+			delete(rc.Annotations, appsv1.DeploymentCancelledAnnotation)
 			return true, nil
 		})
 

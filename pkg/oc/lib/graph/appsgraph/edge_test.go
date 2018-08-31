@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	nodes "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
@@ -34,7 +33,7 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 		rc := &corev1.ReplicationController{}
 		rc.Namespace = namespace
 		rc.Name = "the-rc"
-		rc.Annotations = map[string]string{appsutil.DeploymentConfigAnnotation: "the-dc"}
+		rc.Annotations = map[string]string{appsv1.DeploymentConfigAnnotation: "the-dc"}
 		kubegraph.EnsureReplicationControllerNode(g, rc)
 	}
 

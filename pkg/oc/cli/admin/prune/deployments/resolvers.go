@@ -6,7 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -33,7 +33,7 @@ func (m *mergeResolver) Resolve() ([]*corev1.ReplicationController, error) {
 }
 
 // NewOrphanDeploymentResolver returns a Resolver that matches objects with no associated DeploymentConfig and has a DeploymentStatus in filter
-func NewOrphanDeploymentResolver(dataSet DataSet, deploymentStatusFilter []appsapi.DeploymentStatus) Resolver {
+func NewOrphanDeploymentResolver(dataSet DataSet, deploymentStatusFilter []appsv1.DeploymentStatus) Resolver {
 	filter := sets.NewString()
 	for _, deploymentStatus := range deploymentStatusFilter {
 		filter.Insert(string(deploymentStatus))
@@ -101,8 +101,8 @@ func (o *perDeploymentConfigResolver) Resolve() ([]*corev1.ReplicationController
 		return nil, err
 	}
 
-	completeStates := sets.NewString(string(appsapi.DeploymentStatusComplete))
-	failedStates := sets.NewString(string(appsapi.DeploymentStatusFailed))
+	completeStates := sets.NewString(string(appsv1.DeploymentStatusComplete))
+	failedStates := sets.NewString(string(appsv1.DeploymentStatusFailed))
 
 	results := []*corev1.ReplicationController{}
 	for _, deploymentConfig := range deploymentConfigs {

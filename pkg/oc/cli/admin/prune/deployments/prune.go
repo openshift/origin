@@ -10,7 +10,6 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -67,9 +66,9 @@ func NewPruner(options PrunerOptions) Pruner {
 
 	resolvers := []Resolver{}
 	if options.Orphans {
-		inactiveDeploymentStatus := []appsapi.DeploymentStatus{
-			appsapi.DeploymentStatusComplete,
-			appsapi.DeploymentStatusFailed,
+		inactiveDeploymentStatus := []appsv1.DeploymentStatus{
+			appsv1.DeploymentStatusComplete,
+			appsv1.DeploymentStatusFailed,
 		}
 		resolvers = append(resolvers, NewOrphanDeploymentResolver(dataSet, inactiveDeploymentStatus))
 	}

@@ -248,9 +248,9 @@ func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateF
 	for _, deployment := range deployments {
 		status := appsutil.DeploymentStatusFor(deployment)
 		switch status {
-		case appsutil.DeploymentStatusNew,
-			appsutil.DeploymentStatusPending,
-			appsutil.DeploymentStatusRunning:
+		case appsv1.DeploymentStatusNew,
+			appsv1.DeploymentStatusPending,
+			appsv1.DeploymentStatusRunning:
 			cancelled = mutateFunc(deployment)
 		}
 	}

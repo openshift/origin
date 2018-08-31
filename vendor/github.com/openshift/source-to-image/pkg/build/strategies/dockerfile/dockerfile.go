@@ -138,14 +138,14 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 		if len(imageTag) == 0 {
 			return errors.New("Image tag is missing for incremental build")
 		}
+		// Incremental builds run via a multistage Dockerfile
 		buffer.WriteString(fmt.Sprintf("FROM %s as cached\n", imageTag))
-		if len(config.AssembleUser) > 0 {
-			buffer.WriteString(fmt.Sprintf("USER %s\n", imageUser))
-		}
 		var artifactsScript string
 		if _, provided := providedScripts[constants.SaveArtifacts]; provided {
+			// switch to root to COPY and chown content
 			glog.V(2).Infof("Override save-artifacts script is included in directory %q", builder.uploadScriptsDir)
 			buffer.WriteString("# Copying in override save-artifacts script\n")
+			buffer.WriteString("USER root\n")
 			artifactsScript = sanitize(filepath.ToSlash(filepath.Join(scriptsDestDir, "save-artifacts")))
 			uploadScript := sanitize(filepath.ToSlash(filepath.Join(builder.uploadScriptsDir, "save-artifacts")))
 			buffer.WriteString(fmt.Sprintf("COPY %s %s\n", uploadScript, artifactsScript))
@@ -154,48 +154,45 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 			buffer.WriteString(fmt.Sprintf("# Save-artifacts script sourced from builder image based on user input or image metadata.\n"))
 			artifactsScript = sanitize(filepath.ToSlash(filepath.Join(imageScriptsDir, "save-artifacts")))
 		}
+		// switch to the image user if it is not root
+		if len(imageUser) > 0 && imageUser != "root" {
+			buffer.WriteString(fmt.Sprintf("USER %s\n", imageUser))
+		}
 		buffer.WriteString(fmt.Sprintf("RUN if [ -s %[1]s ]; then %[1]s > %[2]s; else touch %[2]s; fi\n", artifactsScript, artifactsTar))
 	}
 
+	// main stage of the Dockerfile
 	buffer.WriteString(fmt.Sprintf("FROM %s\n", config.BuilderImage))
 
-	if len(config.AssembleUser) > 0 {
-		buffer.WriteString(fmt.Sprintf("USER %s\n", imageUser))
+	imageLabels := util.GenerateOutputImageLabels(builder.sourceInfo, config)
+	for k, v := range config.Labels {
+		imageLabels[k] = v
 	}
-
-	if config.Incremental {
-		buffer.WriteString(fmt.Sprintf("COPY --from=cached %[1]s %[1]s\n", artifactsTar))
-		buffer.WriteString(fmt.Sprintf("RUN chown %s:0 %s && \\\n", sanitize(imageUser), artifactsTar))
-		buffer.WriteString(fmt.Sprintf("    if [ -s %[1]s ]; then mkdir -p %[2]s; tar -xf %[1]s -C %[2]s; fi && \\\n", artifactsTar, sanitize(filepath.ToSlash(artifactsDestDir))))
-		buffer.WriteString(fmt.Sprintf("    rm %s\n", artifactsTar))
-	}
-
-	generatedLabels := util.GenerateOutputImageLabels(builder.sourceInfo, config)
-	if len(generatedLabels) > 0 || len(config.Labels) > 0 {
+	if len(imageLabels) > 0 {
 		first := true
 		buffer.WriteString("LABEL ")
-		for k, v := range generatedLabels {
+		for k, v := range imageLabels {
 			if !first {
 				buffer.WriteString(fmt.Sprintf(" \\\n      "))
 			}
 			buffer.WriteString(fmt.Sprintf("%q=%q", k, v))
 			first = false
 		}
-		for k, v := range config.Labels {
-			if !first {
-				buffer.WriteString(fmt.Sprintf(" \\\n      "))
-			}
-			buffer.WriteString(fmt.Sprintf("%q=%q", k, v))
-			first = false
-		}
-
 		buffer.WriteString("\n")
 	}
 
 	env := createBuildEnvironment(config.WorkingDir, config.Environment)
 	buffer.WriteString(fmt.Sprintf("%s", env))
 
+	// run as root to COPY and chown source content
+	buffer.WriteString("USER root\n")
 	chownList := make([]string, 0)
+
+	if config.Incremental {
+		// COPY artifacts.tar from the `cached` stage
+		buffer.WriteString(fmt.Sprintf("COPY --from=cached %[1]s %[1]s\n", artifactsTar))
+		chownList = append(chownList, artifactsTar)
+	}
 
 	if len(providedScripts) > 0 {
 		// Only COPY scripts dir if required scripts are present and needed.
@@ -213,6 +210,7 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 	buffer.WriteString(fmt.Sprintf("COPY %s %s\n", sanitize(filepath.ToSlash(builder.uploadSrcDir)), sourceDest))
 	chownList = append(chownList, sourceDest)
 
+	// add injections
 	glog.V(4).Infof("Processing injected inputs: %#v", config.Injections)
 	config.Injections = util.FixInjectionsWithRelativePath(config.ImageWorkDir, config.Injections)
 	glog.V(4).Infof("Processed injected inputs: %#v", config.Injections)
@@ -235,6 +233,17 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 			buffer.WriteString(fmt.Sprintf(" %s", dir))
 		}
 		buffer.WriteString("\n")
+	}
+
+	// run remaining commands as the image user
+	if len(imageUser) > 0 && imageUser != "root" {
+		buffer.WriteString(fmt.Sprintf("USER %s\n", imageUser))
+	}
+
+	if config.Incremental {
+		buffer.WriteString("# Extract artifact content\n")
+		buffer.WriteString(fmt.Sprintf("RUN if [ -s %[1]s ]; then mkdir -p %[2]s; tar -xf %[1]s -C %[2]s; fi && \\\n", artifactsTar, sanitize(filepath.ToSlash(artifactsDestDir))))
+		buffer.WriteString(fmt.Sprintf("    rm %s\n", artifactsTar))
 	}
 
 	if _, provided := providedScripts[constants.Assemble]; provided {

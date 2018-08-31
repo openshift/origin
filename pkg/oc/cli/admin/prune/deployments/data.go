@@ -145,7 +145,7 @@ func (d *dataSet) ListDeploymentsByDeploymentConfig(deploymentConfig *appsv1.Dep
 	key := &corev1.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   deploymentConfig.Namespace,
-			Annotations: map[string]string{appsutil.DeploymentConfigAnnotation: deploymentConfig.Name},
+			Annotations: map[string]string{appsv1.DeploymentConfigAnnotation: deploymentConfig.Name},
 		},
 	}
 	items, err := d.deploymentIndexer.Index("deploymentConfig", key)

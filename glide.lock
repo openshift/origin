@@ -1,5 +1,5 @@
 hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
-updated: 2018-08-23T08:07:03.444491155-04:00
+updated: 2018-08-30T14:58:17.700952+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -613,7 +613,7 @@ imports:
 - name: github.com/gorilla/mux
   version: e48e440e4c92e3251d812f8ce7858944dfa3331c
 - name: github.com/gorilla/securecookie
-  version: 78f3d318a8bf316cda921f25e96fd0b441c5173d
+  version: 51f47194a536d357035c4ad9304e2fa42dde262a
 - name: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
 - name: github.com/gorilla/websocket
@@ -819,7 +819,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: bccfa651752a8a9f963b9899b477dcffbe9be786
+  version: 6dc9c183f89986aa15d290b53b7345dc608250e8
   subpackages:
   - apps
   - apps/v1
@@ -978,7 +978,7 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 1d4fa7d16c15c6b51312c990be28c5976acb0380
+  version: 0b8367a4679859036c27a30dbe010d76409e7075
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -997,7 +997,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: 7b9adb2996ebb91a58fed6abdd9d9c2d7b58a53c
+  version: ac6dc9858fa90b751686436fea9a951f183c79bb
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1512,7 +1512,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 6ed191a255a458ff4ea5104e316f782454b716a6
+  version: 9661477daf70563d97981c06b3aa7f3277b765c9
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1867,7 +1867,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 74daacc5ab5a0461ad3321c96b331680a0c52c17
+  version: b87c674f977c3738170e418ece293b0fbeffa53e
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

@@ -49,7 +49,7 @@ func (rcMapper) ScaleForResource(gvr schema.GroupVersionResource) (schema.GroupV
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using annotation codec.
 // An error is returned if the controller doesn't contain an encoded config or decoding fail.
 func DecodeDeploymentConfig(controller metav1.ObjectMetaAccessor) (*appsv1.DeploymentConfig, error) {
-	encodedConfig, exists := controller.GetObjectMeta().GetAnnotations()[deploymentEncodedConfigAnnotation]
+	encodedConfig, exists := controller.GetObjectMeta().GetAnnotations()[appsv1.DeploymentEncodedConfigAnnotation]
 	if !exists {
 		return nil, fmt.Errorf("object %s does not have encoded deployment config annotation", controller.GetObjectMeta().GetName())
 	}
@@ -162,7 +162,7 @@ func filterOutCondition(conditions []appsv1.DeploymentCondition, condType appsv1
 // deployment configuration.
 // TODO: Switch to use owner references once we got those working.
 func IsOwnedByConfig(obj metav1.Object) bool {
-	_, ok := obj.GetAnnotations()[DeploymentConfigAnnotation]
+	_, ok := obj.GetAnnotations()[appsv1.DeploymentConfigAnnotation]
 	return ok
 }
 
@@ -287,7 +287,7 @@ func LabelForDeploymentConfig(config runtime.Object) string {
 
 // DeploymentDesiredReplicas returns number of desired replica for the given replication controller
 func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
-	return int32AnnotationFor(obj, DesiredReplicasAnnotation)
+	return int32AnnotationFor(obj, appsv1.DesiredReplicasAnnotation)
 }
 
 // LatestDeploymentNameForConfig returns a stable identifier for deployment config
@@ -307,30 +307,30 @@ func LatestDeploymentNameForConfigAndVersion(name string, version int64) string 
 }
 
 func DeployerPodNameFor(obj runtime.Object) string {
-	return AnnotationFor(obj, DeploymentPodAnnotation)
+	return AnnotationFor(obj, appsv1.DeploymentPodAnnotation)
 }
 
 func DeploymentConfigNameFor(obj runtime.Object) string {
-	return AnnotationFor(obj, DeploymentConfigAnnotation)
+	return AnnotationFor(obj, appsv1.DeploymentConfigAnnotation)
 }
 
 func DeploymentStatusReasonFor(obj runtime.Object) string {
-	return AnnotationFor(obj, DeploymentStatusReasonAnnotation)
+	return AnnotationFor(obj, appsv1.DeploymentStatusReasonAnnotation)
 }
 
 func DeleteStatusReasons(rc *v1.ReplicationController) {
-	delete(rc.Annotations, DeploymentStatusReasonAnnotation)
-	delete(rc.Annotations, deploymentCancelledAnnotation)
+	delete(rc.Annotations, appsv1.DeploymentStatusReasonAnnotation)
+	delete(rc.Annotations, appsv1.DeploymentCancelledAnnotation)
 }
 
 func SetCancelledByUserReason(rc *v1.ReplicationController) {
-	rc.Annotations[deploymentCancelledAnnotation] = "true"
-	rc.Annotations[DeploymentStatusReasonAnnotation] = deploymentCancelledByUser
+	rc.Annotations[appsv1.DeploymentCancelledAnnotation] = "true"
+	rc.Annotations[appsv1.DeploymentStatusReasonAnnotation] = deploymentCancelledByUser
 }
 
 func SetCancelledByNewerDeployment(rc *v1.ReplicationController) {
-	rc.Annotations[deploymentCancelledAnnotation] = "true"
-	rc.Annotations[DeploymentStatusReasonAnnotation] = deploymentCancelledNewerDeploymentExists
+	rc.Annotations[appsv1.DeploymentCancelledAnnotation] = "true"
+	rc.Annotations[appsv1.DeploymentStatusReasonAnnotation] = deploymentCancelledNewerDeploymentExists
 }
 
 // HasSynced checks if the provided deployment config has been noticed by the deployment
@@ -460,17 +460,17 @@ func ActiveDeployment(input []*v1.ReplicationController) *v1.ReplicationControll
 // TODO: Using the annotation constant for now since the value is correct
 // but we could consider adding a new constant to the public types.
 func ConfigSelector(name string) labels.Selector {
-	return labels.SelectorFromValidatedSet(labels.Set{DeploymentConfigAnnotation: name})
+	return labels.SelectorFromValidatedSet(labels.Set{appsv1.DeploymentConfigAnnotation: name})
 }
 
 // IsCompleteDeployment returns true if the passed deployment is in state complete.
 func IsCompleteDeployment(deployment runtime.Object) bool {
-	return DeploymentStatusFor(deployment) == DeploymentStatusComplete
+	return DeploymentStatusFor(deployment) == appsv1.DeploymentStatusComplete
 }
 
 // IsFailedDeployment returns true if the passed deployment failed.
 func IsFailedDeployment(deployment runtime.Object) bool {
-	return DeploymentStatusFor(deployment) == DeploymentStatusFailed
+	return DeploymentStatusFor(deployment) == appsv1.DeploymentStatusFailed
 }
 
 // IsTerminatedDeployment returns true if the passed deployment has terminated (either
@@ -480,29 +480,29 @@ func IsTerminatedDeployment(deployment runtime.Object) bool {
 }
 
 func IsDeploymentCancelled(deployment runtime.Object) bool {
-	value := AnnotationFor(deployment, deploymentCancelledAnnotation)
+	value := AnnotationFor(deployment, appsv1.DeploymentCancelledAnnotation)
 	return strings.EqualFold(value, "true")
 }
 
 // DeployerPodSelector returns a label Selector which can be used to find all
 // deployer pods associated with a deployment with name.
 func DeployerPodSelector(name string) labels.Selector {
-	return labels.SelectorFromValidatedSet(labels.Set{DeployerPodForDeploymentLabel: name})
+	return labels.SelectorFromValidatedSet(labels.Set{appsv1.DeployerPodForDeploymentLabel: name})
 }
 
-func DeploymentStatusFor(deployment runtime.Object) DeploymentStatus {
-	return DeploymentStatus(AnnotationFor(deployment, DeploymentStatusAnnotation))
+func DeploymentStatusFor(deployment runtime.Object) appsv1.DeploymentStatus {
+	return appsv1.DeploymentStatus(AnnotationFor(deployment, appsv1.DeploymentStatusAnnotation))
 }
 
 func SetDeploymentLatestVersionAnnotation(rc *v1.ReplicationController, version string) {
 	if rc.Annotations == nil {
 		rc.Annotations = map[string]string{}
 	}
-	rc.Annotations[deploymentVersionAnnotation] = version
+	rc.Annotations[appsv1.DeploymentVersionAnnotation] = version
 }
 
 func DeploymentVersionFor(obj runtime.Object) int64 {
-	v, err := strconv.ParseInt(AnnotationFor(obj, deploymentVersionAnnotation), 10, 64)
+	v, err := strconv.ParseInt(AnnotationFor(obj, appsv1.DeploymentVersionAnnotation), 10, 64)
 	if err != nil {
 		return -1
 	}
@@ -510,11 +510,11 @@ func DeploymentVersionFor(obj runtime.Object) int64 {
 }
 
 func DeploymentNameFor(obj runtime.Object) string {
-	return AnnotationFor(obj, DeploymentAnnotation)
+	return AnnotationFor(obj, appsv1.DeploymentAnnotation)
 }
 
 func deploymentVersionFor(obj runtime.Object) int64 {
-	v, err := strconv.ParseInt(AnnotationFor(obj, deploymentVersionAnnotation), 10, 64)
+	v, err := strconv.ParseInt(AnnotationFor(obj, appsv1.DeploymentVersionAnnotation), 10, 64)
 	if err != nil {
 		return -1
 	}
@@ -604,26 +604,26 @@ func HasImageChangeTrigger(config *appsv1.DeploymentConfig) bool {
 }
 
 // CanTransitionPhase returns whether it is allowed to go from the current to the next phase.
-func CanTransitionPhase(current, next DeploymentStatus) bool {
+func CanTransitionPhase(current, next appsv1.DeploymentStatus) bool {
 	switch current {
-	case DeploymentStatusNew:
+	case appsv1.DeploymentStatusNew:
 		switch next {
-		case DeploymentStatusPending,
-			DeploymentStatusRunning,
-			DeploymentStatusFailed,
-			DeploymentStatusComplete:
+		case appsv1.DeploymentStatusPending,
+			appsv1.DeploymentStatusRunning,
+			appsv1.DeploymentStatusFailed,
+			appsv1.DeploymentStatusComplete:
 			return true
 		}
-	case DeploymentStatusPending:
+	case appsv1.DeploymentStatusPending:
 		switch next {
-		case DeploymentStatusRunning,
-			DeploymentStatusFailed,
-			DeploymentStatusComplete:
+		case appsv1.DeploymentStatusRunning,
+			appsv1.DeploymentStatusFailed,
+			appsv1.DeploymentStatusComplete:
 			return true
 		}
-	case DeploymentStatusRunning:
+	case appsv1.DeploymentStatusRunning:
 		switch next {
-		case DeploymentStatusFailed, DeploymentStatusComplete:
+		case appsv1.DeploymentStatusFailed, appsv1.DeploymentStatusComplete:
 			return true
 		}
 	}

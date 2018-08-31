@@ -582,7 +582,6 @@
       "github.com/openshift/origin/pkg/cmd/util/print",
       "github.com/openshift/origin/pkg/cmd/util/term",
       "github.com/openshift/origin/pkg/cmd/util/variable",
-      "github.com/openshift/origin/pkg/git",
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
       "github.com/openshift/origin/pkg/image/apis/image/docker10",
@@ -648,7 +647,9 @@
       "vendor/k8s.io/kubernetes/pkg/version",
 
       "vendor/k8s.io/kubernetes/pkg/registry/rbac/reconciliation",
-      "vendor/k8s.io/kubernetes/pkg/registry/rbac/validation"
+      "vendor/k8s.io/kubernetes/pkg/registry/rbac/validation",
+
+      "vendor/github.com/openshift/library-go/pkg/git"
     ]
   },
 

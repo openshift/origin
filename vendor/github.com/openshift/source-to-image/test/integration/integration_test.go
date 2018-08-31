@@ -617,7 +617,8 @@ func TestDockerfileBuild(t *testing.T) {
 		"\"io.openshift.s2i.build.commit.author\"",
 		"(?m)^COPY upload/src /tmp/src",
 		"(?m)^RUN chown -R 1001:0.* /tmp/src",
-		"(?m)^RUN /usr/libexec/s2i/assemble",
+		// Ensure we are using the default image user when running assemble
+		"(?m)^USER 1001\n.+\n.+\nRUN /usr/libexec/s2i/assemble",
 		"(?m)^CMD /usr/libexec/s2i/run",
 	}
 	expectedFiles := []string{
@@ -724,7 +725,9 @@ func TestDockerfileBuildLabels(t *testing.T) {
 		Destination:  "",
 
 		Environment: api.EnvironmentList{},
-		Labels:      map[string]string{"label1": "value1", "label2": "value2"},
+		Labels: map[string]string{"label1": "value1",
+			"label2": "value2",
+			"io.openshift.s2i.build.commit.author": "shadowman"},
 
 		AsDockerfile: filepath.Join(tempdir, "Dockerfile"),
 	}
@@ -735,7 +738,7 @@ func TestDockerfileBuildLabels(t *testing.T) {
 		"\"io.openshift.s2i.build.commit.message\"",
 		"\"io.openshift.s2i.build.source-location\"",
 		"\"io.openshift.s2i.build.image\"=\"docker.io/centos/nodejs-8-centos7\"",
-		"\"io.openshift.s2i.build.commit.author\"",
+		"\"io.openshift.s2i.build.commit.author\"=\"shadowman\"",
 		"\"label1\"=\"value1\"",
 		"\"label2\"=\"value2\"",
 	}
@@ -1310,11 +1313,11 @@ func TestDockerfileIncrementalBuild(t *testing.T) {
 	}
 
 	expected := []string{
-		"(?m)^FROM test:tag as cached",
+		"(?m)^FROM test:tag as cached\n#.+\nUSER 1001",
 		"(?m)^RUN if \\[ -s /usr/libexec/s2i/save-artifacts \\]; then /usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar; else touch /tmp/artifacts.tar; fi",
 		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"(?m)^COPY --from=cached /tmp/artifacts.tar /tmp/artifacts.tar",
-		"(?m)^RUN chown 1001:0 /tmp/artifacts.tar",
+		"(?m)^RUN chown -R 1001:0.* /tmp/artifacts.tar",
 		"if \\[ -s /tmp/artifacts.tar \\]; then mkdir -p /tmp/artifacts; tar -xf /tmp/artifacts.tar -C /tmp/artifacts; fi",
 		"rm /tmp/artifacts.tar",
 		"(?m)^COPY upload/src /tmp/src",
@@ -1364,10 +1367,10 @@ func TestDockerfileIncrementalSourceSave(t *testing.T) {
 	}
 
 	expected := []string{
-		"(?m)^FROM test:tag as cached",
+		"(?m)^FROM test:tag as cached\n#.+\nUSER root\n",
 		"(?m)^COPY upload/scripts/save-artifacts /destination/scripts/save-artifacts",
-		"(?m)^RUN chown 1001:0 /destination/scripts/save-artifacts",
-		"(?m)^RUN if \\[ -s /destination/scripts/save-artifacts \\]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
+		"(?m)^RUN chown .*1001:0 /destination/scripts/save-artifacts",
+		"(?m)^USER 1001\nRUN if \\[ -s /destination/scripts/save-artifacts \\]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
 		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"mkdir -p /destination/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /destination/artifacts",
@@ -1412,10 +1415,10 @@ func TestDockerfileIncrementalSaveURL(t *testing.T) {
 	}
 
 	expected := []string{
-		"(?m)^FROM test:tag as cached",
+		"(?m)^FROM test:tag as cached\n#.+\nUSER root\n",
 		"(?m)^COPY upload/scripts/save-artifacts /destination/scripts/save-artifacts",
 		"(?m)^RUN chown 1001:0 /destination/scripts/save-artifacts",
-		"(?m)^RUN if \\[ -s /destination/scripts/save-artifacts \\]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
+		"(?m)^USER 1001\nRUN if \\[ -s /destination/scripts/save-artifacts \\]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
 		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"mkdir -p /destination/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /destination/artifacts",
@@ -1486,11 +1489,11 @@ func TestDockerfileIncrementalAssembleUser(t *testing.T) {
 	}
 
 	expected := []string{
-		"(?m)^FROM test:tag as cached\nUSER 2250",
+		"(?m)^FROM test:tag as cached\n#.+\nUSER 2250",
 		"/usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar",
 		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
 		"(?m)^COPY --from=cached /tmp/artifacts.tar /tmp/artifacts.tar",
-		"(?m)^RUN chown 2250:0 /tmp/artifacts.tar",
+		"(?m)^RUN chown -R 2250:0 .*/tmp/artifacts.tar",
 		"mkdir -p /tmp/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /tmp/artifacts",
 		"rm /tmp/artifacts.tar",

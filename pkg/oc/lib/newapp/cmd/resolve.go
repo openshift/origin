@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	"github.com/openshift/origin/pkg/git"
+	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"

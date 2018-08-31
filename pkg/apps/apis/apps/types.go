@@ -25,44 +25,6 @@ const (
 	DefaultRevisionHistoryLimit int32 = 10
 )
 
-// These constants represent keys used for correlating objects related to deployments.
-const (
-	// DeploymentAnnotation is an annotation on a deployer Pod. The annotation value is the name
-	// of the deployment (a ReplicationController) on which the deployer Pod acts.
-	DeploymentAnnotation = "openshift.io/deployment.name"
-	// DeploymentPodAnnotation is an annotation on a deployment (a ReplicationController). The
-	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
-	// to implement the deployment behavior.
-	DeploymentPodAnnotation = "openshift.io/deployer-pod.name"
-	// DeploymentStatusAnnotation is an annotation name used to retrieve the DeploymentPhase of
-	// a deployment.
-	DeploymentStatusAnnotation = "openshift.io/deployment.phase"
-	// DeploymentEncodedConfigAnnotation is an annotation name used to retrieve specific encoded
-	// DeploymentConfig on which a given deployment is based.
-	DeploymentEncodedConfigAnnotation = "openshift.io/encoded-deployment-config"
-	// DeploymentStatusReasonAnnotation represents the reason for deployment being in a given state
-	// Used for specifying the reason for cancellation or failure of a deployment
-	DeploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
-)
-
-// DeploymentStatus describes the possible states a deployment can be in.
-type DeploymentStatus string
-
-const (
-	// DeploymentStatusNew means the deployment has been accepted but not yet acted upon.
-	DeploymentStatusNew DeploymentStatus = "New"
-	// DeploymentStatusPending means the deployment been handed over to a deployment strategy,
-	// but the strategy has not yet declared the deployment to be running.
-	DeploymentStatusPending DeploymentStatus = "Pending"
-	// DeploymentStatusRunning means the deployment strategy has reported the deployment as
-	// being in-progress.
-	DeploymentStatusRunning DeploymentStatus = "Running"
-	// DeploymentStatusComplete means the deployment finished without an error.
-	DeploymentStatusComplete DeploymentStatus = "Complete"
-	// DeploymentStatusFailed means the deployment finished with an error.
-	DeploymentStatusFailed DeploymentStatus = "Failed"
-)
-
 // +genclient
 // +genclient:method=Instantiate,verb=create,subresource=instantiate,input=DeploymentRequest
 // +genclient:method=Rollback,verb=create,subresource=rollback,input=DeploymentConfigRollback
@@ -372,59 +334,7 @@ type DeploymentCauseImageTrigger struct {
 }
 
 type DeploymentConditionType string
-
-// These are valid conditions of a DeploymentConfig.
-const (
-	// DeploymentAvailable means the DeploymentConfig is available, ie. at least the minimum available
-	// replicas required (dc.spec.replicas in case the DeploymentConfig is of Recreate type,
-	// dc.spec.replicas - dc.spec.strategy.rollingParams.maxUnavailable in case it's Rolling) are up and
-	// running for at least dc.spec.minReadySeconds.
-	DeploymentAvailable DeploymentConditionType = "Available"
-	// DeploymentProgressing is:
-	// * True: the DeploymentConfig has been successfully deployed or is amidst getting deployed.
-	//   The two different states can be determined by looking at the Reason of the Condition.
-	//   For example, a complete DC will have {Status: True, Reason: NewReplicationControllerAvailable}
-	//   and a DC in the middle of a rollout {Status: True, Reason: ReplicationControllerUpdated}.
-	//   TODO: Represent a successfully deployed DC by using something else for Status like Unknown?
-	// * False: the DeploymentConfig has failed to deploy its latest version.
-	//
-	// This condition is purely informational and depends on the dc.spec.strategy.*params.timeoutSeconds
-	// field, which is responsible for the time in seconds to wait for a rollout before deciding that
-	// no progress can be made, thus the rollout is aborted.
-	//
-	// Progress for a DeploymentConfig is considered when new pods scale up or old pods scale down.
-	DeploymentProgressing DeploymentConditionType = "Progressing"
-	// DeploymentReplicaFailure is added in a deployment config when one of its pods
-	// fails to be created or deleted.
-	DeploymentReplicaFailure DeploymentConditionType = "ReplicaFailure"
-)
-
 type DeploymentConditionReason string
-
-const (
-	// ReplicationControllerUpdatedReason is added in a deployment config when one of its replication
-	// controllers is updated as part of the rollout process.
-	ReplicationControllerUpdatedReason DeploymentConditionReason = "ReplicationControllerUpdated"
-	// FailedRcCreateReason is added in a deployment config when it cannot create a new replication
-	// controller.
-	FailedRcCreateReason DeploymentConditionReason = "ReplicationControllerCreateError"
-	// NewReplicationControllerReason is added in a deployment config when it creates a new replication
-	// controller.
-	NewReplicationControllerReason DeploymentConditionReason = "NewReplicationControllerCreated"
-	// NewRcAvailableReason is added in a deployment config when its newest replication controller is made
-	// available ie. the number of new pods that have passed readiness checks and run for at least
-	// minReadySeconds is at least the minimum available pods that need to run for the deployment config.
-	NewRcAvailableReason DeploymentConditionReason = "NewReplicationControllerAvailable"
-	// TimedOutReason is added in a deployment config when its newest replication controller fails to show
-	// any progress within the given deadline (progressDeadlineSeconds).
-	TimedOutReason DeploymentConditionReason = "ProgressDeadlineExceeded"
-	// PausedConfigReason is added in a deployment config when it is paused. Lack of progress shouldn't be
-	// estimated once a deployment config is paused.
-	PausedConfigReason DeploymentConditionReason = "DeploymentConfigPaused"
-	// CancelledRolloutReason is added in a deployment config when its newest rollout was
-	// interrupted by cancellation.
-	CancelledRolloutReason DeploymentConditionReason = "RolloutCancelled"
-)
 
 // DeploymentCondition describes the state of a deployment config at a certain point.
 type DeploymentCondition struct {

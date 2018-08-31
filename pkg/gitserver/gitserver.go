@@ -24,7 +24,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	"github.com/openshift/origin/pkg/git"
+	"github.com/openshift/library-go/pkg/git"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	"k8s.io/client-go/rest"

@@ -1379,20 +1379,20 @@ func describeDeploymentConfigDeploymentStatus(rc *corev1.ReplicationController, 
 	}
 
 	switch status {
-	case appsutil.DeploymentStatusFailed:
+	case appsv1.DeploymentStatusFailed:
 		reason := appsutil.DeploymentStatusReasonFor(rc)
 		if len(reason) > 0 {
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
 		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, *rc.Spec.Replicas, false, restartCount))
-	case appsutil.DeploymentStatusComplete:
+	case appsv1.DeploymentStatusComplete:
 		// TODO: pod status output
 		if test {
 			return fmt.Sprintf("test deployment #%d deployed %s ago", version, timeAt)
 		}
 		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, *rc.Spec.Replicas, first, restartCount))
-	case appsutil.DeploymentStatusRunning:
+	case appsv1.DeploymentStatusRunning:
 		format := "deployment #%d running%s for %s%s"
 		if test {
 			format = "test deployment #%d running%s for %s%s"
@@ -1564,7 +1564,7 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
-		_, isDeployerPod := meta.GetLabels()[appsutil.DeployerPodForDeploymentLabel]
+		_, isDeployerPod := meta.GetLabels()[appsv1.DeployerPodForDeploymentLabel]
 		_, isBuilderPod := meta.GetAnnotations()[buildapi.BuildAnnotation]
 		isFinished := actualPod.Status.Phase == corev1.PodSucceeded || actualPod.Status.Phase == corev1.PodFailed
 		if isDeployerPod || isBuilderPod || isFinished {

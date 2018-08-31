@@ -10,7 +10,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 const (
@@ -113,7 +112,7 @@ func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAda
 
 	for _, pod := range podList.Items {
 		r.Debug("AGL0082", fmt.Sprintf("Checking status of Pod '%s'...", pod.ObjectMeta.Name))
-		dcName, hasDcName := pod.ObjectMeta.Annotations[appsutil.DeploymentConfigAnnotation]
+		dcName, hasDcName := pod.ObjectMeta.Annotations[appsv1.DeploymentConfigAnnotation]
 		if !hasDcName {
 			r.Warn("AGL0085", nil, fmt.Sprintf("Found Pod '%s' that that does not reference a logging deployment config which may be acceptable. Skipping check to see if its running.", pod.ObjectMeta.Name))
 			continue
