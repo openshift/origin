@@ -76,8 +76,6 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/apps/generated",
-      "github.com/openshift/origin/pkg/build/generated",
       "github.com/openshift/origin/pkg/image/generated",
       "github.com/openshift/origin/pkg/network/generated",
       "github.com/openshift/origin/pkg/oauth/generated",
@@ -521,7 +519,6 @@
       "vendor/github.com/davecgh/go-spew/spew",
 
       "github.com/openshift/origin/pkg/authorization/generated",
-      "github.com/openshift/origin/pkg/build/generated",
       "github.com/openshift/origin/pkg/image/apis/image/v1",
       "github.com/openshift/origin/pkg/image/generated",
       "github.com/openshift/origin/pkg/image/util",
