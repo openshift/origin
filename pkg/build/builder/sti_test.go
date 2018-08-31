@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/library-go/pkg/git"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
+	"github.com/openshift/source-to-image/pkg/docker"
 )
 
 // testStiBuilderFactory is a mock implementation of builderFactory.
@@ -30,6 +31,11 @@ func (factory testStiBuilderFactory) Builder(config *s2iapi.Config, overrides s2
 		return nil, s2iapi.BuildInfo{}, factory.getStrategyErr
 	}
 	return testBuilder{buildError: factory.buildError}, s2iapi.BuildInfo{}, nil
+}
+
+// NewEngine creates a "connection" to a new build engine
+func (factory testStiBuilderFactory) NewEngine(authConfig s2iapi.AuthConfig) (docker.Docker, error) {
+	return nil, errors.New("Artificial exception: Error creating new engine interface")
 }
 
 // testBuilder is a mock implementation of s2iapi.Builder.

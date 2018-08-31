@@ -355,3 +355,126 @@ func copyEnvVarSlice(in []corev1.EnvVar) []corev1.EnvVar {
 	copy(out, in)
 	return out
 }
+
+// setupContainersConfigs sets up volumes for mounting the node's configuration which governs which
+// registries it knows about, whether or not they should be accessed with TLS, and signature policies.
+func setupContainersConfigs(pod *v1.Pod, container *v1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		v1.Volume{
+			Name: "containerspolicyjson",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: "/etc/containers/policy.json",
+				},
+			},
+		},
+		v1.Volume{
+			Name: "containersregistriesconf",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: "/etc/containers/registries.conf",
+				},
+			},
+		},
+		v1.Volume{
+			Name: "containersregistriesd",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: "/etc/containers/registries.d",
+				},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		v1.VolumeMount{
+			Name:      "containerspolicyjson",
+			MountPath: "/etc/containers/policy.json",
+			ReadOnly:  true,
+		},
+		v1.VolumeMount{
+			Name:      "containersregistriesconf",
+			MountPath: "/etc/containers/registries.conf",
+			ReadOnly:  true,
+		},
+		v1.VolumeMount{
+			Name:      "containersregistriesd",
+			MountPath: "/etc/containers/registries.d",
+			ReadOnly:  true,
+		},
+	)
+}
+
+// setupContainersStorage creates a volume that we'll use for holding images and working
+// root filesystems for building images.
+func setupContainersStorage(pod *v1.Pod, container *v1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		v1.Volume{
+			Name: "container-storage-root",
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		v1.VolumeMount{
+			Name:      "container-storage-root",
+			MountPath: storage.DefaultStoreOptions.GraphRoot,
+		},
+	)
+}
+
+// setupContainersNodeStorage borrows the appropriate storage directories from the node so
+// that we can share layers that we're using with the node
+func setupContainersNodeStorage(pod *v1.Pod, container *v1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+		v1.Volume{
+			Name: "node-storage-root",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: storage.DefaultStoreOptions.GraphRoot,
+				},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+		v1.VolumeMount{
+			Name:      "node-storage-root",
+			MountPath: storage.DefaultStoreOptions.GraphRoot,
+		},
+	)
+}
+
+// setupContainersCertificates borrows the appropriate directories from the node so that
+// we can share any certificates that we might need for contacting registries.
+func setupContainersCertificates(pod *v1.Pod, container *v1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		v1.Volume{
+			Name: "node-containers-certificates",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: "/etc/containers/certs.d",
+				},
+			},
+		},
+		v1.Volume{
+			Name: "node-docker-certificates",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: "/etc/docker/certs.d",
+				},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		v1.VolumeMount{
+			Name:      "node-containers-certificates",
+			MountPath: "/etc/containers/certs.d",
+		},
+		v1.VolumeMount{
+			Name:      "node-docker-certificates",
+			MountPath: "/etc/docker/certs.d",
+		},
+	)
+}
