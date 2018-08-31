@@ -132,6 +132,15 @@ update:
 	hack/update-generated-docs.sh
 .PHONY: update
 
+# Do a cross architecture typecheck.
+#
+# Examples:
+#   make verify-typecheck
+#   make verify-typecheck PLATFORMS=linux/amd64
+verify-typecheck:
+	hack/verify-typecheck.sh
+.PHONY: verify-typecheck
+
 # Update all generated artifacts for the API
 #
 # Example:
