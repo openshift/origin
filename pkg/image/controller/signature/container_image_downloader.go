@@ -49,7 +49,7 @@ func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *image
 	ctx, cancel := context.WithTimeout(s.ctx, s.timeout)
 	defer cancel()
 
-	signatures, err := source.GetSignatures(ctx)
+	signatures, err := source.GetSignatures(ctx, nil)
 	if err != nil {
 		glog.V(4).Infof("Failed to get signatures for %v due to: %v", source.Reference(), err)
 		return []imagev1.ImageSignature{}, GetSignaturesError{err}
