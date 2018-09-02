@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -32,15 +33,19 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	var (
 		oc = exutil.NewCLI("prometheus", exutil.KubeConfigPath())
 
-		execPodName, ns, host, bearerToken string
-		statsPort                          int
+		execPodName, ns, url, bearerToken string
 	)
 
 	g.BeforeEach(func() {
-		ns, host, bearerToken, statsPort = bringUpPrometheusFromTemplate(oc)
+		ns = oc.KubeFramework().Namespace.Name
+		var ok bool
+		url, bearerToken, ok = locatePrometheus(oc)
+		if !ok {
+			e2e.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
+		}
 	})
 
-	g.Describe("when installed to the cluster", func() {
+	g.Describe("when installed on the cluster", func() {
 		g.It("should start and expose a secured proxy and unsecured metrics", func() {
 			execPodName = e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) {
 				pod.Spec.Containers[0].Image = "centos:7"
@@ -51,7 +56,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			success := false
 			var metrics map[string]*dto.MetricFamily
 			for i := 0; i < waitForPrometheusStartSeconds; i++ {
-				results, err := getInsecureURLViaPod(ns, execPodName, fmt.Sprintf("https://%s:%d/metrics", host, statsPort))
+				results, err := getInsecureURLViaPod(ns, execPodName, fmt.Sprintf("%s/metrics", url))
 				if err != nil {
 					e2e.Logf("unable to get unsecured metrics: %v", err)
 					continue
@@ -84,18 +89,18 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			o.Expect(success).To(o.BeTrue(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total in:\n%#v,", metrics))
 
 			g.By("verifying the oauth-proxy reports a 403 on the root URL")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("https://%s:%d", host, statsPort), 403)
+			err := expectURLStatusCodeExec(ns, execPodName, url, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")
-			err = expectBearerTokenURLStatusCodeExec(ns, execPodName, fmt.Sprintf("https://%s:%d/graph", host, statsPort), bearerToken, 200)
+			err = expectBearerTokenURLStatusCodeExec(ns, execPodName, fmt.Sprintf("%s/graph", url), bearerToken, 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to access the Prometheus API")
 			// expect all endpoints within 60 seconds
 			var lastErrs []error
 			for i := 0; i < 120; i++ {
-				contents, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("https://%s:%d/api/v1/targets", host, statsPort), bearerToken)
+				contents, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("%s/api/v1/targets", url), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
@@ -104,10 +109,11 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 				g.By("verifying all expected jobs have a working target")
 				lastErrs = all(
-					targets.Expect(labels{"job": "kubernetes-apiservers"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "kubernetes-service-endpoints", "kubernetes_name": "prometheus", "kubernetes_namespace": "kube-system", "name": "prometheus"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "kubernetes-nodes"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "kubernetes-cadvisor"}, "up", "^https://.*/metrics/cadvisor$"),
+					targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "prometheus-k8s", "namespace": "openshift-monitoring", "pod": "prometheus-k8s-0"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics/cadvisor$"),
+					targets.Expect(labels{"job": "node-exporter"}, "up", "^https://.*/metrics$"),
 				)
 				if len(lastErrs) == 0 {
 					break
@@ -155,10 +161,12 @@ func (t *prometheusTargets) Expect(l labels, health, scrapeURLPattern string) er
 		if health != target.Health {
 			continue
 		}
-		o.Expect(target.ScrapeUrl).To(o.MatchRegexp(scrapeURLPattern))
+		if !regexp.MustCompile(scrapeURLPattern).MatchString(target.ScrapeUrl) {
+			continue
+		}
 		return nil
 	}
-	return fmt.Errorf("no match for %v with health %s", l, health)
+	return fmt.Errorf("no match for %v with health %s and scrape URL %s", l, health, scrapeURLPattern)
 }
 
 type labels map[string]string
@@ -293,38 +301,15 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 	return err
 }
 
-func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string, statsPort int) {
-	ns = oc.KubeFramework().Namespace.Name
-	host = "prometheus.kube-system.svc"
-	statsPort = 443
-	mustCreate := false
-	if _, err := oc.AdminKubeClient().Apps().StatefulSets("kube-system").Get("prometheus", metav1.GetOptions{}); err != nil {
-		if !kapierrs.IsNotFound(err) {
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}
-		mustCreate = true
+func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
+	_, err := oc.AdminKubeClient().Core().Services("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
+	if kapierrs.IsNotFound(err) {
+		return "", "", false
 	}
 
-	if mustCreate {
-		e2e.Logf("Installing Prometheus onto the cluster for testing")
-		configPath := exutil.FixturePath("..", "..", "examples", "prometheus", "prometheus.yaml")
-		stdout, _, err := oc.WithoutNamespace().Run("process").Args("-f", configPath).Outputs()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
-		// rather than parse the oc err output from valid situations like the object already exist, just logging
-		// the error and continue ... if something else is up, it will be caught later down the line
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "test continuing, but create on the prometheus template resulted in: %#v", err)
-		}
-		tester := e2e.NewStatefulSetTester(oc.AdminKubeClient())
-		ss, err := oc.AdminKubeClient().AppsV1().StatefulSets("kube-system").Get("prometheus", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		tester.WaitForRunningAndReady(1, ss)
-	}
-
-	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)
+	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
 	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().Core().Secrets("kube-system").List(metav1.ListOptions{})
+		secrets, err := oc.AdminKubeClient().Core().Secrets("openshift-monitoring").List(metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, secret := range secrets.Items {
 			if secret.Type != v1.SecretTypeServiceAccountToken {
@@ -344,5 +329,5 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 	}
 	o.Expect(bearerToken).ToNot(o.BeEmpty())
 
-	return
+	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
