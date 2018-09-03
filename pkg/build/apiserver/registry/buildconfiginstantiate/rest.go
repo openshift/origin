@@ -72,7 +72,7 @@ func (s *InstantiateREST) Create(ctx context.Context, obj runtime.Object, create
 			},
 		)
 	}
-	return s.generator.Instantiate(ctx, request)
+	return s.generator.InstantiateInternal(ctx, request)
 }
 
 func (s *InstantiateREST) ProducesObject(verb string) interface{} {
@@ -197,7 +197,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	var build *buildapi.Build
 	start := time.Now()
 	if err := wait.Poll(time.Second, h.r.Timeout, func() (bool, error) {
-		result, err := h.r.Generator.Instantiate(h.ctx, request)
+		result, err := h.r.Generator.InstantiateInternal(h.ctx, request)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				if s, ok := err.(errors.APIStatus); ok {
@@ -293,14 +293,19 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 // cancelBuild will mark a build for cancellation unless
 // cancel is false in which case it is a no-op.
 func (h *binaryInstantiateHandler) cancelBuild(build *buildapi.Build) {
-	build.Status.Cancelled = true
-	h.r.Generator.Client.UpdateBuild(h.ctx, build)
+	var versionedBuild = &buildv1.Build{}
+	if err := legacyscheme.Scheme.Convert(build, versionedBuild, nil); err != nil {
+		glog.Errorf("Unable to convert build to versioned build: %v", err)
+		return
+	}
+	versionedBuild.Status.Cancelled = true
+	h.r.Generator.Client.UpdateBuild(h.ctx, versionedBuild)
 	wait.Poll(cancelPollInterval, cancelPollDuration, func() (bool, error) {
-		build.Status.Cancelled = true
-		err := h.r.Generator.Client.UpdateBuild(h.ctx, build)
+		versionedBuild.Status.Cancelled = true
+		err := h.r.Generator.Client.UpdateBuild(h.ctx, versionedBuild)
 		switch {
 		case err != nil && errors.IsConflict(err):
-			build, err = h.r.Generator.Client.GetBuild(h.ctx, build.Name, &metav1.GetOptions{})
+			versionedBuild, err = h.r.Generator.Client.GetBuild(h.ctx, versionedBuild.Name, &metav1.GetOptions{})
 			return false, err
 		default:
 			return true, err

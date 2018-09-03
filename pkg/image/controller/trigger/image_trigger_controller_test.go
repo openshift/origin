@@ -21,21 +21,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
@@ -162,22 +159,7 @@ func (i *fakeInstantiator) Instantiate(namespace string, req *buildv1.BuildReque
 	if i.generator == nil {
 		return nil, nil
 	}
-	internalReq := &buildapi.BuildRequest{}
-	if err := legacyscheme.Scheme.Convert(req, internalReq, nil); err != nil {
-		panic(err)
-	}
-	internalBuild, err := i.generator.Instantiate(apirequest.WithNamespace(apirequest.NewContext(), namespace), internalReq)
-	if err != nil {
-		return nil, err
-	}
-	if internalBuild == nil {
-		return nil, nil
-	}
-	result := &buildv1.Build{}
-	if err := legacyscheme.Scheme.Convert(internalBuild, result, nil); err != nil {
-		panic(err)
-	}
-	return result, nil
+	return i.generator.Instantiate(apirequest.WithNamespace(apirequest.NewContext(), namespace), req)
 }
 
 type fakeBuildConfigUpdater struct {
@@ -192,14 +174,10 @@ func (m *fakeBuildConfigUpdater) Update(buildcfg *buildv1.BuildConfig) error {
 	return m.err
 }
 
-func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *imageapi.ImageStream) *fakeInstantiator {
-	internalBuildConfig := &buildapi.BuildConfig{}
-	if err := legacyscheme.Scheme.Convert(buildcfg, internalBuildConfig, nil); err != nil {
-		panic(err)
-	}
-	builderAccount := kapi.ServiceAccount{
+func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *imagev1.ImageStream) *fakeInstantiator {
+	builderAccount := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: buildcfg.Namespace},
-		Secrets:    []kapi.ObjectReference{},
+		Secrets:    []corev1.ObjectReference{},
 	}
 	instantiator := &fakeInstantiator{}
 	instantiator.buildConfigUpdater = &fakeBuildConfigUpdater{}
@@ -207,25 +185,25 @@ func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *ima
 		Secrets:         fake.NewSimpleClientset().Core(),
 		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).Core(),
 		Client: buildgenerator.TestingClient{
-			GetBuildConfigFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-				return internalBuildConfig, nil
+			GetBuildConfigFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildv1.BuildConfig, error) {
+				return buildcfg, nil
 			},
-			UpdateBuildConfigFunc: func(ctx context.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigFunc: func(ctx context.Context, buildConfig *buildv1.BuildConfig) error {
 				return instantiator.buildConfigUpdater.Update(buildcfg)
 			},
-			CreateBuildFunc: func(ctx context.Context, build *buildapi.Build) error {
+			CreateBuildFunc: func(ctx context.Context, build *buildv1.Build) error {
 				return nil
 			},
-			GetBuildFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
+			GetBuildFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildv1.Build, error) {
 				return nil, nil
 			},
-			GetImageStreamFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+			GetImageStreamFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStream, error) {
 				return imageStream, nil
 			},
-			GetImageStreamTagFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
+			GetImageStreamTagFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStreamTag, error) {
 				return nil, nil
 			},
-			GetImageStreamImageFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
+			GetImageStreamImageFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStreamImage, error) {
 				return nil, nil
 			},
 		}}
@@ -263,20 +241,17 @@ func TestTriggerControllerSyncImageStream(t *testing.T) {
 
 func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 	tests := []struct {
-		name string
-		is   *imagev1.ImageStream
-		// TODO: get rid of this once buildgenerator is on externals
-		isinternal *imageapi.ImageStream
-		bc         *buildv1.BuildConfig
-		tagResp    []fakeTagResponse
-		req        *buildv1.BuildRequest
+		name    string
+		is      *imagev1.ImageStream
+		bc      *buildv1.BuildConfig
+		tagResp []fakeTagResponse
+		req     *buildv1.BuildRequest
 	}{
 		{
-			name:       "NewImageID",
-			is:         scenario_1_imageStream_single("test", "stream", "10"),
-			isinternal: scenario_1_imageStream_singleinternal("test", "stream", "10"),
-			bc:         scenario_1_buildConfig_imageSource(),
-			tagResp:    []fakeTagResponse{{Namespace: "other", Name: "stream:2", Ref: "image/result:1"}},
+			name:    "NewImageID",
+			is:      scenario_1_imageStream_single("test", "stream", "10"),
+			bc:      scenario_1_buildConfig_imageSource(),
+			tagResp: []fakeTagResponse{{Namespace: "other", Name: "stream:2", Ref: "image/result:1"}},
 			req: &buildv1.BuildRequest{
 				ObjectMeta:       metav1.ObjectMeta{Name: "build2", Namespace: "test2"},
 				From:             &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "stream:2", Namespace: "other"},
@@ -293,21 +268,22 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 			},
 		},
 		{
-			name:       "NewImageIDDefaultTag",
-			is:         scenario_1_imageStream_single_defaultImageTag("test", "stream", "10"),
-			isinternal: scenario_1_imageStream_single_defaultImageTaginternal("test", "stream", "10"),
-			bc:         scenario_1_buildConfig_imageSource_defaultImageTag(),
-			tagResp:    []fakeTagResponse{{Namespace: "other", Name: "stream:" + imageapi.DefaultImageTag, Ref: "image/result:1"}},
+			name:    "NewImageIDDefaultTag",
+			is:      scenario_1_imageStream_single_defaultImageTag("test", "stream", "10"),
+			bc:      scenario_1_buildConfig_imageSource_defaultImageTag(),
+			tagResp: []fakeTagResponse{{Namespace: "other", Name: "stream:latest", Ref: "image/result:1"}},
 			req: &buildv1.BuildRequest{
-				ObjectMeta:       metav1.ObjectMeta{Name: "build2", Namespace: "test2"},
-				From:             &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "stream:" + imageapi.DefaultImageTag, Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "build2", Namespace: "test2"},
+				From: &corev1.ObjectReference{APIVersion: imagev1.GroupVersion.Version, Kind: "ImageStreamTag", Name: "stream:latest",
+					Namespace: "other"},
 				TriggeredByImage: &corev1.ObjectReference{Kind: "DockerImage", Name: "image/result:1"},
 				TriggeredBy: []buildv1.BuildTriggerCause{
 					{
 						Message: "Image change",
 						ImageChangeBuild: &buildv1.ImageChangeCause{
 							ImageID: "image/result:1",
-							FromRef: &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "stream:" + imageapi.DefaultImageTag, Namespace: "other"},
+							FromRef: &corev1.ObjectReference{APIVersion: imagev1.GroupVersion.Version, Kind: "ImageStreamTag", Name: "stream:latest",
+								Namespace: "other"},
 						},
 					},
 				},
@@ -325,7 +301,7 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 				return test.bc, true, nil
 			},
 		}
-		inst := fakeBuildConfigInstantiator(test.bc, test.isinternal)
+		inst := fakeBuildConfigInstantiator(test.bc, test.is)
 		reaction := buildconfigs.NewBuildConfigReactor(inst, nil)
 		controller := TriggerController{
 			triggerCache: NewTriggerCache(),
@@ -345,7 +321,7 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 			t.Errorf("For test %s unexpected: %s %s", test.name, inst.namespace, diff.ObjectReflectDiff(test.req, inst.req))
 		}
 		if inst.buildConfigUpdater.buildcfg == nil {
-			t.Errorf("For test %s expected buildConfig update when new image was created!", test.name)
+			t.Fatalf("For test %s expected buildConfig update when new image was created!", test.name)
 		}
 		found := false
 		imageIDs := ""
@@ -637,45 +613,17 @@ func scenario_1_imageStream_single(namespace, name, rv string) *imagev1.ImageStr
 	}
 }
 
-// TODO: get rid of this once buildgenerator is on externals
-func scenario_1_imageStream_singleinternal(namespace, name, rv string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace, ResourceVersion: rv},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				"1": {Items: []imageapi.TagEvent{
-					{DockerImageReference: "image/result:1"},
-				}},
-			},
-		},
-	}
-}
-
 func scenario_1_imageStream_single_defaultImageTag(namespace, name, rv string) *imagev1.ImageStream {
 	return &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace, ResourceVersion: rv},
 		Status: imagev1.ImageStreamStatus{
 			Tags: []imagev1.NamedTagEventList{
 				{
-					Tag: "default",
+					Tag: "latest",
 					Items: []imagev1.TagEvent{
 						{DockerImageReference: "image/result:1"},
 					},
 				},
-			},
-		},
-	}
-}
-
-// TODO: get rid of thes once buildgenerator is on externals
-func scenario_1_imageStream_single_defaultImageTaginternal(namespace, name, rv string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace, ResourceVersion: rv},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				imageapi.DefaultImageTag: {Items: []imageapi.TagEvent{
-					{DockerImageReference: "image/result:1"},
-				}},
 			},
 		},
 	}
@@ -688,7 +636,9 @@ func scenario_1_buildConfig_imageSource_defaultImageTag() *buildv1.BuildConfig {
 			Triggers: []buildv1.BuildTriggerPolicy{
 				{ImageChange: &buildv1.ImageChangeTrigger{}},
 				{ImageChange: &buildv1.ImageChangeTrigger{
-					From:                 &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "stream:" + imageapi.DefaultImageTag, Namespace: "other"},
+					From: &corev1.ObjectReference{APIVersion: imagev1.GroupVersion.Version, Kind: "ImageStreamTag",
+						Name:      "stream:latest",
+						Namespace: "other"},
 					LastTriggeredImageID: "image/result:2",
 				}},
 				{ImageChange: &buildv1.ImageChangeTrigger{From: &corev1.ObjectReference{Kind: "DockerImage", Name: "mysql", Namespace: "other"}}},
@@ -696,7 +646,7 @@ func scenario_1_buildConfig_imageSource_defaultImageTag() *buildv1.BuildConfig {
 			CommonSpec: buildv1.CommonSpec{
 				Strategy: buildv1.BuildStrategy{
 					DockerStrategy: &buildv1.DockerBuildStrategy{
-						From: &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "stream:" + imageapi.DefaultImageTag},
+						From: &corev1.ObjectReference{APIVersion: imagev1.GroupVersion.Version, Kind: "ImageStreamTag", Name: "stream:latest"},
 					},
 				},
 			},
@@ -1286,11 +1236,11 @@ func TestTriggerController(t *testing.T) {
 				bc := originalBc.DeepCopy()
 				if len(bc.Spec.Triggers) > 0 {
 					index := rnd.Int31n(int32(len(bc.Spec.Triggers)))
-					trigger := &bc.Spec.Triggers[index]
-					if trigger.ImageChange.From != nil {
-						old := trigger.ImageChange.From.Name
-						trigger.ImageChange.From.Name = randomStreamTag(rnd, numStreams, numTagsPerStream)
-						describe[bc.Namespace+"/"+bc.Name] = append(describe[bc.Namespace+"/"+bc.Name], fmt.Sprintf("[round=%d change=%d]: change trigger %d from %q to %q", round, i, index, old, trigger.ImageChange.From.Name))
+					triggerPolicy := &bc.Spec.Triggers[index]
+					if triggerPolicy.ImageChange.From != nil {
+						old := triggerPolicy.ImageChange.From.Name
+						triggerPolicy.ImageChange.From.Name = randomStreamTag(rnd, numStreams, numTagsPerStream)
+						describe[bc.Namespace+"/"+bc.Name] = append(describe[bc.Namespace+"/"+bc.Name], fmt.Sprintf("[round=%d change=%d]: change trigger %d from %q to %q", round, i, index, old, triggerPolicy.ImageChange.From.Name))
 					} else {
 						old := bc.Spec.Strategy.DockerStrategy.From.Name
 						bc.Spec.Strategy.DockerStrategy.From.Name = randomStreamTag(rnd, numStreams, numTagsPerStream)
