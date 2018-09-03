@@ -49,8 +49,7 @@ var (
 
 		Images in manifest list format will be copied as-is unless you use --filter-by-os to restrict
 		the allowed images to copy in a manifest list. This flag has no effect on regular images.
-
-		Experimental: This command is under active development and may change without notice.`)
+		`)
 
 	mirrorExample = templates.Examples(`
 # Copy image to another tag

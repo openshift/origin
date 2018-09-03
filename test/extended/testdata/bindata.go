@@ -177,6 +177,11 @@
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/reencrypt-serving-cert.yaml
+// test/extended/testdata/releases/payload-1/etcd-operator/image-references
+// test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
+// test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml
+// test/extended/testdata/releases/payload-1/image-registry/image-references
+// test/extended/testdata/releases/payload-1/image-registry/manifest.yaml
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
@@ -9979,6 +9984,142 @@ func testExtendedTestdataReencryptServingCertYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/reencrypt-serving-cert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences = []byte(`kind: ImageStream
+apiVersion: image.openshift.io/v1
+spec:
+  tags:
+  - name: etcd-operator
+    from:
+      name: quay.io/coreos/etcd-operator
+      kind: DockerImage
+`)
+
+func testExtendedTestdataReleasesPayload1EtcdOperatorImageReferencesBytes() ([]byte, error) {
+	return _testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences, nil
+}
+
+func testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences() (*asset, error) {
+	bytes, err := testExtendedTestdataReleasesPayload1EtcdOperatorImageReferencesBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/releases/payload-1/etcd-operator/image-references", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: etcd-operator
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: etcd-operator
+  spec:
+    template:
+      spec:
+        containers:
+        - name: main
+          image: quay.io/coreos/etcd-operator@sha256:12341234`)
+
+func testExtendedTestdataReleasesPayload1EtcdOperatorManifestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml, nil
+}
+
+func testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataReleasesPayload1EtcdOperatorManifestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml = []byte(`kind: CustomResourceDefinition
+apiVersion: apiextensions/v1
+metadata:
+  name: registry`)
+
+func testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml, nil
+}
+
+func testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataReleasesPayload1ImageRegistryImageReferences = []byte(`kind: ImageStream
+apiVersion: image.openshift.io/v1
+spec:
+  tags:
+  - name: image-registry
+    from:
+      name: openshift/origin-image-registry
+      kind: DockerImage
+`)
+
+func testExtendedTestdataReleasesPayload1ImageRegistryImageReferencesBytes() ([]byte, error) {
+	return _testExtendedTestdataReleasesPayload1ImageRegistryImageReferences, nil
+}
+
+func testExtendedTestdataReleasesPayload1ImageRegistryImageReferences() (*asset, error) {
+	bytes, err := testExtendedTestdataReleasesPayload1ImageRegistryImageReferencesBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/releases/payload-1/image-registry/image-references", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataReleasesPayload1ImageRegistryManifestYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: image-registry
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: image-registry
+  spec:
+    template:
+      spec:
+        containers:
+        - name: main
+          image: openshift/origin-image-registry:latest`)
+
+func testExtendedTestdataReleasesPayload1ImageRegistryManifestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataReleasesPayload1ImageRegistryManifestYaml, nil
+}
+
+func testExtendedTestdataReleasesPayload1ImageRegistryManifestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataReleasesPayload1ImageRegistryManifestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/releases/payload-1/image-registry/manifest.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -34299,6 +34440,11 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
+	"test/extended/testdata/releases/payload-1/etcd-operator/image-references": testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
+	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml": testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
+	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml": testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
+	"test/extended/testdata/releases/payload-1/image-registry/image-references": testExtendedTestdataReleasesPayload1ImageRegistryImageReferences,
+	"test/extended/testdata/releases/payload-1/image-registry/manifest.yaml": testExtendedTestdataReleasesPayload1ImageRegistryManifestYaml,
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
@@ -34840,6 +34986,19 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
+				"releases": &bintree{nil, map[string]*bintree{
+					"payload-1": &bintree{nil, map[string]*bintree{
+						"etcd-operator": &bintree{nil, map[string]*bintree{
+							"image-references": &bintree{testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences, map[string]*bintree{}},
+							"manifest.yaml": &bintree{testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml, map[string]*bintree{}},
+						}},
+						"image-registry": &bintree{nil, map[string]*bintree{
+							"10_image-registry_crd.yaml": &bintree{testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml, map[string]*bintree{}},
+							"image-references": &bintree{testExtendedTestdataReleasesPayload1ImageRegistryImageReferences, map[string]*bintree{}},
+							"manifest.yaml": &bintree{testExtendedTestdataReleasesPayload1ImageRegistryManifestYaml, map[string]*bintree{}},
+						}},
+					}},
+				}},
 				"roles": &bintree{nil, map[string]*bintree{
 					"empty-role.yaml": &bintree{testExtendedTestdataRolesEmptyRoleYaml, map[string]*bintree{}},
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},

@@ -108,6 +108,9 @@ oc-adm-prune-groups.1
 oc-adm-prune-images.1
 oc-adm-prune.1
 oc-adm-registry.1
+oc-adm-release-extract.1
+oc-adm-release-new.1
+oc-adm-release.1
 oc-adm-router.1
 oc-adm-taint.1
 oc-adm-top-images.1
