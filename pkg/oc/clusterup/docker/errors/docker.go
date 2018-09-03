@@ -15,18 +15,6 @@ func ErrKubeConfigNotWriteable(file string, err error) error {
 	return NewError("KUBECONFIG is set to a file that cannot be created or modified: %s", file).WithCause(err).WithSolution(kubeConfigSolution())
 }
 
-// ErrNoInsecureRegistryArgument is thrown when an --insecure-registry argument cannot be detected
-// on the Docker daemon process
-func ErrNoInsecureRegistryArgument() error {
-	return NewError("did not detect an --insecure-registry argument on the Docker daemon").WithSolution(invalidInsecureRegistryArgSolution())
-}
-
-// ErrInvalidInsecureRegistryArgument is thrown when an --insecure-registry argument is found, but does not allow sufficient access
-// for our services to operate
-func ErrInvalidInsecureRegistryArgument() error {
-	return NewError("did not detect a sufficient --insecure-registry argument on the Docker daemon").WithSolution(invalidInsecureRegistryArgSolution())
-}
-
 const (
 	NoDockerMacSolution = `
 Please install Docker tools by following instructions at:
@@ -85,8 +73,4 @@ func kubeConfigSolution() string {
 	default:
 		return KubeConfigSolutionUnix
 	}
-}
-
-func invalidInsecureRegistryArgSolution() string {
-	return InvalidInsecureRegistryArgSolution
 }
