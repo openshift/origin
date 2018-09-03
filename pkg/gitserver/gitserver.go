@@ -18,17 +18,15 @@ import (
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 
+	authv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/server/healthz"
+	authv1clienttyped "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	"github.com/openshift/library-go/pkg/git"
-
-	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
 const (
@@ -123,7 +121,7 @@ type Config struct {
 
 // Clone is a repository to clone
 type Clone struct {
-	URL   s2igit.URL
+	URL   URL
 	Hooks map[string]string
 }
 
@@ -145,11 +143,11 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-func checkURLIsAllowed(url *s2igit.URL) bool {
+func checkURLIsAllowed(url *URL) bool {
 	switch url.Type {
-	case s2igit.URLTypeLocal:
+	case URLTypeLocal:
 		return false
-	case s2igit.URLTypeURL:
+	case URLTypeURL:
 		if url.URL.Opaque != "" {
 			return false
 		}
@@ -253,12 +251,12 @@ func NewEnvironmentConfig() (*Config, error) {
 				glog.V(5).Infof("Allowing pull because anonymous get is enabled")
 				return true, nil
 			}
-			req := &authorization.SelfSubjectAccessReview{
-				Spec: authorization.SelfSubjectAccessReviewSpec{
-					ResourceAttributes: &authorization.ResourceAttributes{
+			req := &authv1.SelfSubjectAccessReview{
+				Spec: authv1.SelfSubjectAccessReviewSpec{
+					ResourceAttributes: &authv1.ResourceAttributes{
 						Verb:      "get",
 						Namespace: namespace,
-						Group:     kapi.GroupName,
+						Group:     corev1.GroupName,
 						Resource:  "pods",
 					},
 				},
@@ -272,7 +270,7 @@ func NewEnvironmentConfig() (*Config, error) {
 
 			configForUser := rest.AnonymousClientConfig(cfg)
 			configForUser.BearerToken = info.Password
-			authorizationClient, err := authorizationtypedclient.NewForConfig(configForUser)
+			authorizationClient, err := authv1clienttyped.NewForConfig(configForUser)
 			if err != nil {
 				return false, err
 			}
@@ -360,7 +358,7 @@ func NewEnvironmentConfig() (*Config, error) {
 			return nil, fmt.Errorf("%s may only have two segments (<url> or <url>;<name>)", key)
 		}
 
-		url, err := s2igit.Parse(uri)
+		url, err := ParseURL(uri)
 		if err != nil {
 			return nil, fmt.Errorf("%s is not a valid repository URI: %v", key, err)
 		}

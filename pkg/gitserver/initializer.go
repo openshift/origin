@@ -15,8 +15,6 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/library-go/pkg/git"
-
-	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 var lazyInitMatch = regexp.MustCompile("^/([^\\/]+?)/info/refs$")
@@ -94,7 +92,7 @@ func RepositoryURL(config *Config, name string, r *http.Request) *url.URL {
 	return &url
 }
 
-func newRepository(config *Config, path string, hooks map[string]string, self *url.URL, origin *s2igit.URL) ([]byte, error) {
+func newRepository(config *Config, path string, hooks map[string]string, self *url.URL, origin *URL) ([]byte, error) {
 	var out []byte
 	repo := git.NewRepositoryForBinary(config.GitBinary)
 
