@@ -39,9 +39,8 @@ if [[ -n "${APPLY_PR_COMMITS-}" ]]; then
     selector="$(os::build::commit_range $pr ${remote}/${UPSTREAM_BRANCH:-master})"
 else
     pr_commit="$(git rev-parse ${remote}/pr/$1)"
-    merge="$(git merge-base ${pr_commit} ${remote}/${UPSTREAM_BRANCH:-master})"
-    echo "++ Will apply merge ${merge} as one commit ..."
-    selector="$(git rev-parse ${merge}^1)..${merge}"
+    echo "++ PR merge commit on branch ${UPSTREAM_BRANCH:-master}: ${pr_commit}"
+    selector="${pr_commit}^1..${pr_commit}"
 fi
 
 if [[ -z "${NO_REBASE-}" ]]; then
