@@ -7,7 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -70,8 +70,8 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 				o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
 				o.Expect(events).NotTo(o.BeNil(), "Build event list should not be nil")
 
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildStartedEventReason, buildapi.BuildStartedEventMessage)
-				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildCompletedEventReason, buildapi.BuildCompletedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildStartedEventReason, buildutil.BuildStartedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildCompletedEventReason, buildutil.BuildCompletedEventMessage)
 
 			})
 		})

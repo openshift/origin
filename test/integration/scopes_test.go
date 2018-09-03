@@ -10,10 +10,10 @@ import (
 	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -41,7 +41,7 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildclient.NewForConfigOrDie(haroldConfig).Build().Builds(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildv1client.NewForConfigOrDie(haroldConfig).Build().Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -65,7 +65,7 @@ func TestScopedTokens(t *testing.T) {
 	whoamiConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	whoamiConfig.BearerToken = whoamiOnlyToken.Name
 
-	if _, err := buildclient.NewForConfigOrDie(whoamiConfig).Build().Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
+	if _, err := buildv1client.NewForConfigOrDie(whoamiConfig).Build().Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -96,7 +96,7 @@ func TestScopedImpersonation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig)
 
 	projectName := "hammer-project"
 	userName := "harold"
@@ -145,7 +145,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildclient.NewForConfigOrDie(haroldConfig).Build().Builds(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildv1client.NewForConfigOrDie(haroldConfig).Build().Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

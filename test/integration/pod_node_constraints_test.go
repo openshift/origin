@@ -69,7 +69,7 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
@@ -114,7 +114,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	if err != nil {
 		t.Fatalf("error getting user/kube client: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting kube client: %v", err)
 	}

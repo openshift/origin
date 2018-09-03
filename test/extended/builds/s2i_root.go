@@ -4,11 +4,12 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
@@ -37,7 +38,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			err = oc.Run("new-build").Args("-D", "FROM centos/nodejs-6-centos7\nUSER 0", "--name", "nodejsroot").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "nodejsroot-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsroot-1", nil, nil, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -52,20 +53,20 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			err := oc.Run("new-app").Args("nodejsroot~https://github.com/sclorg/nodejs-ex", "--name", "nodejsfail").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
 			o.Expect(err).To(o.HaveOccurred())
 
-			build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
+			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseFailed))
+			o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseFailed))
 			o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonPullBuilderImageFailed))
 			o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessagePullBuilderImageFailed))
 
-			podname := build.Annotations[buildapi.BuildPodNameAnnotation]
+			podname := build.Annotations[buildutil.BuildPodNameAnnotation]
 			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			containers := make([]kapiv1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+			containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
 			copy(containers, pod.Spec.Containers)
 			copy(containers[len(pod.Spec.Containers):], pod.Spec.InitContainers)
 
@@ -94,17 +95,17 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			err = oc.Run("new-app").Args("nodejsroot~https://github.com/sclorg/nodejs-ex", "--name", "nodejspass").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
+			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			podname := build.Annotations[buildapi.BuildPodNameAnnotation]
+			podname := build.Annotations[buildutil.BuildPodNameAnnotation]
 			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			containers := make([]kapiv1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+			containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
 			copy(containers, pod.Spec.Containers)
 			copy(containers[len(pod.Spec.Containers):], pod.Spec.InitContainers)
 

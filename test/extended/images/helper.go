@@ -168,13 +168,13 @@ func BuildAndPushImageOfSizeWithBuilder(
 		istName += ":" + tag
 	}
 
-	bc, err := oc.InternalBuildClient().Build().BuildConfigs(namespace).Get(name, metav1.GetOptions{})
+	bc, err := oc.BuildClient().Build().BuildConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err == nil {
 		if bc.Spec.CommonSpec.Output.To.Kind != "ImageStreamTag" {
 			return fmt.Errorf("Unexpected kind of buildspec's output (%s != %s)", bc.Spec.CommonSpec.Output.To.Kind, "ImageStreamTag")
 		}
 		bc.Spec.CommonSpec.Output.To.Name = istName
-		if _, err = oc.InternalBuildClient().Build().BuildConfigs(namespace).Update(bc); err != nil {
+		if _, err = oc.BuildClient().Build().BuildConfigs(namespace).Update(bc); err != nil {
 			return err
 		}
 	} else {

@@ -5,11 +5,13 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/origin/pkg/build/buildscheme"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -42,7 +44,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for imagestreams to be imported")
-			err = exutil.WaitForAnImageStream(oc.AdminImageClient().Image().ImageStreams("openshift"), "ruby", exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
+			err = exutil.WaitForAnImageStream(oc.AdminInternalImageClient().Image().ImageStreams("openshift"), "ruby", exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -133,10 +135,9 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundEnv = true
 
-						obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
+						obj, err := runtime.Decode(buildscheme.Decoder, []byte(env.Value))
 						o.Expect(err).NotTo(o.HaveOccurred())
-						ok := false
-						build, ok := obj.(*buildapi.Build)
+						build, ok := obj.(*buildv1.Build)
 						o.Expect(ok).To(o.BeTrue(), "could not convert build env\n %s\n to a build object", env.Value)
 						o.Expect(build.Spec.Strategy.SourceStrategy.From.Kind).To(o.Equal("DockerImage"))
 						o.Expect(build.Spec.Strategy.SourceStrategy.From.Name).To(o.ContainSubstring("@sha256:"))
@@ -179,10 +180,9 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundEnv = true
 
-						obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
+						obj, err := runtime.Decode(buildscheme.Decoder, []byte(env.Value))
 						o.Expect(err).NotTo(o.HaveOccurred())
-						ok := false
-						build, ok := obj.(*buildapi.Build)
+						build, ok := obj.(*buildv1.Build)
 						o.Expect(ok).To(o.BeTrue(), "could not convert build env\n %s\n to a build object", env.Value)
 						o.Expect(build.Spec.Strategy.DockerStrategy.From.Kind).To(o.Equal("DockerImage"))
 						o.Expect(build.Spec.Strategy.DockerStrategy.From.Name).To(o.ContainSubstring("@sha256:"))
@@ -226,11 +226,10 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundBuildEnv = true
 
-						obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
+						obj, err := runtime.Decode(buildscheme.Decoder, []byte(env.Value))
 						o.Expect(err).NotTo(o.HaveOccurred())
-						ok := false
-						build, ok := obj.(*buildapi.Build)
-						o.Expect(ok).To(o.BeTrue(), "could not convert build env\n %s\n to a build object", env.Value)
+						build, ok := obj.(*buildv1.Build)
+						o.Expect(ok).To(o.BeTrue(), "could not convert build env\n %s\n to a build object (%+v)", env.Value, obj)
 						o.Expect(build.Spec.Strategy.CustomStrategy.From.Kind).To(o.Equal("DockerImage"))
 						o.Expect(build.Spec.Strategy.CustomStrategy.From.Name).To(o.ContainSubstring("@sha256:"))
 						o.Expect(build.Spec.Strategy.CustomStrategy.PullSecret).NotTo(o.BeNil())
@@ -242,7 +241,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 						o.Expect(build.Spec.Output.To.Kind).To(o.Equal("DockerImage"))
 						o.Expect(build.Spec.Output.PushSecret).NotTo(o.BeNil())
 					}
-					if env.Name == buildapi.CustomBuildStrategyBaseImageKey {
+					if env.Name == buildutil.CustomBuildStrategyBaseImageKey {
 						foundCustomEnv = true
 						o.Expect(env.Value).To(o.ContainSubstring("@sha256:"))
 					}

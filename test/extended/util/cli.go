@@ -29,12 +29,12 @@ import (
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/lib/kubeconfig"
@@ -264,8 +264,8 @@ func (c *CLI) RESTMapper() meta.RESTMapper {
 	return ret
 }
 
-func (c *CLI) AppsClient() appsclient.Interface {
-	client, err := appsclient.NewForConfig(c.UserConfig())
+func (c *CLI) AppsClient() appsv1client.Interface {
+	client, err := appsv1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -280,16 +280,8 @@ func (c *CLI) AuthorizationClient() authorizationclientset.Interface {
 	return client
 }
 
-func (c *CLI) BuildClient() buildclient.Interface {
-	client, err := buildclient.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-func (c *CLI) InternalBuildClient() buildclientset.Interface {
-	client, err := buildclientset.NewForConfig(c.UserConfig())
+func (c *CLI) BuildClient() buildv1client.Interface {
+	client, err := buildv1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -348,8 +340,8 @@ func (c *CLI) UserClient() userclientset.Interface {
 	return client
 }
 
-func (c *CLI) AdminAppsClient() appsclient.Interface {
-	client, err := appsclient.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminAppsClient() appsv1client.Interface {
+	client, err := appsv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -364,15 +356,24 @@ func (c *CLI) AdminAuthorizationClient() authorizationclientset.Interface {
 	return client
 }
 
-func (c *CLI) AdminBuildClient() buildclientset.Interface {
-	client, err := buildclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminBuildClient() buildv1client.Interface {
+	client, err := buildv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
 	return client
 }
 
-func (c *CLI) AdminImageClient() imageclientset.Interface {
+func (c *CLI) AdminImageClient() imagev1client.Interface {
+	client, err := imagev1client.NewForConfig(c.AdminConfig())
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+// DEPRECATED: use external
+func (c *CLI) AdminInternalImageClient() imageclientset.Interface {
 	client, err := imageclientset.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)

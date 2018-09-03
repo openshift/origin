@@ -16,6 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image/docker10"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -122,7 +123,7 @@ main:
 
 func TestDescribeBuildDuration(t *testing.T) {
 	type testBuild struct {
-		build  *buildapi.Build
+		build  *buildv1.Build
 		output string
 	}
 
@@ -134,103 +135,103 @@ func TestDescribeBuildDuration(t *testing.T) {
 
 	tests := []testBuild{
 		{ // 0 - build new
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: minuteAgo},
-				Status: buildapi.BuildStatus{
-					Phase: buildapi.BuildPhaseNew,
+				Status: buildv1.BuildStatus{
+					Phase: buildv1.BuildPhaseNew,
 				},
 			},
 			"waiting for 1m",
 		},
 		{ // 1 - build pending
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: minuteAgo},
-				Status: buildapi.BuildStatus{
-					Phase: buildapi.BuildPhasePending,
+				Status: buildv1.BuildStatus{
+					Phase: buildv1.BuildPhasePending,
 				},
 			},
 			"waiting for 1m",
 		},
 		{ // 2 - build running
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: twoMinutesAgo},
-				Status: buildapi.BuildStatus{
+				Status: buildv1.BuildStatus{
 					StartTimestamp: &minuteAgo,
-					Phase:          buildapi.BuildPhaseRunning,
+					Phase:          buildv1.BuildPhaseRunning,
 				},
 			},
 			"running for 1m",
 		},
 		{ // 3 - build completed
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
-				Status: buildapi.BuildStatus{
+				Status: buildv1.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
-					Phase:               buildapi.BuildPhaseComplete,
+					Phase:               buildv1.BuildPhaseComplete,
 				},
 			},
 			"1m",
 		},
 		{ // 4 - build failed
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
-				Status: buildapi.BuildStatus{
+				Status: buildv1.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
-					Phase:               buildapi.BuildPhaseFailed,
+					Phase:               buildv1.BuildPhaseFailed,
 				},
 			},
 			"1m",
 		},
 		{ // 5 - build error
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
-				Status: buildapi.BuildStatus{
+				Status: buildv1.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
-					Phase:               buildapi.BuildPhaseError,
+					Phase:               buildv1.BuildPhaseError,
 				},
 			},
 			"1m",
 		},
 		{ // 6 - build cancelled before running, start time wasn't set yet
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
-				Status: buildapi.BuildStatus{
+				Status: buildv1.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
-					Phase:               buildapi.BuildPhaseCancelled,
+					Phase:               buildv1.BuildPhaseCancelled,
 				},
 			},
 			"waited for 2m",
 		},
 		{ // 7 - build cancelled while running, start time is set already
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
-				Status: buildapi.BuildStatus{
+				Status: buildv1.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
-					Phase:               buildapi.BuildPhaseCancelled,
+					Phase:               buildv1.BuildPhaseCancelled,
 				},
 			},
 			"1m",
 		},
 		{ // 8 - build failed before running, start time wasn't set yet
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
-				Status: buildapi.BuildStatus{
+				Status: buildv1.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
-					Phase:               buildapi.BuildPhaseFailed,
+					Phase:               buildv1.BuildPhaseFailed,
 				},
 			},
 			"waited for 2m",
 		},
 		{ // 9 - build error before running, start time wasn't set yet
-			&buildapi.Build{
+			&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
-				Status: buildapi.BuildStatus{
+				Status: buildv1.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
-					Phase:               buildapi.BuildPhaseError,
+					Phase:               buildv1.BuildPhaseError,
 				},
 			},
 			"waited for 2m",
@@ -278,40 +279,40 @@ func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 
 func TestDescribePostCommitHook(t *testing.T) {
 	tests := []struct {
-		hook buildapi.BuildPostCommitSpec
+		hook buildv1.BuildPostCommitSpec
 		want string
 	}{
 		{
-			hook: buildapi.BuildPostCommitSpec{},
+			hook: buildv1.BuildPostCommitSpec{},
 			want: "",
 		},
 		{
-			hook: buildapi.BuildPostCommitSpec{
+			hook: buildv1.BuildPostCommitSpec{
 				Script: "go test",
 			},
 			want: `"/bin/sh", "-ic", "go test"`,
 		},
 		{
-			hook: buildapi.BuildPostCommitSpec{
+			hook: buildv1.BuildPostCommitSpec{
 				Command: []string{"go", "test"},
 			},
 			want: `"go", "test"`,
 		},
 		{
-			hook: buildapi.BuildPostCommitSpec{
+			hook: buildv1.BuildPostCommitSpec{
 				Args: []string{"go", "test"},
 			},
 			want: `"<image-entrypoint>", "go", "test"`,
 		},
 		{
-			hook: buildapi.BuildPostCommitSpec{
+			hook: buildv1.BuildPostCommitSpec{
 				Script: `go test "$@"`,
 				Args:   []string{"-v", "-timeout", "2s"},
 			},
 			want: `"/bin/sh", "-ic", "go test \"$@\"", "/bin/sh", "-v", "-timeout", "2s"`,
 		},
 		{
-			hook: buildapi.BuildPostCommitSpec{
+			hook: buildv1.BuildPostCommitSpec{
 				Command: []string{"go", "test"},
 				Args:    []string{"-v", "-timeout", "2s"},
 			},
@@ -320,7 +321,7 @@ func TestDescribePostCommitHook(t *testing.T) {
 		{
 			// Invalid hook: Script and Command are not allowed
 			// together. For printing, Script takes precedence.
-			hook: buildapi.BuildPostCommitSpec{
+			hook: buildv1.BuildPostCommitSpec{
 				Script:  "go test -v",
 				Command: []string{"go", "test"},
 			},
@@ -346,23 +347,23 @@ func TestDescribePostCommitHook(t *testing.T) {
 
 func TestDescribeBuildSpec(t *testing.T) {
 	tests := []struct {
-		spec buildapi.BuildSpec
+		spec buildv1.BuildSpec
 		want string
 	}{
 		{
-			spec: buildapi.BuildSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{
-						Git: &buildapi.GitBuildSource{
+			spec: buildv1.BuildSpec{
+				CommonSpec: buildv1.CommonSpec{
+					Source: buildv1.BuildSource{
+						Git: &buildv1.GitBuildSource{
 							URI: "http://github.com/my/repository",
 						},
 						ContextDir: "context",
 					},
-					Strategy: buildapi.BuildStrategy{
-						DockerStrategy: &buildapi.DockerBuildStrategy{},
+					Strategy: buildv1.BuildStrategy{
+						DockerStrategy: &buildv1.DockerBuildStrategy{},
 					},
-					Output: buildapi.BuildOutput{
-						To: &kapi.ObjectReference{
+					Output: buildv1.BuildOutput{
+						To: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "repository/data",
 						},
@@ -372,19 +373,19 @@ func TestDescribeBuildSpec(t *testing.T) {
 			want: "URL",
 		},
 		{
-			spec: buildapi.BuildSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{},
-					Strategy: buildapi.BuildStrategy{
-						SourceStrategy: &buildapi.SourceBuildStrategy{
-							From: kapi.ObjectReference{
+			spec: buildv1.BuildSpec{
+				CommonSpec: buildv1.CommonSpec{
+					Source: buildv1.BuildSource{},
+					Strategy: buildv1.BuildStrategy{
+						SourceStrategy: &buildv1.SourceBuildStrategy{
+							From: corev1.ObjectReference{
 								Kind: "DockerImage",
 								Name: "myimage:tag",
 							},
 						},
 					},
-					Output: buildapi.BuildOutput{
-						To: &kapi.ObjectReference{
+					Output: buildv1.BuildOutput{
+						To: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "repository/data",
 						},
@@ -394,19 +395,19 @@ func TestDescribeBuildSpec(t *testing.T) {
 			want: "Empty Source",
 		},
 		{
-			spec: buildapi.BuildSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{},
-					Strategy: buildapi.BuildStrategy{
-						CustomStrategy: &buildapi.CustomBuildStrategy{
-							From: kapi.ObjectReference{
+			spec: buildv1.BuildSpec{
+				CommonSpec: buildv1.CommonSpec{
+					Source: buildv1.BuildSource{},
+					Strategy: buildv1.BuildStrategy{
+						CustomStrategy: &buildv1.CustomBuildStrategy{
+							From: corev1.ObjectReference{
 								Kind: "DockerImage",
 								Name: "myimage:tag",
 							},
 						},
 					},
-					Output: buildapi.BuildOutput{
-						To: &kapi.ObjectReference{
+					Output: buildv1.BuildOutput{
+						To: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "repository/data",
 						},
@@ -416,11 +417,11 @@ func TestDescribeBuildSpec(t *testing.T) {
 			want: "Empty Source",
 		},
 		{
-			spec: buildapi.BuildSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{},
-					Strategy: buildapi.BuildStrategy{
-						JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+			spec: buildv1.BuildSpec{
+				CommonSpec: buildv1.CommonSpec{
+					Source: buildv1.BuildSource{},
+					Strategy: buildv1.BuildStrategy{
+						JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
 							Jenkinsfile: "openshiftBuild",
 						},
 					},

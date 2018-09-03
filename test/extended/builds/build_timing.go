@@ -7,11 +7,11 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func verifyStages(stages []buildapi.StageInfo, expectedStages map[string][]string) {
+func verifyStages(stages []buildv1.StageInfo, expectedStages map[string][]string) {
 	for _, stage := range stages {
 		expectedDurations, ok := expectedStages[string(stage.Name)]
 		if !ok {

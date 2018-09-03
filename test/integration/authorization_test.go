@@ -33,7 +33,8 @@ import (
 	"github.com/openshift/api/build"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -41,7 +42,6 @@ import (
 	authorizationclientscheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -232,12 +232,12 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = appsclient.NewForConfigOrDie(haroldConfig).Apps().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
+	_, err = appsv1client.NewForConfigOrDie(haroldConfig).Apps().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = appsclient.NewForConfigOrDie(markConfig).Apps().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
+	_, err = appsv1client.NewForConfigOrDie(markConfig).Apps().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -347,12 +347,12 @@ func TestAuthorizationResolution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	buildClient := buildclient.NewForConfigOrDie(userClientConfig)
-	appsClient := appsclient.NewForConfigOrDie(userClientConfig)
+	buildClient := buildv1client.NewForConfigOrDie(userClientConfig)
+	appsClient := appsv1client.NewForConfigOrDie(userClientConfig)
 
 	// the authorization cache may not be up to date, retry
 	if err := wait.Poll(10*time.Millisecond, 2*time.Minute, func() (bool, error) {
-		_, err := buildClient.Build().Builds(metav1.NamespaceDefault).List(metav1.ListOptions{})
+		_, err := buildClient.BuildV1().Builds(metav1.NamespaceDefault).List(metav1.ListOptions{})
 		if kapierror.IsForbidden(err) {
 			return false, nil
 		}
@@ -848,7 +848,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -985,7 +985,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

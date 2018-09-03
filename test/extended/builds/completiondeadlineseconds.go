@@ -1,14 +1,14 @@
 package builds
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -53,13 +53,13 @@ var _ = g.Describe("[Feature:Builds][Slow] builds should have deadlines", func()
 				o.Expect(br.StartBuildErr).To(o.HaveOccurred()) // start-build should detect the build error
 
 				g.By("verifying the build status")
-				o.Expect(br.BuildAttempt).To(o.BeTrue())                                            // the build should have been attempted
-				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseFailed)) // the build should have failed
+				o.Expect(br.BuildAttempt).To(o.BeTrue())                                           // the build should have been attempted
+				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildv1.BuildPhaseFailed)) // the build should have failed
 
 				g.By("verifying the build pod status")
-				pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(buildinternalhelpers.GetBuildPodName(br.Build), metav1.GetOptions{})
+				pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(buildutil.GetBuildPodName(br.Build), metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(pod.Status.Phase).Should(o.BeEquivalentTo(kapi.PodFailed))
+				o.Expect(pod.Status.Phase).Should(o.BeEquivalentTo(corev1.PodFailed))
 				o.Expect(pod.Status.Reason).Should(o.ContainSubstring("DeadlineExceeded"))
 
 			})
@@ -77,13 +77,13 @@ var _ = g.Describe("[Feature:Builds][Slow] builds should have deadlines", func()
 				o.Expect(br.StartBuildErr).To(o.HaveOccurred()) // start-build should detect the build error
 
 				g.By("verifying the build status")
-				o.Expect(br.BuildAttempt).To(o.BeTrue())                                            // the build should have been attempted
-				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseFailed)) // the build should have failed
+				o.Expect(br.BuildAttempt).To(o.BeTrue())                                           // the build should have been attempted
+				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildv1.BuildPhaseFailed)) // the build should have failed
 
 				g.By("verifying the build pod status")
-				pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(buildinternalhelpers.GetBuildPodName(br.Build), metav1.GetOptions{})
+				pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(buildutil.GetBuildPodName(br.Build), metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(pod.Status.Phase).Should(o.BeEquivalentTo(kapi.PodFailed))
+				o.Expect(pod.Status.Phase).Should(o.BeEquivalentTo(corev1.PodFailed))
 				o.Expect(pod.Status.Reason).Should(o.ContainSubstring("DeadlineExceeded"))
 
 			})

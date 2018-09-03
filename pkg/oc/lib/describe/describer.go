@@ -31,6 +31,7 @@ import (
 	oapps "github.com/openshift/api/apps"
 	"github.com/openshift/api/authorization"
 	"github.com/openshift/api/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/network"
 	"github.com/openshift/api/oauth"
@@ -42,13 +43,14 @@ import (
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
@@ -100,7 +102,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	if err != nil {
 		glog.V(1).Info(err)
 	}
-	buildClient, err := buildclient.NewForConfig(clientConfig)
+	buildClient, err := buildv1clienttyped.NewForConfig(clientConfig)
 	if err != nil {
 		glog.V(1).Info(err)
 	}
@@ -174,7 +176,7 @@ func DescriberFor(kind schema.GroupKind, clientConfig *rest.Config, kclient kcli
 
 // BuildDescriber generates information about a build
 type BuildDescriber struct {
-	buildClient buildclient.BuildInterface
+	buildClient buildv1clienttyped.BuildV1Interface
 	kubeClient  kclientset.Interface
 }
 
@@ -190,7 +192,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildinternalhelpers.GetBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
+	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildutil.GetBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
 		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
@@ -224,7 +226,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		if buildObj.Status.Config != nil {
 			formatString(out, "Build Config", buildObj.Status.Config.Name)
 		}
-		formatString(out, "Build Pod", buildinternalhelpers.GetBuildPodName(buildObj))
+		formatString(out, "Build Pod", buildutil.GetBuildPodName(buildObj))
 
 		if buildObj.Status.Output.To != nil && len(buildObj.Status.Output.To.ImageDigest) > 0 {
 			formatString(out, "Image Digest", buildObj.Status.Output.To.ImageDigest)
@@ -243,16 +245,16 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 	})
 }
 
-func describeBuildDuration(build *buildapi.Build) string {
+func describeBuildDuration(build *buildv1.Build) string {
 	t := metav1.Now().Rfc3339Copy()
 	if build.Status.StartTimestamp == nil &&
 		build.Status.CompletionTimestamp != nil &&
-		(build.Status.Phase == buildapi.BuildPhaseCancelled ||
-			build.Status.Phase == buildapi.BuildPhaseFailed ||
-			build.Status.Phase == buildapi.BuildPhaseError) {
+		(build.Status.Phase == buildv1.BuildPhaseCancelled ||
+			build.Status.Phase == buildv1.BuildPhaseFailed ||
+			build.Status.Phase == buildv1.BuildPhaseError) {
 		// time a build waited for its pod before ultimately being cancelled before that pod was created
 		return fmt.Sprintf("waited for %s", build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
-	} else if build.Status.StartTimestamp == nil && build.Status.Phase != buildapi.BuildPhaseCancelled {
+	} else if build.Status.StartTimestamp == nil && build.Status.Phase != buildv1.BuildPhaseCancelled {
 		// time a new build has been waiting for its pod to be created so it can run
 		return fmt.Sprintf("waiting for %v", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 	} else if build.Status.StartTimestamp != nil && build.Status.CompletionTimestamp == nil {
@@ -261,7 +263,7 @@ func describeBuildDuration(build *buildapi.Build) string {
 		return fmt.Sprintf("running for %v", duration)
 	} else if build.Status.CompletionTimestamp == nil &&
 		build.Status.StartTimestamp == nil &&
-		build.Status.Phase == buildapi.BuildPhaseCancelled {
+		build.Status.Phase == buildv1.BuildPhaseCancelled {
 		return "<none>"
 	}
 
@@ -271,7 +273,7 @@ func describeBuildDuration(build *buildapi.Build) string {
 
 // BuildConfigDescriber generates information about a buildConfig
 type BuildConfigDescriber struct {
-	buildClient buildclient.BuildInterface
+	buildClient buildv1clienttyped.BuildV1Interface
 	kubeClient  kclientset.Interface
 	host        string
 }
@@ -283,8 +285,8 @@ func nameAndNamespace(ns, name string) string {
 	return name
 }
 
-func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
-	formatString(out, "\nStrategy", buildinternalhelpers.StrategyType(p.Strategy))
+func describeCommonSpec(p buildv1.CommonSpec, out *tabwriter.Writer) {
+	formatString(out, "\nStrategy", buildapihelpers.StrategyType(p.Strategy))
 	noneType := true
 	if p.Source.Git != nil {
 		noneType = false
@@ -382,7 +384,7 @@ func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
 	}
 }
 
-func describePostCommitHook(hook buildapi.BuildPostCommitSpec, out *tabwriter.Writer) {
+func describePostCommitHook(hook buildv1.BuildPostCommitSpec, out *tabwriter.Writer) {
 	command := hook.Command
 	args := hook.Args
 	script := hook.Script
@@ -408,7 +410,7 @@ func describePostCommitHook(hook buildapi.BuildPostCommitSpec, out *tabwriter.Wr
 	formatString(out, "Post Commit Hook", fmt.Sprintf("[%s]", strings.Join(all, ", ")))
 }
 
-func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writer) {
+func describeSourceStrategy(s *buildv1.SourceBuildStrategy, out *tabwriter.Writer) {
 	if len(s.From.Name) != 0 {
 		formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, nameAndNamespace(s.From.Namespace, s.From.Name)))
 	}
@@ -426,7 +428,7 @@ func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writ
 	}
 }
 
-func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writer) {
+func describeDockerStrategy(s *buildv1.DockerBuildStrategy, out *tabwriter.Writer) {
 	if s.From != nil && len(s.From.Name) != 0 {
 		formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, nameAndNamespace(s.From.Namespace, s.From.Name)))
 	}
@@ -444,7 +446,7 @@ func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writ
 	}
 }
 
-func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writer) {
+func describeCustomStrategy(s *buildv1.CustomBuildStrategy, out *tabwriter.Writer) {
 	if len(s.From.Name) != 0 {
 		formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, nameAndNamespace(s.From.Namespace, s.From.Name)))
 	}
@@ -466,7 +468,7 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 	}
 }
 
-func describeJenkinsPipelineStrategy(s *buildapi.JenkinsPipelineBuildStrategy, out *tabwriter.Writer) {
+func describeJenkinsPipelineStrategy(s *buildv1.JenkinsPipelineBuildStrategy, out *tabwriter.Writer) {
 	if len(s.JenkinsfilePath) != 0 {
 		formatString(out, "Jenkinsfile path", s.JenkinsfilePath)
 	}
@@ -483,11 +485,11 @@ func describeJenkinsPipelineStrategy(s *buildapi.JenkinsPipelineBuildStrategy, o
 
 // DescribeTriggers generates information about the triggers associated with a
 // buildconfig
-func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *tabwriter.Writer) {
+func (d *BuildConfigDescriber) DescribeTriggers(bc *buildv1.BuildConfig, out *tabwriter.Writer) {
 	describeBuildTriggers(bc.Spec.Triggers, bc.Name, bc.Namespace, out, d)
 }
 
-func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespace string, w *tabwriter.Writer, d *BuildConfigDescriber) {
+func describeBuildTriggers(triggers []buildv1.BuildTriggerPolicy, name, namespace string, w *tabwriter.Writer, d *BuildConfigDescriber) {
 	if len(triggers) == 0 {
 		formatString(w, "Triggered by", "<none>")
 		return
@@ -497,11 +499,11 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 
 	for _, t := range triggers {
 		switch t.Type {
-		case buildapi.GitHubWebHookBuildTriggerType, buildapi.GenericWebHookBuildTriggerType, buildapi.GitLabWebHookBuildTriggerType, buildapi.BitbucketWebHookBuildTriggerType:
+		case buildv1.GitHubWebHookBuildTriggerType, buildv1.GenericWebHookBuildTriggerType, buildv1.GitLabWebHookBuildTriggerType, buildv1.BitbucketWebHookBuildTriggerType:
 			continue
-		case buildapi.ConfigChangeBuildTriggerType:
+		case buildv1.ConfigChangeBuildTriggerType:
 			labels = append(labels, "Config")
-		case buildapi.ImageChangeBuildTriggerType:
+		case buildv1.ImageChangeBuildTriggerType:
 			if t.ImageChange != nil && t.ImageChange.From != nil && len(t.ImageChange.From.Name) > 0 {
 				labels = append(labels, fmt.Sprintf("Image(%s %s)", t.ImageChange.From.Kind, t.ImageChange.From.Name))
 			} else {
@@ -546,7 +548,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 	if err != nil {
 		return "", err
 	}
-	buildList.Items = ocbuildapihelpers.FilterBuildsInternal(buildList.Items, ocbuildapihelpers.ByBuildConfigPredicateInternal(name))
+	buildList.Items = ocbuildapihelpers.FilterBuilds(buildList.Items, ocbuildapihelpers.ByBuildConfigPredicate(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
@@ -573,7 +575,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 			fmt.Fprintf(out, "\nBuild\tStatus\tDuration\tCreation Time\n")
 
 			builds := buildList.Items
-			sort.Sort(sort.Reverse(buildinternalhelpers.BuildSliceByCreationTimestamp(builds)))
+			sort.Sort(sort.Reverse(buildapihelpers.BuildSliceByCreationTimestamp(builds)))
 
 			for i, build := range builds {
 				fmt.Fprintf(out, "%s \t%s \t%v \t%v\n",
@@ -1602,7 +1604,7 @@ func (d *ClusterRoleBindingDescriber) Describe(namespace, name string, settings 
 	return DescribeRoleBinding(authorizationapi.ToRoleBinding(roleBinding), authorizationapi.ToRole(role), err)
 }
 
-func describeBuildTriggerCauses(causes []buildapi.BuildTriggerCause, out *tabwriter.Writer) {
+func describeBuildTriggerCauses(causes []buildv1.BuildTriggerCause, out *tabwriter.Writer) {
 	if causes == nil {
 		formatString(out, "\nBuild trigger cause", "<unknown>")
 	}
@@ -1635,7 +1637,7 @@ func describeBuildTriggerCauses(causes []buildapi.BuildTriggerCause, out *tabwri
 	fmt.Fprintf(out, "\n")
 }
 
-func squashGitInfo(sourceRevision *buildapi.SourceRevision, out *tabwriter.Writer) {
+func squashGitInfo(sourceRevision *buildv1.SourceRevision, out *tabwriter.Writer) {
 	if sourceRevision != nil && sourceRevision.Git != nil {
 		rev := sourceRevision.Git
 		var commit string

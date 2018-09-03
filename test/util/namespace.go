@@ -28,7 +28,7 @@ func RandomNamespace(prefix string) string {
 // CreateNamespace creates a namespace with the specified name using the provided kubeconfig
 // DO NOT USE, use create project instead
 func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
-	clusterAdminKubeClient, err := GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		return err
 	}

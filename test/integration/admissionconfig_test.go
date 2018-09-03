@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,8 +18,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
@@ -38,7 +40,7 @@ func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig))
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
@@ -122,17 +124,17 @@ func admissionTestPod() *kapi.Pod {
 	return pod
 }
 
-func admissionTestBuild() *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{
+func admissionTestBuild() *buildv1.Build {
+	build := &buildv1.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
-			buildapi.BuildConfigLabel:    "mock-build-config",
-			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
+			buildutil.BuildConfigLabel:    "mock-build-config",
+			buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 		},
 	}}
 	build.Name = "test-build"
-	build.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://build.uri/build"}
-	build.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
-	build.Spec.Output.To = &kapi.ObjectReference{
+	build.Spec.Source.Git = &buildv1.GitBuildSource{URI: "http://build.uri/build"}
+	build.Spec.Strategy.DockerStrategy = &buildv1.DockerBuildStrategy{}
+	build.Spec.Output.To = &corev1.ObjectReference{
 		Kind: "DockerImage",
 		Name: "namespace/image",
 	}
@@ -248,7 +250,7 @@ func TestOpenshiftAdmissionPluginOrderOverride(t *testing.T) {
 	})
 	defer fn()
 
-	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildv1client.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err != nil {
 		t.Errorf("Unexpected error creating build: %v", err)
 	}
@@ -270,7 +272,7 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 		}
 	})
 	defer fn()
-	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildv1client.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err = checkAdmissionObjectLabelValues(createdBuild.Labels, map[string]string{"plugin1": "default", "plugin2": "plugin2configvalue"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -290,7 +292,7 @@ func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 		}
 	})
 	defer fn()
-	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildv1client.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err = checkAdmissionObjectLabelValues(createdBuild.Labels, map[string]string{"plugin1": "default", "plugin2": "embeddedvalue2"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -311,7 +313,7 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
@@ -351,7 +353,7 @@ func TestAlwaysPullImagesOff(t *testing.T) {
 		t.Fatalf("error starting server: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}

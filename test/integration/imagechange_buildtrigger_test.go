@@ -3,6 +3,7 @@ package integration
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
@@ -12,8 +13,8 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/api/build"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -134,30 +135,30 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 	runTest(t, "SimpleImageChangeBuildTriggerFromImageStreamTagCustom", projectAdminConfig, imageStream, imageStreamMapping, config, tag)
 }
 
-func dockerStrategy(kind, name string) buildapi.BuildStrategy {
-	return buildapi.BuildStrategy{
-		DockerStrategy: &buildapi.DockerBuildStrategy{
-			From: &kapi.ObjectReference{
+func dockerStrategy(kind, name string) buildv1.BuildStrategy {
+	return buildv1.BuildStrategy{
+		DockerStrategy: &buildv1.DockerBuildStrategy{
+			From: &corev1.ObjectReference{
 				Kind: kind,
 				Name: name,
 			},
 		},
 	}
 }
-func stiStrategy(kind, name string) buildapi.BuildStrategy {
-	return buildapi.BuildStrategy{
-		SourceStrategy: &buildapi.SourceBuildStrategy{
-			From: kapi.ObjectReference{
+func stiStrategy(kind, name string) buildv1.BuildStrategy {
+	return buildv1.BuildStrategy{
+		SourceStrategy: &buildv1.SourceBuildStrategy{
+			From: corev1.ObjectReference{
 				Kind: kind,
 				Name: name,
 			},
 		},
 	}
 }
-func customStrategy(kind, name string) buildapi.BuildStrategy {
-	return buildapi.BuildStrategy{
-		CustomStrategy: &buildapi.CustomBuildStrategy{
-			From: kapi.ObjectReference{
+func customStrategy(kind, name string) buildv1.BuildStrategy {
+	return buildv1.BuildStrategy{
+		CustomStrategy: &buildv1.CustomBuildStrategy{
+			From: corev1.ObjectReference{
 				Kind: kind,
 				Name: name,
 			},
@@ -165,43 +166,44 @@ func customStrategy(kind, name string) buildapi.BuildStrategy {
 	}
 }
 
-func imageChangeBuildConfig(name string, strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
-	return &buildapi.BuildConfig{
+func imageChangeBuildConfig(name string, strategy buildv1.BuildStrategy) *buildv1.BuildConfig {
+	return &buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: testutil.Namespace(),
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
-		Spec: buildapi.BuildConfigSpec{
+		Spec: buildv1.BuildConfigSpec{
 
-			RunPolicy: buildapi.BuildRunPolicyParallel,
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
+			RunPolicy: buildv1.BuildRunPolicyParallel,
+			CommonSpec: buildv1.CommonSpec{
+				Source: buildv1.BuildSource{
+					Git: &buildv1.GitBuildSource{
 						URI: "git://github.com/openshift/ruby-hello-world.git",
 					},
 					ContextDir: "contextimage",
 				},
 				Strategy: strategy,
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "test-image-trigger-repo:outputtag",
 					},
 				},
 			},
-			Triggers: []buildapi.BuildTriggerPolicy{
+			Triggers: []buildv1.BuildTriggerPolicy{
 				{
-					Type:        buildapi.ImageChangeBuildTriggerType,
-					ImageChange: &buildapi.ImageChangeTrigger{},
+					Type:        buildv1.ImageChangeBuildTriggerType,
+					ImageChange: &buildv1.ImageChangeTrigger{},
 				},
 			},
 		},
 	}
 }
-func imageChangeBuildConfigWithConfigChange(name string, strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
+
+func imageChangeBuildConfigWithConfigChange(name string, strategy buildv1.BuildStrategy) *buildv1.BuildConfig {
 	bc := imageChangeBuildConfig(name, strategy)
-	bc.Spec.Triggers = append(bc.Spec.Triggers, buildapi.BuildTriggerPolicy{Type: buildapi.ConfigChangeBuildTriggerType})
+	bc.Spec.Triggers = append(bc.Spec.Triggers, buildv1.BuildTriggerPolicy{Type: buildv1.ConfigChangeBuildTriggerType})
 	return bc
 }
 
@@ -258,8 +260,8 @@ func setup(t *testing.T) (*rest.Config, kclientset.Interface, *rest.Config, func
 	}
 }
 
-func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Config, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {
-	projectAdminBuildClient := buildclient.NewForConfigOrDie(projectAdminClientConfig).Build()
+func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Config, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildv1.BuildConfig, tag string) {
+	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminClientConfig).Build()
 	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig).Image()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
@@ -294,7 +296,7 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newBuild := event.Object.(*buildapi.Build)
+	newBuild := event.Object.(*buildv1.Build)
 	build1Name := newBuild.Name
 	strategy := newBuild.Spec.Strategy
 	switch {
@@ -321,7 +323,7 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s: %#v", e, a, event.Object)
 	}
-	newBuild = event.Object.(*buildapi.Build)
+	newBuild = event.Object.(*buildv1.Build)
 	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
 	if newBuild.Spec.Output.To.Name != "test-image-trigger-repo:outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
@@ -362,7 +364,7 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 	// we just triggered
 	for {
 		event = <-buildWatch.ResultChan()
-		newBuild = event.Object.(*buildapi.Build)
+		newBuild = event.Object.(*buildv1.Build)
 		if newBuild.Name != build1Name {
 			break
 		}
@@ -396,7 +398,7 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 	// we just triggered
 	for {
 		event = <-buildWatch.ResultChan()
-		newBuild = event.Object.(*buildapi.Build)
+		newBuild = event.Object.(*buildv1.Build)
 		if newBuild.Name != build1Name {
 			break
 		}
@@ -454,28 +456,28 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		}
 
 	}
-	multipleImageChangeBuildConfig := func() *buildapi.BuildConfig {
+	multipleImageChangeBuildConfig := func() *buildv1.BuildConfig {
 		strategy := stiStrategy("ImageStreamTag", "image1:tag1")
 		bc := imageChangeBuildConfig("multi-image-trigger", strategy)
 		bc.Spec.CommonSpec.Output.To.Name = "image1:outputtag"
-		bc.Spec.Triggers = []buildapi.BuildTriggerPolicy{
+		bc.Spec.Triggers = []buildv1.BuildTriggerPolicy{
 			{
-				Type:        buildapi.ImageChangeBuildTriggerType,
-				ImageChange: &buildapi.ImageChangeTrigger{},
+				Type:        buildv1.ImageChangeBuildTriggerType,
+				ImageChange: &buildv1.ImageChangeTrigger{},
 			},
 			{
-				Type: buildapi.ImageChangeBuildTriggerType,
-				ImageChange: &buildapi.ImageChangeTrigger{
-					From: &kapi.ObjectReference{
+				Type: buildv1.ImageChangeBuildTriggerType,
+				ImageChange: &buildv1.ImageChangeTrigger{
+					From: &corev1.ObjectReference{
 						Name: "image2:tag2",
 						Kind: "ImageStreamTag",
 					},
 				},
 			},
 			{
-				Type: buildapi.ImageChangeBuildTriggerType,
-				ImageChange: &buildapi.ImageChangeTrigger{
-					From: &kapi.ObjectReference{
+				Type: buildv1.ImageChangeBuildTriggerType,
+				ImageChange: &buildv1.ImageChangeTrigger{
+					From: &corev1.ObjectReference{
 						Name: "image3:tag3",
 						Kind: "ImageStreamTag",
 					},
@@ -508,7 +510,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 			tag:          "tag3",
 		},
 	}
-	projectAdminBuildClient := buildclient.NewForConfigOrDie(projectAdminConfig).Build()
+	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminConfig).Build()
 	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminConfig).Image()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
@@ -545,7 +547,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 			t.Fatalf("Couldn't create Image: %v", err)
 		}
 
-		var newBuild *buildapi.Build
+		var newBuild *buildv1.Build
 		var event watchapi.Event
 		// wait for initial build event from the creation of the imagerepo
 		newBuild, event = filterEvents(t, ignoreBuilds, buildWatch)
@@ -603,11 +605,11 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 	}
 }
 
-func filterEvents(t *testing.T, ignoreBuilds map[string]struct{}, buildWatch watchapi.Interface) (newBuild *buildapi.Build, event watchapi.Event) {
+func filterEvents(t *testing.T, ignoreBuilds map[string]struct{}, buildWatch watchapi.Interface) (newBuild *buildv1.Build, event watchapi.Event) {
 	for {
 		event = <-buildWatch.ResultChan()
 		var ok bool
-		newBuild, ok = event.Object.(*buildapi.Build)
+		newBuild, ok = event.Object.(*buildv1.Build)
 		if !ok {
 			t.Errorf("unexpected event type (not a Build): %v", event.Object)
 		}

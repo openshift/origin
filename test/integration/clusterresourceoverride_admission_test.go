@@ -141,7 +141,7 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

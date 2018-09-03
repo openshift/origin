@@ -65,7 +65,7 @@ func TestDNS(t *testing.T) {
 		close(stop)
 	}, 50*time.Millisecond, stop)
 
-	client, err := testutil.GetClusterAdminKubeClient(clientFile)
+	client, err := testutil.GetClusterAdminKubeInternalClient(clientFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

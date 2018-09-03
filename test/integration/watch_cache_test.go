@@ -25,7 +25,7 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	client, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	client, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -7,15 +7,15 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapi "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	buildapi "github.com/openshift/api/build/v1"
-	imageapi "github.com/openshift/api/image/v1"
-	buildclientset "github.com/openshift/client-go/build/clientset/versioned"
-	imageclientset "github.com/openshift/client-go/image/clientset/versioned"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -35,18 +35,18 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 	oc = exutil.NewCLI("image-layers", exutil.KubeConfigPath())
 
 	g.It("should identify a deleted image as missing", func() {
-		client := imageclientset.NewForConfigOrDie(oc.AdminConfig()).Image()
-		_, err := client.ImageStreams(oc.Namespace()).Create(&imageapi.ImageStream{
+		client := imagev1client.NewForConfigOrDie(oc.AdminConfig()).Image()
+		_, err := client.ImageStreams(oc.Namespace()).Create(&imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		_, err = client.ImageStreamMappings(oc.Namespace()).Create(&imageapi.ImageStreamMapping{
+		_, err = client.ImageStreamMappings(oc.Namespace()).Create(&imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
-			Image: imageapi.Image{
+			Image: imagev1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "an_image_to_be_deleted",
 				},
@@ -74,21 +74,21 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 
 	g.It("should return layers from tagged images", func() {
 		ns = []string{oc.Namespace()}
-		client := imageclientset.NewForConfigOrDie(oc.UserConfig()).Image()
-		isi, err := client.ImageStreamImports(oc.Namespace()).Create(&imageapi.ImageStreamImport{
+		client := imagev1client.NewForConfigOrDie(oc.UserConfig()).Image()
+		isi, err := client.ImageStreamImports(oc.Namespace()).Create(&imagev1.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "1",
 			},
-			Spec: imageapi.ImageStreamImportSpec{
+			Spec: imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{Kind: "DockerImage", Name: "busybox:latest"},
-						To:   &kapi.LocalObjectReference{Name: "busybox"},
+						From: corev1.ObjectReference{Kind: "DockerImage", Name: "busybox:latest"},
+						To:   &corev1.LocalObjectReference{Name: "busybox"},
 					},
 					{
-						From: kapi.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"},
-						To:   &kapi.LocalObjectReference{Name: "mysql"},
+						From: corev1.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"},
+						To:   &corev1.LocalObjectReference{Name: "mysql"},
 					},
 				},
 			},
@@ -129,7 +129,7 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 			o.Expect(i).To(o.BeNumerically("<", 10), "Timed out waiting for layers to have expected data, got\n%#v\n%#v", layers, isi.Status.Images)
 		}
 
-		_, err = client.ImageStreams(oc.Namespace()).Create(&imageapi.ImageStream{
+		_, err = client.ImageStreams(oc.Namespace()).Create(&imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "output",
 			},
@@ -151,23 +151,23 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 `
 
 		g.By("running a build based on our tagged layer")
-		buildClient := buildclientset.NewForConfigOrDie(oc.UserConfig()).Build()
-		_, err = buildClient.Builds(oc.Namespace()).Create(&buildapi.Build{
+		buildClient := buildv1client.NewForConfigOrDie(oc.UserConfig()).Build()
+		_, err = buildClient.Builds(oc.Namespace()).Create(&buildv1.Build{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "output",
 			},
-			Spec: buildapi.BuildSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{
+			Spec: buildv1.BuildSpec{
+				CommonSpec: buildv1.CommonSpec{
+					Source: buildv1.BuildSource{
 						Dockerfile: &dockerfile,
 					},
-					Strategy: buildapi.BuildStrategy{
-						DockerStrategy: &buildapi.DockerBuildStrategy{
-							From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "1:busybox"},
+					Strategy: buildv1.BuildStrategy{
+						DockerStrategy: &buildv1.DockerBuildStrategy{
+							From: &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "1:busybox"},
 						},
 					},
-					Output: buildapi.BuildOutput{
-						To: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "output:latest"},
+					Output: buildv1.BuildOutput{
+						To: &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "output:latest"},
 					},
 				},
 			},
@@ -178,15 +178,15 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		ns = append(ns)
 
 		g.By("waiting for the build to finish")
-		var lastBuild *buildapi.Build
+		var lastBuild *buildv1.Build
 		err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
 			build, err := buildClient.Builds(oc.Namespace()).Get("output", metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
-			o.Expect(build.Status.Phase).NotTo(o.Or(o.Equal(buildapi.BuildPhaseFailed), o.Equal(buildapi.BuildPhaseError), o.Equal(buildapi.BuildPhaseCancelled)))
+			o.Expect(build.Status.Phase).NotTo(o.Or(o.Equal(buildv1.BuildPhaseFailed), o.Equal(buildv1.BuildPhaseError), o.Equal(buildv1.BuildPhaseCancelled)))
 			lastBuild = build
-			return build.Status.Phase == buildapi.BuildPhaseComplete, nil
+			return build.Status.Phase == buildv1.BuildPhaseComplete, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -203,13 +203,13 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		}
 
 		g.By("tagging the built image into another namespace")
-		_, err = client.ImageStreamTags(newNamespace).Create(&imageapi.ImageStreamTag{
+		_, err = client.ImageStreamTags(newNamespace).Create(&imagev1.ImageStreamTag{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "output:latest",
 			},
-			Tag: &imageapi.TagReference{
+			Tag: &imagev1.TagReference{
 				Name: "copied",
-				From: &kapi.ObjectReference{Kind: "ImageStreamTag", Namespace: oc.Namespace(), Name: "output:latest"},
+				From: &corev1.ObjectReference{Kind: "ImageStreamTag", Namespace: oc.Namespace(), Name: "output:latest"},
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())

@@ -38,12 +38,12 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appstypeclientset "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildtypedclientset "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypeclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/extended/testdata"
@@ -408,7 +408,7 @@ var buildPathPattern = regexp.MustCompile(`^build\.build\.openshift\.io/([\w\-\.
 
 type LogDumperFunc func(oc *CLI, br *BuildResult) (string, error)
 
-func NewBuildResult(oc *CLI, build *buildapi.Build) *BuildResult {
+func NewBuildResult(oc *CLI, build *buildv1.Build) *BuildResult {
 	return &BuildResult{
 		Oc:        oc,
 		BuildName: build.Name,
@@ -430,7 +430,7 @@ type BuildResult struct {
 	// The buildconfig which generated this build.
 	BuildConfigName string
 	// Build is the resource created. May be nil if there was a timeout.
-	Build *buildapi.Build
+	Build *buildv1.Build
 	// BuildAttempt represents that a Build resource was created.
 	// false indicates a severe error unrelated to Build success or failure.
 	BuildAttempt bool
@@ -611,24 +611,24 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	if err != nil {
 		return result, err
 	}
-	return result, WaitForBuildResult(oc.InternalBuildClient().Build().Builds(oc.Namespace()), result)
+	return result, WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), result)
 }
 
 // WaitForBuildResult updates result wit the state of the build
-func WaitForBuildResult(c buildtypedclientset.BuildResourceInterface, result *BuildResult) error {
+func WaitForBuildResult(c buildv1clienttyped.BuildInterface, result *BuildResult) error {
 	e2e.Logf("Waiting for %s to complete\n", result.BuildName)
 	err := WaitForABuild(c, result.BuildName,
-		func(b *buildapi.Build) bool {
+		func(b *buildv1.Build) bool {
 			result.Build = b
 			result.BuildSuccess = CheckBuildSuccess(b)
 			return result.BuildSuccess
 		},
-		func(b *buildapi.Build) bool {
+		func(b *buildv1.Build) bool {
 			result.Build = b
 			result.BuildFailure = CheckBuildFailed(b)
 			return result.BuildFailure
 		},
-		func(b *buildapi.Build) bool {
+		func(b *buildv1.Build) bool {
 			result.Build = b
 			result.BuildCancelled = CheckBuildCancelled(b)
 			return result.BuildCancelled
@@ -648,7 +648,7 @@ func WaitForBuildResult(c buildtypedclientset.BuildResourceInterface, result *Bu
 }
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
-func WaitForABuild(c buildtypedclientset.BuildResourceInterface, name string, isOK, isFailed, isCanceled func(*buildapi.Build) bool) error {
+func WaitForABuild(c buildv1clienttyped.BuildInterface, name string, isOK, isFailed, isCanceled func(*buildv1.Build) bool) error {
 	if isOK == nil {
 		isOK = CheckBuildSuccess
 	}
@@ -702,18 +702,18 @@ func WaitForABuild(c buildtypedclientset.BuildResourceInterface, name string, is
 }
 
 // CheckBuildSuccess returns true if the build succeeded
-func CheckBuildSuccess(b *buildapi.Build) bool {
-	return b.Status.Phase == buildapi.BuildPhaseComplete
+func CheckBuildSuccess(b *buildv1.Build) bool {
+	return b.Status.Phase == buildv1.BuildPhaseComplete
 }
 
 // CheckBuildFailed return true if the build failed
-func CheckBuildFailed(b *buildapi.Build) bool {
-	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
+func CheckBuildFailed(b *buildv1.Build) bool {
+	return b.Status.Phase == buildv1.BuildPhaseFailed || b.Status.Phase == buildv1.BuildPhaseError
 }
 
 // CheckBuildCancelled return true if the build was canceled
-func CheckBuildCancelled(b *buildapi.Build) bool {
-	return b.Status.Phase == buildapi.BuildPhaseCancelled
+func CheckBuildCancelled(b *buildv1.Build) bool {
+	return b.Status.Phase == buildv1.BuildPhaseCancelled
 }
 
 // WaitForServiceAccount waits until the named service account gets fully
@@ -834,7 +834,7 @@ func CheckImageStreamTagNotFound(i *imageapi.ImageStream) bool {
 
 // WaitForDeploymentConfig waits for a DeploymentConfig to complete transition
 // to a given version and report minimum availability.
-func WaitForDeploymentConfig(kc kubernetes.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, enforceNotProgressing bool, cli *CLI) error {
+func WaitForDeploymentConfig(kc kubernetes.Interface, dcClient appsv1clienttyped.DeploymentConfigsGetter, namespace, name string, version int64, enforceNotProgressing bool, cli *CLI) error {
 	e2e.Logf("waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
 	var dc *appsv1.DeploymentConfig
 
@@ -1269,7 +1269,7 @@ func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) st
 
 // CheckForBuildEvent will poll a build for up to 1 minute looking for an event with
 // the specified reason and message template.
-func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
+func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildv1.Build, reason, message string) {
 	var expectedEvent *kapiv1.Event
 	err := wait.PollImmediate(e2e.Poll, 1*time.Minute, func() (bool, error) {
 		events, err := client.Events(build.Namespace).Search(legacyscheme.Scheme, build)

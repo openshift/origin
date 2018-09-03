@@ -9,11 +9,11 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -44,7 +44,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 
 			appTemplate := exutil.FixturePath("..", "..", "examples", "jenkins", "application-template.json")
 
-			execPodName = e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) {
+			execPodName = e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *corev1.Pod) {
 				pod.Spec.Containers[0].Image = "centos:7"
 			})
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
@@ -69,7 +69,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			br := startOpenShiftBuild(oc, appTemplate)
 
 			g.By("verifying build completed successfully")
-			err = exutil.WaitForBuildResult(oc.InternalBuildClient().Build().Builds(oc.Namespace()), br)
+			err = exutil.WaitForBuildResult(oc.BuildClient().BuildV1().Builds(oc.Namespace()), br)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertSuccess()
 
@@ -78,7 +78,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			terminalTests := map[string][]metricTest{
 				buildCountQuery: {
 					metricTest{
-						labels:           map[string]string{"phase": string(buildapi.BuildPhaseComplete)},
+						labels:           map[string]string{"phase": string(buildv1.BuildPhaseComplete)},
 						greaterThanEqual: true,
 					},
 				},

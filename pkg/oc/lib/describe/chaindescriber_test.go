@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	fakebuildclient "github.com/openshift/client-go/build/clientset/versioned/fake"
+	buildclientscheme "github.com/openshift/client-go/build/clientset/versioned/scheme"
 	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1/fake"
-	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 )
 

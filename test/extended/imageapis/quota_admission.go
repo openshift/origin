@@ -223,14 +223,14 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 		oc.Namespace(),
 	} {
 		g.By(fmt.Sprintf("Deleting images and image streams in project %q", projectName))
-		iss, err := oc.AdminImageClient().Image().ImageStreams(projectName).List(metav1.ListOptions{})
+		iss, err := oc.AdminInternalImageClient().Image().ImageStreams(projectName).List(metav1.ListOptions{})
 		if err != nil {
 			continue
 		}
 		for _, is := range iss.Items {
 			for _, history := range is.Status.Tags {
 				for i := range history.Items {
-					oc.AdminImageClient().Image().Images().Delete(history.Items[i].Image, nil)
+					oc.AdminInternalImageClient().Image().Images().Delete(history.Items[i].Image, nil)
 				}
 			}
 			for _, tagRef := range is.Spec.Tags {
@@ -240,7 +240,7 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 					if err != nil {
 						continue
 					}
-					oc.AdminImageClient().Image().Images().Delete(id, nil)
+					oc.AdminInternalImageClient().Image().Images().Delete(id, nil)
 				}
 			}
 		}

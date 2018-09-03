@@ -44,7 +44,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	cluster1AdminKubeClientset, err := testutil.GetClusterAdminKubeClient(cluster1AdminConfigFile)
+	cluster1AdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(cluster1AdminConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 		t.Fatalf("error starting server: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestEnforcingServiceAccount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -344,7 +344,7 @@ func TestDockercfgTokenDeletedController(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

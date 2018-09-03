@@ -27,7 +27,7 @@ func TestServiceServingCertSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

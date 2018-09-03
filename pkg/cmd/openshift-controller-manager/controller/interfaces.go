@@ -33,7 +33,6 @@ import (
 	securityclient "github.com/openshift/client-go/security/clientset/versioned"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	templateinformer "github.com/openshift/client-go/template/informers/externalversions"
-	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client/genericinformers"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -220,9 +219,6 @@ type ControllerClientBuilder interface {
 	OpenshiftBuildClient(name string) (buildclient.Interface, error)
 	OpenshiftBuildClientOrDie(name string) buildclient.Interface
 
-	OpenshiftInternalBuildClient(name string) (buildclientinternal.Interface, error)
-	OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface
-
 	OpenshiftSecurityClient(name string) (securityclient.Interface, error)
 	OpenshiftSecurityClientOrDie(name string) securityclient.Interface
 
@@ -347,28 +343,6 @@ func (b OpenshiftControllerClientBuilder) OpenshiftBuildClient(name string) (bui
 // will panic.
 func (b OpenshiftControllerClientBuilder) OpenshiftBuildClientOrDie(name string) buildclient.Interface {
 	client, err := b.OpenshiftBuildClient(name)
-	if err != nil {
-		glog.Fatal(err)
-	}
-	return client
-}
-
-// OpenshiftInternalBuildClient provides a REST client for the build  API.
-// If the client cannot be created because of configuration error, this function
-// will error.
-func (b OpenshiftControllerClientBuilder) OpenshiftInternalBuildClient(name string) (buildclientinternal.Interface, error) {
-	clientConfig, err := b.Config(name)
-	if err != nil {
-		return nil, err
-	}
-	return buildclientinternal.NewForConfig(clientConfig)
-}
-
-// OpenshiftInternalBuildClientOrDie provides a REST client for the build API.
-// If the client cannot be created because of configuration error, this function
-// will panic.
-func (b OpenshiftControllerClientBuilder) OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface {
-	client, err := b.OpenshiftInternalBuildClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}
