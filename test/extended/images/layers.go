@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -102,12 +103,17 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 		// TODO: we may race here with the cache, if this is a problem, loop
 		g.By("verifying that layers for imported images are correct")
 		var busyboxLayers []string
+	Retry:
 		for i := 0; ; i++ {
 			layers, err := client.ImageStreams(oc.Namespace()).Layers("1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			for i, image := range isi.Status.Images {
 				l, ok := layers.Images[image.Image.Name]
 				o.Expect(ok).To(o.BeTrue())
+				if l.ImageMissing {
+					e2e.Logf("Image %s is missing, retry", image.Image.Name)
+					continue
+				}
 				o.Expect(len(l.Layers)).To(o.BeNumerically(">", 0))
 				o.Expect(l.Config).ToNot(o.BeNil())
 				o.Expect(layers.Blobs[*l.Config]).ToNot(o.BeNil())
@@ -120,10 +126,8 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 				o.Expect(layers.Blobs[image.Image.Name].MediaType).To(o.Equal("application/vnd.docker.distribution.manifest.v2+json"))
 				if i == 0 {
 					busyboxLayers = l.Layers
+					break Retry
 				}
-			}
-			if len(busyboxLayers) > 0 {
-				break
 			}
 			time.Sleep(time.Second)
 			o.Expect(i).To(o.BeNumerically("<", 10), "Timed out waiting for layers to have expected data, got\n%#v\n%#v", layers, isi.Status.Images)
