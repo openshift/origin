@@ -67,8 +67,7 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 			if !ok {
 				return false, nil
 			}
-			o.Expect(ref.ImageMissing).To(o.BeTrue())
-			return true, nil
+			return ref.ImageMissing, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
