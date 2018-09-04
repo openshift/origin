@@ -1171,12 +1171,18 @@ func TestEgressCIDRAllocationOffline(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	// Next reallocation should reassign egress IPs to node-3
+	// Next reallocation should reassign the IPs that were removed in the previous
+	// round. While the last reallocation was designed to aim for a next reallocation
+	// where all of the removed IPs end up on node-3, it's possible 1 of them will
+	// end up getting reallocated back to the same node it was removed from.
 	allocation = eit.ReallocateEgressIPs()
 	node3ips = allocation["node-3"]
 	node4ips = allocation["node-4"]
 	node5ips = allocation["node-5"]
-	if len(node3ips) < 2 || len(node4ips) == 0 || len(node5ips) == 0 {
+	if len(node3ips) < 1 || len(node3ips) > 3 ||
+		len(node4ips) < 1 || len(node4ips) > 3 ||
+		len(node5ips) < 1 || len(node5ips) > 3 ||
+		len(node3ips)+len(node4ips)+len(node5ips) != 6 {
 		t.Fatalf("Bad IP allocation: %#v", allocation)
 	}
 	updateAllocations(eit, allocation)
