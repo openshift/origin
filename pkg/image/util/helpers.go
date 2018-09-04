@@ -22,6 +22,15 @@ import (
 	"github.com/openshift/origin/pkg/image/internal/digest"
 )
 
+const (
+	// DockerDefaultRegistry is the value for the registry when none was provided.
+	DockerDefaultRegistry = "docker.io"
+	// DockerDefaultV1Registry is the host name of the default v1 registry
+	DockerDefaultV1Registry = "index." + DockerDefaultRegistry
+	// DockerDefaultV2Registry is the host name of the default v2 registry
+	DockerDefaultV2Registry = "registry-1." + DockerDefaultRegistry
+)
+
 func fillImageLayers(image *imageapi.Image, manifest dockerapi10.DockerImageManifest) error {
 	if len(image.DockerImageLayers) != 0 {
 		// DockerImageLayers is already filled by the registry.
@@ -525,11 +534,34 @@ func DockerImageReferenceForImage(stream *imagev1.ImageStream, imageID string) (
 		}
 		ref.Tag = ""
 		ref.ID = event.Image
-		return ExactDockerImageReference(ref), true
+		return DockerImageReferenceExact(ref), true
 	default:
 		return event.DockerImageReference, true
 	}
 }
+
+// IsRegistryDockerHub returns true if the given registry name belongs to
+// Docker hub.
+func IsRegistryDockerHub(registry string) bool {
+	switch registry {
+	case DockerDefaultRegistry, DockerDefaultV1Registry, DockerDefaultV2Registry:
+		return true
+	default:
+		return false
+	}
+}
+
+// DockerImageReferenceString converts a DockerImageReference to a Docker pull spec
+// (which implies a default namespace according to V1 Docker registry rules).
+// Use DockerImageReferenceExact() if you want no defaulting.
+func DockerImageReferenceString(r imagev1.DockerImageReference) string {
+	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
+		r.Namespace = "library"
+	}
+	return DockerImageReferenceExact(r)
+}
+
+// DockerImageReferenceNameString returns the name of the reference with its tag or ID.
 func DockerImageReferenceNameString(r imagev1.DockerImageReference) string {
 	switch {
 	case len(r.Name) == 0:
@@ -551,8 +583,8 @@ func DockerImageReferenceNameString(r imagev1.DockerImageReference) string {
 	}
 }
 
-// Exact returns a string representation of the set fields on the DockerImageReference
-func ExactDockerImageReference(r imagev1.DockerImageReference) string {
+// DockerImageReferenceExact returns a string representation of the set fields on the DockerImageReference
+func DockerImageReferenceExact(r imagev1.DockerImageReference) string {
 	name := DockerImageReferenceNameString(r)
 	if len(name) == 0 {
 		return name
