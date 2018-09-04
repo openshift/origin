@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
+	"github.com/containers/storage"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -49,9 +49,10 @@ type builderConfig struct {
 	out             io.Writer
 	build           *buildapiv1.Build
 	sourceSecretDir string
-	dockerClient    *docker.Client
+	dockerClient    bld.DockerClient
 	dockerEndpoint  string
 	buildsClient    buildclientv1.BuildInterface
+	cleanup         func()
 }
 
 func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderConfig, error) {
@@ -86,6 +87,7 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	// sourceSecretsDir (SOURCE_SECRET_PATH)
 	cfg.sourceSecretDir = os.Getenv("SOURCE_SECRET_PATH")
 
+	needsDocker = false // TODO: remove this flag
 	if needsDocker {
 		// dockerClient and dockerEndpoint (DOCKER_HOST)
 		// usually not set, defaults to docker socket
@@ -93,6 +95,21 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 		if err != nil {
 			return nil, fmt.Errorf("no Docker configuration defined: %v", err)
 		}
+	} else {
+		store, err := storage.GetStore(bld.DaemonlessStoreOptions)
+		if err != nil {
+			return nil, err
+		}
+		cfg.cleanup = func() {
+			if _, err := store.Shutdown(false); err != nil {
+				glog.V(0).Infof("Error shutting down storage: %v", err)
+			}
+		}
+		dockerClient, err := bld.GetDaemonless(store)
+		if err != nil {
+			return nil, fmt.Errorf("no daemonless store: %v", err)
+		}
+		cfg.dockerClient = dockerClient
 	}
 
 	// buildsClient (KUBERNETES_SERVICE_HOST, KUBERNETES_SERVICE_PORT)
@@ -252,6 +269,9 @@ func runBuild(out io.Writer, builder builder) error {
 	if err != nil {
 		return err
 	}
+	if cfg.cleanup != nil {
+		defer cfg.cleanup()
+	}
 	return cfg.execute(builder)
 }
 
@@ -271,6 +291,9 @@ func RunGitClone(out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	if cfg.cleanup != nil {
+		defer cfg.cleanup()
+	}
 	return cfg.clone()
 }
 
@@ -286,6 +309,9 @@ func RunManageDockerfile(out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	if cfg.cleanup != nil {
+		defer cfg.cleanup()
+	}
 	return bld.ManageDockerfile(buildutil.InputContentPath, cfg.build)
 }
 
@@ -295,6 +321,9 @@ func RunExtractImageContent(out io.Writer) error {
 	cfg, err := newBuilderConfigFromEnvironment(out, true)
 	if err != nil {
 		return err
+	}
+	if cfg.cleanup != nil {
+		defer cfg.cleanup()
 	}
 	return cfg.extractImageContent()
 }
