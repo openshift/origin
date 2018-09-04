@@ -201,7 +201,7 @@ func execPostCommitHook(ctx context.Context, client DockerClient, postCommitSpec
 	}
 	startTime := metav1.Now()
 
-	err = dockerRun(client, docker.CreateContainerOptions{
+	createOptions := docker.CreateContainerOptions{
 		Name: containerName,
 		Config: &docker.Config{
 			Image:      image,
@@ -218,14 +218,23 @@ func execPostCommitHook(ctx context.Context, client DockerClient, postCommitSpec
 			MemorySwap:   limits.MemorySwap,
 			CgroupParent: parent,
 		},
-	}, docker.AttachToContainerOptions{
+	}
+	attachOptions := docker.AttachToContainerOptions{
 		// Stream logs to stdout and stderr.
 		OutputStream: os.Stdout,
 		ErrorStream:  os.Stderr,
 		Stream:       true,
 		Stdout:       true,
 		Stderr:       true,
-	})
+	}
+	if dc, ok := client.(*docker.Client); ok {
+		err = dockerRun(dc, createOptions, attachOptions)
+	} else if dc, ok := client.(*DaemonlessClient); ok {
+		err = daemonlessRun(ctx, dc.Store, dc.Isolation, createOptions, attachOptions)
+	} else {
+		err = ClientTypeUnknown
+	}
+
 	timing.RecordNewStep(ctx, buildapiv1.StagePostCommit, buildapiv1.StepExecPostCommitHook, startTime, metav1.Now())
 
 	return err

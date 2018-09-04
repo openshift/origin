@@ -113,7 +113,7 @@ func (d *DockerBuilder) Build() error {
 			)
 			glog.V(0).Infof("\nPulling image %s ...", imageName)
 			startTime := metav1.Now()
-			err = pullImage(d.dockerClient, imageName, pullAuthConfig)
+			err = d.pullImage(imageName, pullAuthConfig)
 
 			timing.RecordNewStep(ctx, buildapiv1.StagePullImages, buildapiv1.StepPullBaseImage, startTime, metav1.Now())
 
@@ -137,7 +137,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	startTime := metav1.Now()
-	err = d.dockerBuild(buildDir, buildTag)
+	err = d.dockerBuild(ctx, buildDir, buildTag)
 
 	timing.RecordNewStep(ctx, buildapiv1.StageBuild, buildapiv1.StepDockerBuild, startTime, metav1.Now())
 
@@ -161,7 +161,7 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 
-	if push {
+	if push && pushTag != "" {
 		if err := tagImage(d.dockerClient, buildTag, pushTag); err != nil {
 			return err
 		}
@@ -171,7 +171,7 @@ func (d *DockerBuilder) Build() error {
 		glog.V(0).Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
-	if push {
+	if push && pushTag != "" {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
 			pushTag,
@@ -182,7 +182,7 @@ func (d *DockerBuilder) Build() error {
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		startTime = metav1.Now()
-		digest, err := pushImage(d.dockerClient, pushTag, pushAuthConfig)
+		digest, err := d.pushImage(pushTag, pushAuthConfig)
 
 		timing.RecordNewStep(ctx, buildapiv1.StagePushImage, buildapiv1.StepPushDockerImage, startTime, metav1.Now())
 
@@ -203,6 +203,25 @@ func (d *DockerBuilder) Build() error {
 		glog.V(0).Infof("Push successful")
 	}
 	return nil
+}
+
+func (d *DockerBuilder) pullImage(name string, authConfig docker.AuthConfiguration) error {
+	repository, tag := docker.ParseRepositoryTag(name)
+	options := docker.PullImageOptions{
+		Repository: repository,
+		Tag:        tag,
+	}
+	return d.dockerClient.PullImage(options, authConfig)
+}
+
+func (d *DockerBuilder) pushImage(name string, authConfig docker.AuthConfiguration) (string, error) {
+	repository, tag := docker.ParseRepositoryTag(name)
+	options := docker.PushImageOptions{
+		Name: repository,
+		Tag:  tag,
+	}
+	err := d.dockerClient.PushImage(options, authConfig)
+	return "", err
 }
 
 // copyConfigMaps copies all files from the directory where the configMap is
@@ -305,7 +324,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
-func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
+func (d *DockerBuilder) dockerBuild(ctx context.Context, dir string, tag string) error {
 	var noCache bool
 	var forcePull bool
 	var buildArgs []docker.BuildArg
@@ -335,6 +354,7 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 	}
 
 	opts := docker.BuildImageOptions{
+		Context:             ctx,
 		Name:                tag,
 		RmTmpContainer:      true,
 		ForceRmTmpContainer: true,
@@ -371,18 +391,20 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 		opts.AuthConfigs = *auth
 	}
 
+	imageOptimizationPolicy := buildapiv1.ImageOptimizationNone
 	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
 		if policy := s.ImageOptimizationPolicy; policy != nil {
-			switch *policy {
-			case buildapiv1.ImageOptimizationSkipLayers:
-				return buildDirectImage(dir, false, &opts)
-			case buildapiv1.ImageOptimizationSkipLayersAndWarn:
-				return buildDirectImage(dir, true, &opts)
-			}
+			imageOptimizationPolicy = *policy
 		}
 	}
 
-	return buildImage(d.dockerClient, dir, d.tar, &opts)
+	if _, ok := d.dockerClient.(*docker.Client); ok {
+		return dockerBuildImage(d.dockerClient, dir, d.tar, &opts)
+	}
+	if dc, ok := d.dockerClient.(*DaemonlessClient); ok {
+		return buildDaemonlessImage(dc.SystemContext, dc.Store, dc.Isolation, dir, imageOptimizationPolicy, &opts)
+	}
+	return d.dockerClient.BuildImage(opts)
 }
 
 func getDockerfilePath(dir string, build *buildapiv1.Build) string {

@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -52,7 +53,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != corev1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
+	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": "", "BUILD_REGISTRIES_CONF_PATH": "", "BUILD_REGISTRIES_DIR_PATH": "", "BUILD_SIGNATURE_POLICY_PATH": "", "BUILD_STORAGE_CONF_PATH": "", "BUILD_ISOLATION": "", "BUILD_STORAGE_DRIVER": ""}
 	gotKeys := map[string]string{}
 	for _, k := range container.Env {
 		gotKeys[k.Name] = ""
@@ -68,7 +69,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
-	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, "/var/run/crio/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath} {
+	for i, expected := range []string{buildutil.BuildWorkDirMount, DockerPushSecretMountPath, DockerPullSecretMountPath, filepath.Join(SecretBuildSourceBaseMountPath, "super-secret"), filepath.Join(ConfigMapBuildSourceBaseMountPath, "build-config"), ConfigMapBuildSystemConfigsMountPath, DaemonlessGraphRoot} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}

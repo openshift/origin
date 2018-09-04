@@ -137,5 +137,6 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildv1.Build) (*corev1.Pod
 	setupSourceSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.SourceSecret)
 	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	setupAdditionalSecrets(pod, &pod.Spec.Containers[0], build.Spec.Strategy.CustomStrategy.Secrets)
+	setupContainersConfigs(pod, &pod.Spec.Containers[0])
 	return pod, nil
 }

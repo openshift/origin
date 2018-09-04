@@ -21,6 +21,10 @@ RUN INSTALL_PKGS=" \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all
 
+COPY policy.json /etc/containers/
+COPY registries.conf /etc/containers/
+COPY storage.conf /etc/containers/
+
 LABEL io.k8s.display-name="OpenShift Origin Builder" \
       io.k8s.description="This is a component of OpenShift Origin and is responsible for executing image builds." \
       io.openshift.tags="openshift,builder"

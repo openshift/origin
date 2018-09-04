@@ -2,6 +2,7 @@ package builder
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,6 +22,10 @@ import (
 var (
 	// procCGroupPattern is a regular expression that parses the entries in /proc/self/cgroup
 	procCGroupPattern = regexp.MustCompile(`\d+:([a-z_,]+):/.*/(\w+-|)([a-z0-9]+).*`)
+
+	// ClientTypeUnknown is an error returned when we can't figure out
+	// which type of "client" we're using.
+	ClientTypeUnknown = errors.New("internal error: method not implemented for this client type")
 )
 
 // MergeEnv will take an existing environment and merge it with a new set of
