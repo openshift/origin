@@ -10,11 +10,13 @@ readonly OS_REQUIRED_GO_VERSION="go${OS_BUILD_ENV_GOLANG}"
 readonly OS_GLIDE_MINOR_VERSION="13"
 readonly OS_REQUIRED_GLIDE_VERSION="0.$OS_GLIDE_MINOR_VERSION"
 
-readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
+readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_docker_daemon_stub containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_zfs"
 readonly OS_GOFLAGS_TAGS_LINUX_AMD64="gssapi"
 readonly OS_GOFLAGS_TAGS_LINUX_S390X="gssapi"
 readonly OS_GOFLAGS_TAGS_LINUX_ARM64="gssapi"
 readonly OS_GOFLAGS_TAGS_LINUX_PPC64LE="gssapi"
+
+readonly OS_GOFLAGS_TAGS_TEST="containers_image_docker_daemon_stub containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_zfs"
 
 readonly OS_OUTPUT_BASEPATH="${OS_OUTPUT_BASEPATH:-_output}"
 readonly OS_BASE_OUTPUT="${OS_ROOT}/${OS_OUTPUT_BASEPATH}"
@@ -350,7 +352,7 @@ function os::build::check_binaries() {
   # IMPORTANT: contact Clayton or another master team member before altering this code
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
     size=$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/oc" | cut -f 1)
-    if [[ "${size}" -gt "118" ]]; then
+    if [[ "${size}" -gt "125" ]]; then
       os::log::fatal "oc binary has grown substantially to ${size}. You must have approval before bumping this limit."
     fi
   fi
