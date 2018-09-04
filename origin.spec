@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit da5e1ed3cff7be38f15f367608f15c12f0ba0b23
+%global commit e58ef2b07ee943b9a4fc9ef29b081688ea71e5f7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.40 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=40 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=ce48c0f KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.41 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=41 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=ecbddd5 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -64,7 +64,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.10.41
+Version:        3.10.42
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -487,6 +487,29 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue Sep 04 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.10.42-1
+- UPSTREAM: 68008: apiserver: forward panic in WithTimeout filter
+  (stefan.schimanski@gmail.com)
+- hack/cherry-pick.sh: apply merge commit by default and add APPLY_PR_COMMITS
+  for old mode (stefan.schimanski@gmail.com)
+- hack/cherry-pick.sh: add UPSTREAM_BRANCH var (stefan.schimanski@gmail.com)
+- UPSTREAM: 67822: Remove provisioner config from log message
+  (hchiramm@redhat.com)
+- use version specific component images w/ cluster up tests
+  (bparees@redhat.com)
+- UPSTREAM: 67960: Size http2 buffers to allow concurrent streams
+  (jliggitt@redhat.com)
+- UPSTREAM: 65549: Fix flexvolumes in containerized envs (hekumar@redhat.com)
+- Inject openshift version variables in k8s (deads@redhat.com)
+- UPSTREAM: <drop>: Fix openshift recycler images (deads@redhat.com)
+- UPSTREAM: 65691: Add validation of resourceGroup option (jsafrane@redhat.com)
+- UPSTREAM: 65443: Move configuration of resource group in storage class
+  (jsafrane@redhat.com)
+- UPSTREAM: 65516: fix azure disk creation issue when specifying external
+  resource group (jsafrane@redhat.com)
+- UPSTREAM: 65217: add external resource group support for azure disk
+  (jsafrane@redhat.com)
+
 * Wed Aug 29 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.10.41-1
 - 
 
