@@ -4,7 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -355,8 +357,22 @@ func createBuild(t *testing.T, buildInterface buildv1clienttyped.BuildInterface,
 }
 
 func updateBuild(t *testing.T, buildInterface buildv1clienttyped.BuildInterface, build *buildv1.Build) (*buildv1.Build, error) {
-	build.Labels = map[string]string{"updated": "true"}
-	return buildInterface.Update(build)
+	var err error
+	for i := 0; i < 5; i++ {
+		build, err = buildInterface.Get(build.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		build.Labels = map[string]string{"updated": "true"}
+		var newBuildConfig *buildv1.Build
+		newBuildConfig, err = buildInterface.Update(build)
+		if err == nil {
+			return newBuildConfig, nil
+		} else if !errors.IsConflict(err) {
+			return nil, err
+		}
+	}
+	return nil, err
 }
 
 func createBuildConfig(t *testing.T, buildConfigInterface buildv1clienttyped.BuildConfigInterface, strategy string) (*buildv1.BuildConfig, error) {
@@ -382,6 +398,20 @@ func instantiateBuildConfig(t *testing.T, buildConfigInterface buildv1clienttype
 }
 
 func updateBuildConfig(t *testing.T, buildConfigInterface buildv1clienttyped.BuildConfigInterface, buildConfig *buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
-	buildConfig.Labels = map[string]string{"updated": "true"}
-	return buildConfigInterface.Update(buildConfig)
+	var err error
+	for i := 0; i < 5; i++ {
+		buildConfig, err = buildConfigInterface.Get(buildConfig.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		buildConfig.Labels = map[string]string{"updated": "true"}
+		var newBuildConfig *buildv1.BuildConfig
+		newBuildConfig, err = buildConfigInterface.Update(buildConfig)
+		if err == nil {
+			return newBuildConfig, nil
+		} else if !errors.IsConflict(err) {
+			return nil, err
+		}
+	}
+	return nil, err
 }
