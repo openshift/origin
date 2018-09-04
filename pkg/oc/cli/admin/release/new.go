@@ -382,6 +382,13 @@ func (o *NewOptions) Run() error {
 		if err := opts.Run(); err != nil {
 			return err
 		}
+		var filteredNames []string
+		for _, s := range ordered {
+			if _, ok := metadata[s]; ok {
+				filteredNames = append(filteredNames, s)
+			}
+		}
+		ordered = filteredNames
 	}
 
 	var operators []string
