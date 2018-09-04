@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -179,6 +180,15 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	// wait for the apiserver to be ready
 	glog.Info("Waiting for the kube-apiserver to be ready ...")
 	if err := waitForHealthyKubeAPIServer(clientConfig); err != nil {
+		return err
+	}
+
+	// bootstrap the service-ca operator with the legacy service-signer.crt and key.
+	err = createServiceCASigningSecret(clientConfig,
+		path.Join(c.BaseDir, "openshift-apiserver", "service-signer.crt"),
+		path.Join(c.BaseDir, "openshift-apiserver", "service-signer.key"),
+	)
+	if err != nil {
 		return err
 	}
 
