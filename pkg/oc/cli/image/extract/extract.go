@@ -92,7 +92,8 @@ type Options struct {
 
 	Paths []string
 
-	OnlyFiles bool
+	OnlyFiles         bool
+	RemovePermissions bool
 
 	FilterOptions imagemanifest.FilterOptions
 
@@ -313,6 +314,9 @@ func (o *Options) Run() error {
 						return fmt.Errorf("unable to filter layers for %s: %v", from, err)
 					}
 				}
+				if o.RemovePermissions {
+					alter = append(alter, removePermissions{})
+				}
 
 				for i := range filteredLayers {
 					layer := &filteredLayers[i]
@@ -413,6 +417,18 @@ func (a alterations) Alter(hdr *tar.Header) (bool, error) {
 		if !ok {
 			return false, nil
 		}
+	}
+	return true, nil
+}
+
+type removePermissions struct{}
+
+func (_ removePermissions) Alter(hdr *tar.Header) (bool, error) {
+	switch hdr.Typeflag {
+	case tar.TypeReg, tar.TypeRegA:
+		hdr.Mode = int64(os.FileMode(0640))
+	default:
+		hdr.Mode = int64(os.FileMode(0755))
 	}
 	return true, nil
 }
