@@ -19,11 +19,11 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	serveradmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	testtypes "github.com/openshift/origin/test/integration/testing"
 	testutil "github.com/openshift/origin/test/util"
@@ -168,7 +168,7 @@ func checkAdmissionObjectLabelValues(labels, expected map[string]string) error {
 
 func registerAdmissionPluginTestConfigType() {
 	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &testtypes.TestPluginConfig{})
-	configapi.Scheme.AddKnownTypes(configapiv1.LegacySchemeGroupVersion, &testtypes.TestPluginConfig{})
+	configapi.Scheme.AddKnownTypes(legacyconfigv1.LegacySchemeGroupVersion, &testtypes.TestPluginConfig{})
 }
 
 func setupAdmissionPluginTestConfig(t *testing.T, value string) string {

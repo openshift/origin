@@ -10,7 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	configv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	legacyconfigv1conversions "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 )
 
 var (
@@ -20,17 +21,15 @@ var (
 )
 
 func init() {
-	utilruntime.Must(configv1.InstallLegacy(nodeConfigScheme))
-
 	// TODO: Remove this when we generate config.openshift.io/v1 configs
-	utilruntime.Must(configv1.InstallLegacy(nodeConfigScheme))
+	utilruntime.Must(legacyconfigv1conversions.InstallLegacy(nodeConfigScheme))
 
 	configCodecfactory := serializer.NewCodecFactory(nodeConfigScheme)
-	nodeConfigDecoder = configCodecfactory.UniversalDecoder(configv1.LegacySchemeGroupVersion)
-	nodeConfigEncoder = configCodecfactory.LegacyCodec(configv1.LegacySchemeGroupVersion)
+	nodeConfigDecoder = configCodecfactory.UniversalDecoder(legacyconfigv1.LegacySchemeGroupVersion)
+	nodeConfigEncoder = configCodecfactory.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
 }
 
-func WriteNodeConfig(filename string, config *configv1.NodeConfig) error {
+func WriteNodeConfig(filename string, config *legacyconfigv1.NodeConfig) error {
 	json, err := runtime.Encode(nodeConfigEncoder, config)
 	if err != nil {
 		return fmt.Errorf("unable to encode node config: %v", err)
@@ -43,7 +42,7 @@ func WriteNodeConfig(filename string, config *configv1.NodeConfig) error {
 	return ioutil.WriteFile(filename, yamlBytes, 0644)
 }
 
-func ReadNodeConfig(filename string) (*configv1.NodeConfig, error) {
+func ReadNodeConfig(filename string) (*legacyconfigv1.NodeConfig, error) {
 	masterBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -52,7 +51,7 @@ func ReadNodeConfig(filename string) (*configv1.NodeConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	nodeConfig, ok := obj.(*configv1.NodeConfig)
+	nodeConfig, ok := obj.(*legacyconfigv1.NodeConfig)
 	if !ok {
 		return nil, fmt.Errorf("object %T is not NodeConfig", nodeConfig)
 	}

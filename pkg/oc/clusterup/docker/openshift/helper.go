@@ -14,7 +14,7 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
@@ -225,7 +225,7 @@ func (h *Helper) Master(ip string) string {
 	return fmt.Sprintf("https://%s:8443", ip)
 }
 
-func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfig, string, error) {
+func (h *Helper) GetConfigFromLocalDir(configDir string) (*legacyconfigv1.MasterConfig, string, error) {
 	configPath := filepath.Join(configDir, "master-config.yaml")
 	glog.V(1).Infof("Reading master config from %s", configPath)
 	masterConfig, err := componentinstall.ReadMasterConfig(configPath)
