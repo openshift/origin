@@ -13,6 +13,7 @@ func TestHAProxyFrontendBackendConf(t *testing.T) {
 		dest      string
 		frontends []string
 		backends  []string
+		dnsMap    map[string]int
 	}{
 		// Single destination IP
 		{
@@ -39,7 +40,7 @@ frontend fe2
 backend be1
     server dest1 11.12.13.14:80 check`, `
 backend be2
-    server dest2 21.22.23.24:100 check`},
+    server dest1 21.22.23.24:100 check`},
 		},
 		// Single destination domain name
 		{
@@ -51,6 +52,9 @@ frontend fe1
 			backends: []string{`
 backend be1
     server dest1 example.com:80 check resolvers dns-resolver`},
+			dnsMap: map[string]int{
+				"example.com": 1,
+			},
 		},
 		// Multiple destination domain names
 		{
@@ -66,7 +70,11 @@ frontend fe2
 backend be1
     server dest1 example.com:80 check resolvers dns-resolver`, `
 backend be2
-    server dest2 foo.com:100 check resolvers dns-resolver`},
+    server dest1 foo.com:100 check resolvers dns-resolver`},
+			dnsMap: map[string]int{
+				"example.com": 1,
+				"foo.com":     1,
+			},
 		},
 		// Destination IP and destination domain name
 		{
@@ -82,7 +90,10 @@ frontend fe2
 backend be1
     server dest1 11.12.13.14:80 check`, `
 backend be2
-    server dest2 example.com:100 check resolvers dns-resolver`},
+    server dest1 example.com:100 check resolvers dns-resolver`},
+			dnsMap: map[string]int{
+				"example.com": 1,
+			},
 		},
 		// Destination with comments and blank lines
 		{
@@ -111,7 +122,63 @@ frontend fe2
 backend be1
     server dest1 11.12.13.14:80 check`, `
 backend be2
-    server dest2 example.com:100 check resolvers dns-resolver`},
+    server dest1 example.com:100 check resolvers dns-resolver`},
+			dnsMap: map[string]int{
+				"example.com": 1,
+			},
+		},
+		// Destination domain name with multiple backends
+		{
+			dest: `
+# Port 8080 forwards to port 100 on example.com
+8080 example.com 100
+`,
+			frontends: []string{`
+frontend fe1
+    bind :8080
+    default_backend be1`},
+			backends: []string{`
+backend be1
+    server-template dest 3 example.com:100 check resolvers dns-resolver`},
+			dnsMap: map[string]int{
+				"example.com": 3,
+			},
+		},
+		// Destination IP and Destination domain name with single and multiple backends
+		{
+			dest: `
+80 11.12.13.14
+9000 foo.com 200
+8080 example.com 100
+8081 bar.com 100
+`,
+			frontends: []string{`
+frontend fe1
+    bind :80
+    default_backend be1`, `
+frontend fe2
+    bind :9000
+    default_backend be2`, `
+frontend fe3
+    bind :8080
+    default_backend be3`, `
+frontend fe4
+    bind :8081
+    default_backend be4`},
+			backends: []string{`
+backend be1
+    server dest1 11.12.13.14:80 check`, `
+backend be2
+    server-template dest 2 foo.com:200 check resolvers dns-resolver`, `
+backend be3
+    server dest1 example.com:100 check resolvers dns-resolver`, `
+backend be4
+    server dest1 bar.com:100 check resolvers dns-resolver`},
+			dnsMap: map[string]int{
+				"foo.com":     2,
+				"example.com": 1,
+				"bar.com":     1,
+			},
 		},
 	}
 
@@ -119,10 +186,16 @@ backend be2
 	backendRegex := regexp.MustCompile("\nbackend ")
 
 	for n, test := range tests {
+		servers := ""
+		for domain, numServers := range test.dnsMap {
+			servers += fmt.Sprintf("%s:%d;", domain, numServers)
+		}
+
 		cmd := exec.Command("./egress-dns-proxy.sh")
 		cmd.Env = []string{
 			fmt.Sprintf("EGRESS_DNS_PROXY_DESTINATION=%s", test.dest),
 			fmt.Sprintf("EGRESS_DNS_PROXY_MODE=unit-test"),
+			fmt.Sprintf("EGRESS_DNS_SERVERS=%s", servers),
 		}
 		outBytes, err := cmd.CombinedOutput()
 		if err != nil {

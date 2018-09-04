@@ -3,7 +3,6 @@ package util
 import (
 	"testing"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -22,7 +21,7 @@ func TestMergeEnvWithoutDuplicates(t *testing.T) {
 		{Name: "GIT_SSL_NO_VERIFY", Value: "target"},
 	}
 	// resolve conflicts w/ input value
-	MergeEnvWithoutDuplicates(input, &output, true, buildapi.WhitelistEnvVarNames)
+	MergeEnvWithoutDuplicates(input, &output, true, WhitelistEnvVarNames)
 
 	if len(output) != 3 {
 		t.Errorf("Expected output to contain input items len==3 (%d), %#v", len(output), output)
@@ -61,7 +60,7 @@ func TestMergeEnvWithoutDuplicates(t *testing.T) {
 		{Name: "GIT_SSL_NO_VERIFY", Value: "target"},
 	}
 	// resolve conflicts w/ output value
-	MergeEnvWithoutDuplicates(input, &output, false, buildapi.WhitelistEnvVarNames)
+	MergeEnvWithoutDuplicates(input, &output, false, WhitelistEnvVarNames)
 
 	if len(output) != 3 {
 		t.Errorf("Expected output to contain input items len==3 (%d), %#v", len(output), output)

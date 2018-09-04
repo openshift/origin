@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/api/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
@@ -183,7 +184,7 @@ func TestCreateInvalidDeployment(t *testing.T) {
 		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
 		internalDeployment := &kapi.ReplicationController{}
 		legacyscheme.Scheme.Convert(deployment, internalDeployment, nil)
-		internalDeployment.Annotations[appsapi.DeploymentEncodedConfigAnnotation] = ""
+		internalDeployment.Annotations[appsv1.DeploymentEncodedConfigAnnotation] = ""
 		return true, internalDeployment, nil
 	})
 

@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	appsv1api "github.com/openshift/api/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsv1lister "github.com/openshift/client-go/apps/listers/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -84,7 +84,7 @@ type DeploymentConfigController struct {
 
 // Handle implements the loop that processes deployment configs. Since this controller started
 // using caches, the provided config MUST be deep-copied beforehand (see work() in factory.go).
-func (c *DeploymentConfigController) Handle(config *appsv1api.DeploymentConfig) error {
+func (c *DeploymentConfigController) Handle(config *appsv1.DeploymentConfig) error {
 	glog.V(5).Infof("Reconciling %s/%s", config.Namespace, config.Name)
 	// There's nothing to reconcile until the version is nonzero.
 	if appsutil.IsInitialDeployment(config) && !appsutil.HasTrigger(config) {
@@ -109,7 +109,7 @@ func (c *DeploymentConfigController) Handle(config *appsv1api.DeploymentConfig) 
 		}
 		return fresh, nil
 	})
-	cm := NewRCControllerRefManager(c.rcControl, config, appsutil.ConfigSelector(config.Name), appsv1api.GroupVersion.WithKind("DeploymentConfig"), canAdoptFunc)
+	cm := NewRCControllerRefManager(c.rcControl, config, appsutil.ConfigSelector(config.Name), appsv1.GroupVersion.WithKind("DeploymentConfig"), canAdoptFunc)
 	existingDeployments, err := cm.ClaimReplicationControllers(rcList)
 	if err != nil {
 		return fmt.Errorf("error while deploymentConfigController claiming replication controllers: %v", err)
@@ -209,7 +209,7 @@ func (c *DeploymentConfigController) Handle(config *appsv1api.DeploymentConfig) 
 		}
 		c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		// We don't care about this error since we need to report the create failure.
-		cond := appsutil.NewDeploymentCondition(appsv1api.DeploymentProgressing, v1.ConditionFalse, appsutil.FailedRcCreateReason, err.Error())
+		cond := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse, appsutil.FailedRcCreateReason, err.Error())
 		_ = c.updateStatus(config, existingDeployments, true, *cond)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", appsutil.LabelForDeploymentConfig(config), err)
 	}
@@ -223,7 +223,7 @@ func (c *DeploymentConfigController) Handle(config *appsv1api.DeploymentConfig) 
 		c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCleanupFailed", "Couldn't clean up deployments: %v", err)
 	}
 
-	cond := appsutil.NewDeploymentCondition(appsv1api.DeploymentProgressing, v1.ConditionTrue, appsutil.NewReplicationControllerReason, msg)
+	cond := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue, appsutil.NewReplicationControllerReason, msg)
 	return c.updateStatus(config, existingDeployments, true, *cond)
 }
 
@@ -233,7 +233,7 @@ func (c *DeploymentConfigController) Handle(config *appsv1api.DeploymentConfig) 
 // successful deployment, not necessarily the latest in terms of the config
 // version. The active deployment replica count should follow the config, and
 // all other deployments should be scaled to zero.
-func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []*v1.ReplicationController, config *appsv1api.DeploymentConfig, cm *RCControllerRefManager) error {
+func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []*v1.ReplicationController, config *appsv1.DeploymentConfig, cm *RCControllerRefManager) error {
 	activeDeployment := appsutil.ActiveDeployment(existingDeployments)
 
 	// Reconcile deployments. The active deployment follows the config, and all
@@ -308,7 +308,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 
 // Update the status of the provided deployment config. Additional conditions will override any other condition in the
 // deployment config status.
-func (c *DeploymentConfigController) updateStatus(config *appsv1api.DeploymentConfig, deployments []*v1.ReplicationController, updateObservedGeneration bool, additional ...appsv1api.DeploymentCondition) error {
+func (c *DeploymentConfigController) updateStatus(config *appsv1.DeploymentConfig, deployments []*v1.ReplicationController, updateObservedGeneration bool, additional ...appsv1.DeploymentCondition) error {
 	newStatus := calculateStatus(config, deployments, updateObservedGeneration, additional...)
 
 	// NOTE: We should update the status of the deployment config only if we need to, otherwise
@@ -334,7 +334,7 @@ func (c *DeploymentConfigController) updateStatus(config *appsv1api.DeploymentCo
 
 // cancelRunningRollouts cancels existing rollouts when the latest deployment does not
 // exists yet to allow new rollout superceded by the new config version.
-func (c *DeploymentConfigController) cancelRunningRollouts(config *appsv1api.DeploymentConfig, existingDeployments []*v1.ReplicationController, cm *RCControllerRefManager) error {
+func (c *DeploymentConfigController) cancelRunningRollouts(config *appsv1.DeploymentConfig, existingDeployments []*v1.ReplicationController, cm *RCControllerRefManager) error {
 	awaitingCancellations := false
 	for i := range existingDeployments {
 		deployment := existingDeployments[i]
@@ -393,7 +393,7 @@ func (c *DeploymentConfigController) cancelRunningRollouts(config *appsv1api.Dep
 	return nil
 }
 
-func calculateStatus(config *appsv1api.DeploymentConfig, rcs []*v1.ReplicationController, updateObservedGeneration bool, additional ...appsv1api.DeploymentCondition) appsv1api.DeploymentConfigStatus {
+func calculateStatus(config *appsv1.DeploymentConfig, rcs []*v1.ReplicationController, updateObservedGeneration bool, additional ...appsv1.DeploymentCondition) appsv1.DeploymentConfigStatus {
 	// UpdatedReplicas represents the replicas that use the current deployment config template which means
 	// we should inform about the replicas of the latest deployment and not the active.
 	latestReplicas := int32(0)
@@ -416,7 +416,7 @@ func calculateStatus(config *appsv1api.DeploymentConfig, rcs []*v1.ReplicationCo
 		generation = config.Generation
 	}
 
-	status := appsv1api.DeploymentConfigStatus{
+	status := appsv1.DeploymentConfigStatus{
 		LatestVersion:       config.Status.LatestVersion,
 		Details:             config.Status.Details,
 		ObservedGeneration:  generation,
@@ -436,14 +436,14 @@ func calculateStatus(config *appsv1api.DeploymentConfig, rcs []*v1.ReplicationCo
 	return status
 }
 
-func updateConditions(config *appsv1api.DeploymentConfig, newStatus *appsv1api.DeploymentConfigStatus, latestRC *v1.ReplicationController) {
+func updateConditions(config *appsv1.DeploymentConfig, newStatus *appsv1.DeploymentConfigStatus, latestRC *v1.ReplicationController) {
 	// Availability condition.
 	if newStatus.AvailableReplicas >= config.Spec.Replicas-appsutil.MaxUnavailable(config) && newStatus.AvailableReplicas > 0 {
-		minAvailability := appsutil.NewDeploymentCondition(appsv1api.DeploymentAvailable, v1.ConditionTrue, "",
+		minAvailability := appsutil.NewDeploymentCondition(appsv1.DeploymentAvailable, v1.ConditionTrue, "",
 			"Deployment config has minimum availability.")
 		appsutil.SetDeploymentCondition(newStatus, *minAvailability)
 	} else {
-		noMinAvailability := appsutil.NewDeploymentCondition(appsv1api.DeploymentAvailable, v1.ConditionFalse, "",
+		noMinAvailability := appsutil.NewDeploymentCondition(appsv1.DeploymentAvailable, v1.ConditionFalse, "",
 			"Deployment config does not have minimum availability.")
 		appsutil.SetDeploymentCondition(newStatus, *noMinAvailability)
 	}
@@ -451,34 +451,34 @@ func updateConditions(config *appsv1api.DeploymentConfig, newStatus *appsv1api.D
 	// Condition about progress.
 	if latestRC != nil {
 		switch appsutil.DeploymentStatusFor(latestRC) {
-		case appsutil.DeploymentStatusPending:
+		case appsv1.DeploymentStatusPending:
 			msg := fmt.Sprintf("replication controller %q is waiting for pod %q to run", latestRC.Name, appsutil.DeployerPodNameForDeployment(latestRC.Name))
-			condition := appsutil.NewDeploymentCondition(appsv1api.DeploymentProgressing, v1.ConditionUnknown, "", msg)
+			condition := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionUnknown, "", msg)
 			appsutil.SetDeploymentCondition(newStatus, *condition)
-		case appsutil.DeploymentStatusRunning:
+		case appsv1.DeploymentStatusRunning:
 			if appsutil.IsProgressing(config, newStatus) {
-				appsutil.RemoveDeploymentCondition(newStatus, appsv1api.DeploymentProgressing)
+				appsutil.RemoveDeploymentCondition(newStatus, appsv1.DeploymentProgressing)
 				msg := fmt.Sprintf("replication controller %q is progressing", latestRC.Name)
-				condition := appsutil.NewDeploymentCondition(appsv1api.DeploymentProgressing, v1.ConditionTrue,
-					appsutil.ReplicationControllerUpdatedReason, msg)
+				condition := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue,
+					string(appsv1.ReplicationControllerUpdatedReason), msg)
 				// TODO: Right now, we use lastTransitionTime for storing the last time we had any progress instead
 				// of the last time the condition transitioned to a new status. We should probably change that.
 				appsutil.SetDeploymentCondition(newStatus, *condition)
 			}
-		case appsutil.DeploymentStatusFailed:
-			var condition *appsv1api.DeploymentCondition
+		case appsv1.DeploymentStatusFailed:
+			var condition *appsv1.DeploymentCondition
 			if appsutil.IsDeploymentCancelled(latestRC) {
 				msg := fmt.Sprintf("rollout of replication controller %q was cancelled", latestRC.Name)
-				condition = appsutil.NewDeploymentCondition(appsv1api.DeploymentProgressing, v1.ConditionFalse,
+				condition = appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse,
 					appsutil.CancelledRolloutReason, msg)
 			} else {
 				msg := fmt.Sprintf("replication controller %q has failed progressing", latestRC.Name)
-				condition = appsutil.NewDeploymentCondition(appsv1api.DeploymentProgressing, v1.ConditionFalse, appsutil.TimedOutReason, msg)
+				condition = appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse, appsutil.TimedOutReason, msg)
 			}
 			appsutil.SetDeploymentCondition(newStatus, *condition)
-		case appsutil.DeploymentStatusComplete:
+		case appsv1.DeploymentStatusComplete:
 			msg := fmt.Sprintf("replication controller %q successfully rolled out", latestRC.Name)
-			condition := appsutil.NewDeploymentCondition(appsv1api.DeploymentProgressing, v1.ConditionTrue, appsutil.NewRcAvailableReason, msg)
+			condition := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue, appsutil.NewRcAvailableReason, msg)
 			appsutil.SetDeploymentCondition(newStatus, *condition)
 		}
 	}
@@ -508,7 +508,7 @@ func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
 }
 
 // cleanupOldDeployments deletes old replication controller deployments if their quota has been reached
-func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments []*v1.ReplicationController, deploymentConfig *appsv1api.DeploymentConfig) error {
+func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments []*v1.ReplicationController, deploymentConfig *appsv1.DeploymentConfig) error {
 	if deploymentConfig.Spec.RevisionHistoryLimit == nil {
 		// there is no past deplyoment quota set
 		return nil
@@ -545,7 +545,7 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 // triggers were activated (config change or image change). The first bool indicates that
 // the triggers are active and second indicates if we should skip the rollout because we
 // are waiting for the trigger to complete update (waiting for image for example).
-func triggerActivated(config *appsv1api.DeploymentConfig, latestExists bool, latestDeployment *v1.ReplicationController) (bool, bool, error) {
+func triggerActivated(config *appsv1.DeploymentConfig, latestExists bool, latestDeployment *v1.ReplicationController) (bool, bool, error) {
 	if config.Spec.Paused {
 		return false, false, nil
 	}

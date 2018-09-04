@@ -55,7 +55,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")
-				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), s2iBuildName, exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
+				err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), s2iBuildName, exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
 				if err != nil {
 					exutil.DumpBuildLogs("s2icontext", oc)
 				}
@@ -116,7 +116,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 
 				// build will fail if we don't use the right context dir because there won't be a dockerfile present.
 				g.By("waiting for build to finish")
-				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), dockerBuildName, exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
+				err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), dockerBuildName, exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
 				if err != nil {
 					exutil.DumpBuildLogs("dockercontext", oc)
 				}

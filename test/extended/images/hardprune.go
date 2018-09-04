@@ -376,16 +376,7 @@ const (
 
 // GetDockerRegistryURL returns a cluster URL of internal docker registry if available.
 func GetDockerRegistryURL(oc *exutil.CLI) (string, error) {
-	svc, err := oc.AdminKubeClient().Core().Services("default").Get("docker-registry", metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	url := svc.Spec.ClusterIP
-	for _, p := range svc.Spec.Ports {
-		url = fmt.Sprintf("%s:%d", url, p.Port)
-		break
-	}
-	return url, nil
+	return oc.Run("registry").Args("info").Output()
 }
 
 // RegistriConfiguration holds desired configuration options for the integrated registry. *nil* stands for

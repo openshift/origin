@@ -313,7 +313,7 @@ func validateLifecycleHook(hook *appsapi.LifecycleHook, pod *kapi.PodSpec, fldPa
 			if len(image.ContainerName) == 0 {
 				errs = append(errs, field.Required(fldPath.Child("tagImages").Index(i).Child("containerName"), "a containerName is required"))
 			} else {
-				if _, err := appsapi.TemplateImageForContainer(pod, appsapi.IgnoreTriggers, image.ContainerName); err != nil {
+				if err := verifyTemplateImageForContainer(pod, image.ContainerName); err != nil {
 					errs = append(errs, field.Invalid(fldPath.Child("tagImages").Index(i).Child("containerName"), image.ContainerName, err.Error()))
 				}
 			}
@@ -329,6 +329,24 @@ func validateLifecycleHook(hook *appsapi.LifecycleHook, pod *kapi.PodSpec, fldPa
 	}
 
 	return errs
+}
+
+func verifyTemplateImageForContainer(pod *kapi.PodSpec, containerName string) error {
+	containers := []kapi.Container{}
+	containers = append(containers, pod.Containers...)
+	containers = append(containers, pod.InitContainers...)
+	for i := range containers {
+		container := &containers[i]
+		if container.Name != containerName {
+			continue
+		}
+		if _, err := imageapi.ParseDockerImageReference(container.Image); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return fmt.Errorf("no container %q found", containerName)
 }
 
 func validateExecNewPod(hook *appsapi.ExecNewPodHook, fldPath *field.Path) field.ErrorList {

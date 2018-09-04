@@ -21,23 +21,34 @@ const (
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
-func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig, stopCh <-chan struct{}) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
-	webconsoleProxyHandler, err := newWebConsoleProxy(genericConfig, kubeInformers, kubeAPIServerConfig)
+// TODO switch back to taking a kubeapiserver config.  For now make it obviously safe for 3.11
+func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string, oauthConfig *configapi.OAuthConfig, userAgentMatchingConfig configapi.UserAgentMatchingConfig) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+	extraPostStartHooks := map[string]genericapiserver.PostStartHookFunc{}
+
+	webconsoleProxyHandler, err := newWebConsoleProxy(kubeInformers, legacyServiceServingCertSignerCABundle)
 	if err != nil {
 		return nil, nil, err
 	}
-	oauthServerHandler, extraPostStartHooks, err := NewOAuthServerHandler(genericConfig, kubeAPIServerConfig)
+	oauthServerHandler, newPostStartHooks, err := NewOAuthServerHandler(genericConfig, oauthConfig)
 	if err != nil {
 		return nil, nil, err
+	}
+	for name, fn := range newPostStartHooks {
+		extraPostStartHooks[name] = fn
 	}
 
 	return func(apiHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
 			// Machinery that let's use discover the Web Console Public URL
 			accessor := newWebConsolePublicURLAccessor(genericConfig.LoopbackClientConfig)
-			go accessor.Run(stopCh)
+			// the webconsole is proxied through the API server.  This starts a small controller that keeps track of where to proxy.
+			// TODO stop proxying the webconsole. Should happen in a future release.
+			extraPostStartHooks["openshift.io-webconsolepublicurl"] = func(context genericapiserver.PostStartHookContext) error {
+				go accessor.Run(context.StopCh)
+				return nil
+			}
 
 			// these are after the kube handler
-			handler := versionSkewFilter(apiHandler, kubeAPIServerConfig)
+			handler := versionSkewFilter(apiHandler, userAgentMatchingConfig)
 
 			// this is the normal kube handler chain
 			handler = genericapiserver.DefaultBuildHandlerChain(handler, genericConfig)
@@ -52,7 +63,7 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers inf
 			// these handlers are actually separate API servers which have their own handler chains.
 			// our server embeds these
 			handler = withConsoleRedirection(handler, webconsoleProxyHandler, accessor)
-			handler = withOAuthRedirection(kubeAPIServerConfig, handler, oauthServerHandler)
+			handler = withOAuthRedirection(oauthConfig, handler, oauthServerHandler)
 
 			return handler
 		},
@@ -60,8 +71,8 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers inf
 		nil
 }
 
-func newWebConsoleProxy(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, kubeAPIServerConfig *configapi.MasterConfig) (http.Handler, error) {
-	caBundle, err := ioutil.ReadFile(kubeAPIServerConfig.ControllerConfig.ServiceServingCert.Signer.CertFile)
+func newWebConsoleProxy(kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string) (http.Handler, error) {
+	caBundle, err := ioutil.ReadFile(legacyServiceServingCertSignerCABundle)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +83,8 @@ func newWebConsoleProxy(genericConfig *genericapiserver.Config, kubeInformers in
 	return proxyHandler, nil
 }
 
-func withOAuthRedirection(kubeAPIServerConfig *configapi.MasterConfig, handler, oauthServerHandler http.Handler) http.Handler {
-	if kubeAPIServerConfig.OAuthConfig == nil {
+func withOAuthRedirection(oauthConfig *configapi.OAuthConfig, handler, oauthServerHandler http.Handler) http.Handler {
+	if oauthConfig == nil {
 		return handler
 	}
 

@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 
-	networkapi "github.com/openshift/api/network/v1"
+	networkv1 "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	"github.com/openshift/library-go/pkg/network/networkapihelpers"
 	"github.com/openshift/origin/pkg/network"
@@ -206,7 +206,7 @@ func (vmap *masterVNIDMap) assignVNID(networkClient networkclient.Interface, nsN
 
 	if !exists {
 		// Create NetNamespace Object and update vnid map
-		netns := &networkapi.NetNamespace{
+		netns := &networkv1.NetNamespace{
 			TypeMeta:   metav1.TypeMeta{Kind: "NetNamespace"},
 			ObjectMeta: metav1.ObjectMeta{Name: nsName},
 			NetName:    nsName,
@@ -237,7 +237,7 @@ func (vmap *masterVNIDMap) revokeVNID(networkClient networkclient.Interface, nsN
 	return nil
 }
 
-func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, origNetns *networkapi.NetNamespace) error {
+func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, origNetns *networkv1.NetNamespace) error {
 	// Informer cache should not be mutated, so get a copy of the object
 	netns := origNetns.DeepCopy()
 
@@ -319,12 +319,12 @@ func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
-	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, master.handleAddOrUpdateNetNamespace, nil)
+	funcs := common.InformerFuncs(&networkv1.NetNamespace{}, master.handleAddOrUpdateNetNamespace, nil)
 	master.netNamespaceInformer.Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
-	netns := obj.(*networkapi.NetNamespace)
+	netns := obj.(*networkv1.NetNamespace)
 	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
 
 	if err := master.vnids.updateVNID(master.networkClient, netns); err != nil {

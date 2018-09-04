@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/apiserver/pkg/authentication/user"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	"k8s.io/apiserver/pkg/authentication/user"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
 )
 
 type Config struct {
@@ -19,12 +19,6 @@ type Config struct {
 	PreferredUsernameHeaders []string
 	// EmailHeaders lists the headers to check (in order, case-insensitively) for an email address. The first header with a value wins.
 	EmailHeaders []string
-}
-
-func NewDefaultConfig() *Config {
-	return &Config{
-		IDHeaders: []string{"X-Remote-User", "Remote-User"},
-	}
 }
 
 type Authenticator struct {
@@ -55,14 +49,7 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 		identity.Extra[authapi.IdentityPreferredUsernameKey] = preferredUsername
 	}
 
-	user, err := a.mapper.UserFor(identity)
-	if err != nil {
-		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
-		return nil, false, err
-	}
-	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
-
-	return user, true, nil
+	return identitymapper.UserFor(a.mapper, identity)
 }
 
 func headerValue(h http.Header, headerNames []string) string {

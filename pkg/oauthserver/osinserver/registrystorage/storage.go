@@ -2,12 +2,15 @@ package registrystorage
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/RangelReale/osin"
 	"github.com/golang/glog"
+
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kuser "k8s.io/apiserver/pkg/authentication/user"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
@@ -17,27 +20,18 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 )
 
-type UserConversion interface {
-	ConvertToAuthorizeToken(interface{}, *oauthapi.OAuthAuthorizeToken) error
-	ConvertToAccessToken(interface{}, *oauthapi.OAuthAccessToken) error
-	ConvertFromAuthorizeToken(*oauthapi.OAuthAuthorizeToken) (interface{}, error)
-	ConvertFromAccessToken(*oauthapi.OAuthAccessToken) (interface{}, error)
-}
-
 type storage struct {
 	accesstoken    oauthclient.OAuthAccessTokenInterface
 	authorizetoken oauthclient.OAuthAuthorizeTokenInterface
 	client         api.OAuthClientGetter
-	user           UserConversion
 	tokentimeout   int32
 }
 
-func New(access oauthclient.OAuthAccessTokenInterface, authorize oauthclient.OAuthAuthorizeTokenInterface, client api.OAuthClientGetter, user UserConversion, tokentimeout int32) osin.Storage {
+func New(access oauthclient.OAuthAccessTokenInterface, authorize oauthclient.OAuthAuthorizeTokenInterface, client api.OAuthClientGetter, tokentimeout int32) osin.Storage {
 	return &storage{
 		accesstoken:    access,
 		authorizetoken: authorize,
 		client:         client,
-		user:           user,
 		tokentimeout:   tokentimeout,
 	}
 }
@@ -193,8 +187,9 @@ func (s *storage) RemoveRefresh(token string) error {
 func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*oauthapi.OAuthAuthorizeToken, error) {
 	token := &oauthapi.OAuthAuthorizeToken{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              data.Code,
-			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
+			Name: data.Code,
+			// creation time is controlled by the API
+			// CreationTimestamp: metav1.Time{Time: data.CreatedAt},
 		},
 		CodeChallenge:       data.CodeChallenge,
 		CodeChallengeMethod: data.CodeChallengeMethod,
@@ -204,14 +199,15 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*oauthapi.O
 		RedirectURI:         data.RedirectUri,
 		State:               data.State,
 	}
-	if err := s.user.ConvertToAuthorizeToken(data.UserData, token); err != nil {
+	var err error
+	if token.UserName, token.UserUID, err = convertFromUser(data.UserData); err != nil {
 		return nil, err
 	}
 	return token, nil
 }
 
 func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeToken) (*osin.AuthorizeData, error) {
-	user, err := s.user.ConvertFromAuthorizeToken(authorize)
+	user, err := convertFromToken(authorize.UserName, authorize.UserUID)
 	if err != nil {
 		return nil, err
 	}
@@ -240,8 +236,9 @@ func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeTo
 func (s *storage) convertToAccessToken(data *osin.AccessData) (*oauthapi.OAuthAccessToken, error) {
 	token := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              data.AccessToken,
-			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
+			Name: data.AccessToken,
+			// creation time is controlled by the API
+			// CreationTimestamp: metav1.Time{Time: data.CreatedAt},
 		},
 		ExpiresIn:    int64(data.ExpiresIn),
 		RefreshToken: data.RefreshToken,
@@ -252,7 +249,8 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*oauthapi.OAuthAc
 	if data.AuthorizeData != nil {
 		token.AuthorizeToken = data.AuthorizeData.Code
 	}
-	if err := s.user.ConvertToAccessToken(data.UserData, token); err != nil {
+	var err error
+	if token.UserName, token.UserUID, err = convertFromUser(data.UserData); err != nil {
 		return nil, err
 	}
 
@@ -268,7 +266,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*oauthapi.OAuthAc
 }
 
 func (s *storage) convertFromAccessToken(access *oauthapi.OAuthAccessToken) (*osin.AccessData, error) {
-	user, err := s.user.ConvertFromAccessToken(access)
+	user, err := convertFromToken(access.UserName, access.UserUID)
 	if err != nil {
 		return nil, err
 	}
@@ -289,5 +287,31 @@ func (s *storage) convertFromAccessToken(access *oauthapi.OAuthAccessToken) (*os
 		RedirectUri:  access.RedirectURI,
 		CreatedAt:    access.CreationTimestamp.Time,
 		UserData:     user,
+	}, nil
+}
+
+func convertFromUser(user interface{}) (name, uid string, err error) {
+	info, ok := user.(kuser.Info)
+	if !ok {
+		return "", "", fmt.Errorf("did not receive user.Info: %#v", user) // should be impossible
+	}
+
+	name = info.GetName()
+	uid = info.GetUID()
+	if len(name) == 0 || len(uid) == 0 {
+		return "", "", fmt.Errorf("user.Info has no user name or UID: %#v", info) // should be impossible
+	}
+
+	return name, uid, nil
+}
+
+func convertFromToken(name, uid string) (kuser.Info, error) {
+	if len(name) == 0 || len(uid) == 0 {
+		return nil, fmt.Errorf("token has no user name or UID stored: name=%s uid=%s", name, uid) // should be impossible
+	}
+
+	return &kuser.DefaultInfo{
+		Name: name,
+		UID:  uid,
 	}, nil
 }

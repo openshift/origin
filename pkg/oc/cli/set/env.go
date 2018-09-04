@@ -32,7 +32,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/util/clientcmd"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
-	envresolve "github.com/openshift/origin/pkg/pod/envresolve"
+	envresolve "github.com/openshift/origin/pkg/pod/envresolve/internal_version"
 )
 
 var (

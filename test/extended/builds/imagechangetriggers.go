@@ -48,7 +48,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] imagechangetriggers", func() {
 
 			err = wait.Poll(time.Second, 30*time.Second, func() (done bool, err error) {
 				for _, build := range []string{"bc-docker-1", "bc-jenkins-1", "bc-source-1", "bc-custom-1"} {
-					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(build, metav1.GetOptions{})
+					_, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(build, metav1.GetOptions{})
 					if err == nil {
 						continue
 					}

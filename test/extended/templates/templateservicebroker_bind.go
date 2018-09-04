@@ -69,7 +69,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 
 			// wait for templateinstance controller to do its thing
 			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-				templateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+				templateinstance, err := cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -100,7 +100,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 			err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
+			err = cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 

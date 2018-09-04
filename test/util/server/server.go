@@ -222,9 +222,6 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 	}
 	masterConfig.ImagePolicyConfig.AllowedRegistriesForImport = &allowedRegistries
 
-	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
-	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
-
 	glog.Infof("Starting integration server from master %s", startOptions.MasterArgs.ConfigDir.Value())
 
 	return masterConfig, nil

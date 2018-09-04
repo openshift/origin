@@ -6,21 +6,22 @@ import (
 
 	"github.com/gonum/graph"
 
+	kappsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	oapps "github.com/openshift/api/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
+	"github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
+	appsnodes "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
@@ -29,8 +30,6 @@ import (
 const (
 	// ExposedThroughServiceEdgeKind goes from a PodTemplateSpec or a Pod to Service.  The head should make the service's selector.
 	ExposedThroughServiceEdgeKind = "ExposedThroughService"
-	// ManagedByControllerEdgeKind goes from Pod to controller when the Pod satisfies a controller's label selector
-	ManagedByControllerEdgeKind = "ManagedByController"
 	// MountedSecretEdgeKind goes from PodSpec to Secret indicating that is or will be a request to mount a volume with the Secret.
 	MountedSecretEdgeKind = "MountedSecret"
 	// MountableSecretEdgeKind goes from ServiceAccount to Secret indicating that the SA allows the Secret to be mounted
@@ -120,7 +119,7 @@ func AddManagedByControllerPodEdges(g osgraph.MutableUniqueGraph, to graph.Node,
 				continue
 			}
 			if query.Matches(labels.Set(target.Labels)) {
-				g.AddEdge(target, to, ManagedByControllerEdgeKind)
+				g.AddEdge(target, to, appsgraph.ManagedByControllerEdgeKind)
 			}
 		}
 	}
@@ -134,12 +133,23 @@ func AddAllManagedByControllerPodEdges(g osgraph.MutableUniqueGraph) {
 		case *kubegraph.ReplicationControllerNode:
 			AddManagedByControllerPodEdges(g, cast, cast.ReplicationController.Namespace, cast.ReplicationController.Spec.Selector)
 		case *kubegraph.ReplicaSetNode:
-			AddManagedByControllerPodEdges(g, cast, cast.ReplicaSet.Namespace, cast.ReplicaSet.Spec.Selector.MatchLabels)
+			selector := make(map[string]string)
+			if cast.ReplicaSet.Spec.Selector != nil {
+				selector = cast.ReplicaSet.Spec.Selector.MatchLabels
+			}
+			AddManagedByControllerPodEdges(g, cast, cast.ReplicaSet.Namespace, selector)
 		case *kubegraph.StatefulSetNode:
-			// TODO: refactor to handle expanded selectors (along with ReplicaSets and Deployments)
-			AddManagedByControllerPodEdges(g, cast, cast.StatefulSet.Namespace, cast.StatefulSet.Spec.Selector.MatchLabels)
+			selector := make(map[string]string)
+			if cast.StatefulSet.Spec.Selector != nil {
+				selector = cast.StatefulSet.Spec.Selector.MatchLabels
+			}
+			AddManagedByControllerPodEdges(g, cast, cast.StatefulSet.Namespace, selector)
 		case *kubegraph.DaemonSetNode:
-			AddManagedByControllerPodEdges(g, cast, cast.DaemonSet.Namespace, cast.DaemonSet.Spec.Selector.MatchLabels)
+			selector := make(map[string]string)
+			if cast.DaemonSet.Spec.Selector != nil {
+				selector = cast.DaemonSet.Spec.Selector.MatchLabels
+			}
+			AddManagedByControllerPodEdges(g, cast, cast.DaemonSet.Namespace, selector)
 		}
 	}
 }
@@ -162,7 +172,7 @@ func AddMountedSecretEdges(g osgraph.Graph, podSpec *kubegraph.PodSpecNode) {
 		}
 
 		// pod secrets must be in the same namespace
-		syntheticSecret := &kapi.Secret{}
+		syntheticSecret := &corev1.Secret{}
 		syntheticSecret.Namespace = meta.GetNamespace()
 		syntheticSecret.Name = source.Secret.SecretName
 
@@ -181,7 +191,7 @@ func AddAllMountedSecretEdges(g osgraph.Graph) {
 
 func AddMountableSecretEdges(g osgraph.Graph, saNode *kubegraph.ServiceAccountNode) {
 	for _, mountableSecret := range saNode.ServiceAccount.Secrets {
-		syntheticSecret := &kapi.Secret{}
+		syntheticSecret := &corev1.Secret{}
 		syntheticSecret.Namespace = saNode.ServiceAccount.Namespace
 		syntheticSecret.Name = mountableSecret.Name
 
@@ -214,7 +224,7 @@ func AddRequestedServiceAccountEdges(g osgraph.Graph, podSpecNode *kubegraph.Pod
 		name = podSpecNode.ServiceAccountName
 	}
 
-	syntheticSA := &kapi.ServiceAccount{}
+	syntheticSA := &corev1.ServiceAccount{}
 	syntheticSA.Namespace = meta.GetNamespace()
 	syntheticSA.Name = name
 
@@ -255,16 +265,16 @@ func AddHPAScaleRefEdges(g osgraph.Graph, restMapper meta.RESTMapper) {
 		var syntheticNode graph.Node
 		r := groupVersionResource.GroupResource()
 		switch r {
-		case kapi.Resource("replicationcontrollers"):
-			syntheticNode = kubegraph.FindOrCreateSyntheticReplicationControllerNode(g, &kapi.ReplicationController{ObjectMeta: syntheticMeta})
+		case corev1.Resource("replicationcontrollers"):
+			syntheticNode = kubegraph.FindOrCreateSyntheticReplicationControllerNode(g, &corev1.ReplicationController{ObjectMeta: syntheticMeta})
 		case oapps.Resource("deploymentconfigs"),
 			// we need the legacy resource until we stop supporting HPA having old refs
 			legacy.Resource("deploymentconfigs"):
-			syntheticNode = appsgraph.FindOrCreateSyntheticDeploymentConfigNode(g, &appsapi.DeploymentConfig{ObjectMeta: syntheticMeta})
-		case extensions.Resource("deployments"):
-			syntheticNode = kubegraph.FindOrCreateSyntheticDeploymentNode(g, &extensions.Deployment{ObjectMeta: syntheticMeta})
-		case extensions.Resource("replicasets"):
-			syntheticNode = kubegraph.FindOrCreateSyntheticReplicaSetNode(g, &extensions.ReplicaSet{ObjectMeta: syntheticMeta})
+			syntheticNode = appsnodes.FindOrCreateSyntheticDeploymentConfigNode(g, &appsv1.DeploymentConfig{ObjectMeta: syntheticMeta})
+		case kappsv1.Resource("deployments"):
+			syntheticNode = kubegraph.FindOrCreateSyntheticDeploymentNode(g, &kappsv1.Deployment{ObjectMeta: syntheticMeta})
+		case kappsv1.Resource("replicasets"):
+			syntheticNode = kubegraph.FindOrCreateSyntheticReplicaSetNode(g, &kappsv1.ReplicaSet{ObjectMeta: syntheticMeta})
 		default:
 			continue
 		}
@@ -273,7 +283,7 @@ func AddHPAScaleRefEdges(g osgraph.Graph, restMapper meta.RESTMapper) {
 	}
 }
 
-func addTriggerEdges(obj runtime.Object, podTemplate kapi.PodTemplateSpec, addEdgeFn func(image appsapi.TemplateImage, err error)) {
+func addTriggerEdges(obj runtime.Object, podTemplate corev1.PodTemplateSpec, addEdgeFn func(image appsgraph.TemplateImage, err error)) {
 	m, err := meta.Accessor(obj)
 	if err != nil {
 		return
@@ -286,8 +296,8 @@ func addTriggerEdges(obj runtime.Object, podTemplate kapi.PodTemplateSpec, addEd
 	if err := json.Unmarshal([]byte(triggerAnnotation), &triggers); err != nil {
 		return
 	}
-	triggerFn := func(container *kapi.Container) (appsapi.TemplateImage, bool) {
-		from := kapi.ObjectReference{}
+	triggerFn := func(container *corev1.Container) (appsgraph.TemplateImage, bool) {
+		from := corev1.ObjectReference{}
 		for _, trigger := range triggers {
 			c, remainder, err := annotations.ContainerForObjectFieldPath(obj, trigger.FieldPath)
 			if err != nil || remainder != "image" {
@@ -302,18 +312,18 @@ func addTriggerEdges(obj runtime.Object, podTemplate kapi.PodTemplateSpec, addEd
 			if len(from.Kind) == 0 {
 				from.Kind = "ImageStreamTag"
 			}
-			return appsapi.TemplateImage{
+			return appsgraph.TemplateImage{
 				Image: c.GetImage(),
 				From:  &from,
 			}, true
 		}
-		return appsapi.TemplateImage{}, false
+		return appsgraph.TemplateImage{}, false
 	}
-	appsapi.EachTemplateImage(&podTemplate.Spec, triggerFn, addEdgeFn)
+	appsgraph.EachTemplateImage(&podTemplate.Spec, triggerFn, addEdgeFn)
 }
 
 func AddTriggerStatefulSetsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.StatefulSetNode) *kubegraph.StatefulSetNode {
-	addTriggerEdges(node.StatefulSet, node.StatefulSet.Spec.Template, func(image appsapi.TemplateImage, err error) {
+	addTriggerEdges(node.StatefulSet, node.StatefulSet.Spec.Template, func(image appsgraph.TemplateImage, err error) {
 		if err != nil {
 			return
 		}
@@ -344,7 +354,7 @@ func AddAllTriggerStatefulSetsEdges(g osgraph.MutableUniqueGraph) {
 }
 
 func AddTriggerDeploymentsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.DeploymentNode) *kubegraph.DeploymentNode {
-	addTriggerEdges(node.Deployment, node.Deployment.Spec.Template, func(image appsapi.TemplateImage, err error) {
+	addTriggerEdges(node.Deployment, node.Deployment.Spec.Template, func(image appsgraph.TemplateImage, err error) {
 		if err != nil {
 			return
 		}
@@ -381,7 +391,7 @@ func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *kubegraph.Deployment
 			}
 			if BelongsToDeployment(node.Deployment, rsNode.ReplicaSet) {
 				g.AddEdge(node, rsNode, DeploymentEdgeKind)
-				g.AddEdge(rsNode, node, ManagedByControllerEdgeKind)
+				g.AddEdge(rsNode, node, appsgraph.ManagedByControllerEdgeKind)
 			}
 		}
 	}
@@ -389,7 +399,7 @@ func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *kubegraph.Deployment
 	return node
 }
 
-func BelongsToDeployment(config *extensions.Deployment, b *extensions.ReplicaSet) bool {
+func BelongsToDeployment(config *kappsv1.Deployment, b *kappsv1.ReplicaSet) bool {
 	if b.OwnerReferences == nil {
 		return false
 	}

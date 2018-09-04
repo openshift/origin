@@ -104,18 +104,6 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 	clusterRoles := []rbacv1.ClusterRole{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: ClusterAdminRoleName,
-				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "A super-user that can perform any action in the cluster. When granted to a user within a project, they have full control over quota and membership and can perform every action on every resource in the project.",
-				},
-			},
-			Rules: []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule(rbacv1.VerbAll).Groups(rbacv1.APIGroupAll).Resources(rbacv1.ResourceAll).RuleOrDie(),
-				rbacv1helpers.NewRule(rbacv1.VerbAll).URLs(rbacv1.NonResourceAll).RuleOrDie(),
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
 				Name: SudoerRoleName,
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -741,7 +729,6 @@ func GetBootstrapClusterRoles() []rbacv1.ClusterRole {
 	// so add them to this list.
 	openshiftClusterRoles = append(openshiftClusterRoles, GetDeadClusterRoles()...)
 	kubeClusterRoles := bootstrappolicy.ClusterRoles()
-	kubeSAClusterRoles := bootstrappolicy.ControllerRoles()
 	openshiftControllerRoles := ControllerRoles()
 
 	// Eventually openshift controllers and kube controllers have different prefixes
@@ -757,26 +744,14 @@ func GetBootstrapClusterRoles() []rbacv1.ClusterRole {
 	}
 
 	conflictingNames := kubeClusterRoleNames.Intersection(openshiftClusterRoleNames)
-	extraRBACConflicts := conflictingNames.Difference(clusterRoleConflicts)
-	extraWhitelistEntries := clusterRoleConflicts.Difference(conflictingNames)
-	switch {
-	case len(extraRBACConflicts) > 0 && len(extraWhitelistEntries) > 0:
-		panic(fmt.Sprintf("kube ClusterRoles conflict with openshift ClusterRoles: %v and ClusterRole whitelist contains a extraneous entries: %v ", extraRBACConflicts.List(), extraWhitelistEntries.List()))
-	case len(extraRBACConflicts) > 0:
-		panic(fmt.Sprintf("kube ClusterRoles conflict with openshift ClusterRoles: %v", extraRBACConflicts.List()))
-	case len(extraWhitelistEntries) > 0:
-		panic(fmt.Sprintf("ClusterRole whitelist contains a extraneous entries: %v", extraWhitelistEntries.List()))
+	if len(conflictingNames) > 0 {
+		panic(fmt.Sprintf("kube ClusterRoles conflict with openshift ClusterRoles: %v", conflictingNames.List()))
 	}
 
 	finalClusterRoles := []rbacv1.ClusterRole{}
 	finalClusterRoles = append(finalClusterRoles, openshiftClusterRoles...)
 	finalClusterRoles = append(finalClusterRoles, openshiftControllerRoles...)
-	finalClusterRoles = append(finalClusterRoles, kubeSAClusterRoles...)
-	for i := range kubeClusterRoles {
-		if !clusterRoleConflicts.Has(kubeClusterRoles[i].Name) {
-			finalClusterRoles = append(finalClusterRoles, kubeClusterRoles[i])
-		}
-	}
+	finalClusterRoles = append(finalClusterRoles, kubeClusterRoles...)
 
 	// TODO we should not do this for kube cluster roles since we cannot control them once we run on top of kube
 	// conditionally add the web console annotations
@@ -876,7 +851,7 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 		newOriginClusterBinding(WebHooksRoleBindingName, WebHooksRoleName).
 			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
-		newOriginClusterBinding(DiscoveryRoleBindingName, DiscoveryRoleName).
+		rbacv1helpers.NewClusterBinding(DiscoveryRoleName).
 			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
 		// Allow all build strategies by default.
@@ -915,7 +890,6 @@ func GetBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 	openshiftClusterRoleBindings = append(openshiftClusterRoleBindings, GetDeadClusterRoleBindings()...)
 
 	kubeClusterRoleBindings := bootstrappolicy.ClusterRoleBindings()
-	kubeControllerClusterRoleBindings := bootstrappolicy.ControllerRoleBindings()
 	openshiftControllerClusterRoleBindings := ControllerRoleBindings()
 
 	// openshift controllers and kube controllers have different prefixes
@@ -930,43 +904,16 @@ func GetBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 	}
 
 	conflictingNames := kubeClusterRoleBindingNames.Intersection(openshiftClusterRoleBindingNames)
-	extraRBACConflicts := conflictingNames.Difference(clusterRoleBindingConflicts)
-	extraWhitelistEntries := clusterRoleBindingConflicts.Difference(conflictingNames)
-	switch {
-	case len(extraRBACConflicts) > 0 && len(extraWhitelistEntries) > 0:
-		panic(fmt.Sprintf("kube ClusterRoleBindings conflict with openshift ClusterRoleBindings: %v and ClusterRoleBinding whitelist contains a extraneous entries: %v ", extraRBACConflicts.List(), extraWhitelistEntries.List()))
-	case len(extraRBACConflicts) > 0:
-		panic(fmt.Sprintf("kube ClusterRoleBindings conflict with openshift ClusterRoleBindings: %v", extraRBACConflicts.List()))
-	case len(extraWhitelistEntries) > 0:
-		panic(fmt.Sprintf("ClusterRoleBinding whitelist contains a extraneous entries: %v", extraWhitelistEntries.List()))
+	if len(conflictingNames) > 0 {
+		panic(fmt.Sprintf("kube ClusterRoleBindings conflict with openshift ClusterRoleBindings: %v", conflictingNames.List()))
 	}
 
 	finalClusterRoleBindings := []rbacv1.ClusterRoleBinding{}
 	finalClusterRoleBindings = append(finalClusterRoleBindings, openshiftClusterRoleBindings...)
-	finalClusterRoleBindings = append(finalClusterRoleBindings, kubeControllerClusterRoleBindings...)
 	finalClusterRoleBindings = append(finalClusterRoleBindings, openshiftControllerClusterRoleBindings...)
-	for i := range kubeClusterRoleBindings {
-		if !clusterRoleBindingConflicts.Has(kubeClusterRoleBindings[i].Name) {
-			finalClusterRoleBindings = append(finalClusterRoleBindings, kubeClusterRoleBindings[i])
-		}
-	}
 
 	return finalClusterRoleBindings
 }
-
-// clusterRoleConflicts lists the roles which are known to conflict with upstream and which we have manually
-// deconflicted with our own.
-var clusterRoleConflicts = sets.NewString(
-	// TODO this should probably be re-swizzled to be the delta on top of the kube role
-	"system:discovery",
-
-	// TODO these should be reconsidered
-	"cluster-admin",
-)
-
-// clusterRoleBindingConflicts lists the roles which are known to conflict with upstream and which we have manually
-// deconflicted with our own.
-var clusterRoleBindingConflicts = sets.NewString()
 
 // The current list of roles considered useful for normal users (non-admin)
 var rolesToShow = sets.NewString(

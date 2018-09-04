@@ -17,9 +17,9 @@ import (
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	allocator "github.com/openshift/origin/pkg/security"
+	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
-	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"

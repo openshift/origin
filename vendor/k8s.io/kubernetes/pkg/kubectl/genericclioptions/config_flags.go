@@ -225,6 +225,7 @@ func (f *ConfigFlags) AddFlags(flags *pflag.FlagSet) {
 		if !openshiftpatch.IsOC {
 			flags.StringVar(f.KubeConfig, "kubeconfig", *f.KubeConfig, "Path to the kubeconfig file to use for CLI requests.")
 		} else {
+			flags.StringVar(f.KubeConfig, "kubeconfig", *f.KubeConfig, "Path to the kubeconfig file to use for CLI requests.")
 			flags.StringVar(f.KubeConfig, OpenShiftKubeConfigFlagName, *f.KubeConfig, "Path to the kubeconfig file to use for CLI requests.")
 		}
 	}

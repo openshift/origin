@@ -1667,3 +1667,174 @@ type BuildOverridesConfig struct {
 	// tolerations set on a build pod.
 	Tolerations []core.Toleration
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type OpenshiftAPIServerConfig struct {
+	metav1.TypeMeta
+
+	// ServingInfo describes how to start serving
+	ServingInfo HTTPServingInfo
+
+	// CORSAllowedOrigins
+	CORSAllowedOrigins []string
+
+	// MasterClients holds all the client connection information for controllers and other system components
+	// TODO this should be renamed and needs to be optional.  We should be able to drive ourselves via in-cluster-config
+	MasterClients MasterClients
+
+	// AuditConfig holds information related to auditing capabilities.
+	AuditConfig AuditConfig
+
+	// StoragePrefix is the path within etcd that the OpenShift resources will
+	// be rooted under. This value, if changed, will mean existing objects in etcd will
+	// no longer be located.
+	StoragePrefix string
+
+	// EtcdClientInfo contains information about how to connect to etcd
+	EtcdClientInfo EtcdConnectionInfo
+
+	ImagePolicyConfig ServerImagePolicyConfig
+
+	ProjectConfig ServerProjectConfig
+
+	// RoutingConfig holds information about routing and route generation
+	RoutingConfig RoutingConfig
+
+	// ServiceAccountOAuthGrantMethod is used for determining client authorization for service account oauth client.
+	// It must be either: deny, prompt, or ""
+	ServiceAccountOAuthGrantMethod GrantHandlerType
+
+	AdmissionPluginConfig map[string]*AdmissionPluginConfig
+
+	// JenkinsPipelineConfig holds information about the default Jenkins template
+	// used for JenkinsPipeline build strategy.
+	// TODO this needs to become a normal plugin config
+	JenkinsPipelineConfig JenkinsPipelineConfig
+
+	// TODO this needs to be removed.
+	APIServerArguments ExtendedArguments
+}
+
+type ServerImagePolicyConfig struct {
+	// MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user
+	// does a bulk import of a Docker repository. This number is set low to prevent users from
+	// importing large numbers of images accidentally. Set -1 for no limit.
+	MaxImagesBulkImportedPerRepository int
+	// AllowedRegistriesForImport limits the docker registries that normal users may import
+	// images from. Set this list to the registries that you trust to contain valid Docker
+	// images and that you want applications to be able to import from. Users with
+	// permission to create Images or ImageStreamMappings via the API are not affected by
+	// this policy - typically only administrators or system integrations will have those
+	// permissions.
+	AllowedRegistriesForImport *AllowedRegistries
+
+	// InternalRegistryHostname sets the hostname for the default internal image
+	// registry. The value must be in "hostname[:port]" format.
+	// For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY
+	// environment variable but this setting overrides the environment variable.
+	InternalRegistryHostname string
+	// ExternalRegistryHostname sets the hostname for the default external image
+	// registry. The external hostname should be set only when the image registry
+	// is exposed externally. The value is used in 'publicDockerImageRepository'
+	// field in ImageStreams. The value must be in "hostname[:port]" format.
+	ExternalRegistryHostname string
+
+	// AdditionalTrustedCA is a path to a pem bundle file containing additional CAs that
+	// should be trusted during imagestream import.
+	AdditionalTrustedCA string
+}
+
+type ServerProjectConfig struct {
+	// DefaultNodeSelector holds default project node label selector
+	DefaultNodeSelector string
+
+	// ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint
+	ProjectRequestMessage string
+
+	// ProjectRequestTemplate is the template to use for creating projects in response to projectrequest.
+	// It is in the format namespace/template and it is optional.
+	// If it is not specified, a default template is used.
+	ProjectRequestTemplate string
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type KubeAPIServerConfig struct {
+	metav1.TypeMeta
+
+	// ServingInfo describes how to start serving
+	ServingInfo HTTPServingInfo
+
+	// CORSAllowedOrigins
+	CORSAllowedOrigins []string
+
+	// OAuthConfig, if present start the /oauth endpoint in this process
+	OAuthConfig *OAuthConfig
+
+	// AuthConfig configures authentication options in addition to the standard
+	// oauth token and client certificate authenticators
+	AuthConfig MasterAuthConfig
+
+	// AggregatorConfig has options for configuring the aggregator component of the API server.
+	AggregatorConfig AggregatorConfig
+
+	AuditConfig AuditConfig
+
+	// StoragePrefix is the path within etcd that the OpenShift resources will
+	// be rooted under. This value, if changed, will mean existing objects in etcd will
+	// no longer be located.
+	StoragePrefix string
+
+	// EtcdClientInfo contains information about how to connect to etcd
+	EtcdClientInfo EtcdConnectionInfo
+
+	// KubeletClientInfo contains information about how to connect to kubelets
+	KubeletClientInfo KubeletConnectionInfo
+
+	AdmissionPluginConfig map[string]*AdmissionPluginConfig
+
+	// ServicesSubnet is the subnet to use for assigning service IPs
+	ServicesSubnet string
+	// ServicesNodePortRange is the range to use for assigning service public ports on a host.
+	ServicesNodePortRange string
+
+	// TODO this should be removable in a later release after we've completed migration
+	LegacyServiceServingCertSignerCABundle string
+
+	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	// TODO I think we should just drop this feature.
+	UserAgentMatchingConfig UserAgentMatchingConfig
+
+	ImagePolicyConfig KubeAPIServerImagePolicyConfig
+
+	ProjectConfig KubeAPIServerProjectConfig
+
+	// ServiceAccountPublicKeyFiles is a list of files, each containing a PEM-encoded public RSA key.
+	// (If any file contains a private key, the public portion of the key is used)
+	// The list of public keys is used to verify presented service account tokens.
+	// Each key is tried in order until the list is exhausted or verification succeeds.
+	// If no keys are specified, no service account authentication will be available.
+	ServiceAccountPublicKeyFiles []string
+
+	// TODO this needs to be removed.
+	APIServerArguments ExtendedArguments
+}
+
+type KubeAPIServerImagePolicyConfig struct {
+	// InternalRegistryHostname sets the hostname for the default internal image
+	// registry. The value must be in "hostname[:port]" format.
+	// For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY
+	// environment variable but this setting overrides the environment variable.
+	InternalRegistryHostname string
+	// ExternalRegistryHostname sets the hostname for the default external image
+	// registry. The external hostname should be set only when the image registry
+	// is exposed externally. The value is used in 'publicDockerImageRepository'
+	// field in ImageStreams. The value must be in "hostname[:port]" format.
+	ExternalRegistryHostname string
+}
+
+type KubeAPIServerProjectConfig struct {
+	// DefaultNodeSelector holds default project node label selector
+	DefaultNodeSelector string
+}

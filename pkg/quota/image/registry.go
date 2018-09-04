@@ -8,18 +8,19 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 var legacyObjectCountAliases = map[schema.GroupVersionResource]kapi.ResourceName{
-	imageapi.GroupVersion.WithResource("imagestreams"): imageapi.ResourceImageStreams,
+	imagev1.GroupVersion.WithResource("imagestreams"): imageapi.ResourceImageStreams,
 }
 
 // NewEvaluators returns the list of static evaluators that manage more than counts
-func NewReplenishmentEvaluators(f quota.ListerForResourceFunc, isInformer imageinternalversion.ImageStreamInformer, imageClient imageclient.ImageStreamTagsGetter) []quota.Evaluator {
+func NewReplenishmentEvaluators(f quota.ListerForResourceFunc, isInformer imagev1informer.ImageStreamInformer, imageClient imagev1typedclient.ImageStreamTagsGetter) []quota.Evaluator {
 	// these evaluators have special logic
 	result := []quota.Evaluator{
 		NewImageStreamTagEvaluator(isInformer.Lister(), imageClient),
@@ -38,7 +39,7 @@ func NewReplenishmentEvaluators(f quota.ListerForResourceFunc, isInformer imagei
 // of new image stream objects.
 // This is different that is used for reconciliation because admission has to check all forms of a resource (legacy and groupified), but
 // reconciliation only has to check one.
-func NewReplenishmentEvaluatorsForAdmission(isInformer imageinternalversion.ImageStreamInformer, imageClient imageclient.ImageStreamTagsGetter) []quota.Evaluator {
+func NewReplenishmentEvaluatorsForAdmission(isInformer imagev1informer.ImageStreamInformer, imageClient imagev1typedclient.ImageStreamTagsGetter) []quota.Evaluator {
 	result := []quota.Evaluator{
 		NewImageStreamTagEvaluator(isInformer.Lister(), imageClient),
 		NewImageStreamImportEvaluator(isInformer.Lister()),
@@ -61,7 +62,7 @@ func NewReplenishmentEvaluatorsForAdmission(isInformer imageinternalversion.Imag
 		generic.NewObjectCountEvaluator(
 			false,
 			legacy.Resource("imagestreams"),
-			generic.ListResourceUsingListerFunc(nil, imageapi.GroupVersion.WithResource("imagestreams")),
+			generic.ListResourceUsingListerFunc(nil, imagev1.GroupVersion.WithResource("imagestreams")),
 			imageapi.ResourceImageStreams))
 
 	return result

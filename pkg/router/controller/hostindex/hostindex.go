@@ -5,7 +5,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 )
 
 // Interface allows access to routes in the index and makes it easy
@@ -17,18 +18,18 @@ type Interface interface {
 	// be in either the Activated or Displaced lists or neither.
 	// newRoute is true if a route with the given namespace and name
 	// was not in the index prior to this call.
-	Add(route *routeapi.Route) (changes Changes, newRoute bool)
+	Add(route *routev1.Route) (changes Changes, newRoute bool)
 	// Remove attempts to remove the route from the index, returning
 	// any changes that occurred due to that operation. The provided
 	// route will never be in the Activated or Displaced lists on the
 	// Changes object.
-	Remove(route *routeapi.Route) Changes
+	Remove(route *routev1.Route) Changes
 	// RoutesForHost returns all currently active hosts for the provided
 	// route.
-	RoutesForHost(host string) ([]*routeapi.Route, bool)
+	RoutesForHost(host string) ([]*routev1.Route, bool)
 	// Filter iterates over all routes in the index, keeping only those
 	// for which fn returs true.
-	Filter(fn func(*routeapi.Route) (keep bool)) Changes
+	Filter(fn func(*routev1.Route) (keep bool)) Changes
 	// HostLen returns the number of hosts in the index.
 	HostLen() int
 }
@@ -36,8 +37,8 @@ type Interface interface {
 // Changes lists all routes either activated or displaced by the
 // operation.
 type Changes interface {
-	GetActivated() []*routeapi.Route
-	GetDisplaced() []*routeapi.Route
+	GetActivated() []*routev1.Route
+	GetDisplaced() []*routev1.Route
 }
 
 type routeKey struct {
@@ -45,7 +46,7 @@ type routeKey struct {
 	name      string
 }
 
-func sameRouteForKey(a *routeapi.Route, key routeKey) bool {
+func sameRouteForKey(a *routev1.Route, key routeKey) bool {
 	return a.Name == key.name && a.Namespace == key.namespace
 }
 
@@ -66,17 +67,17 @@ func New(fn RouteActivationFunc) Interface {
 	}
 }
 
-func sameRoute(a, b *routeapi.Route) bool {
+func sameRoute(a, b *routev1.Route) bool {
 	return a.Name == b.Name && a.Namespace == b.Namespace
 }
 
-func (hi *hostIndex) Add(route *routeapi.Route) (Changes, bool) {
+func (hi *hostIndex) Add(route *routev1.Route) (Changes, bool) {
 	changes := &routeChanges{}
 	added := hi.add(route, changes)
 	return changes, added
 }
 
-func (hi *hostIndex) add(route *routeapi.Route, changes *routeChanges) bool {
+func (hi *hostIndex) add(route *routev1.Route, changes *routeChanges) bool {
 	host := route.Spec.Host
 	key := routeKey{namespace: route.Namespace, name: route.Name}
 	newRoute := true
@@ -124,7 +125,7 @@ func (hi *hostIndex) add(route *routeapi.Route, changes *routeChanges) bool {
 	return newRoute
 }
 
-func (hi *hostIndex) findRoute(host string, key routeKey) (_ *routeapi.Route, _ *hostRules, active, ok bool) {
+func (hi *hostIndex) findRoute(host string, key routeKey) (_ *routev1.Route, _ *hostRules, active, ok bool) {
 	rules, ok := hi.hostToRoute[host]
 	if !ok {
 		return nil, nil, false, false
@@ -142,12 +143,12 @@ func (hi *hostIndex) findRoute(host string, key routeKey) (_ *routeapi.Route, _ 
 	return nil, rules, false, false
 }
 
-func (hi *hostIndex) Remove(route *routeapi.Route) Changes {
+func (hi *hostIndex) Remove(route *routev1.Route) Changes {
 	delete(hi.routeToHost, routeKey{namespace: route.Namespace, name: route.Name})
 	return hi.remove(route, true, nil)
 }
 
-func (hi *hostIndex) remove(route *routeapi.Route, removeLast bool, changes *routeChanges) *routeChanges {
+func (hi *hostIndex) remove(route *routev1.Route, removeLast bool, changes *routeChanges) *routeChanges {
 	host := route.Spec.Host
 	rules, ok := hi.hostToRoute[host]
 	if !ok {
@@ -182,7 +183,7 @@ func (hi *hostIndex) remove(route *routeapi.Route, removeLast bool, changes *rou
 	return nil
 }
 
-func (hi *hostIndex) Filter(fn func(*routeapi.Route) (keep bool)) Changes {
+func (hi *hostIndex) Filter(fn func(*routev1.Route) (keep bool)) Changes {
 	changes := &routeChanges{}
 	for host, rules := range hi.hostToRoute {
 		changed := false
@@ -224,26 +225,26 @@ func (hi *hostIndex) HostLen() int {
 	return len(hi.hostToRoute)
 }
 
-func (hi *hostIndex) RoutesForHost(host string) ([]*routeapi.Route, bool) {
+func (hi *hostIndex) RoutesForHost(host string) ([]*routev1.Route, bool) {
 	rules, ok := hi.hostToRoute[host]
 	if !ok {
 		return nil, false
 	}
-	copied := make([]*routeapi.Route, len(rules.active))
+	copied := make([]*routev1.Route, len(rules.active))
 	copy(copied, rules.active)
 	return copied, true
 }
 
 type hostRules struct {
-	active   []*routeapi.Route
-	inactive []*routeapi.Route
+	active   []*routev1.Route
+	inactive []*routev1.Route
 }
 
 func (r *hostRules) Empty() bool {
 	return len(r.active) == 0 && len(r.inactive) == 0
 }
 
-func (r *hostRules) replace(old, route *routeapi.Route) {
+func (r *hostRules) replace(old, route *routev1.Route) {
 	for i, existing := range r.active {
 		if existing == old {
 			r.active[i] = route
@@ -256,7 +257,7 @@ func (r *hostRules) replace(old, route *routeapi.Route) {
 	}
 }
 
-func (r *hostRules) add(route *routeapi.Route, fn RouteActivationFunc, changes *routeChanges) {
+func (r *hostRules) add(route *routev1.Route, fn RouteActivationFunc, changes *routeChanges) {
 	if len(r.active) == 0 {
 		changes.Activated(route)
 		r.active = append(r.active, route)
@@ -273,7 +274,7 @@ func (r *hostRules) add(route *routeapi.Route, fn RouteActivationFunc, changes *
 			}
 		}
 		r.inactive = append(r.inactive, displaced...)
-		sort.Slice(r.inactive, func(i, j int) bool { return routeapi.RouteLessThan(r.inactive[i], r.inactive[j]) })
+		sort.Slice(r.inactive, func(i, j int) bool { return routeapihelpers.RouteLessThan(r.inactive[i], r.inactive[j]) })
 	}
 }
 
@@ -290,7 +291,7 @@ func (r *hostRules) reset(fn RouteActivationFunc, changes *routeChanges) {
 	active, displaced := fn(changes, r.active, r.inactive...)
 	r.active = active
 	r.inactive = displaced
-	sort.Slice(r.inactive, func(i, j int) bool { return routeapi.RouteLessThan(r.inactive[i], r.inactive[j]) })
+	sort.Slice(r.inactive, func(i, j int) bool { return routeapihelpers.RouteLessThan(r.inactive[i], r.inactive[j]) })
 }
 
 func (r *hostRules) removeInactive(i int) {
@@ -298,42 +299,42 @@ func (r *hostRules) removeInactive(i int) {
 }
 
 type routeChanges struct {
-	active   map[types.UID]*routeapi.Route
-	displace map[types.UID]*routeapi.Route
+	active   map[types.UID]*routev1.Route
+	displace map[types.UID]*routev1.Route
 }
 
-func (c *routeChanges) GetActivated() []*routeapi.Route {
+func (c *routeChanges) GetActivated() []*routev1.Route {
 	if c == nil {
 		return nil
 	}
-	arr := make([]*routeapi.Route, 0, len(c.active))
+	arr := make([]*routev1.Route, 0, len(c.active))
 	for _, existing := range c.active {
 		arr = append(arr, existing)
 	}
 	return arr
 }
 
-func (c *routeChanges) GetDisplaced() []*routeapi.Route {
+func (c *routeChanges) GetDisplaced() []*routev1.Route {
 	if c == nil {
 		return nil
 	}
-	arr := make([]*routeapi.Route, 0, len(c.displace))
+	arr := make([]*routev1.Route, 0, len(c.displace))
 	for _, existing := range c.displace {
 		arr = append(arr, existing)
 	}
 	return arr
 }
 
-func (c *routeChanges) Activated(route *routeapi.Route) {
+func (c *routeChanges) Activated(route *routev1.Route) {
 	if c.active == nil {
-		c.active = make(map[types.UID]*routeapi.Route)
+		c.active = make(map[types.UID]*routev1.Route)
 	}
 	c.active[route.UID] = route
 	delete(c.displace, route.UID)
 }
-func (c *routeChanges) Displaced(route *routeapi.Route) {
+func (c *routeChanges) Displaced(route *routev1.Route) {
 	if c.displace == nil {
-		c.displace = make(map[types.UID]*routeapi.Route)
+		c.displace = make(map[types.UID]*routev1.Route)
 	}
 	c.displace[route.UID] = route
 	delete(c.active, route.UID)

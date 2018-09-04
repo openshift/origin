@@ -5,18 +5,16 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -34,7 +32,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if expected, actual := buildapihelpers.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildutil.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {
@@ -48,10 +46,10 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if container.Image != strategy.Image {
 		t.Errorf("Expected %s image, got %s!", container.Image, strategy.Image)
 	}
-	if container.ImagePullPolicy != v1.PullIfNotPresent {
-		t.Errorf("Expected %v, got %v", v1.PullIfNotPresent, container.ImagePullPolicy)
+	if container.ImagePullPolicy != corev1.PullIfNotPresent {
+		t.Errorf("Expected %v, got %v", corev1.PullIfNotPresent, container.ImagePullPolicy)
 	}
-	if actual.Spec.RestartPolicy != v1.RestartPolicyNever {
+	if actual.Spec.RestartPolicy != corev1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
@@ -78,7 +76,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if len(actual.Spec.Volumes) != 8 {
 		t.Fatalf("Expected 8 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	if !kapihelper.Semantic.DeepEqual(container.Resources, util.CopyApiResourcesToV1Resources(&build.Spec.Resources)) {
+	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
 	found := false
@@ -121,77 +119,77 @@ func TestDockerBuildLongName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if pod.Labels[buildapi.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
-		t.Errorf("Unexpected build label value: %s", pod.Labels[buildapi.BuildLabel])
+	if pod.Labels[buildutil.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
+		t.Errorf("Unexpected build label value: %s", pod.Labels[buildutil.BuildLabel])
 	}
 }
 
-func mockDockerBuild() *buildapi.Build {
+func mockDockerBuild() *buildv1.Build {
 	timeout := int64(60)
-	return &buildapi.Build{
+	return &buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dockerBuild",
 			Labels: map[string]string{
 				"name": "dockerBuild",
 			},
 		},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Revision: &buildapi.SourceRevision{
-					Git: &buildapi.GitSourceRevision{},
+		Spec: buildv1.BuildSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Revision: &buildv1.SourceRevision{
+					Git: &buildv1.GitSourceRevision{},
 				},
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
+				Source: buildv1.BuildSource{
+					Git: &buildv1.GitBuildSource{
 						URI: "http://my.build.com/the/dockerbuild/Dockerfile",
 						Ref: "master",
 					},
 					ContextDir:   "my/test/dir",
-					SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
-					Secrets: []buildapi.SecretBuildSource{
+					SourceSecret: &corev1.LocalObjectReference{Name: "secretFoo"},
+					Secrets: []buildv1.SecretBuildSource{
 						{
-							Secret: kapi.LocalObjectReference{
+							Secret: corev1.LocalObjectReference{
 								Name: "super-secret",
 							},
 							DestinationDir: "a/path/for/secret",
 						},
 					},
-					ConfigMaps: []buildapi.ConfigMapBuildSource{
+					ConfigMaps: []buildv1.ConfigMapBuildSource{
 						{
-							ConfigMap: kapi.LocalObjectReference{
+							ConfigMap: corev1.LocalObjectReference{
 								Name: "build-config",
 							},
 							DestinationDir: "a/path/for/config",
 						},
 					},
 				},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						PullSecret: &kapi.LocalObjectReference{Name: "bar"},
-						Env: []kapi.EnvVar{
+				Strategy: buildv1.BuildStrategy{
+					DockerStrategy: &buildv1.DockerBuildStrategy{
+						PullSecret: &corev1.LocalObjectReference{Name: "bar"},
+						Env: []corev1.EnvVar{
 							{Name: "ILLEGAL", Value: "foo"},
 							{Name: "BUILD_LOGLEVEL", Value: "bar"},
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "docker-registry/repository/dockerBuild",
 					},
-					PushSecret: &kapi.LocalObjectReference{Name: "foo"},
+					PushSecret: &corev1.LocalObjectReference{Name: "foo"},
 				},
-				Resources: kapi.ResourceRequirements{
-					Limits: kapi.ResourceList{
-						kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-						kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
+						corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("10G"),
 					},
 				},
 				CompletionDeadlineSeconds: &timeout,
 				NodeSelector:              nodeSelector,
 			},
 		},
-		Status: buildapi.BuildStatus{
-			Phase: buildapi.BuildPhaseNew,
+		Status: buildv1.BuildStatus{
+			Phase: buildv1.BuildPhaseNew,
 		},
 	}
 }

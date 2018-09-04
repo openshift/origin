@@ -20,17 +20,16 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
-	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
-	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
-	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
+	oauthv1informer "github.com/openshift/client-go/oauth/informers/externalversions"
+	routev1informer "github.com/openshift/client-go/route/informers/externalversions"
+	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	_ "github.com/openshift/origin/pkg/printers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -38,9 +37,9 @@ import (
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // MasterConfig defines the required parameters for starting the OpenShift master
@@ -51,9 +50,6 @@ type MasterConfig struct {
 	InformerStart            func(stopCh <-chan struct{})
 	kubeAPIServerConfig      *kubeapiserver.Config
 	additionalPostStartHooks map[string]genericapiserver.PostStartHookFunc
-
-	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
-	RESTOptionsGetter restoptions.Getter
 
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
 	SubjectLocator rbacauthorizer.SubjectLocator
@@ -72,19 +68,13 @@ type MasterConfig struct {
 	// To apply different access control to a system component, create a client config specifically for that component.
 	PrivilegedLoopbackClientConfig restclient.Config
 
-	// PrivilegedLoopbackKubernetesClientsetExternal is the client used to call Kubernetes APIs from system components,
-	// built from KubeClientConfig. It should only be accessed via the *TestingClient() helper methods. To apply
-	// different access control to a system component, create a separate client/config specifically for
-	// that component.
-	PrivilegedLoopbackKubernetesClientsetExternal kclientsetexternal.Interface
-
 	AuditBackend audit.Backend
 
 	// TODO inspect uses to eliminate them
 	InternalKubeInformers  kinternalinformers.SharedInformerFactory
 	ClientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
-	RouteInformers         routeinformer.SharedInformerFactory
+	RouteInformers         routev1informer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	SecurityInformers      securityinformer.SharedInformerFactory
 }
@@ -93,12 +83,12 @@ type InformerAccess interface {
 	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 	GetKubernetesInformers() kinformers.SharedInformerFactory
 
-	GetOpenshiftOauthInformers() oauthinformer.SharedInformerFactory
-	GetOpenshiftRouteInformers() routeinformer.SharedInformerFactory
-	GetOpenshiftUserInformers() userinformer.SharedInformerFactory
+	GetOpenshiftImageInformers() imagev1informer.SharedInformerFactory
+	GetOpenshiftOauthInformers() oauthv1informer.SharedInformerFactory
+	GetOpenshiftRouteInformers() routev1informer.SharedInformerFactory
+	GetOpenshiftUserInformers() userv1informer.SharedInformerFactory
 
 	GetInternalOpenshiftAuthorizationInformers() authorizationinformer.SharedInformerFactory
-	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
 
@@ -131,11 +121,6 @@ func BuildMasterConfig(
 		informers = realLoopbackInformers
 	}
 
-	restOptsGetter, err := originrest.StorageOptions(options)
-	if err != nil {
-		return nil, err
-	}
-
 	privilegedLoopbackConfig, err := configapi.GetClientConfig(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
@@ -150,7 +135,10 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	authenticator, authenticatorPostStartHooks, err := openshiftkubeapiserver.NewAuthenticator(options, privilegedLoopbackConfig, informers.GetOpenshiftOauthInformers().Oauth().V1().OAuthClients().Lister(), informers.GetOpenshiftUserInformers().User().V1().Groups())
+	authenticator, authenticatorPostStartHooks, err := openshiftkubeapiserver.NewAuthenticator(
+		options.ServingInfo.ServingInfo,
+		options.ServiceAccountConfig.PublicKeyFiles, options.OAuthConfig, options.AuthConfig,
+		privilegedLoopbackConfig, informers.GetOpenshiftOauthInformers().Oauth().V1().OAuthClients().Lister(), informers.GetOpenshiftUserInformers().User().V1().Groups())
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +150,11 @@ func BuildMasterConfig(
 	clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(), informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
 	discoveryClient := cacheddiscovery.NewMemCacheClient(privilegedLoopbackKubeClientsetExternal.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	admissionInitializer, err := originadmission.NewPluginInitializer(options, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
+	cloudConfigFile, err := configprocessing.GetCloudProviderConfigFile(options.KubernetesMasterConfig.APIServerArguments)
+	if err != nil {
+		return nil, err
+	}
+	admissionInitializer, err := originadmission.NewPluginInitializer(options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname, cloudConfigFile, options.JenkinsPipelineConfig, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +169,7 @@ func BuildMasterConfig(
 		admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 	}
-	admission, err := originadmission.NewAdmissionChains(options, admissionInitializer, admissionDecorators)
+	admission, err := originadmission.NewAdmissionChains(options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"], options.AdmissionConfig.PluginConfig, options.AdmissionConfig.PluginOrderOverride, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}
@@ -200,8 +192,6 @@ func BuildMasterConfig(
 		kubeAPIServerConfig:      kubeAPIServerConfig,
 		additionalPostStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 
-		RESTOptionsGetter: restOptsGetter,
-
 		RuleResolver:   openshiftapiserver.NewRuleResolver(informers.GetKubernetesInformers().Rbac().V1()),
 		SubjectLocator: subjectLocator,
 
@@ -216,8 +206,7 @@ func BuildMasterConfig(
 
 		RegistryHostnameRetriever: registryHostnameRetriever,
 
-		PrivilegedLoopbackClientConfig:                *privilegedLoopbackConfig,
-		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
+		PrivilegedLoopbackClientConfig: *privilegedLoopbackConfig,
 
 		InternalKubeInformers:  informers.GetInternalKubernetesInformers(),
 		ClientGoKubeInformers:  informers.GetKubernetesInformers(),

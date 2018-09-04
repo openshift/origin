@@ -85,12 +85,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("creating the templateinstance")
-		_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstance)
+		_, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstance)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// wait for templateinstance controller to do its thing
 		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-			templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+			templateinstance, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -117,12 +117,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 
 		g.By("deleting the templateinstance")
 		foreground := metav1.DeletePropagationForeground
-		err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
+		err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// wait for garbage collector to do its thing
 		err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
-			_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+			_, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 			if kerrors.IsNotFound(err) {
 				return true, nil
 			}

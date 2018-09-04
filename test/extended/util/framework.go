@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -38,11 +39,11 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appstypeclientset "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildtypedclientset "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
-	"github.com/openshift/origin/pkg/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypeclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/extended/testdata"
@@ -171,7 +172,7 @@ func DumpBuilds(oc *CLI) {
 
 func GetDeploymentConfigPods(oc *CLI, dcName string, version int64) (*kapiv1.PodList, error) {
 	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d",
-		appsutil.DeployerPodForDeploymentLabel, dcName, version)).String()})
+		appsv1.DeployerPodForDeploymentLabel, dcName, version)).String()})
 }
 
 func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
@@ -610,7 +611,7 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	if err != nil {
 		return result, err
 	}
-	return result, WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), result)
+	return result, WaitForBuildResult(oc.InternalBuildClient().Build().Builds(oc.Namespace()), result)
 }
 
 // WaitForBuildResult updates result wit the state of the build
@@ -1320,6 +1321,11 @@ func (r *podExecutor) Exec(script string) (string, error) {
 	return out, waitErr
 }
 
+func (r *podExecutor) CopyFromHost(local, remote string) error {
+	_, err := r.client.Run("cp").Args(local, fmt.Sprintf("%s:%s", r.podName, remote)).Output()
+	return err
+}
+
 // CreateTempFile stores the specified data in a temp dir/temp file
 // for the test who calls it
 func CreateTempFile(data string) (string, error) {
@@ -1410,4 +1416,39 @@ func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
 		}
 		return false, err
 	})
+}
+
+// GetRouterPodTemplate finds the router pod template across different namespaces,
+// helping to mitigate the transition from the default namespace to an operator
+// namespace.
+func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
+	appsclient := oc.AdminAppsClient().AppsV1()
+	k8sappsclient := oc.AdminKubeClient().AppsV1()
+	for _, ns := range []string{"default", "openshift-ingress", "tectonic-ingress"} {
+		dc, err := appsclient.DeploymentConfigs(ns).Get("router", metav1.GetOptions{})
+		if err == nil {
+			return dc.Spec.Template, ns, nil
+		}
+		if !errors.IsNotFound(err) {
+			return nil, "", err
+		}
+		deploy, err := k8sappsclient.Deployments(ns).Get("router", metav1.GetOptions{})
+		if err == nil {
+			return &deploy.Spec.Template, ns, nil
+		}
+		if !errors.IsNotFound(err) {
+			return nil, "", err
+		}
+	}
+	return nil, "", errors.NewNotFound(schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"}, "router")
+}
+
+func FindImageFormatString(oc *CLI) (string, bool) {
+	// the router is expected to be on all clusters
+	// TODO: switch this to read from the global config
+	template, _, err := GetRouterPodTemplate(oc)
+	if err == nil {
+		return strings.Replace(template.Spec.Containers[0].Image, "haproxy-router", "${component}", -1), true
+	}
+	return "openshift/origin-${component}:latest", false
 }

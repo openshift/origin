@@ -4,13 +4,13 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 type fakeTagResponse struct {
@@ -32,19 +32,19 @@ func (r fakeTagRetriever) ImageStreamTag(namespace, name string) (string, int64,
 	return "", 0, false
 }
 
-func testBuildConfig(params []buildapi.ImageChangeTrigger) *buildapi.BuildConfig {
-	obj := &buildapi.BuildConfig{
+func testBuildConfig(params []buildv1.ImageChangeTrigger) *buildv1.BuildConfig {
+	obj := &buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
-		Spec:       buildapi.BuildConfigSpec{},
+		Spec:       buildv1.BuildConfigSpec{},
 	}
 	for i := range params {
-		obj.Spec.Triggers = append(obj.Spec.Triggers, buildapi.BuildTriggerPolicy{ImageChange: &params[i]})
+		obj.Spec.Triggers = append(obj.Spec.Triggers, buildv1.BuildTriggerPolicy{ImageChange: &params[i]})
 	}
 	return obj
 }
 
-func testBuildRequest(from *kapi.ObjectReference, core string, triggers map[string]string) *buildapi.BuildRequest {
-	req := &buildapi.BuildRequest{
+func testBuildRequest(from *corev1.ObjectReference, core string, triggers map[string]string) *buildv1.BuildRequest {
+	req := &buildv1.BuildRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
 		From:       from,
 	}
@@ -54,10 +54,10 @@ func testBuildRequest(from *kapi.ObjectReference, core string, triggers map[stri
 	}
 	for _, image := range keys.List() {
 		id := triggers[image]
-		req.TriggeredBy = append(req.TriggeredBy, buildapi.BuildTriggerCause{Message: "Image change", ImageChangeBuild: &buildapi.ImageChangeCause{ImageID: id, FromRef: &kapi.ObjectReference{Kind: "ImageStreamTag", Namespace: "other", Name: image}}})
+		req.TriggeredBy = append(req.TriggeredBy, buildv1.BuildTriggerCause{Message: "Image change", ImageChangeBuild: &buildv1.ImageChangeCause{ImageID: id, FromRef: &corev1.ObjectReference{Kind: "ImageStreamTag", Namespace: "other", Name: image}}})
 	}
 	if len(core) > 0 {
-		req.TriggeredByImage = &kapi.ObjectReference{Kind: "DockerImage", Name: core}
+		req.TriggeredByImage = &corev1.ObjectReference{Kind: "DockerImage", Name: core}
 	}
 
 	return req
@@ -65,12 +65,12 @@ func testBuildRequest(from *kapi.ObjectReference, core string, triggers map[stri
 
 type instantiator struct {
 	ns      string
-	request *buildapi.BuildRequest
-	build   *buildapi.Build
+	request *buildv1.BuildRequest
+	build   *buildv1.Build
 	err     error
 }
 
-func (i *instantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+func (i *instantiator) Instantiate(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error) {
 	i.ns = namespace
 	i.request = request
 	return i.build, i.err
@@ -79,13 +79,13 @@ func (i *instantiator) Instantiate(namespace string, request *buildapi.BuildRequ
 func TestBuildConfigReactor(t *testing.T) {
 	testCases := []struct {
 		tags        []fakeTagResponse
-		obj         *buildapi.BuildConfig
-		response    *buildapi.Build
-		expected    *buildapi.BuildRequest
+		obj         *buildv1.BuildConfig
+		response    *buildv1.Build
+		expected    *buildv1.BuildRequest
 		expectedErr bool
 	}{
 		{
-			obj: &buildapi.BuildConfig{
+			obj: &buildv1.BuildConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
 			},
 		},
@@ -93,14 +93,14 @@ func TestBuildConfigReactor(t *testing.T) {
 		{
 			// no container, last expected changed
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-1",
 				map[string]string{"stream-1:1": "image-lookup-1"},
 			),
@@ -108,9 +108,9 @@ func TestBuildConfigReactor(t *testing.T) {
 
 		{
 			// no ref, no change
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
 		},
@@ -118,14 +118,14 @@ func TestBuildConfigReactor(t *testing.T) {
 		{
 			// resolved without a change in another namespace
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-1",
 				map[string]string{"stream-1:1": "image-lookup-1"},
 			),
@@ -134,14 +134,14 @@ func TestBuildConfigReactor(t *testing.T) {
 		{
 			// will not resolve if not automatic
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-1",
 				map[string]string{"stream-1:1": "image-lookup-1"},
 			),
@@ -150,17 +150,17 @@ func TestBuildConfigReactor(t *testing.T) {
 		{
 			// will fire if both triggers aren't resolved
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 				{
-					From: &kapi.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-1",
 				map[string]string{"stream-1:1": "image-lookup-1"},
 			),
@@ -169,18 +169,18 @@ func TestBuildConfigReactor(t *testing.T) {
 		{
 			// will fire if a trigger has already been resolved before
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 				{
-					From:                 &kapi.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From:                 &corev1.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
 					LastTriggeredImageID: "old-image",
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-1",
 				map[string]string{"stream-1:1": "image-lookup-1"},
 			),
@@ -189,17 +189,17 @@ func TestBuildConfigReactor(t *testing.T) {
 		{
 			// will fire if two identical triggers are resolved
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-1",
 				map[string]string{"stream-1:1": "image-lookup-1"},
 			),
@@ -211,17 +211,17 @@ func TestBuildConfigReactor(t *testing.T) {
 				{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2},
 				{Namespace: "other", Name: "stream-2:1", Ref: "image-lookup-2", RV: 2},
 			},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 				{
-					From: &kapi.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-1",
 				map[string]string{"stream-1:1": "image-lookup-1", "stream-2:1": "image-lookup-2"},
 			),
@@ -230,14 +230,14 @@ func TestBuildConfigReactor(t *testing.T) {
 		{
 			// will fire from single trigger
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From: &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-1",
 				map[string]string{"stream-1:1": "image-lookup-1"},
 			),
@@ -246,9 +246,9 @@ func TestBuildConfigReactor(t *testing.T) {
 		{
 			// won't fire because it is paused
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From:   &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From:   &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 					Paused: true,
 				},
 			}),
@@ -260,18 +260,18 @@ func TestBuildConfigReactor(t *testing.T) {
 				{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2},
 				{Namespace: "other", Name: "stream-2:1", Ref: "image-lookup-2", RV: 2},
 			},
-			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+			obj: testBuildConfig([]buildv1.ImageChangeTrigger{
 				{
-					From:   &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From:   &corev1.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 					Paused: true,
 				},
 				{
-					From: &kapi.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
+					From: &corev1.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
 				},
 			}),
-			response: &buildapi.Build{},
+			response: &buildv1.Build{},
 			expected: testBuildRequest(
-				&kapi.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
+				&corev1.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
 				"image-lookup-2",
 				map[string]string{"stream-2:1": "image-lookup-2"},
 			),

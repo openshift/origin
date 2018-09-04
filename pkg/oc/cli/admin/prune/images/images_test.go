@@ -13,37 +13,44 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
-	"k8s.io/client-go/kubernetes/scheme"
+	fakekubernetes "k8s.io/client-go/kubernetes/fake"
+	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-
 	restfake "k8s.io/client-go/rest/fake"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned/fake"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	"github.com/openshift/api"
+	fakeappsclient "github.com/openshift/client-go/apps/clientset/versioned/fake"
+	fakeappsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1/fake"
+	fakebuildclient "github.com/openshift/client-go/build/clientset/versioned/fake"
+	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1/fake"
+	fakeimageclient "github.com/openshift/client-go/image/clientset/versioned/fake"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1/fake"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune/testutil"
 	"github.com/openshift/origin/pkg/version"
+
+	// these are needed to make kapiref.GetReference work in the prune.go file
+	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 )
 
 var logLevel = flag.Int("loglevel", 0, "")
 
 func TestImagePruneNamespaced(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
-	kFake := fake.NewSimpleClientset()
-	imageFake := imageclient.NewSimpleClientset()
+	kFake := fakekubernetes.NewSimpleClientset()
+	imageFake := &fakeimagev1client.FakeImageV1{Fake: &(fakeimageclient.NewSimpleClientset().Fake)}
 	opts := &PruneImagesOptions{
 		Namespace: "foo",
 
-		AppsClient:  appsclient.NewSimpleClientset().Apps(),
-		BuildClient: buildclient.NewSimpleClientset().Build(),
-		ImageClient: imageFake.Image(),
+		AppsClient:  &fakeappsv1client.FakeAppsV1{Fake: &(fakeappsclient.NewSimpleClientset().Fake)},
+		BuildClient: &fakebuildv1client.FakeBuildV1{Fake: &(fakebuildclient.NewSimpleClientset().Fake)},
+		ImageClient: imageFake,
 		KubeClient:  kFake,
 		Out:         ioutil.Discard,
 		ErrOut:      os.Stderr,
@@ -74,16 +81,19 @@ func TestImagePruneNamespaced(t *testing.T) {
 
 func TestImagePruneErrOnBadReference(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
-	podBad := testutil.Pod("foo", "pod1", kapi.PodRunning, "invalid image reference")
-	podGood := testutil.Pod("foo", "pod2", kapi.PodRunning, "example.com/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")
+	podBad := testutil.Pod("foo", "pod1", corev1.PodRunning, "invalid image reference")
+	podGood := testutil.Pod("foo", "pod2", corev1.PodRunning, "example.com/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")
 	dep := testutil.Deployment("foo", "dep1", "do not blame me")
 	bcBad := testutil.BC("foo", "bc1", "source", "ImageStreamImage", "foo", "bar:invalid-digest")
 
-	kFake := fake.NewSimpleClientset(&podBad, &podGood, &dep)
-	imageFake := imageclient.NewSimpleClientset()
+	kFake := fakekubernetes.NewSimpleClientset(&podBad, &podGood, &dep)
+	imageFake := &fakeimagev1client.FakeImageV1{Fake: &(fakeimageclient.NewSimpleClientset().Fake)}
 	fakeDiscovery := &fakeVersionDiscovery{
 		masterVersion: version.Get(),
 	}
+
+	// we need to install OpenShift API types to kubectl's scheme for GetReference to work
+	api.Install(scheme.Scheme)
 
 	switch d := kFake.Discovery().(type) {
 	case *fakediscovery.FakeDiscovery:
@@ -94,9 +104,9 @@ func TestImagePruneErrOnBadReference(t *testing.T) {
 
 	errBuf := bytes.NewBuffer(make([]byte, 0, 4096))
 	opts := &PruneImagesOptions{
-		AppsClient:      appsclient.NewSimpleClientset().Apps(),
-		BuildClient:     buildclient.NewSimpleClientset(&bcBad).Build(),
-		ImageClient:     imageFake.Image(),
+		AppsClient:      &fakeappsv1client.FakeAppsV1{Fake: &(fakeappsclient.NewSimpleClientset().Fake)},
+		BuildClient:     &fakebuildv1client.FakeBuildV1{Fake: &(fakebuildclient.NewSimpleClientset(&bcBad).Fake)},
+		ImageClient:     imageFake,
 		KubeClient:      kFake,
 		DiscoveryClient: fakeDiscovery,
 		Timeout:         time.Second,
@@ -162,7 +172,7 @@ type fakeVersionDiscovery struct {
 
 func (f *fakeVersionDiscovery) RESTClient() restclient.Interface {
 	return &restfake.RESTClient{
-		NegotiatedSerializer: scheme.Codecs,
+		NegotiatedSerializer: kubernetesscheme.Codecs,
 		Client: restfake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if req.URL.Path != "/version/openshift" {
 				return &http.Response{

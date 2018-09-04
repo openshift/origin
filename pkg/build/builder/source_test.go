@@ -15,8 +15,8 @@ import (
 	"time"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/build/builder/timing"
-	"github.com/openshift/origin/pkg/git"
 )
 
 func TestCheckRemoteGit(t *testing.T) {

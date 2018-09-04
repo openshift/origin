@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/api/core/v1"
+	"github.com/golang/glog"
+
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -20,12 +22,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/utils/clock"
 
-	"github.com/golang/glog"
-
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
+	templatev1 "github.com/openshift/api/template/v1"
+	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	templateinformer "github.com/openshift/client-go/template/informers/externalversions/template/v1"
+	templatelister "github.com/openshift/client-go/template/listers/template/v1"
 )
 
 // TemplateInstanceFinalizerController watches for new TemplateInstance objects and
@@ -51,7 +51,7 @@ type TemplateInstanceFinalizerController struct {
 }
 
 // NewTemplateInstanceFinalizerController returns a new TemplateInstanceFinalizerController.
-func NewTemplateInstanceFinalizerController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceFinalizerController {
+func NewTemplateInstanceFinalizerController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, templateClient templateclient.Interface, informer templateinformer.TemplateInstanceInformer) *TemplateInstanceFinalizerController {
 	c := &TemplateInstanceFinalizerController{
 		dynamicRestMapper: dynamicRestMapper,
 		templateClient:    templateClient,
@@ -61,18 +61,18 @@ func NewTemplateInstanceFinalizerController(dynamicRestMapper meta.RESTMapper, d
 		queue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "openshift_template_instance_finalizer_controller"),
 		readinessLimiter:  workqueue.NewItemFastSlowRateLimiter(5*time.Second, 20*time.Second, 200),
 		clock:             clock.RealClock{},
-		recorder:          record.NewBroadcaster().NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "template-instance-finalizer-controller"}),
+		recorder:          record.NewBroadcaster().NewRecorder(legacyscheme.Scheme, corev1.EventSource{Component: "template-instance-finalizer-controller"}),
 	}
 
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			t := obj.(*templateapi.TemplateInstance)
+			t := obj.(*templatev1.TemplateInstance)
 			if t.DeletionTimestamp != nil {
 				c.enqueue(t)
 			}
 		},
 		UpdateFunc: func(_, obj interface{}) {
-			t := obj.(*templateapi.TemplateInstance)
+			t := obj.(*templatev1.TemplateInstance)
 			if t.DeletionTimestamp != nil {
 				c.enqueue(t)
 			}
@@ -84,7 +84,7 @@ func NewTemplateInstanceFinalizerController(dynamicRestMapper meta.RESTMapper, d
 
 // getTemplateInstance returns the TemplateInstance from the shared informer,
 // given its key (dequeued from c.queue).
-func (c *TemplateInstanceFinalizerController) getTemplateInstance(key string) (*templateapi.TemplateInstance, error) {
+func (c *TemplateInstanceFinalizerController) getTemplateInstance(key string) (*templatev1.TemplateInstance, error) {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (c *TemplateInstanceFinalizerController) sync(key string) error {
 
 	needsFinalizing := false
 	for _, v := range templateInstance.Finalizers {
-		if v == templateapi.TemplateInstanceFinalizer {
+		if v == TemplateInstanceFinalizer {
 			needsFinalizing = true
 			break
 		}
@@ -167,14 +167,14 @@ func (c *TemplateInstanceFinalizerController) sync(key string) error {
 
 	newFinalizers := []string{}
 	for _, v := range templateInstanceCopy.Finalizers {
-		if v == templateapi.TemplateInstanceFinalizer {
+		if v == TemplateInstanceFinalizer {
 			continue
 		}
 		newFinalizers = append(newFinalizers, v)
 	}
 	templateInstanceCopy.Finalizers = newFinalizers
 
-	_, err = c.templateClient.Template().TemplateInstances(templateInstanceCopy.Namespace).UpdateStatus(templateInstanceCopy)
+	_, err = c.templateClient.TemplateV1().TemplateInstances(templateInstanceCopy.Namespace).UpdateStatus(templateInstanceCopy)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("TemplateInstanceFinalizer update failed: %v", err))
 		return err
@@ -234,10 +234,10 @@ func (c *TemplateInstanceFinalizerController) processNextWorkItem() bool {
 
 // enqueue adds a TemplateInstance to c.queue.  This function is called on the
 // shared informer goroutine.
-func (c *TemplateInstanceFinalizerController) enqueue(templateInstance *templateapi.TemplateInstance) {
+func (c *TemplateInstanceFinalizerController) enqueue(templateInstance *templatev1.TemplateInstance) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(templateInstance)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", templateInstance, err))
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", templateInstance, err))
 		return
 	}
 

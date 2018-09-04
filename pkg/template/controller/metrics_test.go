@@ -6,19 +6,19 @@ import (
 	"testing"
 	"time"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	"github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
-	"github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
+	templateapi "github.com/openshift/api/template/v1"
+	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	"github.com/openshift/client-go/template/clientset/versioned/fake"
+	templatelister "github.com/openshift/client-go/template/listers/template/v1"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 type fakeLister struct {
@@ -41,7 +41,7 @@ func (f *fakeLister) Get(name string) (*templateapi.TemplateInstance, error) {
 	return f.templateClient.Template().TemplateInstances("").Get(name, metav1.GetOptions{})
 }
 
-func (f *fakeLister) TemplateInstances(string) internalversion.TemplateInstanceNamespaceLister {
+func (f *fakeLister) TemplateInstances(string) templatelister.TemplateInstanceNamespaceLister {
 	return f
 }
 
@@ -92,8 +92,8 @@ openshift_template_instance_completed_total{condition="Ready"} 1
 			},
 			Spec: templateapi.TemplateInstanceSpec{
 				Template: templateapi.Template{
-					Objects: []runtime.Object{
-						&kapi.ConfigMap{},
+					Objects: []runtime.RawExtension{
+						{Object: &corev1.ConfigMap{}},
 					},
 				},
 			},
@@ -107,8 +107,8 @@ openshift_template_instance_completed_total{condition="Ready"} 1
 			},
 			Spec: templateapi.TemplateInstanceSpec{
 				Template: templateapi.Template{
-					Objects: []runtime.Object{
-						&kapi.ConfigMap{},
+					Objects: []runtime.RawExtension{
+						{Object: &corev1.ConfigMap{}},
 					},
 				},
 				Requester: &templateapi.TemplateInstanceRequester{},
@@ -131,8 +131,8 @@ openshift_template_instance_completed_total{condition="Ready"} 1
 			},
 			Spec: templateapi.TemplateInstanceSpec{
 				Template: templateapi.Template{
-					Objects: []runtime.Object{
-						&kapi.ConfigMap{},
+					Objects: []runtime.RawExtension{
+						{Object: &corev1.ConfigMap{}},
 					},
 				},
 				Requester: &templateapi.TemplateInstanceRequester{},
@@ -154,7 +154,7 @@ openshift_template_instance_completed_total{condition="Ready"} 1
 				Conditions: []templateapi.TemplateInstanceCondition{
 					{
 						Type:   templateapi.TemplateInstanceReady,
-						Status: kapi.ConditionFalse,
+						Status: corev1.ConditionFalse,
 					},
 				},
 			},
@@ -163,7 +163,7 @@ openshift_template_instance_completed_total{condition="Ready"} 1
 
 	c := &TemplateInstanceController{
 		lister:           &fakeLister{fakeTemplateClient},
-		templateClient:   fakeTemplateClient,
+		templateClient:   fakeTemplateClient.TemplateV1(),
 		clock:            clock,
 		readinessLimiter: &workqueue.BucketRateLimiter{},
 	}

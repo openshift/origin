@@ -17,11 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalclient "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildmanualclient "github.com/openshift/origin/pkg/build/client/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
@@ -192,8 +194,16 @@ func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace st
 		webHookDesc := result[string(trigger.Type)]
 
 		var urlStr string
-		webhookClient := buildinternalclient.NewWebhookURLClient(c, namespace)
-		u, err := webhookClient.WebHookURL(name, &trigger)
+		webhookClient := buildmanualclient.NewWebhookURLClient(c, namespace)
+
+		triggerExternal := &buildv1.BuildTriggerPolicy{}
+
+		if err := legacyscheme.Scheme.Convert(&trigger, triggerExternal, nil); err != nil {
+			// TODO: report error?
+			continue
+		}
+
+		u, err := webhookClient.WebHookURL(name, triggerExternal)
 		if err != nil {
 			urlStr = fmt.Sprintf("<error: %s>", err.Error())
 		} else {

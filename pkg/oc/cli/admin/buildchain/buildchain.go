@@ -15,16 +15,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/api/image"
-	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
-	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
 // BuildChainRecommendedCommandName is the recommended command name
@@ -61,9 +58,9 @@ type BuildChainOptions struct {
 
 	output string
 
-	buildClient   buildclient.BuildConfigsGetter
-	imageClient   imageclient.ImageStreamTagsGetter
-	projectClient projectclient.ProjectsGetter
+	buildClient   buildv1client.BuildV1Interface
+	imageClient   imagev1client.ImageV1Interface
+	projectClient projectv1client.ProjectV1Interface
 }
 
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
@@ -100,21 +97,18 @@ func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	if err != nil {
 		return err
 	}
-	buildClient, err := buildclientinternal.NewForConfig(clientConfig)
+	o.buildClient, err = buildv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
+	o.imageClient, err = imagev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	projectClient, err := projectclientinternal.NewForConfig(clientConfig)
+	o.projectClient, err = projectv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.buildClient = buildClient.Build()
-	o.imageClient = imageClient.Image()
-	o.projectClient = projectClient.Project()
 
 	resource := schema.GroupResource{}
 	mapper, err := f.ToRESTMapper()
@@ -147,14 +141,12 @@ func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 		}
 	}
 
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	o.defaultNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
-
-	o.defaultNamespace = namespace
 	glog.V(4).Infof("Using %q as the namespace for %q", o.defaultNamespace, o.name)
-	o.namespaces.Insert(namespace)
+	o.namespaces.Insert(o.defaultNamespace)
 	glog.V(4).Infof("Will look for deps in %s", strings.Join(o.namespaces.List(), ","))
 
 	return nil

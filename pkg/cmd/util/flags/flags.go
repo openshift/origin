@@ -12,12 +12,14 @@ import (
 
 // Apply stores the provided arguments onto a flag set, reporting any errors
 // encountered during the process.
-func Apply(args map[string][]string, flags *pflag.FlagSet) []error {
+func apply(args map[string][]string, flags *pflag.FlagSet, ignoreMissing bool) []error {
 	var errs []error
 	for key, value := range args {
 		flag := flags.Lookup(key)
 		if flag == nil {
-			errs = append(errs, field.Invalid(field.NewPath("flag"), key, "is not a valid flag"))
+			if !ignoreMissing {
+				errs = append(errs, field.Invalid(field.NewPath("flag"), key, "is not a valid flag"))
+			}
 			continue
 		}
 		for _, s := range value {
@@ -33,7 +35,15 @@ func Apply(args map[string][]string, flags *pflag.FlagSet) []error {
 func Resolve(args map[string][]string, fn func(*pflag.FlagSet)) []error {
 	fs := pflag.NewFlagSet("extended", pflag.ContinueOnError)
 	fn(fs)
-	return Apply(args, fs)
+	return apply(args, fs, false)
+}
+
+// ResolveIgnoreMissing resolves flags in the args, but does not fail on missing flags.  It silently skips those.
+// It's useful for building subsets of the full options, but validation should do a normal binding.
+func ResolveIgnoreMissing(args map[string][]string, fn func(*pflag.FlagSet)) []error {
+	fs := pflag.NewFlagSet("extended", pflag.ContinueOnError)
+	fn(fs)
+	return apply(args, fs, true)
 }
 
 // ComponentFlag represents a set of enabled components used in a command line.

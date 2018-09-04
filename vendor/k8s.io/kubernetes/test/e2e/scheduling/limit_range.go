@@ -42,10 +42,10 @@ var _ = SIGDescribe("LimitRange", func() {
 	It("should create a LimitRange with defaults and ensure pod has those defaults applied.", func() {
 		By("Creating a LimitRange")
 
-		min := getResourceList("50m", "100Mi", "100Gi")
-		max := getResourceList("500m", "500Mi", "500Gi")
-		defaultLimit := getResourceList("500m", "500Mi", "500Gi")
-		defaultRequest := getResourceList("100m", "200Mi", "200Gi")
+		min := getResourceList("50m", "100Mi", "")
+		max := getResourceList("500m", "500Mi", "")
+		defaultLimit := getResourceList("500m", "500Mi", "")
+		defaultRequest := getResourceList("100m", "200Mi", "")
 		maxLimitRequestRatio := v1.ResourceList{}
 		limitRange := newLimitRange("limit-range", v1.LimitTypeContainer,
 			min, max,
@@ -104,7 +104,7 @@ var _ = SIGDescribe("LimitRange", func() {
 		}
 
 		By("Creating a Pod with partial resource requirements")
-		pod = f.NewTestPod("pod-partial-resources", getResourceList("", "150Mi", "150Gi"), getResourceList("300m", "", ""))
+		pod = f.NewTestPod("pod-partial-resources", getResourceList("", "150Mi", ""), getResourceList("300m", "", ""))
 		pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -114,7 +114,7 @@ var _ = SIGDescribe("LimitRange", func() {
 		// This is an interesting case, so it's worth a comment
 		// If you specify a Limit, and no Request, the Limit will default to the Request
 		// This means that the LimitRange.DefaultRequest will ONLY take affect if a container.resources.limit is not supplied
-		expected = v1.ResourceRequirements{Requests: getResourceList("300m", "150Mi", "150Gi"), Limits: getResourceList("300m", "500Mi", "500Gi")}
+		expected = v1.ResourceRequirements{Requests: getResourceList("300m", "150Mi", ""), Limits: getResourceList("300m", "500Mi", "")}
 		for i := range pod.Spec.Containers {
 			err = equalResourceRequirement(expected, pod.Spec.Containers[i].Resources)
 			if err != nil {
@@ -125,28 +125,28 @@ var _ = SIGDescribe("LimitRange", func() {
 		}
 
 		By("Failing to create a Pod with less than min resources")
-		pod = f.NewTestPod(podName, getResourceList("10m", "50Mi", "50Gi"), v1.ResourceList{})
+		pod = f.NewTestPod(podName, getResourceList("10m", "50Mi", ""), v1.ResourceList{})
 		pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 		Expect(err).To(HaveOccurred())
 
 		By("Failing to create a Pod with more than max resources")
-		pod = f.NewTestPod(podName, getResourceList("600m", "600Mi", "600Gi"), v1.ResourceList{})
+		pod = f.NewTestPod(podName, getResourceList("600m", "600Mi", ""), v1.ResourceList{})
 		pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 		Expect(err).To(HaveOccurred())
 
 		By("Updating a LimitRange")
-		newMin := getResourceList("9m", "49Mi", "49Gi")
+		newMin := getResourceList("9m", "49Mi", "")
 		limitRange.Spec.Limits[0].Min = newMin
 		limitRange, err = f.ClientSet.CoreV1().LimitRanges(f.Namespace.Name).Update(limitRange)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Creating a Pod with less than former min resources")
-		pod = f.NewTestPod(podName, getResourceList("10m", "50Mi", "50Gi"), v1.ResourceList{})
+		pod = f.NewTestPod(podName, getResourceList("10m", "50Mi", ""), v1.ResourceList{})
 		pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Failing to create a Pod with more than max resources")
-		pod = f.NewTestPod(podName, getResourceList("600m", "600Mi", "600Gi"), v1.ResourceList{})
+		pod = f.NewTestPod(podName, getResourceList("600m", "600Mi", ""), v1.ResourceList{})
 		pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 		Expect(err).To(HaveOccurred())
 
@@ -183,7 +183,7 @@ var _ = SIGDescribe("LimitRange", func() {
 		})).NotTo(HaveOccurred(), "kubelet never observed the termination notice")
 
 		By("Creating a Pod with more than former max resources")
-		pod = f.NewTestPod(podName+"2", getResourceList("600m", "600Mi", "600Gi"), v1.ResourceList{})
+		pod = f.NewTestPod(podName+"2", getResourceList("600m", "600Mi", ""), v1.ResourceList{})
 		pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 		Expect(err).NotTo(HaveOccurred())
 	})

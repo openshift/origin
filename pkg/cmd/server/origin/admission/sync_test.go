@@ -44,7 +44,7 @@ func TestKubeAdmissionControllerUsage(t *testing.T) {
 	kubeapiserver.RegisterAllAdmissionPlugins(admission.NewPlugins())
 	registeredKubePlugins := sets.NewString(OriginAdmissionPlugins.Registered()...)
 
-	usedAdmissionPlugins := sets.NewString(kubeAdmissionPlugins...)
+	usedAdmissionPlugins := sets.NewString(KubeAdmissionPlugins...)
 
 	if missingPlugins := usedAdmissionPlugins.Difference(registeredKubePlugins); len(missingPlugins) != 0 {
 		t.Errorf("%v not found", missingPlugins.List())
@@ -60,7 +60,7 @@ func TestKubeAdmissionControllerUsage(t *testing.T) {
 }
 
 func TestAdmissionOnOffCoverage(t *testing.T) {
-	configuredAdmissionPlugins := sets.NewString(combinedAdmissionControlPlugins...)
+	configuredAdmissionPlugins := sets.NewString(CombinedAdmissionControlPlugins...)
 	allCoveredAdmissionPlugins := sets.String{}
 	allCoveredAdmissionPlugins.Insert(DefaultOnPlugins.List()...)
 	allCoveredAdmissionPlugins.Insert(DefaultOffPlugins.List()...)

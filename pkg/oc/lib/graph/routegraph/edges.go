@@ -3,7 +3,7 @@ package routegraph
 import (
 	"github.com/gonum/graph"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
@@ -18,7 +18,7 @@ const (
 
 // AddRouteEdges adds an edge that connect a service to a route in the given graph
 func AddRouteEdges(g osgraph.MutableUniqueGraph, node *routegraph.RouteNode) {
-	syntheticService := &kapi.Service{}
+	syntheticService := &corev1.Service{}
 	syntheticService.Namespace = node.Namespace
 	syntheticService.Name = node.Spec.To.Name
 
@@ -26,7 +26,7 @@ func AddRouteEdges(g osgraph.MutableUniqueGraph, node *routegraph.RouteNode) {
 	g.AddEdge(node, serviceNode, ExposedThroughRouteEdgeKind)
 
 	for _, svc := range node.Spec.AlternateBackends {
-		syntheticService := &kapi.Service{}
+		syntheticService := &corev1.Service{}
 		syntheticService.Namespace = node.Namespace
 		syntheticService.Name = svc.Name
 

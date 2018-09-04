@@ -102,9 +102,9 @@ func LoadOAuthMetadataFile(metadataFile string) ([]byte, *OauthAuthorizationServ
 	return data, oauthMetadata, nil
 }
 
-func PrepOauthMetadata(config configapi.MasterConfig) ([]byte, *OauthAuthorizationServerMetadata, error) {
-	if config.OAuthConfig != nil {
-		metadataStruct := getOauthMetadata(config.OAuthConfig.MasterPublicURL)
+func PrepOauthMetadata(oauthConfig *configapi.OAuthConfig, oauthMetadataFile string) ([]byte, *OauthAuthorizationServerMetadata, error) {
+	if oauthConfig != nil {
+		metadataStruct := getOauthMetadata(oauthConfig.MasterPublicURL)
 		metadata, err := json.MarshalIndent(metadataStruct, "", "  ")
 		if err != nil {
 			glog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
@@ -112,8 +112,8 @@ func PrepOauthMetadata(config configapi.MasterConfig) ([]byte, *OauthAuthorizati
 		}
 		return metadata, &metadataStruct, nil
 	}
-	if len(config.AuthConfig.OAuthMetadataFile) > 0 {
-		return LoadOAuthMetadataFile(config.AuthConfig.OAuthMetadataFile)
+	if len(oauthMetadataFile) > 0 {
+		return LoadOAuthMetadataFile(oauthMetadataFile)
 	}
 	return nil, nil, nil
 }

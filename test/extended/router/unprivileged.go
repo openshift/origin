@@ -3,7 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
-	"os"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -40,12 +40,12 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
-		imagePrefix := os.Getenv("OS_IMAGE_PREFIX")
-		if len(imagePrefix) == 0 {
-			imagePrefix = "openshift/origin"
-		}
+
+		routerImage, _ := exutil.FindImageFormatString(oc)
+		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
+
 		err := oc.AsAdmin().Run("new-app").Args("-f", configPath,
-			`-p=IMAGE=`+imagePrefix+`-haproxy-router`,
+			`-p=IMAGE=`+routerImage,
 			`-p=SCOPE=["--name=test-unprivileged", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first", "--update-status=false"]`,
 		).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -53,7 +53,6 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should run even if it has no access to update status", func() {
-			g.Skip("test temporarily disabled")
 
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")

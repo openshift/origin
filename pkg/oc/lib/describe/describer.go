@@ -13,6 +13,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +37,7 @@ import (
 	"github.com/openshift/api/project"
 	"github.com/openshift/api/quota"
 	"github.com/openshift/api/route"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/api/security"
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
@@ -45,18 +47,20 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
+	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1conversions "github.com/openshift/origin/pkg/route/apis/route/v1"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
@@ -186,7 +190,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapihelpers.GetBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
+	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildinternalhelpers.GetBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
 		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
@@ -220,7 +224,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		if buildObj.Status.Config != nil {
 			formatString(out, "Build Config", buildObj.Status.Config.Name)
 		}
-		formatString(out, "Build Pod", buildapihelpers.GetBuildPodName(buildObj))
+		formatString(out, "Build Pod", buildinternalhelpers.GetBuildPodName(buildObj))
 
 		if buildObj.Status.Output.To != nil && len(buildObj.Status.Output.To.ImageDigest) > 0 {
 			formatString(out, "Image Digest", buildObj.Status.Output.To.ImageDigest)
@@ -280,7 +284,7 @@ func nameAndNamespace(ns, name string) string {
 }
 
 func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
-	formatString(out, "\nStrategy", buildapihelpers.StrategyType(p.Strategy))
+	formatString(out, "\nStrategy", buildinternalhelpers.StrategyType(p.Strategy))
 	noneType := true
 	if p.Source.Git != nil {
 		noneType = false
@@ -569,7 +573,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 			fmt.Fprintf(out, "\nBuild\tStatus\tDuration\tCreation Time\n")
 
 			builds := buildList.Items
-			sort.Sort(sort.Reverse(buildapihelpers.BuildSliceByCreationTimestamp(builds)))
+			sort.Sort(sort.Reverse(buildinternalhelpers.BuildSliceByCreationTimestamp(builds)))
 
 			for i, build := range builds {
 				fmt.Fprintf(out, "%s \t%s \t%v \t%v\n",
@@ -874,10 +878,14 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.Des
 				if len(ingress.RouterCanonicalHostname) > 0 {
 					hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 				}
-				switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
-				case kapi.ConditionTrue:
+				external := routev1.RouteIngress{}
+				if err := routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(&ingress, &external, nil); err != nil {
+					return err
+				}
+				switch status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted); status {
+				case corev1.ConditionTrue:
 					fmt.Fprintf(out, "\t  exposed on router %s%s %s ago\n", ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
-				case kapi.ConditionFalse:
+				case corev1.ConditionFalse:
 					fmt.Fprintf(out, "\t  rejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 					if len(condition.Message) > 0 {
 						fmt.Fprintf(out, "\t    %s\n", condition.Message)
@@ -896,10 +904,14 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.Des
 			if len(ingress.RouterCanonicalHostname) > 0 {
 				hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 			}
-			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
-			case kapi.ConditionTrue:
+			external := routev1.RouteIngress{}
+			if err := routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(&ingress, &external, nil); err != nil {
+				return err
+			}
+			switch status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted); status {
+			case corev1.ConditionTrue:
 				fmt.Fprintf(out, "\t%s exposed on router %s %s%s ago\n", ingress.Host, ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
-			case kapi.ConditionFalse:
+			case corev1.ConditionFalse:
 				fmt.Fprintf(out, "\trejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				if len(condition.Message) > 0 {
 					fmt.Fprintf(out, "\t  %s\n", condition.Message)
@@ -1768,6 +1780,7 @@ func (d *HostSubnetDescriber) Describe(namespace, name string, settings kprinter
 		formatString(out, "Node", hs.Host)
 		formatString(out, "Node IP", hs.HostIP)
 		formatString(out, "Pod Subnet", hs.Subnet)
+		formatString(out, "Egress CIDRs", strings.Join(hs.EgressCIDRs, ", "))
 		formatString(out, "Egress IPs", strings.Join(hs.EgressIPs, ", "))
 		return nil
 	})

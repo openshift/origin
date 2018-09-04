@@ -34,13 +34,13 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	)
 
 	g.BeforeEach(func() {
-		dc, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
+		template, _, err := exutil.GetRouterPodTemplate(oc)
 		if kapierrs.IsNotFound(err) {
 			g.Skip("no router installed on the cluster")
 			return
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
-		env := dc.Spec.Template.Spec.Containers[0].Env
+		env := template.Spec.Containers[0].Env
 		username, password = findEnvVar(env, "STATS_USERNAME"), findEnvVar(env, "STATS_PASSWORD")
 		statsPortString := findEnvVar(env, "STATS_PORT")
 		hasMetrics = len(findEnvVar(env, "ROUTER_METRICS_TYPE")) > 0
@@ -58,16 +58,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			}
 		}
 
-		// wait for the router endpoints to show up
-		err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
-			epts, err := oc.AdminKubeClient().CoreV1().Endpoints("default").Get("router", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if len(epts.Subsets) == 0 || len(epts.Subsets[0].Addresses) == 0 {
-				return false, nil
-			}
-			host = epts.Subsets[0].Addresses[0].IP
-			return true, nil
-		})
+		host, err = waitForFirstRouterEndpointIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		ns = oc.KubeFramework().Namespace.Name

@@ -1,7 +1,6 @@
 package images
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -23,12 +22,8 @@ func cliPodWithPullSecret(cli *exutil.CLI, shell string) *kapiv1.Pod {
 	o.Expect(sa.ImagePullSecrets).NotTo(o.BeEmpty())
 	pullSecretName := sa.ImagePullSecrets[0].Name
 
-	// best effort to get the format string for the release
-	router, err := cli.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
-	if err != nil {
-		g.Fail(fmt.Sprintf("Unable to find router in order to query format string: %v", err))
-	}
-	cliImage := strings.Replace(router.Spec.Template.Spec.Containers[0].Image, "haproxy-router", "cli", 1)
+	format, _ := exutil.FindImageFormatString(cli)
+	cliImage := strings.Replace(format, "${component}", "cli", -1)
 
 	return &kapiv1.Pod{
 		ObjectMeta: metav1.ObjectMeta{

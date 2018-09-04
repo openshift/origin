@@ -9,42 +9,41 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kexternalcoreinformers "k8s.io/client-go/informers/core/v1"
-	kexternalclientset "k8s.io/client-go/kubernetes"
-	kexternalcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
-	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	kubeinformers "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
+	ktypedclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	buildv1informer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
+	buildv1lister "github.com/openshift/client-go/build/listers/build/v1"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
+	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	"github.com/openshift/origin/pkg/api/imagereferencemutators"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	"github.com/openshift/origin/pkg/build/buildscheme"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildmanualclient "github.com/openshift/origin/pkg/build/client"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
-	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion/build/internalversion"
-	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
-	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
-	imagelister "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -120,21 +119,21 @@ func (q *resourceTriggerQueue) Pop(key string) []string {
 // a secret or make it usable by a build - but this is identical to our existing model
 // where a service account determines access to secrets used in pods.
 type BuildController struct {
-	buildPatcher      buildclient.BuildPatcher
-	buildLister       buildlister.BuildLister
-	buildConfigGetter buildlister.BuildConfigLister
-	buildDeleter      buildclient.BuildDeleter
-	podClient         kexternalcoreclient.PodsGetter
-	kubeClient        kclientset.Interface
+	buildPatcher      buildmanualclient.BuildPatcher
+	buildLister       buildv1lister.BuildLister
+	buildConfigGetter buildv1lister.BuildConfigLister
+	buildDeleter      buildmanualclient.BuildDeleter
+	podClient         ktypedclient.PodsGetter
+	kubeClient        kubernetes.Interface
 
 	buildQueue       workqueue.RateLimitingInterface
 	imageStreamQueue *resourceTriggerQueue
 	buildConfigQueue workqueue.RateLimitingInterface
 
-	buildStore       buildlister.BuildLister
+	buildStore       buildv1lister.BuildLister
 	secretStore      v1lister.SecretLister
 	podStore         v1lister.PodLister
-	imageStreamStore imagelister.ImageStreamLister
+	imageStreamStore imagev1lister.ImageStreamLister
 
 	podInformer   cache.SharedIndexInformer
 	buildInformer cache.SharedIndexInformer
@@ -155,14 +154,13 @@ type BuildController struct {
 // BuildControllerParams is the set of parameters needed to
 // create a new BuildController
 type BuildControllerParams struct {
-	BuildInformer       buildinformer.BuildInformer
-	BuildConfigInformer buildinformer.BuildConfigInformer
-	ImageStreamInformer imageinformers.ImageStreamInformer
-	PodInformer         kexternalcoreinformers.PodInformer
-	SecretInformer      kexternalcoreinformers.SecretInformer
-	KubeClientInternal  kclientset.Interface
-	KubeClientExternal  kexternalclientset.Interface
-	BuildClientInternal buildinternalclient.Interface
+	BuildInformer       buildv1informer.BuildInformer
+	BuildConfigInformer buildv1informer.BuildConfigInformer
+	ImageStreamInformer imagev1informer.ImageStreamInformer
+	PodInformer         kubeinformers.PodInformer
+	SecretInformer      kubeinformers.SecretInformer
+	KubeClient          kubernetes.Interface
+	BuildClient         buildv1client.Interface
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
@@ -173,9 +171,9 @@ type BuildControllerParams struct {
 // NewBuildController creates a new BuildController.
 func NewBuildController(params *BuildControllerParams) *BuildController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: params.KubeClientExternal.CoreV1().Events("")})
+	eventBroadcaster.StartRecordingToSink(&ktypedclient.EventSinkImpl{Interface: params.KubeClient.CoreV1().Events("")})
 
-	buildClient := buildclient.NewClientBuildClient(params.BuildClientInternal)
+	buildClient := buildmanualclient.NewClientBuildClient(params.BuildClient)
 	buildLister := params.BuildInformer.Lister()
 	buildConfigGetter := params.BuildConfigInformer.Lister()
 	c := &BuildController{
@@ -184,8 +182,8 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		buildConfigGetter: buildConfigGetter,
 		buildDeleter:      buildClient,
 		secretStore:       params.SecretInformer.Lister(),
-		podClient:         params.KubeClientExternal.Core(),
-		kubeClient:        params.KubeClientInternal,
+		podClient:         params.KubeClient.CoreV1(),
+		kubeClient:        params.KubeClient,
 		podInformer:       params.PodInformer.Informer(),
 		podStore:          params.PodInformer.Lister(),
 		buildInformer:     params.BuildInformer.Informer(),
@@ -203,7 +201,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		imageStreamQueue: newResourceTriggerQueue(),
 		buildConfigQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
-		recorder:    eventBroadcaster.NewRecorder(buildscheme.EncoderScheme, v1.EventSource{Component: "build-controller"}),
+		recorder:    eventBroadcaster.NewRecorder(buildscheme.EncoderScheme, corev1.EventSource{Component: "build-controller"}),
 		runPolicies: policy.GetAllRunPolicies(buildLister, buildClient),
 	}
 
@@ -326,7 +324,7 @@ func parseBuildConfigKey(key string) (string, string, error) {
 // handleBuild retrieves the build's corresponding pod and calls the appropriate
 // handle function based on the build's current state. Each handler returns a buildUpdate
 // object that includes any updates that need to be made on the build.
-func (bc *BuildController) handleBuild(build *buildapi.Build) error {
+func (bc *BuildController) handleBuild(build *buildv1.Build) error {
 
 	// If pipeline build, handle pruning.
 	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
@@ -358,10 +356,10 @@ func (bc *BuildController) handleBuild(build *buildapi.Build) error {
 	switch {
 	case shouldCancel(build):
 		update, err = bc.cancelBuild(build)
-	case build.Status.Phase == buildapi.BuildPhaseNew:
+	case build.Status.Phase == buildv1.BuildPhaseNew:
 		update, err = bc.handleNewBuild(build, pod)
-	case build.Status.Phase == buildapi.BuildPhasePending,
-		build.Status.Phase == buildapi.BuildPhaseRunning:
+	case build.Status.Phase == buildv1.BuildPhasePending,
+		build.Status.Phase == buildv1.BuildPhaseRunning:
 		update, err = bc.handleActiveBuild(build, pod)
 	case buildutil.IsBuildComplete(build):
 		update, err = bc.handleCompletedBuild(build, pod)
@@ -383,7 +381,7 @@ func (bc *BuildController) handleBuild(build *buildapi.Build) error {
 // However if the build is either complete or failed and its completion timestamp
 // has not been set, then it returns false so that the build's completion timestamp
 // gets updated.
-func shouldIgnore(build *buildapi.Build) bool {
+func shouldIgnore(build *buildv1.Build) bool {
 	// If pipeline build, do nothing.
 	// These builds are processed/updated/etc by the jenkins sync plugin
 	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
@@ -397,11 +395,11 @@ func shouldIgnore(build *buildapi.Build) bool {
 	// this state and it would have not set the completion timestamp or logsnippet data.
 	if buildutil.IsBuildComplete(build) {
 		switch build.Status.Phase {
-		case buildapi.BuildPhaseComplete:
+		case buildv1.BuildPhaseComplete:
 			if build.Status.CompletionTimestamp == nil {
 				return false
 			}
-		case buildapi.BuildPhaseFailed:
+		case buildv1.BuildPhaseFailed:
 			if build.Status.CompletionTimestamp == nil || len(build.Status.LogSnippet) == 0 {
 				return false
 			}
@@ -414,12 +412,12 @@ func shouldIgnore(build *buildapi.Build) bool {
 }
 
 // shouldCancel returns true if a build is active and its cancellation flag is set
-func shouldCancel(build *buildapi.Build) bool {
+func shouldCancel(build *buildv1.Build) bool {
 	return !buildutil.IsBuildComplete(build) && build.Status.Cancelled
 }
 
 // cancelBuild deletes a build pod and returns an update to mark the build as cancelled
-func (bc *BuildController) cancelBuild(build *buildapi.Build) (*buildUpdate, error) {
+func (bc *BuildController) cancelBuild(build *buildv1.Build) (*buildUpdate, error) {
 	glog.V(4).Infof("Cancelling build %s", buildDesc(build))
 
 	podName := buildapihelpers.GetBuildPodName(build)
@@ -428,12 +426,12 @@ func (bc *BuildController) cancelBuild(build *buildapi.Build) (*buildUpdate, err
 		return nil, fmt.Errorf("could not delete build pod %s/%s to cancel build %s: %v", build.Namespace, podName, buildDesc(build), err)
 	}
 
-	return transitionToPhase(buildapi.BuildPhaseCancelled, buildapi.StatusReasonCancelledBuild, buildapi.StatusMessageCancelledBuild), nil
+	return transitionToPhase(buildv1.BuildPhaseCancelled, buildv1.StatusReasonCancelledBuild, buildutil.StatusMessageCancelledBuild), nil
 }
 
 // handleNewBuild will check whether policy allows running the new build and if so, creates a pod
 // for the build and returns an update to move it to the Pending phase
-func (bc *BuildController) handleNewBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
+func (bc *BuildController) handleNewBuild(build *buildv1.Build, pod *corev1.Pod) (*buildUpdate, error) {
 	if pod != nil {
 		// We're in phase New and a build pod already exists.  If the pod has an
 		// owner reference to the build, we take that to mean that we created
@@ -458,7 +456,7 @@ func (bc *BuildController) handleNewBuild(build *buildapi.Build, pod *v1.Pod) (*
 		}
 		// If a pod was not created by the current build, move the build to
 		// error.
-		return transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodExists, buildapi.StatusMessageBuildPodExists), nil
+		return transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, buildutil.StatusMessageBuildPodExists), nil
 	}
 
 	runPolicy := policy.ForBuild(build, bc.runPolicies)
@@ -475,7 +473,7 @@ func (bc *BuildController) handleNewBuild(build *buildapi.Build, pod *v1.Pod) (*
 }
 
 // createPodSpec creates a pod spec for the given build, with all references already resolved.
-func (bc *BuildController) createPodSpec(build *buildapi.Build) (*v1.Pod, error) {
+func (bc *BuildController) createPodSpec(build *buildv1.Build) (*corev1.Pod, error) {
 	if build.Spec.Output.To != nil {
 		build.Status.OutputDockerImageReference = build.Spec.Output.To.Name
 	}
@@ -518,12 +516,12 @@ func (bc *BuildController) createPodSpec(build *buildapi.Build) (*v1.Pod, error)
 // and ability to use a service account implies access to its secrets, so this is considered safe.
 // Furthermore it's necessary to enable triggered builds since a triggered build is not "requested"
 // by a particular user, so there are no user permissions to validate against in that case.
-func (bc *BuildController) resolveImageSecretAsReference(build *buildapi.Build, imagename string) (*kapi.LocalObjectReference, error) {
+func (bc *BuildController) resolveImageSecretAsReference(build *buildv1.Build, imagename string) (*corev1.LocalObjectReference, error) {
 	serviceAccount := build.Spec.ServiceAccount
 	if len(serviceAccount) == 0 {
 		serviceAccount = buildutil.BuilderServiceAccountName
 	}
-	builderSecrets, err := buildgenerator.FetchServiceAccountSecrets(bc.kubeClient.Core(), bc.kubeClient.Core(), build.Namespace, serviceAccount)
+	builderSecrets, err := buildutil.FetchServiceAccountSecrets(bc.kubeClient.CoreV1(), build.Namespace, serviceAccount)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", build.Namespace, serviceAccount, err)
 	}
@@ -531,7 +529,7 @@ func (bc *BuildController) resolveImageSecretAsReference(build *buildapi.Build, 
 	if secret == nil {
 		dockerSecretExists := false
 		for _, builderSecret := range builderSecrets {
-			if builderSecret.Type == kapi.SecretTypeDockercfg || builderSecret.Type == kapi.SecretTypeDockerConfigJson {
+			if builderSecret.Type == corev1.SecretTypeDockercfg || builderSecret.Type == corev1.SecretTypeDockerConfigJson {
 				dockerSecretExists = true
 				break
 			}
@@ -566,7 +564,7 @@ var (
 // is returned.
 func unresolvedImageStreamReferences(m imagereferencemutators.ImageReferenceMutator, defaultNamespace string) ([]string, error) {
 	var streams []string
-	fn := func(ref *kapi.ObjectReference) error {
+	fn := func(ref *corev1.ObjectReference) error {
 		switch ref.Kind {
 		case "ImageStreamImage":
 			namespace := ref.Namespace
@@ -600,7 +598,7 @@ func unresolvedImageStreamReferences(m imagereferencemutators.ImageReferenceMuta
 
 // resolveImageStreamLocation transforms the provided reference into a string pointing to the integrated registry,
 // or returns an error.
-func resolveImageStreamLocation(ref *kapi.ObjectReference, lister imagelister.ImageStreamLister, defaultNamespace string) (string, error) {
+func resolveImageStreamLocation(ref *corev1.ObjectReference, lister imagev1lister.ImageStreamLister, defaultNamespace string) (string, error) {
 	namespace := ref.Namespace
 	if len(namespace) == 0 {
 		namespace = defaultNamespace
@@ -652,7 +650,7 @@ func resolveImageStreamLocation(ref *kapi.ObjectReference, lister imagelister.Im
 	return repo.Exact(), nil
 }
 
-func resolveImageStreamImage(ref *kapi.ObjectReference, lister imagelister.ImageStreamLister, defaultNamespace string) (*kapi.ObjectReference, error) {
+func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagev1lister.ImageStreamLister, defaultNamespace string) (*corev1.ObjectReference, error) {
 	namespace := ref.Namespace
 	if len(namespace) == 0 {
 		namespace = defaultNamespace
@@ -668,17 +666,17 @@ func resolveImageStreamImage(ref *kapi.ObjectReference, lister imagelister.Image
 		}
 		return nil, fmt.Errorf("the referenced image stream %s/%s could not be found: %v", namespace, name, err)
 	}
-	event, err := imageapi.ResolveImageID(stream, imageID)
+	event, err := imageutil.ResolveImageID(stream, imageID)
 	if err != nil {
 		return nil, err
 	}
 	if len(event.DockerImageReference) == 0 {
 		return nil, fmt.Errorf("the referenced image stream image %s/%s does not have a pull spec", namespace, ref.Name)
 	}
-	return &kapi.ObjectReference{Kind: "DockerImage", Name: event.DockerImageReference}, nil
+	return &corev1.ObjectReference{Kind: "DockerImage", Name: event.DockerImageReference}, nil
 }
 
-func resolveImageStreamTag(ref *kapi.ObjectReference, lister imagelister.ImageStreamLister, defaultNamespace string) (*kapi.ObjectReference, error) {
+func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagev1lister.ImageStreamLister, defaultNamespace string) (*corev1.ObjectReference, error) {
 	namespace := ref.Namespace
 	if len(namespace) == 0 {
 		namespace = defaultNamespace
@@ -694,14 +692,14 @@ func resolveImageStreamTag(ref *kapi.ObjectReference, lister imagelister.ImageSt
 		}
 		return nil, fmt.Errorf("the referenced image stream %s/%s could not be found: %v", namespace, name, err)
 	}
-	if newRef, ok := imageapi.ResolveLatestTaggedImage(stream, tag); ok {
-		return &kapi.ObjectReference{Kind: "DockerImage", Name: newRef}, nil
+	if newRef, ok := imageutil.ResolveLatestTaggedImage(stream, tag); ok {
+		return &corev1.ObjectReference{Kind: "DockerImage", Name: newRef}, nil
 	}
 	return nil, fmt.Errorf("the referenced image stream tag %s/%s does not exist", namespace, ref.Name)
 }
 
 // resolveOutputDockerImageReference updates the output spec to a docker image reference.
-func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Build) error {
+func (bc *BuildController) resolveOutputDockerImageReference(build *buildv1.Build) error {
 	ref := build.Spec.Output.To
 	if ref == nil || ref.Name == "" {
 		return nil
@@ -713,7 +711,7 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 		if err != nil {
 			return err
 		}
-		*ref = kapi.ObjectReference{Kind: "DockerImage", Name: newRef}
+		*ref = corev1.ObjectReference{Kind: "DockerImage", Name: newRef}
 		return nil
 	default:
 		return nil
@@ -722,7 +720,7 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 
 // resolveImageReferences resolves references to Docker images computed from the build.Spec. It will update
 // the output spec as well if it has not already been updated.
-func (bc *BuildController) resolveImageReferences(build *buildapi.Build, update *buildUpdate) error {
+func (bc *BuildController) resolveImageReferences(build *buildv1.Build, update *buildUpdate) error {
 	m := imagereferencemutators.NewBuildMutator(build)
 
 	// get a list of all unresolved references to add to the cache
@@ -745,16 +743,16 @@ func (bc *BuildController) resolveImageReferences(build *buildapi.Build, update 
 		// If we cannot resolve the output reference, the output image stream
 		// may not yet exist. The build should remain in the new state and show the
 		// reason that it is still in the new state.
-		update.setReason(buildapi.StatusReasonInvalidOutputReference)
-		update.setMessage(buildapi.StatusMessageInvalidOutputRef)
+		update.setReason(buildv1.StatusReasonInvalidOutputReference)
+		update.setMessage(buildutil.StatusMessageInvalidOutputRef)
 		if err == errNoIntegratedRegistry {
 			e := fmt.Errorf("an image stream cannot be used as build output because the integrated Docker registry is not configured")
-			bc.recorder.Eventf(build, kapi.EventTypeWarning, "InvalidOutput", "Error starting build: %v", e)
+			bc.recorder.Eventf(build, corev1.EventTypeWarning, "InvalidOutput", "Error starting build: %v", e)
 		}
 		return err
 	}
 	// resolve the remaining references
-	errs := m.Mutate(func(ref *kapi.ObjectReference) error {
+	errs := m.Mutate(func(ref *corev1.ObjectReference) error {
 		switch ref.Kind {
 		case "ImageStreamImage":
 			newRef, err := resolveImageStreamImage(ref, bc.imageStreamStore, build.Namespace)
@@ -773,8 +771,8 @@ func (bc *BuildController) resolveImageReferences(build *buildapi.Build, update 
 	})
 
 	if len(errs) > 0 {
-		update.setReason(buildapi.StatusReasonInvalidImageReference)
-		update.setMessage(buildapi.StatusMessageInvalidImageRef)
+		update.setReason(buildv1.StatusReasonInvalidImageReference)
+		update.setMessage(buildutil.StatusMessageInvalidImageRef)
 		return errs.ToAggregate()
 	}
 	// we have resolved all images, and will not need any further notifications
@@ -783,7 +781,7 @@ func (bc *BuildController) resolveImageReferences(build *buildapi.Build, update 
 }
 
 // createBuildPod creates a new pod to run a build
-func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, error) {
+func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, error) {
 	update := &buildUpdate{}
 
 	// image reference resolution requires a copy of the build
@@ -810,15 +808,15 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 		var err error
 		pushSecret, err = bc.resolveImageSecretAsReference(build, build.Spec.Output.To.Name)
 		if err != nil {
-			update.setReason(buildapi.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildapi.StatusMessageCannotRetrieveServiceAccount)
+			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
+			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
 			return update, err
 		}
 	}
 	build.Spec.Output.PushSecret = pushSecret
 
 	// Set the pullSecret that will be needed by the build to pull the base/builder image.
-	var pullSecret *kapi.LocalObjectReference
+	var pullSecret *corev1.LocalObjectReference
 	var imageName string
 	switch {
 	case build.Spec.Strategy.SourceStrategy != nil:
@@ -839,8 +837,8 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 		var err error
 		pullSecret, err = bc.resolveImageSecretAsReference(build, imageName)
 		if err != nil {
-			update.setReason(buildapi.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildapi.StatusMessageCannotRetrieveServiceAccount)
+			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
+			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
 			return update, err
 		}
 		if pullSecret != nil {
@@ -862,15 +860,15 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 		}
 		imageInputPullSecret, err := bc.resolveImageSecretAsReference(build, s.From.Name)
 		if err != nil {
-			update.setReason(buildapi.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildapi.StatusMessageCannotRetrieveServiceAccount)
+			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
+			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
 			return update, err
 		}
 		build.Spec.Source.Images[i].PullSecret = imageInputPullSecret
 	}
 
 	if build.Spec.Strategy.CustomStrategy != nil {
-		buildgenerator.UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, build.Spec.Strategy.CustomStrategy.From.Name)
+		buildutil.UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, build.Spec.Strategy.CustomStrategy.From.Name)
 	}
 
 	// Create the build pod spec
@@ -878,10 +876,11 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 	if err != nil {
 		switch err.(type) {
 		case common.ErrEnvVarResolver:
-			update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonUnresolvableEnvironmentVariable, fmt.Sprintf("%v, %v", buildapi.StatusMessageUnresolvableEnvironmentVariable, err.Error()))
+			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonUnresolvableEnvironmentVariable, fmt.Sprintf("%v, %v",
+				buildutil.StatusMessageUnresolvableEnvironmentVariable, err.Error()))
 		default:
-			update.setReason(buildapi.StatusReasonCannotCreateBuildPodSpec)
-			update.setMessage(buildapi.StatusMessageCannotCreateBuildPodSpec)
+			update.setReason(buildv1.StatusReasonCannotCreateBuildPodSpec)
+			update.setMessage(buildutil.StatusMessageCannotCreateBuildPodSpec)
 
 		}
 		// If an error occurred when creating the pod spec, it likely means
@@ -906,13 +905,13 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 	_, err = bc.podClient.Pods(build.Namespace).Create(buildPod)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		// Log an event if the pod is not created (most likely due to quota denial).
-		bc.recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
-		update.setReason(buildapi.StatusReasonCannotCreateBuildPod)
-		update.setMessage(buildapi.StatusMessageCannotCreateBuildPod)
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
+		update.setReason(buildv1.StatusReasonCannotCreateBuildPod)
+		update.setMessage(buildutil.StatusMessageCannotCreateBuildPod)
 		return update, fmt.Errorf("failed to create build pod: %v", err)
 
 	} else if err != nil {
-		bc.recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Pod already exists: %s/%s", buildPod.Namespace, buildPod.Name)
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Pod already exists: %s/%s", buildPod.Namespace, buildPod.Name)
 		glog.V(4).Infof("Build pod %s/%s for build %s already exists", build.Namespace, buildPod.Name, buildDesc(build))
 
 		// If the existing pod was not created by this build, switch to the
@@ -923,7 +922,7 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 		}
 		if !strategy.HasOwnerReference(existingPod, build) {
 			glog.V(4).Infof("Did not recognise pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
-			update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodExists, buildapi.StatusMessageBuildPodExists)
+			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, buildutil.StatusMessageBuildPodExists)
 			return update, nil
 		}
 		glog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
@@ -931,7 +930,7 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 	} else {
 		glog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
 	}
-	update = transitionToPhase(buildapi.BuildPhasePending, "", "")
+	update = transitionToPhase(buildv1.BuildPhasePending, "", "")
 
 	if pushSecret != nil {
 		update.setPushSecret(*pushSecret)
@@ -945,12 +944,12 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 }
 
 // handleActiveBuild handles a build in either pending or running state
-func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
+func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.Pod) (*buildUpdate, error) {
 	if pod == nil {
 		pod = bc.findMissingPod(build)
 		if pod == nil {
 			glog.V(4).Infof("Failed to find the build pod for build %s. Moving it to Error state", buildDesc(build))
-			return transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodDeleted, buildapi.StatusMessageBuildPodDeleted), nil
+			return transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodDeleted, buildutil.StatusMessageBuildPodDeleted), nil
 		}
 	}
 
@@ -958,66 +957,67 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 	var update *buildUpdate
 	// Pods don't report running until initcontainers are done, but from a build's perspective
 	// the pod is running as soon as the first init container has run.
-	if build.Status.Phase == buildapi.BuildPhasePending || build.Status.Phase == buildapi.BuildPhaseNew {
+	if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseNew {
 		for _, initContainer := range pod.Status.InitContainerStatuses {
 			if initContainer.Name == strategy.GitCloneContainer && initContainer.State.Running != nil {
-				podPhase = v1.PodRunning
+				podPhase = corev1.PodRunning
 			}
 		}
 	}
 	switch podPhase {
-	case v1.PodPending:
-		if build.Status.Phase != buildapi.BuildPhasePending {
-			update = transitionToPhase(buildapi.BuildPhasePending, "", "")
+	case corev1.PodPending:
+		if build.Status.Phase != buildv1.BuildPhasePending {
+			update = transitionToPhase(buildv1.BuildPhasePending, "", "")
 		}
-		if secret := build.Spec.Output.PushSecret; secret != nil && build.Status.Reason != buildapi.StatusReasonMissingPushSecret {
+		if secret := build.Spec.Output.PushSecret; secret != nil && build.Status.Reason != buildv1.StatusReasonMissingPushSecret {
 			if _, err := bc.secretStore.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
 				glog.V(4).Infof("Setting reason for pending build to %q due to missing secret for %s", build.Status.Reason, buildDesc(build))
-				update = transitionToPhase(buildapi.BuildPhasePending, buildapi.StatusReasonMissingPushSecret, buildapi.StatusMessageMissingPushSecret)
+				update = transitionToPhase(buildv1.BuildPhasePending, buildv1.StatusReasonMissingPushSecret, buildutil.StatusMessageMissingPushSecret)
 			}
 		}
-	case v1.PodRunning:
-		if build.Status.Phase != buildapi.BuildPhaseRunning {
-			update = transitionToPhase(buildapi.BuildPhaseRunning, "", "")
+	case corev1.PodRunning:
+		if build.Status.Phase != buildv1.BuildPhaseRunning {
+			update = transitionToPhase(buildv1.BuildPhaseRunning, "", "")
 			if pod.Status.StartTime != nil {
 				update.setStartTime(*pod.Status.StartTime)
 			}
 		}
-	case v1.PodSucceeded:
-		if build.Status.Phase != buildapi.BuildPhaseComplete {
-			update = transitionToPhase(buildapi.BuildPhaseComplete, "", "")
+	case corev1.PodSucceeded:
+		if build.Status.Phase != buildv1.BuildPhaseComplete {
+			update = transitionToPhase(buildv1.BuildPhaseComplete, "", "")
 		}
 		if len(pod.Status.ContainerStatuses) == 0 {
 			// no containers in the pod means something went terribly wrong, so the build
 			// should be set to an error state
 			glog.V(2).Infof("Setting build %s to error state because its pod has no containers", buildDesc(build))
-			update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonNoBuildContainerStatus, buildapi.StatusMessageNoBuildContainerStatus)
+			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonNoBuildContainerStatus,
+				buildutil.StatusMessageNoBuildContainerStatus)
 		} else {
 			for _, info := range pod.Status.ContainerStatuses {
 				if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
 					glog.V(2).Infof("Setting build %s to error state because a container in its pod has non-zero exit code", buildDesc(build))
-					update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonFailedContainer, buildapi.StatusMessageFailedContainer)
+					update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonFailedContainer, buildutil.StatusMessageFailedContainer)
 					break
 				}
 			}
 		}
-	case v1.PodFailed:
+	case corev1.PodFailed:
 		if isOOMKilled(pod) {
-			update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonOutOfMemoryKilled, buildapi.StatusMessageOutOfMemoryKilled)
-		} else if build.Status.Phase != buildapi.BuildPhaseFailed {
+			update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonOutOfMemoryKilled, buildutil.StatusMessageOutOfMemoryKilled)
+		} else if build.Status.Phase != buildv1.BuildPhaseFailed {
 			// If a DeletionTimestamp has been set, it means that the pod will
 			// soon be deleted. The build should be transitioned to the Error phase.
 			if pod.DeletionTimestamp != nil {
-				update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodDeleted, buildapi.StatusMessageBuildPodDeleted)
+				update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodDeleted, buildutil.StatusMessageBuildPodDeleted)
 			} else {
-				update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonGenericBuildFailed, buildapi.StatusMessageGenericBuildFailed)
+				update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonGenericBuildFailed, buildutil.StatusMessageGenericBuildFailed)
 			}
 		}
 	}
 	return update, nil
 }
 
-func isOOMKilled(pod *v1.Pod) bool {
+func isOOMKilled(pod *corev1.Pod) bool {
 	if pod == nil {
 		return false
 	}
@@ -1041,11 +1041,11 @@ func isOOMKilled(pod *v1.Pod) bool {
 
 // handleCompletedBuild will only be called on builds that are already in a terminal phase.  It is used to setup the
 // completion timestamp and failure logsnippet as needed.
-func (bc *BuildController) handleCompletedBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
+func (bc *BuildController) handleCompletedBuild(build *buildv1.Build, pod *corev1.Pod) (*buildUpdate, error) {
 
 	update := &buildUpdate{}
 	if isOOMKilled(pod) {
-		update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonOutOfMemoryKilled, buildapi.StatusMessageOutOfMemoryKilled)
+		update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonOutOfMemoryKilled, buildutil.StatusMessageOutOfMemoryKilled)
 	}
 	setBuildCompletionData(build, pod, update)
 
@@ -1055,20 +1055,20 @@ func (bc *BuildController) handleCompletedBuild(build *buildapi.Build, pod *v1.P
 // updateBuild is the single place where any update to a build is done in the build controller.
 // It will check that the update is valid, peform any necessary processing such as calling HandleBuildCompletion,
 // and apply the buildUpdate object as a patch.
-func (bc *BuildController) updateBuild(build *buildapi.Build, update *buildUpdate, pod *v1.Pod) error {
+func (bc *BuildController) updateBuild(build *buildv1.Build, update *buildUpdate, pod *corev1.Pod) error {
 
 	stateTransition := false
 	// Check whether we are transitioning to a different build phase
 	if update.phase != nil && (*update.phase) != build.Status.Phase {
 		stateTransition = true
-	} else if build.Status.Phase == buildapi.BuildPhaseFailed && update.completionTime != nil {
+	} else if build.Status.Phase == buildv1.BuildPhaseFailed && update.completionTime != nil {
 		// Treat a failed->failed update as a state transition when the completionTime is getting
 		// updated. This will cause an event to be emitted and completion processing to trigger.
 		// We get into this state when the pod updates the phase through the build/details subresource.
 		// The phase, reason, and message are set, but no event has been emitted about the failure,
 		// and the policy has not been given a chance to start the next build if one is waiting to
 		// start.
-		update.setPhase(buildapi.BuildPhaseFailed)
+		update.setPhase(buildv1.BuildPhaseFailed)
 		stateTransition = true
 	}
 
@@ -1104,15 +1104,20 @@ func (bc *BuildController) updateBuild(build *buildapi.Build, update *buildUpdat
 	// Emit events and handle build completion if transitioned to a terminal phase
 	if stateTransition {
 		switch *update.phase {
-		case buildapi.BuildPhaseRunning:
-			bc.recorder.Eventf(patchedBuild, kapi.EventTypeNormal, buildapi.BuildStartedEventReason, fmt.Sprintf(buildapi.BuildStartedEventMessage, patchedBuild.Namespace, patchedBuild.Name))
-		case buildapi.BuildPhaseCancelled:
-			bc.recorder.Eventf(patchedBuild, kapi.EventTypeNormal, buildapi.BuildCancelledEventReason, fmt.Sprintf(buildapi.BuildCancelledEventMessage, patchedBuild.Namespace, patchedBuild.Name))
-		case buildapi.BuildPhaseComplete:
-			bc.recorder.Eventf(patchedBuild, kapi.EventTypeNormal, buildapi.BuildCompletedEventReason, fmt.Sprintf(buildapi.BuildCompletedEventMessage, patchedBuild.Namespace, patchedBuild.Name))
-		case buildapi.BuildPhaseError,
-			buildapi.BuildPhaseFailed:
-			bc.recorder.Eventf(patchedBuild, kapi.EventTypeNormal, buildapi.BuildFailedEventReason, fmt.Sprintf(buildapi.BuildFailedEventMessage, patchedBuild.Namespace, patchedBuild.Name))
+		case buildv1.BuildPhaseRunning:
+			bc.recorder.Eventf(patchedBuild, corev1.EventTypeNormal, buildutil.BuildStartedEventReason,
+				fmt.Sprintf(buildutil.BuildStartedEventMessage,
+					patchedBuild.Namespace, patchedBuild.Name))
+		case buildv1.BuildPhaseCancelled:
+			bc.recorder.Eventf(patchedBuild, corev1.EventTypeNormal, buildutil.BuildCancelledEventReason,
+				fmt.Sprintf(buildutil.BuildCancelledEventMessage, patchedBuild.Namespace, patchedBuild.Name))
+		case buildv1.BuildPhaseComplete:
+			bc.recorder.Eventf(patchedBuild, corev1.EventTypeNormal, buildutil.BuildCompletedEventReason,
+				fmt.Sprintf(buildutil.BuildCompletedEventMessage, patchedBuild.Namespace, patchedBuild.Name))
+		case buildv1.BuildPhaseError,
+			buildv1.BuildPhaseFailed:
+			bc.recorder.Eventf(patchedBuild, corev1.EventTypeNormal, buildutil.BuildFailedEventReason, fmt.Sprintf(buildutil.BuildFailedEventMessage,
+				patchedBuild.Namespace, patchedBuild.Name))
 		}
 		if buildutil.IsTerminalPhase(*update.phase) {
 			bc.handleBuildCompletion(patchedBuild)
@@ -1121,7 +1126,7 @@ func (bc *BuildController) updateBuild(build *buildapi.Build, update *buildUpdat
 	return nil
 }
 
-func (bc *BuildController) handleBuildCompletion(build *buildapi.Build) {
+func (bc *BuildController) handleBuildCompletion(build *buildv1.Build) {
 	bcName := buildutil.ConfigNameForBuild(build)
 	bc.enqueueBuildConfig(build.Namespace, bcName)
 	if err := common.HandleBuildPruning(bcName, build.Namespace, bc.buildLister, bc.buildConfigGetter, bc.buildDeleter); err != nil {
@@ -1158,15 +1163,30 @@ func (bc *BuildController) handleBuildConfig(bcNamespace string, bcName string) 
 	}
 	return nil
 }
+func createBuildPatch(older, newer *buildv1.Build) ([]byte, error) {
+	newerJSON, err := runtime.Encode(buildscheme.Encoder, newer)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding newer: %v", err)
+	}
+	olderJSON, err := runtime.Encode(buildscheme.Encoder, older)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding older: %v", err)
+	}
+	patch, err := strategicpatch.CreateTwoWayMergePatch(olderJSON, newerJSON, &buildv1.Build{})
+	if err != nil {
+		return nil, fmt.Errorf("error creating a strategic patch: %v", err)
+	}
+	return patch, nil
+}
 
 // patchBuild generates a patch for the given build and buildUpdate
 // and applies that patch using the REST client
-func (bc *BuildController) patchBuild(build *buildapi.Build, update *buildUpdate) (*buildapi.Build, error) {
+func (bc *BuildController) patchBuild(build *buildv1.Build, update *buildUpdate) (*buildv1.Build, error) {
 	// Create a patch using the buildUpdate object
 	updatedBuild := build.DeepCopy()
 	update.apply(updatedBuild)
 
-	patch, err := validation.CreateBuildPatch(build, updatedBuild)
+	patch, err := createBuildPatch(build, updatedBuild)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a build patch: %v", err)
 	}
@@ -1177,7 +1197,7 @@ func (bc *BuildController) patchBuild(build *buildapi.Build, update *buildUpdate
 
 // findMissingPod uses the REST client directly to determine if a pod exists or not.
 // It is called when a corresponding pod for a build is not found in the cache.
-func (bc *BuildController) findMissingPod(build *buildapi.Build) *v1.Pod {
+func (bc *BuildController) findMissingPod(build *buildv1.Build) *corev1.Pod {
 	// Make one last attempt to fetch the pod using the REST client
 	pod, err := bc.podClient.Pods(build.Namespace).Get(buildapihelpers.GetBuildPodName(build), metav1.GetOptions{})
 	if err == nil {
@@ -1188,7 +1208,7 @@ func (bc *BuildController) findMissingPod(build *buildapi.Build) *v1.Pod {
 }
 
 // getBuildByKey looks up a build by key in the buildInformer cache
-func (bc *BuildController) getBuildByKey(key string) (*buildapi.Build, error) {
+func (bc *BuildController) getBuildByKey(key string) (*buildv1.Build, error) {
 	obj, exists, err := bc.buildInformer.GetIndexer().GetByKey(key)
 	if err != nil {
 		glog.V(2).Infof("Unable to retrieve build %q from store: %v", key, err)
@@ -1199,15 +1219,15 @@ func (bc *BuildController) getBuildByKey(key string) (*buildapi.Build, error) {
 		return nil, nil
 	}
 
-	return obj.(*buildapi.Build), nil
+	return obj.(*buildv1.Build), nil
 }
 
 // podUpdated gets called by the pod informer event handler whenever a pod
 // is updated or there is a relist of pods
 func (bc *BuildController) podUpdated(old, cur interface{}) {
 	// A periodic relist will send update events for all known pods.
-	curPod := cur.(*v1.Pod)
-	oldPod := old.(*v1.Pod)
+	curPod := cur.(*corev1.Pod)
+	oldPod := old.(*corev1.Pod)
 	// The old and new ResourceVersion will be the same in a relist of pods.
 	// Here we ignore pod relists because we already listen to build relists.
 	if curPod.ResourceVersion == oldPod.ResourceVersion {
@@ -1221,14 +1241,14 @@ func (bc *BuildController) podUpdated(old, cur interface{}) {
 // podDeleted gets called by the pod informer event handler whenever a pod
 // is deleted
 func (bc *BuildController) podDeleted(obj interface{}) {
-	pod, ok := obj.(*v1.Pod)
+	pod, ok := obj.(*corev1.Pod)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone: %+v", obj))
 			return
 		}
-		pod, ok = tombstone.Obj.(*v1.Pod)
+		pod, ok = tombstone.Obj.(*corev1.Pod)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a pod: %+v", obj))
 			return
@@ -1242,28 +1262,28 @@ func (bc *BuildController) podDeleted(obj interface{}) {
 // buildAdded is called by the build informer event handler whenever a build
 // is created
 func (bc *BuildController) buildAdded(obj interface{}) {
-	build := obj.(*buildapi.Build)
+	build := obj.(*buildv1.Build)
 	bc.enqueueBuild(build)
 }
 
 // buildUpdated is called by the build informer event handler whenever a build
 // is updated or there is a relist of builds
 func (bc *BuildController) buildUpdated(old, cur interface{}) {
-	build := cur.(*buildapi.Build)
+	build := cur.(*buildv1.Build)
 	bc.enqueueBuild(build)
 }
 
 // buildDeleted is called by the build informer event handler whenever a build
 // is deleted
 func (bc *BuildController) buildDeleted(obj interface{}) {
-	build, ok := obj.(*buildapi.Build)
+	build, ok := obj.(*buildv1.Build)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone: %+v", obj))
 			return
 		}
-		build, ok = tombstone.Obj.(*buildapi.Build)
+		build, ok = tombstone.Obj.(*buildv1.Build)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a pod: %+v", obj))
 			return
@@ -1277,14 +1297,14 @@ func (bc *BuildController) buildDeleted(obj interface{}) {
 }
 
 // enqueueBuild adds the given build to the buildQueue.
-func (bc *BuildController) enqueueBuild(build *buildapi.Build) {
+func (bc *BuildController) enqueueBuild(build *buildv1.Build) {
 	key := resourceName(build.Namespace, build.Name)
 	bc.buildQueue.Add(key)
 }
 
 // enqueueBuildForPod adds the build corresponding to the given pod to the controller
 // buildQueue. If a build is not found for the pod, then an error is logged.
-func (bc *BuildController) enqueueBuildForPod(pod *v1.Pod) {
+func (bc *BuildController) enqueueBuildForPod(pod *corev1.Pod) {
 	bc.buildQueue.Add(resourceName(pod.Namespace, getBuildName(pod)))
 }
 
@@ -1292,7 +1312,7 @@ func (bc *BuildController) enqueueBuildForPod(pod *v1.Pod) {
 // Because builds are level driven when resolving images, we are not concerned with duplicate
 // build events.
 func (bc *BuildController) imageStreamAdded(obj interface{}) {
-	stream := obj.(*imageapi.ImageStream)
+	stream := obj.(*imagev1.ImageStream)
 	for _, buildKey := range bc.imageStreamQueue.Pop(resourceName(stream.Namespace, stream.Name)) {
 		bc.buildQueue.Add(buildKey)
 	}
@@ -1348,19 +1368,19 @@ func (bc *BuildController) handleBuildConfigError(err error, key interface{}) {
 }
 
 // isBuildPod returns true if the given pod is a build pod
-func isBuildPod(pod *v1.Pod) bool {
+func isBuildPod(pod *corev1.Pod) bool {
 	return len(getBuildName(pod)) > 0
 }
 
 // buildDesc is a utility to format the namespace/name and phase of a build
 // for errors and logging
-func buildDesc(build *buildapi.Build) string {
+func buildDesc(build *buildv1.Build) string {
 	return fmt.Sprintf("%s/%s (%s)", build.Namespace, build.Name, build.Status.Phase)
 }
 
 // transitionToPhase returns a buildUpdate object to transition a build to a new
 // phase with the given reason and message
-func transitionToPhase(phase buildapi.BuildPhase, reason buildapi.StatusReason, message string) *buildUpdate {
+func transitionToPhase(phase buildv1.BuildPhase, reason buildv1.StatusReason, message string) *buildUpdate {
 	update := &buildUpdate{}
 	update.setPhase(phase)
 	update.setReason(reason)
@@ -1369,7 +1389,7 @@ func transitionToPhase(phase buildapi.BuildPhase, reason buildapi.StatusReason, 
 }
 
 // isValidTransition returns true if the given phase transition is valid
-func isValidTransition(from, to buildapi.BuildPhase) bool {
+func isValidTransition(from, to buildv1.BuildPhase) bool {
 	if from == to {
 		return true
 	}
@@ -1377,15 +1397,15 @@ func isValidTransition(from, to buildapi.BuildPhase) bool {
 	switch {
 	case buildutil.IsTerminalPhase(from):
 		return false
-	case from == buildapi.BuildPhasePending:
+	case from == buildv1.BuildPhasePending:
 		switch to {
-		case buildapi.BuildPhaseNew:
+		case buildv1.BuildPhaseNew:
 			return false
 		}
-	case from == buildapi.BuildPhaseRunning:
+	case from == buildv1.BuildPhaseRunning:
 		switch to {
-		case buildapi.BuildPhaseNew,
-			buildapi.BuildPhasePending:
+		case buildv1.BuildPhaseNew,
+			buildv1.BuildPhasePending:
 			return false
 		}
 	}
@@ -1396,7 +1416,7 @@ func isValidTransition(from, to buildapi.BuildPhase) bool {
 // setBuildCompletionData sets the build completion time and duration as well as the start time
 // if not already set on the given buildUpdate object.  It also sets the log tail data
 // if applicable.
-func setBuildCompletionData(build *buildapi.Build, pod *v1.Pod, update *buildUpdate) {
+func setBuildCompletionData(build *buildv1.Build, pod *corev1.Pod, update *buildUpdate) {
 	now := metav1.Now()
 
 	startTime := build.Status.StartTimestamp
@@ -1415,7 +1435,7 @@ func setBuildCompletionData(build *buildapi.Build, pod *v1.Pod, update *buildUpd
 		update.setDuration(now.Rfc3339Copy().Time.Sub(startTime.Rfc3339Copy().Time))
 	}
 
-	if (build.Status.Phase == buildapi.BuildPhaseFailed || (update.phase != nil && *update.phase == buildapi.BuildPhaseFailed)) && len(build.Status.LogSnippet) == 0 &&
+	if (build.Status.Phase == buildv1.BuildPhaseFailed || (update.phase != nil && *update.phase == buildv1.BuildPhaseFailed)) && len(build.Status.LogSnippet) == 0 &&
 		pod != nil && len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].State.Terminated != nil {
 		msg := pod.Status.ContainerStatuses[0].State.Terminated.Message
 		if len(msg) != 0 {
@@ -1465,5 +1485,5 @@ func getBuildName(pod metav1.Object) string {
 	if pod == nil {
 		return ""
 	}
-	return pod.GetAnnotations()[buildapi.BuildAnnotation]
+	return pod.GetAnnotations()[buildutil.BuildAnnotation]
 }

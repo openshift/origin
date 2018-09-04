@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinstall "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -24,7 +23,7 @@ var (
 func init() {
 	// TODO only use external versions, so we only add external types
 	buildinstall.Install(buildEncodingScheme)
-	buildJSONCodec = buildEncodingCodecFactory.LegacyCodec(buildv1.SchemeGroupVersion)
+	buildJSONCodec = buildEncodingCodecFactory.LegacyCodec(buildv1.GroupVersion)
 }
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
@@ -34,7 +33,7 @@ type DockerBuildStrategy struct {
 
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
-func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
+func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build) (*v1.Pod, error) {
 	data, err := runtime.Encode(buildJSONCodec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
@@ -50,7 +49,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	addSourceEnvVars(build.Spec.Source, &containerEnv)
 
 	if len(strategy.Env) > 0 {
-		buildutil.MergeTrustedEnvWithoutDuplicates(buildutil.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)
+		buildutil.MergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv, true)
 	}
 
 	serviceAccount := build.Spec.ServiceAccount
@@ -84,7 +83,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 						},
 					},
 					ImagePullPolicy: v1.PullIfNotPresent,
-					Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+					Resources:       build.Spec.Resources,
 				},
 			},
 			Volumes: []v1.Volume{
@@ -117,7 +116,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 				},
 			},
 			ImagePullPolicy: v1.PullIfNotPresent,
-			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+			Resources:       build.Spec.Resources,
 		}
 		if build.Spec.Source.Binary != nil {
 			gitCloneContainer.Stdin = true
@@ -144,7 +143,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 				},
 			},
 			ImagePullPolicy: v1.PullIfNotPresent,
-			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+			Resources:       build.Spec.Resources,
 		}
 		setupDockerSecrets(pod, &extractImageContentContainer, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
@@ -163,7 +162,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 				},
 			},
 			ImagePullPolicy: v1.PullIfNotPresent,
-			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+			Resources:       build.Spec.Resources,
 		},
 	)
 

@@ -8,18 +8,19 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 	"github.com/openshift/origin/pkg/router"
 )
 
 // RouteAdmissionFunc determines whether or not to admit a route.
-type RouteAdmissionFunc func(*routeapi.Route) error
+type RouteAdmissionFunc func(*routev1.Route) error
 
 // RouteMap contains all routes associated with a key
-type RouteMap map[string][]*routeapi.Route
+type RouteMap map[string][]*routev1.Route
 
 // RemoveRoute removes any existing routes that match the given route's namespace and name for a key
-func (srm RouteMap) RemoveRoute(key string, route *routeapi.Route) bool {
+func (srm RouteMap) RemoveRoute(key string, route *routev1.Route) bool {
 	k := 0
 	removed := false
 
@@ -45,14 +46,14 @@ func (srm RouteMap) RemoveRoute(key string, route *routeapi.Route) bool {
 	return removed
 }
 
-func (srm RouteMap) InsertRoute(key string, route *routeapi.Route) {
+func (srm RouteMap) InsertRoute(key string, route *routev1.Route) {
 	// To replace any existing route[s], first we remove all old entries.
 	srm.RemoveRoute(key, route)
 
 	m := srm[key]
 	for idx := range m {
-		if routeapi.RouteLessThan(route, m[idx]) {
-			m = append(m, &routeapi.Route{})
+		if routeapihelpers.RouteLessThan(route, m[idx]) {
+			m = append(m, &routev1.Route{})
 			// From: https://github.com/golang/go/wiki/SliceTricks
 			copy(m[idx+1:], m[idx:])
 			m[idx] = route
@@ -125,7 +126,7 @@ func (p *HostAdmitter) HandleEndpoints(eventType watch.EventType, endpoints *kap
 }
 
 // HandleRoute processes watch events on the Route resource.
-func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routev1.Route) error {
 	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(route.Namespace) {
 		// Ignore routes we don't need to "service" due to namespace
 		// restrictions (ala for sharding).
@@ -149,7 +150,7 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 
 		case watch.Deleted:
 			p.claimedHosts.RemoveRoute(route.Spec.Host, route)
-			wildcardKey := routeapi.GetDomainForHost(route.Spec.Host)
+			wildcardKey := routeapihelpers.GetDomainForHost(route.Spec.Host)
 			p.claimedWildcards.RemoveRoute(wildcardKey, route)
 			p.blockedWildcards.RemoveRoute(wildcardKey, route)
 		}
@@ -170,7 +171,7 @@ func (p *HostAdmitter) Commit() error {
 }
 
 // addRoute admits routes based on subdomain ownership - returns errors if the route is not admitted.
-func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
+func (p *HostAdmitter) addRoute(route *routev1.Route) error {
 	// Find displaced routes (or error if an existing route displaces us)
 	displacedRoutes, err, ownerNamespace := p.displacedRoutes(route)
 	if err != nil {
@@ -186,14 +187,14 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 
 	// Remove displaced routes
 	for _, displacedRoute := range displacedRoutes {
-		wildcardKey := routeapi.GetDomainForHost(displacedRoute.Spec.Host)
+		wildcardKey := routeapihelpers.GetDomainForHost(displacedRoute.Spec.Host)
 		p.claimedHosts.RemoveRoute(displacedRoute.Spec.Host, displacedRoute)
 		p.blockedWildcards.RemoveRoute(wildcardKey, displacedRoute)
 		p.claimedWildcards.RemoveRoute(wildcardKey, displacedRoute)
 
 		msg := ""
 		if route.Namespace == displacedRoute.Namespace {
-			if route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
+			if route.Spec.WildcardPolicy == routev1.WildcardPolicySubdomain {
 				msg = fmt.Sprintf("wildcard route %s/%s has host *.%s blocking %s", route.Namespace, route.Name, wildcardKey, displacedRoute.Spec.Host)
 			} else {
 				msg = fmt.Sprintf("route %s/%s has host %s, blocking %s", route.Namespace, route.Name, route.Spec.Host, displacedRoute.Spec.Host)
@@ -207,21 +208,21 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	}
 
 	if len(route.Spec.WildcardPolicy) == 0 {
-		route.Spec.WildcardPolicy = routeapi.WildcardPolicyNone
+		route.Spec.WildcardPolicy = routev1.WildcardPolicyNone
 	}
 
 	// Add the new route
-	wildcardKey := routeapi.GetDomainForHost(route.Spec.Host)
+	wildcardKey := routeapihelpers.GetDomainForHost(route.Spec.Host)
 
 	switch route.Spec.WildcardPolicy {
-	case routeapi.WildcardPolicyNone:
+	case routev1.WildcardPolicyNone:
 		// claim the host, block wildcards that would conflict with this host
 		p.claimedHosts.InsertRoute(route.Spec.Host, route)
 		p.blockedWildcards.InsertRoute(wildcardKey, route)
 		// ensure the route doesn't exist as a claimed wildcard (in case it previously was)
 		p.claimedWildcards.RemoveRoute(wildcardKey, route)
 
-	case routeapi.WildcardPolicySubdomain:
+	case routev1.WildcardPolicySubdomain:
 		// claim the wildcard
 		p.claimedWildcards.InsertRoute(wildcardKey, route)
 		// ensure the route doesn't exist as a claimed host or blocked wildcard
@@ -239,8 +240,8 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	return nil
 }
 
-func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Route, error, string) {
-	displaced := []*routeapi.Route{}
+func (p *HostAdmitter) displacedRoutes(newRoute *routev1.Route) ([]*routev1.Route, error, string) {
+	displaced := []*routev1.Route{}
 
 	// See if any existing routes block our host, or if we displace their host
 	for i, route := range p.claimedHosts[newRoute.Spec.Host] {
@@ -254,7 +255,7 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 			// wildcard route.
 			// E.g. *.acme.test can co-exist with a
 			//      route for www2.acme.test
-			if newRoute.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
+			if newRoute.Spec.WildcardPolicy == routev1.WildcardPolicySubdomain {
 				continue
 			}
 
@@ -273,13 +274,13 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 				continue
 			}
 		}
-		if routeapi.RouteLessThan(route, newRoute) {
+		if routeapihelpers.RouteLessThan(route, newRoute) {
 			return nil, fmt.Errorf("route %s/%s has host %s", route.Namespace, route.Name, route.Spec.Host), route.Namespace
 		}
 		displaced = append(displaced, p.claimedHosts[newRoute.Spec.Host][i])
 	}
 
-	wildcardKey := routeapi.GetDomainForHost(newRoute.Spec.Host)
+	wildcardKey := routeapihelpers.GetDomainForHost(newRoute.Spec.Host)
 
 	// See if any existing wildcard routes block our domain, or if we displace them
 	for i, route := range p.claimedWildcards[wildcardKey] {
@@ -293,7 +294,7 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 			// wildcard route.
 			// E.g. www1.foo.test can co-exist with a
 			//      wildcard route for *.foo.test
-			if newRoute.Spec.WildcardPolicy != routeapi.WildcardPolicySubdomain {
+			if newRoute.Spec.WildcardPolicy != routev1.WildcardPolicySubdomain {
 				continue
 			}
 
@@ -312,20 +313,20 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 				continue
 			}
 		}
-		if routeapi.RouteLessThan(route, newRoute) {
+		if routeapihelpers.RouteLessThan(route, newRoute) {
 			return nil, fmt.Errorf("wildcard route %s/%s has host *.%s, blocking %s", route.Namespace, route.Name, wildcardKey, newRoute.Spec.Host), route.Namespace
 		}
 		displaced = append(displaced, p.claimedWildcards[wildcardKey][i])
 	}
 
 	// If this is a wildcard route, see if any specific hosts block our wildcardSpec, or if we displace them
-	if newRoute.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
+	if newRoute.Spec.WildcardPolicy == routev1.WildcardPolicySubdomain {
 		for i, route := range p.blockedWildcards[wildcardKey] {
 			if p.disableNamespaceCheck || route.Namespace == newRoute.Namespace {
 				// Never displace a route in our namespace
 				continue
 			}
-			if routeapi.RouteLessThan(route, newRoute) {
+			if routeapihelpers.RouteLessThan(route, newRoute) {
 				return nil, fmt.Errorf("route %s/%s has host %s, blocking *.%s", route.Namespace, route.Name, route.Spec.Host, wildcardKey), route.Namespace
 			}
 			displaced = append(displaced, p.blockedWildcards[wildcardKey][i])

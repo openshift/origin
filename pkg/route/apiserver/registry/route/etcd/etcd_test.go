@@ -19,7 +19,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	_ "github.com/openshift/origin/pkg/route/apis/route/install"
 	"github.com/openshift/origin/pkg/route/apiserver/registry/route"
-	"github.com/openshift/origin/pkg/util/restoptions"
+	"k8s.io/apiserver/pkg/registry/generic"
 )
 
 type testAllocator struct {
@@ -56,7 +56,8 @@ func (t *testSAR) Create(subjectAccessReview *authorizationapi.SubjectAccessRevi
 func newStorage(t *testing.T, allocator routetypes.RouteAllocator) (*REST, *etcdtesting.EtcdTestServer) {
 	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
 	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "route.openshift.io", Version: "v1"})
-	storage, _, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), allocator, &testSAR{allow: true})
+	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "routes"}
+	storage, _, err := NewREST(restOptions, allocator, &testSAR{allow: true})
 	if err != nil {
 		t.Fatal(err)
 	}

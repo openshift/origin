@@ -11,8 +11,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	"github.com/openshift/library-go/pkg/network/networkapihelpers"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
 const IsolateProjectsNetworkCommandName = "isolate-projects"
@@ -85,7 +85,7 @@ func (o *IsolateOptions) Run() error {
 			errList = append(errList, fmt.Errorf("network isolation for project %q is forbidden", project.Name))
 			continue
 		}
-		if err = o.Options.UpdatePodNetwork(project.Name, networkapi.IsolatePodNetwork, ""); err != nil {
+		if err = o.Options.UpdatePodNetwork(project.Name, networkapihelpers.IsolatePodNetwork, ""); err != nil {
 			errList = append(errList, fmt.Errorf("network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}

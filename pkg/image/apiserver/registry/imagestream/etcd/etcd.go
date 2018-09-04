@@ -24,7 +24,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // REST implements a RESTStorage for image streams against etcd.
@@ -48,7 +47,7 @@ func (r *REST) ShortNames() []string {
 
 // NewREST returns a new REST.
 func NewREST(
-	optsGetter restoptions.Getter,
+	optsGetter generic.RESTOptionsGetter,
 	registryHostname registryhostname.RegistryHostnameRetriever,
 	subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface,
 	limitVerifier imageadmission.LimitVerifier,
@@ -206,6 +205,9 @@ func addImageStreamLayersFromCache(isl *imageapi.ImageStreamLayers, is *imageapi
 			obj, _, _ := index.GetByKey(item.Image)
 			entry, ok := obj.(*ImageLayers)
 			if !ok {
+				if _, ok := isl.Images[item.Image]; !ok {
+					isl.Images[item.Image] = imageapi.ImageBlobReferences{ImageMissing: true}
+				}
 				missing = append(missing, item.Image)
 				continue
 			}

@@ -20,8 +20,8 @@ import (
 	allocator "github.com/openshift/origin/pkg/security"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	admissiontesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
+	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
-	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
 
 func newTestAdmission(lister securitylisters.SecurityContextConstraintsLister, kclient clientset.Interface, authorizer authorizer.Authorizer) kadmission.Interface {

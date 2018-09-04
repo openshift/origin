@@ -257,6 +257,9 @@ for image in image_config:
         )
 
     debug("Initiating Docker build with Dockerfile:\n{}".format(open(join(context_dir, "Dockerfile")).read()))
+    # re-pull the original image before building it so we're not accumulating layers each time we
+    # rebuild the image.
+    call(["docker", "pull", full_name(image) + ":" + image_config[image]["tag"]])
     call(["docker", "build", "-t", full_name(image), "."], cwd=context_dir)
 
     remove(join(context_dir, "Dockerfile"))

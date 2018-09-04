@@ -5,16 +5,15 @@ import (
 	"testing"
 	"unsafe"
 
-	"k8s.io/api/core/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
-	pod := v1.Pod{
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
+	pod := corev1.Pod{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{},
 			},
 		},
@@ -60,7 +59,7 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 	}
 }
 
-func isVolumeSourceEmpty(volumeSource v1.VolumeSource) bool {
+func isVolumeSourceEmpty(volumeSource corev1.VolumeSource) bool {
 	if volumeSource.EmptyDir == nil &&
 		volumeSource.HostPath == nil &&
 		volumeSource.GCEPersistentDisk == nil &&
@@ -74,16 +73,16 @@ func isVolumeSourceEmpty(volumeSource v1.VolumeSource) bool {
 func TestSetupDockerSecrets(t *testing.T) {
 	pod := emptyPod()
 
-	pushSecret := &kapi.LocalObjectReference{
+	pushSecret := &corev1.LocalObjectReference{
 		Name: "my.pushSecret.with.full.stops.and.longer.than.sixty.three.characters",
 	}
-	pullSecret := &kapi.LocalObjectReference{
+	pullSecret := &corev1.LocalObjectReference{
 		Name: "pullSecret",
 	}
-	imageSources := []buildapi.ImageSource{
-		{PullSecret: &kapi.LocalObjectReference{Name: "imageSourceSecret1"}},
+	imageSources := []buildv1.ImageSource{
+		{PullSecret: &corev1.LocalObjectReference{Name: "imageSourceSecret1"}},
 		// this is a duplicate value on purpose, don't change it.
-		{PullSecret: &kapi.LocalObjectReference{Name: "imageSourceSecret1"}},
+		{PullSecret: &corev1.LocalObjectReference{Name: "imageSourceSecret1"}},
 	}
 
 	setupDockerSecrets(&pod, &pod.Spec.Containers[0], pushSecret, pullSecret, imageSources)
@@ -129,10 +128,10 @@ func TestSetupDockerSecrets(t *testing.T) {
 	}
 }
 
-func emptyPod() v1.Pod {
-	return v1.Pod{
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
+func emptyPod() corev1.Pod {
+	return corev1.Pod{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{},
 			},
 		},
@@ -140,7 +139,7 @@ func emptyPod() v1.Pod {
 }
 
 func TestCopyEnvVarSlice(t *testing.T) {
-	s1 := []v1.EnvVar{{Name: "FOO", Value: "bar"}, {Name: "BAZ", Value: "qux"}}
+	s1 := []corev1.EnvVar{{Name: "FOO", Value: "bar"}, {Name: "BAZ", Value: "qux"}}
 	s2 := copyEnvVarSlice(s1)
 
 	if !reflect.DeepEqual(s1, s2) {
@@ -152,7 +151,7 @@ func TestCopyEnvVarSlice(t *testing.T) {
 	}
 }
 
-func checkAliasing(t *testing.T, pod *v1.Pod) {
+func checkAliasing(t *testing.T, pod *corev1.Pod) {
 	m := map[uintptr]bool{}
 	for _, c := range pod.Spec.Containers {
 		p := (*reflect.SliceHeader)(unsafe.Pointer(&c.Env)).Data
@@ -175,29 +174,29 @@ func checkAliasing(t *testing.T, pod *v1.Pod) {
 // TODO: Add tests for mounting secrets and configMaps
 func TestMountConfigsAndSecrets(t *testing.T) {
 	pod := emptyPod()
-	configs := []buildapi.ConfigMapBuildSource{
+	configs := []buildv1.ConfigMapBuildSource{
 		{
-			ConfigMap: kapi.LocalObjectReference{
+			ConfigMap: corev1.LocalObjectReference{
 				Name: "my.config.with.full.stops.and.longer.than.sixty.three.characters",
 			},
 			DestinationDir: "./a/rel/path",
 		},
 		{
-			ConfigMap: kapi.LocalObjectReference{
+			ConfigMap: corev1.LocalObjectReference{
 				Name: "config",
 			},
 			DestinationDir: "some/path",
 		},
 	}
-	secrets := []buildapi.SecretBuildSource{
+	secrets := []buildv1.SecretBuildSource{
 		{
-			Secret: kapi.LocalObjectReference{
+			Secret: corev1.LocalObjectReference{
 				Name: "my.secret.with.full.stops.and.longer.than.sixty.three.characters",
 			},
 			DestinationDir: "./a/secret/path",
 		},
 		{
-			Secret: kapi.LocalObjectReference{
+			Secret: corev1.LocalObjectReference{
 				Name: "super-secret",
 			},
 			DestinationDir: "secret/path",

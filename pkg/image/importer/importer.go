@@ -444,7 +444,7 @@ func (isi *ImageStreamImporter) importManifest(ctx gocontext.Context, manifest d
 		return
 	}
 
-	if err := util.ImageWithMetadata(image); err != nil {
+	if err := util.InternalImageWithMetadata(image); err != nil {
 		return image, err
 	}
 

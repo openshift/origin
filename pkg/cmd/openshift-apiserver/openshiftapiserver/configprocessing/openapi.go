@@ -14,29 +14,22 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 	"github.com/openshift/origin/pkg/version"
-
-	// TODO fix this install, it is required for TestPreferredGroupVersions to pass
-
-	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 )
 
-func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
+func DefaultOpenAPIConfig(oauthMetadata *oauthutil.OauthAuthorizationServerMetadata) *openapicommon.Config {
 	securityDefinitions := spec.SecurityDefinitions{}
-	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 || len(config.AuthConfig.WebhookTokenAuthenticators) > 0 {
-		securityDefinitions["BearerToken"] = &spec.SecurityScheme{
-			SecuritySchemeProps: spec.SecuritySchemeProps{
-				Type:        "apiKey",
-				Name:        "authorization",
-				In:          "header",
-				Description: "Bearer Token authentication",
-			},
-		}
+	securityDefinitions["BearerToken"] = &spec.SecurityScheme{
+		SecuritySchemeProps: spec.SecuritySchemeProps{
+			Type:        "apiKey",
+			Name:        "authorization",
+			In:          "header",
+			Description: "Bearer Token authentication",
+		},
 	}
-	if _, oauthMetadata, _ := oauthutil.PrepOauthMetadata(config); oauthMetadata != nil {
+	if oauthMetadata != nil {
 		securityDefinitions["Oauth2Implicit"] = &spec.SecurityScheme{
 			SecuritySchemeProps: spec.SecuritySchemeProps{
 				Type:             "oauth2",

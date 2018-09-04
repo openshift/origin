@@ -42,7 +42,7 @@ objects:
       spec:
         serviceAccountName: kube-dns
         containers:
-        - name: kube-proxy
+        - name: kube-dns
           image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["openshift", "start", "network"]

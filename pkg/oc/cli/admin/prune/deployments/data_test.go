@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 func mockDeploymentConfig(namespace, name string) *appsv1.DeploymentConfig {
@@ -28,8 +27,8 @@ func withCreated(item *corev1.ReplicationController, creationTimestamp metav1.Ti
 	return item
 }
 
-func withStatus(item *corev1.ReplicationController, status appsapi.DeploymentStatus) *corev1.ReplicationController {
-	item.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
+func withStatus(item *corev1.ReplicationController, status appsv1.DeploymentStatus) *corev1.ReplicationController {
+	item.Annotations[appsv1.DeploymentStatusAnnotation] = string(status)
 	return item
 }
 
@@ -40,9 +39,9 @@ func mockDeployment(namespace, name string, deploymentConfig *appsv1.DeploymentC
 		Spec:       corev1.ReplicationControllerSpec{Replicas: &zero},
 	}
 	if deploymentConfig != nil {
-		item.Annotations[appsapi.DeploymentConfigAnnotation] = deploymentConfig.Name
+		item.Annotations[appsv1.DeploymentConfigAnnotation] = deploymentConfig.Name
 	}
-	item.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
+	item.Annotations[appsv1.DeploymentStatusAnnotation] = string(appsv1.DeploymentStatusNew)
 	return item
 }
 
@@ -132,7 +131,7 @@ func TestPopulatedDataSet(t *testing.T) {
 	dataSet := NewDataSet(deploymentConfigs, deployments)
 	for _, deployment := range deployments {
 		deploymentConfig, exists, err := dataSet.GetDeploymentConfig(deployment)
-		config, hasConfig := deployment.Annotations[appsapi.DeploymentConfigAnnotation]
+		config, hasConfig := deployment.Annotations[appsv1.DeploymentConfigAnnotation]
 		if hasConfig {
 			if err != nil {
 				t.Errorf("Item %v, unexpected error: %v", deployment, err)

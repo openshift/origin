@@ -30,6 +30,8 @@ objects:
     - kind: ServiceAccount
       name: kube-proxy
       namespace: ${NAMESPACE}
+    - kind: Group
+      name: system:nodes
   roleRef:
     kind: ClusterRole
     name: system:node-proxier

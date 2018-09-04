@@ -9,12 +9,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 
-	kapiv1 "k8s.io/api/core/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcorelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 var (
@@ -22,9 +21,9 @@ var (
 	defaultTimeNowFn = func() time.Time { return timeNow.Time }
 )
 
-func mockRC(name string, version int, annotations map[string]string, generation int64, creationTime metav1.Time) *kapiv1.ReplicationController {
-	r := &kapiv1.ReplicationController{}
-	annotations[appsapi.DeploymentConfigAnnotation] = name
+func mockRC(name string, version int, annotations map[string]string, generation int64, creationTime metav1.Time) *corev1.ReplicationController {
+	r := &corev1.ReplicationController{}
+	annotations[appsv1.DeploymentConfigAnnotation] = name
 	r.SetName(name + fmt.Sprintf("-%d", version))
 	r.SetNamespace("test")
 	r.SetCreationTimestamp(creationTime)
@@ -36,7 +35,7 @@ func TestCollect(t *testing.T) {
 	tests := []struct {
 		name  string
 		count int
-		rcs   []*kapiv1.ReplicationController
+		rcs   []*corev1.ReplicationController
 		// expected values
 		available     float64
 		failed        float64
@@ -50,7 +49,7 @@ func TestCollect(t *testing.T) {
 			available: 0,
 			failed:    0,
 			cancelled: 0,
-			rcs:       []*kapiv1.ReplicationController{},
+			rcs:       []*corev1.ReplicationController{},
 		},
 		{
 			name:      "single successful deployment",
@@ -58,9 +57,9 @@ func TestCollect(t *testing.T) {
 			available: 1,
 			failed:    0,
 			cancelled: 0,
-			rcs: []*kapiv1.ReplicationController{
+			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsapi.DeploymentStatusAnnotation: string(appsapi.DeploymentStatusComplete),
+					appsv1.DeploymentStatusAnnotation: string(appsv1.DeploymentStatusComplete),
 				}, 0, timeNow),
 			},
 		},
@@ -72,11 +71,11 @@ func TestCollect(t *testing.T) {
 			cancelled:     1,
 			latestVersion: "1",
 			timestamp:     float64(timeNow.Unix()),
-			rcs: []*kapiv1.ReplicationController{
+			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsapi.DeploymentCancelledAnnotation: appsapi.DeploymentCancelledAnnotationValue,
-					appsapi.DeploymentStatusAnnotation:    string(appsapi.DeploymentStatusFailed),
-					appsapi.DeploymentVersionAnnotation:   "1",
+					appsv1.DeploymentCancelledAnnotation: "true",
+					appsv1.DeploymentStatusAnnotation:    string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation:   "1",
 				}, 0, timeNow),
 			},
 		},
@@ -88,10 +87,10 @@ func TestCollect(t *testing.T) {
 			cancelled:     0,
 			latestVersion: "1",
 			timestamp:     float64(timeNow.Unix()),
-			rcs: []*kapiv1.ReplicationController{
+			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusFailed),
-					appsapi.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 			},
 		},
@@ -103,22 +102,22 @@ func TestCollect(t *testing.T) {
 			cancelled:     0,
 			latestVersion: "4",
 			timestamp:     float64(timeNow.Unix()),
-			rcs: []*kapiv1.ReplicationController{
+			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusFailed),
-					appsapi.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 				mockRC("foo", 2, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusFailed),
-					appsapi.DeploymentVersionAnnotation: "2",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "2",
 				}, 0, timeNow),
 				mockRC("foo", 3, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusFailed),
-					appsapi.DeploymentVersionAnnotation: "3",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "3",
 				}, 0, timeNow),
 				mockRC("foo", 4, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusFailed),
-					appsapi.DeploymentVersionAnnotation: "4",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "4",
 				}, 0, timeNow),
 			},
 		},
@@ -130,18 +129,18 @@ func TestCollect(t *testing.T) {
 			cancelled:     0,
 			latestVersion: "2",
 			timestamp:     float64(timeNow.Unix()),
-			rcs: []*kapiv1.ReplicationController{
+			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusComplete),
-					appsapi.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusComplete),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 				mockRC("foo", 2, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusFailed),
-					appsapi.DeploymentVersionAnnotation: "2",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusFailed),
+					appsv1.DeploymentVersionAnnotation: "2",
 				}, 0, timeNow),
 				mockRC("foo", 3, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusComplete),
-					appsapi.DeploymentVersionAnnotation: "3",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusComplete),
+					appsv1.DeploymentVersionAnnotation: "3",
 				}, 0, timeNow),
 			},
 		},
@@ -155,10 +154,10 @@ func TestCollect(t *testing.T) {
 			// the timestamp is duration in this case, which is 0 as the creation time
 			// and current time are the same.
 			timestamp: 0,
-			rcs: []*kapiv1.ReplicationController{
+			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusRunning),
-					appsapi.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusRunning),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 			},
 		},
@@ -172,18 +171,18 @@ func TestCollect(t *testing.T) {
 			// the timestamp is duration in this case, which is 0 as the creation time
 			// and current time are the same.
 			timestamp: 0,
-			rcs: []*kapiv1.ReplicationController{
+			rcs: []*corev1.ReplicationController{
 				mockRC("foo", 1, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusComplete),
-					appsapi.DeploymentVersionAnnotation: "1",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusComplete),
+					appsv1.DeploymentVersionAnnotation: "1",
 				}, 0, timeNow),
 				mockRC("foo", 2, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusComplete),
-					appsapi.DeploymentVersionAnnotation: "2",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusComplete),
+					appsv1.DeploymentVersionAnnotation: "2",
 				}, 0, timeNow),
 				mockRC("foo", 3, map[string]string{
-					appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusRunning),
-					appsapi.DeploymentVersionAnnotation: "3",
+					appsv1.DeploymentStatusAnnotation:  string(appsv1.DeploymentStatusRunning),
+					appsv1.DeploymentVersionAnnotation: "3",
 				}, 0, timeNow),
 			},
 		},

@@ -296,7 +296,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		limits := v1.ResourceList{}
 		requests[v1.ResourceCPU] = resource.MustParse("500m")
 		requests[v1.ResourceMemory] = resource.MustParse("252Mi")
-		requests[v1.ResourceEphemeralStorage] = resource.MustParse("30Gi")
+		//requests[v1.ResourceEphemeralStorage] = resource.MustParse("30Gi")
 		requests[v1.ResourceName(extendedResourceName)] = resource.MustParse("2")
 		limits[v1.ResourceName(extendedResourceName)] = resource.MustParse("2")
 		pod := newTestPodForQuota(f, podName, requests, limits)
@@ -309,7 +309,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		usedResources[v1.ResourcePods] = resource.MustParse("1")
 		usedResources[v1.ResourceCPU] = requests[v1.ResourceCPU]
 		usedResources[v1.ResourceMemory] = requests[v1.ResourceMemory]
-		usedResources[v1.ResourceEphemeralStorage] = requests[v1.ResourceEphemeralStorage]
+		//usedResources[v1.ResourceEphemeralStorage] = requests[v1.ResourceEphemeralStorage]
 		usedResources[v1.ResourceName(v1.DefaultResourceRequestsPrefix+extendedResourceName)] = requests[v1.ResourceName(extendedResourceName)]
 		err = waitForResourceQuota(f.ClientSet, f.Namespace.Name, quotaName, usedResources)
 		Expect(err).NotTo(HaveOccurred())
@@ -327,7 +327,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		limits = v1.ResourceList{}
 		requests[v1.ResourceCPU] = resource.MustParse("500m")
 		requests[v1.ResourceMemory] = resource.MustParse("100Mi")
-		requests[v1.ResourceEphemeralStorage] = resource.MustParse("30Gi")
+		//requests[v1.ResourceEphemeralStorage] = resource.MustParse("30Gi")
 		requests[v1.ResourceName(extendedResourceName)] = resource.MustParse("2")
 		limits[v1.ResourceName(extendedResourceName)] = resource.MustParse("2")
 		pod = newTestPodForQuota(f, "fail-pod-for-extended-resource", requests, limits)
@@ -339,7 +339,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		requests = v1.ResourceList{}
 		requests[v1.ResourceCPU] = resource.MustParse("100m")
 		requests[v1.ResourceMemory] = resource.MustParse("100Mi")
-		requests[v1.ResourceEphemeralStorage] = resource.MustParse("10Gi")
+		//requests[v1.ResourceEphemeralStorage] = resource.MustParse("10Gi")
 		podToUpdate.Spec.Containers[0].Resources.Requests = requests
 		_, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Update(podToUpdate)
 		Expect(err).To(HaveOccurred())
@@ -357,7 +357,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		usedResources[v1.ResourcePods] = resource.MustParse("0")
 		usedResources[v1.ResourceCPU] = resource.MustParse("0")
 		usedResources[v1.ResourceMemory] = resource.MustParse("0")
-		usedResources[v1.ResourceEphemeralStorage] = resource.MustParse("0")
+		//usedResources[v1.ResourceEphemeralStorage] = resource.MustParse("0")
 		usedResources[v1.ResourceName(v1.DefaultResourceRequestsPrefix+extendedResourceName)] = resource.MustParse("0")
 		err = waitForResourceQuota(f.ClientSet, f.Namespace.Name, quotaName, usedResources)
 		Expect(err).NotTo(HaveOccurred())
@@ -776,7 +776,7 @@ func newTestResourceQuota(name string) *v1.ResourceQuota {
 	hard[v1.ResourceSecrets] = resource.MustParse("10")
 	hard[v1.ResourcePersistentVolumeClaims] = resource.MustParse("10")
 	hard[v1.ResourceRequestsStorage] = resource.MustParse("10Gi")
-	hard[v1.ResourceEphemeralStorage] = resource.MustParse("50Gi")
+	// hard[v1.ResourceEphemeralStorage] = resource.MustParse("50Gi")
 	hard[core.V1ResourceByStorageClass(classGold, v1.ResourcePersistentVolumeClaims)] = resource.MustParse("10")
 	hard[core.V1ResourceByStorageClass(classGold, v1.ResourceRequestsStorage)] = resource.MustParse("10Gi")
 	// test quota on discovered resource type

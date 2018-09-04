@@ -9,9 +9,9 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -29,7 +29,7 @@ func New() *WebHookPlugin {
 }
 
 // Extract services generic webhooks.
-func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildapi.WebHookTrigger, req *http.Request) (revision *buildapi.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *buildapi.DockerStrategyOptions, proceed bool, err error) {
+func (p *WebHookPlugin) Extract(buildCfg *buildv1.BuildConfig, trigger *buildv1.WebHookTrigger, req *http.Request) (revision *buildv1.SourceRevision, envvars []corev1.EnvVar, dockerStrategyOptions *buildv1.DockerStrategyOptions, proceed bool, err error) {
 	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
 		return revision, envvars, dockerStrategyOptions, false, err
@@ -78,11 +78,11 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 		return revision, envvars, dockerStrategyOptions, false, errors.NewBadRequest(err.Error())
 	}
 
-	if len(internalData.Env) > 0 && trigger.AllowEnv {
-		envvars = internalData.Env
+	if len(versionedData.Env) > 0 && trigger.AllowEnv {
+		envvars = versionedData.Env
 	}
 	if internalData.DockerStrategyOptions != nil {
-		dockerStrategyOptions = internalData.DockerStrategyOptions
+		dockerStrategyOptions = versionedData.DockerStrategyOptions
 	}
 	if buildCfg.Spec.Source.Git == nil {
 		// everything below here is specific to git-based builds
@@ -94,9 +94,9 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 	}
 
 	if internalData.Git.Refs != nil {
-		for _, ref := range internalData.Git.Refs {
+		for _, ref := range versionedData.Git.Refs {
 			if webhook.GitRefMatches(ref.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
-				revision = &buildapi.SourceRevision{
+				revision = &buildv1.SourceRevision{
 					Git: &ref.GitSourceRevision,
 				}
 				return revision, envvars, dockerStrategyOptions, true, nil
@@ -109,16 +109,16 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildap
 		warning := webhook.NewWarning(fmt.Sprintf("skipping build. Branch reference from %q does not match configuration", internalData.Git.Ref))
 		return revision, envvars, dockerStrategyOptions, false, warning
 	}
-	revision = &buildapi.SourceRevision{
-		Git: &internalData.Git.GitSourceRevision,
+	revision = &buildv1.SourceRevision{
+		Git: &versionedData.Git.GitSourceRevision,
 	}
 	return revision, envvars, dockerStrategyOptions, true, nil
 }
 
 // GetTriggers retrieves the WebHookTriggers for this webhook type (if any)
-func (p *WebHookPlugin) GetTriggers(buildConfig *buildapi.BuildConfig) ([]*buildapi.WebHookTrigger, error) {
-	triggers := buildapihelpers.FindTriggerPolicy(buildapi.GenericWebHookBuildTriggerType, buildConfig)
-	webhookTriggers := []*buildapi.WebHookTrigger{}
+func (p *WebHookPlugin) GetTriggers(buildConfig *buildv1.BuildConfig) ([]*buildv1.WebHookTrigger, error) {
+	triggers := buildapihelpers.FindTriggerPolicy(buildv1.GenericWebHookBuildTriggerType, buildConfig)
+	webhookTriggers := []*buildv1.WebHookTrigger{}
 	for _, trigger := range triggers {
 		if trigger.GenericWebHook != nil {
 			webhookTriggers = append(webhookTriggers, trigger.GenericWebHook)

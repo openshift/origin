@@ -27,6 +27,10 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/router/f5/testing
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1
+    github.com/openshift/origin/pkg/service/admission/apis/externalipranger
+    github.com/openshift/origin/pkg/service/admission/apis/externalipranger/v1
+    github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints
+    github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints/v1
     github.com/openshift/origin/pkg/template/servicebroker/apis/config
     github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1
     github.com/openshift/origin/pkg/util/testing

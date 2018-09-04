@@ -5,6 +5,7 @@ import (
 
 	"github.com/gonum/graph"
 
+	"github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubeedges "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
@@ -144,7 +145,7 @@ func hasControllerOwnerReference(node graph.Node) bool {
 
 // hasControllerRefEdge returns true if a given node contains one or more "ManagedByController" outbound edges
 func hasControllerRefEdge(g osgraph.Graph, node graph.Node) bool {
-	managedEdges := g.OutboundEdges(node, kubeedges.ManagedByControllerEdgeKind)
+	managedEdges := g.OutboundEdges(node, appsgraph.ManagedByControllerEdgeKind)
 	return len(managedEdges) > 0
 }
 

@@ -3,21 +3,21 @@ package nodes
 import (
 	"reflect"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
 
 var (
-	DeploymentConfigNodeKind = reflect.TypeOf(appsapi.DeploymentConfig{}).Name()
+	DeploymentConfigNodeKind = reflect.TypeOf(appsv1.DeploymentConfig{}).Name()
 )
 
-func DeploymentConfigNodeName(o *appsapi.DeploymentConfig) osgraph.UniqueName {
+func DeploymentConfigNodeName(o *appsv1.DeploymentConfig) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(DeploymentConfigNodeKind, o)
 }
 
 type DeploymentConfigNode struct {
 	osgraph.Node
-	DeploymentConfig *appsapi.DeploymentConfig
+	DeploymentConfig *appsv1.DeploymentConfig
 
 	IsFound bool
 }

@@ -7,34 +7,36 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	buildv1 "github.com/openshift/api/build/v1"
+	buildfakeclient "github.com/openshift/client-go/build/clientset/versioned/fake"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 )
 
 func newPodClient() *fake.Clientset {
 	return fake.NewSimpleClientset(
-		mockPod(kapi.PodPending, "pending-build"),
-		mockPod(kapi.PodRunning, "running-build"),
-		mockPod(kapi.PodSucceeded, "succeeded-build"),
-		mockPod(kapi.PodFailed, "failed-build"),
-		mockPod(kapi.PodUnknown, "unknown-build"),
+		mockPod(corev1.PodPending, "pending-build"),
+		mockPod(corev1.PodRunning, "running-build"),
+		mockPod(corev1.PodSucceeded, "succeeded-build"),
+		mockPod(corev1.PodFailed, "failed-build"),
+		mockPod(corev1.PodUnknown, "unknown-build"),
 	)
 }
 
 func anotherNewPodClient() *fake.Clientset {
 	return fake.NewSimpleClientset(
-		mockPod(kapi.PodSucceeded, "bc-1-build"),
-		mockPod(kapi.PodSucceeded, "bc-2-build"),
-		mockPod(kapi.PodSucceeded, "bc-3-build"),
+		mockPod(corev1.PodSucceeded, "bc-1-build"),
+		mockPod(corev1.PodSucceeded, "bc-2-build"),
+		mockPod(corev1.PodSucceeded, "bc-3-build"),
 	)
 }
 
@@ -43,28 +45,28 @@ func anotherNewPodClient() *fake.Clientset {
 // Note: For this test, the mocked pod is set to "Running" phase, so the test
 // is evaluating the outcome based only on build state.
 func TestRegistryResourceLocation(t *testing.T) {
-	expectedLocations := map[buildapi.BuildPhase]struct {
+	expectedLocations := map[buildv1.BuildPhase]struct {
 		namespace string
 		name      string
 		container string
 	}{
-		buildapi.BuildPhaseComplete:  {namespace: "default", name: "running-build", container: ""},
-		buildapi.BuildPhaseFailed:    {namespace: "default", name: "running-build", container: ""},
-		buildapi.BuildPhaseRunning:   {namespace: "default", name: "running-build", container: ""},
-		buildapi.BuildPhaseNew:       {},
-		buildapi.BuildPhasePending:   {},
-		buildapi.BuildPhaseError:     {},
-		buildapi.BuildPhaseCancelled: {},
+		buildv1.BuildPhaseComplete:  {namespace: "default", name: "running-build", container: ""},
+		buildv1.BuildPhaseFailed:    {namespace: "default", name: "running-build", container: ""},
+		buildv1.BuildPhaseRunning:   {namespace: "default", name: "running-build", container: ""},
+		buildv1.BuildPhaseNew:       {},
+		buildv1.BuildPhasePending:   {},
+		buildv1.BuildPhaseError:     {},
+		buildv1.BuildPhaseCancelled: {},
 	}
 
 	ctx := apirequest.NewDefaultContext()
 
-	for BuildPhase, expectedLocation := range expectedLocations {
-		actualNamespace, actualPodName, actualContainer, err := resourceLocationHelper(BuildPhase, "running", ctx, 1)
-		switch BuildPhase {
-		case buildapi.BuildPhaseError, buildapi.BuildPhaseCancelled:
+	for buildPhase, expectedLocation := range expectedLocations {
+		actualNamespace, actualPodName, actualContainer, err := resourceLocationHelper(buildPhase, "running", ctx, 1)
+		switch buildPhase {
+		case buildv1.BuildPhaseError, buildv1.BuildPhaseCancelled:
 			if err == nil {
-				t.Errorf("Expected error when Build is in %s state, got nothing", BuildPhase)
+				t.Errorf("Expected error when Build is in %s state, got nothing", buildPhase)
 			}
 		default:
 			if err != nil {
@@ -88,48 +90,48 @@ func TestWaitForBuild(t *testing.T) {
 	ctx := apirequest.NewDefaultContext()
 	tests := []struct {
 		name        string
-		status      []buildapi.BuildPhase
+		status      []buildv1.BuildPhase
 		expectError bool
 	}{
 		{
 			name:        "New -> Running",
-			status:      []buildapi.BuildPhase{buildapi.BuildPhaseNew, buildapi.BuildPhaseRunning},
+			status:      []buildv1.BuildPhase{buildv1.BuildPhaseNew, buildv1.BuildPhaseRunning},
 			expectError: false,
 		},
 		{
 			name:        "New -> Pending -> Complete",
-			status:      []buildapi.BuildPhase{buildapi.BuildPhaseNew, buildapi.BuildPhasePending, buildapi.BuildPhaseComplete},
+			status:      []buildv1.BuildPhase{buildv1.BuildPhaseNew, buildv1.BuildPhasePending, buildv1.BuildPhaseComplete},
 			expectError: false,
 		},
 		{
 			name:        "New -> Pending -> Failed",
-			status:      []buildapi.BuildPhase{buildapi.BuildPhaseNew, buildapi.BuildPhasePending, buildapi.BuildPhaseFailed},
+			status:      []buildv1.BuildPhase{buildv1.BuildPhaseNew, buildv1.BuildPhasePending, buildv1.BuildPhaseFailed},
 			expectError: false,
 		},
 		{
 			name:        "New -> Pending -> Cancelled",
-			status:      []buildapi.BuildPhase{buildapi.BuildPhaseNew, buildapi.BuildPhasePending, buildapi.BuildPhaseCancelled},
+			status:      []buildv1.BuildPhase{buildv1.BuildPhaseNew, buildv1.BuildPhasePending, buildv1.BuildPhaseCancelled},
 			expectError: true,
 		},
 		{
 			name:        "New -> Pending -> Error",
-			status:      []buildapi.BuildPhase{buildapi.BuildPhaseNew, buildapi.BuildPhasePending, buildapi.BuildPhaseError},
+			status:      []buildv1.BuildPhase{buildv1.BuildPhaseNew, buildv1.BuildPhasePending, buildv1.BuildPhaseError},
 			expectError: true,
 		},
 		{
 			name:        "Pending -> Cancelled",
-			status:      []buildapi.BuildPhase{buildapi.BuildPhasePending, buildapi.BuildPhaseCancelled},
+			status:      []buildv1.BuildPhase{buildv1.BuildPhasePending, buildv1.BuildPhaseCancelled},
 			expectError: true,
 		},
 		{
 			name:        "Error",
-			status:      []buildapi.BuildPhase{buildapi.BuildPhaseError},
+			status:      []buildv1.BuildPhase{buildv1.BuildPhaseError},
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
-		build := mockBuild(buildapi.BuildPhasePending, "running", 1)
+		build := mockBuild(buildv1.BuildPhasePending, "running", 1)
 		buildClient := buildfakeclient.NewSimpleClientset(build)
 		fakeWatcher := watch.NewFake()
 		buildClient.PrependWatchReactor("builds", func(action clientgotesting.Action) (handled bool, ret watch.Interface, err error) {
@@ -150,6 +152,7 @@ func TestWaitForBuild(t *testing.T) {
 				fakeWatcher.Modify(mockBuild(status, "running", 1))
 			}
 		}()
+
 		_, err := storage.Get(ctx, build.Name, &buildapi.BuildLogOptions{})
 		if tt.expectError && err == nil {
 			t.Errorf("%s: Expected an error but got nil from waitFromBuild", tt.name)
@@ -161,7 +164,7 @@ func TestWaitForBuild(t *testing.T) {
 }
 
 func TestWaitForBuildTimeout(t *testing.T) {
-	build := mockBuild(buildapi.BuildPhasePending, "running", 1)
+	build := mockBuild(buildv1.BuildPhasePending, "running", 1)
 	buildClient := buildfakeclient.NewSimpleClientset(build)
 	ctx := apirequest.NewDefaultContext()
 	storage := REST{
@@ -176,8 +179,8 @@ func TestWaitForBuildTimeout(t *testing.T) {
 	}
 }
 
-func resourceLocationHelper(BuildPhase buildapi.BuildPhase, podPhase string, ctx context.Context, version int) (string, string, string, error) {
-	expectedBuild := mockBuild(BuildPhase, podPhase, version)
+func resourceLocationHelper(buildPhase buildv1.BuildPhase, podPhase string, ctx context.Context, version int) (string, string, string, error) {
+	expectedBuild := mockBuild(buildPhase, podPhase, version)
 	buildClient := buildfakeclient.NewSimpleClientset(expectedBuild)
 
 	storage := &REST{
@@ -205,28 +208,28 @@ func resourceLocationHelper(BuildPhase buildapi.BuildPhase, podPhase string, ctx
 
 }
 
-func mockPod(podPhase kapi.PodPhase, podName string) *kapi.Pod {
-	return &kapi.Pod{
+func mockPod(podPhase corev1.PodPhase, podName string) *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: kapi.PodSpec{
-			Containers: []kapi.Container{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{
 					Name: "foo-container",
 				},
 			},
 			NodeName: "foo-host",
 		},
-		Status: kapi.PodStatus{
+		Status: corev1.PodStatus{
 			Phase: podPhase,
 		},
 	}
 }
 
-func mockBuild(status buildapi.BuildPhase, podName string, version int) *buildapi.Build {
-	return &buildapi.Build{
+func mockBuild(status buildv1.BuildPhase, podName string, version int) *buildv1.Build {
+	return &buildv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      podName,
@@ -237,7 +240,7 @@ func mockBuild(status buildapi.BuildPhase, podName string, version int) *buildap
 				buildapi.BuildConfigLabel: "bc",
 			},
 		},
-		Status: buildapi.BuildStatus{
+		Status: buildv1.BuildStatus{
 			Phase: status,
 		},
 	}
@@ -245,9 +248,9 @@ func mockBuild(status buildapi.BuildPhase, podName string, version int) *buildap
 
 func TestPreviousBuildLogs(t *testing.T) {
 	ctx := apirequest.NewDefaultContext()
-	first := mockBuild(buildapi.BuildPhaseComplete, "bc-1", 1)
-	second := mockBuild(buildapi.BuildPhaseComplete, "bc-2", 2)
-	third := mockBuild(buildapi.BuildPhaseComplete, "bc-3", 3)
+	first := mockBuild(buildv1.BuildPhaseComplete, "bc-1", 1)
+	second := mockBuild(buildv1.BuildPhaseComplete, "bc-2", 2)
+	third := mockBuild(buildv1.BuildPhaseComplete, "bc-3", 3)
 	buildClient := buildfakeclient.NewSimpleClientset(first, second, third)
 
 	storage := &REST{

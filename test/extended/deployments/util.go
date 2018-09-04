@@ -58,7 +58,7 @@ func updateConfigWithRetries(dn appstypedclient.DeploymentConfigsGetter, namespa
 func deploymentPods(pods []corev1.Pod) (map[string][]*corev1.Pod, error) {
 	deployers := make(map[string][]*corev1.Pod)
 	for i := range pods {
-		name, ok := pods[i].Labels[appsutil.DeployerPodForDeploymentLabel]
+		name, ok := pods[i].Labels[appsv1.DeployerPodForDeploymentLabel]
 		if !ok {
 			continue
 		}
@@ -67,7 +67,7 @@ func deploymentPods(pods []corev1.Pod) (map[string][]*corev1.Pod, error) {
 	return deployers, nil
 }
 
-var completedStatuses = sets.NewString(string(appsutil.DeploymentStatusComplete), string(appsutil.DeploymentStatusFailed))
+var completedStatuses = sets.NewString(string(appsv1.DeploymentStatusComplete), string(appsv1.DeploymentStatusFailed))
 
 func checkDeployerPodInvariants(deploymentName string, pods []*corev1.Pod) (isRunning, isCompleted bool, err error) {
 	running := false
@@ -170,18 +170,18 @@ func checkDeploymentInvariants(dc *appsv1.DeploymentConfig, rcs []*corev1.Replic
 		status := appsutil.DeploymentStatusFor(rc)
 		if sawStatus.Len() != 0 {
 			switch status {
-			case appsutil.DeploymentStatusComplete, appsutil.DeploymentStatusFailed:
+			case appsv1.DeploymentStatusComplete, appsv1.DeploymentStatusFailed:
 				if sawStatus.Difference(completedStatuses).Len() != 0 {
 					return fmt.Errorf("rc %s was %s, but earlier RCs were not completed: %v", rc.Name, status, statuses)
 				}
-			case appsutil.DeploymentStatusRunning, appsutil.DeploymentStatusPending:
+			case appsv1.DeploymentStatusRunning, appsv1.DeploymentStatusPending:
 				if sawStatus.Has(string(status)) {
 					return fmt.Errorf("rc %s was %s, but so was an earlier RC: %v", rc.Name, status, statuses)
 				}
 				if sawStatus.Difference(completedStatuses).Len() != 0 {
 					return fmt.Errorf("rc %s was %s, but earlier RCs were not completed: %v", rc.Name, status, statuses)
 				}
-			case appsutil.DeploymentStatusNew:
+			case appsv1.DeploymentStatusNew:
 			default:
 				return fmt.Errorf("rc %s has unexpected status %s: %v", rc.Name, status, statuses)
 			}
@@ -267,9 +267,9 @@ func deploymentRunning(dc *appsv1.DeploymentConfig, rcs []*corev1.ReplicationCon
 		return false, nil
 	}
 
-	status := rc.Annotations[appsutil.DeploymentStatusAnnotation]
-	switch appsutil.DeploymentStatus(status) {
-	case appsutil.DeploymentStatusFailed:
+	status := rc.Annotations[appsv1.DeploymentStatusAnnotation]
+	switch appsv1.DeploymentStatus(status) {
+	case appsv1.DeploymentStatusFailed:
 		if appsutil.IsDeploymentCancelled(rc) {
 			return true, nil
 		}
@@ -278,7 +278,7 @@ func deploymentRunning(dc *appsv1.DeploymentConfig, rcs []*corev1.ReplicationCon
 			return true, nil
 		}
 		return false, fmt.Errorf("deployment failed: %v", appsutil.DeploymentStatusReasonFor(rc))
-	case appsutil.DeploymentStatusRunning, appsutil.DeploymentStatusComplete:
+	case appsv1.DeploymentStatusRunning, appsv1.DeploymentStatusComplete:
 		return true, nil
 	default:
 		return false, nil
@@ -564,7 +564,7 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 	}
 
 	for _, pod := range pods {
-		if _, ok := pod.Labels[appsutil.DeployerPodForDeploymentLabel]; ok {
+		if _, ok := pod.Labels[appsv1.DeployerPodForDeploymentLabel]; ok {
 			continue
 		}
 
@@ -575,6 +575,12 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 		}
 		e2e.Logf("\n%s\n", out)
 	}
+	out, err = oc.Run("get").Args("istag", "-o", "wide").Output()
+	if err != nil {
+		e2e.Logf("Error getting image stream tags: %v", err)
+	}
+	e2e.Logf("\n%s\n", out)
+
 }
 
 func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {
@@ -582,7 +588,7 @@ func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {
 		return
 	}
 	kclient := oc.KubeClient()
-	requirement, err := labels.NewRequirement(appsutil.DeploymentConfigAnnotation, selection.NotEquals, []string{dcName})
+	requirement, err := labels.NewRequirement(appsv1.DeploymentConfigAnnotation, selection.NotEquals, []string{dcName})
 	if err != nil {
 		e2e.Logf("failed to create requirement for DC %q", dcName)
 		return
@@ -597,7 +603,7 @@ func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {
 	if len(dc.Items) == 0 {
 		e2e.Logf("No detached RCs found.")
 	} else {
-		out, err := oc.Run("get").Args("rc", "-o", "yaml", "-l", fmt.Sprintf("%s!=%s", appsutil.DeploymentConfigAnnotation, dcName)).Output()
+		out, err := oc.Run("get").Args("rc", "-o", "yaml", "-l", fmt.Sprintf("%s!=%s", appsv1.DeploymentConfigAnnotation, dcName)).Output()
 		if err != nil {
 			e2e.Logf("Failed to list detached RCs!")
 			return
@@ -654,8 +660,8 @@ func NewDeployerPodInvariantChecker(namespace string, client kubernetes.Interfac
 }
 
 func (d *deployerPodInvariantChecker) getCacheKey(pod *corev1.Pod) string {
-	dcName, found := pod.Annotations[appsutil.DeploymentConfigAnnotation]
-	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("internal error - deployment is missing %q annotation\npod: %#v", appsutil.DeploymentConfigAnnotation,
+	dcName, found := pod.Annotations[appsv1.DeploymentConfigAnnotation]
+	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("internal error - deployment is missing %q annotation\npod: %#v", appsv1.DeploymentConfigAnnotation,
 		pod))
 	o.Expect(dcName).NotTo(o.BeEmpty())
 

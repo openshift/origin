@@ -33,8 +33,6 @@ const (
 
 // groups
 const (
-	UnauthenticatedUsername = "system:anonymous"
-
 	AuthenticatedGroup      = "system:authenticated"
 	AuthenticatedOAuthGroup = "system:authenticated:oauth"
 	UnauthenticatedGroup    = "system:unauthenticated"
@@ -43,7 +41,6 @@ const (
 	MastersGroup            = "system:masters"
 	NodesGroup              = "system:nodes"
 	NodeAdminsGroup         = "system:node-admins"
-	NodeReadersGroup        = "system:node-readers"
 )
 
 // Service Account Names that are not controller related
@@ -96,7 +93,7 @@ const (
 	SDNManagerRoleName        = "system:sdn-manager"
 	OAuthTokenDeleterRoleName = "system:oauth-token-deleter"
 	WebHooksRoleName          = "system:webhook"
-	DiscoveryRoleName         = "system:discovery"
+	DiscoveryRoleName         = "system:openshift:discovery"
 
 	// NodeAdmin has full access to the API provided by the kubelet
 	NodeAdminRoleName = "system:node-admin"
@@ -127,7 +124,6 @@ const (
 	NodeAdminRoleBindingName          = NodeAdminRoleName + "s"
 	SDNReaderRoleBindingName          = SDNReaderRoleName + "s"
 	WebHooksRoleBindingName           = WebHooksRoleName + "s"
-	DiscoveryRoleBindingName          = DiscoveryRoleName + "-binding"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 

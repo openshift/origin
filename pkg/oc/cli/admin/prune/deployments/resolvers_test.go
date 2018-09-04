@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 type mockResolver struct {
@@ -58,17 +57,17 @@ func TestOrphanDeploymentResolver(t *testing.T) {
 	deployments := []*corev1.ReplicationController{}
 
 	expectedNames := sets.String{}
-	deploymentStatusOptions := []appsapi.DeploymentStatus{
-		appsapi.DeploymentStatusComplete,
-		appsapi.DeploymentStatusFailed,
-		appsapi.DeploymentStatusNew,
-		appsapi.DeploymentStatusPending,
-		appsapi.DeploymentStatusRunning,
+	deploymentStatusOptions := []appsv1.DeploymentStatus{
+		appsv1.DeploymentStatusComplete,
+		appsv1.DeploymentStatusFailed,
+		appsv1.DeploymentStatusNew,
+		appsv1.DeploymentStatusPending,
+		appsv1.DeploymentStatusRunning,
 	}
 
-	deploymentStatusFilter := []appsapi.DeploymentStatus{
-		appsapi.DeploymentStatusComplete,
-		appsapi.DeploymentStatusFailed,
+	deploymentStatusFilter := []appsv1.DeploymentStatus{
+		appsv1.DeploymentStatusComplete,
+		appsv1.DeploymentStatusFailed,
 	}
 	deploymentStatusFilterSet := sets.String{}
 	for _, deploymentStatus := range deploymentStatusFilter {
@@ -101,12 +100,12 @@ func TestOrphanDeploymentResolver(t *testing.T) {
 }
 
 func TestPerDeploymentConfigResolver(t *testing.T) {
-	deploymentStatusOptions := []appsapi.DeploymentStatus{
-		appsapi.DeploymentStatusComplete,
-		appsapi.DeploymentStatusFailed,
-		appsapi.DeploymentStatusNew,
-		appsapi.DeploymentStatusPending,
-		appsapi.DeploymentStatusRunning,
+	deploymentStatusOptions := []appsv1.DeploymentStatus{
+		appsv1.DeploymentStatusComplete,
+		appsv1.DeploymentStatusFailed,
+		appsv1.DeploymentStatusNew,
+		appsv1.DeploymentStatusPending,
+		appsv1.DeploymentStatusRunning,
 	}
 	deploymentConfigs := []*appsv1.DeploymentConfig{
 		mockDeploymentConfig("a", "deployment-config-1"),
@@ -134,8 +133,8 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 		dataSet := NewDataSet(deploymentConfigs, deployments)
 
 		expectedNames := sets.String{}
-		deploymentCompleteStatusFilterSet := sets.NewString(string(appsapi.DeploymentStatusComplete))
-		deploymentFailedStatusFilterSet := sets.NewString(string(appsapi.DeploymentStatusFailed))
+		deploymentCompleteStatusFilterSet := sets.NewString(string(appsv1.DeploymentStatusComplete))
+		deploymentFailedStatusFilterSet := sets.NewString(string(appsv1.DeploymentStatusFailed))
 
 		for _, deploymentConfig := range deploymentConfigs {
 			deploymentItems, err := dataSet.ListDeploymentsByDeploymentConfig(deploymentConfig)
@@ -144,7 +143,7 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 			}
 			completedDeployments, failedDeployments := []*corev1.ReplicationController{}, []*corev1.ReplicationController{}
 			for _, deployment := range deploymentItems {
-				status := deployment.Annotations[appsapi.DeploymentStatusAnnotation]
+				status := deployment.Annotations[appsv1.DeploymentStatusAnnotation]
 				if deploymentCompleteStatusFilterSet.Has(status) {
 					completedDeployments = append(completedDeployments, deployment)
 				} else if deploymentFailedStatusFilterSet.Has(status) {

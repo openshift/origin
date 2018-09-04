@@ -57,7 +57,7 @@ func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController,
 	// Correlate the deployment with the config.
 	// TODO: Using the annotation constant for now since the value is correct
 	// but we could consider adding a new constant to the public types.
-	controllerLabels[DeploymentConfigAnnotation] = config.Name
+	controllerLabels[appsv1.DeploymentConfigAnnotation] = config.Name
 
 	// Ensure that pods created by this deployment controller can be safely associated back
 	// to the controller, and that multiple deployment controllers for the same config don't
@@ -80,9 +80,9 @@ func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController,
 	for k, v := range config.Spec.Template.Annotations {
 		podAnnotations[k] = v
 	}
-	podAnnotations[DeploymentAnnotation] = deploymentName
-	podAnnotations[DeploymentConfigAnnotation] = config.Name
-	podAnnotations[deploymentVersionAnnotation] = strconv.FormatInt(config.Status.LatestVersion, 10)
+	podAnnotations[appsv1.DeploymentAnnotation] = deploymentName
+	podAnnotations[appsv1.DeploymentConfigAnnotation] = config.Name
+	podAnnotations[appsv1.DeploymentVersionAnnotation] = strconv.FormatInt(config.Status.LatestVersion, 10)
 
 	controllerRef := newControllerRef(config)
 	zero := int32(0)
@@ -91,13 +91,13 @@ func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController,
 			Name:      deploymentName,
 			Namespace: config.Namespace,
 			Annotations: map[string]string{
-				DeploymentConfigAnnotation:        config.Name,
-				deploymentEncodedConfigAnnotation: string(encodedConfig),
-				DeploymentStatusAnnotation:        string(DeploymentStatusNew),
-				deploymentVersionAnnotation:       strconv.FormatInt(config.Status.LatestVersion, 10),
+				appsv1.DeploymentConfigAnnotation:        config.Name,
+				appsv1.DeploymentEncodedConfigAnnotation: string(encodedConfig),
+				appsv1.DeploymentStatusAnnotation:        string(appsv1.DeploymentStatusNew),
+				appsv1.DeploymentVersionAnnotation:       strconv.FormatInt(config.Status.LatestVersion, 10),
 				// This is the target replica count for the new deployment.
-				DesiredReplicasAnnotation:    strconv.Itoa(int(config.Spec.Replicas)),
-				DeploymentReplicasAnnotation: strconv.Itoa(0),
+				appsv1.DesiredReplicasAnnotation: strconv.Itoa(int(config.Spec.Replicas)),
+				DeploymentReplicasAnnotation:     strconv.Itoa(0),
 			},
 			Labels:          controllerLabels,
 			OwnerReferences: []metav1.OwnerReference{*controllerRef},
@@ -117,7 +117,7 @@ func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController,
 		},
 	}
 	if config.Status.Details != nil && len(config.Status.Details.Message) > 0 {
-		deployment.Annotations[DeploymentStatusReasonAnnotation] = config.Status.Details.Message
+		deployment.Annotations[appsv1.DeploymentStatusReasonAnnotation] = config.Status.Details.Message
 	}
 	if value, ok := config.Annotations[DeploymentIgnorePodAnnotation]; ok {
 		deployment.Annotations[DeploymentIgnorePodAnnotation] = value

@@ -15,6 +15,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -84,7 +85,7 @@ var (
 )
 
 // mockREST mocks a DeploymentLog REST
-func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
+func mockREST(version, desired int64, status appsv1.DeploymentStatus) *REST {
 	// Fake deploymentConfig
 	config := appstest.OkDeploymentConfig(version)
 
@@ -112,11 +113,11 @@ func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 	fakeWatch := watch.NewFake()
 	fakeRn.PrependWatchReactor("replicationcontrollers", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 	obj := &fakeDeployments.Items[desired-1]
-	obj.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
+	obj.Annotations[appsv1.DeploymentStatusAnnotation] = string(status)
 	go fakeWatch.Add(obj)
 
 	fakePn := fakeexternal.NewSimpleClientset()
-	if status == appsapi.DeploymentStatusComplete {
+	if status == appsv1.DeploymentStatusComplete {
 		// If the deployment is complete, we will try to get the logs from the oldest
 		// application pod...
 		fakePn.PrependReactor("list", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -171,7 +172,7 @@ func TestRESTGet(t *testing.T) {
 	}{
 		{
 			testName:          "running deployment",
-			rest:              mockREST(1, 1, appsapi.DeploymentStatusRunning),
+			rest:              mockREST(1, 1, appsv1.DeploymentStatusRunning),
 			name:              "config",
 			opts:              &appsapi.DeploymentLogOptions{Follow: true, Version: intp(1)},
 			expectedNamespace: "default",
@@ -180,7 +181,7 @@ func TestRESTGet(t *testing.T) {
 		},
 		{
 			testName:          "complete deployment",
-			rest:              mockREST(5, 5, appsapi.DeploymentStatusComplete),
+			rest:              mockREST(5, 5, appsv1.DeploymentStatusComplete),
 			name:              "config",
 			opts:              &appsapi.DeploymentLogOptions{Follow: true, Version: intp(5)},
 			expectedNamespace: "default",
@@ -189,7 +190,7 @@ func TestRESTGet(t *testing.T) {
 		},
 		{
 			testName:          "previous failed deployment",
-			rest:              mockREST(3, 2, appsapi.DeploymentStatusFailed),
+			rest:              mockREST(3, 2, appsv1.DeploymentStatusFailed),
 			name:              "config",
 			opts:              &appsapi.DeploymentLogOptions{Follow: false, Version: intp(2)},
 			expectedNamespace: "default",
@@ -198,7 +199,7 @@ func TestRESTGet(t *testing.T) {
 		},
 		{
 			testName:          "previous deployment",
-			rest:              mockREST(3, 2, appsapi.DeploymentStatusFailed),
+			rest:              mockREST(3, 2, appsv1.DeploymentStatusFailed),
 			name:              "config",
 			opts:              &appsapi.DeploymentLogOptions{Follow: false, Previous: true},
 			expectedNamespace: "default",

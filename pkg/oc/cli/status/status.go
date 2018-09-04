@@ -8,18 +8,18 @@ import (
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	loginutil "github.com/openshift/origin/pkg/oc/util/project"
-	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	routeclientinternal "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	dotutil "github.com/openshift/origin/pkg/util/dot"
 )
 
@@ -114,27 +114,27 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 	if err != nil {
 		return err
 	}
-	kclientset, err := kclientset.NewForConfig(clientConfig)
+	kclientset, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	projectClient, err := projectclientinternal.NewForConfig(clientConfig)
+	projectClient, err := projectv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	buildClient, err := buildclientinternal.NewForConfig(clientConfig)
+	buildClient, err := buildv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
+	imageClient, err := imagev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	appsClient, err := appsclient.NewForConfig(clientConfig)
+	appsClient, err := appsv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	routeClient, err := routeclientinternal.NewForConfig(clientConfig)
+	routeClient, err := routev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -173,11 +173,11 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 	o.describer = &describe.ProjectStatusDescriber{
 		KubeClient:    kclientset,
 		RESTMapper:    restMapper,
-		ProjectClient: projectClient.Project(),
-		BuildClient:   buildClient.Build(),
-		ImageClient:   imageClient.Image(),
-		AppsClient:    appsClient.Apps(),
-		RouteClient:   routeClient.Route(),
+		ProjectClient: projectClient,
+		BuildClient:   buildClient,
+		ImageClient:   imageClient,
+		AppsClient:    appsClient,
+		RouteClient:   routeClient,
 		Suggest:       o.suggest,
 		Server:        clientConfig.Host,
 

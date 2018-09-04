@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 type mockDeleteRecorder struct {
@@ -36,16 +35,16 @@ func (m *mockDeleteRecorder) Verify(t *testing.T, expected sets.String) {
 }
 
 func TestPruneTask(t *testing.T) {
-	deploymentStatusOptions := []appsapi.DeploymentStatus{
-		appsapi.DeploymentStatusComplete,
-		appsapi.DeploymentStatusFailed,
-		appsapi.DeploymentStatusNew,
-		appsapi.DeploymentStatusPending,
-		appsapi.DeploymentStatusRunning,
+	deploymentStatusOptions := []appsv1.DeploymentStatus{
+		appsv1.DeploymentStatusComplete,
+		appsv1.DeploymentStatusFailed,
+		appsv1.DeploymentStatusNew,
+		appsv1.DeploymentStatusPending,
+		appsv1.DeploymentStatusRunning,
 	}
-	deploymentStatusFilter := []appsapi.DeploymentStatus{
-		appsapi.DeploymentStatusComplete,
-		appsapi.DeploymentStatusFailed,
+	deploymentStatusFilter := []appsv1.DeploymentStatus{
+		appsv1.DeploymentStatusComplete,
+		appsv1.DeploymentStatusFailed,
 	}
 	deploymentStatusFilterSet := sets.String{}
 	for _, deploymentStatus := range deploymentStatusFilter {

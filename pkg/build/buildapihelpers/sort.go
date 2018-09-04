@@ -1,10 +1,10 @@
 package buildapihelpers
 
-import buildinternalapi "github.com/openshift/origin/pkg/build/apis/build"
+import buildv1 "github.com/openshift/api/build/v1"
 
 // BuildSliceByCreationTimestamp implements sort.Interface for []Build
 // based on the CreationTimestamp field.
-type BuildSliceByCreationTimestamp []buildinternalapi.Build
+type BuildSliceByCreationTimestamp []buildv1.Build
 
 func (b BuildSliceByCreationTimestamp) Len() int {
 	return len(b)

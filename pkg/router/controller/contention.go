@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 // ContentionTracker records modifications to a particular entry to prevent endless
@@ -23,11 +23,11 @@ type ContentionTracker interface {
 	// expected state of the object at this time and may be used by the tracker to
 	// determine if the most recent update was a contention. This method does not
 	// update the state of the tracker.
-	IsChangeContended(id string, now time.Time, current *routeapi.RouteIngress) bool
+	IsChangeContended(id string, now time.Time, current *routev1.RouteIngress) bool
 	// Clear informs the tracker that the provided ingress state was confirmed to
 	// match the current state of this process. If a subsequent call to IsChangeContended
 	// is made within the expiration window, the object will be considered as contended.
-	Clear(id string, current *routeapi.RouteIngress)
+	Clear(id string, current *routev1.RouteIngress)
 }
 
 type elementState int
@@ -40,7 +40,7 @@ const (
 type trackerElement struct {
 	at    time.Time
 	state elementState
-	last  *routeapi.RouteIngress
+	last  *routev1.RouteIngress
 }
 
 // SimpleContentionTracker tracks whether a given identifier is changed from a correct
@@ -94,11 +94,11 @@ func (t *SimpleContentionTracker) Run(stopCh <-chan struct{}) {
 	// syncing.
 	t.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(oldObj, obj interface{}) {
-			oldRoute, ok := oldObj.(*routeapi.Route)
+			oldRoute, ok := oldObj.(*routev1.Route)
 			if !ok {
 				return
 			}
-			route, ok := obj.(*routeapi.Route)
+			route, ok := obj.(*routev1.Route)
 			if !ok {
 				return
 			}
@@ -159,7 +159,7 @@ func (t *SimpleContentionTracker) flush() {
 // a separate goroutine and may have seen newer events than the current route controller
 // plugins, so we don't do direct time comparisons. Instead we count edge transitions on
 // a given id.
-func (t *SimpleContentionTracker) Changed(id string, current *routeapi.RouteIngress) {
+func (t *SimpleContentionTracker) Changed(id string, current *routev1.RouteIngress) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -206,7 +206,7 @@ func (t *SimpleContentionTracker) Changed(id string, current *routeapi.RouteIngr
 	}
 }
 
-func (t *SimpleContentionTracker) IsChangeContended(id string, now time.Time, current *routeapi.RouteIngress) bool {
+func (t *SimpleContentionTracker) IsChangeContended(id string, now time.Time, current *routev1.RouteIngress) bool {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -231,7 +231,7 @@ func (t *SimpleContentionTracker) IsChangeContended(id string, now time.Time, cu
 	return false
 }
 
-func (t *SimpleContentionTracker) Clear(id string, current *routeapi.RouteIngress) {
+func (t *SimpleContentionTracker) Clear(id string, current *routev1.RouteIngress) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -244,11 +244,11 @@ func (t *SimpleContentionTracker) Clear(id string, current *routeapi.RouteIngres
 	t.ids[id] = last
 }
 
-func ingressEqual(a, b *routeapi.RouteIngress) bool {
+func ingressEqual(a, b *routev1.RouteIngress) bool {
 	return a.Host == b.Host && a.RouterCanonicalHostname == b.RouterCanonicalHostname && a.WildcardPolicy == b.WildcardPolicy && a.RouterName == b.RouterName
 }
 
-func ingressConditionTouched(ingress *routeapi.RouteIngress) *metav1.Time {
+func ingressConditionTouched(ingress *routev1.RouteIngress) *metav1.Time {
 	var lastTouch *metav1.Time
 	for _, condition := range ingress.Conditions {
 		if t := condition.LastTransitionTime; t != nil {
@@ -261,8 +261,8 @@ func ingressConditionTouched(ingress *routeapi.RouteIngress) *metav1.Time {
 	return lastTouch
 }
 
-func ingressChanged(oldRoute, route *routeapi.Route, routerName string) *routeapi.RouteIngress {
-	var ingress *routeapi.RouteIngress
+func ingressChanged(oldRoute, route *routev1.Route, routerName string) *routev1.RouteIngress {
+	var ingress *routev1.RouteIngress
 	for i := range route.Status.Ingress {
 		if route.Status.Ingress[i].RouterName == routerName {
 			ingress = &route.Status.Ingress[i]

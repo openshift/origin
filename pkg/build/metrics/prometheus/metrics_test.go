@@ -7,22 +7,22 @@ import (
 	"testing"
 	"time"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	internalversion "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+
+	buildv1 "github.com/openshift/api/build/v1"
+	buildv1lister "github.com/openshift/client-go/build/listers/build/v1"
 )
 
-type fakeLister []*buildapi.Build
+type fakeLister []*buildv1.Build
 
-func (f fakeLister) List(labels.Selector) ([]*buildapi.Build, error) {
+func (f fakeLister) List(labels.Selector) ([]*buildv1.Build, error) {
 	return f, nil
 }
-func (fakeLister) Builds(string) internalversion.BuildNamespaceLister {
+func (fakeLister) Builds(string) buildv1lister.BuildNamespaceLister {
 	return nil
 }
 
@@ -61,30 +61,30 @@ func TestMetrics(t *testing.T) {
 
 	buildLister := &fakeLister{
 		{
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhaseComplete,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhaseComplete,
 			},
 		},
 		{
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhaseCancelled,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhaseCancelled,
 			},
 		},
 		{
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhaseError,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhaseError,
 			},
 		},
 		{
-			Status: buildapi.BuildStatus{
-				Phase:  buildapi.BuildPhaseFailed,
-				Reason: buildapi.StatusReasonExceededRetryTimeout,
+			Status: buildv1.BuildStatus{
+				Phase:  buildv1.BuildPhaseFailed,
+				Reason: buildv1.StatusReasonExceededRetryTimeout,
 			},
 		},
 		{
-			Status: buildapi.BuildStatus{
-				Phase:  buildapi.BuildPhaseNew,
-				Reason: buildapi.StatusReasonInvalidOutputReference,
+			Status: buildv1.BuildStatus{
+				Phase:  buildv1.BuildPhaseNew,
+				Reason: buildv1.StatusReasonInvalidOutputReference,
 			},
 		},
 		{
@@ -95,8 +95,8 @@ func TestMetrics(t *testing.T) {
 					Time: time.Unix(123, 0),
 				},
 			},
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhaseNew,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhaseNew,
 			},
 		},
 		{
@@ -107,8 +107,8 @@ func TestMetrics(t *testing.T) {
 					Time: time.Unix(123, 0),
 				},
 			},
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhasePending,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhasePending,
 			},
 		},
 		{
@@ -116,8 +116,8 @@ func TestMetrics(t *testing.T) {
 				Namespace: "testnamespace",
 				Name:      "testname3",
 			},
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhaseRunning,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhaseRunning,
 				StartTimestamp: &metav1.Time{
 					Time: time.Unix(123, 0),
 				},

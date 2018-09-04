@@ -3,10 +3,13 @@ package imagereferencemutators
 import (
 	"fmt"
 
-	appsv1beta1 "k8s.io/api/apps/v1beta1"
+	kappsv1 "k8s.io/api/apps/v1"
+	kappsv1beta1 "k8s.io/api/apps/v1beta1"
+	kappsv1beta2 "k8s.io/api/apps/v1beta2"
 	batchv1 "k8s.io/api/batch/v1"
+	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	batchv2alpha1 "k8s.io/api/batch/v2alpha1"
-	kapiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,8 +19,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
-	appsapiv1 "github.com/openshift/api/apps/v1"
-	securityapiv1 "github.com/openshift/api/security/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
+	securityv1 "github.com/openshift/api/security/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -92,39 +95,73 @@ func GetPodSpec(obj runtime.Object) (*kapi.PodSpec, *field.Path, error) {
 // GetPodSpecV1 returns a mutable pod spec out of the provided object, including a field path
 // to the field in the object, or an error if the object does not contain a pod spec.
 // This only returns pod specs for v1 compatible objects.
-func GetPodSpecV1(obj runtime.Object) (*kapiv1.PodSpec, *field.Path, error) {
+func GetPodSpecV1(obj runtime.Object) (*corev1.PodSpec, *field.Path, error) {
 	switch r := obj.(type) {
-	case *kapiv1.Pod:
+
+	case *corev1.Pod:
 		return &r.Spec, field.NewPath("spec"), nil
-	case *kapiv1.PodTemplate:
+
+	case *corev1.PodTemplate:
 		return &r.Template.Spec, field.NewPath("template", "spec"), nil
-	case *kapiv1.ReplicationController:
+
+	case *corev1.ReplicationController:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 		}
+
 	case *extensionsv1beta1.DaemonSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+	case *kappsv1.DaemonSet:
+		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+	case *kappsv1beta2.DaemonSet:
+		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+
 	case *extensionsv1beta1.Deployment:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+	case *kappsv1.Deployment:
+		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+	case *kappsv1beta1.Deployment:
+		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+	case *kappsv1beta2.Deployment:
+		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+
 	case *extensionsv1beta1.ReplicaSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+	case *kappsv1.ReplicaSet:
+		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+	case *kappsv1beta2.ReplicaSet:
+		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+
 	case *batchv1.Job:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+
 	case *batchv2alpha1.CronJob:
 		return &r.Spec.JobTemplate.Spec.Template.Spec, field.NewPath("spec", "jobTemplate", "spec", "template", "spec"), nil
+	case *batchv1beta1.CronJob:
+		return &r.Spec.JobTemplate.Spec.Template.Spec, field.NewPath("spec", "jobTemplate", "spec", "template", "spec"), nil
+
 	case *batchv2alpha1.JobTemplate:
 		return &r.Template.Spec.Template.Spec, field.NewPath("template", "spec", "template", "spec"), nil
-	case *appsv1beta1.StatefulSet:
+	case *batchv1beta1.JobTemplate:
+		return &r.Template.Spec.Template.Spec, field.NewPath("template", "spec", "template", "spec"), nil
+
+	case *kappsv1.StatefulSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *appsv1beta1.Deployment:
+	case *kappsv1beta1.StatefulSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *securityapiv1.PodSecurityPolicySubjectReview:
+	case *kappsv1beta2.StatefulSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *securityapiv1.PodSecurityPolicySelfSubjectReview:
+
+	case *securityv1.PodSecurityPolicySubjectReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *securityapiv1.PodSecurityPolicyReview:
+
+	case *securityv1.PodSecurityPolicySelfSubjectReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *appsapiv1.DeploymentConfig:
+
+	case *securityv1.PodSecurityPolicyReview:
+		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+
+	case *appsv1.DeploymentConfig:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 		}
@@ -136,65 +173,98 @@ func GetPodSpecV1(obj runtime.Object) (*kapiv1.PodSpec, *field.Path, error) {
 // the object contains, or false if no such object is available.
 func GetTemplateMetaObject(obj runtime.Object) (metav1.Object, bool) {
 	switch r := obj.(type) {
-	case *kapiv1.PodTemplate:
-		return &r.Template.ObjectMeta, true
-	case *kapiv1.ReplicationController:
-		if r.Spec.Template != nil {
-			return &r.Spec.Template.ObjectMeta, true
-		}
-	case *extensionsv1beta1.DaemonSet:
-		return &r.Spec.Template.ObjectMeta, true
-	case *extensionsv1beta1.Deployment:
-		return &r.Spec.Template.ObjectMeta, true
-	case *extensionsv1beta1.ReplicaSet:
-		return &r.Spec.Template.ObjectMeta, true
-	case *batchv1.Job:
-		return &r.Spec.Template.ObjectMeta, true
-	case *batchv2alpha1.CronJob:
-		return &r.Spec.JobTemplate.Spec.Template.ObjectMeta, true
-	case *batchv2alpha1.JobTemplate:
-		return &r.Template.Spec.Template.ObjectMeta, true
-	case *appsv1beta1.StatefulSet:
-		return &r.Spec.Template.ObjectMeta, true
-	case *appsv1beta1.Deployment:
-		return &r.Spec.Template.ObjectMeta, true
-	case *securityapiv1.PodSecurityPolicySubjectReview:
-		return &r.Spec.Template.ObjectMeta, true
-	case *securityapiv1.PodSecurityPolicySelfSubjectReview:
-		return &r.Spec.Template.ObjectMeta, true
-	case *securityapiv1.PodSecurityPolicyReview:
-		return &r.Spec.Template.ObjectMeta, true
-	case *appsapiv1.DeploymentConfig:
-		if r.Spec.Template != nil {
-			return &r.Spec.Template.ObjectMeta, true
-		}
+
 	case *kapi.PodTemplate:
 		return &r.Template.ObjectMeta, true
+	case *corev1.PodTemplate:
+		return &r.Template.ObjectMeta, true
+
 	case *kapi.ReplicationController:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.ObjectMeta, true
 		}
+	case *corev1.ReplicationController:
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.ObjectMeta, true
+		}
+
 	case *extensions.DaemonSet:
 		return &r.Spec.Template.ObjectMeta, true
+	case *extensionsv1beta1.DaemonSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1.DaemonSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1beta2.DaemonSet:
+		return &r.Spec.Template.ObjectMeta, true
+
 	case *extensions.Deployment:
 		return &r.Spec.Template.ObjectMeta, true
+	case *extensionsv1beta1.Deployment:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1.Deployment:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1beta1.Deployment:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1beta2.Deployment:
+		return &r.Spec.Template.ObjectMeta, true
+
 	case *extensions.ReplicaSet:
 		return &r.Spec.Template.ObjectMeta, true
+	case *extensionsv1beta1.ReplicaSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1.ReplicaSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1beta2.ReplicaSet:
+		return &r.Spec.Template.ObjectMeta, true
+
 	case *batch.Job:
 		return &r.Spec.Template.ObjectMeta, true
+	case *batchv1.Job:
+		return &r.Spec.Template.ObjectMeta, true
+
 	case *batch.CronJob:
 		return &r.Spec.JobTemplate.Spec.Template.ObjectMeta, true
+	case *batchv2alpha1.CronJob:
+		return &r.Spec.JobTemplate.Spec.Template.ObjectMeta, true
+	case *batchv1beta1.CronJob:
+		return &r.Spec.JobTemplate.Spec.Template.ObjectMeta, true
+
 	case *batch.JobTemplate:
 		return &r.Template.Spec.Template.ObjectMeta, true
+	case *batchv2alpha1.JobTemplate:
+		return &r.Template.Spec.Template.ObjectMeta, true
+	case *batchv1beta1.JobTemplate:
+		return &r.Template.Spec.Template.ObjectMeta, true
+
 	case *apps.StatefulSet:
 		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1.StatefulSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1beta1.StatefulSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *kappsv1beta2.StatefulSet:
+		return &r.Spec.Template.ObjectMeta, true
+
 	case *securityapi.PodSecurityPolicySubjectReview:
 		return &r.Spec.Template.ObjectMeta, true
+	case *securityv1.PodSecurityPolicySubjectReview:
+		return &r.Spec.Template.ObjectMeta, true
+
 	case *securityapi.PodSecurityPolicySelfSubjectReview:
 		return &r.Spec.Template.ObjectMeta, true
+	case *securityv1.PodSecurityPolicySelfSubjectReview:
+		return &r.Spec.Template.ObjectMeta, true
+
 	case *securityapi.PodSecurityPolicyReview:
 		return &r.Spec.Template.ObjectMeta, true
+	case *securityv1.PodSecurityPolicyReview:
+		return &r.Spec.Template.ObjectMeta, true
+
 	case *appsapi.DeploymentConfig:
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.ObjectMeta, true
+		}
+	case *appsv1.DeploymentConfig:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.ObjectMeta, true
 		}
@@ -211,7 +281,7 @@ func (m containerMutator) GetImage() string      { return m.Image }
 func (m containerMutator) SetImage(image string) { m.Image = image }
 
 type containerV1Mutator struct {
-	*kapiv1.Container
+	*corev1.Container
 }
 
 func (m containerV1Mutator) GetName() string       { return m.Name }
@@ -255,7 +325,7 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if hasIdenticalPodSpecImage(m.oldSpec, container.Name, container.Image) {
 			continue
 		}
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
+		ref := corev1.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("initContainers").Index(i).Child("image")))
 			continue
@@ -271,7 +341,7 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if hasIdenticalPodSpecImage(m.oldSpec, container.Name, container.Image) {
 			continue
 		}
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
+		ref := corev1.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("containers").Index(i).Child("image")))
 			continue
@@ -321,8 +391,8 @@ func (m *podSpecMutator) GetContainerByIndex(init bool, i int) (ContainerMutator
 
 // podSpecV1Mutator implements the mutation interface over objects with a pod spec.
 type podSpecV1Mutator struct {
-	spec    *kapiv1.PodSpec
-	oldSpec *kapiv1.PodSpec
+	spec    *corev1.PodSpec
+	oldSpec *corev1.PodSpec
 	path    *field.Path
 }
 
@@ -330,7 +400,7 @@ func (m *podSpecV1Mutator) Path() *field.Path {
 	return m.path
 }
 
-func hasIdenticalPodSpecV1Image(spec *kapiv1.PodSpec, containerName, image string) bool {
+func hasIdenticalPodSpecV1Image(spec *corev1.PodSpec, containerName, image string) bool {
 	if spec == nil {
 		return false
 	}
@@ -356,7 +426,7 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if hasIdenticalPodSpecV1Image(m.oldSpec, container.Name, container.Image) {
 			continue
 		}
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
+		ref := corev1.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("initContainers").Index(i).Child("image")))
 			continue
@@ -372,7 +442,7 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if hasIdenticalPodSpecV1Image(m.oldSpec, container.Name, container.Image) {
 			continue
 		}
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
+		ref := corev1.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("containers").Index(i).Child("image")))
 			continue
@@ -404,7 +474,7 @@ func (m *podSpecV1Mutator) GetContainerByName(name string) (ContainerMutator, bo
 }
 
 func (m *podSpecV1Mutator) GetContainerByIndex(init bool, i int) (ContainerMutator, bool) {
-	var container *kapiv1.Container
+	var container *corev1.Container
 	spec := m.spec
 	if init {
 		if i < 0 || i >= len(spec.InitContainers) {

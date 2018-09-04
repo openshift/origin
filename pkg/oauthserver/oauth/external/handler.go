@@ -9,10 +9,12 @@ import (
 
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
+
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
@@ -135,14 +137,7 @@ func (h *Handler) AuthenticatePassword(username, password string) (user.Info, bo
 		return nil, false, err
 	}
 
-	user, err := h.mapper.UserFor(identity)
-	glog.V(5).Infof("Got userIdentityMapping: %#v", user)
-	if err != nil {
-		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
-		return nil, false, err
-	}
-
-	return user, true, nil
+	return identitymapper.UserFor(h.mapper, identity)
 }
 
 // ServeHTTP handles the callback request in response to an external oauth flow
@@ -198,12 +193,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	user, err := h.mapper.UserFor(identity)
-	glog.V(5).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {
 		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
 		h.handleError(err, w, req)
 		return
 	}
+	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
 	_, err = h.success.AuthenticationSucceeded(user, authData.State, w, req)
 	if err != nil {
@@ -235,25 +230,21 @@ type RedirectorState interface {
 }
 
 func CSRFRedirectingState(csrf csrf.CSRF) RedirectorState {
-	return &defaultState{csrf}
+	return &defaultState{csrf: csrf}
 }
 
 func (d *defaultState) Generate(w http.ResponseWriter, req *http.Request) (string, error) {
 	then := req.URL.String()
 	if len(then) == 0 {
-		return "", errors.New("Cannot generate state: request has no URL")
-	}
-
-	csrfToken, err := d.csrf.Generate(w, req)
-	if err != nil {
-		return "", err
+		return "", errors.New("cannot generate state: request has no URL")
 	}
 
 	state := url.Values{
-		"csrf": {csrfToken},
+		"csrf": {d.csrf.Generate(w, req)},
 		"then": {then},
 	}
-	return encodeState(state)
+
+	return encodeState(state), nil
 }
 
 func (d *defaultState) Check(state string, req *http.Request) (bool, error) {
@@ -261,19 +252,13 @@ func (d *defaultState) Check(state string, req *http.Request) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	csrf := values.Get("csrf")
 
-	ok, err := d.csrf.Check(req, csrf)
-	if err != nil {
-		return false, err
-	}
-	if !ok {
-		return false, fmt.Errorf("State did not contain a valid CSRF token")
+	if ok := d.csrf.Check(req, values.Get("csrf")); !ok {
+		return false, fmt.Errorf("state did not contain a valid CSRF token")
 	}
 
-	then := values.Get("then")
-	if then == "" {
-		return false, errors.New("State did not contain a redirect")
+	if then := values.Get("then"); len(then) == 0 {
+		return false, errors.New("state did not contain a redirect")
 	}
 
 	return true, nil
@@ -287,7 +272,7 @@ func (d *defaultState) AuthenticationSucceeded(user user.Info, state string, w h
 
 	then := values.Get("then")
 	if len(then) == 0 {
-		return false, errors.New("No redirect given")
+		return false, errors.New("no redirect given")
 	}
 
 	http.Redirect(w, req, then, http.StatusFound)
@@ -350,8 +335,8 @@ func (d *defaultState) AuthenticationError(err error, w http.ResponseWriter, req
 }
 
 // URL-encode, then base-64 encode for OAuth providers that don't do a good job of treating the state param like an opaque value
-func encodeState(values url.Values) (string, error) {
-	return base64.URLEncoding.EncodeToString([]byte(values.Encode())), nil
+func encodeState(values url.Values) string {
+	return base64.URLEncoding.EncodeToString([]byte(values.Encode()))
 }
 
 func decodeState(state string) (url.Values, error) {

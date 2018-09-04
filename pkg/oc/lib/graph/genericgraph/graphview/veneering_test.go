@@ -7,10 +7,11 @@ import (
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/simple"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
@@ -187,35 +188,35 @@ func TestBareBCGroup(t *testing.T) {
 func TestGraph(t *testing.T) {
 	g := osgraph.New()
 	now := time.Now()
-	builds := []buildapi.Build{
+	builds := []buildv1.Build{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-1-abc",
-				Labels:            map[string]string{buildapi.BuildConfigLabelDeprecated: "build1"},
+				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-10 * time.Second)),
 			},
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhaseFailed,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhaseFailed,
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-2-abc",
-				Labels:            map[string]string{buildapi.BuildConfigLabelDeprecated: "build1"},
+				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-5 * time.Second)),
 			},
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhaseComplete,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhaseComplete,
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-3-abc",
-				Labels:            map[string]string{buildapi.BuildConfigLabelDeprecated: "build1"},
+				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-15 * time.Second)),
 			},
-			Status: buildapi.BuildStatus{
-				Phase: buildapi.BuildPhasePending,
+			Status: buildv1.BuildStatus{
+				Phase: buildv1.BuildPhasePending,
 			},
 		},
 	}
@@ -223,89 +224,89 @@ func TestGraph(t *testing.T) {
 		buildgraph.EnsureBuildNode(g, &builds[i])
 	}
 
-	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
+	buildgraph.EnsureBuildConfigNode(g, &buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "build1"},
-		Spec: buildapi.BuildConfigSpec{
-			Triggers: []buildapi.BuildTriggerPolicy{
+		Spec: buildv1.BuildConfigSpec{
+			Triggers: []buildv1.BuildTriggerPolicy{
 				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
+					ImageChange: &buildv1.ImageChangeTrigger{},
 				},
 			},
-			CommonSpec: buildapi.CommonSpec{
-				Strategy: buildapi.BuildStrategy{
-					SourceStrategy: &buildapi.SourceBuildStrategy{
-						From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
+			CommonSpec: buildv1.CommonSpec{
+				Strategy: buildv1.BuildStrategy{
+					SourceStrategy: &buildv1.SourceBuildStrategy{
+						From: corev1.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "other:tag1"},
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "other:tag1"},
 				},
 			},
 		},
 	})
-	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
+	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test"},
-		Spec: buildapi.BuildConfigSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "other:base-image"},
+		Spec: buildv1.BuildConfigSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "other:base-image"},
 				},
 			},
 		},
 	})
-	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
+	buildgraph.EnsureBuildConfigNode(g, &buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "build2"},
-		Spec: buildapi.BuildConfigSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{Kind: "DockerImage", Name: "mycustom/repo/image:tag2"},
+		Spec: buildv1.BuildConfigSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{Kind: "DockerImage", Name: "mycustom/repo/image:tag2"},
 				},
 			},
 		},
 	})
-	kubegraph.EnsureServiceNode(g, &kapi.Service{
+	kubegraph.EnsureServiceNode(g, &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "svc-is-ignored"},
-		Spec: kapi.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Selector: nil,
 		},
 	})
-	kubegraph.EnsureServiceNode(g, &kapi.Service{
+	kubegraph.EnsureServiceNode(g, &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "svc1"},
-		Spec: kapi.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
 				"deploymentconfig": "deploy1",
 			},
 		},
 	})
-	kubegraph.EnsureServiceNode(g, &kapi.Service{
+	kubegraph.EnsureServiceNode(g, &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "svc2"},
-		Spec: kapi.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
 				"deploymentconfig": "deploy1",
 				"env":              "prod",
 			},
 		},
 	})
-	appsgraph.EnsureDeploymentConfigNode(g, &appsapi.DeploymentConfig{
+	appsgraph.EnsureDeploymentConfigNode(g, &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "other", Name: "deploy1"},
-		Spec: appsapi.DeploymentConfigSpec{
-			Triggers: []appsapi.DeploymentTriggerPolicy{
+		Spec: appsv1.DeploymentConfigSpec{
+			Triggers: []appsv1.DeploymentTriggerPolicy{
 				{
-					ImageChangeParams: &appsapi.DeploymentTriggerImageChangeParams{
-						From:           kapi.ObjectReference{Kind: "ImageStreamTag", Namespace: "default", Name: "other:tag1"},
+					ImageChangeParams: &appsv1.DeploymentTriggerImageChangeParams{
+						From:           corev1.ObjectReference{Kind: "ImageStreamTag", Namespace: "default", Name: "other:tag1"},
 						ContainerNames: []string{"1", "2"},
 					},
 				},
 			},
-			Template: &kapi.PodTemplateSpec{
+			Template: &corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"deploymentconfig": "deploy1",
 						"env":              "prod",
 					},
 				},
-				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:  "1",
 							Image: "mycustom/repo/image",
@@ -323,18 +324,18 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
-	appsgraph.EnsureDeploymentConfigNode(g, &appsapi.DeploymentConfig{
+	appsgraph.EnsureDeploymentConfigNode(g, &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "deploy2"},
-		Spec: appsapi.DeploymentConfigSpec{
-			Template: &kapi.PodTemplateSpec{
+		Spec: appsv1.DeploymentConfigSpec{
+			Template: &corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"deploymentconfig": "deploy2",
 						"env":              "dev",
 					},
 				},
-				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:  "1",
 							Image: "someother/image:v1",

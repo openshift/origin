@@ -1,7 +1,6 @@
 reviewers:
   - smarterclayton
   - deads2k
-  - liggitt
   - bparees
   - stevekuznetsov
   - mfojtik
@@ -15,7 +14,6 @@ reviewers:
 approvers:
   - smarterclayton
   - deads2k
-  - liggitt
   - bparees
   - stevekuznetsov
   - enj

@@ -33,7 +33,7 @@ import (
 func evaluateJSONPathExpression(obj interface{}, annotation, expression string, base64encode bool) (string, error) {
 	var s []string
 
-	j := jsonpath.New("templateservicebroker")
+	j := jsonpath.New("templateservicebroker").AllowMissingKeys(true)
 	err := j.Parse(expression)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse annotation %s: %v", annotation, err)
@@ -44,7 +44,15 @@ func evaluateJSONPathExpression(obj interface{}, annotation, expression string, 
 		return "", fmt.Errorf("FindResults failed on annotation %s: %v", annotation, err)
 	}
 
+	// strip away empty results that represent lookups that were not found
+	strippedResults := [][]reflect.Value{}
 	for _, r := range results {
+		if len(r) != 0 {
+			strippedResults = append(strippedResults, r)
+		}
+	}
+
+	for _, r := range strippedResults {
 		// we don't permit individual JSONPath expressions which return multiple
 		// objects as we haven't decided how these should be output
 		if len(r) != 1 {

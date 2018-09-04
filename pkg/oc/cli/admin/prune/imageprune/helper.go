@@ -10,19 +10,20 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapiref "k8s.io/kubernetes/pkg/api/ref"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	ref "k8s.io/client-go/tools/reference"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 // order younger images before older
-type imgByAge []*imageapi.Image
+type imgByAge []*imagev1.Image
 
 func (ba imgByAge) Len() int      { return len(ba) }
 func (ba imgByAge) Swap(i, j int) { ba[i], ba[j] = ba[j], ba[i] }
@@ -31,7 +32,7 @@ func (ba imgByAge) Less(i, j int) bool {
 }
 
 // order younger image stream before older
-type isByAge []imageapi.ImageStream
+type isByAge []imagev1.ImageStream
 
 func (ba isByAge) Len() int      { return len(ba) }
 func (ba isByAge) Swap(i, j int) { ba[i], ba[j] = ba[j], ba[i] }
@@ -41,9 +42,9 @@ func (ba isByAge) Less(i, j int) bool {
 
 // DetermineRegistryHost returns registry host embedded in a pull-spec of the latest unmanaged image or the
 // latest imagestream from the provided lists. If no such pull-spec is found, error is returned.
-func DetermineRegistryHost(images *imageapi.ImageList, imageStreams *imageapi.ImageStreamList) (string, error) {
+func DetermineRegistryHost(images *imagev1.ImageList, imageStreams *imagev1.ImageStreamList) (string, error) {
 	var pullSpec string
-	var managedImages []*imageapi.Image
+	var managedImages []*imagev1.Image
 
 	// 1st try to determine registry url from a pull spec of the youngest managed image
 	for i := range images.Items {
@@ -223,7 +224,7 @@ type ErrBadReference struct {
 	reason     string
 }
 
-func newErrBadReferenceToImage(reference string, obj *kapi.ObjectReference, reason string) error {
+func newErrBadReferenceToImage(reference string, obj *corev1.ObjectReference, reason string) error {
 	kind := "<UnknownType>"
 	namespace := ""
 	name := "<unknown-name>"
@@ -242,7 +243,7 @@ func newErrBadReferenceToImage(reference string, obj *kapi.ObjectReference, reas
 	}
 }
 
-func newErrBadReferenceTo(targetKind, reference string, obj *kapi.ObjectReference, reason string) error {
+func newErrBadReferenceTo(targetKind, reference string, obj *corev1.ObjectReference, reason string) error {
 	return &ErrBadReference{
 		kind:       obj.Kind,
 		namespace:  obj.Namespace,
@@ -282,7 +283,7 @@ func getName(obj runtime.Object) string {
 	return fmt.Sprintf("%s/%s", ns, accessor.GetName())
 }
 
-func getKindName(obj *kapi.ObjectReference) string {
+func getKindName(obj *corev1.ObjectReference) string {
 	if obj == nil {
 		return "unknown object"
 	}
@@ -293,8 +294,8 @@ func getKindName(obj *kapi.ObjectReference) string {
 	return fmt.Sprintf("%s[%s]", obj.Kind, name)
 }
 
-func getRef(obj runtime.Object) *kapi.ObjectReference {
-	ref, err := kapiref.GetReference(legacyscheme.Scheme, obj)
+func getRef(obj runtime.Object) *corev1.ObjectReference {
+	ref, err := ref.GetReference(scheme.Scheme, obj)
 	if err != nil {
 		glog.Errorf("failed to get reference to object %T: %v", obj, err)
 		return nil

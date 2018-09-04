@@ -45,7 +45,7 @@ COPY journald.conf /etc/systemd/journald.conf
 # Ensure that master-to-kubelet communication will work with iptables
 COPY iptables /etc/sysconfig/
 
-COPY openshift-generate-node-config.sh /usr/local/bin/
+COPY openshift-node.sh /usr/local/bin/
 COPY openshift-dind-lib.sh /usr/local/bin/
 
 RUN systemctl enable openvswitch
@@ -68,6 +68,8 @@ RUN mkdir -p /opt/cni/bin
 # than dev/test.
 RUN ln -sf /data/openshift /usr/local/bin/ && \
     ln -sf /data/oc        /usr/local/bin/ && \
+    ln -sf /data/hyperkube /usr/local/bin/ && \
+    ln -sf /data/openshift-node-config /usr/local/bin/ && \
     ln -sf /data/openshift /usr/local/bin/openshift-deploy && \
     ln -sf /data/openshift /usr/local/bin/openshift-docker-build && \
     ln -sf /data/openshift /usr/local/bin/openshift-sti-build && \
@@ -80,6 +82,10 @@ RUN ln -sf /data/openshift /usr/local/bin/ && \
     ln -sf /data/loopback      /opt/cni/bin/
 
 ENV KUBECONFIG /data/openshift.local.config/master/admin.kubeconfig
+
+COPY openshift-sdn-node.service /etc/systemd/system/
+COPY openshift-sdn-node.sh /usr/local/bin/
+RUN systemctl enable openshift-sdn-node.service
 
 COPY ovn-kubernetes-node-setup.service /etc/systemd/system/
 COPY ovn-kubernetes-node-setup.sh /usr/local/bin/

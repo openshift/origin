@@ -65,7 +65,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			br := startOpenShiftBuild(oc, appTemplate)
 
 			g.By("verifying build completed successfully")
-			err = exutil.WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), br)
+			err = exutil.WaitForBuildResult(oc.InternalBuildClient().Build().Builds(oc.Namespace()), br)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertSuccess()
 

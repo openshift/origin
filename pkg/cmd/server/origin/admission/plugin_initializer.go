@@ -22,13 +22,13 @@ import (
 	"k8s.io/kubernetes/pkg/quota/generic"
 	"k8s.io/kubernetes/pkg/quota/install"
 
-	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
+	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
+	"github.com/openshift/origin/pkg/build/apiserver/admission/jenkinsbootstrapper"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
@@ -39,14 +39,17 @@ import (
 type InformerAccess interface {
 	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 	GetKubernetesInformers() kexternalinformers.SharedInformerFactory
-	GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory
+	GetOpenshiftImageInformers() imagev1informer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
-	GetOpenshiftUserInformers() userinformer.SharedInformerFactory
+	GetOpenshiftUserInformers() userv1informer.SharedInformerFactory
 }
 
 func NewPluginInitializer(
-	options configapi.MasterConfig,
+	externalImageRegistryHostname string,
+	internalImageRegistryHostname string,
+	cloudConfigFile string,
+	jenkinsConfig configapi.JenkinsPipelineConfig,
 	privilegedLoopbackConfig *rest.Config,
 	informers InformerAccess,
 	authorizer authorizer.Authorizer,
@@ -62,7 +65,7 @@ func NewPluginInitializer(
 	if err != nil {
 		return nil, err
 	}
-	imageClient, err := imageclient.NewForConfig(privilegedLoopbackConfig)
+	imageClient, err := imagev1client.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -70,31 +73,24 @@ func NewPluginInitializer(
 	// TODO make a union registry
 	quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
 	imageEvaluators := image.NewReplenishmentEvaluatorsForAdmission(
-		informers.GetInternalOpenshiftImageInformers().Image().InternalVersion().ImageStreams(),
-		imageClient.Image(),
+		informers.GetOpenshiftImageInformers().Image().V1().ImageStreams(),
+		imageClient.ImageV1(),
 	)
 	for i := range imageEvaluators {
 		quotaRegistry.Add(imageEvaluators[i])
 	}
 
-	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(privilegedLoopbackConfig, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname)
-	if err != nil {
-		return nil, err
-	}
-
-	// punch through layers to build this in order to get a string for a cloud provider file
-	// TODO refactor us into a forward building flow with a side channel like this
-	kubeOptions, err := kubernetes.BuildKubeAPIserverOptions(options)
+	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(privilegedLoopbackConfig, externalImageRegistryHostname, internalImageRegistryHostname)
 	if err != nil {
 		return nil, err
 	}
 
 	var cloudConfig []byte
-	if kubeOptions.CloudProvider.CloudConfigFile != "" {
+	if len(cloudConfigFile) != 0 {
 		var err error
-		cloudConfig, err = ioutil.ReadFile(kubeOptions.CloudProvider.CloudConfigFile)
+		cloudConfig, err = ioutil.ReadFile(cloudConfigFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading from cloud configuration file %s: %v", kubeOptions.CloudProvider.CloudConfigFile, err)
+			return nil, fmt.Errorf("error reading from cloud configuration file %s: %v", cloudConfigFile, err)
 		}
 	}
 	// note: we are passing a combined quota registry here...
@@ -136,7 +132,6 @@ func NewPluginInitializer(
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
 		ProjectCache:                 projectCache,
 		OriginQuotaRegistry:          quotaRegistry,
-		JenkinsPipelineConfig:        options.JenkinsPipelineConfig,
 		RESTClientConfig:             *privilegedLoopbackConfig,
 		ClusterResourceQuotaInformer: informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
@@ -144,34 +139,9 @@ func NewPluginInitializer(
 		SecurityInformers:            informers.GetInternalOpenshiftSecurityInformers(),
 		UserInformers:                informers.GetOpenshiftUserInformers(),
 	}
+	jenkinsPipelineConfigInitializer := &jenkinsbootstrapper.PluginInitializer{
+		JenkinsPipelineConfig: jenkinsConfig,
+	}
 
-	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
-}
-
-type DefaultInformerAccess struct {
-	InternalKubernetesInformers        kinternalinformers.SharedInformerFactory
-	KubernetesInformers                kexternalinformers.SharedInformerFactory
-	InternalOpenshiftImageInformers    imageinformer.SharedInformerFactory
-	InternalOpenshiftQuotaInformers    quotainformer.SharedInformerFactory
-	InternalOpenshiftSecurityInformers securityinformer.SharedInformerFactory
-	OpenshiftUserInformers             userinformer.SharedInformerFactory
-}
-
-func (i *DefaultInformerAccess) GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory {
-	return i.InternalKubernetesInformers
-}
-func (i *DefaultInformerAccess) GetKubernetesInformers() kexternalinformers.SharedInformerFactory {
-	return i.KubernetesInformers
-}
-func (i *DefaultInformerAccess) GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory {
-	return i.InternalOpenshiftImageInformers
-}
-func (i *DefaultInformerAccess) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
-	return i.InternalOpenshiftQuotaInformers
-}
-func (i *DefaultInformerAccess) GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory {
-	return i.InternalOpenshiftSecurityInformers
-}
-func (i *DefaultInformerAccess) GetOpenshiftUserInformers() userinformer.SharedInformerFactory {
-	return i.OpenshiftUserInformers
+	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer, jenkinsPipelineConfigInitializer}, nil
 }

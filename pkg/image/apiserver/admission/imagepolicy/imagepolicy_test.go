@@ -420,7 +420,8 @@ func TestAdmissionResolution(t *testing.T) {
 	})
 	setDefaultCache(p)
 
-	p.resolver = resolveFunc(func(ref *kapi.ObjectReference, defaultNamespace string, forceLocalResolve bool) (*rules.ImagePolicyAttributes, error) {
+	p.resolver = resolveFunc(func(ref *kapi.ObjectReference, defaultNamespace string, forceLocalResolve bool) (*rules.ImagePolicyAttributes,
+		error) {
 		switch ref.Name {
 		case "index.docker.io/mysql:latest":
 			return &rules.ImagePolicyAttributes{

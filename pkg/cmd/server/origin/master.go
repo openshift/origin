@@ -14,16 +14,13 @@ import (
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
-	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
-	"k8s.io/apimachinery/pkg/util/wait"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )
 
@@ -35,8 +32,11 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	// make a shallow copy to let us twiddle a few things
 	// most of the config actually remains the same.  We only need to mess with a couple items
 	genericConfig := kubeAPIServerConfig
-	// TODO try to stop special casing these.  We should all agree on them.
-	genericConfig.RESTOptionsGetter = c.RESTOptionsGetter
+	var err error
+	genericConfig.RESTOptionsGetter, err = openshiftapiserver.NewRESTOptionsGetter(c.Options.KubernetesMasterConfig.APIServerArguments, c.Options.EtcdClientInfo, c.Options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	if err != nil {
+		return nil, err
+	}
 
 	var caData []byte
 	if len(c.Options.ImagePolicyConfig.AdditionalTrustedCA) != 0 {
@@ -48,7 +48,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		}
 	}
 
-	routeAllocator, err := configprocessing.RouteAllocator(c.Options)
+	routeAllocator, err := configprocessing.RouteAllocator(c.Options.RoutingConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationT
 }
 
 func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
-	openshiftNonAPIConfig, err := openshiftkubeapiserver.NewOpenshiftNonAPIConfig(&kubeAPIServerConfig, c.ClientGoKubeInformers, &c.Options)
+	openshiftNonAPIConfig, err := openshiftkubeapiserver.NewOpenshiftNonAPIConfig(&kubeAPIServerConfig, c.ClientGoKubeInformers, c.Options.OAuthConfig, c.Options.AuthConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,9 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options, stopCh)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(
+		c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers,
+		c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile, c.Options.OAuthConfig, c.Options.PolicyConfig.UserAgentMatchingConfig)
 	if err != nil {
 		return err
 	}
@@ -225,9 +227,6 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	}
 
 	// add post-start hooks
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", openshiftapiserver.EnsureOpenShiftInfraNamespace)
-
 	for name, fn := range c.additionalPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}
@@ -239,92 +238,4 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-}
-
-func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
-	var err error
-	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
-	var delegateAPIServer apiserver.DelegationTarget
-	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
-
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = openshiftkubeapiserver.BuildHandlerChain(c.kubeAPIServerConfig.GenericConfig, c.ClientGoKubeInformers, &c.Options, stopCh)
-	if err != nil {
-		return err
-	}
-
-	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
-	if err != nil {
-		return err
-	}
-
-	delegateAPIServer = apiserver.NewEmptyDelegate()
-	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
-	if err != nil {
-		return err
-	}
-	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
-	if err != nil {
-		return err
-	}
-	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.kubeAPIServerConfig)
-	if err != nil {
-		return err
-	}
-	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
-	if err != nil {
-		return err
-	}
-
-	// Start the audit backend before any request comes in. This means we cannot turn it into a
-	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
-	if c.AuditBackend != nil {
-		if err := c.AuditBackend.Run(stopCh); err != nil {
-			return fmt.Errorf("failed to run the audit backend: %v", err)
-		}
-	}
-
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", openshiftapiserver.EnsureOpenShiftInfraNamespace)
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("openshift.io-startinformers", func(context apiserver.PostStartHookContext) error {
-		c.InformerStart(context.StopCh)
-		return nil
-	})
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("openshift.io-restmapperupdater", func(context apiserver.PostStartHookContext) error {
-		c.RESTMapper.Reset()
-		go func() {
-			wait.Until(func() {
-				c.RESTMapper.Reset()
-			}, 10*time.Second, context.StopCh)
-		}()
-		return nil
-	})
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context apiserver.PostStartHookContext) error {
-		go c.ClusterQuotaMappingController.Run(5, context.StopCh)
-		return nil
-	})
-
-	// add post-start hooks
-	for name, fn := range c.additionalPostStartHooks {
-		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
-	}
-	for name, fn := range extraPostStartHooks {
-		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
-	}
-
-	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
-
-	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-}
-
-// bootstrapData casts our policy data to the rbacrest helper that can
-// materialize the policy.
-func bootstrapData(data *bootstrappolicy.PolicyData) *rbacrest.PolicyData {
-	return &rbacrest.PolicyData{
-		ClusterRoles:            data.ClusterRoles,
-		ClusterRoleBindings:     data.ClusterRoleBindings,
-		Roles:                   data.Roles,
-		RoleBindings:            data.RoleBindings,
-		ClusterRolesToAggregate: data.ClusterRolesToAggregate,
-	}
 }

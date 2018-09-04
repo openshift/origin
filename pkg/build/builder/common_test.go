@@ -17,8 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
-	"github.com/openshift/origin/pkg/git"
 )
 
 func TestBuildInfo(t *testing.T) {

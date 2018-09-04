@@ -11,6 +11,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/origin/pkg/oauthserver"
 )
 
 type Server struct {
@@ -50,7 +51,7 @@ func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHan
 
 // Install registers the Server OAuth handlers into a mux. It is expected that the
 // provided prefix will serve all operations
-func (s *Server) Install(mux Mux, paths ...string) {
+func (s *Server) Install(mux oauthserver.Mux, paths ...string) {
 	for _, prefix := range paths {
 		mux.HandleFunc(path.Join(prefix, urls.AuthorizePath), s.handleAuthorize)
 		mux.HandleFunc(path.Join(prefix, urls.TokenPath), s.handleToken)

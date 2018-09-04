@@ -6,7 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
@@ -14,7 +14,7 @@ import (
 func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 	type existingDeployment struct {
 		version int64
-		status  appsapi.DeploymentStatus
+		status  appsv1.DeploymentStatus
 	}
 	tests := []struct {
 		name            string
@@ -28,9 +28,9 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			name:          "desired found",
 			configVersion: 3,
 			existing: []existingDeployment{
-				{1, appsapi.DeploymentStatusComplete},
-				{2, appsapi.DeploymentStatusComplete},
-				{3, appsapi.DeploymentStatusComplete},
+				{1, appsv1.DeploymentStatusComplete},
+				{2, appsv1.DeploymentStatusComplete},
+				{3, appsv1.DeploymentStatusComplete},
 			},
 			desiredVersion:  1,
 			expectedVersion: 1,
@@ -40,8 +40,8 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			name:          "desired not found",
 			configVersion: 3,
 			existing: []existingDeployment{
-				{2, appsapi.DeploymentStatusComplete},
-				{3, appsapi.DeploymentStatusComplete},
+				{2, appsv1.DeploymentStatusComplete},
+				{3, appsv1.DeploymentStatusComplete},
 			},
 			desiredVersion: 1,
 			errorExpected:  true,
@@ -50,9 +50,9 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			name:          "desired not supplied, target found",
 			configVersion: 3,
 			existing: []existingDeployment{
-				{1, appsapi.DeploymentStatusComplete},
-				{2, appsapi.DeploymentStatusFailed},
-				{3, appsapi.DeploymentStatusComplete},
+				{1, appsv1.DeploymentStatusComplete},
+				{2, appsv1.DeploymentStatusFailed},
+				{3, appsv1.DeploymentStatusComplete},
 			},
 			desiredVersion:  0,
 			expectedVersion: 1,
@@ -62,9 +62,9 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			name:          "desired not supplied, target not found",
 			configVersion: 3,
 			existing: []existingDeployment{
-				{1, appsapi.DeploymentStatusFailed},
-				{2, appsapi.DeploymentStatusFailed},
-				{3, appsapi.DeploymentStatusComplete},
+				{1, appsv1.DeploymentStatusFailed},
+				{2, appsv1.DeploymentStatusFailed},
+				{3, appsv1.DeploymentStatusComplete},
 			},
 			desiredVersion: 0,
 			errorExpected:  true,
@@ -78,7 +78,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 		for _, existing := range test.existing {
 			config := appstest.OkDeploymentConfig(existing.version)
 			deployment, _ := appsutil.MakeDeployment(config)
-			deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(existing.status)
+			deployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(existing.status)
 			existingControllers.Items = append(existingControllers.Items, *deployment)
 		}
 

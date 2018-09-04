@@ -42,23 +42,12 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	oc = exutil.NewCLI("router-stress", exutil.KubeConfigPath())
 
 	g.BeforeEach(func() {
-		_, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
+		var err error
+		host, err = waitForFirstRouterEndpointIP(oc)
 		if kapierrs.IsNotFound(err) {
 			g.Skip("no router installed on the cluster")
 			return
 		}
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// wait for the router endpoints to show up
-		err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
-			epts, err := oc.AdminKubeClient().CoreV1().Endpoints("default").Get("router", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if len(epts.Subsets) == 0 || len(epts.Subsets[0].Addresses) == 0 {
-				return false, nil
-			}
-			host = epts.Subsets[0].Addresses[0].IP
-			return true, nil
-		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		ns = oc.KubeFramework().Namespace.Name
@@ -106,3 +95,23 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		})
 	})
 })
+
+func waitForFirstRouterEndpointIP(oc *exutil.CLI) (string, error) {
+	_, ns, err := exutil.GetRouterPodTemplate(oc)
+	if err != nil {
+		return "", err
+	}
+
+	// wait for at least one router endpoint to be up router endpoints to show up
+	var host string
+	err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
+		epts, err := oc.AdminKubeClient().CoreV1().Endpoints(ns).Get("router", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if len(epts.Subsets) == 0 || len(epts.Subsets[0].Addresses) == 0 {
+			return false, nil
+		}
+		host = epts.Subsets[0].Addresses[0].IP
+		return true, nil
+	})
+	return host, err
+}

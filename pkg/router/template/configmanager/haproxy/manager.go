@@ -14,8 +14,8 @@ import (
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/route/apis/route/validation"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 	templaterouter "github.com/openshift/origin/pkg/router/template"
 	templateutil "github.com/openshift/origin/pkg/router/template/util"
 )
@@ -74,7 +74,7 @@ type routeBackendEntry struct {
 	id string
 
 	// termination is the route termination.
-	termination routeapi.TLSTerminationType
+	termination routev1.TLSTerminationType
 
 	// wildcard indicates if the route is a wildcard route.
 	wildcard bool
@@ -107,7 +107,7 @@ type haproxyConfigManager struct {
 	commitInterval time.Duration
 
 	// blueprintRoutes are the blueprint routes used for pre-allocation.
-	blueprintRoutes []*routeapi.Route
+	blueprintRoutes []*routev1.Route
 
 	// blueprintRoutePoolSize is the size of the pre-allocated pool of
 	// backends for each route blueprint.
@@ -199,7 +199,7 @@ func (cm *haproxyConfigManager) Initialize(router templaterouter.RouterInterface
 }
 
 // AddBlueprint adds a new (or replaces an existing) route blueprint.
-func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
+func (cm *haproxyConfigManager) AddBlueprint(route *routev1.Route) {
 	newRoute := route.DeepCopy()
 	newRoute.Namespace = blueprintRoutePoolNamespace
 	newRoute.Spec.Host = ""
@@ -218,7 +218,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 
 	routeExists := false
 	updated := false
-	blueprints := make([]*routeapi.Route, 0)
+	blueprints := make([]*routev1.Route, 0)
 	for _, r := range existingBlueprints {
 		if r.Namespace == newRoute.Namespace && r.Name == newRoute.Name {
 			// Existing route, check if if anything changed,
@@ -251,7 +251,7 @@ func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
 }
 
 // RemoveBlueprint removes a route blueprint.
-func (cm *haproxyConfigManager) RemoveBlueprint(route *routeapi.Route) {
+func (cm *haproxyConfigManager) RemoveBlueprint(route *routev1.Route) {
 	deletedRoute := route.DeepCopy()
 	deletedRoute.Namespace = blueprintRoutePoolNamespace
 
@@ -260,7 +260,7 @@ func (cm *haproxyConfigManager) RemoveBlueprint(route *routeapi.Route) {
 	cm.lock.Unlock()
 
 	updated := false
-	blueprints := make([]*routeapi.Route, 0)
+	blueprints := make([]*routev1.Route, 0)
 	for _, r := range existingBlueprints {
 		if r.Namespace == deletedRoute.Namespace && r.Name == deletedRoute.Name {
 			updated = true
@@ -281,8 +281,8 @@ func (cm *haproxyConfigManager) RemoveBlueprint(route *routeapi.Route) {
 }
 
 // Register registers an id with an expected haproxy backend for a route.
-func (cm *haproxyConfigManager) Register(id string, route *routeapi.Route) {
-	wildcard := cm.wildcardRoutesAllowed && (route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain)
+func (cm *haproxyConfigManager) Register(id string, route *routev1.Route) {
+	wildcard := cm.wildcardRoutesAllowed && (route.Spec.WildcardPolicy == routev1.WildcardPolicySubdomain)
 	entry := &routeBackendEntry{
 		id:               id,
 		termination:      routeTerminationType(route),
@@ -299,7 +299,7 @@ func (cm *haproxyConfigManager) Register(id string, route *routeapi.Route) {
 }
 
 // AddRoute adds a new route or updates an existing route.
-func (cm *haproxyConfigManager) AddRoute(id, routingKey string, route *routeapi.Route) error {
+func (cm *haproxyConfigManager) AddRoute(id, routingKey string, route *routev1.Route) error {
 	if cm.isReloading() {
 		return fmt.Errorf("Router reload in progress, cannot dynamically add route %s", id)
 	}
@@ -364,7 +364,7 @@ func (cm *haproxyConfigManager) AddRoute(id, routingKey string, route *routeapi.
 }
 
 // RemoveRoute removes a route.
-func (cm *haproxyConfigManager) RemoveRoute(id string, route *routeapi.Route) error {
+func (cm *haproxyConfigManager) RemoveRoute(id string, route *routev1.Route) error {
 	glog.V(4).Infof("Removing route %s", id)
 	if cm.isReloading() {
 		return fmt.Errorf("Router reload in progress, cannot dynamically remove route id %s", id)
@@ -441,7 +441,7 @@ func (cm *haproxyConfigManager) ReplaceRouteEndpoints(id string, oldEndpoints, n
 	}
 
 	weightIsRelative := false
-	if entry.termination == routeapi.TLSTerminationPassthrough {
+	if entry.termination == routev1.TLSTerminationPassthrough {
 		// Passthrough is a wee bit odd and is like a boolean on/off
 		// switch. Setting actual weights, causing the haproxy
 		// dynamic API to either hang or then haproxy dying off.
@@ -685,7 +685,7 @@ func (cm *haproxyConfigManager) commitRouterConfig() {
 
 	// Adding (+removing) a new blueprint pool route triggers a router state
 	// change. And calling Commit ensures that the config gets written out.
-	route := createBlueprintRoute(routeapi.TLSTerminationEdge)
+	route := createBlueprintRoute(routev1.TLSTerminationEdge)
 	route.Name = fmt.Sprintf("%s-temp-%d", route.Name, time.Now().Unix())
 	cm.router.AddRoute(route)
 	cm.router.RemoveRoute(route)
@@ -704,12 +704,12 @@ func (cm *haproxyConfigManager) isReloading() bool {
 
 // isManagedPoolRoute indicates if a given route is a route from the managed
 // pool of blueprint routes.
-func (cm *haproxyConfigManager) isManagedPoolRoute(route *routeapi.Route) bool {
+func (cm *haproxyConfigManager) isManagedPoolRoute(route *routev1.Route) bool {
 	return route.Namespace == blueprintRoutePoolNamespace
 }
 
 // provisionRoutePool provisions a pre-allocated pool of routes based on a blueprint.
-func (cm *haproxyConfigManager) provisionRoutePool(blueprint *routeapi.Route) {
+func (cm *haproxyConfigManager) provisionRoutePool(blueprint *routev1.Route) {
 	poolSize := getPoolSize(blueprint, cm.blueprintRoutePoolSize)
 	glog.Infof("Provisioning blueprint route pool %s/%s-[1-%d]", blueprint.Namespace, blueprint.Name, poolSize)
 	for i := 0; i < poolSize; i++ {
@@ -722,7 +722,7 @@ func (cm *haproxyConfigManager) provisionRoutePool(blueprint *routeapi.Route) {
 }
 
 // removeRoutePool removes a pre-allocated pool of routes based on a blueprint.
-func (cm *haproxyConfigManager) removeRoutePool(blueprint *routeapi.Route) {
+func (cm *haproxyConfigManager) removeRoutePool(blueprint *routev1.Route) {
 	poolSize := getPoolSize(blueprint, cm.blueprintRoutePoolSize)
 	glog.Infof("Removing blueprint route pool %s/%s-[1-%d]", blueprint.Namespace, blueprint.Name, poolSize)
 	for i := 0; i < poolSize; i++ {
@@ -757,7 +757,7 @@ func (cm *haproxyConfigManager) processMapAssociations(associations haproxyMapAs
 }
 
 // findFreeBackendPoolSlot returns a free pool slot backend name.
-func (cm *haproxyConfigManager) findFreeBackendPoolSlot(blueprint *routeapi.Route) (string, error) {
+func (cm *haproxyConfigManager) findFreeBackendPoolSlot(blueprint *routev1.Route) (string, error) {
 	poolSize := getPoolSize(blueprint, cm.blueprintRoutePoolSize)
 	idPrefix := fmt.Sprintf("%s:%s", blueprint.Namespace, blueprint.Name)
 	for i := 0; i < poolSize; i++ {
@@ -809,7 +809,7 @@ func (cm *haproxyConfigManager) reset() {
 
 // findMatchingBlueprint finds a matching blueprint route that can be used
 // as a "surrogate" for the route.
-func (cm *haproxyConfigManager) findMatchingBlueprint(route *routeapi.Route) *routeapi.Route {
+func (cm *haproxyConfigManager) findMatchingBlueprint(route *routev1.Route) *routev1.Route {
 	termination := routeTerminationType(route)
 	routeModifiers := backendModAnnotations(route)
 	for _, candidate := range cm.blueprintRoutes {
@@ -839,7 +839,7 @@ func (cm *haproxyConfigManager) findMatchingBlueprint(route *routeapi.Route) *ro
 		}
 		tlsSpec := route.Spec.TLS
 		if tlsSpec == nil {
-			tlsSpec = &routeapi.TLSConfig{Termination: routeapi.TLSTerminationType("")}
+			tlsSpec = &routev1.TLSConfig{Termination: routev1.TLSTerminationType("")}
 		}
 		if tlsSpec != nil && candidate.Spec.TLS != nil {
 			// So we need compare the TLS fields but don't care
@@ -865,9 +865,9 @@ func (entry *routeBackendEntry) BackendName() string {
 }
 
 // BuildMapAssociations builds the associations to haproxy maps for a route.
-func (entry *routeBackendEntry) BuildMapAssociations(route *routeapi.Route) {
+func (entry *routeBackendEntry) BuildMapAssociations(route *routev1.Route) {
 	termination := routeTerminationType(route)
-	policy := routeapi.InsecureEdgeTerminationPolicyNone
+	policy := routev1.InsecureEdgeTerminationPolicyNone
 	if route.Spec.TLS != nil {
 		policy = route.Spec.TLS.InsecureEdgeTerminationPolicy
 	}
@@ -893,22 +893,22 @@ func (entry *routeBackendEntry) BuildMapAssociations(route *routeapi.Route) {
 
 	// Do the path specific regular expression usage first.
 	pathRE := templateutil.GenerateRouteRegexp(hostspec, pathspec, entry.wildcard)
-	if policy == routeapi.InsecureEdgeTerminationPolicyRedirect {
+	if policy == routev1.InsecureEdgeTerminationPolicyRedirect {
 		associate("os_route_http_redirect.map", pathRE, name)
 	}
 	switch termination {
-	case routeapi.TLSTerminationType(""):
+	case routev1.TLSTerminationType(""):
 		associate("os_http_be.map", pathRE, name)
 
-	case routeapi.TLSTerminationEdge:
+	case routev1.TLSTerminationEdge:
 		associate("os_edge_reencrypt_be.map", pathRE, name)
-		if policy == routeapi.InsecureEdgeTerminationPolicyAllow {
+		if policy == routev1.InsecureEdgeTerminationPolicyAllow {
 			associate("os_http_be.map", pathRE, name)
 		}
 
-	case routeapi.TLSTerminationReencrypt:
+	case routev1.TLSTerminationReencrypt:
 		associate("os_edge_reencrypt_be.map", pathRE, name)
-		if policy == routeapi.InsecureEdgeTerminationPolicyAllow {
+		if policy == routev1.InsecureEdgeTerminationPolicyAllow {
 			associate("os_http_be.map", pathRE, name)
 		}
 	}
@@ -919,18 +919,18 @@ func (entry *routeBackendEntry) BuildMapAssociations(route *routeapi.Route) {
 		associate("os_wildcard_domain.map", hostRE, "1")
 	}
 	switch termination {
-	case routeapi.TLSTerminationReencrypt:
+	case routev1.TLSTerminationReencrypt:
 		associate("os_tcp_be.map", hostRE, name)
 
-	case routeapi.TLSTerminationPassthrough:
+	case routev1.TLSTerminationPassthrough:
 		associate("os_tcp_be.map", hostRE, name)
 		associate("os_sni_passthrough.map", hostRE, "1")
 	}
 }
 
 // validateBlueprintRoute runs extended validation on a blueprint route.
-func validateBlueprintRoute(route *routeapi.Route) error {
-	if errs := validation.ExtendedValidateRoute(route); len(errs) > 0 {
+func validateBlueprintRoute(route *routev1.Route) error {
+	if errs := routeapihelpers.ExtendedValidateRoute(route); len(errs) > 0 {
 		agg := errs.ToAggregate()
 		return fmt.Errorf(agg.Error())
 	}
@@ -939,14 +939,14 @@ func validateBlueprintRoute(route *routeapi.Route) error {
 }
 
 // buildBlueprintRoutes generates a list of blueprint routes.
-func buildBlueprintRoutes(customRoutes []*routeapi.Route, validate bool) []*routeapi.Route {
-	routes := make([]*routeapi.Route, 0)
+func buildBlueprintRoutes(customRoutes []*routev1.Route, validate bool) []*routev1.Route {
+	routes := make([]*routev1.Route, 0)
 
 	// Add in defaults based on the different route termination types.
-	terminationTypes := []routeapi.TLSTerminationType{
-		routeapi.TLSTerminationType(""),
-		routeapi.TLSTerminationEdge,
-		routeapi.TLSTerminationPassthrough,
+	terminationTypes := []routev1.TLSTerminationType{
+		routev1.TLSTerminationType(""),
+		routev1.TLSTerminationEdge,
+		routev1.TLSTerminationPassthrough,
 		// Disable re-encrypt routes for now as we may not be able
 		// to validate signers.
 		// routeapi.TLSTerminationReencrypt,
@@ -974,15 +974,15 @@ func buildBlueprintRoutes(customRoutes []*routeapi.Route, validate bool) []*rout
 }
 
 // generateRouteName generates a name based on the route type.
-func generateRouteName(routeType routeapi.TLSTerminationType) string {
+func generateRouteName(routeType routev1.TLSTerminationType) string {
 	prefix := "http"
 
 	switch routeType {
-	case routeapi.TLSTerminationEdge:
+	case routev1.TLSTerminationEdge:
 		prefix = "edge"
-	case routeapi.TLSTerminationPassthrough:
+	case routev1.TLSTerminationPassthrough:
 		prefix = "passthrough"
-	case routeapi.TLSTerminationReencrypt:
+	case routev1.TLSTerminationReencrypt:
 		prefix = "reencrypt"
 	}
 
@@ -990,18 +990,18 @@ func generateRouteName(routeType routeapi.TLSTerminationType) string {
 }
 
 // createBlueprintRoute creates a new blueprint route based on route type.
-func createBlueprintRoute(routeType routeapi.TLSTerminationType) *routeapi.Route {
+func createBlueprintRoute(routeType routev1.TLSTerminationType) *routev1.Route {
 	name := generateRouteName(routeType)
 
-	return &routeapi.Route{
+	return &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: blueprintRoutePoolNamespace,
 			Name:      name,
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "",
-			TLS:  &routeapi.TLSConfig{Termination: routeType},
-			To: routeapi.RouteTargetReference{
+			TLS:  &routev1.TLSConfig{Termination: routeType},
+			To: routev1.RouteTargetReference{
 				Name:   blueprintRoutePoolServiceName,
 				Weight: new(int32),
 			},
@@ -1010,7 +1010,7 @@ func createBlueprintRoute(routeType routeapi.TLSTerminationType) *routeapi.Route
 }
 
 // routeBackendName returns the haproxy backend name for a route.
-func routeBackendName(id string, route *routeapi.Route) string {
+func routeBackendName(id string, route *routev1.Route) string {
 	termination := routeTerminationType(route)
 	prefix := templateutil.GenerateBackendNamePrefix(termination)
 	return fmt.Sprintf("%s:%s", prefix, id)
@@ -1018,7 +1018,7 @@ func routeBackendName(id string, route *routeapi.Route) string {
 
 // getPoolSize returns the size to allocate for the pool for the specified
 // blueprint route. Route annotations if they exist override the defaults.
-func getPoolSize(r *routeapi.Route, defaultSize int) int {
+func getPoolSize(r *routev1.Route, defaultSize int) int {
 	v, ok := r.Annotations[routePoolSizeAnnotation]
 	if ok {
 		if poolSize, err := strconv.ParseInt(v, 10, 0); err != nil {
@@ -1034,8 +1034,8 @@ func getPoolSize(r *routeapi.Route, defaultSize int) int {
 }
 
 // routeTerminationType returns a termination type for a route.
-func routeTerminationType(route *routeapi.Route) routeapi.TLSTerminationType {
-	termination := routeapi.TLSTerminationType("")
+func routeTerminationType(route *routev1.Route) routev1.TLSTerminationType {
+	termination := routev1.TLSTerminationType("")
 	if route.Spec.TLS != nil {
 		termination = route.Spec.TLS.Termination
 	}
@@ -1076,7 +1076,7 @@ func applyMapAssociations(m *HAProxyMap, associations map[string]string, add boo
 
 // backendModAnnotations return the annotations in a route that will
 // require custom (or modified) backend configuration in haproxy.
-func backendModAnnotations(route *routeapi.Route) map[string]string {
+func backendModAnnotations(route *routev1.Route) map[string]string {
 	termination := routeTerminationType(route)
 	backendModifiers := modAnnotationsList(termination)
 
@@ -1092,7 +1092,7 @@ func backendModAnnotations(route *routeapi.Route) map[string]string {
 
 // modAnnotationsList returns a list of annotations that can modify the
 // haproxy config for a backend.
-func modAnnotationsList(termination routeapi.TLSTerminationType) []string {
+func modAnnotationsList(termination routev1.TLSTerminationType) []string {
 	annotations := []string{
 		"haproxy.router.openshift.io/balance",
 		"haproxy.router.openshift.io/ip_whitelist",
@@ -1105,7 +1105,7 @@ func modAnnotationsList(termination routeapi.TLSTerminationType) []string {
 		"router.openshift.io/haproxy.health.check.interval",
 	}
 
-	if termination == routeapi.TLSTerminationPassthrough {
+	if termination == routev1.TLSTerminationPassthrough {
 		return annotations
 	}
 

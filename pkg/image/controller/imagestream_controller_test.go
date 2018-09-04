@@ -1,32 +1,40 @@
 package controller
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	apitesting "k8s.io/apimachinery/pkg/api/testing"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
-	clienttesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	restfake "k8s.io/client-go/rest/fake"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
+	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestHandleImageStream(t *testing.T) {
 	one, two := int64(1), int64(2)
 	testCases := []struct {
-		stream   *imageapi.ImageStream
-		expected *imageapi.ImageStreamImportSpec
+		stream   *imagev1.ImageStream
+		expected *imagev1.ImageStreamImportSpec
 	}{
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
@@ -35,25 +43,25 @@ func TestHandleImageStream(t *testing.T) {
 			},
 		},
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: imageapi.ImageStreamSpec{
+				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "test/other",
 				},
 			},
 		},
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: "a random error"},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: imageapi.ImageStreamSpec{
+				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "test/other",
 				},
 			},
@@ -61,12 +69,13 @@ func TestHandleImageStream(t *testing.T) {
 
 		// references are ignored
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"latest": {
-							From:      &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:      "latest",
+							From:      &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Reference: true,
 						},
 					},
@@ -74,12 +83,13 @@ func TestHandleImageStream(t *testing.T) {
 			},
 		},
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"latest": {
-							From:      &kapi.ObjectReference{Kind: "AnotherImage", Name: "test/other:latest"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:      "latest",
+							From:      &corev1.ObjectReference{Kind: "AnotherImage", Name: "test/other:latest"},
 							Reference: true,
 						},
 					},
@@ -89,25 +99,26 @@ func TestHandleImageStream(t *testing.T) {
 
 		// spec tag will be imported
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"latest": {
-							From: &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name: "latest",
+							From: &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 						},
 					},
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
+			expected: &imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "test/other:latest",
 						},
-						To: &kapi.LocalObjectReference{
+						To: &corev1.LocalObjectReference{
 							Name: "latest",
 						},
 					},
@@ -116,26 +127,27 @@ func TestHandleImageStream(t *testing.T) {
 		},
 		// spec tag with generation with no pending status will be imported
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"latest": {
-							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:       "latest",
+							From:       &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
+			expected: &imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "test/other:latest",
 						},
-						To: &kapi.LocalObjectReference{
+						To: &corev1.LocalObjectReference{
 							Name: "latest",
 						},
 					},
@@ -144,31 +156,35 @@ func TestHandleImageStream(t *testing.T) {
 		},
 		// spec tag with generation with older status generation will be imported
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"v1": {
-							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:v1"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:       "v1",
+							From:       &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:v1"},
 							Generation: &one,
 						},
-						"latest": {
-							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+						{
+							Name:       "latest",
+							From:       &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{
-						"v1": {
-							Items: []imageapi.TagEvent{
+				Status: imagev1.ImageStreamStatus{
+					Tags: []imagev1.NamedTagEventList{
+						{
+							Tag: "v1",
+							Items: []imagev1.TagEvent{
 								{
 									Generation: 1,
 								},
 							},
 						},
-						"latest": {
-							Items: []imageapi.TagEvent{
+						{
+							Tag: "latest",
+							Items: []imagev1.TagEvent{
 								{
 									Generation: 1,
 								},
@@ -177,15 +193,15 @@ func TestHandleImageStream(t *testing.T) {
 					},
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
+			expected: &imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "test/other:latest",
 						},
-						To: &kapi.LocalObjectReference{
+						To: &corev1.LocalObjectReference{
 							Name: "latest",
 						},
 					},
@@ -194,66 +210,78 @@ func TestHandleImageStream(t *testing.T) {
 		},
 		// spec tag with generation with status condition error and equal generation will not be imported
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"latest": {
-							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:       "latest",
+							From:       &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{"latest": {Conditions: []imageapi.TagEventCondition{
+				Status: imagev1.ImageStreamStatus{
+					Tags: []imagev1.NamedTagEventList{
 						{
-							Type:       imageapi.ImportSuccess,
-							Status:     kapi.ConditionFalse,
-							Generation: 2,
+							Tag: "latest",
+							Conditions: []imagev1.TagEventCondition{
+								{
+									Type:       imagev1.ImportSuccess,
+									Status:     corev1.ConditionFalse,
+									Generation: 2,
+								},
+							},
 						},
-					}}},
+					},
 				},
 			},
 		},
 		// spec tag with generation with status condition error and older generation will be imported
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"latest": {
-							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:       "latest",
+							From:       &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{"latest": {Conditions: []imageapi.TagEventCondition{
+				Status: imagev1.ImageStreamStatus{
+					Tags: []imagev1.NamedTagEventList{
 						{
-							Type:       imageapi.ImportSuccess,
-							Status:     kapi.ConditionFalse,
-							Generation: 1,
+							Tag: "latest",
+							Conditions: []imagev1.TagEventCondition{
+								{
+									Type:       imagev1.ImportSuccess,
+									Status:     corev1.ConditionFalse,
+									Generation: 1,
+								},
+							},
 						},
-					}}},
+					},
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
+			expected: &imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "test/other:latest",
 						},
-						To: &kapi.LocalObjectReference{
+						To: &corev1.LocalObjectReference{
 							Name: "latest",
 						},
 					},
@@ -262,33 +290,39 @@ func TestHandleImageStream(t *testing.T) {
 		},
 		// spec tag with generation with older status generation will be imported
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"latest": {
-							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:       "latest",
+							From:       &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{"latest": {Items: []imageapi.TagEvent{{Generation: 1}}}},
+				Status: imagev1.ImageStreamStatus{
+					Tags: []imagev1.NamedTagEventList{
+						{
+							Tag:   "latest",
+							Items: []imagev1.TagEvent{{Generation: 1}},
+						},
+					},
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
+			expected: &imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "test/other:latest",
 						},
-						To: &kapi.LocalObjectReference{
+						To: &corev1.LocalObjectReference{
 							Name: "latest",
 						},
 					},
@@ -297,15 +331,16 @@ func TestHandleImageStream(t *testing.T) {
 		},
 		// test external repo
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "other",
 				},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"1.1": {
-							From: &kapi.ObjectReference{
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name: "1.1",
+							From: &corev1.ObjectReference{
 								Kind: "DockerImage",
 								Name: "some/repo:mytag",
 							},
@@ -313,15 +348,15 @@ func TestHandleImageStream(t *testing.T) {
 					},
 				},
 			},
-			expected: &imageapi.ImageStreamImportSpec{
+			expected: &imagev1.ImageStreamImportSpec{
 				Import: true,
-				Images: []imageapi.ImageImportSpec{
+				Images: []imagev1.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "some/repo:mytag",
 						},
-						To: &kapi.LocalObjectReference{
+						To: &corev1.LocalObjectReference{
 							Name: "1.1",
 						},
 					},
@@ -330,22 +365,28 @@ func TestHandleImageStream(t *testing.T) {
 		},
 		// spec tag with generation with current status generation will be ignored
 		{
-			stream: &imageapi.ImageStream{
+			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"latest": {
-							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:       "latest",
+							From:       &corev1.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{"latest": {Items: []imageapi.TagEvent{{Generation: 2}}}},
+				Status: imagev1.ImageStreamStatus{
+					Tags: []imagev1.NamedTagEventList{
+						{
+							Tag:   "latest",
+							Items: []imagev1.TagEvent{{Generation: 2}},
+						},
+					},
 				},
 			},
 			expected: nil,
@@ -353,39 +394,60 @@ func TestHandleImageStream(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		fake := imageclient.NewSimpleClientset()
-		other := test.stream.DeepCopy()
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			_, codecs := apitesting.SchemeForOrDie(imagev1.Install)
+			actions := 0
+			fakeREST := &restfake.RESTClient{
+				NegotiatedSerializer: codecs,
+				GroupVersion:         imagev1.SchemeGroupVersion,
+				Client: restfake.CreateHTTPClient(func(*http.Request) (*http.Response, error) {
+					actions++
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Header:     header(),
+						Body:       objBody(&imagev1.ImageStreamImport{}),
+					}, nil
+				}),
+			}
+			other := test.stream.DeepCopy()
 
-		if _, err := handleImageStream(test.stream, fake.Image(), nil); err != nil {
-			t.Errorf("%d: unexpected error: %v", i, err)
-		}
-		if test.expected != nil {
-			actions := fake.Actions()
-			if len(actions) == 0 {
-				t.Errorf("%d: expected remote calls: %#v", i, fake)
-				continue
+			if _, err := handleImageStream(test.stream, fakeREST, nil); err != nil {
+				t.Errorf("unexpected error: %#v", err)
 			}
-			if !actions[0].Matches("create", "imagestreamimports") {
-				t.Errorf("expected a create action: %#v", actions)
+			if test.expected != nil {
+				if actions == 0 {
+					t.Fatal("expected remote calls, got: 0")
+				}
+				if fakeREST.Req.Method != "POST" && !strings.Contains(fakeREST.Req.URL.String(), "imagestreamimports") {
+					t.Errorf("expected a create action, got %v %v", fakeREST.Req.Method, fakeREST.Req.URL)
+				}
+				obj, err := decode(fakeREST.Req.Body, codecs.UniversalDeserializer())
+				if err != nil {
+					t.Fatalf("unexpected error %#v", err)
+				}
+				isi, ok := obj.(*imagev1.ImageStreamImport)
+				if !ok {
+					t.Fatalf("unexpected object %T", obj)
+				}
+				if !reflect.DeepEqual(*test.expected, isi.Spec) {
+					t.Errorf("%d: expected object differs:\n1) %#v\n2) %#v\n\n", i, *test.expected, isi.Spec)
+				}
+			} else {
+				if !kapihelper.Semantic.DeepEqual(test.stream, other) {
+					t.Errorf("did not expect change to stream: %s", diff.ObjectGoPrintDiff(test.stream, other))
+				}
+				if actions != 0 {
+					t.Errorf("did not expect remote calls, but got %d", actions)
+				}
 			}
-			if !reflect.DeepEqual(*test.expected, actions[0].(clienttesting.CreateAction).GetObject().(*imageapi.ImageStreamImport).Spec) {
-				t.Errorf("%d: expected object differs:\n1) %#v\n2) %#v\n\n", i, *test.expected, actions[0].(clienttesting.CreateAction).GetObject().(*imageapi.ImageStreamImport).Spec)
-			}
-		} else {
-			if !kapihelper.Semantic.DeepEqual(test.stream, other) {
-				t.Errorf("%d: did not expect change to stream: %s", i, diff.ObjectGoPrintDiff(test.stream, other))
-			}
-			if len(fake.Actions()) != 0 {
-				t.Errorf("%d: did not expect remote calls", i)
-			}
-		}
+		})
 	}
 }
 
 func TestProcessNextWorkItemOnRemovedStream(t *testing.T) {
-	clientset := imageclient.NewSimpleClientset()
-	informer := imageinformer.NewSharedInformerFactory(imageclient.NewSimpleClientset(), 0)
-	isc := NewImageStreamController(clientset, informer.Image().InternalVersion().ImageStreams())
+	clientset := fakeimagev1client.NewSimpleClientset()
+	informer := imagev1informer.NewSharedInformerFactory(fakeimagev1client.NewSimpleClientset(), 0)
+	isc := NewImageStreamController(clientset, informer.Image().V1().ImageStreams())
 	isc.queue.Add("other/test")
 	isc.processNextWorkItem()
 	if isc.queue.Len() != 0 {
@@ -394,20 +456,46 @@ func TestProcessNextWorkItemOnRemovedStream(t *testing.T) {
 }
 
 func TestProcessNextWorkItem(t *testing.T) {
-	stream := &imageapi.ImageStream{
+	stream := &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 			Name:        "test",
 			Namespace:   "other",
 		},
 	}
-	clientset := imageclient.NewSimpleClientset(stream)
-	informer := imageinformer.NewSharedInformerFactory(imageclient.NewSimpleClientset(stream), 0)
-	isc := NewImageStreamController(clientset, informer.Image().InternalVersion().ImageStreams())
+	clientset := fakeimagev1client.NewSimpleClientset(stream)
+	informer := imagev1informer.NewSharedInformerFactory(fakeimagev1client.NewSimpleClientset(stream), 0)
+	isc := NewImageStreamController(clientset, informer.Image().V1().ImageStreams())
 	key, _ := kcontroller.KeyFunc(stream)
 	isc.queue.Add(key)
 	isc.processNextWorkItem()
 	if isc.queue.Len() != 0 {
 		t.Errorf("Unexpected queue length, expected 0, got %d", isc.queue.Len())
 	}
+}
+
+func objBody(object interface{}) io.ReadCloser {
+	output, err := json.MarshalIndent(object, "", "")
+	if err != nil {
+		panic(err)
+	}
+	return ioutil.NopCloser(bytes.NewReader([]byte(output)))
+}
+
+func header() http.Header {
+	header := http.Header{}
+	header.Set("Content-Type", runtime.ContentTypeJSON)
+	return header
+}
+
+func decode(reader io.ReadCloser, decoder runtime.Decoder) (runtime.Object, error) {
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := runtime.Decode(decoder, data)
+	if err != nil {
+		return nil, err
+	}
+	return obj, nil
 }

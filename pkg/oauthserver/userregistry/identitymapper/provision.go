@@ -102,11 +102,7 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx context.Contex
 		return nil, err
 	}
 
-	return &kuser.DefaultInfo{
-		Name:   persistedUser.Name,
-		UID:    string(persistedUser.UID),
-		Groups: persistedUser.Groups,
-	}, nil
+	return userToInfo(persistedUser), nil
 }
 
 func (p *provisioningIdentityMapper) getMapping(ctx context.Context, identity *userapi.Identity) (kuser.Info, error) {
@@ -125,11 +121,7 @@ func (p *provisioningIdentityMapper) getMapping(ctx context.Context, identity *u
 		glog.Errorf("user.identities (%#v) does not include identity (%s)", u, identity.Name)
 		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
-	return &kuser.DefaultInfo{
-		Name:   u.Name,
-		UID:    string(u.UID),
-		Groups: u.Groups,
-	}, nil
+	return userToInfo(u), nil
 }
 
 func getPreferredUserName(identity *userapi.Identity) string {

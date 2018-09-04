@@ -79,7 +79,7 @@ func TestGetValidSessionSecretsFile(t *testing.T) {
 			{Authentication: "a2", Encryption: "e2"},
 		},
 	}
-	expectedSecrets := []string{"a1", "e1", "a2", "e2"}
+	expectedSecrets := [][]byte{[]byte("a1"), []byte("e1"), []byte("a2"), []byte("e2")}
 
 	yaml, err := latest.WriteYAML(secrets)
 	if err != nil {

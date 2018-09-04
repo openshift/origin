@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -51,9 +52,9 @@ func WaitForRunningDeployment(rn corev1client.ReplicationControllersGetter, obse
 		}
 		observed = obj
 		switch appsutil.DeploymentStatusFor(observed) {
-		case appsutil.DeploymentStatusRunning, appsutil.DeploymentStatusFailed, appsutil.DeploymentStatusComplete:
+		case appsv1.DeploymentStatusRunning, appsv1.DeploymentStatusFailed, appsv1.DeploymentStatusComplete:
 			return true, nil
-		case appsutil.DeploymentStatusNew, appsutil.DeploymentStatusPending:
+		case appsv1.DeploymentStatusNew, appsv1.DeploymentStatusPending:
 			return false, nil
 		default:
 			return false, ErrUnknownDeploymentPhase

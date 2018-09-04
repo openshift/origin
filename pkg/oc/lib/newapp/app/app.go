@@ -10,16 +10,15 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/pborman/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/library-go/pkg/git"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/git"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/util"
 
@@ -410,11 +409,9 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*appsapi.DeploymentConfig, err
 
 // GenerateSecret generates a random secret string
 func GenerateSecret(n int) string {
-	n = n * 3 / 4
-	b := make([]byte, n)
-	read, _ := rand.Read(b)
-	if read != n {
-		return uuid.NewRandom().String()
+	b := make([]byte, base64.URLEncoding.DecodedLen(n))
+	if _, err := rand.Read(b); err != nil {
+		panic(err) // rand should never fail
 	}
 	return base64.URLEncoding.EncodeToString(b)
 }

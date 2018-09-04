@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
@@ -324,7 +324,7 @@ func (p *F5Plugin) HandleEndpoints(eventType watch.EventType,
 
 // routeName returns a string that can be used as a rule name in F5 BIG-IP and
 // is distinct for the given route.
-func routeName(route routeapi.Route) string {
+func routeName(route routev1.Route) string {
 	return fmt.Sprintf("openshift_route_%s_%s", route.Namespace, route.Name)
 }
 
@@ -349,7 +349,7 @@ func routeName(route routeapi.Route) string {
 // addRoute creates route with the given name and parameters and of the suitable
 // type (insecure, secure, or passthrough) based on the given TLS configuration.
 func (p *F5Plugin) addRoute(routename, poolname, hostname, pathname string,
-	tls *routeapi.TLSConfig) error {
+	tls *routev1.TLSConfig) error {
 	glog.V(4).Infof("Adding route %s...", routename)
 
 	// We will use prettyPathname for log output.
@@ -369,7 +369,7 @@ func (p *F5Plugin) addRoute(routename, poolname, hostname, pathname string,
 			return err
 		}
 
-	} else if tls.Termination == routeapi.TLSTerminationPassthrough {
+	} else if tls.Termination == routev1.TLSTerminationPassthrough {
 		glog.V(4).Infof("Adding passthrough route %s for pool %s, hostname %s...",
 			routename, poolname, hostname)
 		err := p.F5Client.AddPassthroughRoute(routename, poolname, hostname)
@@ -399,7 +399,7 @@ func (p *F5Plugin) addRoute(routename, poolname, hostname, pathname string,
 			return err
 		}
 
-		if tls.Termination == routeapi.TLSTerminationReencrypt {
+		if tls.Termination == routev1.TLSTerminationReencrypt {
 			// add to reencrypt dg
 			glog.V(4).Infof("Adding re-encrypt route %s for pool %s,"+
 				" hostname %s, pathname %s...",
@@ -408,8 +408,8 @@ func (p *F5Plugin) addRoute(routename, poolname, hostname, pathname string,
 		}
 
 		// TODO(ramr):  need to handle redirect case for F5.
-		if tls.Termination == routeapi.TLSTerminationEdge &&
-			tls.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyAllow {
+		if tls.Termination == routev1.TLSTerminationEdge &&
+			tls.InsecureEdgeTerminationPolicy == routev1.InsecureEdgeTerminationPolicyAllow {
 			glog.V(4).Infof("Allowing insecure route %s for pool %s, hostname %s, pathname %s...",
 				routename, poolname, hostname, prettyPathname)
 			err := p.F5Client.AddInsecureRoute(routename, poolname, hostname, pathname)
@@ -594,7 +594,7 @@ func (p *F5Plugin) HandleNode(eventType watch.EventType, node *kapi.Node) error 
 // HandleRoute processes watch events on the Route resource and
 // creates and deletes policy rules in response.
 func (p *F5Plugin) HandleRoute(eventType watch.EventType,
-	route *routeapi.Route) error {
+	route *routev1.Route) error {
 	glog.V(4).Infof("Processing route for service: %v (%v)",
 		route.Spec.To, route)
 

@@ -20,7 +20,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -63,7 +63,7 @@ var (
 	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
-	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET", "EGRESS IPS"}
+	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET", "EGRESS CIDRS", "EGRESS IPS"}
 	netNamespaceColumns        = []string{"NAME", "NETID", "EGRESS IPS"}
 	clusterNetworkColumns      = []string{"NAME", "CLUSTER NETWORKS", "SERVICE NETWORK", "PLUGIN NAME"}
 	egressNetworkPolicyColumns = []string{"NAME"}
@@ -277,7 +277,8 @@ func printBuild(build *buildapi.Build, w io.Writer, opts kprinters.PrintOptions)
 	if len(build.Status.Reason) > 0 {
 		status = fmt.Sprintf("%s (%s)", status, build.Status.Reason)
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, buildapihelpers.StrategyType(build.Spec.Strategy), from, status, created, duration); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, buildinternalhelpers.StrategyType(build.Spec.Strategy), from, status, created,
+		duration); err != nil {
 		return err
 	}
 	if err := appendItemLabels(build.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
@@ -351,7 +352,7 @@ func describeSourceGitRevision(spec buildapi.CommonSpec) string {
 
 func printBuildList(buildList *buildapi.BuildList, w io.Writer, opts kprinters.PrintOptions) error {
 	builds := buildList.Items
-	sort.Sort(buildapihelpers.BuildSliceByCreationTimestamp(builds))
+	sort.Sort(buildinternalhelpers.BuildSliceByCreationTimestamp(builds))
 	for _, build := range builds {
 		if err := printBuild(&build, w, opts); err != nil {
 			return err
@@ -370,7 +371,8 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kprinters.Prin
 				return err
 			}
 		}
-		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildapihelpers.StrategyType(bc.Spec.Strategy), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
+		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildinternalhelpers.StrategyType(bc.Spec.Strategy),
+			bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
 		return err
 	}
 	if opts.WithNamespace {
@@ -378,7 +380,8 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kprinters.Prin
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d", name, buildapihelpers.StrategyType(bc.Spec.Strategy), from, bc.Status.LastVersion); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d", name, buildinternalhelpers.StrategyType(bc.Spec.Strategy), from,
+		bc.Status.LastVersion); err != nil {
 		return err
 	}
 	if err := appendItemLabels(bc.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
@@ -609,7 +612,7 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kprinters.PrintOptions)
 		admitted, errors = 0, 0
 	)
 	for _, ingress := range route.Status.Ingress {
-		switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
+		switch status, condition := ingressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 		case kapi.ConditionTrue:
 			admitted++
 			if !matchedHost {
@@ -680,6 +683,16 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kprinters.PrintOptions)
 	err := appendItemLabels(route.Labels, w, opts.ColumnLabels, opts.ShowLabels)
 
 	return err
+}
+
+func ingressConditionStatus(ingress *routeapi.RouteIngress, t routeapi.RouteIngressConditionType) (kapi.ConditionStatus, routeapi.RouteIngressCondition) {
+	for _, condition := range ingress.Conditions {
+		if t != condition.Type {
+			continue
+		}
+		return condition.Status, condition
+	}
+	return kapi.ConditionUnknown, routeapi.RouteIngressCondition{}
 }
 
 func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kprinters.PrintOptions) error {
@@ -987,7 +1000,7 @@ func printGroupList(list *userapi.GroupList, w io.Writer, opts kprinters.PrintOp
 
 func printHostSubnet(h *networkapi.HostSubnet, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, h.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t[%s]\n", name, h.Host, h.HostIP, h.Subnet, strings.Join(h.EgressIPs, ", "))
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t[%s]\t[%s]\n", name, h.Host, h.HostIP, h.Subnet, strings.Join(h.EgressCIDRs, ", "), strings.Join(h.EgressIPs, ", "))
 	return err
 }
 

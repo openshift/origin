@@ -405,7 +405,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(dcName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				latestVersion := dc.Status.LatestVersion
-				err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+				err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
 					dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(dcName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					latestVersion = dc.Status.LatestVersion
@@ -1049,7 +1049,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 						return true, nil
 					}
 
-					if appsutil.DeploymentStatusFor(rc) == appsutil.DeploymentStatusComplete {
+					if appsutil.DeploymentStatusFor(rc) == appsv1.DeploymentStatusComplete {
 						e2e.Logf("Failed RC: %#v", rc)
 						return false, errors.New("deployment shouldn't be completed before ReadyReplicas become AvailableReplicas")
 					}
@@ -1062,12 +1062,12 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				"Deployment shall not finish before MinReadySeconds elapse.")
 			o.Expect(rc1.Status.AvailableReplicas).To(o.Equal(dc.Spec.Replicas))
 			// Deployment status can't be updated yet but should be right after
-			o.Expect(appsutil.DeploymentStatusFor(rc1)).To(o.Equal(appsutil.DeploymentStatusRunning))
+			o.Expect(appsutil.DeploymentStatusFor(rc1)).To(o.Equal(appsv1.DeploymentStatusRunning))
 			// It should finish right after
 			rc1, err = waitForRCModification(oc, namespace, rc1.Name, deploymentRunTimeout,
 				rc1.GetResourceVersion(), func(rc *corev1.ReplicationController) (bool, error) {
 					e2e.Logf("Deployment status for RC: %#v", appsutil.DeploymentStatusFor(rc))
-					return appsutil.DeploymentStatusFor(rc) == appsutil.DeploymentStatusComplete, nil
+					return appsutil.DeploymentStatusFor(rc) == appsv1.DeploymentStatusComplete, nil
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -1261,7 +1261,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			rc, err := waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion),
 				deploymentRunTimeout,
 				"", func(currentRC *corev1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsutil.DeploymentStatusRunning {
+					if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
 						return true, nil
 					}
 					return false, nil
@@ -1272,7 +1272,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion), types.StrategicMergePatchType,
 				[]byte(fmt.Sprintf(`{"metadata":{"annotations":{%q: %q, %q: %q}}}`,
 					deploymentCancelledAnnotation, "true",
-					appsutil.DeploymentStatusReasonAnnotation, "cancelled by the user",
+					appsv1.DeploymentStatusReasonAnnotation, "cancelled by the user",
 				)))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(appsutil.DeploymentVersionFor(rc)).To(o.Equal(dc.Status.LatestVersion))
@@ -1294,7 +1294,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			// Wait for deployment pod to be running
 			rc, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion), deploymentRunTimeout,
 				"", func(currentRC *corev1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsutil.DeploymentStatusRunning {
+					if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
 						return true, nil
 					}
 					return false, nil
@@ -1332,7 +1332,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion),
 				deploymentRunTimeout,
 				"", func(currentRC *corev1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsutil.DeploymentStatusRunning {
+					if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
 						return true, nil
 					}
 					return false, nil
@@ -1356,7 +1356,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion),
 				deploymentRunTimeout,
 				"", func(currentRC *corev1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsutil.DeploymentStatusRunning {
+					if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
 						return true, nil
 					}
 					return false, nil
@@ -1441,9 +1441,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				deploymentRunTimeout,
 				rc.ResourceVersion, func(currentRC *corev1.ReplicationController) (bool, error) {
 					switch appsutil.DeploymentStatusFor(currentRC) {
-					case appsutil.DeploymentStatusRunning, appsutil.DeploymentStatusComplete:
+					case appsv1.DeploymentStatusRunning, appsv1.DeploymentStatusComplete:
 						return true, nil
-					case appsutil.DeploymentStatusFailed:
+					case appsv1.DeploymentStatusFailed:
 						return true, fmt.Errorf("deployment '%s/%s' has failed", currentRC.Namespace, currentRC.Name)
 					default:
 						return false, nil
@@ -1484,9 +1484,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			_, err = waitForRCModification(oc, namespace, rcName(1), deploymentRunTimeout,
 				rcList.ResourceVersion, func(currentRC *corev1.ReplicationController) (bool, error) {
 					switch appsutil.DeploymentStatusFor(currentRC) {
-					case appsutil.DeploymentStatusComplete:
+					case appsv1.DeploymentStatusComplete:
 						return true, nil
-					case appsutil.DeploymentStatusFailed:
+					case appsv1.DeploymentStatusFailed:
 						return true, fmt.Errorf("deployment #1 failed")
 					default:
 						return false, nil

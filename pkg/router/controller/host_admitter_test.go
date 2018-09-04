@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/client-go/route/clientset/versioned/fake"
 )
 
 const (
@@ -26,15 +26,15 @@ type rejectionRecorder struct {
 	rejections map[string]string
 }
 
-func (_ rejectionRecorder) rejectionKey(route *routeapi.Route) string {
+func (_ rejectionRecorder) rejectionKey(route *routev1.Route) string {
 	return route.Namespace + "-" + route.Name
 }
 
-func (r rejectionRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
+func (r rejectionRecorder) RecordRouteRejection(route *routev1.Route, reason, message string) {
 	r.rejections[r.rejectionKey(route)] = reason
 }
 
-func wildcardAdmitter(route *routeapi.Route) error {
+func wildcardAdmitter(route *routev1.Route) error {
 	if len(route.Spec.Host) < 1 {
 		return nil
 	}
@@ -46,7 +46,7 @@ func wildcardAdmitter(route *routeapi.Route) error {
 	return nil
 }
 
-func wildcardRejecter(route *routeapi.Route) error {
+func wildcardRejecter(route *routev1.Route) error {
 	if len(route.Spec.Host) < 1 {
 		return nil
 	}
@@ -55,7 +55,7 @@ func wildcardRejecter(route *routeapi.Route) error {
 		return fmt.Errorf("host is not allowed")
 	}
 
-	if len(route.Spec.WildcardPolicy) > 0 && route.Spec.WildcardPolicy != routeapi.WildcardPolicyNone {
+	if len(route.Spec.WildcardPolicy) > 0 && route.Spec.WildcardPolicy != routev1.WildcardPolicyNone {
 		return fmt.Errorf("wildcards not admitted test")
 	}
 
@@ -68,7 +68,7 @@ func TestHostAdmit(t *testing.T) {
 	tests := []struct {
 		name   string
 		host   string
-		policy routeapi.WildcardPolicyType
+		policy routev1.WildcardPolicyType
 		errors bool
 	}{
 		{
@@ -88,36 +88,36 @@ func TestHostAdmit(t *testing.T) {
 		{
 			name:   "blocked2",
 			host:   "www." + BlockedTestDomain,
-			policy: routeapi.WildcardPolicyNone,
+			policy: routev1.WildcardPolicyNone,
 			errors: true,
 		},
 		{
 			name:   "blockedwildcard",
 			host:   "blocker." + BlockedTestDomain,
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: true,
 		},
 		{
 			name:   "wildcard1",
 			host:   "www1.aces.wild.test",
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: false,
 		},
 		{
 			name:   "wildcard2",
 			host:   "www2.aces.wild.test",
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: false,
 		},
 	}
 
 	for _, tc := range tests {
-		route := &routeapi.Route{
+		route := &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      tc.name,
 				Namespace: "allow",
 			},
-			Spec: routeapi.RouteSpec{
+			Spec: routev1.RouteSpec{
 				Host:           tc.host,
 				WildcardPolicy: tc.policy,
 			},
@@ -142,7 +142,7 @@ func TestWildcardHostDeny(t *testing.T) {
 	tests := []struct {
 		name   string
 		host   string
-		policy routeapi.WildcardPolicyType
+		policy routev1.WildcardPolicyType
 		errors bool
 	}{
 		{
@@ -157,7 +157,7 @@ func TestWildcardHostDeny(t *testing.T) {
 		{
 			name:   "allowed2",
 			host:   "www.host.admission.test",
-			policy: routeapi.WildcardPolicyNone,
+			policy: routev1.WildcardPolicyNone,
 			errors: false,
 		},
 		{
@@ -168,25 +168,25 @@ func TestWildcardHostDeny(t *testing.T) {
 		{
 			name:   "anotherblockedhost",
 			host:   "api.wildcard." + BlockedTestDomain,
-			policy: routeapi.WildcardPolicyNone,
+			policy: routev1.WildcardPolicyNone,
 			errors: true,
 		},
 		{
 			name:   "blockedwildcard",
 			host:   "www.wildcard." + BlockedTestDomain,
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: true,
 		},
 		{
 			name:   "anotherblockedwildcard",
 			host:   "api.wildcard." + BlockedTestDomain,
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: true,
 		},
 		{
 			name:   "wildcard",
 			host:   "www.aces.wild.test",
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: false,
 		},
 		{
@@ -202,30 +202,30 @@ func TestWildcardHostDeny(t *testing.T) {
 		{
 			name:   "tldwildcard",
 			host:   "wild.test",
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: false,
 		},
 		{
 			name:   "tldwildcard2",
 			host:   "test.org",
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: false,
 		},
 		{
 			name:   "multilevelwildcard",
 			host:   "www.dept1.group2.div3.org4.com5.test",
-			policy: routeapi.WildcardPolicySubdomain,
+			policy: routev1.WildcardPolicySubdomain,
 			errors: false,
 		},
 	}
 
 	for _, tc := range tests {
-		route := &routeapi.Route{
+		route := &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      tc.name,
 				Namespace: "deny",
 			},
-			Spec: routeapi.RouteSpec{Host: tc.host},
+			Spec: routev1.RouteSpec{Host: tc.host},
 		}
 
 		err := admitter.HandleRoute(watch.Added, route)
@@ -249,15 +249,15 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 
 	oldest := metav1.Time{Time: time.Now()}
 
-	ownerRoute := &routeapi.Route{
+	ownerRoute := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: oldest,
 			Name:              "first",
 			Namespace:         "owner",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host:           "owner.namespace.test",
-			WildcardPolicy: routeapi.WildcardPolicySubdomain,
+			WildcardPolicy: routev1.WildcardPolicySubdomain,
 		},
 	}
 
@@ -271,7 +271,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 		name      string
 		namespace string
 		host      string
-		policy    routeapi.WildcardPolicyType
+		policy    routev1.WildcardPolicyType
 		reason    string
 	}{
 		{
@@ -288,14 +288,14 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "blockedhost2",
 			namespace: "blocked",
 			host:      "www.internal." + BlockedTestDomain,
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 			reason:    "RouteNotAdmitted",
 		},
 		{
 			name:      "blockedhostwildcard",
 			namespace: "blocked",
 			host:      "www.wildcard." + BlockedTestDomain,
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			reason:    "RouteNotAdmitted",
 		},
 		{
@@ -310,7 +310,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "diffnamespace2",
 			namespace: "notowner",
 			host:      "www.namespace.test",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 			reason:    "HostAlreadyClaimed",
 		},
 		{
@@ -318,7 +318,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "diffnamespacewildcard",
 			namespace: "notowner",
 			host:      "www.namespace.test",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			reason:    "HostAlreadyClaimed",
 		},
 		{
@@ -326,7 +326,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "diffns2",
 			namespace: "fortytwo",
 			host:      "www.namespace.test",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 			reason:    "HostAlreadyClaimed",
 		},
 		{
@@ -334,7 +334,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "host2diffns2",
 			namespace: "fortytwo",
 			host:      "api.namespace.test",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 			reason:    "HostAlreadyClaimed",
 		},
 		{
@@ -342,7 +342,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "host2diffns3",
 			namespace: "fortytwo",
 			host:      "api.namespace.test",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			reason:    "HostAlreadyClaimed",
 		},
 		{
@@ -356,7 +356,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "ownernswildcardhost",
 			namespace: "owner",
 			host:      "wild.namespace.test",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			reason:    "HostAlreadyClaimed",
 		},
 		{
@@ -368,31 +368,31 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "tldhost2",
 			namespace: "ns2",
 			host:      "ns2.org",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 		},
 		{
 			name:      "tldhostwildcard",
 			namespace: "wild",
 			host:      "wild.play",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 		},
 		{
 			name:      "anothertldhostwildcard",
 			namespace: "oscarwilde",
 			host:      "oscarwilde.com",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 		},
 		{
 			name:      "yatldhostwildcard",
 			namespace: "yap",
 			host:      "test.me",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 		},
 		{
 			name:      "yatldhost2",
 			namespace: "yap",
 			host:      "vinyl.play",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 		},
 		{
 			name:      "level2sub",
@@ -403,24 +403,24 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "level2sub2",
 			namespace: "l2s",
 			host:      "unit.co.us",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 		},
 		{
 			name:      "level2sub3",
 			namespace: "l2s",
 			host:      "qe.co.us",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 		},
 	}
 
 	for _, tc := range tests {
-		route := &routeapi.Route{
+		route := &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				CreationTimestamp: tc.createdAt,
 				Name:              tc.name,
 				Namespace:         tc.namespace,
 			},
-			Spec: routeapi.RouteSpec{
+			Spec: routev1.RouteSpec{
 				Host:           tc.host,
 				WildcardPolicy: tc.policy,
 			},
@@ -443,15 +443,15 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 		}
 	}
 
-	wildcardRoute := &routeapi.Route{
+	wildcardRoute := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Time{Time: oldest.Add(time.Hour)},
 			Name:              "wildcard-owner",
 			Namespace:         "owner",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host:           "wildcard.namespace.test",
-			WildcardPolicy: routeapi.WildcardPolicySubdomain,
+			WildcardPolicy: routev1.WildcardPolicySubdomain,
 		},
 	}
 
@@ -467,13 +467,13 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 
 	// bounce all the routes from the namespace "owner" and claim
 	// ownership of the subdomain for the namespace "bouncer".
-	bouncer := &routeapi.Route{
+	bouncer := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Time{Time: oldest.Add(-1 * time.Hour)},
 			Name:              "hosted",
 			Namespace:         "bouncer",
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host: "api.namespace.test",
 		},
 	}
@@ -484,7 +484,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	}
 
 	// The bouncer route should kick out the owner and wildcard routes.
-	bouncedRoutes := []*routeapi.Route{ownerRoute, wildcardRoute}
+	bouncedRoutes := []*routev1.Route{ownerRoute, wildcardRoute}
 	for _, route := range bouncedRoutes {
 		k := recorder.rejectionKey(route)
 		if recorder.rejections[k] != "HostAlreadyClaimed" {
@@ -496,7 +496,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 func TestValidRouteAdmissionFuzzing(t *testing.T) {
 	p := &fakePlugin{}
 
-	admitAll := func(route *routeapi.Route) error { return nil }
+	admitAll := func(route *routev1.Route) error { return nil }
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, false, recorder)
 
@@ -506,7 +506,7 @@ func TestValidRouteAdmissionFuzzing(t *testing.T) {
 		return metav1.Time{Time: oldest.Add(d)}
 	}
 
-	routes := []*routeapi.Route{
+	routes := []*routev1.Route{
 		makeRoute("ns1", "r1", "net", "", false, makeTime(0*time.Second)),
 		makeRoute("ns2", "r2", "com", "", false, makeTime(1*time.Second)),
 		makeRoute("ns3", "r3", "domain1.com", "", false, makeTime(2*time.Second)),
@@ -570,19 +570,19 @@ func TestValidRouteAdmissionFuzzing(t *testing.T) {
 	}
 }
 
-func makeRoute(ns, name, host, path string, wildcard bool, creationTimestamp metav1.Time) *routeapi.Route {
-	policy := routeapi.WildcardPolicyNone
+func makeRoute(ns, name, host, path string, wildcard bool, creationTimestamp metav1.Time) *routev1.Route {
+	policy := routev1.WildcardPolicyNone
 	if wildcard {
-		policy = routeapi.WildcardPolicySubdomain
+		policy = routev1.WildcardPolicySubdomain
 	}
-	return &routeapi.Route{
+	return &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              name,
 			Namespace:         ns,
 			CreationTimestamp: creationTimestamp,
 			UID:               types.UID(fmt.Sprintf("%d_%s_%s", creationTimestamp.Time.Unix(), ns, name)),
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host:           host,
 			Path:           path,
 			WildcardPolicy: policy,
@@ -593,7 +593,7 @@ func makeRoute(ns, name, host, path string, wildcard bool, creationTimestamp met
 func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 	p := &fakePlugin{}
 
-	admitAll := func(route *routeapi.Route) error { return nil }
+	admitAll := func(route *routev1.Route) error { return nil }
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, false, recorder)
 
@@ -604,7 +604,7 @@ func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 	}
 
 	routes := []struct {
-		Route    *routeapi.Route
+		Route    *routev1.Route
 		ErrIfInt sets.Int
 		ErrIf    sets.String
 	}{
@@ -781,25 +781,25 @@ func TestStatusWildcardPolicyNoOp(t *testing.T) {
 	c := fake.NewSimpleClientset()
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, recorder)
-	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
+	err := admitter.HandleRoute(watch.Added, &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host:           "wild.test.local",
-			WildcardPolicy: routeapi.WildcardPolicySubdomain,
+			WildcardPolicy: routev1.WildcardPolicySubdomain,
 		},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "wild.test.local",
 					RouterName: "wilder",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
-							Type:               routeapi.RouteAdmitted,
-							Status:             kapi.ConditionTrue,
+							Type:               routev1.RouteAdmitted,
+							Status:             corev1.ConditionTrue,
 							LastTransitionTime: &touched,
 						},
 					},
-					WildcardPolicy: routeapi.WildcardPolicySubdomain,
+					WildcardPolicy: routev1.WildcardPolicySubdomain,
 				},
 			},
 		},
@@ -819,25 +819,25 @@ func TestStatusWildcardPolicyNotAllowedNoOp(t *testing.T) {
 	c := fake.NewSimpleClientset()
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, false, false, recorder)
-	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
+	err := admitter.HandleRoute(watch.Added, &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host:           "wild.test.local",
 			WildcardPolicy: "nono",
 		},
-		Status: routeapi.RouteStatus{
-			Ingress: []routeapi.RouteIngress{
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
 				{
 					Host:       "wild.test.local",
 					RouterName: "wilder",
-					Conditions: []routeapi.RouteIngressCondition{
+					Conditions: []routev1.RouteIngressCondition{
 						{
 							Type:               "RouteNotAdmitted",
-							Status:             kapi.ConditionTrue,
+							Status:             corev1.ConditionTrue,
 							LastTransitionTime: &touched,
 						},
 					},
-					WildcardPolicy: routeapi.WildcardPolicyNone,
+					WildcardPolicy: routev1.WildcardPolicyNone,
 				},
 			},
 		},
@@ -853,7 +853,7 @@ func TestStatusWildcardPolicyNotAllowedNoOp(t *testing.T) {
 func TestDisableOwnershipChecksFuzzing(t *testing.T) {
 	p := &fakePlugin{}
 
-	admitAll := func(route *routeapi.Route) error { return nil }
+	admitAll := func(route *routev1.Route) error { return nil }
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	uniqueHostPlugin := NewUniqueHost(p, true, recorder)
 	admitter := NewHostAdmitter(uniqueHostPlugin, RouteAdmissionFunc(admitAll), true, true, recorder)
@@ -865,7 +865,7 @@ func TestDisableOwnershipChecksFuzzing(t *testing.T) {
 	}
 
 	routes := []struct {
-		Route    *routeapi.Route
+		Route    *routev1.Route
 		ErrIfInt sets.Int
 		ErrIf    sets.String
 	}{
@@ -1027,91 +1027,91 @@ func TestHandleNamespaceProcessing(t *testing.T) {
 		name      string
 		namespace string
 		host      string
-		policy    routeapi.WildcardPolicyType
+		policy    routev1.WildcardPolicyType
 		expected  bool
 	}{
 		{
 			name:      "expected",
 			namespace: "ns1",
 			host:      "update.expected.test",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 			expected:  true,
 		},
 		{
 			name:      "not-expected",
 			namespace: "updatemenot",
 			host:      "no-update.expected.test",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 			expected:  false,
 		},
 		{
 			name:      "expected-wild",
 			namespace: "ns1",
 			host:      "update.wild.expected.test",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			expected:  true,
 		},
 		{
 			name:      "not-expected-wild-not-owner",
 			namespace: "nsx",
 			host:      "second.wild.expected.test",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			expected:  false,
 		},
 		{
 			name:      "not-expected-wild",
 			namespace: "otherns",
 			host:      "noupdate.wild.expected.test",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			expected:  false,
 		},
 		{
 			name:      "expected-wild-other-subdomain",
 			namespace: "nsx",
 			host:      "host.third.wild.expected.test",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			expected:  true,
 		},
 		{
 			name:      "not-expected-plain-2",
 			namespace: "notallowed",
 			host:      "not.allowed.expected.test",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 			expected:  false,
 		},
 		{
 			name:      "not-expected-blocked",
 			namespace: "nsx",
 			host:      "blitz.domain.blocked.test",
-			policy:    routeapi.WildcardPolicyNone,
+			policy:    routev1.WildcardPolicyNone,
 			expected:  false,
 		},
 		{
 			name:      "not-expected-blocked-wildcard",
 			namespace: "ns2",
 			host:      "wild.blocked.domain.blocked.test",
-			policy:    routeapi.WildcardPolicySubdomain,
+			policy:    routev1.WildcardPolicySubdomain,
 			expected:  false,
 		},
 	}
 
 	for _, tc := range tests {
-		route := &routeapi.Route{
+		route := &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      tc.name,
 				Namespace: tc.namespace,
 				UID:       types.UID(tc.name),
 			},
-			Spec: routeapi.RouteSpec{
+			Spec: routev1.RouteSpec{
 				Host:           tc.host,
 				WildcardPolicy: tc.policy,
 			},
-			Status: routeapi.RouteStatus{
-				Ingress: []routeapi.RouteIngress{
+			Status: routev1.RouteStatus{
+				Ingress: []routev1.RouteIngress{
 					{
 						Host:           tc.host,
 						RouterName:     "nsproc",
-						Conditions:     []routeapi.RouteIngressCondition{},
+						Conditions:     []routev1.RouteIngressCondition{},
 						WildcardPolicy: tc.policy,
 					},
 				},

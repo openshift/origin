@@ -1,9 +1,10 @@
 package buildapihelpers
 
 import (
-	"github.com/openshift/origin/pkg/api/apihelpers"
-	buildinternalapi "github.com/openshift/origin/pkg/build/apis/build"
 	"k8s.io/apimachinery/pkg/util/validation"
+
+	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 )
 
 const (
@@ -12,11 +13,11 @@ const (
 )
 
 // GetBuildPodName returns name of the build pod.
-func GetBuildPodName(build *buildinternalapi.Build) string {
+func GetBuildPodName(build *buildv1.Build) string {
 	return apihelpers.GetPodName(build.Name, buildPodSuffix)
 }
 
-func StrategyType(strategy buildinternalapi.BuildStrategy) string {
+func StrategyType(strategy buildv1.BuildStrategy) string {
 	switch {
 	case strategy.DockerStrategy != nil:
 		return "Docker"

@@ -211,7 +211,7 @@ func TestImageWithMetadata(t *testing.T) {
 
 	for name, test := range tests {
 		imageWithMetadata := test.image
-		err := ImageWithMetadata(&imageWithMetadata)
+		err := InternalImageWithMetadata(&imageWithMetadata)
 		gotError := err != nil
 		if e, a := test.expectError, gotError; e != a {
 			t.Fatalf("%s: expectError=%t, gotError=%t: %s", name, e, a, err)

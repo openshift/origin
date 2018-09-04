@@ -395,8 +395,8 @@ func createHookPodManifest(hook *appsv1.LifecycleHook, rc *corev1.ReplicationCon
 				deploymentAnnotation: rc.Name,
 			},
 			Labels: map[string]string{
-				appsutil.DeployerPodForDeploymentLabel: rc.Name,
-				deploymentPodTypeLabel:                 hookType,
+				appsv1.DeployerPodForDeploymentLabel: rc.Name,
+				deploymentPodTypeLabel:               hookType,
 			},
 		},
 		Spec: corev1.PodSpec{

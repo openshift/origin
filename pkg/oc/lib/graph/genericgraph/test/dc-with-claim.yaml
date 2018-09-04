@@ -11,7 +11,7 @@ items:
    resources:
     requests:
       storage: 2Gi
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: broken

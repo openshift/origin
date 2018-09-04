@@ -45,7 +45,7 @@ func (imageStrategy) NamespaceScoped() bool {
 func (s imageStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	newImage := obj.(*imageapi.Image)
 	// ignore errors, change in place
-	if err := util.ImageWithMetadata(newImage); err != nil {
+	if err := util.InternalImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 	if newImage.Annotations[imageapi.ImageManifestBlobStoredAnnotation] == "true" {
@@ -124,7 +124,7 @@ func (s imageStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Ob
 		}
 	}
 
-	if err = util.ImageWithMetadata(newImage); err != nil {
+	if err = util.InternalImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 

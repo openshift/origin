@@ -4,9 +4,7 @@ Requires=network.target
 After=docker.target network.target
 
 [Service]
-ExecStartPre=/usr/local/bin/openshift-generate-node-config.sh
-ExecStart=/usr/local/bin/openshift start node --loglevel=4 \
-  --config=/var/lib/origin/openshift.local.config/node/node-config.yaml
+ExecStart=/usr/local/bin/openshift-node.sh
 WorkingDirectory=/var/lib/origin
 Restart=on-failure
 RestartSec=5

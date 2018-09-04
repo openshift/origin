@@ -3,9 +3,7 @@ reviewers:
   - smarterclayton
   - mfojtik
   - enj
-  - liggitt
   - soltysh
-  - jim-minter
   - knobunc
   - ironcladlou
   - squeed
@@ -19,7 +17,6 @@ approvers:
   - smarterclayton
   - mfojtik
   - enj
-  - liggitt
   - knobunc
   - ironcladlou
   - squeed

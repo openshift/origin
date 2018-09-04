@@ -249,11 +249,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					Name:      apihelpers.GetPodName(deploymentName, "hook"),
 					Namespace: "test",
 					Labels: map[string]string{
-						appsutil.DeployerPodForDeploymentLabel: deploymentName,
-						deploymentPodTypeLabel:                 "hook",
+						appsv1.DeployerPodForDeploymentLabel: deploymentName,
+						deploymentPodTypeLabel:               "hook",
 					},
 					Annotations: map[string]string{
-						appsutil.DeploymentAnnotation: deploymentName,
+						appsv1.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -326,11 +326,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					Name:      apihelpers.GetPodName(deploymentName, "hook"),
 					Namespace: "test",
 					Labels: map[string]string{
-						"openshift.io/deployer-pod.type":       "hook",
-						appsutil.DeployerPodForDeploymentLabel: deploymentName,
+						"openshift.io/deployer-pod.type":     "hook",
+						appsv1.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
-						appsutil.DeploymentAnnotation: deploymentName,
+						appsv1.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -387,13 +387,13 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					Name:      apihelpers.GetPodName(deploymentName, "hook"),
 					Namespace: "test",
 					Labels: map[string]string{
-						"openshift.io/deployer-pod.type":       "hook",
-						appsutil.DeployerPodForDeploymentLabel: deploymentName,
+						"openshift.io/deployer-pod.type":     "hook",
+						appsv1.DeployerPodForDeploymentLabel: deploymentName,
 						"label1": "value1",
 					},
 					Annotations: map[string]string{
-						appsutil.DeploymentAnnotation: deploymentName,
-						"annotation2":                 "value2",
+						appsv1.DeploymentAnnotation: deploymentName,
+						"annotation2":               "value2",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -437,7 +437,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			strategyLabels: map[string]string{
-				appsutil.DeployerPodForDeploymentLabel: "ignoredValue",
+				appsv1.DeployerPodForDeploymentLabel: "ignoredValue",
 				"label1": "value1",
 			},
 			strategyAnnotations: map[string]string{"annotation2": "value2"},
@@ -455,11 +455,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					Name:      apihelpers.GetPodName(deploymentName, "hook"),
 					Namespace: "test",
 					Labels: map[string]string{
-						deploymentPodTypeLabel:                 "hook",
-						appsutil.DeployerPodForDeploymentLabel: deploymentName,
+						deploymentPodTypeLabel:               "hook",
+						appsv1.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
-						appsutil.DeploymentAnnotation: deploymentName,
+						appsv1.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: corev1.PodSpec{
