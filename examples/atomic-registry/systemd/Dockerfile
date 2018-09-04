@@ -1,4 +1,4 @@
-#FROM registry.access.redhat.com/openshift3/ose
+#FROM registry.redhat.io/openshift3/ose
 FROM openshift/origin-control-plane
 
 LABEL name="projectatomic/atomic-registry-install" \

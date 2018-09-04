@@ -350,7 +350,7 @@ readonly extra_args=(
     # Test the previous OCP release
     # TODO - enable this once v3.9 ships, v3.7 didn't have a TSB image so it's
     # annoying to test.
-    #"--loglevel=4 --image=registry.access.redhat.com/openshift3/ose --tag=v3.7"
+    #"--loglevel=4 --image=registry.redhat.io/openshift3/ose --tag=v3.7"
 
     # Test the previous origin release
     # TODO - enable this once oc cluster up v3.9 supports modifiying cluster
