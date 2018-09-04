@@ -4,9 +4,6 @@ import (
 	"path"
 
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/tmpformac"
 )
@@ -35,19 +32,7 @@ func MakeOpenShiftAPIServerConfig(existingMasterConfig string, routingSuffix, ba
 	masterconfig.ServingInfo.CertFile = "/var/serving-cert/tls.crt"
 	masterconfig.ServingInfo.KeyFile = "/var/serving-cert/tls.key"
 
-	// default openshift image policy admission
-	if masterconfig.AdmissionConfig.PluginConfig == nil {
-		masterconfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{}
-	}
-
-	// Add default ImagePolicyConfig into openshift api master config
-	policyConfig := []byte(`{"kind":"ImagePolicyConfig","apiVersion":"v1","executionRules":[{"name":"execution-denied",
-"onResources":[{"resource":"pods"},{"resource":"builds"}],"reject":true,"matchImageAnnotations":[{"key":"images.openshift.io/deny-execution",
-"value":"true"}],"skipOnResolutionFailure":true}]}`)
-
-	masterconfig.AdmissionConfig.PluginConfig["openshift.io/ImagePolicy"] = &configapi.AdmissionPluginConfig{
-		Configuration: runtime.RawExtension{Raw: policyConfig},
-	}
+	addImagePolicyAdmission(&masterconfig.AdmissionConfig)
 
 	if err := componentinstall.WriteMasterConfig(masterconfigFilename, masterconfig); err != nil {
 		return "", err

@@ -6,11 +6,13 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/golang/glog"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const KubeAPIServerDirName = "kube-apiserver"
@@ -80,9 +82,25 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 		return "", err
 	}
 
+	addImagePolicyAdmission(&masterconfig.AdmissionConfig)
+
 	if err := componentinstall.WriteMasterConfig(masterconfigFilename, masterconfig); err != nil {
 		return "", err
 	}
 
 	return masterDir, nil
+}
+
+func addImagePolicyAdmission(admissionConfig *configapi.AdmissionConfig) {
+	// default openshift image policy admission
+	if admissionConfig.PluginConfig == nil {
+		admissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{}
+	}
+	// Add default ImagePolicyConfig into openshift api master config
+	policyConfig := []byte(`{"kind":"ImagePolicyConfig","apiVersion":"v1","executionRules":[{"name":"execution-denied",
+"onResources":[{"resource":"pods"},{"resource":"builds"}],"reject":true,"matchImageAnnotations":[{"key":"images.openshift.io/deny-execution",
+"value":"true"}],"skipOnResolutionFailure":true}]}`)
+	admissionConfig.PluginConfig["openshift.io/ImagePolicy"] = &configapi.AdmissionPluginConfig{
+		Configuration: runtime.RawExtension{Raw: policyConfig},
+	}
 }
