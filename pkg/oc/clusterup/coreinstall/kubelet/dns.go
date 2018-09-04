@@ -7,11 +7,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
-
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/tmpformac"
 )
 
-func MakeKubeDNSConfig(existingNodeConfig string, basedir string) (string, error) {
+func MakeKubeDNSConfig(existingNodeConfig string, basedir string, hostIP string) (string, error) {
 	configDir := path.Join(basedir, KubeDNSDirName)
 	glog.V(1).Infof("Copying kubelet config to local directory %s", configDir)
 	if err := tmpformac.CopyDirectory(existingNodeConfig, configDir); err != nil {
@@ -21,6 +20,8 @@ func MakeKubeDNSConfig(existingNodeConfig string, basedir string) (string, error
 	// update DNS resolution to point at the master (for now).  Do this by grabbing the local and prepending to it.
 	// this is probably broken somewhere for some reason and a bad idea of other reasons, but it gets us moving
 	if existingResolveConf, err := ioutil.ReadFile("/etc/resolv.conf"); err == nil {
+		// Transform references to localhost for users running dnsmasq locally or actually running DNS there
+		existingResolveConf = []byte(substitute(string(existingResolveConf), map[string]string{"127.0.0.1": hostIP, "localhost": hostIP}))
 		if err := ioutil.WriteFile(path.Join(configDir, "resolv.conf"), existingResolveConf, 0644); err != nil {
 			return "", err
 		}

@@ -437,7 +437,7 @@ func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) 
 }
 
 func (c *ClusterUpConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
-	return kubelet.MakeKubeDNSConfig(nodeConfig, c.BaseDir)
+	return kubelet.MakeKubeDNSConfig(nodeConfig, c.BaseDir, c.ServerIP)
 }
 
 func (c *ClusterUpConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
