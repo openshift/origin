@@ -20,8 +20,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
 	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 
@@ -454,8 +454,8 @@ func TestSpecificKind(t *testing.T) {
 	}
 	seed := int64(2703387474910584091) //rand.Int63()
 	for i := 0; i < fuzzIters; i++ {
-		fuzzInternalObject(t, configapiv1.LegacySchemeGroupVersion, item, seed)
-		roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.LegacySchemeGroupVersion), item)
+		fuzzInternalObject(t, legacyconfigv1.LegacySchemeGroupVersion, item, seed)
+		roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion), item)
 	}
 }
 
@@ -487,8 +487,8 @@ func TestTypes(t *testing.T) {
 			}
 			seed := rand.Int63()
 
-			fuzzInternalObject(t, configapiv1.LegacySchemeGroupVersion, item, seed)
-			roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.LegacySchemeGroupVersion), item)
+			fuzzInternalObject(t, legacyconfigv1.LegacySchemeGroupVersion, item, seed)
+			roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion), item)
 		}
 	}
 }
@@ -511,17 +511,17 @@ func TestSpecificRoundTrips(t *testing.T) {
 					},
 				},
 			},
-			to: configapiv1.LegacySchemeGroupVersion,
-			out: &configapiv1.MasterConfig{
+			to: legacyconfigv1.LegacySchemeGroupVersion,
+			out: &legacyconfigv1.MasterConfig{
 				TypeMeta: metav1.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
-				AdmissionConfig: configapiv1.AdmissionConfig{
-					PluginConfig: map[string]*configapiv1.AdmissionPluginConfig{
+				AdmissionConfig: legacyconfigv1.AdmissionConfig{
+					PluginConfig: map[string]*legacyconfigv1.AdmissionPluginConfig{
 						"test1": {Configuration: runtime.RawExtension{
-							Object: &configapiv1.LDAPSyncConfig{BindDN: "first"},
+							Object: &legacyconfigv1.LDAPSyncConfig{BindDN: "first"},
 							Raw:    []byte(`{"kind":"LDAPSyncConfig","apiVersion":"v1","url":"","bindDN":"first","bindPassword":"","insecure":false,"ca":"","groupUIDNameMapping":null}`),
 						}},
 						"test2": {Configuration: runtime.RawExtension{
-							Object: &configapiv1.LDAPSyncConfig{BindDN: "second"},
+							Object: &legacyconfigv1.LDAPSyncConfig{BindDN: "second"},
 							Raw:    []byte(`{"kind":"LDAPSyncConfig","apiVersion":"v1","bindDN":"second"}`),
 						}},
 						"test3": {Configuration: runtime.RawExtension{
@@ -531,9 +531,9 @@ func TestSpecificRoundTrips(t *testing.T) {
 						"test4": {},
 					},
 				},
-				VolumeConfig: configapiv1.MasterVolumeConfig{DynamicProvisioningEnabled: &boolFalse},
+				VolumeConfig: legacyconfigv1.MasterVolumeConfig{DynamicProvisioningEnabled: &boolFalse},
 			},
-			from: configapiv1.LegacySchemeGroupVersion,
+			from: legacyconfigv1.LegacySchemeGroupVersion,
 		},
 	}
 
