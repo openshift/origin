@@ -86,6 +86,7 @@ func NewRelease(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.
 
 	flag.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
 	flag.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
+	flag.StringVar(&o.ToImageBase, "to-image-base", o.ToImageBase, "If specified, the image to add the release layer on top of.")
 
 	return cmd
 }
@@ -102,8 +103,10 @@ type NewOptions struct {
 	FromImageStream string
 	Namespace       string
 
-	ToFile  string
-	ToImage string
+	ToFile string
+
+	ToImage     string
+	ToImageBase string
 
 	MaxPerRegistry int
 
@@ -424,6 +427,8 @@ func (o *NewOptions) Run() error {
 			toRef.Tag = o.Name
 		}
 		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+		options.From = o.ToImageBase
+		options.DropHistory = true
 		options.ConfigPatch = fmt.Sprintf(`{"Labels":{"io.openshift.release":"%s"}}`, is.Name)
 		options.MetaPatch = `{"architecture":"amd64","os":"Linux"}`
 		options.LayerStream = pr
