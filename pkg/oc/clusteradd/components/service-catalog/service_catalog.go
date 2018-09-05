@@ -120,7 +120,7 @@ func getServiceCatalogClusterRoles() []rbacv1.ClusterRole {
 				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
+				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings", "servicebrokers", "serviceclasses", "serviceplans").RuleOrDie(),
 				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").RuleOrDie(),
 			},
 		},
@@ -130,7 +130,7 @@ func getServiceCatalogClusterRoles() []rbacv1.ClusterRole {
 				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-edit": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
+				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings", "servicebrokers", "serviceclasses", "serviceplans").RuleOrDie(),
 				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").RuleOrDie(),
 			},
 		},
@@ -140,7 +140,7 @@ func getServiceCatalogClusterRoles() []rbacv1.ClusterRole {
 				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule("get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
+				rbacv1helpers.NewRule("get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings", "servicebrokers", "serviceclasses", "serviceplans").RuleOrDie(),
 			},
 		},
 		{
