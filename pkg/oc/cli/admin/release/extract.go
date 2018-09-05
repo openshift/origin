@@ -2,6 +2,7 @@ package release
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -62,6 +63,9 @@ func (o *ExtractOptions) Run() error {
 	}
 
 	dir := o.Directory
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
 
 	src := o.From
 	ref, err := imagereference.Parse(src)
@@ -70,6 +74,7 @@ func (o *ExtractOptions) Run() error {
 	}
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.OnlyFiles = true
+	opts.RemovePermissions = true
 	opts.Mappings = []extract.Mapping{
 		{
 			ImageRef: ref,
@@ -80,9 +85,9 @@ func (o *ExtractOptions) Run() error {
 	}
 	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
 		if len(ref.ID) > 0 {
-			fmt.Fprintf(o.Out, "Extracted release payload from %s created at %s\n", ref, config.Created.Format(time.RFC3339))
+			fmt.Fprintf(o.Out, "Extracted release payload created at %s\n", config.Created.Format(time.RFC3339))
 		} else {
-			fmt.Fprintf(o.Out, "Extracted release payload from %s (digest %s) created at %s\n", ref, dgst, config.Created.Format(time.RFC3339))
+			fmt.Fprintf(o.Out, "Extracted release payload from digest %s created at %s\n", dgst, config.Created.Format(time.RFC3339))
 		}
 	}
 	if err := opts.Run(); err != nil {
