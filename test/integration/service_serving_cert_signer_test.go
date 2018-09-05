@@ -12,11 +12,11 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
-	"github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert"
+	"github.com/openshift/service-ca/pkg/controller/servingcert"
 )
 
 func TestServiceServingCertSigner(t *testing.T) {
-	ns := "service-serving-cert-signer"
+	ns := "service-ca"
 
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
@@ -31,7 +31,7 @@ func TestServiceServingCertSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := testserver.CreateNewProject(clusterAdminConfig, "service-serving-cert-signer", "deads"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminConfig, "service-ca", "deads"); err != nil {
 		t.Fatal(err)
 	}
 

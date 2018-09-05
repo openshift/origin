@@ -17708,14 +17708,14 @@ objects:
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
-    name: system:openshift:operator:service-cert-signer
+    name: system:openshift:operator:service-ca
   roleRef:
     kind: ClusterRole
     name: cluster-admin
   subjects:
   - kind: ServiceAccount
     namespace: ${NAMESPACE}
-    name: openshift-service-cert-signer-operator
+    name: openshift-service-ca-operator
 `)
 
 func installOpenshiftServiceCertSignerOperatorInstallRbacYamlBytes() ([]byte, error) {
@@ -17737,7 +17737,7 @@ var _installOpenshiftServiceCertSignerOperatorInstallYaml = []byte(`apiVersion: 
 kind: Template
 parameters:
 - name: IMAGE
-  value: openshift/origin-service-serving-cert-signer:latest
+  value: openshift/origin-service-ca:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
 - name: NAMESPACE
@@ -17772,7 +17772,7 @@ objects:
   kind: ConfigMap
   metadata:
     namespace: ${NAMESPACE}
-    name: openshift-service-cert-signer-operator-config
+    name: openshift-service-ca-operator-config
   data:
     operator-config.yaml: |
       apiVersion: operator.openshift.io/v1alpha1
@@ -17782,26 +17782,26 @@ objects:
   kind: Deployment
   metadata:
     namespace: ${NAMESPACE}
-    name: openshift-service-cert-signer-operator
+    name: openshift-service-ca-operator
     labels:
-      app: openshift-service-cert-signer-operator
+      app: openshift-service-ca-operator
   spec:
     replicas: 1
     selector:
       matchLabels:
-        app: openshift-service-cert-signer-operator
+        app: openshift-service-ca-operator
     template:
       metadata:
-        name: openshift-service-cert-signer-operator
+        name: openshift-service-ca-operator
         labels:
-          app: openshift-service-cert-signer-operator
+          app: openshift-service-ca-operator
       spec:
-        serviceAccountName: openshift-service-cert-signer-operator
+        serviceAccountName: openshift-service-ca-operator
         containers:
         - name: operator
-          image: openshift/origin-service-serving-cert-signer:v3.11
+          image: openshift/origin-service-ca:v3.11
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["service-serving-cert-signer", "operator"]
+          command: ["service-ca", "operator"]
           args:
           - "--config=/var/run/configmaps/config/operator-config.yaml"
           - "-v=4"
@@ -17812,20 +17812,20 @@ objects:
         - name: serving-cert
           secret:
             defaultMode: 400
-            secretName: openshift-service-cert-signer-operator-serving-cert
+            secretName: openshift-service-ca-operator-serving-cert
             optional: true
         - name: config
           configMap:
             defaultMode: 440
-            name: openshift-service-cert-signer-operator-config
+            name: openshift-service-ca-operator-config
 
 - apiVersion: v1
   kind: ServiceAccount
   metadata:
     namespace: ${NAMESPACE}
-    name: openshift-service-cert-signer-operator
+    name: openshift-service-ca-operator
     labels:
-      app: openshift-service-cert-signer-operator
+      app: openshift-service-ca-operator
 
 - apiVersion: servicecertsigner.config.openshift.io/v1alpha1
   kind: ServiceCertSignerOperatorConfig
@@ -17833,7 +17833,7 @@ objects:
     name: instance
   spec:
     managementState: Managed
-    imagePullSpec: openshift/origin-service-serving-cert-signer:v3.11
+    imagePullSpec: openshift/origin-service-ca:v3.11
     version: 3.10.0
     logging:
       level: 4

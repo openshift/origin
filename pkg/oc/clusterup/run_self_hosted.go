@@ -89,13 +89,13 @@ var (
 			},
 		},
 		{
-			ComponentImage: "service-serving-cert-signer",
+			ComponentImage: "service-ca",
 			Template: componentinstall.Template{
-				Name:            "openshift-service-cert-signer-operator",
+				Name:            "openshift-service-ca-operator",
 				Namespace:       "openshift-core-operators",
 				NamespaceObj:    newNamespaceBytes("openshift-core-operators", runlevelOneLabel),
-				RBACTemplate:    manifests.MustAsset("install/openshift-service-cert-signer-operator/install-rbac.yaml"),
-				InstallTemplate: manifests.MustAsset("install/openshift-service-cert-signer-operator/install.yaml"),
+				RBACTemplate:    manifests.MustAsset("install/openshift-service-ca-operator/install-rbac.yaml"),
+				InstallTemplate: manifests.MustAsset("install/openshift-service-ca-operator/install.yaml"),
 			},
 		},
 	}

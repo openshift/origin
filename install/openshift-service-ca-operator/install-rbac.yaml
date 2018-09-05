@@ -16,11 +16,11 @@ objects:
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
-    name: system:openshift:operator:service-cert-signer
+    name: system:openshift:operator:service-ca
   roleRef:
     kind: ClusterRole
     name: cluster-admin
   subjects:
   - kind: ServiceAccount
     namespace: ${NAMESPACE}
-    name: openshift-service-cert-signer-operator
+    name: openshift-service-ca-operator
