@@ -231,18 +231,15 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
 					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
 
-					// TODO: Investigate why is this failing.
-					/*
-						g.By("starting a build without a --from-xxxx value")
-						br, err = exutil.StartBuildAndWait(oc, "sample-build-binary")
-						o.Expect(br.StartBuildErr).To(o.HaveOccurred())
-						o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("has no valid source inputs"))
+					g.By("starting a build without a --from-xxxx value")
+					br, err = exutil.StartBuildAndWait(oc, "sample-build-binary")
+					o.Expect(br.StartBuildErr).To(o.HaveOccurred())
+					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("has no valid source inputs"))
 
-						g.By("starting a build from an existing binary build")
-						br, err = exutil.StartBuildAndWait(oc, "sample-build-binary", fmt.Sprintf("--from-build=%s", "sample-build-binary-1"))
-						o.Expect(br.StartBuildErr).To(o.HaveOccurred())
-						o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("has no valid source inputs"))
-					*/
+					g.By("starting a build from an existing binary build")
+					br, err = exutil.StartBuildAndWait(oc, "sample-build-binary", fmt.Sprintf("--from-build=%s", "sample-build-binary-1"))
+					o.Expect(br.StartBuildErr).To(o.HaveOccurred())
+					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("has no valid source inputs"))
 				})
 
 				g.It("shoud accept --from-file with https URL as an input", func() {
