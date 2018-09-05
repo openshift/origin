@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -487,6 +488,14 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%[1]s:%[1]s:rslave", hostVolumeDir))
 	}
 	container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%[1]s:%[1]s", dockerRoot))
+	if os.Getenv("DOCKERCFG_PATH") != "" {
+		container.Environment = append(container.Environment, fmt.Sprintf("DOCKERCFG_PATH=%s", os.Getenv("DOCKERCFG_PATH")))
+	} else if currentUser, err := user.Current(); err == nil {
+		var cfgPath string
+		cfgPath = filepath.Join(currentUser.HomeDir, ".docker", "config.json")
+		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/root/.docker/config.json", cfgPath))
+		glog.Infof("docker config path %s", cfgPath)
+	}
 	// Kubelet needs to be able to write to
 	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
 	container.ContainerBinds = append(container.ContainerBinds, "/sys/devices/virtual/net:/sys/devices/virtual/net:rw")
