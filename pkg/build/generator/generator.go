@@ -864,6 +864,9 @@ func generateBuildFromBuild(build *buildv1.Build, buildConfig *buildv1.BuildConf
 		},
 	}
 	// TODO remove/update this when we support cloning binary builds
+	// we need to explicitly set type to empty string so that this does not get
+	// defaulted to non-empty binary build
+	newBuild.Spec.Source.Type = ""
 	newBuild.Spec.Source.Binary = nil
 	if newBuild.Annotations == nil {
 		newBuild.Annotations = make(map[string]string)
@@ -946,6 +949,9 @@ func setBuildSource(binary *buildv1.BinaryBuildSource, build *buildv1.Build) {
 		}
 	} else {
 		// must explicitly set this because we copied the source values from the buildconfig.
+		// we need to explicitly set type to empty string so that this does not get
+		// defaulted to non-empty binary build
+		build.Spec.Source.Type = ""
 		build.Spec.Source.Binary = nil
 	}
 }
