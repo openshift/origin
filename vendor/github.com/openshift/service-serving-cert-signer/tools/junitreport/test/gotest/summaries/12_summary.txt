@@ -1,5 +1,0 @@
-Of 13 tests executed in 0.077s, 12 succeeded, 0 failed, and 1 was skipped.
-
-In suite "k8s.io/kubernetes/plugin/pkg/auth/authorizer/node", test case "TestPopulationMemoryUsage" was skipped:
-node_authorizer_test.go:169: Skipping large population test. Run with TEST_POPULATION_MEMORY_USAGE=true to output memory profiles.
-

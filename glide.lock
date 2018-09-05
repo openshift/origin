@@ -991,11 +991,6 @@ imports:
   - pkg/operator/resource/resourcemerge
   - pkg/operator/v1alpha1helpers
   - pkg/serviceability
-- name: github.com/openshift/service-serving-cert-signer
-  version: c2e19f18e28faa64433bc7ef634325eed8cd8a45
-  subpackages:
-  - pkg/controller/servingcert
-  - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
   version: ac6dc9858fa90b751686436fea9a951f183c79bb
   subpackages:

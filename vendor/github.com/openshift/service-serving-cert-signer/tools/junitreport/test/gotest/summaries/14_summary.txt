@@ -1,9 +1,0 @@
-Of 4 tests executed in 0.019s, 2 succeeded, 2 failed, and 0 were skipped.
-
-In suite "parser/gotest", test case "TestSubTestWithFailures" failed:
-
-
-In suite "parser/gotest", test case "TestSubTestWithFailures/subtest-fail-1" failed:
-data_parser_test.go:14: log line
-data_parser_test.go:14: failed
-
