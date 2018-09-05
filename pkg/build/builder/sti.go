@@ -51,13 +51,19 @@ type validator interface {
 }
 
 // runtimeBuilderFactory is the default implementation of stiBuilderFactory
-type runtimeBuilderFactory struct{}
+type runtimeBuilderFactory struct {
+	dockerClient DockerClient
+}
 
 // Builder delegates execution to S2I-specific code
-func (_ runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error) {
-	client, err := docker.NewEngineAPIClient(config.DockerConfig)
-	if err != nil {
-		return nil, s2iapi.BuildInfo{}, err
+func (r runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error) {
+	var client docker.Client
+	var err error
+	if _, ok := r.dockerClient.(*dockerclient.Client); ok {
+		client, err = docker.NewEngineAPIClient(config.DockerConfig)
+		if err != nil {
+			return nil, s2iapi.BuildInfo{}, err
+		}
 	}
 	builder, buildInfo, err := s2i.Strategy(client, config, overrides)
 	return builder, buildInfo, err
@@ -86,7 +92,7 @@ type S2IBuilder struct {
 func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build,
 	cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
-	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
+	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{dockerClient}, runtimeConfigValidator{}, cgLimits)
 }
 
 // newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
@@ -233,7 +239,7 @@ func (s *S2IBuilder) Build() error {
 	config.PullAuthentication = s2iapi.AuthConfig{Username: t.Username, Password: t.Password, Email: t.Email, ServerAddress: t.ServerAddress}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull || !isImagePresent(s.dockerClient, config.BuilderImage) {
-		err = dockerPullImage(s.dockerClient, config.BuilderImage, t)
+		err = s.pullImage(config.BuilderImage, t)
 		if err != nil {
 			return err
 		}
@@ -349,10 +355,8 @@ func (s *S2IBuilder) Build() error {
 		opts.AuthConfigs = *pullAuthConfigs
 	}
 
-	glog.Infof("Using imagebuilder to create image %s", buildTag)
 	startTime := metav1.Now()
-	err = buildDirectImage("/tmp/dockercontext", false, &opts)
-	// err = dockerBuildImage(s.dockerClient, "/tmp/dockercontext", tar.New(s2ifs.NewFileSystem()), &opts)
+	err = s.buildImage("/tmp/dockercontext", buildapiv1.ImageOptimizationNone, &opts)
 	timing.RecordNewStep(ctx, buildapiv1.StageBuild, buildapiv1.StepDockerBuild, startTime, metav1.Now())
 	if err != nil {
 		// TODO: Create new error states
@@ -396,8 +400,8 @@ func (s *S2IBuilder) Build() error {
 			glog.V(3).Infof("No push secret provided")
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
-		startTime = metav1.Now()
-		digest, err := dockerPushImage(s.dockerClient, pushTag, pushAuthConfig)
+		startTime := metav1.Now()
+		digest, err := s.pushImage(pushTag, pushAuthConfig)
 
 		timing.RecordNewStep(ctx, buildapiv1.StagePushImage, buildapiv1.StepPushImage, startTime, metav1.Now())
 
@@ -438,6 +442,38 @@ func (s *S2IBuilder) setupPullSecret() (*dockerclient.AuthConfigurations, error)
 		return nil, fmt.Errorf("'%s': %s", dockercfgPath, err)
 	}
 	return dockerclient.NewAuthConfigurations(r)
+}
+
+func (s *S2IBuilder) pullImage(name string, authConfig dockerclient.AuthConfiguration) error {
+	repository, tag := dockerclient.ParseRepositoryTag(name)
+	options := dockerclient.PullImageOptions{
+		Repository: repository,
+		Tag:        tag,
+	}
+	return s.dockerClient.PullImage(options, authConfig)
+}
+
+func (s *S2IBuilder) buildImage(contextdir string, optimization buildapiv1.ImageOptimizationPolicy, opts *dockerclient.BuildImageOptions) error {
+	if _, ok := s.dockerClient.(*dockerclient.Client); ok {
+		glog.Infof("Using imagebuilder to create image %s", opts.Name)
+		return buildDirectImage(contextdir, false, opts)
+		// return buildImage(s.dockerClient, "/tmp/dockercontext", tar.New(s2ifs.NewFileSystem()), &opts)
+	}
+	if dc, ok := s.dockerClient.(*DaemonlessClient); ok {
+		glog.Infof("Using buildah to create image %s", opts.Name)
+		return buildDaemonlessImage(dc.SystemContext, dc.Store, dc.Isolation, contextdir, optimization, opts)
+	}
+	return s.dockerClient.BuildImage(*opts)
+}
+
+func (s *S2IBuilder) pushImage(name string, authConfig dockerclient.AuthConfiguration) (string, error) {
+	repository, tag := dockerclient.ParseRepositoryTag(name)
+	options := dockerclient.PushImageOptions{
+		Name: repository,
+		Tag:  tag,
+	}
+	err := s.dockerClient.PushImage(options, authConfig)
+	return "", err
 }
 
 // buildEnvVars returns a map with build metadata to be inserted into Docker
