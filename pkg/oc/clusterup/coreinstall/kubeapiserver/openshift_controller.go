@@ -24,10 +24,8 @@ func MakeOpenShiftControllerConfig(existingMasterConfig string, basedir string) 
 	}
 	masterconfig.ServingInfo.BindAddress = "0.0.0.0:8444"
 
-	// disable the service serving cert signer because that runs in a separate pod now
 	masterconfig.ControllerConfig.Controllers = []string{
 		"*",
-		"-openshift.io/service-serving-cert",
 	}
 
 	if err := componentinstall.WriteMasterConfig(masterconfigFilename, masterconfig); err != nil {
