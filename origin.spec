@@ -303,6 +303,7 @@ do
 done
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
+install -d -m 0755 %{buildroot}%{_sysconfdir}/kubernetes/manifests
 
 # stub filed required to ensure config is not reverted during upgrades
 install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
@@ -391,6 +392,7 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
+%dir %{_sysconfdir}/kubernetes/manifests
 
 %preun node
 %systemd_preun %{name}-node.service
