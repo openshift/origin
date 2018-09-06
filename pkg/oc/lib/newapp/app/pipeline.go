@@ -8,6 +8,10 @@ import (
 
 	"github.com/golang/glog"
 
+	kappsv1 "k8s.io/api/apps/v1"
+	kappsv1beta2 "k8s.io/api/apps/v1beta2"
+	corev1 "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,15 +19,15 @@ import (
 	kuval "k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
-	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/api/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
@@ -43,7 +47,7 @@ type PipelineBuilder interface {
 // The pipelines created with a PipelineBuilder will have access to the given
 // environment. The boolean outputDocker controls whether builds will output to
 // an image stream tag or docker image reference.
-func NewPipelineBuilder(name string, environment Environment, dockerStrategyOptions *buildapi.DockerStrategyOptions, outputDocker bool) PipelineBuilder {
+func NewPipelineBuilder(name string, environment Environment, dockerStrategyOptions *buildv1.DockerStrategyOptions, outputDocker bool) PipelineBuilder {
 	return &pipelineBuilder{
 		nameGenerator:         NewUniqueNameGenerator(name),
 		environment:           environment,
@@ -57,7 +61,7 @@ type pipelineBuilder struct {
 	environment           Environment
 	outputDocker          bool
 	to                    string
-	dockerStrategyOptions *buildapi.DockerStrategyOptions
+	dockerStrategyOptions *buildv1.DockerStrategyOptions
 }
 
 func (pb *pipelineBuilder) To(name string) PipelineBuilder {
@@ -310,7 +314,7 @@ func makeValidServiceName(name string) (string, string) {
 	return name, ""
 }
 
-type sortablePorts []kapi.ContainerPort
+type sortablePorts []corev1.ContainerPort
 
 func (s sortablePorts) Len() int      { return len(s) }
 func (s sortablePorts) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
@@ -320,23 +324,22 @@ func (s sortablePorts) Less(i, j int) bool {
 
 // portName returns a unique key for the given port and protocol which can be
 // used as a service port name.
-func portName(port int, protocol kapi.Protocol) string {
+func portName(port int, protocol corev1.Protocol) string {
 	if protocol == "" {
-		protocol = kapi.ProtocolTCP
+		protocol = corev1.ProtocolTCP
 	}
 	return strings.ToLower(fmt.Sprintf("%d-%s", port, protocol))
 }
 
-// GenerateService creates a simple service for the provided elements.
-func GenerateService(meta metav1.ObjectMeta, selector map[string]string) *kapi.Service {
+func GenerateService(meta metav1.ObjectMeta, selector map[string]string) *corev1.Service {
 	name, generateName := makeValidServiceName(meta.Name)
-	svc := &kapi.Service{
+	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         name,
 			GenerateName: generateName,
 			Labels:       meta.Labels,
 		},
-		Spec: kapi.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Selector: selector,
 		},
 	}
@@ -344,8 +347,8 @@ func GenerateService(meta metav1.ObjectMeta, selector map[string]string) *kapi.S
 }
 
 // AllContainerPorts creates a sorted list of all ports in all provided containers.
-func AllContainerPorts(containers ...kapi.Container) []kapi.ContainerPort {
-	var ports []kapi.ContainerPort
+func AllContainerPorts(containers ...corev1.Container) []corev1.ContainerPort {
+	var ports []corev1.ContainerPort
 	for _, container := range containers {
 		ports = append(ports, container.Ports...)
 	}
@@ -354,8 +357,8 @@ func AllContainerPorts(containers ...kapi.Container) []kapi.ContainerPort {
 }
 
 // UniqueContainerToServicePorts creates one service port for each unique container port.
-func UniqueContainerToServicePorts(ports []kapi.ContainerPort) []kapi.ServicePort {
-	var result []kapi.ServicePort
+func UniqueContainerToServicePorts(ports []corev1.ContainerPort) []corev1.ServicePort {
+	var result []corev1.ServicePort
 	svcPorts := map[string]struct{}{}
 	for _, p := range ports {
 		name := portName(int(p.ContainerPort), p.Protocol)
@@ -364,7 +367,7 @@ func UniqueContainerToServicePorts(ports []kapi.ContainerPort) []kapi.ServicePor
 			continue
 		}
 		svcPorts[name] = struct{}{}
-		result = append(result, kapi.ServicePort{
+		result = append(result, corev1.ServicePort{
 			Name:       name,
 			Port:       p.ContainerPort,
 			Protocol:   p.Protocol,
@@ -379,13 +382,23 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 	svcs := []runtime.Object{}
 	for _, o := range objects {
 		switch t := o.(type) {
-		case *appsapi.DeploymentConfig:
-			svc := addServiceInternal(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Selector, firstPortOnly)
+		case *appsv1.DeploymentConfig:
+			svc := addService(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Selector, firstPortOnly)
 			if svc != nil {
 				svcs = append(svcs, svc)
 			}
-		case *extensions.DaemonSet:
-			svc := addServiceInternal(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Template.Labels, firstPortOnly)
+		case *kappsv1.DaemonSet:
+			svc := addService(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Template.Labels, firstPortOnly)
+			if svc != nil {
+				svcs = append(svcs, svc)
+			}
+		case *extensionsv1beta1.DaemonSet:
+			svc := addService(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Template.Labels, firstPortOnly)
+			if svc != nil {
+				svcs = append(svcs, svc)
+			}
+		case *kappsv1beta2.DaemonSet:
+			svc := addService(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Template.Labels, firstPortOnly)
 			if svc != nil {
 				svcs = append(svcs, svc)
 			}
@@ -395,7 +408,7 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 }
 
 // addServiceInternal utility used by AddServices to create services for multiple types.
-func addServiceInternal(containers []kapi.Container, objectMeta metav1.ObjectMeta, selector map[string]string, firstPortOnly bool) *kapi.Service {
+func addService(containers []corev1.Container, objectMeta metav1.ObjectMeta, selector map[string]string, firstPortOnly bool) *corev1.Service {
 	ports := UniqueContainerToServicePorts(AllContainerPorts(containers...))
 	if len(ports) == 0 {
 		return nil
@@ -482,7 +495,7 @@ func NewAcceptUnique(typer runtime.ObjectTyper) Acceptor {
 
 type acceptNonExistentImageStream struct {
 	typer     runtime.ObjectTyper
-	getter    imageclient.ImageInterface
+	getter    imagev1typedclient.ImageV1Interface
 	namespace string
 }
 
@@ -501,7 +514,7 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 	if !(image.Kind("ImageStream") == gk || legacy.Kind("ImageStream") == gk) {
 		return true
 	}
-	is, ok := from.(*imageapi.ImageStream)
+	is, ok := from.(*imagev1.ImageStream)
 	if !ok {
 		glog.V(4).Infof("type cast to image stream %#v not right for an unanticipated reason", from)
 		return true
@@ -521,7 +534,7 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 // NewAcceptNonExistentImageStream creates an acceptor that accepts an object
 // if it is either a) not an ImageStream, or b) an ImageStream which does not
 // yet exist in the api server
-func NewAcceptNonExistentImageStream(typer runtime.ObjectTyper, getter imageclient.ImageInterface, namespace string) Acceptor {
+func NewAcceptNonExistentImageStream(typer runtime.ObjectTyper, getter imagev1typedclient.ImageV1Interface, namespace string) Acceptor {
 	return &acceptNonExistentImageStream{
 		typer:     typer,
 		getter:    getter,
@@ -531,7 +544,7 @@ func NewAcceptNonExistentImageStream(typer runtime.ObjectTyper, getter imageclie
 
 type acceptNonExistentImageStreamTag struct {
 	typer     runtime.ObjectTyper
-	getter    imageclient.ImageInterface
+	getter    imagev1typedclient.ImageV1Interface
 	namespace string
 }
 
@@ -550,7 +563,7 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 	if !(image.Kind("ImageStreamTag") == gk || legacy.Kind("ImageStreamTag") == gk) {
 		return true
 	}
-	ist, ok := from.(*imageapi.ImageStreamTag)
+	ist, ok := from.(*imagev1.ImageStreamTag)
 	if !ok {
 		glog.V(4).Infof("type cast to imagestreamtag %#v not right for an unanticipated reason", from)
 		return true
@@ -570,7 +583,7 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 // NewAcceptNonExistentImageStreamTag creates an acceptor that accepts an object
 // if it is either a) not an ImageStreamTag, or b) an ImageStreamTag which does not
 // yet exist in the api server
-func NewAcceptNonExistentImageStreamTag(typer runtime.ObjectTyper, getter imageclient.ImageInterface, namespace string) Acceptor {
+func NewAcceptNonExistentImageStreamTag(typer runtime.ObjectTyper, getter imagev1typedclient.ImageV1Interface, namespace string) Acceptor {
 	return &acceptNonExistentImageStreamTag{
 		typer:     typer,
 		getter:    getter,

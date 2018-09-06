@@ -9,13 +9,16 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 // DockerClient is the local interface for the docker client
@@ -124,7 +127,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 		sort.Sort(termMatches)
 
 		for i, match := range termMatches {
-			if match.Image != nil {
+			if match.DockerImage != nil {
 				continue
 			}
 
@@ -146,7 +149,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				Name:        match.Value,
 				Description: descriptionFor(dockerImage, match.Value, ref.Registry, ""),
 				Score:       match.Score,
-				Image:       dockerImage,
+				DockerImage: dockerImage,
 				ImageTag:    ref.Tag,
 				Insecure:    r.Insecure,
 				Meta:        map[string]string{"registry": ref.Registry},
@@ -187,7 +190,7 @@ func (r MissingImageSearcher) Search(precise bool, terms ...string) (ComponentMa
 }
 
 type ImageImportSearcher struct {
-	Client        imageclient.ImageStreamImportInterface
+	Client        imagev1client.ImageStreamImportInterface
 	AllowInsecure bool
 	Fallback      Searcher
 }
@@ -200,15 +203,15 @@ func (s ImageImportSearcher) Type() string {
 // using secrets stored on the server.
 func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	var errs []error
-	isi := &imageapi.ImageStreamImport{}
+	isi := &imagev1.ImageStreamImport{}
 	for _, term := range terms {
 		if term == "__imageimport_fail" {
 			errs = append(errs, fmt.Errorf("unable to find the specified docker import: %s", term))
 			continue
 		}
-		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
-			From:         kapi.ObjectReference{Kind: "DockerImage", Name: term},
-			ImportPolicy: imageapi.TagImportPolicy{Insecure: s.AllowInsecure},
+		isi.Spec.Images = append(isi.Spec.Images, imagev1.ImageImportSpec{
+			From:         corev1.ObjectReference{Kind: "DockerImage", Name: term},
+			ImportPolicy: imagev1.TagImportPolicy{Insecure: s.AllowInsecure},
 		})
 	}
 	isi.Name = "newapp"
@@ -253,13 +256,23 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 			ref.Registry = "Docker Hub"
 		}
 
+		if err := imageutil.ImageWithMetadata(image.Image); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		dockerImage, ok := image.Image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+		if !ok {
+			continue
+		}
+
 		match := &ComponentMatch{
 			Value:       term,
 			Argument:    fmt.Sprintf("--docker-image=%q", term),
 			Name:        term,
-			Description: descriptionFor(&image.Image.DockerImageMetadata, term, ref.Registry, ref.Tag),
+			Description: descriptionFor(dockerImage, term, ref.Registry, ref.Tag),
 			Score:       0,
-			Image:       &image.Image.DockerImageMetadata,
+			DockerImage: dockerImage,
 			ImageTag:    ref.Tag,
 			Insecure:    s.AllowInsecure,
 			Meta:        map[string]string{"registry": ref.Registry, "direct-tag": "1"},
@@ -344,7 +357,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 			Name:        term,
 			Description: descriptionFor(dockerImage, term, ref.Registry, ref.Tag),
 			Score:       0,
-			Image:       dockerImage,
+			DockerImage: dockerImage,
 			ImageTag:    ref.Tag,
 			Insecure:    r.AllowInsecure,
 			Meta:        map[string]string{"registry": ref.Registry},
@@ -356,7 +369,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 	return componentMatches, errs
 }
 
-func descriptionFor(image *imageapi.DockerImage, value, from string, tag string) string {
+func descriptionFor(image *dockerv10.DockerImage, value, from string, tag string) string {
 	if len(from) == 0 {
 		from = "local"
 	}

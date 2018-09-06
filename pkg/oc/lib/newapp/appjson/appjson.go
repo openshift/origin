@@ -10,16 +10,17 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilerrs "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
@@ -81,7 +82,7 @@ type Generator struct {
 }
 
 // Generate accepts a path to an app.json file and generates a template from it
-func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
+func (g *Generator) Generate(body []byte) (*templatev1.Template, error) {
 	appJSON := &AppJSON{}
 	if err := json.Unmarshal(body, appJSON); err != nil {
 		return nil, err
@@ -94,7 +95,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 		name = filepath.Base(g.LocalPath)
 	}
 
-	template := &templateapi.Template{}
+	template := &templatev1.Template{}
 	template.Name = name
 	template.Annotations = make(map[string]string)
 	template.Annotations["openshift.io/website"] = appJSON.Website
@@ -120,7 +121,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 		displayName := v.Name
 		displayName = strings.Join(strings.Split(strings.ToLower(displayName), "_"), " ")
 		displayName = strings.ToUpper(displayName[:1]) + displayName[1:]
-		param := templateapi.Parameter{
+		param := templatev1.Parameter{
 			Name:        v.Name,
 			DisplayName: displayName,
 			Description: e.Description,
@@ -246,10 +247,10 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 
 		inputImage := pipelines[0].Image
 
-		inputImage.ContainerFn = func(c *kapi.Container) {
+		inputImage.ContainerFn = func(c *corev1.Container) {
 			for _, s := range ports {
 				if port, err := strconv.Atoi(s); err == nil {
-					c.Ports = append(c.Ports, kapi.ContainerPort{ContainerPort: int32(port)})
+					c.Ports = append(c.Ports, corev1.ContainerPort{ContainerPort: int32(port)})
 				}
 			}
 			if len(formation.Command) > 0 {
@@ -302,10 +303,10 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 	}
 
 	// create services for each object with a name based on alias.
-	var services []*kapi.Service
+	var services []*corev1.Service
 	for _, obj := range objects {
 		switch t := obj.(type) {
-		case *appsapi.DeploymentConfig:
+		case *appsv1.DeploymentConfig:
 			ports := app.UniqueContainerToServicePorts(app.AllContainerPorts(t.Spec.Template.Spec.Containers...))
 			if len(ports) == 0 {
 				continue
@@ -319,7 +320,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 		objects = append(objects, svc)
 	}
 
-	template.Objects = objects
+	template.Objects = appObjectsToTemplateObjects(objects)
 
 	// generate warnings
 	warnUnusableAppJSONElements("app.json", appJSON, warnings)
@@ -335,6 +336,24 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 	}
 
 	return template, nil
+}
+
+func appObjectsToTemplateObjects(objs []runtime.Object) []runtime.RawExtension {
+	rawObjs := []runtime.RawExtension{}
+	for _, o := range objs {
+		raw, err := json.Marshal(o)
+		if err != nil {
+			glog.V(1).Infof("error marshaling app object to raw bytes: %v", err)
+			continue
+		}
+
+		rawObjs = append(rawObjs, runtime.RawExtension{
+			Raw:    raw,
+			Object: o,
+		})
+	}
+
+	return rawObjs
 }
 
 // warnUnusableAppJSONElements add warnings for unsupported elements in the provided service config
@@ -368,44 +387,44 @@ func checkForPorts(repo *app.SourceRepository) []string {
 // resourcesForProfile takes standard Heroku sizes described here:
 // https://devcenter.heroku.com/articles/dyno-types#available-dyno-types and turns them into
 // Kubernetes resource requests.
-func resourcesForProfile(profile string) kapi.ResourceRequirements {
+func resourcesForProfile(profile string) corev1.ResourceRequirements {
 	profile = strings.ToLower(profile)
 	switch profile {
 	case "standard-2x":
-		return kapi.ResourceRequirements{
-			Limits: kapi.ResourceList{
-				kapi.ResourceCPU:    resource.MustParse("200m"),
-				kapi.ResourceMemory: resource.MustParse("1Gi"),
+		return corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("200m"),
+				corev1.ResourceMemory: resource.MustParse("1Gi"),
 			},
 		}
 	case "performance-m":
-		return kapi.ResourceRequirements{
-			Requests: kapi.ResourceList{
-				kapi.ResourceCPU: resource.MustParse("500m"),
+		return corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU: resource.MustParse("500m"),
 			},
-			Limits: kapi.ResourceList{
-				kapi.ResourceCPU:    resource.MustParse("500m"),
-				kapi.ResourceMemory: resource.MustParse("2.5Gi"),
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("500m"),
+				corev1.ResourceMemory: resource.MustParse("2.5Gi"),
 			},
 		}
 	case "performance-l":
-		return kapi.ResourceRequirements{
-			Requests: kapi.ResourceList{
-				kapi.ResourceCPU:    resource.MustParse("1"),
-				kapi.ResourceMemory: resource.MustParse("2G"),
+		return corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("1"),
+				corev1.ResourceMemory: resource.MustParse("2G"),
 			},
-			Limits: kapi.ResourceList{
-				kapi.ResourceCPU:    resource.MustParse("2"),
-				kapi.ResourceMemory: resource.MustParse("14Gi"),
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("2"),
+				corev1.ResourceMemory: resource.MustParse("14Gi"),
 			},
 		}
 	case "free", "hobby", "standard":
 		fallthrough
 	default:
-		return kapi.ResourceRequirements{
-			Limits: kapi.ResourceList{
-				kapi.ResourceCPU:    resource.MustParse("100m"),
-				kapi.ResourceMemory: resource.MustParse("512Mi"),
+		return corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+				corev1.ResourceMemory: resource.MustParse("512Mi"),
 			},
 		}
 	}

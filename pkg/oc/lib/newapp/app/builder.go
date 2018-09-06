@@ -6,7 +6,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/errors"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 var s2iEnvironmentNames = []string{"STI_LOCATION", "STI_SCRIPTS_URL", "STI_BUILDER"}
@@ -15,7 +17,7 @@ const s2iScriptsLabel = "io.openshift.s2i.scripts-url"
 
 // IsBuilderImage checks whether the provided Docker image is
 // a builder image or not
-func IsBuilderImage(image *imageapi.DockerImage) bool {
+func IsBuilderImage(image *dockerv10.DockerImage) bool {
 	if image == nil || image.Config == nil {
 		return false
 	}
@@ -36,24 +38,22 @@ func IsBuilderImage(image *imageapi.DockerImage) bool {
 
 // IsBuilderStreamTag checks whether the provided image stream tag is
 // a builder image or not
-func IsBuilderStreamTag(stream *imageapi.ImageStream, tag string) bool {
+func IsBuilderStreamTag(stream *imagev1.ImageStream, tag string) bool {
 	if stream == nil {
 		return false
 	}
+
 	// Has the tag annotation
-	if tag, ok := stream.Spec.Tags[tag]; ok {
-		tags := tag.Annotations["tags"]
-		for _, s := range strings.Split(tags, ",") {
-			if strings.TrimSpace(s) == "builder" {
-				return true
-			}
-		}
+	t, hasTag := imageutil.SpecHasTag(stream, tag)
+	if !hasTag {
+		return false
 	}
-	return false
+
+	return imageutil.HasAnnotationTag(&t, "builder")
 }
 
 func IsBuilderMatch(match *ComponentMatch) bool {
-	if match.Image != nil && IsBuilderImage(match.Image) {
+	if match.DockerImage != nil && IsBuilderImage(match.DockerImage) {
 		return true
 	}
 	if match.ImageStream != nil && IsBuilderStreamTag(match.ImageStream, match.ImageTag) {
@@ -64,7 +64,7 @@ func IsBuilderMatch(match *ComponentMatch) bool {
 
 // isGeneratorJobImage checks whether the provided Docker image is
 // installable
-func isGeneratorJobImage(image *imageapi.DockerImage) bool {
+func isGeneratorJobImage(image *dockerv10.DockerImage) bool {
 	if image == nil || image.Config == nil {
 		return false
 	}
@@ -77,17 +77,17 @@ func isGeneratorJobImage(image *imageapi.DockerImage) bool {
 
 // isGeneratorJobImageStreamTag checks whether the provided image stream tag is
 // installable
-func isGeneratorJobImageStreamTag(stream *imageapi.ImageStream, tag string) bool {
+func isGeneratorJobImageStreamTag(stream *imagev1.ImageStream, tag string) bool {
 	if stream == nil {
 		return false
 	}
 	// Has the job annotation
-	if tag, ok := stream.Spec.Tags[tag]; ok {
-		if tag.Annotations[labelGenerateJob] == "true" {
-			return true
-		}
+	t, hasTag := imageutil.SpecHasTag(stream, tag)
+	if !hasTag {
+		return false
 	}
-	return false
+
+	return t.Annotations[labelGenerateJob] == "true"
 }
 
 func parseGenerateTokenAs(value string) (*TokenInput, error) {
@@ -140,10 +140,10 @@ func GeneratorInputFromMatch(match *ComponentMatch) (GeneratorInput, error) {
 	input := GeneratorInput{}
 	errs := []error{}
 
-	if match.Image != nil && match.Image.Config != nil {
-		input.Job = isGeneratorJobImage(match.Image)
+	if match.DockerImage != nil && match.DockerImage.Config != nil {
+		input.Job = isGeneratorJobImage(match.DockerImage)
 
-		if value, ok := match.Image.Config.Labels[labelGenerateTokenAs]; ok {
+		if value, ok := match.DockerImage.Config.Labels[labelGenerateTokenAs]; ok {
 			if token, err := parseGenerateTokenAs(value); err != nil {
 				errs = append(errs, err)
 			} else {
@@ -155,8 +155,8 @@ func GeneratorInputFromMatch(match *ComponentMatch) (GeneratorInput, error) {
 	if match.ImageStream != nil {
 		input.Job = isGeneratorJobImageStreamTag(match.ImageStream, match.ImageTag)
 
-		if tag, ok := match.ImageStream.Spec.Tags[match.ImageTag]; ok {
-			if value, ok := tag.Annotations[labelGenerateTokenAs]; ok {
+		if t, hasTag := imageutil.SpecHasTag(match.ImageStream, match.ImageTag); hasTag {
+			if value, ok := t.Annotations[labelGenerateTokenAs]; ok {
 				if token, err := parseGenerateTokenAs(value); err != nil {
 					errs = append(errs, err)
 				} else {

@@ -6,12 +6,14 @@ import (
 	"sort"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	dockerv10 "github.com/openshift/api/image/docker10"
 	oapi "github.com/openshift/origin/pkg/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
@@ -58,7 +60,7 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 	case match == nil:
 		return ""
 	case match.ImageStream != nil:
-		if image := match.Image; image != nil {
+		if image := match.DockerImage; image != nil {
 			shortID := imageapi.ShortDockerImageID(image, 7)
 			if !image.Created.IsZero() {
 				shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
@@ -66,8 +68,8 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 			return fmt.Sprintf("Found image %s in image stream %q under tag %q for %q", shortID, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), match.ImageTag, refInput)
 		}
 		return fmt.Sprintf("Found tag :%s in image stream %q for %q", match.ImageTag, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), refInput)
-	case match.Image != nil:
-		image := match.Image
+	case match.DockerImage != nil:
+		image := match.DockerImage
 		shortID := imageapi.ShortDockerImageID(image, 7)
 		if !image.Created.IsZero() {
 			shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
@@ -83,19 +85,17 @@ func inputAnnotations(match *app.ComponentMatch) map[string]string {
 		return nil
 	}
 	base := make(map[string]string)
-	if image := match.Image; image != nil {
+	if image := match.DockerImage; image != nil {
 		if image.Config != nil {
 			for k, v := range image.Config.Labels {
 				base[k] = v
 			}
 		}
 	}
-	if stream := match.ImageStream; stream != nil {
-		if len(match.ImageTag) > 0 {
-			if ref, ok := stream.Spec.Tags[match.ImageTag]; ok {
-				for k, v := range ref.Annotations {
-					base[k] = v
-				}
+	if stream := match.ImageStream; stream != nil && len(match.ImageTag) > 0 {
+		if t, hasTag := imageutil.SpecHasTag(stream, match.ImageTag); hasTag {
+			for k, v := range t.Annotations {
+				base[k] = v
 			}
 		}
 	}
@@ -212,11 +212,11 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 			}
 		}
 	}
-	if match != nil && match.Image != nil {
+	if match != nil && match.DockerImage != nil {
 		if pipeline.Deployment != nil {
 			ports := sets.NewString()
-			if match.Image.Config != nil {
-				for k := range match.Image.Config.ExposedPorts {
+			if match.DockerImage.Config != nil {
+				for k := range match.DockerImage.Config.ExposedPorts {
 					ports.Insert(k)
 				}
 			}
@@ -242,11 +242,11 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				}
 				fmt.Fprintf(out, "      * Other containers can access this service through the hostname %q\n", pipeline.Deployment.Name)
 			}
-			if hasEmptyDir(match.Image) {
+			if hasEmptyDir(match.DockerImage) {
 				fmt.Fprintf(out, "    * This image declares volumes and will default to use non-persistent, host-local storage.\n")
 				fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
 			}
-			if hasRootUser(match.Image) {
+			if hasRootUser(match.DockerImage) {
 				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", match.Name)
 			}
 		}
@@ -254,21 +254,21 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 	fmt.Fprintln(out)
 }
 
-func hasRootUser(image *imageapi.DockerImage) bool {
+func hasRootUser(image *dockerv10.DockerImage) bool {
 	if image.Config == nil {
 		return false
 	}
 	return len(image.Config.User) == 0 || image.Config.User == "root" || image.Config.User == "0"
 }
 
-func hasEmptyDir(image *imageapi.DockerImage) bool {
+func hasEmptyDir(image *dockerv10.DockerImage) bool {
 	if image.Config == nil {
 		return false
 	}
 	return len(image.Config.Volumes) > 0
 }
 
-func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.Pod, secret *kapi.Secret, baseNamespace string) {
+func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *corev1.Pod, secret *corev1.Secret, baseNamespace string) {
 	refInput := ref.Input()
 	generatorInput := refInput.ResolvedMatch.GeneratorInput
 	hasToken := generatorInput.Token != nil

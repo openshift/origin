@@ -3,16 +3,16 @@ package app
 import (
 	"strings"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	imagev1 "github.com/openshift/api/image/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 )
 
-func templateScorer(template templateapi.Template, term string) (float32, bool) {
+func templateScorer(template templatev1.Template, term string) (float32, bool) {
 	score := stringProximityScorer(template.Name, term)
 	return score, score < 0.3
 }
 
-func imageStreamScorer(imageStream imageapi.ImageStream, term string) (float32, bool) {
+func imageStreamScorer(imageStream imagev1.ImageStream, term string) (float32, bool) {
 	score := stringProximityScorer(imageStream.Name, term)
 	return score, score < 0.3
 }

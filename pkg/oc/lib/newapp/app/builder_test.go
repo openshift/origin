@@ -4,24 +4,25 @@ import (
 	"reflect"
 	"testing"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
 )
 
 func TestIsBuilderImage(t *testing.T) {
 	tests := map[string]struct {
-		image          *imageapi.DockerImage
+		image          *dockerv10.DockerImage
 		expectedReturn bool
 	}{
 		"nil image": {
 			expectedReturn: false,
 		},
 		"nil config": {
-			image:          &imageapi.DockerImage{Config: nil},
+			image:          &dockerv10.DockerImage{Config: nil},
 			expectedReturn: false,
 		},
 		"has label": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerv10.DockerImage{
+				Config: &dockerv10.DockerConfig{
 					Labels: map[string]string{
 						s2iScriptsLabel: "",
 					},
@@ -30,32 +31,32 @@ func TestIsBuilderImage(t *testing.T) {
 			expectedReturn: true,
 		},
 		"has legacy environment STI_LOCATION": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerv10.DockerImage{
+				Config: &dockerv10.DockerConfig{
 					Env: []string{"STI_LOCATION="},
 				},
 			},
 			expectedReturn: true,
 		},
 		"has legacy environment STI_SCRIPTS_URL": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerv10.DockerImage{
+				Config: &dockerv10.DockerConfig{
 					Env: []string{"STI_SCRIPTS_URL="},
 				},
 			},
 			expectedReturn: true,
 		},
 		"has legacy environment STI_BUILDER": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerv10.DockerImage{
+				Config: &dockerv10.DockerConfig{
 					Env: []string{"STI_BUILDER="},
 				},
 			},
 			expectedReturn: true,
 		},
 		"not an sti builder": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{},
+			image: &dockerv10.DockerImage{
+				Config: &dockerv10.DockerConfig{},
 			},
 			expectedReturn: false,
 		},
@@ -70,7 +71,7 @@ func TestIsBuilderImage(t *testing.T) {
 
 func TestIsBuilderStreamTag(t *testing.T) {
 	tests := map[string]struct {
-		stream         *imageapi.ImageStream
+		stream         *imagev1.ImageStream
 		tag            string
 		expectedReturn bool
 	}{
@@ -80,10 +81,11 @@ func TestIsBuilderStreamTag(t *testing.T) {
 			expectedReturn: false,
 		},
 		"not a builder": {
-			stream: &imageapi.ImageStream{
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"foo": {
+			stream: &imagev1.ImageStream{
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name: "foo",
 							Annotations: map[string]string{
 								"tags": "a,b,c",
 							},
@@ -95,10 +97,11 @@ func TestIsBuilderStreamTag(t *testing.T) {
 			expectedReturn: false,
 		},
 		"is a builder": {
-			stream: &imageapi.ImageStream{
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"foo": {
+			stream: &imagev1.ImageStream{
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name: "foo",
 							Annotations: map[string]string{
 								"tags": "a,b,c,builder",
 							},
@@ -125,8 +128,8 @@ func TestIsBuilderMatch(t *testing.T) {
 	}{
 		"match on image": {
 			match: &ComponentMatch{
-				Image: &imageapi.DockerImage{
-					Config: &imageapi.DockerConfig{
+				DockerImage: &dockerv10.DockerImage{
+					Config: &dockerv10.DockerConfig{
 						Labels: map[string]string{
 							s2iScriptsLabel: "",
 						},
@@ -137,10 +140,11 @@ func TestIsBuilderMatch(t *testing.T) {
 		},
 		"match on stream": {
 			match: &ComponentMatch{
-				ImageStream: &imageapi.ImageStream{
-					Spec: imageapi.ImageStreamSpec{
-						Tags: map[string]imageapi.TagReference{
-							"foo": {
+				ImageStream: &imagev1.ImageStream{
+					Spec: imagev1.ImageStreamSpec{
+						Tags: []imagev1.TagReference{
+							{
+								Name: "foo",
 								Annotations: map[string]string{
 									"tags": "a,b,c,builder",
 								},
@@ -154,13 +158,14 @@ func TestIsBuilderMatch(t *testing.T) {
 		},
 		"no match": {
 			match: &ComponentMatch{
-				Image: &imageapi.DockerImage{
-					Config: &imageapi.DockerConfig{},
+				DockerImage: &dockerv10.DockerImage{
+					Config: &dockerv10.DockerConfig{},
 				},
-				ImageStream: &imageapi.ImageStream{
-					Spec: imageapi.ImageStreamSpec{
-						Tags: map[string]imageapi.TagReference{
-							"foo": {
+				ImageStream: &imagev1.ImageStream{
+					Spec: imagev1.ImageStreamSpec{
+						Tags: []imagev1.TagReference{
+							{
+								Name: "foo",
 								Annotations: map[string]string{
 									"tags": "a,b,c",
 								},
@@ -181,19 +186,19 @@ func TestIsBuilderMatch(t *testing.T) {
 
 func TestIsGeneratorJobImage(t *testing.T) {
 	tests := map[string]struct {
-		image       *imageapi.DockerImage
+		image       *dockerv10.DockerImage
 		expectedRet bool
 	}{
 		"nil image": {expectedRet: false},
 		"nil config": {
-			image: &imageapi.DockerImage{
+			image: &dockerv10.DockerImage{
 				Config: nil,
 			},
 			expectedRet: false,
 		},
 		"match": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerv10.DockerImage{
+				Config: &dockerv10.DockerConfig{
 					Labels: map[string]string{
 						labelGenerateJob: "true",
 					},
@@ -202,8 +207,8 @@ func TestIsGeneratorJobImage(t *testing.T) {
 			expectedRet: true,
 		},
 		"no match": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{},
+			image: &dockerv10.DockerImage{
+				Config: &dockerv10.DockerConfig{},
 			},
 			expectedRet: false,
 		},
@@ -217,7 +222,7 @@ func TestIsGeneratorJobImage(t *testing.T) {
 
 func TestIsGeneratorJobImageStreamTag(t *testing.T) {
 	tests := map[string]struct {
-		stream      *imageapi.ImageStream
+		stream      *imagev1.ImageStream
 		tag         string
 		expectedRet bool
 	}{
@@ -226,10 +231,11 @@ func TestIsGeneratorJobImageStreamTag(t *testing.T) {
 			expectedRet: false,
 		},
 		"match": {
-			stream: &imageapi.ImageStream{
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"foo": {
+			stream: &imagev1.ImageStream{
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name: "foo",
 							Annotations: map[string]string{
 								labelGenerateJob: "true",
 							},
@@ -241,10 +247,11 @@ func TestIsGeneratorJobImageStreamTag(t *testing.T) {
 			expectedRet: true,
 		},
 		"no match": {
-			stream: &imageapi.ImageStream{
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"foo": {
+			stream: &imagev1.ImageStream{
+				Spec: imagev1.ImageStreamSpec{
+					Tags: []imagev1.TagReference{
+						{
+							Name:        "foo",
 							Annotations: map[string]string{},
 						},
 					},

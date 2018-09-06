@@ -6,12 +6,15 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/source-to-image/pkg/scm/git"
@@ -72,7 +75,7 @@ func TestBuildConfigNoOutput(t *testing.T) {
 	if config.Name != "origin" {
 		t.Errorf("unexpected name: %#v", config)
 	}
-	if !reflect.DeepEqual(config.Spec.Output, buildapi.BuildOutput{}) {
+	if !reflect.DeepEqual(config.Spec.Output, buildv1.BuildOutput{}) {
 		t.Errorf("unexpected build output: %#v", config.Spec.Output)
 	}
 }
@@ -82,9 +85,9 @@ func TestBuildConfigWithSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	source := &SourceRef{URL: url, Secrets: []buildapi.SecretBuildSource{
-		{Secret: kapi.LocalObjectReference{Name: "foo"}, DestinationDir: "/var"},
-		{Secret: kapi.LocalObjectReference{Name: "bar"}},
+	source := &SourceRef{URL: url, Secrets: []buildv1.SecretBuildSource{
+		{Secret: corev1.LocalObjectReference{Name: "foo"}, DestinationDir: "/var"},
+		{Secret: corev1.LocalObjectReference{Name: "bar"}},
 	}}
 	build := &BuildRef{Source: source}
 	config, err := build.BuildConfig()
@@ -102,9 +105,9 @@ func TestBuildConfigWithConfigMaps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	source := &SourceRef{URL: url, ConfigMaps: []buildapi.ConfigMapBuildSource{
-		{ConfigMap: kapi.LocalObjectReference{Name: "foo"}, DestinationDir: "/var"},
-		{ConfigMap: kapi.LocalObjectReference{Name: "bar"}},
+	source := &SourceRef{URL: url, ConfigMaps: []buildv1.ConfigMapBuildSource{
+		{ConfigMap: corev1.LocalObjectReference{Name: "foo"}, DestinationDir: "/var"},
+		{ConfigMap: corev1.LocalObjectReference{Name: "bar"}},
 	}}
 	build := &BuildRef{Source: source}
 	config, err := build.BuildConfig()
@@ -133,10 +136,10 @@ func TestBuildConfigBinaryWithImageSource(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	for _, trigger := range config.Spec.Triggers {
-		if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+		if trigger.Type == buildv1.ImageChangeBuildTriggerType {
 			t.Fatalf("binary build should not have any imagechangetriggers")
 		}
-		if trigger.Type == buildapi.ConfigChangeBuildTriggerType {
+		if trigger.Type == buildv1.ConfigChangeBuildTriggerType {
 			t.Fatalf("binary build should not have a buildconfig change trigger")
 		}
 
@@ -161,10 +164,10 @@ func TestBuildConfigWithImageSource(t *testing.T) {
 	foundICT := false
 	foundCCT := false
 	for _, trigger := range config.Spec.Triggers {
-		if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+		if trigger.Type == buildv1.ImageChangeBuildTriggerType {
 			foundICT = true
 		}
-		if trigger.Type == buildapi.ConfigChangeBuildTriggerType {
+		if trigger.Type == buildv1.ConfigChangeBuildTriggerType {
 			foundCCT = true
 		}
 	}
@@ -255,19 +258,21 @@ func TestImageStream(t *testing.T) {
 	tests := []struct {
 		name        string
 		r           *ImageRef
-		expectedIs  *imageapi.ImageStream
+		expectedIs  *imagev1.ImageStream
 		expectedErr error
 	}{
 		{
 			name: "existing image stream",
 			r: &ImageRef{
-				Stream: &imageapi.ImageStream{
+				Stream: &imagev1.ImageStream{
+					TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "some-stream",
 					},
 				},
 			},
-			expectedIs: &imageapi.ImageStream{
+			expectedIs: &imagev1.ImageStream{
+				TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "some-stream",
 				},
@@ -281,11 +286,12 @@ func TestImageStream(t *testing.T) {
 					Name:      "input",
 				},
 			},
-			expectedIs: &imageapi.ImageStream{
+			expectedIs: &imagev1.ImageStream{
+				TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "input",
 				},
-				Spec: imageapi.ImageStreamSpec{
+				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "test/input",
 				},
 			},
@@ -299,14 +305,15 @@ func TestImageStream(t *testing.T) {
 				},
 				Insecure: true,
 			},
-			expectedIs: &imageapi.ImageStream{
+			expectedIs: &imagev1.ImageStream{
+				TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "insecure",
 					Annotations: map[string]string{
 						imageapi.InsecureRepositoryAnnotation: "true",
 					},
 				},
-				Spec: imageapi.ImageStreamSpec{
+				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "test/insecure",
 				},
 			},
@@ -320,7 +327,8 @@ func TestImageStream(t *testing.T) {
 				},
 				OutputImage: true,
 			},
-			expectedIs: &imageapi.ImageStream{
+			expectedIs: &imagev1.ImageStream{
+				TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "output",
 				},

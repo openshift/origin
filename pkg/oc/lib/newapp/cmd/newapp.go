@@ -12,24 +12,30 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	authv1 "github.com/openshift/api/authorization/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	routev1typedclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/dockerfile"
@@ -37,9 +43,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
 	"github.com/openshift/origin/pkg/oc/util/env"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
-	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
-	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
+	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 	outil "github.com/openshift/origin/pkg/util"
 )
 
@@ -115,10 +119,10 @@ type AppConfig struct {
 	Out    io.Writer
 	ErrOut io.Writer
 
-	KubeClient     kclientset.Interface
-	ImageClient    imageclient.ImageInterface
-	RouteClient    routeclient.RouteInterface
-	TemplateClient templateclient.TemplateInterface
+	KubeClient     kubernetes.Interface
+	ImageClient    imagev1typedclient.ImageV1Interface
+	RouteClient    routev1typedclient.RouteV1Interface
+	TemplateClient templatev1typedclient.TemplateV1Interface
 
 	Resolvers
 
@@ -215,7 +219,7 @@ func (c *AppConfig) ensureDockerSearch() {
 }
 
 // SetOpenShiftClient sets the passed OpenShift client in the application configuration
-func (c *AppConfig) SetOpenShiftClient(imageClient imageclient.ImageInterface, templateClient templateclient.TemplateInterface, routeClient routeclient.RouteInterface, OriginNamespace string, dockerclient *docker.Client) {
+func (c *AppConfig) SetOpenShiftClient(imageClient imagev1typedclient.ImageV1Interface, templateClient templatev1typedclient.TemplateV1Interface, routeClient routev1typedclient.RouteV1Interface, OriginNamespace string, dockerclient *docker.Client) {
 	c.OriginNamespace = OriginNamespace
 	namespaces := []string{OriginNamespace}
 	if openshiftNamespace := "openshift"; OriginNamespace != openshiftNamespace {
@@ -225,10 +229,9 @@ func (c *AppConfig) SetOpenShiftClient(imageClient imageclient.ImageInterface, t
 	c.RouteClient = routeClient
 	c.TemplateClient = templateClient
 	c.ImageStreamSearcher = app.ImageStreamSearcher{
-		Client:            c.ImageClient,
-		ImageStreamImages: c.ImageClient,
-		Namespaces:        namespaces,
-		AllowMissingTags:  c.AllowMissingImageStreamTags,
+		Client:           c.ImageClient,
+		Namespaces:       namespaces,
+		AllowMissingTags: c.AllowMissingImageStreamTags,
 	}
 	c.ImageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(
 		c.ImageClient,
@@ -415,9 +418,9 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		return nil, err
 	}
 
-	var DockerStrategyOptions *buildapi.DockerStrategyOptions
+	var DockerStrategyOptions *buildv1.DockerStrategyOptions
 	if len(c.BuildArgs) > 0 {
-		DockerStrategyOptions = &buildapi.DockerStrategyOptions{
+		DockerStrategyOptions = &buildv1.DockerStrategyOptions{
 			BuildArgs: buildArgs,
 		}
 	}
@@ -520,7 +523,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 }
 
 // buildTemplates converts a set of resolved, valid references into references to template objects.
-func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment, buildEnvironment app.Environment, templateProcessor templateinternalclient.TemplateProcessorInterface) (string, []runtime.Object, error) {
+func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment, buildEnvironment app.Environment, templateProcessor templateclientv1.TemplateProcessorInterface) (string, []runtime.Object, error) {
 	objects := []runtime.Object{}
 	name := ""
 	for _, ref := range components {
@@ -530,24 +533,29 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameter
 		if len(c.ContextDir) > 0 {
 			return "", nil, fmt.Errorf("--context-dir is not supported when using a template")
 		}
-		result, err := TransformTemplateInternal(tpl, templateProcessor, c.OriginNamespace, parameters, c.IgnoreUnknownParameters)
+		result, err := TransformTemplate(tpl, templateProcessor, c.OriginNamespace, parameters, c.IgnoreUnknownParameters)
 		if err != nil {
 			return name, nil, err
 		}
 		if len(name) == 0 {
 			name = tpl.Name
 		}
-		objects = append(objects, result.Objects...)
-		if len(result.Objects) > 0 {
+		resultObjects, err := templateObjectsToAppObjects(result.Objects)
+		if err != nil {
+			return "", nil, err
+		}
+
+		objects = append(objects, resultObjects...)
+		if len(resultObjects) > 0 {
 			// if environment variables were passed in, let's apply the environment variables
 			// to every pod template object
-			for _, obj := range result.Objects {
-				if bc, ok := obj.(*buildapi.BuildConfig); ok {
+			for _, obj := range resultObjects {
+				if bc, ok := obj.(*buildv1.BuildConfig); ok {
 					buildEnv := getBuildConfigEnv(bc)
 					buildEnv = app.JoinEnvironment(buildEnv, buildEnvironment.List())
 					setBuildConfigEnv(bc, buildEnv)
 				}
-				podSpec, _, err := ometa.GetPodSpec(obj)
+				podSpec, _, err := ometa.GetPodSpecV1(obj)
 				if err == nil {
 					for ii := range podSpec.Containers {
 						if podSpec.Containers[ii].Env != nil {
@@ -634,16 +642,22 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 
 	serviceAccountName := "installer"
 	if token != nil && token.ServiceAccount {
-		if _, err := c.KubeClient.Core().ServiceAccounts(c.OriginNamespace).Get(serviceAccountName, metav1.GetOptions{}); err != nil {
+		if _, err := c.KubeClient.CoreV1().ServiceAccounts(c.OriginNamespace).Get(serviceAccountName, metav1.GetOptions{}); err != nil {
 			if kerrors.IsNotFound(err) {
 				objects = append(objects,
 					// create a new service account
-					&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: serviceAccountName}},
+					&corev1.ServiceAccount{
+						// this is ok because we know exactly how we want to be serialized
+						TypeMeta:   metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "ServiceAccount"},
+						ObjectMeta: metav1.ObjectMeta{Name: serviceAccountName},
+					},
 					// grant the service account the edit role on the project (TODO: installer)
-					&authapi.RoleBinding{
+					&authv1.RoleBinding{
+						// this is ok because we know exactly how we want to be serialized
+						TypeMeta:   metav1.TypeMeta{APIVersion: authv1.SchemeGroupVersion.String(), Kind: "RoleBinding"},
 						ObjectMeta: metav1.ObjectMeta{Name: "installer-role-binding"},
-						Subjects:   []kapi.ObjectReference{{Kind: "ServiceAccount", Name: serviceAccountName}},
-						RoleRef:    kapi.ObjectReference{Name: "edit"},
+						Subjects:   []corev1.ObjectReference{{Kind: "ServiceAccount", Name: serviceAccountName}},
+						RoleRef:    corev1.ObjectReference{Name: "edit"},
 					},
 				)
 			}
@@ -738,12 +752,13 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 				if match.ImageStream != nil {
 					objects = append(objects, match.ImageStream)
 				}
-				if match.Image != nil {
-					objects = append(objects, match.Image)
+				if match.DockerImage != nil {
+					objects = append(objects, match.DockerImage)
 				}
 			}
 		}
 	}
+
 	return &QueryResult{
 		Matches: matches,
 		List:    &kapi.List{Items: objects},
@@ -785,6 +800,24 @@ func (c *AppConfig) validate() (app.Environment, app.Environment, app.Environmen
 		return nil, nil, nil, err
 	}
 	return env, buildEnv, params, nil
+}
+
+func templateObjectsToAppObjects(objs []runtime.RawExtension) (app.Objects, error) {
+	converted := []runtime.Object{}
+
+	for _, raw := range objs {
+		if raw.Object != nil {
+			continue
+		}
+
+		obj, err := runtime.Decode(scheme.Codecs.UniversalDeserializer(), raw.Raw)
+		if err != nil {
+			return nil, err
+		}
+		converted = append(converted, obj)
+	}
+
+	return converted, nil
 }
 
 // Run executes the provided config to generate objects.
@@ -866,7 +899,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	objects = app.AddServices(objects, false)
 
-	templateProcessor := templateinternalclient.NewTemplateProcessorClient(c.TemplateClient.RESTClient(), c.OriginNamespace)
+	templateProcessor := templateclientv1.NewTemplateProcessorClient(c.TemplateClient.RESTClient(), c.OriginNamespace)
 	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), parameters, env, buildenv, templateProcessor)
 	if err != nil {
 		return nil, err
@@ -934,7 +967,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	}
 	if len(name) == 0 {
 		for _, obj := range objects {
-			if bc, ok := obj.(*buildapi.BuildConfig); ok {
+			if bc, ok := obj.(*buildv1.BuildConfig); ok {
 				name = bc.Name
 				break
 			}
@@ -945,9 +978,9 @@ func (c *AppConfig) Run() (*AppResult, error) {
 			return nil, fmt.Errorf("source secret name %q is invalid", c.SourceSecret)
 		}
 		for _, obj := range objects {
-			if bc, ok := obj.(*buildapi.BuildConfig); ok {
+			if bc, ok := obj.(*buildv1.BuildConfig); ok {
 				glog.V(4).Infof("Setting source secret for build config to: %v", c.SourceSecret)
-				bc.Spec.Source.SourceSecret = &kapi.LocalObjectReference{Name: c.SourceSecret}
+				bc.Spec.Source.SourceSecret = &corev1.LocalObjectReference{Name: c.SourceSecret}
 				break
 			}
 		}
@@ -957,9 +990,9 @@ func (c *AppConfig) Run() (*AppResult, error) {
 			return nil, fmt.Errorf("push secret name %q is invalid", c.PushSecret)
 		}
 		for _, obj := range objects {
-			if bc, ok := obj.(*buildapi.BuildConfig); ok {
+			if bc, ok := obj.(*buildv1.BuildConfig); ok {
 				glog.V(4).Infof("Setting push secret for build config to: %v", c.SourceSecret)
-				bc.Spec.Output.PushSecret = &kapi.LocalObjectReference{Name: c.PushSecret}
+				bc.Spec.Output.PushSecret = &corev1.LocalObjectReference{Name: c.PushSecret}
 				break
 			}
 		}
@@ -973,9 +1006,9 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	}, nil
 }
 
-func (c *AppConfig) findImageStreamInObjectList(objects app.Objects, name, namespace string) *imageapi.ImageStream {
+func (c *AppConfig) findImageStreamInObjectList(objects app.Objects, name, namespace string) *imagev1.ImageStream {
 	for _, check := range objects {
-		if is, ok := check.(*imageapi.ImageStream); ok {
+		if is, ok := check.(*imagev1.ImageStream); ok {
 			nsToCompare := is.Namespace
 			if len(nsToCompare) == 0 {
 				nsToCompare = c.OriginNamespace
@@ -991,7 +1024,7 @@ func (c *AppConfig) findImageStreamInObjectList(objects app.Objects, name, names
 // crossStreamCircularTagReference inherits some logic from imageapi.FollowTagReference, but differs in that a) it is only concerned
 // with whether we can definitively say the IST chain is circular, and b) can cross image stream boundaries;
 // not in imageapi pkg (see imports above) like other helpers cause of import cycle with the image client
-func (c *AppConfig) crossStreamCircularTagReference(stream *imageapi.ImageStream, tag string, objects app.Objects) bool {
+func (c *AppConfig) crossStreamCircularTagReference(stream *imagev1.ImageStream, tag string, objects app.Objects) bool {
 	if stream == nil {
 		return false
 	}
@@ -1002,7 +1035,7 @@ func (c *AppConfig) crossStreamCircularTagReference(stream *imageapi.ImageStream
 			return true
 		}
 		seen.Insert(stream.ObjectMeta.Namespace + ":" + stream.ObjectMeta.Name + ":" + tag)
-		tagRef, ok := stream.Spec.Tags[tag]
+		tagRef, ok := imageutil.SpecHasTag(stream, tag)
 		if !ok {
 			// no tag at the end of the rainbow
 			return false
@@ -1039,7 +1072,7 @@ func (c *AppConfig) crossStreamCircularTagReference(stream *imageapi.ImageStream
 // with whether we can definitively say the input IST from/follow chain lands at the output IST;
 // this method currently assumes that crossStreamCircularTagReference was called on both in/out stream:tag combinations prior to entering this method
 // not in imageapi pkg (see imports above) like other helpers cause of import cycle with the image client
-func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *imageapi.ImageStream, intag, outtag string, objects app.Objects) bool {
+func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *imagev1.ImageStream, intag, outtag string, objects app.Objects) bool {
 	if instream == nil || outstream == nil {
 		return false
 	}
@@ -1049,7 +1082,8 @@ func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *im
 			intag == outtag {
 			return true
 		}
-		tagRef, ok := instream.Spec.Tags[intag]
+
+		tagRef, ok := imageutil.SpecHasTag(instream, intag)
 		if !ok {
 			// no tag at the end of the rainbow
 			return false
@@ -1090,8 +1124,7 @@ func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *im
 // or nil if one could not be determined (a valid, non-error outcome). err
 // is only used to indicate that the follow encountered a severe error
 // (e.g malformed data).
-func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext *imageapi.ImageStream, objects app.Objects) (*kapi.ObjectReference, error) {
-
+func (c *AppConfig) followRefToDockerImage(ref *corev1.ObjectReference, isContext *imagev1.ImageStream, objects app.Objects) (*corev1.ObjectReference, error) {
 	if ref == nil {
 		return nil, errors.New("Unable to follow nil")
 	}
@@ -1165,7 +1198,10 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 	}
 
 	// Dereference ImageStreamTag to see what it is pointing to
-	target := isContext.Spec.Tags[isTag].From
+	var target *corev1.ObjectReference
+	if tagRef, ok := imageutil.SpecHasTag(isContext, isTag); ok {
+		target = tagRef.From
+	}
 
 	// From can still be nil even with the call to FollowTagReference returning OK
 	if target == nil {
@@ -1176,7 +1212,7 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 		}
 		// Legacy InputStream without tag support? Spoof what we need.
 		imageName := isContext.Spec.DockerImageRepository + ":" + isTag
-		return &kapi.ObjectReference{
+		return &corev1.ObjectReference{
 			Kind: "DockerImage",
 			Name: imageName,
 		}, nil
@@ -1190,7 +1226,7 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 func (c *AppConfig) removeRedundantTags(objects app.Objects) (app.Objects, error) {
 	objectsToRemove := map[string]struct{}{}
 	for _, obj := range objects {
-		if ist, ok := obj.(*imageapi.ImageStreamTag); ok {
+		if ist, ok := obj.(*imagev1.ImageStreamTag); ok {
 			istNamespace := ist.Namespace
 			if len(istNamespace) == 0 {
 				istNamespace = c.OriginNamespace
@@ -1201,10 +1237,9 @@ func (c *AppConfig) removeRedundantTags(objects app.Objects) (app.Objects, error
 			}
 			is := c.findImageStreamInObjectList(objects, streamName, istNamespace)
 			if is != nil {
-				for name := range is.Spec.Tags {
-					if name == tagName {
-						objectsToRemove[fmt.Sprintf("%s/%s", istNamespace, ist.Name)] = struct{}{}
-					}
+				if _, hasTag := imageutil.SpecHasTag(is, tagName); hasTag {
+					objectsToRemove[fmt.Sprintf("%s/%s", istNamespace, ist.Name)] = struct{}{}
+
 				}
 			}
 
@@ -1213,7 +1248,7 @@ func (c *AppConfig) removeRedundantTags(objects app.Objects) (app.Objects, error
 
 	objectsToKeep := app.Objects{}
 	for _, obj := range objects {
-		if ist, ok := obj.(*imageapi.ImageStreamTag); ok {
+		if ist, ok := obj.(*imagev1.ImageStreamTag); ok {
 			istNamespace := ist.Namespace
 			if len(istNamespace) == 0 {
 				istNamespace = c.OriginNamespace
@@ -1241,8 +1276,8 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 			glog.Infof("\n\nCycle check input object %v:\n%v\n", i, string(json))
 		}
 
-		if bc, ok := obj.(*buildapi.BuildConfig); ok {
-			input := buildinternalhelpers.GetInputReference(bc.Spec.Strategy)
+		if bc, ok := obj.(*buildv1.BuildConfig); ok {
+			input := buildapihelpers.GetInputReference(bc.Spec.Strategy)
 			output := bc.Spec.Output.To
 
 			if output == nil || input == nil {
@@ -1323,7 +1358,7 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 			// make sure they are not the same image stream.
 			inCopy := *input
 			outCopy := *output
-			for _, ref := range []*kapi.ObjectReference{&inCopy, &outCopy} {
+			for _, ref := range []*corev1.ObjectReference{&inCopy, &outCopy} {
 				// Some code paths add namespace and others don't. Make things
 				// consistent.
 				if len(ref.Namespace) == 0 {
@@ -1352,7 +1387,7 @@ func (c *AppConfig) HasArguments() bool {
 }
 
 // getBuildConfigEnv gets the buildconfig strategy environment
-func getBuildConfigEnv(buildConfig *buildapi.BuildConfig) []kapi.EnvVar {
+func getBuildConfigEnv(buildConfig *buildv1.BuildConfig) []corev1.EnvVar {
 	switch {
 	case buildConfig.Spec.Strategy.SourceStrategy != nil:
 		return buildConfig.Spec.Strategy.SourceStrategy.Env
@@ -1368,8 +1403,8 @@ func getBuildConfigEnv(buildConfig *buildapi.BuildConfig) []kapi.EnvVar {
 }
 
 // setBuildConfigEnv replaces the current buildconfig environment
-func setBuildConfigEnv(buildConfig *buildapi.BuildConfig, env []kapi.EnvVar) {
-	var oldEnv *[]kapi.EnvVar
+func setBuildConfigEnv(buildConfig *buildv1.BuildConfig, env []corev1.EnvVar) {
+	var oldEnv *[]corev1.EnvVar
 
 	switch {
 	case buildConfig.Spec.Strategy.SourceStrategy != nil:

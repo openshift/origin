@@ -7,14 +7,16 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	templatev1 "github.com/openshift/api/template/v1"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
+	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
 	configcmd "github.com/openshift/origin/pkg/bulk"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
 
 // TestNewAppDefaultFlags ensures that flags default values are set.
@@ -381,21 +383,21 @@ func TestNewAppRunQueryActions(t *testing.T) {
 
 	for _, test := range tests {
 		// Prepare structure for test.
-		templateClient := templatefake.NewSimpleClientset(fakeTemplateList())
-		imageClient := imagefake.NewSimpleClientset(fakeImagestreamList())
+		templateClient := faketemplatev1client.NewSimpleClientset(fakeTemplateList()...)
+		imageClient := fakeimagev1client.NewSimpleClientset(fakeImagestreamList())
 
 		o.Config = test.config
 		o.Config.Deploy = true
 
-		o.Config.SetOpenShiftClient(imageClient.Image(), templateClient.Template(), nil, "openshift", nil)
+		o.Config.SetOpenShiftClient(imageClient.ImageV1(), templateClient.TemplateV1(), nil, "openshift", nil)
 
 		var dockerVisited, tfVisited bool
 		o.Config.DockerSearcher = MockSearcher{
 			OnSearch: func(precise bool, terms ...string) (app.ComponentMatches, []error) {
 				dockerVisited = true
 				match := &app.ComponentMatch{
-					Name:  "repo/test",
-					Image: &imageapi.DockerImage{},
+					Name:        "repo/test",
+					DockerImage: &dockerv10.DockerImage{},
 				}
 				return app.ComponentMatches{match}, []error{}
 			},
@@ -411,7 +413,7 @@ func TestNewAppRunQueryActions(t *testing.T) {
 			OnSearch: func(precise bool, terms ...string) (app.ComponentMatches, []error) {
 				tfVisited = true
 				match := &app.ComponentMatch{
-					Template: &templateapi.Template{
+					Template: &templatev1.Template{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "testfile",
 							Namespace: "openshift",
@@ -455,22 +457,20 @@ func TestNewAppRunQueryActions(t *testing.T) {
 
 }
 
-func fakeTemplateList() *templateapi.TemplateList {
-	return &templateapi.TemplateList{
-		Items: []templateapi.Template{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "openshift",
-				},
+func fakeTemplateList() []runtime.Object {
+	return []runtime.Object{
+		&templatev1.Template{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "openshift",
 			},
 		},
 	}
 }
 
-func fakeImagestreamList() *imageapi.ImageStreamList {
-	return &imageapi.ImageStreamList{
-		Items: []imageapi.ImageStream{
+func fakeImagestreamList() *imagev1.ImageStreamList {
+	return &imagev1.ImageStreamList{
+		Items: []imagev1.ImageStream{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testimage",
