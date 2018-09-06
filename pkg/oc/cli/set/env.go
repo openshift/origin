@@ -17,9 +17,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -30,9 +28,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/oc/util/clientcmd"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
-	envresolve "github.com/openshift/origin/pkg/pod/envresolve/internal_version"
 )
 
 var (
@@ -108,7 +104,7 @@ type EnvOptions struct {
 	Encoder                runtime.Encoder
 	Mapper                 meta.RESTMapper
 	Client                 dynamic.Interface
-	KubeClient             kinternalclientset.Interface
+	KubeClient             kubernetes.Interface
 	Printer                printers.ResourcePrinter
 	Namespace              string
 	ExplicitNamespace      bool
@@ -160,7 +156,7 @@ func NewCmdEnv(fullName string, f kcmdutil.Factory, streams genericclioptions.IO
 	return cmd
 }
 
-func validateNoOverwrites(existing []kapi.EnvVar, env []kapi.EnvVar) error {
+func validateNoOverwrites(existing []corev1.EnvVar, env []corev1.EnvVar) error {
 	for _, e := range env {
 		if current, exists := findEnv(existing, e.Name); exists && current.Value != e.Value {
 			return fmt.Errorf("'%s' already has a value (%s), and --overwrite is false", current.Name, current.Value)
@@ -184,8 +180,12 @@ func (o *EnvOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
 	}
 
-	var err error
-	o.KubeClient, err = f.ClientSet()
+	config, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	o.KubeClient, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
@@ -260,11 +260,11 @@ func (o *EnvOptions) RunEnv() error {
 			switch from := info.Object.(type) {
 			case *corev1.Secret:
 				for key := range from.Data {
-					envVar := kapi.EnvVar{
+					envVar := corev1.EnvVar{
 						Name: keyToEnvName(key),
-						ValueFrom: &kapi.EnvVarSource{
-							SecretKeyRef: &kapi.SecretKeySelector{
-								LocalObjectReference: kapi.LocalObjectReference{
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
 									Name: from.Name,
 								},
 								Key: key,
@@ -275,11 +275,11 @@ func (o *EnvOptions) RunEnv() error {
 				}
 			case *corev1.ConfigMap:
 				for key := range from.Data {
-					envVar := kapi.EnvVar{
+					envVar := corev1.EnvVar{
 						Name: keyToEnvName(key),
-						ValueFrom: &kapi.EnvVarSource{
-							ConfigMapKeyRef: &kapi.ConfigMapKeySelector{
-								LocalObjectReference: kapi.LocalObjectReference{
+						ValueFrom: &corev1.EnvVarSource{
+							ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
 									Name: from.Name,
 								},
 								Key: key,
@@ -342,7 +342,7 @@ func (o *EnvOptions) RunEnv() error {
 	errored := []*resource.Info{}
 	for _, info := range infos {
 		name := getObjectName(info)
-		ok, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+		ok, err := o.UpdatePodSpecForObject(info.Object, func(spec *corev1.PodSpec) error {
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
@@ -361,7 +361,7 @@ func (o *EnvOptions) RunEnv() error {
 
 				if o.List {
 					resolveErrors := map[string][]string{}
-					store := envresolve.NewResourceStore()
+					store := utilenv.NewResourceStore()
 
 					fmt.Fprintf(o.Out, "# %s, container %s\n", name, c.Name)
 					for _, env := range c.Env {
@@ -373,11 +373,11 @@ func (o *EnvOptions) RunEnv() error {
 
 						// Print the reference version
 						if !o.Resolve {
-							fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envresolve.GetEnvVarRefString(env.ValueFrom))
+							fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, utilenv.GetEnvVarRefString(env.ValueFrom))
 							continue
 						}
 
-						value, err := envresolve.GetEnvVarRefValue(o.KubeClient, o.Namespace, store, env.ValueFrom, info.Object, c)
+						value, err := utilenv.GetEnvVarRefValue(o.KubeClient, o.Namespace, store, env.ValueFrom, info.Object, c)
 						// Print the resolved value
 						if err == nil {
 							fmt.Fprintf(o.Out, "%s=%s\n", env.Name, value)
@@ -385,7 +385,7 @@ func (o *EnvOptions) RunEnv() error {
 						}
 
 						// Print the reference version and save the resolve error
-						fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envresolve.GetEnvVarRefString(env.ValueFrom))
+						fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, utilenv.GetEnvVarRefString(env.ValueFrom))
 						errString := err.Error()
 						resolveErrors[errString] = append(resolveErrors[errString], env.Name)
 						resolutionErrorsEncountered = true
@@ -408,10 +408,10 @@ func (o *EnvOptions) RunEnv() error {
 				return errors.New("failed to retrieve valueFrom references")
 			}
 			return nil
-		}))
+		})
 		if !ok {
 			// This is a fallback function for objects that don't have pod spec.
-			ok, err = updateObjectEnvironment(info.Object, func(vars *[]kapi.EnvVar) error {
+			ok, err = updateObjectEnvironment(info.Object, func(vars *[]corev1.EnvVar) error {
 				if vars == nil {
 					return fmt.Errorf("no environment variables provided")
 				}
@@ -499,40 +499,21 @@ updates:
 }
 
 // UpdateObjectEnvironment update the environment variables in object specification.
-func updateObjectEnvironment(obj runtime.Object, fn func(*[]kapi.EnvVar) error) (bool, error) {
+func updateObjectEnvironment(obj runtime.Object, fn func(*[]corev1.EnvVar) error) (bool, error) {
 	switch t := obj.(type) {
 	case *buildv1.BuildConfig:
 		if t.Spec.Strategy.CustomStrategy != nil {
-			return true, convertInternalEnvVarToExternal(fn)(&t.Spec.Strategy.CustomStrategy.Env)
+			return true, fn(&t.Spec.Strategy.CustomStrategy.Env)
 		}
 		if t.Spec.Strategy.SourceStrategy != nil {
-			return true, convertInternalEnvVarToExternal(fn)(&t.Spec.Strategy.SourceStrategy.Env)
+			return true, fn(&t.Spec.Strategy.SourceStrategy.Env)
 		}
 		if t.Spec.Strategy.DockerStrategy != nil {
-			return true, convertInternalEnvVarToExternal(fn)(&t.Spec.Strategy.DockerStrategy.Env)
+			return true, fn(&t.Spec.Strategy.DockerStrategy.Env)
 		}
 		if t.Spec.Strategy.JenkinsPipelineStrategy != nil {
-			return true, convertInternalEnvVarToExternal(fn)(&t.Spec.Strategy.JenkinsPipelineStrategy.Env)
+			return true, fn(&t.Spec.Strategy.JenkinsPipelineStrategy.Env)
 		}
 	}
 	return false, fmt.Errorf("object does not contain any environment variables %T", obj)
-}
-
-// TODO: this needs to die when switching to external versions
-func convertInternalEnvVarToExternal(inFn func(*[]kapi.EnvVar) error) func(*[]corev1.EnvVar) error {
-	return func(specToMutate *[]corev1.EnvVar) error {
-		externalEnvVar := &[]kapi.EnvVar{}
-		if err := legacyscheme.Scheme.Convert(specToMutate, externalEnvVar, nil); err != nil {
-			return err
-		}
-		if err := inFn(externalEnvVar); err != nil {
-			return err
-		}
-		internalEnvVar := &[]corev1.EnvVar{}
-		if err := legacyscheme.Scheme.Convert(externalEnvVar, internalEnvVar, nil); err != nil {
-			return err
-		}
-		*specToMutate = *internalEnvVar
-		return nil
-	}
 }
