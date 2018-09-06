@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 36e0be5a6226393c5745264bb727dafc496e6d6e
+%global commit bac6139429a5f2ac565e504c06b00ed42c9c2aac
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.40 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=40 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=4044657 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.41 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=41 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=26c9f2c9cd OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.41
+Version:        3.9.42
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,19 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Sep 06 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.9.42-1
+- UPSTREAM: 68010: apiserver: forward panic in WithTimeout filter
+  (stefan.schimanski@gmail.com)
+- hack/cherry-pick.sh: simplify PR cherry-pick (stefan.schimanski@gmail.com)
+- hack/cherry-pick.sh: apply merge commit by default and add APPLY_PR_COMMITS
+  for old mode (stefan.schimanski@gmail.com)
+- hack/cherry-pick.sh: add UPSTREAM_BRANCH var (stefan.schimanski@gmail.com)
+- UPSTREAM: <carry>: change version of Kubernetes to check against
+  (hekumar@redhat.com)
+- UPSTREAM: 62919: Fix vsphere detach on 1.8 to 1.9 upgrade
+  (hekumar@redhat.com)
+- UPSTREAM: 62220: Fix detach disk when VM is not found (hekumar@redhat.com)
+
 * Mon Aug 20 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.9.41-1
 - Remove the DROP_SYN_DURING_RESTART iptables rules (bbennett@redhat.com)
 - set full user info for SAR check on template readiness checks
