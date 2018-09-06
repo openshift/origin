@@ -94,7 +94,11 @@ var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
 			oc image append --insecure --to docker-registry.default.svc:5000/%[1]s/test:scratch2 --image='{"Cmd":["/bin/sleep"]}' --created-at=0
 
 			# modify a busybox image
-			oc image append --insecure --from=docker.io/library/busybox:latest --to docker-registry.default.svc:5000/%[1]s/test:busybox1 --image='{"Cmd":["/bin/sleep"]}'
+			oc image append --insecure --from docker.io/library/busybox:latest --to docker-registry.default.svc:5000/%[1]s/test:busybox1 --image '{"Cmd":["/bin/sleep"]}'
+
+			# verify mounting works
+			oc create is test2
+			oc image append --insecure --from docker-registry.default.svc:5000/%[1]s/test:scratch2 --to docker-registry.default.svc:5000/%[1]s/test2:scratch2 --force
 
 			# add a simple layer to the image
 			mkdir -p /tmp/test/dir
