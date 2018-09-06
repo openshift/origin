@@ -2,41 +2,41 @@ package tag
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/api/image"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	imagev1 "github.com/openshift/api/image/v1"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 )
 
 type testAction struct {
 	verb, resource string
 }
 
-func testData() []*imageapi.ImageStream {
-	return []*imageapi.ImageStream{
+func testData() []*imagev1.ImageStream {
+	return []*imagev1.ImageStream{
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
-			Spec: imageapi.ImageStreamSpec{
+			Spec: imagev1.ImageStreamSpec{
 				DockerImageRepository: "",
-				Tags: map[string]imageapi.TagReference{},
+				Tags: []imagev1.TagReference{},
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
-			Spec: imageapi.ImageStreamSpec{
+			Spec: imagev1.ImageStreamSpec{
 				DockerImageRepository: "",
-				Tags: map[string]imageapi.TagReference{
-					"tip": {
-						From: &api.ObjectReference{
+				Tags: []imagev1.TagReference{
+					{
+						Name: "tip",
+						From: &corev1.ObjectReference{
 							Name:      "ruby",
 							Namespace: "openshift",
 							Kind:      "ImageStreamTag",
@@ -47,11 +47,12 @@ func testData() []*imageapi.ImageStream {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "myproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
-			Spec: imageapi.ImageStreamSpec{
+			Spec: imagev1.ImageStreamSpec{
 				DockerImageRepository: "",
-				Tags: map[string]imageapi.TagReference{
-					"latest": {
-						From: &api.ObjectReference{
+				Tags: []imagev1.TagReference{
+					{
+						Name: "latest",
+						From: &corev1.ObjectReference{
 							Name:      "ruby",
 							Namespace: "openshift",
 							Kind:      "ImageStreamTag",
@@ -62,11 +63,12 @@ func testData() []*imageapi.ImageStream {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "django", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
-			Spec: imageapi.ImageStreamSpec{
+			Spec: imagev1.ImageStreamSpec{
 				DockerImageRepository: "",
-				Tags: map[string]imageapi.TagReference{
-					"tip": {
-						From: &api.ObjectReference{
+				Tags: []imagev1.TagReference{
+					{
+						Name: "tip",
+						From: &corev1.ObjectReference{
 							Name:      "python",
 							Namespace: "openshift",
 							Kind:      "ImageStreamTag",
@@ -91,7 +93,7 @@ func TestTag(t *testing.T) {
 		"tag across namespaces": {
 			data: []runtime.Object{streams[2], streams[0]},
 			opts: &TagOptions{
-				ref: imageapi.DockerImageReference{
+				ref: imagev1.DockerImageReference{
 					Namespace: "openshift",
 					Name:      "ruby",
 					Tag:       "latest",
@@ -112,7 +114,7 @@ func TestTag(t *testing.T) {
 		"alias tag across namespaces": {
 			data: []runtime.Object{streams[2], streams[0]},
 			opts: &TagOptions{
-				ref: imageapi.DockerImageReference{
+				ref: imagev1.DockerImageReference{
 					Namespace: "openshift",
 					Name:      "ruby",
 					Tag:       "latest",
@@ -129,7 +131,7 @@ func TestTag(t *testing.T) {
 		"alias tag across image streams": {
 			data: []runtime.Object{streams[3], streams[0]},
 			opts: &TagOptions{
-				ref: imageapi.DockerImageReference{
+				ref: imagev1.DockerImageReference{
 					Namespace: "yourproject",
 					Name:      "rails",
 					Tag:       "latest",
@@ -146,7 +148,7 @@ func TestTag(t *testing.T) {
 		"add old": {
 			data: []runtime.Object{streams[0]},
 			opts: &TagOptions{
-				ref: imageapi.DockerImageReference{
+				ref: imagev1.DockerImageReference{
 					Namespace: "openshift",
 					Name:      "ruby",
 					Tag:       "2.0",
@@ -166,7 +168,7 @@ func TestTag(t *testing.T) {
 	}
 
 	for name, test := range testCases {
-		client := imagefake.NewSimpleClientset(test.data...)
+		client := fakeimagev1client.NewSimpleClientset(test.data...)
 		client.PrependReactor("create", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, nil, kapierrors.NewMethodNotSupported(image.Resource("imagestreamtags"), "create")
 		})
@@ -174,9 +176,8 @@ func TestTag(t *testing.T) {
 			return true, nil, kapierrors.NewMethodNotSupported(image.Resource("imagestreamtags"), "update")
 		})
 
-		test.opts.IOStreams = genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr}
-		test.opts.isGetter = client.Image()
-		test.opts.isTagGetter = client.Image()
+		test.opts.IOStreams = genericclioptions.NewTestIOStreamsDiscard()
+		test.opts.client = client.Image()
 
 		err := test.opts.Validate()
 		if (err == nil && len(test.validateErr) != 0) || (err != nil && err.Error() != test.validateErr) {
@@ -206,7 +207,7 @@ func TestTag(t *testing.T) {
 
 func TestRunTag_DeleteOld(t *testing.T) {
 	streams := testData()
-	client := imagefake.NewSimpleClientset(streams[1])
+	client := fakeimagev1client.NewSimpleClientset(streams[1])
 	client.PrependReactor("delete", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kapierrors.NewForbidden(image.Resource("imagestreamtags"), "rails:tip", fmt.Errorf("dne"))
 	})
@@ -223,9 +224,8 @@ func TestRunTag_DeleteOld(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			IOStreams:      genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr},
-			isGetter:       client.Image(),
-			isTagGetter:    client.Image(),
+			IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
+			client:         client.Image(),
 			deleteTag:      true,
 			destNamespace:  []string{"yourproject"},
 			destNameAndTag: []string{"rails:tip"},
@@ -255,8 +255,8 @@ func TestRunTag_DeleteOld(t *testing.T) {
 }
 
 func TestRunTag_AddNew(t *testing.T) {
-	client := imagefake.NewSimpleClientset(
-		&imageapi.ImageStreamTag{
+	client := fakeimagev1client.NewSimpleClientset(
+		&imagev1.ImageStreamTag{
 			ObjectMeta: metav1.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 		},
 	)
@@ -267,10 +267,9 @@ func TestRunTag_AddNew(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			IOStreams:   genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr},
-			isGetter:    client.Image(),
-			isTagGetter: client.Image(),
-			ref: imageapi.DockerImageReference{
+			IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
+			client:    client.Image(),
+			ref: imagev1.DockerImageReference{
 				Namespace: "openshift",
 				Name:      "ruby",
 				Tag:       "2.0",
@@ -302,7 +301,7 @@ func TestRunTag_AddNew(t *testing.T) {
 }
 
 func TestRunTag_AddRestricted(t *testing.T) {
-	client := imagefake.NewSimpleClientset()
+	client := fakeimagev1client.NewSimpleClientset()
 	client.PrependReactor("create", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, action.(clientgotesting.CreateAction).GetObject(), nil
 	})
@@ -316,10 +315,9 @@ func TestRunTag_AddRestricted(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			IOStreams:   genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr},
-			isGetter:    client.Image(),
-			isTagGetter: client.Image(),
-			ref: imageapi.DockerImageReference{
+			IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
+			client:    client.Image(),
+			ref: imagev1.DockerImageReference{
 				Namespace: "openshift",
 				Name:      "ruby",
 				Tag:       "2.0",
@@ -352,10 +350,10 @@ func TestRunTag_AddRestricted(t *testing.T) {
 }
 
 func TestRunTag_DeleteNew(t *testing.T) {
-	is := &imageapi.ImageStreamTag{
+	is := &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
 	}
-	client := imagefake.NewSimpleClientset(is)
+	client := fakeimagev1client.NewSimpleClientset(is)
 
 	test := struct {
 		opts            *TagOptions
@@ -363,9 +361,8 @@ func TestRunTag_DeleteNew(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			IOStreams:      genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr},
-			isGetter:       client.Image(),
-			isTagGetter:    client.Image(),
+			IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
+			client:         client.Image(),
 			deleteTag:      true,
 			destNamespace:  []string{"yourproject"},
 			destNameAndTag: []string{"rails:tip"},
