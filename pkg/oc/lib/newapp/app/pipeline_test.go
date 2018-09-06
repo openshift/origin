@@ -74,6 +74,7 @@ func expectedService(name string, ports ...portDesc) *corev1.Service {
 	}
 
 	return &corev1.Service{
+		TypeMeta: metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "Service"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},

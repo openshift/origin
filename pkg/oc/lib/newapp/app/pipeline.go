@@ -334,6 +334,8 @@ func portName(port int, protocol corev1.Protocol) string {
 func GenerateService(meta metav1.ObjectMeta, selector map[string]string) *corev1.Service {
 	name, generateName := makeValidServiceName(meta.Name)
 	svc := &corev1.Service{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta: metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "Service"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         name,
 			GenerateName: generateName,

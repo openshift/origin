@@ -29,6 +29,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
+	"github.com/openshift/origin/pkg/pod/envresolve"
 )
 
 var (
@@ -361,7 +362,7 @@ func (o *EnvOptions) RunEnv() error {
 
 				if o.List {
 					resolveErrors := map[string][]string{}
-					store := utilenv.NewResourceStore()
+					store := envresolve.NewResourceStore()
 
 					fmt.Fprintf(o.Out, "# %s, container %s\n", name, c.Name)
 					for _, env := range c.Env {
@@ -373,11 +374,11 @@ func (o *EnvOptions) RunEnv() error {
 
 						// Print the reference version
 						if !o.Resolve {
-							fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, utilenv.GetEnvVarRefString(env.ValueFrom))
+							fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envresolve.GetEnvVarRefString(env.ValueFrom))
 							continue
 						}
 
-						value, err := utilenv.GetEnvVarRefValue(o.KubeClient, o.Namespace, store, env.ValueFrom, info.Object, c)
+						value, err := envresolve.GetEnvVarRefValue(o.KubeClient, o.Namespace, store, env.ValueFrom, info.Object, c)
 						// Print the resolved value
 						if err == nil {
 							fmt.Fprintf(o.Out, "%s=%s\n", env.Name, value)
@@ -385,7 +386,7 @@ func (o *EnvOptions) RunEnv() error {
 						}
 
 						// Print the reference version and save the resolve error
-						fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, utilenv.GetEnvVarRefString(env.ValueFrom))
+						fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envresolve.GetEnvVarRefString(env.ValueFrom))
 						errString := err.Error()
 						resolveErrors[errString] = append(resolveErrors[errString], env.Name)
 						resolutionErrorsEncountered = true

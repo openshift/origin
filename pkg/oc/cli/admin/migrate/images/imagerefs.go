@@ -7,24 +7,23 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
-
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"github.com/openshift/origin/pkg/oc/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
 )
 
 var (
@@ -78,7 +77,7 @@ type MigrateImageReferenceOptions struct {
 
 	Client          imagetypedclient.ImageStreamsGetter
 	Mappings        ImageReferenceMappings
-	UpdatePodSpecFn func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
+	UpdatePodSpecFn func(obj runtime.Object, fn func(*corev1.PodSpec) error) (bool, error)
 }
 
 func NewMigrateImageReferenceOptions(streams genericclioptions.IOStreams) *MigrateImageReferenceOptions {
@@ -278,7 +277,7 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 	default:
 		if o.UpdatePodSpecFn != nil {
 			var changed bool
-			supports, err := o.UpdatePodSpecFn(obj, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+			supports, err := o.UpdatePodSpecFn(obj, convertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 				changed = updatePodSpec(spec, fn)
 				return nil
 			}))
@@ -322,6 +321,25 @@ func updatePodSpec(spec *kapi.PodSpec, fn TransformImageFunc) bool {
 		changed = updateString(&spec.Containers[i].Image, fn) || changed
 	}
 	return changed
+}
+
+// TODO(juanvallejo): this needs to die once this command is switched to externals
+func convertInteralPodSpecToExternal(inFn func(*kapi.PodSpec) error) func(*corev1.PodSpec) error {
+	return func(specToMutate *corev1.PodSpec) error {
+		internalPodSpec := &kapi.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(specToMutate, internalPodSpec, nil); err != nil {
+			return err
+		}
+		if err := inFn(internalPodSpec); err != nil {
+			return err
+		}
+		externalPodSpec := &corev1.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(internalPodSpec, externalPodSpec, nil); err != nil {
+			return err
+		}
+		*specToMutate = *externalPodSpec
+		return nil
+	}
 }
 
 func updateDockerConfig(cfg credentialprovider.DockerConfig, fn TransformImageFunc) bool {

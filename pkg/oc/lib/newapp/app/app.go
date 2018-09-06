@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -430,8 +429,8 @@ func GenerateSecret(n int) string {
 
 // ContainerPortsFromString extracts sets of port specifications from a comma-delimited string. Each segment
 // must be a single port number (container port) or a colon delimited pair of ports (container port and host port).
-func ContainerPortsFromString(portString string) ([]kapi.ContainerPort, error) {
-	ports := []kapi.ContainerPort{}
+func ContainerPortsFromString(portString string) ([]corev1.ContainerPort, error) {
+	ports := []corev1.ContainerPort{}
 	for _, s := range strings.Split(portString, ",") {
 		port, ok := checkPortSpecSegment(s)
 		if !ok {
@@ -442,7 +441,7 @@ func ContainerPortsFromString(portString string) ([]kapi.ContainerPort, error) {
 	return ports, nil
 }
 
-func checkPortSpecSegment(s string) (port kapi.ContainerPort, ok bool) {
+func checkPortSpecSegment(s string) (port corev1.ContainerPort, ok bool) {
 	if strings.Contains(s, ":") {
 		pair := strings.Split(s, ":")
 		if len(pair) != 2 {
@@ -456,14 +455,14 @@ func checkPortSpecSegment(s string) (port kapi.ContainerPort, ok bool) {
 		if err != nil {
 			return
 		}
-		return kapi.ContainerPort{ContainerPort: int32(container), HostPort: int32(host)}, true
+		return corev1.ContainerPort{ContainerPort: int32(container), HostPort: int32(host)}, true
 	}
 
 	container, err := strconv.Atoi(s)
 	if err != nil {
 		return
 	}
-	return kapi.ContainerPort{ContainerPort: int32(container)}, true
+	return corev1.ContainerPort{ContainerPort: int32(container)}, true
 }
 
 // LabelsFromSpec turns a set of specs NAME=VALUE or NAME- into a map of labels,

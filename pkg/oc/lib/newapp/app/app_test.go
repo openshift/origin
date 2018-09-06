@@ -482,12 +482,12 @@ func TestNameFromGitURL(t *testing.T) {
 func TestContainerPortsFromString(t *testing.T) {
 	tests := map[string]struct {
 		portString    string
-		expectedPorts []kapi.ContainerPort
+		expectedPorts []corev1.ContainerPort
 		expectedError string
 	}{
 		"single port": {
 			portString: "80",
-			expectedPorts: []kapi.ContainerPort{
+			expectedPorts: []corev1.ContainerPort{
 				{ContainerPort: 80, HostPort: 0},
 			},
 		},
@@ -503,13 +503,13 @@ func TestContainerPortsFromString(t *testing.T) {
 		},
 		"single port with host port": {
 			portString: "80:80",
-			expectedPorts: []kapi.ContainerPort{
+			expectedPorts: []corev1.ContainerPort{
 				{ContainerPort: 80, HostPort: 80},
 			},
 		},
 		"multiple port": {
 			portString: "80:80,443:443",
-			expectedPorts: []kapi.ContainerPort{
+			expectedPorts: []corev1.ContainerPort{
 				{ContainerPort: 80, HostPort: 80},
 				{ContainerPort: 443, HostPort: 443},
 			},

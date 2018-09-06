@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	dapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/oc/cli/admin/ipfailover/ipfailover"
@@ -76,6 +77,18 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 		},
 	}
 
+	// TODO: remove this once this command is switched over to external versions
+	internalEnvVar := []kapi.EnvVar{}
+	for _, e := range env.List() {
+		internal := &kapi.EnvVar{}
+		err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&e, internal, nil)
+		if err != nil {
+			continue
+		}
+
+		internalEnvVar = append(internalEnvVar, *internal)
+	}
+
 	privileged := true
 	return &kapi.Container{
 		Name:  containerName,
@@ -86,7 +99,7 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 		},
 		ImagePullPolicy: kapi.PullIfNotPresent,
 		VolumeMounts:    mounts,
-		Env:             env.List(),
+		Env:             internalEnvVar,
 		LivenessProbe:   livenessProbe,
 	}
 }
