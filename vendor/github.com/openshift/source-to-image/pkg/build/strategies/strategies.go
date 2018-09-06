@@ -16,12 +16,24 @@ import (
 // GetStrategy decides what build strategy will be used for the STI build.
 // TODO: deprecated, use Strategy() instead
 func GetStrategy(client docker.Client, config *api.Config) (build.Builder, api.BuildInfo, error) {
-	return Strategy(client, config, build.Overrides{})
+	newEngine := func(authConfig api.AuthConfig) (docker.Docker, error) {
+		return docker.New(client, authConfig), nil
+	}
+	return StrategyWithNewEngine(newEngine, config, build.Overrides{})
 }
 
 // Strategy creates the appropriate build strategy for the provided config, using
 // the overrides provided. Not all strategies support all overrides.
 func Strategy(client docker.Client, config *api.Config, overrides build.Overrides) (build.Builder, api.BuildInfo, error) {
+	newEngine := func(authConfig api.AuthConfig) (docker.Docker, error) {
+		return docker.New(client, authConfig), nil
+	}
+	return StrategyWithNewEngine(newEngine, config, overrides)
+}
+
+// StrategyWithNewEngine creates the appropriate build strategy for the provided
+// config, using the overrides provided. Not all strategies support all overrides.
+func StrategyWithNewEngine(newEngine func(api.AuthConfig) (docker.Docker, error), config *api.Config, overrides build.Overrides) (build.Builder, api.BuildInfo, error) {
 	var builder build.Builder
 	var buildInfo api.BuildInfo
 	var err error
@@ -42,7 +54,14 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 		return builder, buildInfo, nil
 	}
 
-	dkr := docker.New(client, config.PullAuthentication)
+	dkr, err := newEngine(config.PullAuthentication)
+	if err != nil {
+		buildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonEngineInitFailed,
+			api.StepFailureMessage(err.Error()),
+		)
+		return nil, buildInfo, err
+	}
 	image, err := docker.GetBuilderImage(dkr, config)
 	buildInfo.Stages = api.RecordStageAndStepInfo(buildInfo.Stages, api.StagePullImages, api.StepPullBuilderImage, startTime, time.Now())
 	if err != nil {
@@ -65,7 +84,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 	// if we're blocking onbuild, just do a normal s2i build flow
 	// which won't do a docker build and invoke the onbuild commands
 	if image.OnBuild && !config.BlockOnBuild {
-		builder, err = onbuild.New(client, config, fileSystem, overrides)
+		builder, err = onbuild.NewWithNewEngine(newEngine, config, fileSystem, overrides)
 		if err != nil {
 			buildInfo.FailureReason = utilstatus.NewFailureReason(
 				utilstatus.ReasonGenericS2IBuildFailed,
@@ -76,7 +95,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 		return builder, buildInfo, nil
 	}
 
-	builder, err = sti.New(client, config, fileSystem, overrides)
+	builder, err = sti.NewWithNewEngine(newEngine, config, fileSystem, overrides)
 	if err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonGenericS2IBuildFailed,

@@ -21,7 +21,12 @@ func GenerateConfigFromLabels(config *api.Config, metadata *docker.PullResult) e
 	}
 
 	labels := metadata.Image.Config.Labels
+	return GenerateConfigFromLabelMap(config, labels)
+}
 
+// GenerateConfigFromLabelMap generates the S2I Config struct from a map of
+// image labels.
+func GenerateConfigFromLabelMap(config *api.Config, labels map[string]string) error {
 	if builderVersion, ok := labels[constants.BuilderVersionLabel]; ok {
 		config.BuilderImageVersion = builderVersion
 		config.BuilderBaseImageVersion = labels[constants.BuilderBaseVersionLabel]

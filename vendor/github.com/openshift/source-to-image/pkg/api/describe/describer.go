@@ -16,6 +16,14 @@ import (
 
 // Config returns the Config object in nice readable, tabbed format.
 func Config(client docker.Client, config *api.Config) string {
+	newEngine := func(authConfig api.AuthConfig) (docker.Docker, error) {
+		return docker.New(client, authConfig), nil
+	}
+	return ConfigWithNewEngine(newEngine, config)
+}
+
+// ConfigWithNewEngine returns the Config object in nice readable, tabbed format.
+func ConfigWithNewEngine(newEngine func(api.AuthConfig) (docker.Docker, error), config *api.Config) string {
 	out, err := tabbedString(func(out io.Writer) error {
 		if len(config.DisplayName) > 0 {
 			fmt.Fprintf(out, "Application Name:\t%s\n", config.DisplayName)
@@ -24,7 +32,7 @@ func Config(client docker.Client, config *api.Config) string {
 			fmt.Fprintf(out, "Description:\t%s\n", config.Description)
 		}
 		if len(config.AsDockerfile) == 0 {
-			describeBuilderImage(client, config, out)
+			describeBuilderImage(newEngine, config, out)
 			describeRuntimeImage(config, out)
 		}
 		fmt.Fprintf(out, "Source:\t%s\n", config.Source)
@@ -96,7 +104,7 @@ func Config(client docker.Client, config *api.Config) string {
 	return out
 }
 
-func describeBuilderImage(client docker.Client, config *api.Config, out io.Writer) {
+func describeBuilderImage(newEngine func(authConfig api.AuthConfig) (docker.Docker, error), config *api.Config, out io.Writer) {
 	c := &api.Config{
 		DockerConfig:       config.DockerConfig,
 		PullAuthentication: config.PullAuthentication,
@@ -105,7 +113,11 @@ func describeBuilderImage(client docker.Client, config *api.Config, out io.Write
 		Tag:                config.Tag,
 		IncrementalAuthentication: config.IncrementalAuthentication,
 	}
-	dkr := docker.New(client, c.PullAuthentication)
+	dkr, err := newEngine(c.PullAuthentication)
+	if err != nil {
+		fmt.Fprintf(out, "Error describing image:\t%s\n", err.Error())
+		return
+	}
 	builderImage, err := docker.GetBuilderImage(dkr, c)
 	if err == nil {
 		build.GenerateConfigFromLabels(c, builderImage)

@@ -55,7 +55,7 @@ func TestRegistriesDirPath(t *testing.T) {
 	const rootPrefix = "/root/prefix"
 
 	for _, c := range []struct {
-		ctx      *types.SystemContext
+		sys      *types.SystemContext
 		expected string
 	}{
 		// The common case
@@ -80,7 +80,7 @@ func TestRegistriesDirPath(t *testing.T) {
 		// No environment expansion happens in the overridden paths
 		{&types.SystemContext{RegistriesDirPath: variableReference}, variableReference},
 	} {
-		path := registriesDirPath(c.ctx)
+		path := registriesDirPath(c.sys)
 		assert.Equal(t, c.expected, path)
 	}
 }

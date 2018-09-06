@@ -119,6 +119,10 @@ const (
 	// ReasonMessageAssembleUserForbidden is the failure reason associated with an image that
 	// uses a forbidden AssembleUser.
 	ReasonMessageAssembleUserForbidden api.StepFailureMessage = "Assemble user for S2I build is forbidden."
+
+	// ReasonEngineInitFailed is the failure reason associated with an error initializing
+	// the build engine.
+	ReasonEngineInitFailed api.StepFailureReason = "EngineInitFailed"
 )
 
 // NewFailureReason initializes a new failure reason that contains both the

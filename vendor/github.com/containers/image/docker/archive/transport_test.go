@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -144,7 +145,7 @@ func TestReferenceNewImage(t *testing.T) {
 	for _, suffix := range []string{"", ":thisisignoredbutaccepted"} {
 		ref, err := ParseReference(tarFixture + suffix)
 		require.NoError(t, err, suffix)
-		img, err := ref.NewImage(nil)
+		img, err := ref.NewImage(context.Background(), nil)
 		assert.NoError(t, err, suffix)
 		defer img.Close()
 	}
@@ -154,7 +155,7 @@ func TestReferenceNewImageSource(t *testing.T) {
 	for _, suffix := range []string{"", ":thisisignoredbutaccepted"} {
 		ref, err := ParseReference(tarFixture + suffix)
 		require.NoError(t, err, suffix)
-		src, err := ref.NewImageSource(nil, nil)
+		src, err := ref.NewImageSource(context.Background(), nil)
 		assert.NoError(t, err, suffix)
 		defer src.Close()
 	}
@@ -167,12 +168,13 @@ func TestReferenceNewImageDestination(t *testing.T) {
 
 	ref, err := ParseReference(filepath.Join(tmpDir, "no-reference"))
 	require.NoError(t, err)
-	dest, err := ref.NewImageDestination(nil)
-	assert.Error(t, err)
+	dest, err := ref.NewImageDestination(context.Background(), nil)
+	assert.NoError(t, err)
+	dest.Close()
 
 	ref, err = ParseReference(filepath.Join(tmpDir, "with-reference") + "busybox:latest")
 	require.NoError(t, err)
-	dest, err = ref.NewImageDestination(nil)
+	dest, err = ref.NewImageDestination(context.Background(), nil)
 	assert.NoError(t, err)
 	defer dest.Close()
 }
@@ -189,7 +191,7 @@ func TestReferenceDeleteImage(t *testing.T) {
 
 		ref, err := ParseReference(testFile + suffix)
 		require.NoError(t, err, suffix)
-		err = ref.DeleteImage(nil)
+		err = ref.DeleteImage(context.Background(), nil)
 		assert.Error(t, err, suffix)
 
 		_, err = os.Lstat(testFile)

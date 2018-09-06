@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/containers/storage"
+	"github.com/projectatomic/buildah"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
@@ -16,6 +20,8 @@ import (
 
 // NewCmdRebuild implements the S2i cli rebuild command.
 func NewCmdRebuild(cfg *api.Config) *cobra.Command {
+	remote := true
+	storeOptions := storage.DefaultStoreOptions
 	buildCmd := &cobra.Command{
 		Use:   "rebuild <image> [<new-tag>]",
 		Short: "Rebuild an existing image",
@@ -44,10 +50,34 @@ func NewCmdRebuild(cfg *api.Config) *cobra.Command {
 			if len(cfg.PreviousImagePullPolicy) == 0 {
 				cfg.PreviousImagePullPolicy = api.DefaultPreviousImagePullPolicy
 			}
+			cfg.PullAuthentication = docker.GetImageRegistryAuth(auths, cfg.BuilderImage)
 
-			client, err := docker.NewEngineAPIClient(cfg.DockerConfig)
+			var newEngine func(api.AuthConfig) (docker.Docker, error)
+			if remote {
+				client, err := docker.NewEngineAPIClient(cfg.DockerConfig)
+				if err != nil {
+					glog.Fatal(err)
+				}
+				newEngine = func(authConfig api.AuthConfig) (docker.Docker, error) {
+					return docker.New(client, authConfig), nil
+				}
+			} else {
+				store, err := storage.GetStore(storeOptions)
+				if err != nil {
+					glog.Fatal(err)
+				}
+				defer func() {
+					if _, err = store.Shutdown(false); err != nil {
+						glog.Error(err)
+					}
+				}()
+				newEngine = func(authConfig api.AuthConfig) (docker.Docker, error) {
+					return docker.NewBuildah(context.TODO(), store, nil, buildah.IsolationDefault, authConfig)
+				}
+			}
+
+			dkr, err := newEngine(cfg.PullAuthentication)
 			s2ierr.CheckError(err)
-			dkr := docker.New(client, cfg.PullAuthentication)
 			pr, err := docker.GetRebuildImage(dkr, cfg)
 			s2ierr.CheckError(err)
 			err = build.GenerateConfigFromLabels(cfg, pr)
@@ -57,11 +87,9 @@ func NewCmdRebuild(cfg *api.Config) *cobra.Command {
 				cfg.Tag = args[1]
 			}
 
-			cfg.PullAuthentication = docker.GetImageRegistryAuth(auths, cfg.BuilderImage)
+			glog.V(2).Infof("\n%s\n", describe.ConfigWithNewEngine(newEngine, cfg))
 
-			glog.V(2).Infof("\n%s\n", describe.Config(client, cfg))
-
-			builder, _, err := strategies.GetStrategy(client, cfg)
+			builder, _, err := strategies.StrategyWithNewEngine(newEngine, cfg, build.Overrides{})
 			s2ierr.CheckError(err)
 			result, err := builder.Build(cfg)
 			s2ierr.CheckError(err)

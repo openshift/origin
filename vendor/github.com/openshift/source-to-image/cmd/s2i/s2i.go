@@ -8,10 +8,15 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/openshift/source-to-image/pkg/cmd/cli"
 )
 
 func main() {
+	if reexec.Init() {
+		return
+	}
+
 	rand.Seed(time.Now().UTC().UnixNano())
 	if len(os.Getenv("GOMAXPROCS")) == 0 {
 		runtime.GOMAXPROCS(runtime.NumCPU())

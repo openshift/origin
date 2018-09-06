@@ -20,9 +20,9 @@ func ValidateConfig(config *api.Config) []Error {
 	default:
 		allErrs = append(allErrs, NewFieldInvalidValue("builderPullPolicy"))
 	}
-	if config.DockerConfig == nil || len(config.DockerConfig.Endpoint) == 0 {
-		allErrs = append(allErrs, NewFieldRequired("dockerConfig.endpoint"))
-	}
+	// if config.DockerConfig == nil || len(config.DockerConfig.Endpoint) == 0 {
+	// 	allErrs = append(allErrs, NewFieldRequired("dockerConfig.endpoint"))
+	// }
 	if config.DockerNetworkMode != "" && !validateDockerNetworkMode(config.DockerNetworkMode) {
 		allErrs = append(allErrs, NewFieldInvalidValue("dockerNetworkMode"))
 	}

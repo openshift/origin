@@ -6,10 +6,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 
+	"github.com/containers/storage"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -18,6 +21,7 @@ import (
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/library-go/pkg/git"
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/api/legacy"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
@@ -25,6 +29,7 @@ import (
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	s2idocker "github.com/openshift/source-to-image/pkg/docker"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
@@ -49,14 +54,38 @@ type builderConfig struct {
 	out             io.Writer
 	build           *buildapiv1.Build
 	sourceSecretDir string
-	dockerClient    *docker.Client
+	dockerClient    bld.DockerClient
 	dockerEndpoint  string
 	buildsClient    buildclientv1.BuildInterface
+	cleanup         func()
 }
 
 func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderConfig, error) {
 	cfg := &builderConfig{}
 	var err error
+
+	logrusLevel := logrus.FatalLevel
+	if loglevel, ok := os.LookupEnv("BUILD_LOGLEVEL"); ok {
+		if level, err := strconv.Atoi(loglevel); err == nil {
+			switch level {
+			case 0:
+				logrusLevel = logrus.FatalLevel
+			case 1:
+				logrusLevel = logrus.ErrorLevel
+			case 2:
+				logrusLevel = logrus.WarnLevel
+			case 3:
+				logrusLevel = logrus.InfoLevel
+			default:
+				if level < 0 {
+					logrusLevel = logrus.PanicLevel
+				} else if level >= 4 {
+					logrusLevel = logrus.DebugLevel
+				}
+			}
+		}
+	}
+	logrus.SetLevel(logrusLevel)
 
 	cfg.out = out
 
@@ -86,6 +115,7 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	// sourceSecretsDir (SOURCE_SECRET_PATH)
 	cfg.sourceSecretDir = os.Getenv("SOURCE_SECRET_PATH")
 
+	needsDocker = false // TODO: remove this flag
 	if needsDocker {
 		// dockerClient and dockerEndpoint (DOCKER_HOST)
 		// usually not set, defaults to docker socket
@@ -93,6 +123,21 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 		if err != nil {
 			return nil, fmt.Errorf("no Docker configuration defined: %v", err)
 		}
+	} else {
+		store, err := storage.GetStore(bld.DaemonlessStoreOptions)
+		if err != nil {
+			return nil, err
+		}
+		cfg.cleanup = func() {
+			if _, err := store.Shutdown(false); err != nil {
+				glog.V(0).Infof("Error shutting down storage: %v", err)
+			}
+		}
+		dockerClient, err := bld.GetDaemonless(store)
+		if err != nil {
+			return nil, fmt.Errorf("no daemonless store: %v", err)
+		}
+		cfg.dockerClient = dockerClient
 	}
 
 	// buildsClient (KUBERNETES_SERVICE_HOST, KUBERNETES_SERVICE_PORT)
@@ -244,13 +289,44 @@ type s2iBuilder struct{}
 
 // Build starts an S2I build.
 func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build, cgLimits *s2iapi.CGroupLimits) error {
-	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, cgLimits).Build()
+	var newEngine func(authConfig s2iapi.AuthConfig) (s2idocker.Docker, error)
+	if dc, ok := dockerClient.(*docker.Client); ok {
+		dockerConfig := s2iapi.DockerConfig{
+			Endpoint: dc.Endpoint(),
+		}
+		if dc.TLSConfig != nil {
+			// dockerConfig.CertFile=
+			// dockerConfig.KeyFile =
+			// dockerConfig.CAFile =
+			// dockerConfig.UseTLS =
+			// dockerConfig.TLSVerify =
+		}
+		client, err := s2idocker.NewEngineAPIClient(&dockerConfig)
+		if err != nil {
+			return err
+		}
+		newEngine = func(authConfig s2iapi.AuthConfig) (s2idocker.Docker, error) {
+			return s2idocker.New(client, authConfig), nil
+		}
+	}
+	if dc, ok := dockerClient.(*bld.DaemonlessClient); ok {
+		newEngine = func(authConfig s2iapi.AuthConfig) (s2idocker.Docker, error) {
+			return s2idocker.NewBuildah(context.TODO(), dc.Store, nil, bld.DaemonlessIsolation, authConfig)
+		}
+	}
+	if newEngine == nil {
+		return bld.ClientTypeUnknown
+	}
+	return bld.NewS2IBuilder(newEngine, dockerClient, sock, buildsClient, build, cgLimits).Build()
 }
 
 func runBuild(out io.Writer, builder builder) error {
 	cfg, err := newBuilderConfigFromEnvironment(out, true)
 	if err != nil {
 		return err
+	}
+	if cfg.cleanup != nil {
+		defer cfg.cleanup()
 	}
 	return cfg.execute(builder)
 }
@@ -271,6 +347,9 @@ func RunGitClone(out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	if cfg.cleanup != nil {
+		defer cfg.cleanup()
+	}
 	return cfg.clone()
 }
 
@@ -286,6 +365,9 @@ func RunManageDockerfile(out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	if cfg.cleanup != nil {
+		defer cfg.cleanup()
+	}
 	return bld.ManageDockerfile(buildutil.InputContentPath, cfg.build)
 }
 
@@ -295,6 +377,17 @@ func RunExtractImageContent(out io.Writer) error {
 	cfg, err := newBuilderConfigFromEnvironment(out, true)
 	if err != nil {
 		return err
+	}
+	if cfg.cleanup != nil {
+		defer cfg.cleanup()
+	}
+	switch {
+	case bool(glog.V(4)):
+		serviceability.InitLogrus("DEBUG")
+	case bool(glog.V(2)):
+		serviceability.InitLogrus("INFO")
+	case bool(glog.V(0)):
+		serviceability.InitLogrus("WARN")
 	}
 	return cfg.extractImageContent()
 }

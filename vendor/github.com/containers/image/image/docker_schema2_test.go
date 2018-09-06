@@ -29,16 +29,16 @@ func (f unusedImageSource) Reference() types.ImageReference {
 func (f unusedImageSource) Close() error {
 	panic("Unexpected call to a mock function")
 }
-func (f unusedImageSource) GetManifest() ([]byte, string, error) {
+func (f unusedImageSource) GetManifest(context.Context, *digest.Digest) ([]byte, string, error) {
 	panic("Unexpected call to a mock function")
 }
-func (f unusedImageSource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
+func (f unusedImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
 	panic("Unexpected call to a mock function")
 }
-func (f unusedImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
+func (f unusedImageSource) GetSignatures(context.Context, *digest.Digest) ([][]byte, error) {
 	panic("Unexpected call to a mock function")
 }
-func (f unusedImageSource) GetSignatures(context.Context) ([][]byte, error) {
+func (f unusedImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	panic("Unexpected call to a mock function")
 }
 
@@ -52,11 +52,11 @@ func manifestSchema2FromFixture(t *testing.T, src types.ImageSource, fixture str
 }
 
 func manifestSchema2FromComponentsLikeFixture(configBlob []byte) genericManifest {
-	return manifestSchema2FromComponents(descriptor{
+	return manifestSchema2FromComponents(manifest.Schema2Descriptor{
 		MediaType: "application/octet-stream",
 		Size:      5940,
 		Digest:    "sha256:9ca4bda0a6b3727a6ffcc43e981cad0f24e2ec79d338f6ba325b4dfd0756fb8f",
-	}, nil, configBlob, []descriptor{
+	}, nil, configBlob, []manifest.Schema2Descriptor{
 		{
 			MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 			Digest:    "sha256:6a5a5368e0c2d3e5909184fa28ddfd56072e7ff3ee9a945876f7eee5896ef5bb",
@@ -139,8 +139,9 @@ func TestManifestSchema2ConfigInfo(t *testing.T) {
 		manifestSchema2FromComponentsLikeFixture(nil),
 	} {
 		assert.Equal(t, types.BlobInfo{
-			Size:   5940,
-			Digest: "sha256:9ca4bda0a6b3727a6ffcc43e981cad0f24e2ec79d338f6ba325b4dfd0756fb8f",
+			Size:      5940,
+			Digest:    "sha256:9ca4bda0a6b3727a6ffcc43e981cad0f24e2ec79d338f6ba325b4dfd0756fb8f",
+			MediaType: "application/octet-stream",
 		}, m.ConfigInfo())
 	}
 }
@@ -151,7 +152,7 @@ type configBlobImageSource struct {
 	f                 func(digest digest.Digest) (io.ReadCloser, int64, error)
 }
 
-func (f configBlobImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
+func (f configBlobImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
 	if info.Digest.String() != "sha256:9ca4bda0a6b3727a6ffcc43e981cad0f24e2ec79d338f6ba325b4dfd0756fb8f" {
 		panic("Unexpected digest in GetBlob")
 	}
@@ -192,7 +193,7 @@ func TestManifestSchema2ConfigBlob(t *testing.T) {
 			src = nil
 		}
 		m := manifestSchema2FromFixture(t, src, "schema2.json")
-		blob, err := m.ConfigBlob()
+		blob, err := m.ConfigBlob(context.Background())
 		if c.blob != nil {
 			assert.NoError(t, err)
 			assert.Equal(t, c.blob, blob)
@@ -208,7 +209,7 @@ func TestManifestSchema2ConfigBlob(t *testing.T) {
 	// This just tests that the manifest can be created; we test that the parsed
 	// values are correctly returned in tests for the individual getter methods.
 	m := manifestSchema2FromComponentsLikeFixture(configBlob)
-	cb, err := m.ConfigBlob()
+	cb, err := m.ConfigBlob(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, configBlob, cb)
 }
@@ -220,24 +221,29 @@ func TestManifestSchema2LayerInfo(t *testing.T) {
 	} {
 		assert.Equal(t, []types.BlobInfo{
 			{
-				Digest: "sha256:6a5a5368e0c2d3e5909184fa28ddfd56072e7ff3ee9a945876f7eee5896ef5bb",
-				Size:   51354364,
+				Digest:    "sha256:6a5a5368e0c2d3e5909184fa28ddfd56072e7ff3ee9a945876f7eee5896ef5bb",
+				Size:      51354364,
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 			},
 			{
-				Digest: "sha256:1bbf5d58d24c47512e234a5623474acf65ae00d4d1414272a893204f44cc680c",
-				Size:   150,
+				Digest:    "sha256:1bbf5d58d24c47512e234a5623474acf65ae00d4d1414272a893204f44cc680c",
+				Size:      150,
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 			},
 			{
-				Digest: "sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9",
-				Size:   11739507,
+				Digest:    "sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9",
+				Size:      11739507,
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 			},
 			{
-				Digest: "sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
-				Size:   8841833,
+				Digest:    "sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
+				Size:      8841833,
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 			},
 			{
-				Digest: "sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
-				Size:   291,
+				Digest:    "sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
+				Size:      291,
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 			},
 		}, m.LayerInfos())
 	}
@@ -257,30 +263,37 @@ func TestManifestSchema2EmbeddedDockerReferenceConflicts(t *testing.T) {
 	}
 }
 
-func TestManifestSchema2ImageInspectInfo(t *testing.T) {
+func TestManifestSchema2Inspect(t *testing.T) {
 	configJSON, err := ioutil.ReadFile("fixtures/schema2-config.json")
 	require.NoError(t, err)
 
 	m := manifestSchema2FromComponentsLikeFixture(configJSON)
-	ii, err := m.imageInspectInfo()
+	ii, err := m.Inspect(context.Background())
 	require.NoError(t, err)
+	created := time.Date(2016, 9, 23, 23, 20, 45, 789764590, time.UTC)
 	assert.Equal(t, types.ImageInspectInfo{
 		Tag:           "",
-		Created:       time.Date(2016, 9, 23, 23, 20, 45, 789764590, time.UTC),
+		Created:       &created,
 		DockerVersion: "1.12.1",
 		Labels:        map[string]string{},
 		Architecture:  "amd64",
 		Os:            "linux",
-		Layers:        nil,
+		Layers: []string{
+			"sha256:6a5a5368e0c2d3e5909184fa28ddfd56072e7ff3ee9a945876f7eee5896ef5bb",
+			"sha256:1bbf5d58d24c47512e234a5623474acf65ae00d4d1414272a893204f44cc680c",
+			"sha256:8f5dc8a4b12c307ac84de90cdd9a7f3915d1be04c9388868ca118831099c67a9",
+			"sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
+			"sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
+		},
 	}, *ii)
 
 	// nil configBlob will trigger an error in m.ConfigBlob()
 	m = manifestSchema2FromComponentsLikeFixture(nil)
-	_, err = m.imageInspectInfo()
+	_, err = m.Inspect(context.Background())
 	assert.Error(t, err)
 
 	m = manifestSchema2FromComponentsLikeFixture([]byte("invalid JSON"))
-	_, err = m.imageInspectInfo()
+	_, err = m.Inspect(context.Background())
 	assert.Error(t, err)
 }
 
@@ -323,16 +336,16 @@ func (ref refImageReferenceMock) PolicyConfigurationIdentity() string {
 func (ref refImageReferenceMock) PolicyConfigurationNamespaces() []string {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageReferenceMock) NewImage(ctx *types.SystemContext) (types.Image, error) {
+func (ref refImageReferenceMock) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageReferenceMock) NewImageSource(ctx *types.SystemContext, requestedManifestMIMETypes []string) (types.ImageSource, error) {
+func (ref refImageReferenceMock) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageReferenceMock) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
+func (ref refImageReferenceMock) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageReferenceMock) DeleteImage(ctx *types.SystemContext) error {
+func (ref refImageReferenceMock) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	panic("unexpected call to a mock function")
 }
 
@@ -367,10 +380,10 @@ func (d *memoryImageDest) Close() error {
 func (d *memoryImageDest) SupportedManifestMIMETypes() []string {
 	panic("Unexpected call to a mock function")
 }
-func (d *memoryImageDest) SupportsSignatures() error {
+func (d *memoryImageDest) SupportsSignatures(ctx context.Context) error {
 	panic("Unexpected call to a mock function")
 }
-func (d *memoryImageDest) ShouldCompressLayers() bool {
+func (d *memoryImageDest) DesiredLayerCompression() types.LayerCompression {
 	panic("Unexpected call to a mock function")
 }
 func (d *memoryImageDest) AcceptsForeignLayerURLs() bool {
@@ -379,7 +392,10 @@ func (d *memoryImageDest) AcceptsForeignLayerURLs() bool {
 func (d *memoryImageDest) MustMatchRuntimeOS() bool {
 	panic("Unexpected call to a mock function")
 }
-func (d *memoryImageDest) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types.BlobInfo, error) {
+func (d *memoryImageDest) IgnoresEmbeddedDockerReference() bool {
+	panic("Unexpected call to a mock function")
+}
+func (d *memoryImageDest) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
 	if d.storedBlobs == nil {
 		d.storedBlobs = make(map[digest.Digest][]byte)
 	}
@@ -393,19 +409,19 @@ func (d *memoryImageDest) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (t
 	d.storedBlobs[inputInfo.Digest] = contents
 	return types.BlobInfo{Digest: inputInfo.Digest, Size: int64(len(contents))}, nil
 }
-func (d *memoryImageDest) HasBlob(inputInfo types.BlobInfo) (bool, int64, error) {
+func (d *memoryImageDest) HasBlob(ctx context.Context, inputInfo types.BlobInfo) (bool, int64, error) {
 	panic("Unexpected call to a mock function")
 }
-func (d *memoryImageDest) ReapplyBlob(inputInfo types.BlobInfo) (types.BlobInfo, error) {
+func (d *memoryImageDest) ReapplyBlob(ctx context.Context, inputInfo types.BlobInfo) (types.BlobInfo, error) {
 	panic("Unexpected call to a mock function")
 }
-func (d *memoryImageDest) PutManifest([]byte) error {
+func (d *memoryImageDest) PutManifest(ctx context.Context, m []byte) error {
 	panic("Unexpected call to a mock function")
 }
-func (d *memoryImageDest) PutSignatures(signatures [][]byte) error {
+func (d *memoryImageDest) PutSignatures(ctx context.Context, signatures [][]byte) error {
 	panic("Unexpected call to a mock function")
 }
-func (d *memoryImageDest) Commit() error {
+func (d *memoryImageDest) Commit(ctx context.Context) error {
 	panic("Unexpected call to a mock function")
 }
 
@@ -415,12 +431,12 @@ func TestManifestSchema2UpdatedImage(t *testing.T) {
 
 	// LayerInfos:
 	layerInfos := append(original.LayerInfos()[1:], original.LayerInfos()[0])
-	res, err := original.UpdatedImage(types.ManifestUpdateOptions{
+	res, err := original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		LayerInfos: layerInfos,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, layerInfos, res.LayerInfos())
-	_, err = original.UpdatedImage(types.ManifestUpdateOptions{
+	_, err = original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		LayerInfos: append(layerInfos, layerInfos[0]),
 	})
 	assert.Error(t, err)
@@ -429,7 +445,7 @@ func TestManifestSchema2UpdatedImage(t *testing.T) {
 	// … is ignored
 	embeddedRef, err := reference.ParseNormalizedNamed("busybox")
 	require.NoError(t, err)
-	res, err = original.UpdatedImage(types.ManifestUpdateOptions{
+	res, err = original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		EmbeddedDockerReference: embeddedRef,
 	})
 	require.NoError(t, err)
@@ -444,7 +460,7 @@ func TestManifestSchema2UpdatedImage(t *testing.T) {
 		manifest.DockerV2Schema1MediaType,
 		manifest.DockerV2Schema1SignedMediaType,
 	} {
-		_, err = original.UpdatedImage(types.ManifestUpdateOptions{
+		_, err = original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 			ManifestMIMEType: mime,
 			InformationOnly: types.ManifestUpdateInformation{
 				Destination: &memoryImageDest{ref: originalSrc.ref},
@@ -456,7 +472,7 @@ func TestManifestSchema2UpdatedImage(t *testing.T) {
 		manifest.DockerV2Schema2MediaType, // This indicates a confused caller, not a no-op
 		"this is invalid",
 	} {
-		_, err = original.UpdatedImage(types.ManifestUpdateOptions{
+		_, err = original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 			ManifestMIMEType: mime,
 		})
 		assert.Error(t, err, mime)
@@ -474,12 +490,12 @@ func TestManifestSchema2UpdatedImage(t *testing.T) {
 func TestConvertToManifestOCI(t *testing.T) {
 	originalSrc := newSchema2ImageSource(t, "httpd-copy:latest")
 	original := manifestSchema2FromFixture(t, originalSrc, "schema2.json")
-	res, err := original.UpdatedImage(types.ManifestUpdateOptions{
+	res, err := original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		ManifestMIMEType: imgspecv1.MediaTypeImageManifest,
 	})
 	require.NoError(t, err)
 
-	convertedJSON, mt, err := res.Manifest()
+	convertedJSON, mt, err := res.Manifest(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, imgspecv1.MediaTypeImageManifest, mt)
 
@@ -497,7 +513,7 @@ func TestConvertToManifestSchema1(t *testing.T) {
 	originalSrc := newSchema2ImageSource(t, "httpd-copy:latest")
 	original := manifestSchema2FromFixture(t, originalSrc, "schema2.json")
 	memoryDest := &memoryImageDest{ref: originalSrc.ref}
-	res, err := original.UpdatedImage(types.ManifestUpdateOptions{
+	res, err := original.UpdatedImage(context.Background(), types.ManifestUpdateOptions{
 		ManifestMIMEType: manifest.DockerV2Schema1SignedMediaType,
 		InformationOnly: types.ManifestUpdateInformation{
 			Destination: memoryDest,
@@ -505,7 +521,7 @@ func TestConvertToManifestSchema1(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	convertedJSON, mt, err := res.Manifest()
+	convertedJSON, mt, err := res.Manifest(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, manifest.DockerV2Schema1SignedMediaType, mt)
 
@@ -523,7 +539,7 @@ func TestConvertToManifestSchema1(t *testing.T) {
 	delete(converted, "signatures")
 	assert.Equal(t, byDocker, converted)
 
-	assert.Equal(t, gzippedEmptyLayer, memoryDest.storedBlobs[gzippedEmptyLayerDigest])
+	assert.Equal(t, GzippedEmptyLayer, memoryDest.storedBlobs[GzippedEmptyLayerDigest])
 
 	// FIXME? Test also the various failure cases, if only to see that we don't crash?
 }

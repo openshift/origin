@@ -96,15 +96,31 @@ type STI struct {
 // be used for the case that the base Docker image does not have 'tar' or 'bash'
 // installed.
 func New(client dockerpkg.Client, config *api.Config, fs fs.FileSystem, overrides build.Overrides) (*STI, error) {
+	newEngine := func(authConfig api.AuthConfig) (dockerpkg.Docker, error) {
+		return dockerpkg.New(client, authConfig), nil
+	}
+	return NewWithNewEngine(newEngine, config, fs, overrides)
+}
+
+// NewWithNewEngine returns the instance of STI builder strategy for the given
+// config.  The newEngine callback function is used for obtaining an object which
+// implements the docker.Docker interface for use as an execution engine.
+func NewWithNewEngine(newEngine func(api.AuthConfig) (dockerpkg.Docker, error), config *api.Config, fs fs.FileSystem, overrides build.Overrides) (*STI, error) {
 	excludePattern, err := regexp.Compile(config.ExcludeRegExp)
 	if err != nil {
 		return nil, err
 	}
 
-	docker := dockerpkg.New(client, config.PullAuthentication)
+	docker, err := newEngine(config.PullAuthentication)
+	if err != nil {
+		return nil, err
+	}
 	var incrementalDocker dockerpkg.Docker
 	if config.Incremental {
-		incrementalDocker = dockerpkg.New(client, config.IncrementalAuthentication)
+		incrementalDocker, err = newEngine(config.IncrementalAuthentication)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	inst := scripts.NewInstaller(
@@ -137,7 +153,10 @@ func New(client dockerpkg.Client, config *api.Config, fs fs.FileSystem, override
 	}
 
 	if len(config.RuntimeImage) > 0 {
-		builder.runtimeDocker = dockerpkg.New(client, config.RuntimeAuthentication)
+		builder.runtimeDocker, err = newEngine(config.RuntimeAuthentication)
+		if err != nil {
+			return nil, err
+		}
 
 		builder.runtimeInstaller = scripts.NewInstaller(
 			config.RuntimeImage,
@@ -164,7 +183,7 @@ func New(client dockerpkg.Client, config *api.Config, fs fs.FileSystem, override
 	}
 	builder.garbage = build.NewDefaultCleaner(builder.fs, builder.docker)
 
-	builder.layered, err = layered.New(client, config, builder.fs, builder, overrides)
+	builder.layered, err = layered.NewWithNewEngine(newEngine, config, builder.fs, builder, overrides)
 	if err != nil {
 		return nil, err
 	}

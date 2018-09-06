@@ -7,12 +7,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/storage"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/apis/policy"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/kubernetes/pkg/apis/policy"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
@@ -354,4 +355,127 @@ func copyEnvVarSlice(in []corev1.EnvVar) []corev1.EnvVar {
 	out := make([]corev1.EnvVar, len(in))
 	copy(out, in)
 	return out
+}
+
+// setupContainersConfigs sets up volumes for mounting the node's configuration which governs which
+// registries it knows about, whether or not they should be accessed with TLS, and signature policies.
+func setupContainersConfigs(pod *corev1.Pod, container *corev1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		corev1.Volume{
+			Name: "containerspolicyjson",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/containers/policy.json",
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "containersregistriesconf",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/containers/registries.conf",
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "containersregistriesd",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/containers/registries.d",
+				},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		corev1.VolumeMount{
+			Name:      "containerspolicyjson",
+			MountPath: "/etc/containers/policy.json",
+			ReadOnly:  true,
+		},
+		corev1.VolumeMount{
+			Name:      "containersregistriesconf",
+			MountPath: "/etc/containers/registries.conf",
+			ReadOnly:  true,
+		},
+		corev1.VolumeMount{
+			Name:      "containersregistriesd",
+			MountPath: "/etc/containers/registries.d",
+			ReadOnly:  true,
+		},
+	)
+}
+
+// setupContainersStorage creates a volume that we'll use for holding images and working
+// root filesystems for building images.
+func setupContainersStorage(pod *corev1.Pod, container *corev1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		corev1.Volume{
+			Name: "container-storage-root",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		corev1.VolumeMount{
+			Name:      "container-storage-root",
+			MountPath: storage.DefaultStoreOptions.GraphRoot,
+		},
+	)
+}
+
+// setupContainersNodeStorage borrows the appropriate storage directories from the node so
+// that we can share layers that we're using with the node
+func setupContainersNodeStorage(pod *corev1.Pod, container *corev1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+		corev1.Volume{
+			Name: "node-storage-root",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: storage.DefaultStoreOptions.GraphRoot,
+				},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+		corev1.VolumeMount{
+			Name:      "node-storage-root",
+			MountPath: storage.DefaultStoreOptions.GraphRoot,
+		},
+	)
+}
+
+// setupContainersCertificates borrows the appropriate directories from the node so that
+// we can share any certificates that we might need for contacting registries.
+func setupContainersCertificates(pod *corev1.Pod, container *corev1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		corev1.Volume{
+			Name: "node-containers-certificates",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/containers/certs.d",
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "node-docker-certificates",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/docker/certs.d",
+				},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		corev1.VolumeMount{
+			Name:      "node-containers-certificates",
+			MountPath: "/etc/containers/certs.d",
+		},
+		corev1.VolumeMount{
+			Name:      "node-docker-certificates",
+			MountPath: "/etc/docker/certs.d",
+		},
+	)
 }

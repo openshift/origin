@@ -22,6 +22,7 @@ S2I_OUTPUT_PKGDIR="${S2I_OUTPUT}/pkgdir"
 S2I_LOCAL_BINPATH="${S2I_OUTPUT}/go/bin"
 S2I_LOCAL_RELEASEPATH="${S2I_OUTPUT}/releases"
 RELEASE_LDFLAGS=${RELEASE_LDFLAGS:-""}
+S2I_GOTAGS="${S2I_GOTAGS:-containers_image_docker_daemon_stub containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_ostree exclude_graphdriver_overlay}"
 
 
 readonly S2I_GO_PACKAGE=github.com/openshift/source-to-image
@@ -89,7 +90,7 @@ s2i::build::build_binaries() {
     for platform in "${platforms[@]}"; do
       s2i::build::set_platform_envs "${platform}"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
-      CGO_ENABLED=0 go install "${goflags[@]:+${goflags[@]}}" \
+      go install "${goflags[@]:+${goflags[@]}}" -tags "${S2I_GOTAGS}" \
           -pkgdir "${S2I_OUTPUT_PKGDIR}" \
           -ldflags "${version_ldflags} ${RELEASE_LDFLAGS}" \
           "${binaries[@]}"

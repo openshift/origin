@@ -16,3 +16,5 @@ to create it, any names that image has, and the ID of the container's layer.
 
 ## SEE ALSO
 containers-storage-containers(1)
+containers-storage-image(1)
+containers-storage-layer(1)

@@ -28,6 +28,17 @@ func New(client docker.Client, config *api.Config) *DockerRunner {
 	return &DockerRunner{d}
 }
 
+// NewWithNewEngine creates a DockerRunner for executing the methods associated
+// with running the produced image, using an engine returned by the supplied
+// callback, for verification purposes.
+func NewWithNewEngine(newEngine func(api.AuthConfig) (docker.Docker, error), config *api.Config) (*DockerRunner, error) {
+	d, err := newEngine(config.PullAuthentication)
+	if err != nil {
+		return nil, err
+	}
+	return &DockerRunner{d}, nil
+}
+
 // Run invokes the Docker API to run the image defined in config as a new
 // container. The container's stdout and stderr will be logged with glog.
 func (b *DockerRunner) Run(config *api.Config) error {

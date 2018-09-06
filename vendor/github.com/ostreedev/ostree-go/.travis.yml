@@ -1,0 +1,28 @@
+sudo: required
+
+services:
+  - docker
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - env: TEST=skopeo
+
+env:
+  global:
+  matrix:
+    - TEST=integration
+    - TEST=skopeo
+
+# Don't send out emails
+notifications:
+  email: false
+    
+before_script:
+  - docker pull registry.fedoraproject.org/fedora:latest
+  - docker run -e GOPATH=/opt --cidfile=/tmp/cidfile registry.fedoraproject.org/fedora:latest /bin/bash -c "dnf install -y make golang go-compilers-golang-compiler findutils ostree ostree-devel gpgme-devel libassuan-devel btrfs-progs-devel device-mapper-devel"
+  - docker commit `cat /tmp/cidfile` go-ostree/test
+
+script:
+  - if [ $TEST == 'integration' ]; then docker run --rm -e GOPATH=/opt -v ${PWD}:/opt/src/github.com/ostreedev/ostree-go go-ostree/test /bin/bash -c "cd /opt/src/github.com/ostreedev/ostree-go && make install-tools && PATH=$PATH:/opt/bin make deps && PATH=$PATH:/opt/bin make lint && PATH=$PATH:/opt/bin make test"; fi
+  - if [ $TEST == 'skopeo' ]; then docker run --rm -e GOPATH=/opt -v ${PWD}:/ostree-go go-ostree/test /ostree-go/scripts/travis/test_skopeo.sh; fi

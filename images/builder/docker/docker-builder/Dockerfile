@@ -16,7 +16,7 @@ RUN INSTALL_PKGS=" \
       which tar wget hostname sysvinit-tools util-linux \
       socat tree findutils lsof bind-utils \
       git tar bsdtar \
-      " && \
+      runc" && \
     yum install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all

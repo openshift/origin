@@ -1,0 +1,163 @@
+{
+    "architecture": "amd64",
+    "config": {
+        "Hostname": "9428cdea83ba",
+        "Domainname": "",
+        "User": "nova",
+        "AttachStdin": false,
+        "AttachStdout": false,
+        "AttachStderr": false,
+        "Tty": false,
+        "OpenStdin": false,
+        "StdinOnce": false,
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "KOLLA_BASE_DISTRO=rhel",
+            "KOLLA_INSTALL_TYPE=binary",
+            "KOLLA_INSTALL_METATYPE=rhos",
+            "PS1=$(tput bold)($(printenv KOLLA_SERVICE_NAME))$(tput sgr0)[$(id -un)@$(hostname -s) $(pwd)]$ "
+        ],
+        "Cmd": [
+            "kolla_start"
+        ],
+        "Healthcheck": {
+            "Test": [
+                "CMD-SHELL",
+                "/openstack/healthcheck"
+            ]
+        },
+        "ArgsEscaped": true,
+        "Image": "3bf9afe371220b1eb1c57bec39b5a99ba976c36c92d964a1c014584f95f51e33",
+        "Volumes": null,
+        "WorkingDir": "",
+        "Entrypoint": null,
+        "OnBuild": [],
+        "Labels": {
+            "Kolla-SHA": "5.0.0-39-g6f1b947b",
+            "architecture": "x86_64",
+            "authoritative-source-url": "registry.access.redhat.com",
+            "build-date": "2018-01-25T00:32:27.807261",
+            "com.redhat.build-host": "ip-10-29-120-186.ec2.internal",
+            "com.redhat.component": "openstack-nova-api-docker",
+            "description": "Red Hat OpenStack Platform 12.0 nova-api",
+            "distribution-scope": "public",
+            "io.k8s.description": "Red Hat OpenStack Platform 12.0 nova-api",
+            "io.k8s.display-name": "Red Hat OpenStack Platform 12.0 nova-api",
+            "io.openshift.tags": "rhosp osp openstack osp-12.0",
+            "kolla_version": "stable/pike",
+            "name": "rhosp12/openstack-nova-api",
+            "release": "20180124.1",
+            "summary": "Red Hat OpenStack Platform 12.0 nova-api",
+            "tripleo-common_version": "7.6.3-23-g4891cfe",
+            "url": "https://access.redhat.com/containers/#/registry.access.redhat.com/rhosp12/openstack-nova-api/images/12.0-20180124.1",
+            "vcs-ref": "9b31243b7b448eb2fc3b6e2c96935b948f806e98",
+            "vcs-type": "git",
+            "vendor": "Red Hat, Inc.",
+            "version": "12.0",
+            "version-release": "12.0-20180124.1"
+        }
+    },
+    "container_config": {
+        "Hostname": "9428cdea83ba",
+        "Domainname": "",
+        "User": "nova",
+        "AttachStdin": false,
+        "AttachStdout": false,
+        "AttachStderr": false,
+        "Tty": false,
+        "OpenStdin": false,
+        "StdinOnce": false,
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "KOLLA_BASE_DISTRO=rhel",
+            "KOLLA_INSTALL_TYPE=binary",
+            "KOLLA_INSTALL_METATYPE=rhos",
+            "PS1=$(tput bold)($(printenv KOLLA_SERVICE_NAME))$(tput sgr0)[$(id -un)@$(hostname -s) $(pwd)]$ "
+        ],
+        "Cmd": [
+            "/bin/sh",
+            "-c",
+            "#(nop) ",
+            "USER [nova]"
+        ],
+        "Healthcheck": {
+            "Test": [
+                "CMD-SHELL",
+                "/openstack/healthcheck"
+            ]
+        },
+        "ArgsEscaped": true,
+        "Image": "sha256:274ce4dcbeb09fa173a5d50203ae5cec28f456d1b8b59477b47a42bd74d068bf",
+        "Volumes": null,
+        "WorkingDir": "",
+        "Entrypoint": null,
+        "OnBuild": [],
+        "Labels": {
+            "Kolla-SHA": "5.0.0-39-g6f1b947b",
+            "architecture": "x86_64",
+            "authoritative-source-url": "registry.access.redhat.com",
+            "build-date": "2018-01-25T00:32:27.807261",
+            "com.redhat.build-host": "ip-10-29-120-186.ec2.internal",
+            "com.redhat.component": "openstack-nova-api-docker",
+            "description": "Red Hat OpenStack Platform 12.0 nova-api",
+            "distribution-scope": "public",
+            "io.k8s.description": "Red Hat OpenStack Platform 12.0 nova-api",
+            "io.k8s.display-name": "Red Hat OpenStack Platform 12.0 nova-api",
+            "io.openshift.tags": "rhosp osp openstack osp-12.0",
+            "kolla_version": "stable/pike",
+            "name": "rhosp12/openstack-nova-api",
+            "release": "20180124.1",
+            "summary": "Red Hat OpenStack Platform 12.0 nova-api",
+            "tripleo-common_version": "7.6.3-23-g4891cfe",
+            "url": "https://access.redhat.com/containers/#/registry.access.redhat.com/rhosp12/openstack-nova-api/images/12.0-20180124.1",
+            "vcs-ref": "9b31243b7b448eb2fc3b6e2c96935b948f806e98",
+            "vcs-type": "git",
+            "vendor": "Red Hat, Inc.",
+            "version": "12.0",
+            "version-release": "12.0-20180124.1"
+        }
+    },
+    "created": "2018-01-25T00:37:48.268558Z",
+    "docker_version": "1.12.6",
+    "os": "linux",
+    "history": [
+        {
+            "comment": "Imported from -",
+            "created": "2017-11-21T16:47:27.755341705Z"
+        },
+        {
+            "author": "Red Hat, Inc.",
+            "created": "2017-11-21T16:49:37.292899Z",
+            "created_by": "/bin/sh -c rm -f '/etc/yum.repos.d/compose-rpms-1.repo'"
+        },
+        {
+            "created": "2018-01-24T21:40:32.494686Z",
+            "created_by": "/bin/sh -c rm -f '/etc/yum.repos.d/rhel-7.4.repo' '/etc/yum.repos.d/rhos-optools-12.0.repo' '/etc/yum.repos.d/rhos-12.0-container-yum-need_images.repo'"
+        },
+        {
+            "created": "2018-01-24T22:00:57.807862Z",
+            "created_by": "/bin/sh -c rm -f '/etc/yum.repos.d/rhel-7.4.repo' '/etc/yum.repos.d/rhos-optools-12.0.repo' '/etc/yum.repos.d/rhos-12.0-container-yum-need_images.repo'"
+        },
+        {
+            "created": "2018-01-24T23:08:25.300741Z",
+            "created_by": "/bin/sh -c rm -f '/etc/yum.repos.d/rhel-7.4.repo' '/etc/yum.repos.d/rhos-optools-12.0.repo' '/etc/yum.repos.d/rhos-12.0-container-yum-need_images.repo'"
+        },
+        {
+            "created": "2018-01-25T00:37:48.268558Z",
+            "created_by": "/bin/sh -c #(nop)  USER [nova]"
+        }
+    ],
+    "rootfs": {
+        "type": "layers",
+        "diff_ids": [
+            "sha256:e1d829eddb62dc49f1c56dbf8acd0c71299b3996115399de853a9d66d81b822f",
+            "sha256:02404b4d7e5d89b1383ca346b4462b199128aa4b238c5a2b2c186004ac148ba8",
+            "sha256:45fad80a4b1cec165c421eb570dec312d825bd8fac362e255028fa3f2169148d",
+            "sha256:7ddef8efd44586e54880ec4797458eac87b368544c438d7e7c63fbc0d9a7ae97",
+            "sha256:b56b16b6407ba1b86252e7e50f98f142cf6844fab42e4495d56ebb7ce559e2af",
+            "sha256:9bd63850e406167b4751f5050f6dc0ebd789bb5ef5e5c6c31ed062bda8c063e8"
+        ]
+    }
+}

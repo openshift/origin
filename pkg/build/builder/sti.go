@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	dockerclient "github.com/fsouza/go-dockerclient"
+
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
@@ -35,6 +37,8 @@ import (
 
 // builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
 type builderFactory interface {
+	// Create a "connection" to a new build engine
+	NewEngine(authConfig s2iapi.AuthConfig) (docker.Docker, error)
 	// Create S2I Builder based on S2I configuration
 	Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error)
 }
@@ -46,15 +50,18 @@ type validator interface {
 }
 
 // runtimeBuilderFactory is the default implementation of stiBuilderFactory
-type runtimeBuilderFactory struct{}
+type runtimeBuilderFactory struct {
+	newEngine func(authConfig s2iapi.AuthConfig) (docker.Docker, error)
+}
+
+// NewEngine creates a "connection" to a new build engine
+func (factory runtimeBuilderFactory) NewEngine(authConfig s2iapi.AuthConfig) (docker.Docker, error) {
+	return factory.newEngine(authConfig)
+}
 
 // Builder delegates execution to S2I-specific code
-func (_ runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error) {
-	client, err := docker.NewEngineAPIClient(config.DockerConfig)
-	if err != nil {
-		return nil, s2iapi.BuildInfo{}, err
-	}
-	builder, buildInfo, err := s2i.Strategy(client, config, overrides)
+func (factory runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error) {
+	builder, buildInfo, err := s2i.StrategyWithNewEngine(factory.NewEngine, config, overrides)
 	return builder, buildInfo, err
 }
 
@@ -78,10 +85,10 @@ type S2IBuilder struct {
 }
 
 // NewS2IBuilder creates a new STIBuilder instance
-func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build,
+func NewS2IBuilder(newEngine func(authConfig s2iapi.AuthConfig) (docker.Docker, error), dockerClient DockerClient, dockerSocket string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build,
 	cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
-	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
+	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{newEngine}, runtimeConfigValidator{}, cgLimits)
 }
 
 // newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
@@ -193,6 +200,10 @@ func (s *S2IBuilder) Build() error {
 	if err != nil {
 		return err
 	}
+	if _, ok := s.dockerClient.(*DaemonlessClient); ok {
+		resolvConfHostPath = "/etc/resolv.conf"
+		networkMode = string(s2iapi.DockerNetworkModeHost)
+	}
 
 	config := &s2iapi.Config{
 		// Save some processing time by not cleaning up (the container will go away anyway)
@@ -275,13 +286,9 @@ func (s *S2IBuilder) Build() error {
 		return errors.New(buffer.String())
 	}
 
-	client, err := docker.NewEngineAPIClient(config.DockerConfig)
-	if err != nil {
-		return err
-	}
 	if glog.Is(4) {
 		redactedConfig := SafeForLoggingS2IConfig(config)
-		glog.V(4).Infof("Creating a new S2I builder with config: %#v\n", describe.Config(client, redactedConfig))
+		glog.V(4).Infof("Creating a new S2I builder with config: %#v\n", describe.ConfigWithNewEngine(s.builder.NewEngine, redactedConfig))
 	}
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
@@ -351,7 +358,7 @@ func (s *S2IBuilder) Build() error {
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		startTime = metav1.Now()
-		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+		digest, err := s.pushImage(pushTag, pushAuthConfig)
 
 		timing.RecordNewStep(ctx, buildapiv1.StagePushImage, buildapiv1.StepPushImage, startTime, metav1.Now())
 
@@ -374,6 +381,16 @@ func (s *S2IBuilder) Build() error {
 	return nil
 }
 
+func (s *S2IBuilder) pushImage(name string, authConfig dockerclient.AuthConfiguration) (string, error) {
+	if _, ok := s.dockerClient.(*dockerclient.Client); ok {
+		return dockerPushImage(s.dockerClient, name, authConfig)
+	}
+	if _, ok := s.dockerClient.(*DaemonlessClient); ok {
+		return "", pushDaemonlessImage(name, authConfig)
+	}
+	return "", ClientTypeUnknown
+}
+
 // buildEnvVars returns a map with build metadata to be inserted into Docker
 // images produced by build. It transforms the output from buildInfo into the
 // input format expected by s2iapi.Config.Environment.
@@ -385,6 +402,7 @@ func (s *S2IBuilder) Build() error {
 func buildEnvVars(build *buildapiv1.Build, sourceInfo *git.SourceInfo) s2iapi.EnvironmentList {
 	bi := buildInfo(build, sourceInfo)
 	envVars := &s2iapi.EnvironmentList{}
+	envVars.Set("TERM=dumb")
 	for _, item := range bi {
 		envVars.Set(fmt.Sprintf("%s=%s", item.Key, item.Value))
 	}
