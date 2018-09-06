@@ -8,12 +8,12 @@ import (
 
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
+	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
 	configcmd "github.com/openshift/origin/pkg/bulk"
-	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	ocnewapp "github.com/openshift/origin/pkg/oc/cli/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
-	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
 
 // TestNewBuildRun ensures that Run command calls the right actions
@@ -67,11 +67,11 @@ func TestNewBuildRun(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		templateClient := templatefake.NewSimpleClientset()
-		imageClient := imagefake.NewSimpleClientset()
+		templateClient := faketemplatev1client.NewSimpleClientset()
+		imageClient := fakeimagev1client.NewSimpleClientset()
 
 		o.Config = test.config
-		o.Config.SetOpenShiftClient(imageClient.Image(), templateClient.Template(), nil, "openshift", nil)
+		o.Config.SetOpenShiftClient(imageClient.ImageV1(), templateClient.TemplateV1(), nil, "openshift", nil)
 
 		o.Config.DockerSearcher = MockSearcher{
 			OnSearch: func(precise bool, terms ...string) (app.ComponentMatches, []error) {
