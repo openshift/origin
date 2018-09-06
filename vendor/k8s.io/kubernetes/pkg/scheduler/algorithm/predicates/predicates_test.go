@@ -4038,7 +4038,6 @@ func TestVolumeZonePredicateWithVolumeBinding(t *testing.T) {
 
 func TestGetMaxVols(t *testing.T) {
 	previousValue := os.Getenv(KubeMaxPDVols)
-	defaultValue := 39
 
 	tests := []struct {
 		rawMaxVols string
@@ -4047,12 +4046,12 @@ func TestGetMaxVols(t *testing.T) {
 	}{
 		{
 			rawMaxVols: "invalid",
-			expected:   defaultValue,
+			expected:   -1,
 			test:       "Unable to parse maximum PD volumes value, using default value",
 		},
 		{
 			rawMaxVols: "-2",
-			expected:   defaultValue,
+			expected:   -1,
 			test:       "Maximum PD volumes must be a positive value, using default value",
 		},
 		{
@@ -4064,7 +4063,7 @@ func TestGetMaxVols(t *testing.T) {
 
 	for _, test := range tests {
 		os.Setenv(KubeMaxPDVols, test.rawMaxVols)
-		result := getMaxVols(defaultValue)
+		result := getMaxVolLimitFromEnv()
 		if result != test.expected {
 			t.Errorf("%s: expected %v got %v", test.test, test.expected, result)
 		}
@@ -4073,5 +4072,22 @@ func TestGetMaxVols(t *testing.T) {
 	os.Unsetenv(KubeMaxPDVols)
 	if previousValue != "" {
 		os.Setenv(KubeMaxPDVols, previousValue)
+	}
+}
+
+func TestMaxVolumeFunc(t *testing.T) {
+	node := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-for-m5-instance",
+			Labels: map[string]string{
+				kubeletapis.LabelInstanceType: "m5.large",
+			},
+		},
+	}
+	os.Unsetenv(KubeMaxPDVols)
+	maxVolumeFunc := getMaxVolumeFunc(EBSVolumeFilterType)
+	maxVolume := maxVolumeFunc(node)
+	if maxVolume != DefaultMaxEBSM5VolumeLimit {
+		t.Errorf("Expected max volume to be %d got %d", DefaultMaxEBSM5VolumeLimit, maxVolume)
 	}
 }
