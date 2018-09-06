@@ -2210,6 +2210,53 @@ items:
       authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-admin: "true"
+      rbac.authorization.k8s.io/aggregate-to-view: "true"
+    name: resource-metrics-view
+  rules:
+  - apiGroups:
+    - metrics.k8s.io
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
+    name: resource-metrics-cluster-view
+  rules:
+  - apiGroups:
+    - metrics.k8s.io
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metrics.k8s.io
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
     name: system:replication-controller
   rules: null
 - apiVersion: rbac.authorization.k8s.io/v1

@@ -16,10 +16,10 @@ const osClusterRoleAggregationPrefix = "system:openshift:"
 // this map must be manually kept up to date as we make changes to aggregation
 // we hard code this data with no constants because we cannot change the underlying values
 var expectedAggregationMap = map[string]sets.String{
-	"admin":          sets.NewString("system:openshift:aggregate-to-admin", "system:aggregate-to-admin"),
+	"admin":          sets.NewString("system:openshift:aggregate-to-admin", "system:aggregate-to-admin", "resource-metrics-view"),
 	"edit":           sets.NewString("system:openshift:aggregate-to-edit", "system:aggregate-to-edit"),
-	"view":           sets.NewString("system:openshift:aggregate-to-view", "system:aggregate-to-view"),
-	"cluster-reader": sets.NewString("system:openshift:aggregate-to-view", "system:aggregate-to-view", "system:openshift:aggregate-to-cluster-reader"),
+	"view":           sets.NewString("system:openshift:aggregate-to-view", "system:aggregate-to-view", "resource-metrics-view"),
+	"cluster-reader": sets.NewString("system:openshift:aggregate-to-view", "system:aggregate-to-view", "system:openshift:aggregate-to-cluster-reader", "resource-metrics-view", "resource-metrics-cluster-view"),
 }
 
 func TestPolicyAggregation(t *testing.T) {

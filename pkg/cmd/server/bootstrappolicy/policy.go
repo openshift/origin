@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/settings"
 	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
+	"k8s.io/metrics/pkg/apis/metrics"
 
 	oapps "github.com/openshift/api/apps"
 	"github.com/openshift/api/authorization"
@@ -713,6 +714,20 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("get", "put", "update", "delete").URLs(templateapi.ServiceBrokerRoot + "/*").RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "resource-metrics-view",
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true", "rbac.authorization.k8s.io/aggregate-to-admin": "true"}},
+			Rules: []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule(read...).Groups(metrics.GroupName).Resources("pods").RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "resource-metrics-cluster-view", Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-cluster-reader": "true"}},
+			Rules: []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule(read...).Groups(metrics.GroupName).Resources("nodes").RuleOrDie(),
+				rbacv1helpers.NewRule(read...).Groups(metrics.GroupName).Resources("pods").RuleOrDie(),
 			},
 		},
 	}
