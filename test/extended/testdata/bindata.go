@@ -278,8 +278,8 @@
 // install/openshift-apiserver/install.yaml
 // install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
-// install/openshift-service-cert-signer-operator/install-rbac.yaml
-// install/openshift-service-cert-signer-operator/install.yaml
+// install/openshift-service-ca-operator/install-rbac.yaml
+// install/openshift-service-ca-operator/install.yaml
 // install/openshift-web-console-operator/install-rbac.yaml
 // install/openshift-web-console-operator/install.yaml
 // install/origin-web-console/console-config.yaml
@@ -33375,7 +33375,7 @@ func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
 	return a, nil
 }
 
-var _installOpenshiftServiceCertSignerOperatorInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
+var _installOpenshiftServiceCaOperatorInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -33403,22 +33403,22 @@ objects:
     name: openshift-service-ca-operator
 `)
 
-func installOpenshiftServiceCertSignerOperatorInstallRbacYamlBytes() ([]byte, error) {
-	return _installOpenshiftServiceCertSignerOperatorInstallRbacYaml, nil
+func installOpenshiftServiceCaOperatorInstallRbacYamlBytes() ([]byte, error) {
+	return _installOpenshiftServiceCaOperatorInstallRbacYaml, nil
 }
 
-func installOpenshiftServiceCertSignerOperatorInstallRbacYaml() (*asset, error) {
-	bytes, err := installOpenshiftServiceCertSignerOperatorInstallRbacYamlBytes()
+func installOpenshiftServiceCaOperatorInstallRbacYaml() (*asset, error) {
+	bytes, err := installOpenshiftServiceCaOperatorInstallRbacYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "install/openshift-service-cert-signer-operator/install-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/openshift-service-ca-operator/install-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _installOpenshiftServiceCertSignerOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+var _installOpenshiftServiceCaOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -33525,17 +33525,17 @@ objects:
     replicas: 1
 `)
 
-func installOpenshiftServiceCertSignerOperatorInstallYamlBytes() ([]byte, error) {
-	return _installOpenshiftServiceCertSignerOperatorInstallYaml, nil
+func installOpenshiftServiceCaOperatorInstallYamlBytes() ([]byte, error) {
+	return _installOpenshiftServiceCaOperatorInstallYaml, nil
 }
 
-func installOpenshiftServiceCertSignerOperatorInstallYaml() (*asset, error) {
-	bytes, err := installOpenshiftServiceCertSignerOperatorInstallYamlBytes()
+func installOpenshiftServiceCaOperatorInstallYaml() (*asset, error) {
+	bytes, err := installOpenshiftServiceCaOperatorInstallYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "install/openshift-service-cert-signer-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/openshift-service-ca-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -34541,8 +34541,8 @@ var _bindata = map[string]func() (*asset, error){
 	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
 	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
-	"install/openshift-service-cert-signer-operator/install-rbac.yaml": installOpenshiftServiceCertSignerOperatorInstallRbacYaml,
-	"install/openshift-service-cert-signer-operator/install.yaml": installOpenshiftServiceCertSignerOperatorInstallYaml,
+	"install/openshift-service-ca-operator/install-rbac.yaml": installOpenshiftServiceCaOperatorInstallRbacYaml,
+	"install/openshift-service-ca-operator/install.yaml": installOpenshiftServiceCaOperatorInstallYaml,
 	"install/openshift-web-console-operator/install-rbac.yaml": installOpenshiftWebConsoleOperatorInstallRbacYaml,
 	"install/openshift-web-console-operator/install.yaml": installOpenshiftWebConsoleOperatorInstallYaml,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
@@ -34689,9 +34689,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
 			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
 		}},
-		"openshift-service-cert-signer-operator": &bintree{nil, map[string]*bintree{
-			"install-rbac.yaml": &bintree{installOpenshiftServiceCertSignerOperatorInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installOpenshiftServiceCertSignerOperatorInstallYaml, map[string]*bintree{}},
+		"openshift-service-ca-operator": &bintree{nil, map[string]*bintree{
+			"install-rbac.yaml": &bintree{installOpenshiftServiceCaOperatorInstallRbacYaml, map[string]*bintree{}},
+			"install.yaml": &bintree{installOpenshiftServiceCaOperatorInstallYaml, map[string]*bintree{}},
 		}},
 		"openshift-web-console-operator": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallRbacYaml, map[string]*bintree{}},
