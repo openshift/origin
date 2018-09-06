@@ -351,7 +351,7 @@ func (s *S2IBuilder) Build() error {
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		startTime = metav1.Now()
-		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+		digest, err := dockerPushImage(s.dockerClient, pushTag, pushAuthConfig)
 
 		timing.RecordNewStep(ctx, buildapiv1.StagePushImage, buildapiv1.StepPushImage, startTime, metav1.Now())
 
