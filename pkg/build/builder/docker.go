@@ -24,8 +24,6 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
-	"github.com/openshift/origin/pkg/build/controller/strategy"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // defaultDockerfilePath is the default path of the Dockerfile
@@ -49,7 +47,7 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient buildclientv1.Buil
 		tar:          tar.New(s2ifs.NewFileSystem()),
 		client:       buildsClient,
 		cgLimits:     cgLimits,
-		inputDir:     buildutil.InputContentPath,
+		inputDir:     InputContentPath,
 	}
 }
 
@@ -211,7 +209,7 @@ func (d *DockerBuilder) Build() error {
 func (d *DockerBuilder) copyConfigMaps(configs []buildapiv1.ConfigMapBuildSource, targetDir string) error {
 	var err error
 	for _, c := range configs {
-		err = d.copyLocalObject(configMapSource(c), strategy.ConfigMapBuildSourceBaseMountPath, targetDir)
+		err = d.copyLocalObject(configMapSource(c), configMapBuildSourceBaseMountPath, targetDir)
 		if err != nil {
 			return err
 		}
@@ -225,7 +223,7 @@ func (d *DockerBuilder) copyConfigMaps(configs []buildapiv1.ConfigMapBuildSource
 func (d *DockerBuilder) copySecrets(secrets []buildapiv1.SecretBuildSource, targetDir string) error {
 	var err error
 	for _, s := range secrets {
-		err = d.copyLocalObject(secretSource(s), strategy.SecretBuildSourceBaseMountPath, targetDir)
+		err = d.copyLocalObject(secretSource(s), secretBuildSourceBaseMountPath, targetDir)
 		if err != nil {
 			return err
 		}

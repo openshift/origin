@@ -3,11 +3,15 @@ package scmauth
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/origin/pkg/util/file"
+	builder "github.com/openshift/origin/pkg/build/builder"
+	utilglog "github.com/openshift/origin/pkg/build/builder/util/glog"
 )
+
+var glog = utilglog.ToFile(os.Stderr, 2)
 
 func createGitConfig(includePath string, context SCMAuthContext) error {
 	tempDir, err := ioutil.TempDir("", "git")
@@ -40,7 +44,7 @@ func ensureGitConfigIncludes(path string, context SCMAuthContext) error {
 		return createGitConfig(path, context)
 	}
 
-	lines, err := file.ReadLines(gitconfig)
+	lines, err := builder.ReadLines(gitconfig)
 	if err != nil {
 		return err
 	}

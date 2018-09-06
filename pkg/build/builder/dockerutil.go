@@ -23,11 +23,9 @@ import (
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerclient"
 	"github.com/openshift/imagebuilder/imageprogress"
-
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
-
-	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 var (

@@ -27,8 +27,6 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
-	"github.com/openshift/origin/pkg/build/controller/strategy"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -103,7 +101,7 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 func injectConfigMaps(configMaps []buildapiv1.ConfigMapBuildSource) []s2iapi.VolumeSpec {
 	vols := make([]s2iapi.VolumeSpec, len(configMaps))
 	for i, c := range configMaps {
-		vols[i] = makeVolumeSpec(configMapSource(c), strategy.ConfigMapBuildSourceBaseMountPath)
+		vols[i] = makeVolumeSpec(configMapSource(c), configMapBuildSourceBaseMountPath)
 	}
 	return vols
 }
@@ -112,7 +110,7 @@ func injectConfigMaps(configMaps []buildapiv1.ConfigMapBuildSource) []s2iapi.Vol
 func injectSecrets(secrets []buildapiv1.SecretBuildSource) []s2iapi.VolumeSpec {
 	vols := make([]s2iapi.VolumeSpec, len(secrets))
 	for i, s := range secrets {
-		vols[i] = makeVolumeSpec(secretSource(s), strategy.SecretBuildSourceBaseMountPath)
+		vols[i] = makeVolumeSpec(secretSource(s), secretBuildSourceBaseMountPath)
 	}
 	return vols
 }
@@ -180,7 +178,7 @@ func (s *S2IBuilder) Build() error {
 		incremental = *s.build.Spec.Strategy.SourceStrategy.Incremental
 	}
 
-	srcDir := buildutil.InputContentPath
+	srcDir := InputContentPath
 	contextDir := ""
 	if len(s.build.Spec.Source.ContextDir) != 0 {
 		contextDir = filepath.Clean(s.build.Spec.Source.ContextDir)
@@ -438,14 +436,14 @@ func scriptProxyConfig(build *buildapiv1.Build) (*s2iapi.ProxyConfig, error) {
 	}
 	config := &s2iapi.ProxyConfig{}
 	if len(httpProxy) > 0 {
-		proxyURL, err := buildutil.ParseProxyURL(httpProxy)
+		proxyURL, err := ParseProxyURL(httpProxy)
 		if err != nil {
 			return nil, err
 		}
 		config.HTTPProxy = proxyURL
 	}
 	if len(httpsProxy) > 0 {
-		proxyURL, err := buildutil.ParseProxyURL(httpsProxy)
+		proxyURL, err := ParseProxyURL(httpsProxy)
 		if err != nil {
 			return nil, err
 		}

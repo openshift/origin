@@ -2,14 +2,16 @@ package timing
 
 import (
 	"context"
+	"os"
 	"time"
-
-	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
+	utilglog "github.com/openshift/origin/pkg/build/builder/util/glog"
 )
+
+var glog = utilglog.ToFile(os.Stderr, 2)
 
 type key int
 

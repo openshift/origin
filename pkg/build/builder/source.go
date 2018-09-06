@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/source-to-image/pkg/tar"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,7 +80,7 @@ func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapiv1.Gi
 				glog.V(0).Infof("error: Unable to serialized git source info: %v", err)
 				return sourceInfo, nil
 			}
-			err = ioutil.WriteFile(filepath.Join(buildutil.BuildWorkDirMount, "sourceinfo.json"), sourceInfoJson, 0644)
+			err = ioutil.WriteFile(filepath.Join(buildWorkDirMount, "sourceinfo.json"), sourceInfoJson, 0644)
 			if err != nil {
 				glog.V(0).Infof("error: Unable to serialized git source info: %v", err)
 				return sourceInfo, nil

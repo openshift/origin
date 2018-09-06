@@ -7,11 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
-
-	"github.com/openshift/origin/pkg/util/file"
-
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
+
+	builder "github.com/openshift/origin/pkg/build/builder"
 )
 
 const (
@@ -154,7 +152,7 @@ func (_ UsernamePassword) Handles(name string) bool {
 // readSecret reads the contents of a secret file
 func readSecret(baseDir, fileName string) (string, error) {
 	path := filepath.Join(baseDir, fileName)
-	lines, err := file.ReadLines(path)
+	lines, err := builder.ReadLines(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil

@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -187,4 +189,40 @@ func SafeForLoggingS2IConfig(config *s2iapi.Config) *s2iapi.Config {
 	}
 	newConfig.ScriptsURL, _ = s2iutil.SafeForLoggingURL(newConfig.ScriptsURL)
 	return &newConfig
+}
+
+// ReadLines reads the content of the given file into a string slice
+func ReadLines(fileName string) ([]string, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
+}
+
+// ParseProxyURL parses a proxy URL and allows fallback to non-URLs like
+// myproxy:80 (for example) which url.Parse no longer accepts in Go 1.8.  The
+// logic is copied from net/http.ProxyFromEnvironment to try to maintain
+// backwards compatibility.
+func ParseProxyURL(proxy string) (*url.URL, error) {
+	proxyURL, err := url.Parse(proxy)
+
+	// logic copied from net/http.ProxyFromEnvironment
+	if err != nil || !strings.HasPrefix(proxyURL.Scheme, "http") {
+		// proxy was bogus. Try prepending "http://" to it and see if that
+		// parses correctly. If not, we fall through and complain about the
+		// original one.
+		if proxyURL, err := url.Parse("http://" + proxy); err == nil {
+			return proxyURL, nil
+		}
+	}
+
+	return proxyURL, err
 }

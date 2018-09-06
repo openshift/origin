@@ -14,17 +14,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/distribution/reference"
+	dockercmd "github.com/docker/docker/builder/dockerfile/command"
+	"github.com/docker/docker/builder/dockerfile/parser"
+	"github.com/fsouza/go-dockerclient"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/docker/distribution/reference"
-	dockercmd "github.com/docker/docker/builder/dockerfile/command"
-	"github.com/docker/docker/builder/dockerfile/parser"
-	"github.com/fsouza/go-dockerclient"
 	"github.com/openshift/imagebuilder"
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/util"
 
@@ -34,20 +36,32 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
-	buildutil "github.com/openshift/origin/pkg/build/util"
-	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
-	utilglog "github.com/openshift/origin/pkg/util/glog"
+	utilglog "github.com/openshift/origin/pkg/build/builder/util/glog"
 )
-
-// glog is a placeholder until the builders pass an output stream down
-// client facing libraries should not be using glog
-var glog = utilglog.ToFile(os.Stderr, 2)
 
 const (
 	// containerNamePrefix prefixes the name of containers launched by a build.
 	// We cannot reuse the prefix "k8s" because we don't want the containers to
 	// be managed by a kubelet.
 	containerNamePrefix = "openshift"
+	// configMapBuildSourceBaseMountPath is the path that the controller will have
+	// mounted configmap input content within the build pod
+	configMapBuildSourceBaseMountPath = "/var/run/configs/openshift.io/build"
+	// SecretBuildSourceBaseMountPath is the path that the controller will have
+	// mounted secret input content within the build pod
+	secretBuildSourceBaseMountPath = "/var/run/secrets/openshift.io/build"
+	// BuildWorkDirMount is the working directory within the build pod, mounted as a volume.
+	buildWorkDirMount = "/tmp/build"
+)
+
+var (
+	// glog is a placeholder until the builders pass an output stream down
+	// client facing libraries should not be using glog
+	glog = utilglog.ToFile(os.Stderr, 2)
+
+	// InputContentPath is the path at which the build inputs will be available
+	// to all the build containers.
+	InputContentPath = filepath.Join(buildWorkDirMount, "inputs")
 )
 
 // KeyValue can be used to build ordered lists of key-value pairs.
@@ -371,7 +385,7 @@ func buildLabels(build *buildapiv1.Build, sourceInfo *git.SourceInfo) []dockerfi
 // readSourceInfo reads the persisted git info from disk (if any) back into a SourceInfo
 // object.
 func readSourceInfo() (*git.SourceInfo, error) {
-	sourceInfoPath := filepath.Join(buildutil.BuildWorkDirMount, "sourceinfo.json")
+	sourceInfoPath := filepath.Join(buildWorkDirMount, "sourceinfo.json")
 	if _, err := os.Stat(sourceInfoPath); os.IsNotExist(err) {
 		return nil, nil
 	}
