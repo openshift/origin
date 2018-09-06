@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	serviceCANamespace  = "openshift-service-cert-signer"
-	serviceCASecretName = "service-serving-cert-signer-signing-key"
+	serviceCANamespace  = "openshift-service-ca"
+	serviceCASecretName = "service-ca-signing-key"
 )
 
 func createServiceCASigningSecret(clientConfig *rest.Config, certFile, keyFile string) error {
