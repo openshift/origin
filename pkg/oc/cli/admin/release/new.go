@@ -41,7 +41,7 @@ func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
 	}
 }
 
-func NewRelease(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewNewOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "new",
@@ -60,10 +60,10 @@ func NewRelease(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.
 
 			Experimental: This command is under active development and may change without notice.
 		`),
-		Example: templates.Examples(`
+		Example: templates.Examples(fmt.Sprintf(`
 			# Create a release from the latest origin images and push to a DockerHub repo
-			%[1] new --from-image-stream=origin-v3.11 -n openshift --to-image docker.io/mycompany/myrepo:latest
-		`),
+			%[1]s new --from-image-stream=origin-v3.11 -n openshift --to-image docker.io/mycompany/myrepo:latest
+		`, parentName)),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Run())
@@ -236,6 +236,7 @@ func (o *NewOptions) Run() error {
 				is.Spec.Tags = append(is.Spec.Tags, *ref)
 				ordered = append(ordered, tag.Tag)
 			}
+			fmt.Fprintf(o.ErrOut, "info: Found %d images in image stream\n", len(inputIS.Status.Tags))
 		default:
 			// TODO: add support for internal and referential
 			return fmt.Errorf("only image streams with public image repositories can be the source for a release payload")
@@ -271,6 +272,7 @@ func (o *NewOptions) Run() error {
 				continue
 			}
 		}
+		fmt.Fprintf(o.ErrOut, "info: Found %d operator manifest directories on disk\n", len(ordered))
 	default:
 		for _, m := range o.Mappings {
 			ordered = append(ordered, m.Source)
@@ -404,15 +406,21 @@ func (o *NewOptions) Run() error {
 
 	switch {
 	case len(o.ToFile) > 0:
-		f, err := os.OpenFile(o.ToFile, os.O_CREATE|os.O_TRUNC|os.O_APPEND|os.O_WRONLY, 0750)
-		if err != nil {
+		var w io.WriteCloser
+		if o.ToFile == "-" {
+			w = nopCloser{o.Out}
+		} else {
+			f, err := os.OpenFile(o.ToFile, os.O_CREATE|os.O_TRUNC|os.O_APPEND|os.O_WRONLY, 0750)
+			if err != nil {
+				return err
+			}
+			w = f
+		}
+		if _, err := io.Copy(w, pr); err != nil {
+			w.Close()
 			return err
 		}
-		if _, err := io.Copy(f, pr); err != nil {
-			f.Close()
-			return err
-		}
-		if err := f.Close(); err != nil {
+		if err := w.Close(); err != nil {
 			return err
 		}
 	case len(o.ToImage) > 0:
@@ -437,6 +445,7 @@ func (o *NewOptions) Run() error {
 			return err
 		}
 	default:
+		fmt.Fprintf(os.Stderr, "info: Extracting operator contents to disk without building a release artifact\n")
 		if _, err := io.Copy(ioutil.Discard, pr); err != nil {
 			return err
 		}
@@ -444,7 +453,7 @@ func (o *NewOptions) Run() error {
 
 	sort.Strings(operators)
 	if len(operators) == 0 {
-		fmt.Fprintf(o.ErrOut, "warning: No manifest metadata was found in the provided images or directory, no top-level operators will be created.\n")
+		fmt.Fprintf(o.ErrOut, "warning: No operator metadata was found, no operators will be part of the release.\n")
 	} else {
 		fmt.Fprintf(o.Out, "Built update image content from %d operators in %d components: %s\n", len(operators), len(metadata), strings.Join(operators, ", "))
 	}
@@ -455,6 +464,12 @@ func (o *NewOptions) Run() error {
 
 	return nil
 }
+
+type nopCloser struct {
+	io.Writer
+}
+
+func (_ nopCloser) Close() error { return nil }
 
 var hasNumberPrefix = regexp.MustCompile(`^\d+_`)
 
