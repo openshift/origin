@@ -6,17 +6,20 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	dockercmd "github.com/docker/docker/builder/dockerfile/command"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/openshift/imagebuilder"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
@@ -92,11 +95,13 @@ func (d *DockerBuilder) Build() error {
 	if len(imageNames) == 0 {
 		return fmt.Errorf("no FROM image in Dockerfile")
 	}
+	previousImages := sets.NewString("scratch")
 	for _, imageName := range imageNames {
-		if imageName == "scratch" {
-			glog.V(4).Infof("\nSkipping image \"scratch\"")
+		if  previousImages.Has(imageName) {
+			glog.V(4).Infof("\nSkipping image \"%s\"", imageName)
 			continue
 		}
+		previousImages.Insert(imageName)
 		imageExists := true
 		_, err = d.dockerClient.InspectImage(imageName)
 		if err != nil {
@@ -117,6 +122,9 @@ func (d *DockerBuilder) Build() error {
 
 			timing.RecordNewStep(ctx, buildapiv1.StagePullImages, buildapiv1.StepPullBaseImage, startTime, metav1.Now())
 
+			// if we are unable to pull the image, and the name
+			// of the image that we tried to pull is the same as
+			// the name of a stage in the dockerfile, ignore the error
 			if err != nil {
 				d.build.Status.Phase = buildapiv1.BuildPhaseFailed
 				d.build.Status.Reason = buildapiv1.StatusReasonPullBuilderImageFailed
@@ -124,7 +132,6 @@ func (d *DockerBuilder) Build() error {
 				HandleBuildStatusUpdate(d.build, d.client, nil)
 				return fmt.Errorf("failed to pull image: %v", err)
 			}
-
 		}
 	}
 
@@ -145,18 +152,6 @@ func (d *DockerBuilder) Build() error {
 		d.build.Status.Phase = buildapiv1.BuildPhaseFailed
 		d.build.Status.Reason = buildapiv1.StatusReasonDockerBuildFailed
 		d.build.Status.Message = builderutil.StatusMessageDockerBuildFailed
-		HandleBuildStatusUpdate(d.build, d.client, nil)
-		return err
-	}
-
-	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
-
-	err = execPostCommitHook(ctx, d.dockerClient, d.build.Spec.PostCommit, buildTag, cname)
-
-	if err != nil {
-		d.build.Status.Phase = buildapiv1.BuildPhaseFailed
-		d.build.Status.Reason = buildapiv1.StatusReasonPostCommitHookFailed
-		d.build.Status.Message = builderutil.StatusMessagePostCommitHookFailed
 		HandleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
@@ -435,6 +430,45 @@ func appendLabel(node *parser.Node, m []dockerfile.KeyValue) error {
 		return nil
 	}
 	return appendKeyValueInstruction(dockerfile.Label, node, m)
+}
+
+// appendPostCommit appends a RUN <cmd> Dockerfile instruction as the last child of node
+func appendPostCommit(node *parser.Node, cmd string) error {
+	if len(cmd) == 0 {
+		return nil
+	}
+
+	stages := imagebuilder.NewStages(node, imagebuilder.NewBuilder(nil))
+	lastStageIndex := strconv.Itoa(len(stages) - 1)
+
+	if err := appendStringInstruction(dockerfile.From, node, lastStageIndex); err != nil {
+		return err
+	}
+
+	if err := appendStringInstruction(dockerfile.Run, node, cmd); err != nil {
+		return err
+	}
+
+	if err := appendStringInstruction(dockerfile.From, node, lastStageIndex); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// appendStringInstruction is a primitive used to avoid code duplication.
+// Callers should use a derivative of this such as appendPostCommit.
+// appendStringInstruction appends a Dockerfile instruction with string
+// syntax created by f as the last child of node with the string from cmd.
+func appendStringInstruction(f func(string) (string, error), node *parser.Node, cmd string) error {
+	if node == nil {
+		return nil
+	}
+	instruction, err := f(cmd)
+	if err != nil {
+		return err
+	}
+	return dockerfile.InsertInstructions(node, len(node.Children), instruction)
 }
 
 // appendKeyValueInstruction is a primitive used to avoid code duplication.

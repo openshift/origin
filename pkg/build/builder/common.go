@@ -17,7 +17,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/docker/distribution/reference"
@@ -231,6 +230,35 @@ func execPostCommitHook(ctx context.Context, client DockerClient, postCommitSpec
 	return err
 }
 
+// buildPostCommit transforms the supplied BuildPostCommitSpec into dockerfile commands.
+func buildPostCommit(postCommitSpec buildapiv1.BuildPostCommitSpec) string {
+	command := postCommitSpec.Command
+	args := postCommitSpec.Args
+	script := postCommitSpec.Script
+
+	if script == "" && len(command) == 0 && len(args) == 0 {
+		// Post commit hook is not set, return early.
+		return ""
+	}
+
+	glog.V(4).Infof("Post commit hook spec: %+v", postCommitSpec)
+
+	if script != "" {
+		// The `-i` flag is needed to support CentOS and RHEL images
+		// that use Software Collections (SCL), in order to have the
+		// appropriate collections enabled in the shell. E.g., in the
+		// Ruby image, this is necessary to make `ruby`, `bundle` and
+		// other binaries available in the PATH.
+		command = []string{"/bin/sh", "-ic"}
+		args = append([]string{script}, args...)
+
+		return fmt.Sprintf("%s '%s'", strings.Join(command, " "), strings.Join(args, " "))
+
+	}
+
+	return fmt.Sprintf("%s %s", strings.Join(command, " "), strings.Join(args, " "))
+}
+
 // GetSourceRevision returns a SourceRevision object either from the build (if it already had one)
 // or by creating one from the sourceInfo object passed in.
 func GetSourceRevision(build *buildapiv1.Build, sourceInfo *git.SourceInfo) *buildapiv1.SourceRevision {
@@ -428,6 +456,11 @@ func addBuildParameters(dir string, build *buildapiv1.Build, sourceInfo *git.Sou
 		return err
 	}
 
+	// Append post commit
+	if err := appendPostCommit(node, buildPostCommit(build.Spec.PostCommit)); err != nil {
+		return err
+	}
+
 	// Insert environment variables defined in the build strategy.
 	if err := insertEnvAfterFrom(node, build.Spec.Strategy.DockerStrategy.Env); err != nil {
 		return err
@@ -490,7 +523,7 @@ func findReferencedImages(dockerfilePath string) ([]string, bool, error) {
 		return nil, false, err
 	}
 	names := make(map[string]string)
-	images := sets.NewString()
+	images := []string{}
 	stages := imagebuilder.NewStages(node, imagebuilder.NewBuilder(nil))
 	for _, stage := range stages {
 		for _, child := range stage.Node.Children {
@@ -498,19 +531,19 @@ func findReferencedImages(dockerfilePath string) ([]string, bool, error) {
 			case child.Value == dockercmd.From && child.Next != nil:
 				image := child.Next.Value
 				names[stage.Name] = image
-				images.Insert(image)
+				images = append(images, image)
 			case child.Value == dockercmd.Copy:
 				if ref, ok := nodeHasFromRef(child); ok {
 					if len(ref) > 0 {
 						if _, ok := names[ref]; !ok {
-							images.Insert(ref)
+							images = append(images, ref)
 						}
 					}
 				}
 			}
 		}
 	}
-	return images.List(), len(stages) > 1, nil
+	return images, len(stages) > 1, nil
 }
 
 func overwriteFile(name string, out []byte) error {

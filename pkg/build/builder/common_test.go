@@ -122,6 +122,207 @@ func TestContainerName(t *testing.T) {
 	}
 }
 
+func Test_buildPostCommitHook(t *testing.T) {
+	type want struct {
+		Err bool
+		Out string
+	}
+	tests := []struct {
+		description string
+		original    string
+		postCommit  buildapiv1.BuildPostCommitSpec
+		from        *corev1.ObjectReference
+		build       []buildapiv1.ImageSource
+		want        want
+	}{
+		{
+			description: "basic multi-part bash command",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN echo "hello world"
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo", "hello"},
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM 0
+				RUN echo hello
+				FROM 0
+				`),
+			},
+		},
+		{
+			description: "basic bash command with args",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN touch /tmp/hello
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"ls"},
+				Args:    []string{"-l", "/tmp/hello"}},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM 0
+				RUN ls -l /tmp/hello
+				FROM 0
+				`),
+			},
+		},
+		{
+			description: "basic bash script",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN echo "hello world"
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo hello $1 world",
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM 0
+				RUN /bin/sh -ic 'echo hello $1 world'
+				FROM 0
+				`),
+			},
+		},
+		{
+			description: "basic bash script with args",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN echo "hello world"
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo",
+				Args:   []string{"hello", "$1", "world"},
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM 0
+				RUN /bin/sh -ic 'echo hello $1 world'
+				FROM 0
+				`),
+			},
+		},
+		{
+			description: "multi-stage basic multi-part bash command",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN echo "hello world"
+				FROM centos:7
+				RUN touch /tmp/hello
+				FROM centos:7
+				RUN touch /tmp/hello2
+				FROM centos:7
+				RUN touch /tmp/hello3
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo", "hello", "$1", "world"},
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM 3
+				RUN echo hello $1 world
+				FROM 3
+				`),
+			},
+		},
+		{
+			description: "multi-stage basic bash command with args and alias",
+			original: heredoc.Doc(`
+				FROM busybox
+				RUN echo "hello world"
+				FROM centos:7
+				RUN touch /tmp/hello
+				FROM centos:7
+				RUN touch /tmp/hello2
+				FROM centos:7 as appimage
+				RUN touch /tmp/hello3
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo"},
+				Args:    []string{"hello", "$1", "world"},
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM 3
+				RUN echo hello $1 world
+				FROM 3
+				`),
+			},
+		},
+		{
+			description: "multi-stage basic bash script with aliases",
+			original: heredoc.Doc(`
+				FROM busybox as appimage
+				RUN echo "hello world"
+				FROM appimage as appimage2
+				RUN touch /tmp/hello
+				FROM appimage2 as appimage3
+				RUN touch /tmp/hello2
+				FROM appimage3 as appimage4
+				RUN touch /tmp/hello3
+				`),
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo hello $1 world",
+			},
+			want: want{
+				Out: heredoc.Doc(`
+				FROM 3
+				RUN /bin/sh -ic 'echo hello $1 world'
+				FROM 3
+				`),
+			},
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			f, err := ioutil.TempFile("", "builder-dockertest")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.Remove(f.Name())
+			defer f.Close()
+			if _, err := f.Write([]byte(test.original)); err != nil {
+				t.Fatal(err)
+			}
+			f.Close()
+			if _, err := dockerfile.Parse(strings.NewReader(test.original)); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := dockerfile.Parse(strings.NewReader(test.want.Out)); err != nil {
+				t.Fatal(err)
+			}
+			build := &buildapiv1.Build{}
+			build.Spec.Strategy.DockerStrategy = &buildapiv1.DockerBuildStrategy{
+				DockerfilePath: filepath.Base(f.Name()),
+			}
+			if test.from != nil {
+				build.Spec.Strategy.DockerStrategy.From = test.from
+			}
+			build.Spec.PostCommit = test.postCommit
+			build.Spec.Source.Images = test.build
+			sourceInfo := &git.SourceInfo{}
+			testErr := addBuildParameters(filepath.Dir(f.Name()), build, sourceInfo)
+			out, err := ioutil.ReadFile(f.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := want{
+				Err: testErr != nil,
+				Out: string(out),
+			}
+			extra := "ENV \"OPENSHIFT_BUILD_NAME\"=\"\" \"OPENSHIFT_BUILD_NAMESPACE\"=\"\"\nLABEL \"io.openshift.build.name\"=\"\" \"io.openshift.build.namespace\"=\"\"\n"
+			test.want.Out = fmt.Sprintf("%s%s%s", test.original, extra, test.want.Out)
+			if !reflect.DeepEqual(test.want, got) {
+				t.Errorf("output: %#v", got)
+				t.Errorf("unexpected results for \"%s\": %s", test.description, diff.ObjectReflectDiff(test.want, got))
+			}
+		})
+	}
+}
+
 func Test_addBuildParameters(t *testing.T) {
 	type want struct {
 		Err bool

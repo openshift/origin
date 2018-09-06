@@ -2451,7 +2451,7 @@ var _testExtendedTestdataBuildsTestBuildPostcommitJson = []byte(`{
             "spec": {
                 "source": {
                     "type": "Dockerfile",
-                    "dockerfile": "FROM busybox:1"
+                    "dockerfile": "FROM busybox:1\nRUN touch /tmp/hello"
                 },
                 "strategy": {
                     "type": "Docker",
