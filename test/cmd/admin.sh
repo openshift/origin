@@ -69,10 +69,10 @@ status:
     pods: \"110\"
 ' | oc create -f -"
 
-os::cmd::expect_success_and_text 'oc adm manage-node --selector= --schedulable=true' 'Ready'
-os::cmd::expect_success_and_not_text 'oc adm manage-node --selector= --schedulable=true' 'SchedulingDisabled'
+os::cmd::expect_success_and_text 'oc adm manage-node --selector= --schedulable=true' 'marked schedulable'
+os::cmd::expect_success_and_not_text 'oc adm manage-node --selector= --schedulable=true' 'marked unschedulable'
 os::cmd::expect_success_and_not_text 'oc get node -o yaml' 'unschedulable: true'
-os::cmd::expect_success_and_text 'oc adm manage-node --selector= --schedulable=false' 'SchedulingDisabled'
+os::cmd::expect_success_and_text 'oc adm manage-node --selector= --schedulable=false' 'marked unschedulable'
 os::cmd::expect_success_and_text 'oc get node -o yaml' 'unschedulable: true'
 # ensure correct serialization of podList output
 os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector= -o jsonpath='{ .kind }'" 'List'
