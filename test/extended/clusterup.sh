@@ -50,55 +50,6 @@ function os::test::extended::clusterup::run_test () {
     os::test::junit::declare_suite_end
 }
 
-function os::test::extended::clusterup::verify_router_and_registry () {
-    os::cmd::expect_success "oc login -u system:admin"
-    os::cmd::expect_success_and_text "oc get svc -n default" "docker-registry"
-    os::cmd::expect_success_and_text "oc get svc -n default" "router"
-	os::cmd::try_until_text "oc get endpoints docker-registry -o jsonpath='{ .subsets[*].ports[?(@.name==\"5000-tcp\")].port }' -n default" "5000" $(( 10*minute )) 1
-	os::cmd::try_until_text "oc get endpoints router -o jsonpath='{ .subsets[*].ports[?(@.name==\"80-tcp\")].port }' -n default" "80" $(( 10*minute )) 1
-    os::cmd::expect_success "oc login -u developer"
-}
-
-function os::test::extended::clusterup::verify_image_streams () {
-    os::cmd::try_until_text "oc get is -n openshift ruby -o jsonpath='{ .status.tags[*].tag }'" "latest" $(( 10*minute )) 1
-}
-
-function os::test::extended::clusterup::verify_ruby_build () {
-    os::cmd::expect_success "oc new-app https://github.com/openshift/ruby-hello-world.git"
-    os::cmd::try_until_text "oc get builds -l app=ruby-hello-world -o jsonpath='{ .items[*].status.phase }'" "Complete" $(( 10*minute )) 1
-}
-
-function os::test::extended::clusterup::verify_persistent_volumes () {
-    os::cmd::expect_success "oc login -u system:admin"
-    os::cmd::expect_success_and_text "oc get jobs -n default" "persistent-volume-setup"
-    os::cmd::try_until_text "oc get job persistent-volume-setup -n default -o jsonpath='{ .status.succeeded }'" "1" $(( 10*minute )) 1
-    os::cmd::expect_success "oc get pv/pv0100"
-    os::cmd::expect_success "oc login -u developer"
-}
-
-function os::test::extended::clusterup::verify_console () {
-    os::cmd::expect_success "oc login -u system:admin"
-    os::cmd::expect_success_and_text "oc get svc -n openshift-web-console" "webconsole"
-    os::cmd::try_until_text "oc get endpoints webconsole -o jsonpath='{ .subsets[*].ports[?(@.name==\"https\")].port }' -n openshift-web-console" "8443" $(( 10*minute )) 1
-    os::cmd::expect_success "oc login -u developer"
-}
-
-function os::test::extended::clusterup::verify_metrics () {
-    os::cmd::expect_success "oc login -u system:admin"
-    os::cmd::expect_success_and_text "oc get pods -n openshift-infra" "metrics-deployer"
-    os::cmd::try_until_text "oc get pods -n openshift-infra -l job-name=metrics-deployer-pod" "Completed" $(( 20*minute )) 2
-	os::cmd::try_until_text "oc get endpoints hawkular-metrics -o jsonpath='{ .subsets[*].ports[?(@.name==\"443-tcp\")].port }' -n openshift-infra" "443" $(( 10*minute )) 1
-    os::cmd::expect_success "oc login -u developer"
-}
-
-function os::test::extended::clusterup::verify_logging () {
-    os::cmd::expect_success "oc login -u system:admin"
-    os::cmd::expect_success_and_text "oc get pods -n logging" "logging-deployer"
-    os::cmd::try_until_text "oc get pods -n logging -l logging-infra=deployer" "Completed" $(( 20*minute )) 2
-	os::cmd::try_until_text "oc get endpoints logging-kibana -o jsonpath='{ .subsets[*].ports[?(@.name==\"3000-tcp\")].port }' -n logging" "3000" $(( 10*minute )) 1
-    os::cmd::expect_success "oc login -u developer"
-}
-
 function os::test::extended::clusterup::junit_cleanup() {
     # TODO(skuznets): un-hack this nonsense once traps are in a better state
     if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
@@ -138,10 +89,6 @@ function os::test::extended::clusterup::cleanup_func () {
 function os::test::extended::clusterup::standard_test () {
     arg=$@
     os::cmd::expect_success "oc cluster up $arg"
-    os::test::extended::clusterup::verify_router_and_registry
-    os::test::extended::clusterup::verify_image_streams
-    os::test::extended::clusterup::verify_ruby_build
-    os::test::extended::clusterup::verify_persistent_volumes
 }
 
 
@@ -157,7 +104,6 @@ function os::test::extended::clusterup::internal::hostdirs () {
 
 	local sudo="${USE_SUDO:+sudo}"
     os::cmd::expect_success "${sudo} ls ${base_dir}/kube-apiserver/master-config.yaml"
-    os::cmd::expect_success "${sudo} ls ${base_dir}/openshift.local.pv/pv0100"
     os::cmd::expect_success "${sudo} ls ${base_dir}/etcd/member"
 }
 
@@ -193,29 +139,6 @@ function os::test::extended::clusterup::hostdirs () {
         --write-config
 
     BASE_DIR="${base_dir}" os::test::extended::clusterup::internal::hostdirs ${@}
-}
-
-# Tests bringing up the service catalog and provisioning a template
-function os::test::extended::clusterup::service_catalog() {
-    local base_dir
-    base_dir=$(os::test::extended::clusterup::make_base_dir "service_catalog")
-
-    arg=$@
-    os::cmd::expect_success "oc cluster up --base-dir="${base_dir}" --enable=*,service-catalog,template-service-broker $arg"
-    os::test::extended::clusterup::verify_router_and_registry
-    os::test::extended::clusterup::verify_image_streams
-    os::cmd::expect_success "oc login -u system:admin"
-    os::cmd::expect_success "oc adm policy add-cluster-role-to-group system:openshift:templateservicebroker-client system:unauthenticated system:authenticated"
-    # this is only to allow for the retrieval of the TSB service IP, not actual use of the TSB endpoints
-    os::cmd::expect_success "oc policy add-role-to-user view developer -n openshift-template-service-broker"
-    os::cmd::expect_success "oc login -u developer"
-    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./provision.sh"
-    os::cmd::try_until_text "oc get pods" "jenkins-1-deploy" $(( 2*minute )) 1
-    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./bind.sh"
-    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./unbind.sh"
-    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./deprovision.sh"
-    # commenting out because the pod is OOM-ing
-#    os::cmd::try_until_text "oc get pods" "Terminating" $(( 2*minute )) 1
 }
 
 # Tests creating a cluster with a public hostname
@@ -258,34 +181,6 @@ function os::test::extended::clusterup::numerichostname () {
     os::cmd::expect_success_and_text "cat ${base_dir}/kube-apiserver/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
 }
 
-# Tests installation of console components
-function os::test::extended::clusterup::console () {
-    local base_dir
-    base_dir=$(os::test::extended::clusterup::make_base_dir "console")
-
-    arg=$@
-    os::cmd::expect_success "oc cluster up --base-dir=${base_dir} $arg"
-    os::test::extended::clusterup::verify_console
-}
-
-# Tests installation of metrics components
-function os::test::extended::clusterup::metrics () {
-    local base_dir
-    base_dir=$(os::test::extended::clusterup::make_base_dir "metrics")
-
-    os::test::extended::clusterup::standard_test --base-dir=${base_dir} --metrics ${@}
-    os::test::extended::clusterup::verify_metrics
-}
-
-# Tests installation of aggregated logging components
-function os::test::extended::clusterup::logging () {
-    local base_dir
-    base_dir=$(os::test::extended::clusterup::make_base_dir "logging")
-
-    os::test::extended::clusterup::standard_test --base-dir=${base_dir} --logging ${@}
-    os::test::extended::clusterup::verify_logging
-}
-
 # Verifies that a service can be accessed by a peer pod
 # and by the pod running the service
 function os::test::extended::clusterup::svcaccess () {
@@ -324,18 +219,11 @@ function os::test::extended::clusterup::portinuse_cleanup () {
 
 
 readonly default_tests=(
-    "service_catalog"
     "noargs"
     "hostdirs"
     "publichostname"
     "numerichostname"
     "portinuse"
-    "svcaccess"
-    "console"
-
-# logging+metrics team needs to fix/enable these tests.
-#    "metrics"
-#    "logging"
 )
 
 # BASE_DIR is the base directory used by all tests. This must be a /tmp directory to avoid
@@ -367,20 +255,7 @@ readonly extra_args=(
 )
 tests=("${1:-"${default_tests[@]}"}")
 
-# re-tag the latest service catalog image w/ the origin commit because we didn't
-# build it locally, so we need a tag that aligns with the other images we're going to test here.
-docker pull openshift/origin-service-catalog:latest
-docker tag openshift/origin-service-catalog:latest openshift/origin-service-catalog:${ORIGIN_COMMIT}
-
 echo "Running cluster up tests using tag $ORIGIN_COMMIT"
-
-# Tag the docker registry image with the same tag as the other origin images
-docker pull openshift/origin-docker-registry:latest
-docker tag openshift/origin-docker-registry:latest openshift/origin-docker-registry:${ORIGIN_COMMIT}
-
-# Tag the web console image with the same tag as the other origin images
-docker pull openshift/origin-web-console:latest
-docker tag openshift/origin-web-console:latest openshift/origin-web-console:${ORIGIN_COMMIT}
 
 # Ensure that KUBECONFIG is not set
 unset KUBECONFIG

@@ -6,13 +6,14 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/golang/glog"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
-	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
+	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const KubeAPIServerDirName = "kube-apiserver"

@@ -26,7 +26,7 @@ import (
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
+	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubelet"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/staticpods"
@@ -452,7 +452,7 @@ func (c *ClusterUpConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
 }
 
 func (c *ClusterUpConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
-	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.RoutingSuffix, c.BaseDir)
+	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.BaseDir)
 }
 
 func (c *ClusterUpConfig) makeOpenShiftControllerConfig(masterConfigDir string) (string, error) {
