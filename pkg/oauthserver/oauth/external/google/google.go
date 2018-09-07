@@ -34,6 +34,7 @@ func NewProvider(providerName, clientID, clientSecret, hostedDomain string) (ext
 		PreferredUsernameClaims: []string{"preferred_username", "email"},
 		EmailClaims:             []string{"email"},
 		NameClaims:              []string{"name", "email"},
+		GroupsClaims:			 []string{"groups"}
 	}
 
 	if len(hostedDomain) > 0 {

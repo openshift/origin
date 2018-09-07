@@ -24,6 +24,7 @@ const (
 	PreferredUsernameClaim = "preferred_username"
 	EmailClaim             = "email"
 	NameClaim              = "name"
+	GroupsClaim            = "groups"
 )
 
 type TokenValidator func(map[string]interface{}) error
@@ -44,6 +45,7 @@ type Config struct {
 	PreferredUsernameClaims []string
 	EmailClaims             []string
 	NameClaims              []string
+	GroupsClaims            []string
 
 	IDTokenValidator TokenValidator
 }
@@ -51,6 +53,7 @@ type Config struct {
 type provider struct {
 	providerName string
 	transport    http.RoundTripper
+	UseGroups    bool
 	Config
 }
 
@@ -58,7 +61,7 @@ type provider struct {
 // See http://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
 // ID Token decryption is not supported
 // UserInfo decryption is not supported
-func NewProvider(providerName string, transport http.RoundTripper, config Config) (external.Provider, error) {
+func NewProvider(providerName string, transport http.RoundTripper, UseGroups bool, config Config) (external.Provider, error) {
 	// TODO: Add support for discovery documents
 	// see http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
 	// e.g. https://accounts.google.com/.well-known/openid-configuration
@@ -78,7 +81,10 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 		return nil, errors.New("Authorize URL is invalid")
 	} else if u.Scheme != "https" {
 		return nil, errors.New("Authorize URL must use https scheme")
-	}
+	} //might need to do something different here for google?
+	// Google sometimes returns "accounts.google.com" as the issuer claim instead of
+	// the required "https://accounts.google.com". Detect this case and allow it only
+	// for Google.
 
 	if len(config.TokenURL) == 0 {
 		return nil, errors.New("Token URL is required")
@@ -102,6 +108,12 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 
 	if len(config.IDClaims) == 0 {
 		return nil, errors.New("IDClaims must specify at least one claim")
+	}
+	if UseGroups == true {
+		//TODO: validate if IDP supports groups
+		if len(config.GroupsClaims) == 0 {
+			return nil, errors.New("IDClaims must specify at least one claim")
+		}
 	}
 
 	return provider{providerName, transport, config}, nil
@@ -213,11 +225,16 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 		identity.Extra[authapi.IdentityDisplayNameKey] = name
 	}
 
+	if groups, _ := getClaimValue(claims, p.GroupsClaims); len(groups) != 0 {
+		identity.Extra[authapi.IdentityGroupsKey] = name
+	}
+
 	glog.V(4).Infof("identity=%v", identity)
 
 	return identity, true, nil
 }
 
+// TODO: add distributed claims support
 func getClaimValue(data map[string]interface{}, claims []string) (string, error) {
 	for _, claim := range claims {
 		value, ok := data[claim]

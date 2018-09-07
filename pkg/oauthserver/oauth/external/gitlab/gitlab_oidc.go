@@ -61,6 +61,7 @@ func NewOIDCProvider(providerName, URL, clientID, clientSecret string, transport
 		PreferredUsernameClaims: []string{gitlabPreferredUsernameClaim},
 		EmailClaims:             []string{gitlabEmailClaim},
 		NameClaims:              []string{gitlabDisplayNameClaim},
+		GroupsClaims:			 []string{gitlabGroupsClaim}
 
 		// make sure that gitlabIDClaim is a valid uint64, see above comment about GitLab 11.1.0
 		IDTokenValidator: func(idTokenClaims map[string]interface{}) error {

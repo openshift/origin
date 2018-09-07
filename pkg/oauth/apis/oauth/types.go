@@ -36,6 +36,10 @@ type OAuthAccessToken struct {
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string
 
+	IdentityReference string //hash
+
+	IdentityProviderGroups map[string][]string
+
 	// InactivityTimeoutSeconds is the value in seconds, from the
 	// CreationTimestamp, after which this token can no longer be used.
 	// The value is automatically incremented when the token is used.
@@ -223,4 +227,21 @@ type RedirectReference struct {
 	Group string
 	Kind  string
 	Name  string
+}
+
+type TransientRequestAuthentication struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta //metadata.name is UUID stored in cookie
+
+	ExpiresIn int64
+
+	UserName string
+
+	UserUID string
+
+	IdentityProviderName string
+
+	IdentityProviderGroups []string
+
+	IdentityProviderExtras map[string][]string
 }

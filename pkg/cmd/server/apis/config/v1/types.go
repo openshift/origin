@@ -975,6 +975,8 @@ type RequestHeaderIdentityProvider struct {
 	NameHeaders []string `json:"nameHeaders"`
 	// EmailHeaders is the set of headers to check for the email address
 	EmailHeaders []string `json:"emailHeaders"`
+	// GroupHeaders is a set of headers to check for group names
+	GroupHeaders []string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -1093,6 +1095,10 @@ type OpenIDClaims struct {
 	// Email is the list of claims whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
 	Email []string `json:"email"`
+	// Groups is a list of claims whose values should be used as group memberships. Optional.
+	// If unspecified, no group memberships are consumed from the claims.
+	// Claim values must be either a string or string array
+	Groups []string
 }
 
 // GrantConfig holds the necessary configuration options for grant handlers
