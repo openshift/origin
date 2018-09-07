@@ -428,8 +428,11 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %dir %{_datadir}/%{name}/macosx/
 %dir %{_datadir}/%{name}/windows/
 %{_datadir}/%{name}/linux/oc
+%{_datadir}/%{name}/linux/kubectl
 %{_datadir}/%{name}/macosx/oc
+%{_datadir}/%{name}/macosx/kubectl
 %{_datadir}/%{name}/windows/oc.exe
+%{_datadir}/%{name}/windows/kubectl.exe
 %{_datadir}/%{name}/linux/oadm
 %{_datadir}/%{name}/macosx/oadm
 %{_datadir}/%{name}/windows/oadm.exe
