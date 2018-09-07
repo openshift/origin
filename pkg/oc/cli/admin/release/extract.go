@@ -24,7 +24,7 @@ func NewExtractOptions(streams genericclioptions.IOStreams) *ExtractOptions {
 	}
 }
 
-func NewExtract(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+func NewExtract(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewExtractOptions(streams)
 	cmd := &cobra.Command{
 		Use:   "extract",

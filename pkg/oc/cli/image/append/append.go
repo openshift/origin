@@ -320,7 +320,7 @@ func (o *AppendImageOptions) Run() error {
 		for i := range layers[:numLayers] {
 			layer := &layers[i]
 			index := i
-			missingDiffID := len(base.RootFS.DiffIDs[i]) == 0
+			needLayerDigest := len(base.RootFS.DiffIDs[i]) == 0
 			w.Try(func() error {
 				fromBlobs := fromRepo.Blobs(ctx)
 
@@ -333,7 +333,7 @@ func (o *AppendImageOptions) Run() error {
 							layer.Size = desc.Size
 						}
 						// we need to calculate the tar sum from the image, requiring us to pull it
-						if missingDiffID {
+						if needLayerDigest {
 							glog.V(4).Infof("Need tar sum, streaming layer %s", layer.Digest)
 							r, err := fromBlobs.Open(ctx, layer.Digest)
 							if err != nil {
@@ -355,50 +355,17 @@ func (o *AppendImageOptions) Run() error {
 					}
 				}
 
-				// source
-				r, err := fromBlobs.Open(ctx, layer.Digest)
-				if err != nil {
-					return fmt.Errorf("unable to access the source layer %s: %v", layer.Digest, err)
-				}
-				defer r.Close()
-
-				// destination
-				mountOptions := []distribution.BlobCreateOption{WithDescriptor(*layer)}
+				// copy the blob, calculating layer digest if needed
+				var mountFrom reference.Named
 				if from != nil && from.Registry == to.Registry {
-					source, err := reference.WithDigest(fromRepo.Named(), layer.Digest)
-					if err != nil {
-						return err
-					}
-					mountOptions = append(mountOptions, client.WithMountFrom(source))
+					mountFrom = fromRepo.Named()
 				}
-				bw, err := toBlobs.Create(ctx, mountOptions...)
-				if err != nil {
-					return fmt.Errorf("unable to upload layer %s to destination repository: %v", layer.Digest, err)
-				}
-				defer bw.Close()
-
-				// copy the blob, calculating the diffID if necessary
-				if layer.Size > 0 {
-					fmt.Fprintf(o.Out, "Uploading %s ...\n", units.HumanSize(float64(layer.Size)))
-				} else {
-					fmt.Fprintf(o.Out, "Uploading ...\n")
-				}
-				if missingDiffID {
-					glog.V(4).Infof("Need tar sum, calculating while streaming %s", layer.Digest)
-					layerDigest, _, _, _, err := add.DigestCopy(bw, r)
-					if err != nil {
-						return err
-					}
-					glog.V(4).Infof("Layer %s has tar sum %s", layer.Digest, layerDigest)
-					base.RootFS.DiffIDs[index] = layerDigest.String()
-				} else {
-					if _, err := bw.ReadFrom(r); err != nil {
-						return fmt.Errorf("unable to copy the source layer %s to the destination image: %v", layer.Digest, err)
-					}
-				}
-				desc, err := bw.Commit(ctx, *layer)
+				desc, layerDigest, err := copyBlob(ctx, fromBlobs, toBlobs, *layer, o.Out, needLayerDigest, mountFrom)
 				if err != nil {
 					return fmt.Errorf("uploading the source layer %s failed: %v", layer.Digest, err)
+				}
+				if needLayerDigest {
+					base.RootFS.DiffIDs[index] = layerDigest.String()
 				}
 
 				// check output
@@ -427,6 +394,74 @@ func (o *AppendImageOptions) Run() error {
 	}
 	fmt.Fprintf(o.Out, "Pushed image %s to %s\n", toDigest, to)
 	return nil
+}
+
+// copyBlob attempts to mirror a blob from one repo to another, mounting it if possible, and calculating the
+// layerDigest if needLayerDigest is true (mounting is not possible if we need to calculate a layerDigest).
+func copyBlob(ctx context.Context, fromBlobs, toBlobs distribution.BlobService, layer distribution.Descriptor, out io.Writer, needLayerDigest bool, mountFrom reference.Named) (distribution.Descriptor, digest.Digest, error) {
+	// source
+	r, err := fromBlobs.Open(ctx, layer.Digest)
+	if err != nil {
+		return distribution.Descriptor{}, "", fmt.Errorf("unable to access the source layer %s: %v", layer.Digest, err)
+	}
+	defer r.Close()
+
+	// destination
+	mountOptions := []distribution.BlobCreateOption{WithDescriptor(layer)}
+	if mountFrom != nil && !needLayerDigest {
+		source, err := reference.WithDigest(mountFrom, layer.Digest)
+		if err != nil {
+			return distribution.Descriptor{}, "", err
+		}
+		mountOptions = append(mountOptions, client.WithMountFrom(source))
+	}
+	bw, err := toBlobs.Create(ctx, mountOptions...)
+	if err != nil {
+		switch t := err.(type) {
+		case distribution.ErrBlobMounted:
+			// mount successful
+			glog.V(5).Infof("Blob mounted %#v", layer)
+			if t.From.Digest() != layer.Digest {
+				return distribution.Descriptor{}, "", fmt.Errorf("unable to upload layer %s to destination repository: tried to mount source and got back a different digest %s", layer.Digest, t.From.Digest())
+			}
+			if t.Descriptor.Size > 0 {
+				layer.Size = t.Descriptor.Size
+			}
+			return layer, "", nil
+		default:
+			return distribution.Descriptor{}, "", fmt.Errorf("unable to upload layer %s to destination repository: %v", layer.Digest, err)
+		}
+	}
+	defer bw.Close()
+
+	if layer.Size > 0 {
+		fmt.Fprintf(out, "Uploading %s ...\n", units.HumanSize(float64(layer.Size)))
+	} else {
+		fmt.Fprintf(out, "Uploading ...\n")
+	}
+
+	// copy the blob, calculating the diffID if necessary
+	var layerDigest digest.Digest
+	if needLayerDigest {
+		glog.V(4).Infof("Need tar sum, calculating while streaming %s", layer.Digest)
+		calculatedDigest, _, _, _, err := add.DigestCopy(bw, r)
+		if err != nil {
+			return distribution.Descriptor{}, "", err
+		}
+		layerDigest = calculatedDigest
+		glog.V(4).Infof("Layer %s has tar sum %s", layer.Digest, layerDigest)
+
+	} else {
+		if _, err := bw.ReadFrom(r); err != nil {
+			return distribution.Descriptor{}, "", err
+		}
+	}
+
+	desc, err := bw.Commit(ctx, layer)
+	if err != nil {
+		return distribution.Descriptor{}, "", err
+	}
+	return desc, layerDigest, nil
 }
 
 type optionFunc func(interface{}) error
