@@ -27,7 +27,6 @@ import (
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -35,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/openshift/origin/pkg/cmd/server/origin/legacyconfigprocessing"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	usercache "github.com/openshift/origin/pkg/user/cache"
@@ -449,7 +449,7 @@ func (m *Master) Start() error {
 			etcdserver.RunEtcd(m.config.EtcdConfig)
 		}
 
-		if err := openshift_kube_apiserver.ConvertNetworkConfigToAdmissionConfig(m.config); err != nil {
+		if err := legacyconfigprocessing.ConvertNetworkConfigToAdmissionConfig(m.config); err != nil {
 			return err
 		}
 

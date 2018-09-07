@@ -38,6 +38,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/origin/pkg/cmd/server/origin/legacyconfigprocessing"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
@@ -135,7 +136,7 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	authenticator, authenticatorPostStartHooks, err := openshiftkubeapiserver.NewAuthenticator(
+	authenticator, authenticatorPostStartHooks, err := legacyconfigprocessing.NewAuthenticator(
 		options.ServingInfo.ServingInfo,
 		options.ServiceAccountConfig.PublicKeyFiles, options.OAuthConfig, options.AuthConfig,
 		privilegedLoopbackConfig, informers.GetOpenshiftOauthInformers().Oauth().V1().OAuthClients().Lister(), informers.GetOpenshiftUserInformers().User().V1().Groups())
