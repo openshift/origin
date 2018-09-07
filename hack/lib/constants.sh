@@ -76,16 +76,19 @@ readonly OC_BINARY_COPY=(
 )
 readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
   oc.exe
+  kubectl.exe
   README.md
   ./LICENSE
 )
 readonly OS_BINARY_RELEASE_CLIENT_MAC=(
   oc
+  kubectl
   README.md
   ./LICENSE
 )
 readonly OS_BINARY_RELEASE_CLIENT_LINUX=(
   ./oc
+  ./kubectl
   ./README.md
   ./LICENSE
 )
