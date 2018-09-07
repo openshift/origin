@@ -83,6 +83,7 @@ BuildRequires:  systemd
 BuildRequires:  bsdtar
 BuildRequires:  golang >= %{golang_version}
 BuildRequires:  krb5-devel
+BuildRequires:  libseccomp-devel
 BuildRequires:  rsync
 Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
@@ -152,6 +153,9 @@ Provides:       tuned-profiles-%{name}-node
 Summary:        %{product_name} Client binaries for Linux
 Obsoletes:      openshift-clients < %{package_refactor_version}
 Requires:       bash-completion
+# Provided by containers-common or skopeo-containers, depending on the release.
+Requires:       /etc/containers/registries.conf
+Requires:       /etc/containers/policy.json
 
 %description clients
 %{summary}
