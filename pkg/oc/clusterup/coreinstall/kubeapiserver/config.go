@@ -1,6 +1,7 @@
 package kubeapiserver
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
 
@@ -8,8 +9,14 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	configv1 "github.com/openshift/api/config/v1"
+	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
+	"github.com/openshift/origin/pkg/configconversion"
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
@@ -77,15 +84,28 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 	}
 
 	// update some listen information to include starting the DNS server
-	masterconfigFilename := path.Join(masterDir, "master-config.yaml")
-	masterconfig, err := componentinstall.ReadMasterConfig(masterconfigFilename)
+	legacyMasterConfigFilename := path.Join(masterDir, "master-config.yaml")
+	masterconfig, err := componentinstall.ReadMasterConfig(legacyMasterConfigFilename)
 	if err != nil {
 		return "", err
 	}
 
 	addImagePolicyAdmission(&masterconfig.AdmissionConfig)
 
-	if err := componentinstall.WriteMasterConfig(masterconfigFilename, masterconfig); err != nil {
+	kubeAPIServerConfig, err := configconversion.ConvertMasterConfigToKubeAPIServerConfig(masterconfig)
+	if err != nil {
+		return "", err
+	}
+	scheme := runtime.NewScheme()
+	utilruntime.Must(kubecontrolplanev1.Install(scheme))
+	codecs := serializer.NewCodecFactory(scheme)
+	configContent, err := runtime.Encode(codecs.LegacyCodec(kubecontrolplanev1.GroupVersion, configv1.GroupVersion, osinv1.GroupVersion), kubeAPIServerConfig)
+	if err != nil {
+		return "", err
+	}
+
+	masterConfigFilename := path.Join(masterDir, "config.json")
+	if err := ioutil.WriteFile(masterConfigFilename, configContent, 0644); err != nil {
 		return "", err
 	}
 

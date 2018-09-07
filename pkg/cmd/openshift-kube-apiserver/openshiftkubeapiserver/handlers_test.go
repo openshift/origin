@@ -11,7 +11,7 @@ import (
 	apiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 )
 
@@ -117,10 +117,10 @@ func TestVersionSkewFilterDenyOld(t *testing.T) {
 	verbs := []string{"PATCH", "POST"}
 	doNothingHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 	})
-	userAgentMatchingConfig := configapi.UserAgentMatchingConfig{}
-	userAgentMatchingConfig.DeniedClients = []configapi.UserAgentDenyRule{
-		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v1\.1\.10 \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
-		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v(?:(?:1\.1\.1)|(?:1\.0\.1)) \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
+	userAgentMatchingConfig := kubecontrolplanev1.UserAgentMatchingConfig{}
+	userAgentMatchingConfig.DeniedClients = []kubecontrolplanev1.UserAgentDenyRule{
+		{UserAgentMatchRule: kubecontrolplanev1.UserAgentMatchRule{Regex: `\w+/v1\.1\.10 \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
+		{UserAgentMatchRule: kubecontrolplanev1.UserAgentMatchRule{Regex: `\w+/v(?:(?:1\.1\.1)|(?:1\.0\.1)) \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 	}
 	handler := versionSkewFilter(doNothingHandler, userAgentMatchingConfig)
 	server := httptest.NewServer(testHandlerChain(handler))
@@ -164,8 +164,8 @@ func TestVersionSkewFilterDenySkewed(t *testing.T) {
 	verbs := []string{"PUT", "DELETE"}
 	doNothingHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 	})
-	userAgentMatchingConfig := configapi.UserAgentMatchingConfig{}
-	userAgentMatchingConfig.RequiredClients = []configapi.UserAgentMatchRule{
+	userAgentMatchingConfig := kubecontrolplanev1.UserAgentMatchingConfig{}
+	userAgentMatchingConfig.RequiredClients = []kubecontrolplanev1.UserAgentMatchRule{
 		{Regex: `\w+/` + kubeServerVersion + ` \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs},
 		{Regex: `\w+/` + openshiftServerVersion + ` \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs},
 	}
@@ -215,8 +215,8 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 	verbs := []string{"PUT", "DELETE"}
 	doNothingHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 	})
-	userAgentMatchingConfig := configapi.UserAgentMatchingConfig{}
-	userAgentMatchingConfig.RequiredClients = []configapi.UserAgentMatchRule{
+	userAgentMatchingConfig := kubecontrolplanev1.UserAgentMatchingConfig{}
+	userAgentMatchingConfig.RequiredClients = []kubecontrolplanev1.UserAgentMatchRule{
 		{Regex: `\w+/` + kubeServerVersion + ` \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs},
 		{Regex: `\w+/` + openshiftServerVersion + ` \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs},
 	}

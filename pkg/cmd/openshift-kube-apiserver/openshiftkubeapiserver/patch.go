@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/quota/generic"
 	"k8s.io/kubernetes/pkg/quota/install"
 
+	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
@@ -28,7 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
@@ -47,7 +47,7 @@ type KubeAPIServerServerPatchContext struct {
 	informerStartFuncs []func(stopCh <-chan struct{})
 }
 
-func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.DelegationTarget, kubeAPIServerConfig *configapi.KubeAPIServerConfig) (app.KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
+func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.DelegationTarget, kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) (app.KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
 	patchContext := &KubeAPIServerServerPatchContext{
 		postStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 	}

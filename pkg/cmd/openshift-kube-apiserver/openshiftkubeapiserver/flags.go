@@ -1,21 +1,22 @@
 package openshiftkubeapiserver
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"sort"
 
-	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"bytes"
-
+	configv1 "github.com/openshift/api/config/v1"
+	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/openshift/origin/pkg/configconversion"
 )
 
-func ConfigToFlags(kubeAPIServerConfig *configapi.KubeAPIServerConfig) ([]string, error) {
+func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
 	args := map[string][]string{}
 	for key, slice := range kubeAPIServerConfig.APIServerArguments {
 		for _, val := range slice {
@@ -119,15 +120,15 @@ func ConfigToFlags(kubeAPIServerConfig *configapi.KubeAPIServerConfig) ([]string
 	setIfUnset(args, "enable-logs-handler", "false")
 	setIfUnset(args, "enable-swagger-ui", "true")
 	setIfUnset(args, "endpoint-reconciler-type", "lease")
-	setIfUnset(args, "etcd-cafile", kubeAPIServerConfig.EtcdClientInfo.CA)
-	setIfUnset(args, "etcd-certfile", kubeAPIServerConfig.EtcdClientInfo.ClientCert.CertFile)
-	setIfUnset(args, "etcd-keyfile", kubeAPIServerConfig.EtcdClientInfo.ClientCert.KeyFile)
-	setIfUnset(args, "etcd-prefix", kubeAPIServerConfig.StoragePrefix)
-	setIfUnset(args, "etcd-servers", kubeAPIServerConfig.EtcdClientInfo.URLs...)
+	setIfUnset(args, "etcd-cafile", kubeAPIServerConfig.StorageConfig.CA)
+	setIfUnset(args, "etcd-certfile", kubeAPIServerConfig.StorageConfig.CertFile)
+	setIfUnset(args, "etcd-keyfile", kubeAPIServerConfig.StorageConfig.KeyFile)
+	setIfUnset(args, "etcd-prefix", kubeAPIServerConfig.StorageConfig.StoragePrefix)
+	setIfUnset(args, "etcd-servers", kubeAPIServerConfig.StorageConfig.URLs...)
 	setIfUnset(args, "insecure-port", "0")
 	setIfUnset(args, "kubelet-certificate-authority", kubeAPIServerConfig.KubeletClientInfo.CA)
-	setIfUnset(args, "kubelet-client-certificate", kubeAPIServerConfig.KubeletClientInfo.ClientCert.CertFile)
-	setIfUnset(args, "kubelet-client-key", kubeAPIServerConfig.KubeletClientInfo.ClientCert.KeyFile)
+	setIfUnset(args, "kubelet-client-certificate", kubeAPIServerConfig.KubeletClientInfo.CertFile)
+	setIfUnset(args, "kubelet-client-key", kubeAPIServerConfig.KubeletClientInfo.KeyFile)
 	setIfUnset(args, "kubelet-https", "true")
 	setIfUnset(args, "kubelet-preferred-address-types", "Hostname", "InternalIP", "ExternalIP")
 	setIfUnset(args, "kubelet-read-only-port", "0")
@@ -147,10 +148,10 @@ func ConfigToFlags(kubeAPIServerConfig *configapi.KubeAPIServerConfig) ([]string
 	setIfUnset(args, "service-node-port-range", kubeAPIServerConfig.ServicesNodePortRange)
 	setIfUnset(args, "storage-backend", "etcd3")
 	setIfUnset(args, "storage-media-type", "application/vnd.kubernetes.protobuf")
-	setIfUnset(args, "tls-cert-file", kubeAPIServerConfig.ServingInfo.ServerCert.CertFile)
+	setIfUnset(args, "tls-cert-file", kubeAPIServerConfig.ServingInfo.CertFile)
 	setIfUnset(args, "tls-cipher-suites", kubeAPIServerConfig.ServingInfo.CipherSuites...)
 	setIfUnset(args, "tls-min-version", kubeAPIServerConfig.ServingInfo.MinTLSVersion)
-	setIfUnset(args, "tls-private-key-file", kubeAPIServerConfig.ServingInfo.ServerCert.KeyFile)
+	setIfUnset(args, "tls-private-key-file", kubeAPIServerConfig.ServingInfo.KeyFile)
 	// TODO re-enable SNI for cluster up
 	// tls-sni-cert-key
 	setIfUnset(args, "secure-port", portString)
@@ -172,7 +173,7 @@ func ConfigToFlags(kubeAPIServerConfig *configapi.KubeAPIServerConfig) ([]string
 
 // currently for cluster up, audit is just broken.
 // TODO fix this
-func auditFlags(kubeAPIServerConfig *configapi.KubeAPIServerConfig) map[string][]string {
+func auditFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) map[string][]string {
 	args := map[string][]string{}
 	for key, slice := range kubeAPIServerConfig.APIServerArguments {
 		for _, val := range slice {
@@ -189,14 +190,14 @@ func setIfUnset(cmdLineArgs map[string][]string, key string, value ...string) {
 	}
 }
 
-func admissionFlags(admissionPluginConfig map[string]*configapi.AdmissionPluginConfig) (map[string][]string, error) {
+func admissionFlags(admissionPluginConfig map[string]configv1.AdmissionPluginConfig) (map[string][]string, error) {
 	args := map[string][]string{}
 
 	forceOn := []string{}
 	forceOff := []string{}
-	pluginConfig := map[string]*configapi.AdmissionPluginConfig{}
+	pluginConfig := map[string]configv1.AdmissionPluginConfig{}
 	for pluginName, origConfig := range admissionPluginConfig {
-		config := origConfig.DeepCopy()
+		config := *origConfig.DeepCopy()
 		if len(config.Location) > 0 {
 			content, err := ioutil.ReadFile(config.Location)
 			if err != nil {
@@ -210,7 +211,7 @@ func admissionFlags(admissionPluginConfig map[string]*configapi.AdmissionPluginC
 			if err != nil || obj == nil {
 				forceOn = append(forceOn, pluginName)
 				config.Location = ""
-				config.Configuration = &runtime.Unknown{Raw: content}
+				config.Configuration = runtime.RawExtension{Raw: content}
 				pluginConfig[pluginName] = config
 				continue
 			}
@@ -218,7 +219,7 @@ func admissionFlags(admissionPluginConfig map[string]*configapi.AdmissionPluginC
 			if defaultConfig, ok := obj.(*configapi.DefaultAdmissionConfig); !ok {
 				forceOn = append(forceOn, pluginName)
 				config.Location = ""
-				config.Configuration = &runtime.Unknown{Raw: content}
+				config.Configuration = runtime.RawExtension{Raw: content}
 				pluginConfig[pluginName] = config
 
 			} else if defaultConfig.Disable {
@@ -230,8 +231,18 @@ func admissionFlags(admissionPluginConfig map[string]*configapi.AdmissionPluginC
 
 			continue
 		}
+
 		// if it wasn't a DefaultAdmissionConfig object, let the plugin deal with it
-		if defaultConfig, ok := config.Configuration.(*configapi.DefaultAdmissionConfig); !ok {
+		currConfig := &configapi.DefaultAdmissionConfig{}
+		uncastDefaultConfig, _, decodingErr := configapilatest.Codec.Decode(config.Configuration.Raw, nil, currConfig)
+		if decodingErr != nil {
+			forceOn = append(forceOn, pluginName)
+			pluginConfig[pluginName] = config
+			continue
+		}
+
+		defaultConfig, ok := uncastDefaultConfig.(*configapi.DefaultAdmissionConfig)
+		if !ok {
 			forceOn = append(forceOn, pluginName)
 			pluginConfig[pluginName] = config
 
@@ -243,7 +254,7 @@ func admissionFlags(admissionPluginConfig map[string]*configapi.AdmissionPluginC
 		}
 
 	}
-	upstreamAdmissionConfig, err := originadmission.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
+	upstreamAdmissionConfig, err := configconversion.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
 	if err != nil {
 		return nil, err
 	}

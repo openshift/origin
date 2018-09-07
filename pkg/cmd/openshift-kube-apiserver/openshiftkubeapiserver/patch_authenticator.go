@@ -23,13 +23,15 @@ import (
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	configv1 "github.com/openshift/api/config/v1"
+	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	oauthclientlister "github.com/openshift/client-go/oauth/listers/oauth/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions/user/v1"
 	"github.com/openshift/origin/pkg/apiserver/authentication/oauth"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
@@ -40,8 +42,8 @@ import (
 // TODO we can re-trim these args to the the kubeapiserver config again if we feel like it, but for now we need it to be
 // TODO obviously safe for 3.11
 func NewAuthenticator(
-	servingInfo configapi.ServingInfo,
-	serviceAccountPublicKeyFiles []string, oauthConfig *configapi.OAuthConfig, authConfig configapi.MasterAuthConfig,
+	servingInfo configv1.ServingInfo,
+	serviceAccountPublicKeyFiles []string, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig,
 	privilegedLoopbackConfig *rest.Config,
 	oauthClientLister oauthclientlister.OAuthClientLister,
 	groupInformer userinformer.GroupInformer,
@@ -80,7 +82,7 @@ func NewAuthenticator(
 	)
 }
 
-func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *configapi.OAuthConfig, authConfig configapi.MasterAuthConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper oauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper oauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}

@@ -3,17 +3,16 @@ package openshiftkubeapiserver
 import (
 	"net/http"
 
+	osinv1 "github.com/openshift/api/osin/v1"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
-
-	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 // TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that
 // we can run this in a pod.  This is an indication of leaky abstraction because it spent too much time in openshift start
-func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config, oauthConfig *configapi.OAuthConfig) (*oauthserver.OAuthServerConfig, error) {
+func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig) (*oauthserver.OAuthServerConfig, error) {
 	oauthServerConfig, err := oauthserver.NewOAuthServerConfig(*oauthConfig, genericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -42,7 +41,7 @@ func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config
 	return oauthServerConfig, nil
 }
 
-func NewOAuthServerHandler(genericConfig *genericapiserver.Config, oauthConfig *configapi.OAuthConfig) (http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+func NewOAuthServerHandler(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig) (http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
 	if oauthConfig == nil {
 		return http.NotFoundHandler(), nil, nil
 	}

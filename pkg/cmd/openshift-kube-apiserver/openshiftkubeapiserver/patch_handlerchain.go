@@ -7,8 +7,9 @@ import (
 	"io/ioutil"
 
 	"github.com/golang/glog"
+	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/informers"
@@ -22,7 +23,7 @@ const (
 )
 
 // TODO switch back to taking a kubeapiserver config.  For now make it obviously safe for 3.11
-func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string, oauthConfig *configapi.OAuthConfig, userAgentMatchingConfig configapi.UserAgentMatchingConfig) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string, oauthConfig *osinv1.OAuthConfig, userAgentMatchingConfig kubecontrolplanev1.UserAgentMatchingConfig) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
 	extraPostStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 
 	webconsoleProxyHandler, err := newWebConsoleProxy(kubeInformers, legacyServiceServingCertSignerCABundle)
@@ -83,7 +84,7 @@ func newWebConsoleProxy(kubeInformers informers.SharedInformerFactory, legacySer
 	return proxyHandler, nil
 }
 
-func withOAuthRedirection(oauthConfig *configapi.OAuthConfig, handler, oauthServerHandler http.Handler) http.Handler {
+func withOAuthRedirection(oauthConfig *osinv1.OAuthConfig, handler, oauthServerHandler http.Handler) http.Handler {
 	if oauthConfig == nil {
 		return handler
 	}
