@@ -11,41 +11,6 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
-func TestDeduplicateSecurityContextConstraints(t *testing.T) {
-	duped := []*securityapi.SecurityContextConstraints{
-		{ObjectMeta: metav1.ObjectMeta{Name: "a"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "a"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "b"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "b"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "c"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "d"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "e"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "e"}},
-	}
-
-	deduped := DeduplicateSecurityContextConstraints(duped)
-
-	if len(deduped) != 5 {
-		t.Fatalf("expected to have 5 remaining sccs but found %d: %v", len(deduped), deduped)
-	}
-
-	constraintCounts := map[string]int{}
-
-	for _, scc := range deduped {
-		if _, ok := constraintCounts[scc.Name]; !ok {
-			constraintCounts[scc.Name] = 0
-		}
-		constraintCounts[scc.Name] = constraintCounts[scc.Name] + 1
-	}
-
-	for k, v := range constraintCounts {
-		if v > 1 {
-			t.Errorf("%s was found %d times after de-duping", k, v)
-		}
-	}
-
-}
-
 func TestAssignSecurityContext(t *testing.T) {
 	// set up test data
 	// scc that will deny privileged container requests and has a default value for a field (uid)

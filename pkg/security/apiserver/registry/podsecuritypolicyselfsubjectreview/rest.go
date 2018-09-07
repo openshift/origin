@@ -3,10 +3,10 @@ package podsecuritypolicyselfsubjectreview
 import (
 	"context"
 	"fmt"
-	"sort"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -61,21 +61,17 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}
 
-	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo, ns)
+	users := []user.Info{userInfo}
+	saName := pspssr.Spec.Template.Spec.ServiceAccountName
+	if len(saName) > 0 {
+		users = append(users, serviceaccount.UserInfo(ns, saName, ""))
+	}
+
+	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(ns, users...)
 	if err != nil {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
 	}
-	saName := pspssr.Spec.Template.Spec.ServiceAccountName
-	if len(saName) > 0 {
-		saUserInfo := serviceaccount.UserInfo(ns, saName, "")
-		saConstraints, err := r.sccMatcher.FindApplicableSCCs(saUserInfo, ns)
-		if err != nil {
-			return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
-		}
-		matchedConstraints = append(matchedConstraints, saConstraints...)
-	}
-	scc.DeduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(scc.ByPriority(matchedConstraints))
+
 	var namespace *kapi.Namespace
 	for _, constraint := range matchedConstraints {
 		var (
