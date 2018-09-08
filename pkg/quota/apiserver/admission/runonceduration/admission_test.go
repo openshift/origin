@@ -138,11 +138,11 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 		runOnceDuration.(oadmission.WantsProjectCache).SetProjectCache(testCache(tc.projectAnnotations))
 		pod := tc.pod
 		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "default", "test", kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil)
-		err := runOnceDuration.(admission.MutationInterface).Admit(attrs)
-		if err != nil {
-			t.Errorf("%s: unexpected admission error: %v", tc.name, err)
+		if err := runOnceDuration.(admission.MutationInterface).Admit(attrs); err != nil {
+			t.Errorf("%s: unexpected mutating admission error: %v", tc.name, err)
 			continue
 		}
+
 		switch {
 		case tc.expectedActiveDeadlineSeconds == nil && pod.Spec.ActiveDeadlineSeconds == nil:
 			// continue

@@ -22,7 +22,7 @@ func Register(plugins *admission.Plugins) {
 		})
 }
 
-// podNodeEnvironment is an implementation of admission.Interface.
+// podNodeEnvironment is an implementation of admission.MutationInterface.
 type podNodeEnvironment struct {
 	*admission.Handler
 	client kclientset.Interface
@@ -31,9 +31,11 @@ type podNodeEnvironment struct {
 
 var _ = oadmission.WantsProjectCache(&podNodeEnvironment{})
 var _ = kadmission.WantsInternalKubeClientSet(&podNodeEnvironment{})
+var _ = admission.ValidationInterface(&podNodeEnvironment{})
+var _ = admission.MutationInterface(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
-func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
+func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool) (err error) {
 	resource := a.GetResource().GroupResource()
 	if resource != kapi.Resource("pods") {
 		return nil
@@ -67,10 +69,23 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 		return apierrors.NewForbidden(resource, name, fmt.Errorf("pod node label selector conflicts with its project node label selector"))
 	}
 
+	if !mutationAllowed && len(labelselector.Merge(projectNodeSelector, pod.Spec.NodeSelector)) != len(pod.Spec.NodeSelector) {
+		// no conflict, different size => pod.Spec.NodeSelector does not contain projectNodeSelector
+		return apierrors.NewForbidden(resource, name, fmt.Errorf("pod node label selector does not extend project node label selector"))
+	}
+
 	// modify pod node selector = project node selector + current pod node selector
 	pod.Spec.NodeSelector = labelselector.Merge(projectNodeSelector, pod.Spec.NodeSelector)
 
 	return nil
+}
+
+func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
+	return p.admit(a, true)
+}
+
+func (p *podNodeEnvironment) Validate(a admission.Attributes) (err error) {
+	return p.admit(a, false)
 }
 
 func (p *podNodeEnvironment) SetProjectCache(c *cache.ProjectCache) {

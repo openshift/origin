@@ -168,12 +168,19 @@ func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstr
 
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.(kadmission.MutationInterface).Admit(attrs)
-
 	if shouldPass && err != nil {
-		t.Errorf("%s expected no errors but received %v", testCaseName, err)
+		t.Errorf("%s expected no mutating admission errors but received %v", testCaseName, err)
 	}
 	if !shouldPass && err == nil {
-		t.Errorf("%s expected errors but received none", testCaseName)
+		t.Errorf("%s expected mutating admission errors but received none", testCaseName)
+	}
+
+	err = plugin.(kadmission.ValidationInterface).Validate(attrs)
+	if shouldPass && err != nil {
+		t.Errorf("%s expected no validating admission errors but received %v", testCaseName, err)
+	}
+	if !shouldPass && err == nil {
+		t.Errorf("%s expected validating admission errors but received none", testCaseName)
 	}
 }
 
