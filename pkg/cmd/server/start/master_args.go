@@ -17,10 +17,10 @@ import (
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/spf13/cobra"
@@ -305,7 +305,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
 	}
 
-	internal, err := applyDefaults(config, configapiv1.LegacySchemeGroupVersion)
+	internal, err := applyDefaults(config, legacyconfigv1.LegacySchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	coreinternalconversions "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	buildinternalconversions "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
@@ -15,48 +16,23 @@ var (
 	LegacyGroupName          = ""
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 	legacySchemeBuilder      = runtime.NewSchemeBuilder(
-		addKnownTypesToLegacy,
+		legacyconfigv1.InstallLegacy,
 		config.InstallLegacy,
 		coreinternalconversions.AddToScheme,
 		buildinternalconversions.Install,
 
+		RegisterConversions,
 		addConversionFuncs,
 		addDefaultingFuncs,
 	)
 	InstallLegacy = legacySchemeBuilder.AddToScheme
 
 	externalLegacySchemeBuilder = runtime.NewSchemeBuilder(
-		addKnownTypesToLegacy,
+		legacyconfigv1.InstallLegacy,
 		buildv1.Install,
 	)
 	InstallLegacyExternal = externalLegacySchemeBuilder.AddToScheme
+
+	// this only exists to make the generator happy.
+	localSchemeBuilder = runtime.NewSchemeBuilder()
 )
-
-// Adds the list of known types to api.Scheme.
-func addKnownTypesToLegacy(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(LegacySchemeGroupVersion,
-		&MasterConfig{},
-		&NodeConfig{},
-		&SessionSecrets{},
-
-		&BasicAuthPasswordIdentityProvider{},
-		&AllowAllPasswordIdentityProvider{},
-		&DenyAllPasswordIdentityProvider{},
-		&HTPasswdPasswordIdentityProvider{},
-		&LDAPPasswordIdentityProvider{},
-		&KeystonePasswordIdentityProvider{},
-		&RequestHeaderIdentityProvider{},
-		&GitHubIdentityProvider{},
-		&GitLabIdentityProvider{},
-		&GoogleIdentityProvider{},
-		&OpenIDIdentityProvider{},
-
-		&LDAPSyncConfig{},
-
-		&DefaultAdmissionConfig{},
-
-		&BuildDefaultsConfig{},
-		&BuildOverridesConfig{},
-	)
-	return nil
-}

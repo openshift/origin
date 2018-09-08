@@ -15,6 +15,8 @@ authorization/v1 \
 build/v1 \
 config/v1 \
 image/v1 \
+osin/v1 \
+kubecontrolplane/v1 \
 network/v1 \
 oauth/v1 \
 operator/v1alpha1 \
@@ -33,6 +35,8 @@ github.com/openshift/api/authorization/v1,\
 github.com/openshift/api/build/v1,\
 github.com/openshift/api/config/v1,\
 github.com/openshift/api/image/v1,\
+github.com/openshift/api/osin/v1,\
+github.com/openshift/api/kubecontrolplane/v1,\
 github.com/openshift/api/network/v1,\
 github.com/openshift/api/oauth/v1,\
 github.com/openshift/api/operator/v1alpha1,\

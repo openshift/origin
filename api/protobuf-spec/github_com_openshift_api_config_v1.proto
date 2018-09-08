@@ -13,6 +13,53 @@ import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
 // Package-wide variables from generator "generated".
 option go_package = "v1";
 
+// AdmissionPluginConfig holds the necessary configuration options for admission plugins
+message AdmissionPluginConfig {
+  // Location is the path to a configuration file that contains the plugin's
+  // configuration
+  optional string location = 1;
+
+  // Configuration is an embedded configuration object to be used as the plugin's
+  // configuration. If present, it will be used instead of the path to the configuration file.
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension configuration = 2;
+}
+
+// AuditConfig holds configuration for the audit capabilities
+message AuditConfig {
+  // If this flag is set, audit log will be printed in the logs.
+  // The logs contains, method, user and a requested URL.
+  optional bool enabled = 1;
+
+  // All requests coming to the apiserver will be logged to this file.
+  optional string auditFilePath = 2;
+
+  // Maximum number of days to retain old log files based on the timestamp encoded in their filename.
+  optional int32 maximumFileRetentionDays = 3;
+
+  // Maximum number of old log files to retain.
+  optional int32 maximumRetainedFiles = 4;
+
+  // Maximum size in megabytes of the log file before it gets rotated. Defaults to 100MB.
+  optional int32 maximumFileSizeMegabytes = 5;
+
+  // PolicyFile is a path to the file that defines the audit policy configuration.
+  optional string policyFile = 6;
+
+  // PolicyConfiguration is an embedded policy configuration object to be used
+  // as the audit policy configuration. If present, it will be used instead of
+  // the path to the policy file.
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension policyConfiguration = 7;
+
+  // Format of saved audits (legacy or json).
+  optional string logFormat = 8;
+
+  // Path to a .kubeconfig formatted file that defines the audit webhook configuration.
+  optional string webHookKubeConfig = 9;
+
+  // Strategy for sending audit events (block or batch).
+  optional string webHookMode = 10;
+}
+
 // CertInfo relates a certificate with a private key
 message CertInfo {
   // CertFile is a file containing a PEM-encoded certificate
@@ -20,6 +67,45 @@ message CertInfo {
 
   // KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile
   optional string keyFile = 2;
+}
+
+// EtcdConnectionInfo holds information necessary for connecting to an etcd server
+message EtcdConnectionInfo {
+  // URLs are the URLs for etcd
+  repeated string urls = 1;
+
+  // CA is a file containing trusted roots for the etcd server certificates
+  optional string ca = 2;
+
+  // CertInfo is the TLS client cert information for securing communication to etcd
+  // this is anonymous so that we can inline it for serialization
+  optional CertInfo certInfo = 3;
+}
+
+message EtcdStorageConfig {
+  optional EtcdConnectionInfo etcdConnectionInfo = 1;
+
+  // StoragePrefix is the path within etcd that the OpenShift resources will
+  // be rooted under. This value, if changed, will mean existing objects in etcd will
+  // no longer be located.
+  optional string storagePrefix = 2;
+}
+
+// GenericAPIServerConfig is an inline-able struct for aggregated apiservers that need to store data in etcd
+message GenericAPIServerConfig {
+  // ServingInfo describes how to start serving
+  optional HTTPServingInfo servingInfo = 1;
+
+  // CORSAllowedOrigins
+  repeated string corsAllowedOrigins = 2;
+
+  // AuditConfig describes how to configure audit information
+  optional AuditConfig auditConfig = 3;
+
+  // StorageConfig contains information about how to use
+  optional EtcdStorageConfig storageConfig = 4;
+
+  map<string, AdmissionPluginConfig> admissionPluginConfig = 5;
 }
 
 // HTTPServingInfo holds configuration for serving HTTP
@@ -76,6 +162,19 @@ message NamedCertificate {
   optional CertInfo certInfo = 2;
 }
 
+// RemoteConnectionInfo holds information necessary for establishing a remote connection
+message RemoteConnectionInfo {
+  // URL is the remote URL to connect to
+  optional string url = 1;
+
+  // CA is the CA for verifying TLS connections
+  optional string ca = 2;
+
+  // CertInfo is the TLS client cert information to present
+  // this is anonymous so that we can inline it for serialization
+  optional CertInfo certInfo = 3;
+}
+
 // ServingInfo holds information about serving web pages
 message ServingInfo {
   // BindAddress is the ip:port to serve on
@@ -102,5 +201,27 @@ message ServingInfo {
   // CipherSuites contains an overridden list of ciphers for the server to support.
   // Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants
   repeated string cipherSuites = 7;
+}
+
+// StringSource allows specifying a string inline, or externally via env var or file.
+// When it contains only a string value, it marshals to a simple JSON string.
+message StringSource {
+  // StringSourceSpec specifies the string value, or external location
+  optional StringSourceSpec stringSourceSpec = 1;
+}
+
+// StringSourceSpec specifies a string value, or external location
+message StringSourceSpec {
+  // Value specifies the cleartext value, or an encrypted value if keyFile is specified.
+  optional string value = 1;
+
+  // Env specifies an envvar containing the cleartext value, or an encrypted value if the keyFile is specified.
+  optional string env = 2;
+
+  // File references a file containing the cleartext value, or an encrypted value if a keyFile is specified.
+  optional string file = 3;
+
+  // KeyFile references a file containing the key to use to decrypt the value.
+  optional string keyFile = 4;
 }
 

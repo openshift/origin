@@ -14,7 +14,7 @@ import (
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
+	legacyconfigv1conversions "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
@@ -110,7 +110,7 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfi
 func getBuildDefaults(pluginConfig map[string]*configapi.AdmissionPluginConfig) (*configapi.BuildDefaultsConfig, error) {
 	const buildDefaultsPlugin = "BuildDefaults"
 	scheme := runtime.NewScheme()
-	configv1.InstallLegacy(scheme)
+	legacyconfigv1conversions.InstallLegacy(scheme)
 	uncastConfig, err := getPluginConfigObj(pluginConfig, buildDefaultsPlugin, scheme)
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func getBuildDefaults(pluginConfig map[string]*configapi.AdmissionPluginConfig) 
 func getBuildOverrides(pluginConfig map[string]*configapi.AdmissionPluginConfig) (*configapi.BuildOverridesConfig, error) {
 	const buildOverridesPlugin = "BuildOverrides"
 	scheme := runtime.NewScheme()
-	configv1.InstallLegacy(scheme)
+	legacyconfigv1conversions.InstallLegacy(scheme)
 	uncastConfig, err := getPluginConfigObj(pluginConfig, buildOverridesPlugin, scheme)
 	if err != nil {
 		return nil, err

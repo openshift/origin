@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
+	legacyconfigv1conversions "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	"github.com/openshift/origin/pkg/cmd/server/origin/node"
 )
 
@@ -38,7 +38,7 @@ func main() {
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			configapi.InstallLegacy(configapi.Scheme)
-			configapiv1.InstallLegacy(configapi.Scheme)
+			legacyconfigv1conversions.InstallLegacy(configapi.Scheme)
 
 			if len(configFile) == 0 {
 				return fmt.Errorf("you must specify a --config file to read")

@@ -19,11 +19,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/master/ports"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	configv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
@@ -451,7 +451,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 	}
 
 	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := configapi.Scheme.ConvertToVersion(config, configv1.LegacySchemeGroupVersion)
+	ext, err := configapi.Scheme.ConvertToVersion(config, legacyconfigv1.LegacySchemeGroupVersion)
 	if err != nil {
 		return err
 	}
@@ -480,7 +480,7 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	json, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(configv1.LegacySchemeGroupVersion), node)
+	json, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion), node)
 	if err != nil {
 		return err
 	}

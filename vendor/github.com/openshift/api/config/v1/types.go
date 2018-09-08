@@ -2,6 +2,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // HTTPServingInfo holds configuration for serving HTTP
@@ -79,4 +80,135 @@ type LeaderElection struct {
 	// acquisition and renewal of a leadership. This is only applicable if
 	// leader election is enabled.
 	RetryPeriod metav1.Duration `json:"retryPeriod,omitempty" protobuf:"bytes,6,opt,name=retryPeriod"`
+}
+
+// StringSource allows specifying a string inline, or externally via env var or file.
+// When it contains only a string value, it marshals to a simple JSON string.
+type StringSource struct {
+	// StringSourceSpec specifies the string value, or external location
+	StringSourceSpec `json:",inline" protobuf:"bytes,1,opt,name=stringSourceSpec"`
+}
+
+// StringSourceSpec specifies a string value, or external location
+type StringSourceSpec struct {
+	// Value specifies the cleartext value, or an encrypted value if keyFile is specified.
+	Value string `json:"value" protobuf:"bytes,1,opt,name=value"`
+
+	// Env specifies an envvar containing the cleartext value, or an encrypted value if the keyFile is specified.
+	Env string `json:"env" protobuf:"bytes,2,opt,name=env"`
+
+	// File references a file containing the cleartext value, or an encrypted value if a keyFile is specified.
+	File string `json:"file" protobuf:"bytes,3,opt,name=file"`
+
+	// KeyFile references a file containing the key to use to decrypt the value.
+	KeyFile string `json:"keyFile" protobuf:"bytes,4,opt,name=keyFile"`
+}
+
+// RemoteConnectionInfo holds information necessary for establishing a remote connection
+type RemoteConnectionInfo struct {
+	// URL is the remote URL to connect to
+	URL string `json:"url" protobuf:"bytes,1,opt,name=url"`
+	// CA is the CA for verifying TLS connections
+	CA string `json:"ca" protobuf:"bytes,2,opt,name=ca"`
+	// CertInfo is the TLS client cert information to present
+	// this is anonymous so that we can inline it for serialization
+	CertInfo `json:",inline" protobuf:"bytes,3,opt,name=certInfo"`
+}
+
+// AdmissionPluginConfig holds the necessary configuration options for admission plugins
+type AdmissionPluginConfig struct {
+	// Location is the path to a configuration file that contains the plugin's
+	// configuration
+	Location string `json:"location" protobuf:"bytes,1,opt,name=location"`
+
+	// Configuration is an embedded configuration object to be used as the plugin's
+	// configuration. If present, it will be used instead of the path to the configuration file.
+	Configuration runtime.RawExtension `json:"configuration" protobuf:"bytes,2,opt,name=configuration"`
+}
+
+type LogFormatType string
+
+type WebHookModeType string
+
+const (
+	// LogFormatLegacy saves event in 1-line text format.
+	LogFormatLegacy LogFormatType = "legacy"
+	// LogFormatJson saves event in structured json format.
+	LogFormatJson LogFormatType = "json"
+
+	// WebHookModeBatch indicates that the webhook should buffer audit events
+	// internally, sending batch updates either once a certain number of
+	// events have been received or a certain amount of time has passed.
+	WebHookModeBatch WebHookModeType = "batch"
+	// WebHookModeBlocking causes the webhook to block on every attempt to process
+	// a set of events. This causes requests to the API server to wait for a
+	// round trip to the external audit service before sending a response.
+	WebHookModeBlocking WebHookModeType = "blocking"
+)
+
+// AuditConfig holds configuration for the audit capabilities
+type AuditConfig struct {
+	// If this flag is set, audit log will be printed in the logs.
+	// The logs contains, method, user and a requested URL.
+	Enabled bool `json:"enabled" protobuf:"varint,1,opt,name=enabled"`
+	// All requests coming to the apiserver will be logged to this file.
+	AuditFilePath string `json:"auditFilePath" protobuf:"bytes,2,opt,name=auditFilePath"`
+	// Maximum number of days to retain old log files based on the timestamp encoded in their filename.
+	MaximumFileRetentionDays int32 `json:"maximumFileRetentionDays" protobuf:"varint,3,opt,name=maximumFileRetentionDays"`
+	// Maximum number of old log files to retain.
+	MaximumRetainedFiles int32 `json:"maximumRetainedFiles" protobuf:"varint,4,opt,name=maximumRetainedFiles"`
+	// Maximum size in megabytes of the log file before it gets rotated. Defaults to 100MB.
+	MaximumFileSizeMegabytes int32 `json:"maximumFileSizeMegabytes" protobuf:"varint,5,opt,name=maximumFileSizeMegabytes"`
+
+	// PolicyFile is a path to the file that defines the audit policy configuration.
+	PolicyFile string `json:"policyFile" protobuf:"bytes,6,opt,name=policyFile"`
+	// PolicyConfiguration is an embedded policy configuration object to be used
+	// as the audit policy configuration. If present, it will be used instead of
+	// the path to the policy file.
+	PolicyConfiguration runtime.RawExtension `json:"policyConfiguration" protobuf:"bytes,7,opt,name=policyConfiguration"`
+
+	// Format of saved audits (legacy or json).
+	LogFormat LogFormatType `json:"logFormat" protobuf:"bytes,8,opt,name=logFormat,casttype=LogFormatType"`
+
+	// Path to a .kubeconfig formatted file that defines the audit webhook configuration.
+	WebHookKubeConfig string `json:"webHookKubeConfig" protobuf:"bytes,9,opt,name=webHookKubeConfig"`
+	// Strategy for sending audit events (block or batch).
+	WebHookMode WebHookModeType `json:"webHookMode" protobuf:"bytes,10,opt,name=webHookMode,casttype=WebHookModeType"`
+}
+
+// EtcdConnectionInfo holds information necessary for connecting to an etcd server
+type EtcdConnectionInfo struct {
+	// URLs are the URLs for etcd
+	URLs []string `json:"urls" protobuf:"bytes,1,rep,name=urls"`
+	// CA is a file containing trusted roots for the etcd server certificates
+	CA string `json:"ca" protobuf:"bytes,2,opt,name=ca"`
+	// CertInfo is the TLS client cert information for securing communication to etcd
+	// this is anonymous so that we can inline it for serialization
+	CertInfo `json:",inline" protobuf:"bytes,3,opt,name=certInfo"`
+}
+
+type EtcdStorageConfig struct {
+	EtcdConnectionInfo `json:",inline" protobuf:"bytes,1,opt,name=etcdConnectionInfo"`
+
+	// StoragePrefix is the path within etcd that the OpenShift resources will
+	// be rooted under. This value, if changed, will mean existing objects in etcd will
+	// no longer be located.
+	StoragePrefix string `json:"storagePrefix" protobuf:"bytes,2,opt,name=storagePrefix"`
+}
+
+// GenericAPIServerConfig is an inline-able struct for aggregated apiservers that need to store data in etcd
+type GenericAPIServerConfig struct {
+	// ServingInfo describes how to start serving
+	ServingInfo HTTPServingInfo `json:"servingInfo" protobuf:"bytes,1,opt,name=servingInfo"`
+
+	// CORSAllowedOrigins
+	CORSAllowedOrigins []string `json:"corsAllowedOrigins" protobuf:"bytes,2,rep,name=corsAllowedOrigins"`
+
+	// AuditConfig describes how to configure audit information
+	AuditConfig AuditConfig `json:"auditConfig" protobuf:"bytes,3,opt,name=auditConfig"`
+
+	// StorageConfig contains information about how to use
+	StorageConfig EtcdStorageConfig `json:"storageConfig" protobuf:"bytes,4,opt,name=storageConfig"`
+
+	AdmissionPluginConfig map[string]AdmissionPluginConfig `json:"admissionPluginConfig" protobuf:"bytes,5,rep,name=admissionPluginConfig"`
 }
