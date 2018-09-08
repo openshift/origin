@@ -24,7 +24,7 @@ function govet_blacklist_contains() {
 }
 
 for test_dir in $(os::util::list_go_src_dirs); do
-	if ! result="$(go vet "${test_dir}" 2>&1)"; then
+	if ! result="$(go vet ${OS_GOFLAGS_TAGS_TEST:+-tags "${OS_GOFLAGS_TAGS_TEST}"} "${test_dir}" 2>&1)"; then
 		while read -r line; do
 			if ! govet_blacklist_contains "${line}"; then
 				echo "${line}"
