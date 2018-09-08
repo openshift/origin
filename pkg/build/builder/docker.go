@@ -387,13 +387,10 @@ func (d *DockerBuilder) dockerBuild(ctx context.Context, dir string, tag string)
 		}
 	}
 
-	if _, ok := d.dockerClient.(*docker.Client); ok {
-		return dockerBuildImage(d.dockerClient, dir, d.tar, &opts)
-	}
 	if _, ok := d.dockerClient.(*DaemonlessClient); ok {
 		return buildDaemonlessImage(dir, imageOptimizationPolicy, &opts)
 	}
-	return ClientTypeUnknown
+	return dockerBuildImage(d.dockerClient, dir, d.tar, &opts)
 }
 
 func getDockerfilePath(dir string, build *buildapiv1.Build) string {

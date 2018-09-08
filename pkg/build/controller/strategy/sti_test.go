@@ -101,16 +101,30 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Errorf("Expected environment keys:\n%v\ngot keys\n%v", expectedKeys, gotKeys)
 	}
 
-	// the pod has 8 volumes but the git source secret is not mounted into the main container.
-	if len(container.VolumeMounts) != 7 {
-		t.Fatalf("Expected 7 volumes in container, got %d", len(container.VolumeMounts))
+	// expected volumes:
+	// buildworkdir
+	// pushsecret
+	// pullsecret
+	// inputsecret
+	// inputconfigmap
+	// docker socket
+	// crio socket
+	// containerpolicy
+	// containerregistry.conf
+	// containerregistry.d
+	// docker certs.d
+	// container certs.d
+	// container storage
+	if len(container.VolumeMounts) != 13 {
+		t.Fatalf("Expected 13 volumes in container, got %d", len(container.VolumeMounts))
 	}
 	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, "/var/run/crio/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 8 {
+	// build pod has an extra volume: the git clone source secret
+	if len(actual.Spec.Volumes) != 14 {
 		t.Fatalf("Expected 8 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {

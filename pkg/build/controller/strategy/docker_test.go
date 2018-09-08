@@ -61,19 +61,31 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected environment keys:\n%v\ngot keys\n%v", expectedKeys, gotKeys)
 	}
 
-	// the pod has 6 volumes but the git source secret is not mounted into the main container.
-	if len(container.VolumeMounts) != 7 {
-		t.Fatalf("Expected 7 volumes in container, got %d", len(container.VolumeMounts))
+	// expected volumes:
+	// buildworkdir
+	// pushsecret
+	// pullsecret
+	// inputsecret
+	// inputconfigmap
+	// containerpolicy
+	// containerregistry.conf
+	// containerregistry.d
+	// docker certs.d
+	// container certs.d
+	// container storage
+	if len(container.VolumeMounts) != 11 {
+		t.Fatalf("Expected 11 volumes in container, got %d", len(container.VolumeMounts))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
-	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, "/var/run/crio/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath} {
+	for i, expected := range []string{buildutil.BuildWorkDirMount, DockerPushSecretMountPath, DockerPullSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 8 {
+	// build pod has an extra volume: the git clone source secret
+	if len(actual.Spec.Volumes) != 12 {
 		t.Fatalf("Expected 8 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
