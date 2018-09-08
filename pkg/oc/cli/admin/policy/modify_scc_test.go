@@ -8,129 +8,134 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
-	securityapi "github.com/openshift/api/security/v1"
-	securityfakeclient "github.com/openshift/client-go/security/clientset/versioned/fake"
+	securityv1 "github.com/openshift/api/security/v1"
+	fakesecurityclient "github.com/openshift/client-go/security/clientset/versioned/fake"
+	fakesecurityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1/fake"
 )
 
 func TestModifySCC(t *testing.T) {
 	tests := map[string]struct {
-		startingSCC *securityapi.SecurityContextConstraints
+		startingSCC *securityv1.SecurityContextConstraints
 		subjects    []corev1.ObjectReference
-		expectedSCC *securityapi.SecurityContextConstraints
+		expectedSCC *securityv1.SecurityContextConstraints
 		remove      bool
 	}{
 		"add-user-to-empty": {
-			startingSCC: &securityapi.SecurityContextConstraints{},
+			startingSCC: &securityv1.SecurityContextConstraints{},
 			subjects:    []corev1.ObjectReference{{Name: "one", Kind: "User"}, {Name: "two", Kind: "User"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Users: []string{"one", "two"}},
 			remove:      false,
 		},
 		"add-user-to-existing": {
-			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Users: []string{"one"}},
 			subjects:    []corev1.ObjectReference{{Name: "two", Kind: "User"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Users: []string{"one", "two"}},
 			remove:      false,
 		},
 		"add-user-to-existing-with-overlap": {
-			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Users: []string{"one"}},
 			subjects:    []corev1.ObjectReference{{Name: "one", Kind: "User"}, {Name: "two", Kind: "User"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Users: []string{"one", "two"}},
 			remove:      false,
 		},
 
 		"add-sa-to-empty": {
-			startingSCC: &securityapi.SecurityContextConstraints{},
+			startingSCC: &securityv1.SecurityContextConstraints{},
 			subjects:    []corev1.ObjectReference{{Namespace: "a", Name: "one", Kind: "ServiceAccount"}, {Namespace: "b", Name: "two", Kind: "ServiceAccount"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
 			remove:      false,
 		},
 		"add-sa-to-existing": {
-			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Users: []string{"one"}},
 			subjects:    []corev1.ObjectReference{{Namespace: "b", Name: "two", Kind: "ServiceAccount"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "system:serviceaccount:b:two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Users: []string{"one", "system:serviceaccount:b:two"}},
 			remove:      false,
 		},
 		"add-sa-to-existing-with-overlap": {
-			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one"}},
 			subjects:    []corev1.ObjectReference{{Namespace: "a", Name: "one", Kind: "ServiceAccount"}, {Namespace: "b", Name: "two", Kind: "ServiceAccount"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
 			remove:      false,
 		},
 
 		"add-group-to-empty": {
-			startingSCC: &securityapi.SecurityContextConstraints{},
+			startingSCC: &securityv1.SecurityContextConstraints{},
 			subjects:    []corev1.ObjectReference{{Name: "one", Kind: "Group"}, {Name: "two", Kind: "Group"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			remove:      false,
 		},
 		"add-group-to-existing": {
-			startingSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Groups: []string{"one"}},
 			subjects:    []corev1.ObjectReference{{Name: "two", Kind: "Group"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			remove:      false,
 		},
 		"add-group-to-existing-with-overlap": {
-			startingSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Groups: []string{"one"}},
 			subjects:    []corev1.ObjectReference{{Name: "one", Kind: "Group"}, {Name: "two", Kind: "Group"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			remove:      false,
 		},
 
 		"remove-user": {
-			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Users: []string{"one", "two"}},
 			subjects:    []corev1.ObjectReference{{Name: "one", Kind: "User"}, {Name: "two", Kind: "User"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{},
+			expectedSCC: &securityv1.SecurityContextConstraints{},
 			remove:      true,
 		},
 		"remove-user-from-existing-with-overlap": {
-			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Users: []string{"one", "two"}},
 			subjects:    []corev1.ObjectReference{{Name: "two", Kind: "User"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Users: []string{"one"}},
 			remove:      true,
 		},
 
 		"remove-sa": {
-			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
 			subjects:    []corev1.ObjectReference{{Namespace: "a", Name: "one", Kind: "ServiceAccount"}, {Namespace: "b", Name: "two", Kind: "ServiceAccount"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{},
+			expectedSCC: &securityv1.SecurityContextConstraints{},
 			remove:      true,
 		},
 		"remove-sa-from-existing-with-overlap": {
-			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
 			subjects:    []corev1.ObjectReference{{Namespace: "b", Name: "two", Kind: "ServiceAccount"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one"}},
 			remove:      true,
 		},
 
 		"remove-group": {
-			startingSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			subjects:    []corev1.ObjectReference{{Name: "one", Kind: "Group"}, {Name: "two", Kind: "Group"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{},
+			expectedSCC: &securityv1.SecurityContextConstraints{},
 			remove:      true,
 		},
 		"remove-group-from-existing-with-overlap": {
-			startingSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			startingSCC: &securityv1.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			subjects:    []corev1.ObjectReference{{Name: "two", Kind: "Group"}},
-			expectedSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one"}},
+			expectedSCC: &securityv1.SecurityContextConstraints{Groups: []string{"one"}},
 			remove:      true,
 		},
 	}
 
 	for tcName, tc := range tests {
-		fakeClient := securityfakeclient.NewSimpleClientset()
+		fakeClient := fakesecurityv1client.FakeSecurityV1{Fake: &(fakesecurityclient.NewSimpleClientset().Fake)}
 		fakeClient.Fake.PrependReactor("get", "securitycontextconstraints", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, tc.startingSCC, nil
 		})
-		var actualSCC *securityapi.SecurityContextConstraints
+		var actualSCC *securityv1.SecurityContextConstraints
 		fakeClient.Fake.PrependReactor("update", "securitycontextconstraints", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			actualSCC = action.(clientgotesting.UpdateAction).GetObject().(*securityapi.SecurityContextConstraints)
+			actualSCC = action.(clientgotesting.UpdateAction).GetObject().(*securityv1.SecurityContextConstraints)
 			return true, actualSCC, nil
 		})
 
 		o := &SCCModificationOptions{
+			PrintFlags: genericclioptions.NewPrintFlags(""),
+			ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
+
 			SCCName:                 "foo",
-			SCCInterface:            fakeClient.Security().SecurityContextConstraints(),
+			SCCInterface:            fakeClient.SecurityContextConstraints(),
 			DefaultSubjectNamespace: "",
 			Subjects:                tc.subjects,
 

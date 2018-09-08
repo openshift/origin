@@ -236,7 +236,7 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 	allErrs = append(allErrs, s.sysctlsStrategy.Validate(pod)...)
 
 	if len(pod.Spec.Volumes) > 0 && !sccutil.SCCAllowsAllVolumes(s.scc) {
-		allowedVolumes := sccutil.FSTypeToStringSet(s.scc.Volumes)
+		allowedVolumes := sccutil.FSTypeToStringSetInternal(s.scc.Volumes)
 		for i, v := range pod.Spec.Volumes {
 			fsType, err := sccutil.GetVolumeFSType(v)
 			if err != nil {

@@ -8,25 +8,24 @@ import (
 
 	"github.com/spf13/cobra"
 
+	appsv1 "k8s.io/api/apps/v1"
+	appsv1beta1 "k8s.io/api/apps/v1beta1"
+	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/apps"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
-	kprinters "k8s.io/kubernetes/pkg/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	securityapiv1 "github.com/openshift/api/security/v1"
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1typedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
-	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 var (
@@ -51,15 +50,26 @@ var (
 	`)
 )
 
-const ReviewRecommendedName = "scc-review"
+const (
+	ReviewRecommendedName = "scc-review"
+
+	tabWriterMinWidth = 0
+	tabWriterWidth    = 7
+	tabWriterPadding  = 3
+	tabWriterPadChar  = ' '
+	tabWriterFlags    = 0
+)
 
 type SCCReviewOptions struct {
-	client                   securitytypedclient.PodSecurityPolicyReviewsGetter
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer *policyPrinter
+
+	client                   securityv1typedclient.PodSecurityPolicyReviewsGetter
 	namespace                string
 	enforceNamespace         bool
 	builder                  *resource.Builder
 	RESTClientFactory        func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	printer                  sccReviewPrinter
 	FilenameOptions          resource.FilenameOptions
 	serviceAccountNames      []string // it contains user inputs it could be long sa name like system:serviceaccount:bob:default or short one
 	shortServiceAccountNames []string // it contains only short sa name for example 'bob'
@@ -69,7 +79,8 @@ type SCCReviewOptions struct {
 
 func NewSCCReviewOptions(streams genericclioptions.IOStreams) *SCCReviewOptions {
 	return &SCCReviewOptions{
-		IOStreams: streams,
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme),
+		IOStreams:  streams,
 	}
 }
 
@@ -88,8 +99,36 @@ func NewCmdSccReview(name, fullName string, f kcmdutil.Factory, streams genericc
 
 	cmd.Flags().StringSliceVarP(&o.serviceAccountNames, "serviceaccount", "z", o.serviceAccountNames, "service account in the current namespace to use as a user")
 	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, "Filename, directory, or URL to a file identifying the resource to get from a server.")
-	kcmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddNoHeadersFlags(cmd)
+
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
+}
+
+type policyPrinter struct {
+	humanPrinting  bool
+	humanPrintFunc func(*resource.Info, runtime.Object, *bool, io.Writer) error
+	noHeaders      bool
+	printFlags     *genericclioptions.PrintFlags
+	info           *resource.Info
+}
+
+func (p *policyPrinter) WithInfo(info *resource.Info) *policyPrinter {
+	p.info = info
+	return p
+}
+
+func (p *policyPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
+	if !p.humanPrinting {
+		printer, err := p.printFlags.ToPrinter()
+		if err != nil {
+			return err
+		}
+
+		return printer.PrintObj(obj, out)
+	}
+
+	return p.humanPrintFunc(p.info, obj, &p.noHeaders, out)
 }
 
 func (o *SCCReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobra.Command) error {
@@ -116,32 +155,29 @@ func (o *SCCReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobr
 	if err != nil {
 		return err
 	}
-	securityClient, err := securityclientinternal.NewForConfig(clientConfig)
+	o.client, err = securityv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return fmt.Errorf("unable to obtain client: %v", err)
 	}
-	o.client = securityClient.Security()
 	o.builder = f.NewBuilder()
 	o.RESTClientFactory = f.ClientForMapping
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	wide := len(output) > 0 && output == "wide"
 
-	if len(output) != 0 && !wide {
-		printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
-		if err != nil {
-			return err
-		}
-		o.printer = &sccReviewOutputPrinter{printer}
-	} else {
-		o.printer = &sccReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
+	o.Printer = &policyPrinter{
+		printFlags:     o.PrintFlags,
+		humanPrinting:  len(output) == 0 || wide,
+		humanPrintFunc: sccReviewHumanPrintFunc,
+		noHeaders:      kcmdutil.GetFlagBool(cmd, "no-headers"),
 	}
+
 	return nil
 }
 
 func (o *SCCReviewOptions) Run(args []string) error {
 	r := o.builder.
-		WithScheme(ocscheme.ReadingInternalScheme).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).
@@ -166,8 +202,8 @@ func (o *SCCReviewOptions) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		review := &securityapi.PodSecurityPolicyReview{
-			Spec: securityapi.PodSecurityPolicyReviewSpec{
+		review := &securityv1.PodSecurityPolicyReview{
+			Spec: securityv1.PodSecurityPolicyReviewSpec{
 				Template:            *podTemplateSpec,
 				ServiceAccountNames: o.shortServiceAccountNames,
 			},
@@ -176,7 +212,7 @@ func (o *SCCReviewOptions) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("unable to compute Pod Security Policy Review for %q: %v", objectName, err)
 		}
-		if err = o.printer.print(info, unversionedObj, o.Out); err != nil {
+		if err = o.Printer.WithInfo(info).PrintObj(unversionedObj, o.Out); err != nil {
 			allErrs = append(allErrs, err)
 		}
 		return nil
@@ -195,7 +231,15 @@ func CheckStatefulSetWithWolumeClaimTemplates(obj runtime.Object) error {
 	// spec.template.spec validateContainers to validate volumeMounts
 	//https://github.com/openshift/origin/blob/master/vendor/k8s.io/kubernetes/pkg/apis/apps/validation/validation.go#L57
 	switch r := obj.(type) {
-	case *apps.StatefulSet:
+	case *appsv1beta1.StatefulSet:
+		if len(r.Spec.VolumeClaimTemplates) > 0 {
+			return fmt.Errorf("StatefulSet %q with spec.volumeClaimTemplates currently not supported.", r.GetName())
+		}
+	case *appsv1beta2.StatefulSet:
+		if len(r.Spec.VolumeClaimTemplates) > 0 {
+			return fmt.Errorf("StatefulSet %q with spec.volumeClaimTemplates currently not supported.", r.GetName())
+		}
+	case *appsv1.StatefulSet:
 		if len(r.Spec.VolumeClaimTemplates) > 0 {
 			return fmt.Errorf("StatefulSet %q with spec.volumeClaimTemplates currently not supported.", r.GetName())
 		}
@@ -203,72 +247,47 @@ func CheckStatefulSetWithWolumeClaimTemplates(obj runtime.Object) error {
 	return nil
 }
 
-func GetPodTemplateForObject(obj runtime.Object) (*kapi.PodTemplateSpec, error) {
-	podSpec, _, err := ometa.GetPodSpec(obj)
+func GetPodTemplateForObject(obj runtime.Object) (*corev1.PodTemplateSpec, error) {
+	podSpec, _, err := ometa.GetPodSpecV1(obj)
 	if err != nil {
 		return nil, err
 	}
-	return &kapi.PodTemplateSpec{Spec: *podSpec}, nil
+	return &corev1.PodTemplateSpec{Spec: *podSpec}, nil
 }
 
-type sccReviewPrinter interface {
-	print(*resource.Info, runtime.Object, io.Writer) error
-}
-
-type sccReviewOutputPrinter struct {
-	kprinters.ResourcePrinter
-}
-
-var _ sccReviewPrinter = &sccReviewOutputPrinter{}
-
-func (s *sccReviewOutputPrinter) print(unused *resource.Info, obj runtime.Object, out io.Writer) error {
-	versionedObj := &securityapiv1.PodSecurityPolicyReview{}
-	if err := legacyscheme.Scheme.Convert(obj, versionedObj, nil); err != nil {
-		return err
-	}
-	return s.ResourcePrinter.PrintObj(versionedObj, out)
-}
-
-type sccReviewHumanReadablePrinter struct {
-	noHeaders bool
-}
-
-var _ sccReviewPrinter = &sccReviewHumanReadablePrinter{}
-
-const (
-	sccReviewTabWriterMinWidth = 0
-	sccReviewTabWriterWidth    = 7
-	sccReviewTabWriterPadding  = 3
-	sccReviewTabWriterPadChar  = ' '
-	sccReviewTabWriterFlags    = 0
-)
-
-func (s *sccReviewHumanReadablePrinter) print(info *resource.Info, obj runtime.Object, out io.Writer) error {
-	w := tabwriter.NewWriter(out, sccReviewTabWriterMinWidth, sccReviewTabWriterWidth, sccReviewTabWriterPadding, sccReviewTabWriterPadChar, sccReviewTabWriterFlags)
+func sccReviewHumanPrintFunc(info *resource.Info, obj runtime.Object, noHeaders *bool, out io.Writer) error {
+	w := tabwriter.NewWriter(out, tabWriterMinWidth, tabWriterWidth, tabWriterPadding, tabWriterPadChar, tabWriterFlags)
 	defer w.Flush()
-	if s.noHeaders == false {
+
+	if info == nil {
+		return fmt.Errorf("expected non-nil resource info")
+	}
+
+	noHeadersVal := *noHeaders
+	if !noHeadersVal {
 		columns := []string{"RESOURCE", "SERVICE ACCOUNT", "ALLOWED BY"}
 		fmt.Fprintf(w, "%s\t\n", strings.Join(columns, "\t"))
-		s.noHeaders = true // printed only the first time if requested
+
+		// printed only the first time if requested
+		*noHeaders = true
 	}
-	pspreview, ok := obj.(*securityapi.PodSecurityPolicyReview)
+
+	pspreview, ok := obj.(*securityv1.PodSecurityPolicyReview)
 	if !ok {
 		return fmt.Errorf("unexpected object %T", obj)
 	}
-	gvks, _, err := legacyscheme.Scheme.ObjectKinds(info.Object)
-	if err != nil {
-		return err
-	}
-	kind := gvks[0].Kind
+
+	gk := printers.GetObjectGroupKind(info.Object)
 	for _, allowedSA := range pspreview.Status.AllowedServiceAccounts {
 		allowedBy := "<none>"
 		if allowedSA.AllowedBy != nil {
 			allowedBy = allowedSA.AllowedBy.Name
 		}
-		_, err := fmt.Fprintf(w, "%s/%s\t%s\t%s\t\n", kind, info.Name, allowedSA.Name, allowedBy)
+		_, err := fmt.Fprintf(w, "%s/%s\t%s\t%s\t\n", gk.Kind, info.Name, allowedSA.Name, allowedBy)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }

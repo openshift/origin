@@ -1,45 +1,56 @@
 package cani
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/printers"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 )
 
-const CanIRecommendedName = "can-i"
+const (
+	CanIRecommendedName = "can-i"
+
+	tabWriterMinWidth = 0
+	tabWriterWidth    = 7
+	tabWriterPadding  = 3
+	tabWriterPadChar  = ' '
+	tabWriterFlags    = 0
+)
 
 type CanIOptions struct {
-	AllNamespaces         bool
-	ListAll               bool
-	Quiet                 bool
-	IgnoreScopes          bool
-	User                  string
-	Groups                []string
-	Scopes                []string
-	Namespace             string
-	SelfRulesReviewClient oauthorizationtypedclient.SelfSubjectRulesReviewsGetter
-	RulesReviewClient     oauthorizationtypedclient.SubjectRulesReviewsGetter
-	SARClient             oauthorizationtypedclient.SubjectAccessReviewsGetter
+	PrintFlags *genericclioptions.PrintFlags
 
-	Printer printers.ResourcePrinter
+	ToPrinter func(string) (printers.ResourcePrinter, error)
 
+	NoHeaders     bool
+	AllNamespaces bool
+	ListAll       bool
+	Quiet         bool
+	IgnoreScopes  bool
+	User          string
+	Groups        []string
+	Scopes        []string
+	Namespace     string
+	AuthClient    authorizationv1typedclient.AuthorizationV1Interface
+
+	Args         []string
 	Verb         string
 	Resource     schema.GroupVersionResource
 	ResourceName string
@@ -49,7 +60,8 @@ type CanIOptions struct {
 
 func NewCanIOptions(streams genericclioptions.IOStreams) *CanIOptions {
 	return &CanIOptions{
-		IOStreams: streams,
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme),
+		IOStreams:  streams,
 	}
 }
 
@@ -60,20 +72,9 @@ func NewCmdCanI(name, fullName string, f kcmdutil.Factory, streams genericcliopt
 		Short: "Check whether an action is allowed",
 		Long:  "Check whether an action is allowed",
 		Run: func(cmd *cobra.Command, args []string) {
-			if reflect.DeepEqual(args, []string{"educate", "dolphins"}) {
-				fmt.Fprintln(o.Out, "Only liggitt can educate dolphins.")
-				return
-			}
-
-			if err := o.Complete(cmd, f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			allowed, err := o.Run()
-			kcmdutil.CheckErr(err)
-			if o.Quiet && !allowed {
-				os.Exit(2)
-			}
+			kcmdutil.CheckErr(o.Complete(cmd, f, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 		Deprecated: "use 'oc auth can-i'",
 	}
@@ -86,19 +87,16 @@ func NewCmdCanI(name, fullName string, f kcmdutil.Factory, streams genericcliopt
 	cmd.Flags().StringVar(&o.User, "user", o.User, "Check the specified action using this user instead of your user.")
 	cmd.Flags().StringSliceVar(&o.Groups, "groups", o.Groups, "Check the specified action using these groups instead of your groups.")
 
-	kcmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddNoHeadersFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
-const (
-	tabwriterMinWidth = 10
-	tabwriterWidth    = 4
-	tabwriterPadding  = 3
-	tabwriterPadChar  = ' '
-	tabwriterFlags    = 0
-)
-
 func (o *CanIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
+	o.Args = args
+
+	o.NoHeaders = kcmdutil.GetFlagBool(cmd, "no-headers")
+
 	if o.ListAll && o.AllNamespaces {
 		return errors.New("--list and --all-namespaces are mutually exclusive")
 	}
@@ -131,20 +129,16 @@ func (o *CanIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []st
 	if err != nil {
 		return err
 	}
-	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-	o.SelfRulesReviewClient = authorizationClient.Authorization()
-	o.RulesReviewClient = authorizationClient.Authorization()
-	o.SARClient = authorizationClient.Authorization()
 
-	printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+	o.AuthClient, err = authorizationv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
-	o.Printer = printer
+	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = operation
+		return o.PrintFlags.ToPrinter()
+	}
 
 	o.Namespace = metav1.NamespaceAll
 	if !o.AllNamespaces {
@@ -161,21 +155,29 @@ func (o *CanIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []st
 	return nil
 }
 
-func (o *CanIOptions) Run() (bool, error) {
-	if o.ListAll {
-		return true, o.listAllPermissions()
+func (o *CanIOptions) Validate() error {
+	if reflect.DeepEqual(o.Args, []string{"educate", "dolphins"}) {
+		return fmt.Errorf("%s", "Only liggitt can educate dolphins.")
 	}
 
-	sar := &authorizationapi.SubjectAccessReview{
-		Action: authorizationapi.Action{
+	return nil
+}
+
+func (o *CanIOptions) Run() error {
+	if o.ListAll {
+		return o.listAllPermissions()
+	}
+
+	sar := &authorizationv1.SubjectAccessReview{
+		Action: authorizationv1.Action{
 			Namespace:    o.Namespace,
 			Verb:         o.Verb,
 			Group:        o.Resource.Group,
 			Resource:     o.Resource.Resource,
 			ResourceName: o.ResourceName,
 		},
-		User:   o.User,
-		Groups: sets.NewString(o.Groups...),
+		User:        o.User,
+		GroupsSlice: o.Groups,
 	}
 	if o.IgnoreScopes {
 		sar.Scopes = []string{}
@@ -184,9 +186,9 @@ func (o *CanIOptions) Run() (bool, error) {
 		sar.Scopes = o.Scopes
 	}
 
-	response, err := o.SARClient.SubjectAccessReviews().Create(sar)
+	response, err := o.AuthClient.SubjectAccessReviews().Create(sar)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if response.Allowed {
@@ -199,40 +201,73 @@ func (o *CanIOptions) Run() (bool, error) {
 		fmt.Fprintln(o.Out)
 	}
 
-	return response.Allowed, nil
+	// honor existing exit code convention
+	if !response.Allowed && o.Quiet {
+		os.Exit(2)
+	}
+
+	return nil
 }
 
 func (o *CanIOptions) listAllPermissions() error {
-	var rulesReviewResult runtime.Object
+	var rulesReviewObj runtime.Object
+	var rulesReviewResult []authorizationv1.PolicyRule
 
 	if len(o.User) == 0 && len(o.Groups) == 0 {
-		rulesReview := &authorizationapi.SelfSubjectRulesReview{}
+		rulesReview := &authorizationv1.SelfSubjectRulesReview{}
 		if len(o.Scopes) > 0 {
 			rulesReview.Spec.Scopes = o.Scopes
 		}
 
-		whatCanIDo, err := o.SelfRulesReviewClient.SelfSubjectRulesReviews(o.Namespace).Create(rulesReview)
+		whatCanIDo, err := o.AuthClient.SelfSubjectRulesReviews(o.Namespace).Create(rulesReview)
 		if err != nil {
 			return err
 		}
 
-		rulesReviewResult = whatCanIDo
+		rulesReviewResult = whatCanIDo.Status.Rules
+		rulesReviewObj = whatCanIDo
 	} else {
-		rulesReview := &authorizationapi.SubjectRulesReview{
-			Spec: authorizationapi.SubjectRulesReviewSpec{
+		rulesReview := &authorizationv1.SubjectRulesReview{
+			Spec: authorizationv1.SubjectRulesReviewSpec{
 				User:   o.User,
 				Groups: o.Groups,
 				Scopes: o.Scopes,
 			},
 		}
 
-		whatCanYouDo, err := o.RulesReviewClient.SubjectRulesReviews(o.Namespace).Create(rulesReview)
+		whatCanYouDo, err := o.AuthClient.SubjectRulesReviews(o.Namespace).Create(rulesReview)
 		if err != nil {
 			return err
 		}
 
-		rulesReviewResult = whatCanYouDo
+		rulesReviewResult = whatCanYouDo.Status.Rules
+		rulesReviewObj = whatCanYouDo
 	}
 
-	return o.Printer.PrintObj(rulesReviewResult, o.Out)
+	successOutput := bytes.NewBuffer([]byte{})
+	w := tabwriter.NewWriter(successOutput, tabWriterMinWidth, tabWriterWidth, tabWriterPadding, tabWriterPadChar, tabWriterFlags)
+	fmt.Fprintln(w)
+
+	// print columns
+	if !o.NoHeaders {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t\n", "VERBS", "NON-RESOURCE URLS", "RESOURCE NAMES", "API GROUPS", "RESOURCES")
+	}
+
+	for _, rule := range rulesReviewResult {
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n",
+			rule.Verbs,
+			rule.NonResourceURLsSlice,
+			rule.ResourceNames,
+			rule.APIGroups,
+			rule.Resources,
+		)
+	}
+
+	w.Flush()
+
+	p, err := o.ToPrinter(successOutput.String())
+	if err != nil {
+		return err
+	}
+	return p.PrintObj(rulesReviewObj, o.Out)
 }

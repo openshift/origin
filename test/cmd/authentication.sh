@@ -41,7 +41,6 @@ useruid="$(oc get user/scoped-user -o jsonpath='{.metadata.uid}')"
 os::cmd::expect_success_and_text "oc policy can-i --list -n '${project}' --as=scoped-user" 'get.*pods'
 os::cmd::expect_success "oc policy can-i --list --output=yaml"
 os::cmd::expect_success "oc policy can-i --list --output=json"
-os::cmd::expect_success "oc policy can-i --list --output=wide"
 os::cmd::expect_success "oc policy can-i --list"
 
 whoamitoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=whoami SCOPE=user:info USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"

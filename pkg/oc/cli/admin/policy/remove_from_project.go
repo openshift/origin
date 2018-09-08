@@ -8,12 +8,13 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
@@ -24,6 +25,10 @@ const (
 )
 
 type RemoveFromProjectOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	BindingNamespace string
 	Client           rbacv1client.RoleBindingsGetter
 
@@ -32,15 +37,15 @@ type RemoveFromProjectOptions struct {
 
 	DryRun bool
 
-	PrintObject func(runtime.Object) error
-	Output      string
+	Output string
 
 	genericclioptions.IOStreams
 }
 
 func NewRemoveFromProjectOptions(streams genericclioptions.IOStreams) *RemoveFromProjectOptions {
 	return &RemoveFromProjectOptions{
-		IOStreams: streams,
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme),
+		IOStreams:  streams,
 	}
 }
 
@@ -58,8 +63,8 @@ func NewCmdRemoveGroupFromProject(name, fullName string, f kcmdutil.Factory, str
 		},
 	}
 
-	kcmdutil.AddOutputFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -77,8 +82,8 @@ func NewCmdRemoveUserFromProject(name, fullName string, f kcmdutil.Factory, stre
 		},
 	}
 
-	kcmdutil.AddPrinterFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -89,6 +94,16 @@ func (o *RemoveFromProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comma
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
+
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+
+	var err error
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
 
 	*target = append(*target, args...)
 
@@ -104,18 +119,10 @@ func (o *RemoveFromProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comma
 		return err
 	}
 
-	o.PrintObject = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, o.Out)
-	}
-
 	return nil
 }
 
 func (o *RemoveFromProjectOptions) Validate(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	if len(o.Output) > 0 && o.Output != "yaml" && o.Output != "json" {
-		return fmt.Errorf("invalid output format %q, only yaml|json supported", o.Output)
-	}
-
 	return nil
 }
 
@@ -200,7 +207,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 	}
 
 	if len(o.Output) > 0 {
-		return o.PrintObject(updatedBindings)
+		return o.Printer.PrintObj(updatedBindings, o.Out)
 	}
 
 	if diff := sets.NewString(o.Users...).Difference(usersRemoved); len(diff) != 0 {

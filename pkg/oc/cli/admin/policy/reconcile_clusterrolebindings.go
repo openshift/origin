@@ -3,27 +3,30 @@ package policy
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	authorization "github.com/openshift/api/authorization"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/print"
 )
 
 // ReconcileClusterRoleBindingsRecommendedName is the recommended command name
@@ -31,6 +34,10 @@ const ReconcileClusterRoleBindingsRecommendedName = "reconcile-cluster-role-bind
 
 // ReconcileClusterRoleBindingsOptions contains all the necessary functionality for the OpenShift cli reconcile-cluster-role-bindings command
 type ReconcileClusterRoleBindingsOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	// RolesToReconcile says which roles should have their default bindings reconciled.
 	// An empty or nil slice means reconcile all of them.
 	RolesToReconcile []string
@@ -79,6 +86,8 @@ var (
 
 func NewReconcileClusterRoleBindingsOptions(streams genericclioptions.IOStreams) *ReconcileClusterRoleBindingsOptions {
 	return &ReconcileClusterRoleBindingsOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme).WithDefaultOutput("yaml"),
+
 		Union:         true,
 		ExcludeUsers:  []string{},
 		ExcludeGroups: []string{},
@@ -106,10 +115,8 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f kcmdutil.Factor
 	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves extra subjects in cluster role bindings.")
 	cmd.Flags().StringSliceVar(&o.ExcludeUsers, "exclude-users", o.ExcludeUsers, "Do not add cluster role bindings for these user names.")
 	cmd.Flags().StringSliceVar(&o.ExcludeGroups, "exclude-groups", o.ExcludeGroups, "Do not add cluster role bindings for these group names.")
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().Lookup("output").DefValue = "yaml"
-	cmd.Flags().Lookup("output").Value.Set("yaml")
 
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -126,6 +133,11 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcm
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
 	o.ExcludeSubjects = authorizationutil.BuildRBACSubjects(o.ExcludeUsers, o.ExcludeGroups)
 
 	mapper, err := f.ToRESTMapper()
@@ -133,11 +145,11 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcm
 		return err
 	}
 	for _, resourceString := range args {
-		resource, name, err := cmdutil.ResolveResource(authorization.Resource("clusterroles"), resourceString, mapper)
+		resource, name, err := cmdutil.ResolveResource(authorizationv1.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {
 			return err
 		}
-		if resource != authorization.Resource("clusterroles") {
+		if resource != authorizationv1.Resource("clusterroles") {
 			return fmt.Errorf("%v is not a valid resource type for this command", resource)
 		}
 		if len(name) == 0 {
@@ -181,12 +193,12 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 	}
 
 	if (len(o.Output) != 0) && !o.Confirmed {
-		list := &kapi.List{}
-		for _, item := range changedClusterRoleBindings {
-			list.Items = append(list.Items, item)
+		objs := []runtime.Object{}
+		for _, obj := range changedClusterRoleBindings {
+			objs = append(objs, obj)
 		}
-		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
-		if err := fn(list); err != nil {
+
+		if err := printObjectList(objs, o.Printer, o.Output, o.Out); err != nil {
 			errs = append(errs, err)
 			return kutilerrors.NewAggregate(errs)
 		}
@@ -200,6 +212,26 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 	}
 
 	return fetchErr
+}
+
+// TODO(juanvallejo): make this a wrapper at the PrintFlags level (.WithFilter(func))
+func printObjectList(objs []runtime.Object, printer printers.ResourcePrinter, outputFormat string, out io.Writer) error {
+	if len(outputFormat) == 0 || outputFormat != "name" {
+		list := &corev1.List{}
+		for _, obj := range objs {
+			item := runtime.RawExtension{Object: obj}
+			list.Items = append(list.Items, item)
+		}
+		return printer.PrintObj(list, out)
+	}
+
+	for _, obj := range objs {
+		if err := printer.PrintObj(obj, out); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ChangedClusterRoleBindings returns the role bindings that must be created and/or updated to
