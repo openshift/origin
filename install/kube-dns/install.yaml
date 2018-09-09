@@ -45,10 +45,11 @@ objects:
         - name: kube-dns
           image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["openshift", "start", "network"]
+          command: ["openshift-sdn"]
           args:
           - "--enable=dns"
           - "--config=/etc/origin/node/node-config.yaml"
+          - "--kubeconfig=/etc/origin/node/node.kubeconfig"
           securityContext:
             privileged: true
             runAsUser: 0

@@ -15,11 +15,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/library-go/pkg/serviceability"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 )
 
 const RecommendedStartEtcdServerName = "etcd"
@@ -51,7 +51,7 @@ func NewCommandStartEtcdServer(name, basename string, out, errout io.Writer) (*c
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Validate())
 
-			origin.StartProfiler()
+			serviceability.StartProfiler()
 
 			if err := options.StartEtcdServer(); err != nil {
 				if kerrors.IsInvalid(err) {

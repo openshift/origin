@@ -27,10 +27,8 @@ func NewCommandStart(basename string, out, errout io.Writer, stopCh <-chan struc
 	}
 
 	startMaster, _ := NewCommandStartMaster(basename, out, errout)
-	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
 	startEtcdServer, _ := openshift_etcd.NewCommandStartEtcdServer(openshift_etcd.RecommendedStartEtcdServerName, basename, out, errout)
 	cmds.AddCommand(startMaster)
-	cmds.AddCommand(startNodeNetwork)
 	cmds.AddCommand(startEtcdServer)
 
 	return cmds

@@ -23,11 +23,11 @@ import (
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configdefault"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/configconversion"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
@@ -54,7 +54,7 @@ func NewOpenShiftKubeAPIServerServerCommand(name, basename string, out, errout i
 				glog.Fatal(err)
 			}
 
-			origin.StartProfiler()
+			serviceability.StartProfiler()
 
 			if err := options.StartAPIServer(); err != nil {
 				if kerrors.IsInvalid(err) {

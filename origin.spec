@@ -257,7 +257,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc oadm openshift hypershift hyperkube template-service-broker openshift-node-config
+for bin in oc oadm openshift hypershift hyperkube template-service-broker openshift-node-config openshift-sdn
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -404,6 +404,7 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %systemd_postun
 
 %files sdn-ovs
+%{_bindir}/openshift-sdn
 %dir %{_sysconfdir}/cni/net.d
 %dir /opt/cni/bin
 /opt/cni/bin/*

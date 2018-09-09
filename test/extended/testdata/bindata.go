@@ -32804,10 +32804,11 @@ objects:
         - name: kube-dns
           image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["openshift", "start", "network"]
+          command: ["openshift-sdn"]
           args:
           - "--enable=dns"
           - "--config=/etc/origin/node/node-config.yaml"
+          - "--kubeconfig=/etc/origin/node/node.kubeconfig"
           securityContext:
             privileged: true
             runAsUser: 0
@@ -32920,11 +32921,12 @@ objects:
         - name: kube-proxy
           image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["openshift", "start", "network"]
+          command: ["openshift-sdn"]
           args:
           - "--enable=proxy"
           - "--listen=https://0.0.0.0:8444"
           - "--config=/etc/origin/node/node-config.yaml"
+          - "--kubeconfig=/etc/origin/node/node.kubeconfig"
           securityContext:
             privileged: true
             runAsUser: 0
@@ -33654,7 +33656,7 @@ objects:
         serviceAccountName: openshift-service-cert-signer-operator
         containers:
         - name: operator
-          image: openshift/origin-service-serving-cert-signer:v3.11
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["service-serving-cert-signer", "operator"]
           args:
@@ -33688,7 +33690,7 @@ objects:
     name: instance
   spec:
     managementState: Managed
-    imagePullSpec: openshift/origin-service-serving-cert-signer:v3.11
+    imagePullSpec: ${IMAGE}
     version: 3.10.0
     logging:
       level: 4

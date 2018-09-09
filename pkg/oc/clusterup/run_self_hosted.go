@@ -91,7 +91,7 @@ var (
 			},
 		},
 		{
-			ComponentImage: "control-plane",
+			ComponentImage: "node",
 			Template: componentinstall.Template{
 				Name:            "kube-proxy",
 				Namespace:       "kube-proxy",
@@ -100,7 +100,7 @@ var (
 			},
 		},
 		{
-			ComponentImage: "control-plane",
+			ComponentImage: "node",
 			Template: componentinstall.Template{
 				Name:            "kube-dns",
 				Namespace:       "kube-dns",
@@ -536,7 +536,7 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
 	container.ContainerBinds = append(container.ContainerBinds, "/sys/devices/virtual/net:/sys/devices/virtual/net:rw")
 
-	container.NodeImage = c.nodeImage()
+	container.NodeImage = c.hyperkubeImage()
 	container.HTTPProxy = c.HTTPProxy
 	container.HTTPSProxy = c.HTTPSProxy
 	container.NoProxy = c.NoProxy

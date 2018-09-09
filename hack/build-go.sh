@@ -14,10 +14,10 @@ platform="$(os::build::host_platform)"
 
 build_targets=("$@")
 if [[ -z "$@" ]]; then
-	build_targets=("${OS_CROSS_COMPILE_TARGETS[@]}")
-  # Also build SDN components on Linux by default
   if [[ "${platform}" == linux/* ]]; then
-    build_targets=("${build_targets[@]}" "${OS_SDN_COMPILE_TARGETS_LINUX[@]}")
+    build_targets=("${OS_CROSS_COMPILE_TARGETS[@]}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]}")
+  else
+    build_targets=("${OS_CROSS_COMPILE_TARGETS[@]}" cmd/hypershift vendor/k8s.io/kubernetes/cmd/hyperkube)
   fi
 fi
 

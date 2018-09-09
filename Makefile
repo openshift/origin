@@ -50,6 +50,10 @@ all build:
 build-tests: build-extended-test build-integration-test build-router-e2e-test
 .PHONY: build-tests
 
+build-network:
+	hack/build-go.sh cmd/openshift-sdn cmd/sdn-cni-plugin vendor/github.com/containernetworking/plugins/plugins/ipam/host-local vendor/github.com/containernetworking/plugins/plugins/main/loopback
+.PHONY: build-network
+
 build-extended-test:
 	hack/build-go.sh test/extended/extended.test
 .PHONY: build-extended-test

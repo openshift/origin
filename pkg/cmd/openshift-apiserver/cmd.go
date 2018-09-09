@@ -15,11 +15,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/api/legacy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 )
 
 const RecommendedStartAPIServerName = "openshift-apiserver"
@@ -44,7 +44,7 @@ func NewOpenShiftAPIServerCommand(name, basename string, out, errout io.Writer) 
 
 			kcmdutil.CheckErr(options.Validate())
 
-			origin.StartProfiler()
+			serviceability.StartProfiler()
 
 			if err := options.StartAPIServer(); err != nil {
 				if kerrors.IsInvalid(err) {
