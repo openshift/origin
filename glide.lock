@@ -1,5 +1,5 @@
 hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
-updated: 2018-09-07T08:50:12.711209562-04:00
+updated: 2018-09-09T17:17:44.484655868-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -985,9 +985,10 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 0b8367a4679859036c27a30dbe010d76409e7075
+  version: 22dedfb86f4c865c83437755c3e96f62e9c3c103
   subpackages:
   - pkg/config/client
+  - pkg/config/helpers
   - pkg/config/leaderelection
   - pkg/controller
   - pkg/controller/controllercmd
@@ -2700,7 +2701,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 2fce749cdc6721edd1b2d74e875e55cc1fe6abfb
+  version: a678900f2f745168dad0fe7e7ffd678ee8b10b52
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1
