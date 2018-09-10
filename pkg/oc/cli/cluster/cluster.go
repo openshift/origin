@@ -27,8 +27,7 @@ var (
 		To use an existing Docker connection, ensure that Docker commands are working and that you
 		can create new containers.
 
-		Default routes are setup using nip.io and the host ip of your cluster. To use a different
-		routing suffix, use the --routing-suffix flag.`)
+		Default routes are setup using nip.io and the host ip of your cluster.`)
 )
 
 func NewCmdCluster(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {

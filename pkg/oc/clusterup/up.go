@@ -69,8 +69,7 @@ var (
 		the command, ensure that you can execute docker commands successfully (i.e. 'docker ps').
 
 		By default, the OpenShift cluster will be setup to use a routing suffix that ends in nip.io.
-		This is to allow dynamic host names to be created for routes. An alternate routing suffix
-		can be specified using the --routing-suffix flag.
+		This is to allow dynamic host names to be created for routes.
 
 		A public hostname can also be specified for the server with the --public-hostname flag.`)
 

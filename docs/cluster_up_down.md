@@ -107,7 +107,7 @@ If you are running `oc cluster up` on a virtual machine in Amazon AWS EC2, you s
 $ metadata_endpoint="http://169.254.169.254/latest/meta-data"
 $ public_hostname="$( curl "${metadata_endpoint}/public-hostname" )"
 $ public_ip="$( curl "${metadata_endpoint}/public-ipv4" )"
-$ oc cluster up --public-hostname="${public_hostname}" --routing-suffix="${public_ip}.nip.io"
+$ oc cluster up --public-hostname="${public_hostname}"
 ```
 
 To stop your cluster, run:
@@ -228,7 +228,6 @@ If a host data directory is not specified, the data directory used by OpenShift 
 ## Routing
 
 The default routing suffix used by `oc cluster up` is CLUSTER_IP.nip.io where CLUSTER_IP is the IP address of your cluster.
-To use a different suffix, specify it with `--routing-suffix`.
 
 ## Specifying Images to Use
 
