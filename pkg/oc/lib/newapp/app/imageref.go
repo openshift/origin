@@ -9,14 +9,17 @@ import (
 
 	"github.com/docker/docker/builder/dockerfile/parser"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 	"github.com/openshift/origin/pkg/util/portutils"
 )
@@ -29,7 +32,7 @@ import (
 type ImageRefGenerator interface {
 	FromName(name string) (*ImageRef, error)
 	FromNameAndPorts(name string, ports []string) (*ImageRef, error)
-	FromStream(repo *imageapi.ImageStream, tag string) (*ImageRef, error)
+	FromStream(repo *imagev1.ImageStream, tag string) (*ImageRef, error)
 	FromDockerfile(name string, dir string, context string) (*ImageRef, error)
 }
 
@@ -54,7 +57,7 @@ func (g *imageRefGenerator) FromName(name string) (*ImageRef, error) {
 	}
 	return &ImageRef{
 		Reference: ref,
-		Info: &imageapi.DockerImage{
+		Info: &dockerv10.DockerImage{
 			Config: &imageapi.DockerConfig{},
 		},
 	}, nil
@@ -73,7 +76,7 @@ func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*Imag
 		exposedPorts[p] = present
 	}
 
-	imageRef.Info = &imageapi.DockerImage{
+	imageRef.Info = &dockerv10.DockerImage{
 		Config: &imageapi.DockerConfig{
 			ExposedPorts: exposedPorts,
 		},
@@ -101,12 +104,12 @@ func (g *imageRefGenerator) FromDockerfile(name string, dir string, context stri
 }
 
 // FromStream generates an ImageRef from an OpenShift ImageStream
-func (g *imageRefGenerator) FromStream(stream *imageapi.ImageStream, tag string) (*ImageRef, error) {
+func (g *imageRefGenerator) FromStream(stream *imagev1.ImageStream, tag string) (*ImageRef, error) {
 	imageRef := &ImageRef{
 		Stream: stream,
 	}
 
-	if tagged := imageapi.LatestTaggedImage(stream, tag); tagged != nil {
+	if tagged := imageutil.LatestTaggedImage(stream, tag); tagged != nil {
 		if ref, err := imageapi.ParseDockerImageReference(tagged.DockerImageReference); err == nil {
 			imageRef.ResolvedReference = &ref
 			imageRef.Reference = ref
@@ -156,11 +159,11 @@ type ImageRef struct {
 	ObjectName string
 
 	// ContainerFn overrides normal container generation with a custom function.
-	ContainerFn func(*kapi.Container)
+	ContainerFn func(*corev1.Container)
 
 	// Stream and Info should *only* be set if the image stream already exists
-	Stream *imageapi.ImageStream
-	Info   *imageapi.DockerImage
+	Stream *imagev1.ImageStream
+	Info   *dockerv10.DockerImage
 }
 
 // Exists returns true if the image stream exists
@@ -169,22 +172,22 @@ func (r *ImageRef) Exists() bool {
 }
 
 // ObjectReference returns an object reference to this ref (as it would exist during generation)
-func (r *ImageRef) ObjectReference() kapi.ObjectReference {
+func (r *ImageRef) ObjectReference() corev1.ObjectReference {
 	switch {
 	case r.Stream != nil:
-		return kapi.ObjectReference{
+		return corev1.ObjectReference{
 			Kind:      "ImageStreamTag",
 			Name:      imageapi.JoinImageStreamTag(r.Stream.Name, r.Reference.Tag),
 			Namespace: r.Stream.Namespace,
 		}
 	case r.AsImageStream:
 		name, _ := r.SuggestName()
-		return kapi.ObjectReference{
+		return corev1.ObjectReference{
 			Kind: "ImageStreamTag",
 			Name: imageapi.JoinImageStreamTag(name, r.InternalTag()),
 		}
 	default:
-		return kapi.ObjectReference{
+		return corev1.ObjectReference{
 			Kind: "DockerImage",
 			Name: r.PullSpec(),
 		}
@@ -254,13 +257,13 @@ func (r *ImageRef) SuggestNamespace() string {
 }
 
 // BuildOutput returns the BuildOutput of an image reference
-func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
+func (r *ImageRef) BuildOutput() (*buildv1.BuildOutput, error) {
 	if r == nil {
-		return &buildapi.BuildOutput{}, nil
+		return &buildv1.BuildOutput{}, nil
 	}
 	if !r.AsImageStream {
-		return &buildapi.BuildOutput{
-			To: &kapi.ObjectReference{
+		return &buildv1.BuildOutput{
+			To: &corev1.ObjectReference{
 				Kind: "DockerImage",
 				Name: r.Reference.String(),
 			},
@@ -270,8 +273,8 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &buildapi.BuildOutput{
-		To: &kapi.ObjectReference{
+	return &buildv1.BuildOutput{
+		To: &corev1.ObjectReference{
 			Kind: "ImageStreamTag",
 			Name: imageapi.JoinImageStreamTag(imageRepo.Name, r.Reference.Tag),
 		},
@@ -279,20 +282,20 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 }
 
 // BuildTriggers sets up build triggers for the base image
-func (r *ImageRef) BuildTriggers() []buildapi.BuildTriggerPolicy {
+func (r *ImageRef) BuildTriggers() []buildv1.BuildTriggerPolicy {
 	if r.Stream == nil && !r.AsImageStream {
 		return nil
 	}
-	return []buildapi.BuildTriggerPolicy{
+	return []buildv1.BuildTriggerPolicy{
 		{
-			Type:        buildapi.ImageChangeBuildTriggerType,
-			ImageChange: &buildapi.ImageChangeTrigger{},
+			Type:        buildv1.ImageChangeBuildTriggerType,
+			ImageChange: &buildv1.ImageChangeTrigger{},
 		},
 	}
 }
 
 // ImageStream returns an ImageStream from an image reference
-func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
+func (r *ImageRef) ImageStream() (*imagev1.ImageStream, error) {
 	if r.Stream != nil {
 		return r.Stream, nil
 	}
@@ -302,7 +305,9 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 		return nil, fmt.Errorf("unable to suggest an ImageStream name for %q", r.Reference.String())
 	}
 
-	stream := &imageapi.ImageStream{
+	stream := &imagev1.ImageStream{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -324,57 +329,61 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 	}
 
 	if stream.Spec.Tags == nil {
-		stream.Spec.Tags = make(map[string]imageapi.TagReference)
+		stream.Spec.Tags = []imagev1.TagReference{}
 	}
-	stream.Spec.Tags[r.InternalTag()] = imageapi.TagReference{
+
+	stream.Spec.Tags = append(stream.Spec.Tags, imagev1.TagReference{
+		Name: r.InternalTag(),
 		// Make this a constant
 		Annotations: map[string]string{"openshift.io/imported-from": r.Reference.Exact()},
-		From: &kapi.ObjectReference{
+		From: &corev1.ObjectReference{
 			Kind: "DockerImage",
 			Name: r.PullSpec(),
 		},
-		ImportPolicy: imageapi.TagImportPolicy{Insecure: r.Insecure},
-	}
+		ImportPolicy: imagev1.TagImportPolicy{Insecure: r.Insecure},
+	})
 
 	return stream, nil
 }
 
 // ImageStreamTag returns an ImageStreamTag from an image reference
-func (r *ImageRef) ImageStreamTag() (*imageapi.ImageStreamTag, error) {
+func (r *ImageRef) ImageStreamTag() (*imagev1.ImageStreamTag, error) {
 	name, ok := r.SuggestName()
 	if !ok {
 		return nil, fmt.Errorf("unable to suggest an ImageStream name for %q", r.Reference.String())
 	}
 	istname := imageapi.JoinImageStreamTag(name, r.Reference.Tag)
-	ist := &imageapi.ImageStreamTag{
+	ist := &imagev1.ImageStreamTag{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStreamTag"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        istname,
 			Namespace:   r.SuggestNamespace(),
 			Annotations: map[string]string{"openshift.io/imported-from": r.Reference.Exact()},
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: r.InternalTag(),
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "DockerImage",
 				Name: r.PullSpec(),
 			},
-			ImportPolicy: imageapi.TagImportPolicy{Insecure: r.Insecure},
+			ImportPolicy: imagev1.TagImportPolicy{Insecure: r.Insecure},
 		},
 	}
 	return ist, nil
 }
 
 // DeployableContainer sets up a container for the image ready for deployment
-func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []appsapi.DeploymentTriggerPolicy, err error) {
+func (r *ImageRef) DeployableContainer() (container *corev1.Container, triggers []appsv1.DeploymentTriggerPolicy, err error) {
 	name, ok := r.SuggestName()
 	if !ok {
 		return nil, nil, fmt.Errorf("unable to suggest a container name for the image %q", r.Reference.String())
 	}
 	if r.AsImageStream {
-		triggers = []appsapi.DeploymentTriggerPolicy{
+		triggers = []appsv1.DeploymentTriggerPolicy{
 			{
-				Type: appsapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &appsapi.DeploymentTriggerImageChangeParams{
+				Type: appsv1.DeploymentTriggerOnImageChange,
+				ImageChangeParams: &appsv1.DeploymentTriggerImageChangeParams{
 					Automatic:      true,
 					ContainerNames: []string{name},
 					From:           r.ObjectReference(),
@@ -383,7 +392,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		}
 	}
 
-	container = &kapi.Container{
+	container = &corev1.Container{
 		Name:  name,
 		Image: r.PullSpec(),
 		Env:   r.Env.List(),
@@ -405,9 +414,9 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		dockerPorts, _ := portutils.FilterPortAndProtocolArray(ports)
 		for _, dp := range dockerPorts {
 			intPort, _ := strconv.Atoi(dp.Port())
-			container.Ports = append(container.Ports, kapi.ContainerPort{
+			container.Ports = append(container.Ports, corev1.ContainerPort{
 				ContainerPort: int32(intPort),
-				Protocol:      kapi.Protocol(strings.ToUpper(dp.Proto())),
+				Protocol:      corev1.Protocol(strings.ToUpper(dp.Proto())),
 			})
 		}
 
@@ -417,7 +426,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		i := 1
 		for volume := range r.Info.Config.Volumes {
 			r.HasEmptyDir = true
-			container.VolumeMounts = append(container.VolumeMounts, kapi.VolumeMount{
+			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 				Name:      fmt.Sprintf("%s-%d", baseName, i),
 				ReadOnly:  false,
 				MountPath: volume,
@@ -429,7 +438,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 	return container, triggers, nil
 }
 
-func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor SecretAccessor, serviceAccountName string) (*kapi.Pod, *kapi.Secret, error) {
+func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor SecretAccessor, serviceAccountName string) (*corev1.Pod, *corev1.Secret, error) {
 	name, ok := r.SuggestName()
 	if !ok {
 		return nil, nil, fmt.Errorf("can't suggest a name for the provided image %q", r.Reference.Exact())
@@ -446,28 +455,30 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 	container.Name = "install"
 
 	// inject the POD_NAMESPACE resolver first
-	namespaceEnv := kapi.EnvVar{
+	namespaceEnv := corev1.EnvVar{
 		Name: "POD_NAMESPACE",
-		ValueFrom: &kapi.EnvVarSource{
-			FieldRef: &kapi.ObjectFieldSelector{
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
 				APIVersion: "v1",
 				FieldPath:  "metadata.namespace",
 			},
 		},
 	}
-	container.Env = append([]kapi.EnvVar{namespaceEnv}, container.Env...)
+	container.Env = append([]corev1.EnvVar{namespaceEnv}, container.Env...)
 
 	// give installers 4 hours to complete
 	deadline := int64(60 * 60 * 4)
-	pod := &kapi.Pod{
+	pod := &corev1.Pod{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta:   metav1.TypeMeta{APIVersion: metav1.SchemeGroupVersion.String(), Kind: "Pod"},
 		ObjectMeta: meta,
-		Spec: kapi.PodSpec{
-			RestartPolicy:         kapi.RestartPolicyNever,
+		Spec: corev1.PodSpec{
+			RestartPolicy:         corev1.RestartPolicyNever,
 			ActiveDeadlineSeconds: &deadline,
 		},
 	}
 
-	var secret *kapi.Secret
+	var secret *corev1.Secret
 	if token := generatorInput.Token; token != nil {
 		if token.ServiceAccount {
 			pod.Spec.ServiceAccountName = serviceAccountName
@@ -477,7 +488,7 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 			if err != nil {
 				return nil, nil, err
 			}
-			container.Env = append(container.Env, kapi.EnvVar{
+			container.Env = append(container.Env, corev1.EnvVar{
 				Name:  *token.Env,
 				Value: containerToken,
 			})
@@ -492,30 +503,32 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 				return nil, nil, err
 			}
 
-			secret = &kapi.Secret{
+			secret = &corev1.Secret{
+				// this is ok because we know exactly how we want to be serialized
+				TypeMeta:   metav1.TypeMeta{APIVersion: metav1.SchemeGroupVersion.String(), Kind: "Secret"},
 				ObjectMeta: meta,
 
 				Type: "kubernetes.io/token",
 				Data: map[string][]byte{
-					kapi.ServiceAccountTokenKey: []byte(containerToken),
+					corev1.ServiceAccountTokenKey: []byte(containerToken),
 				},
 			}
 			if len(crt) > 0 {
-				secret.Data[kapi.ServiceAccountRootCAKey] = []byte(crt)
+				secret.Data[corev1.ServiceAccountRootCAKey] = []byte(crt)
 			}
-			pod.Spec.Volumes = append(pod.Spec.Volumes, kapi.Volume{
+			pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
 				Name: "generate-token",
-				VolumeSource: kapi.VolumeSource{
-					Secret: &kapi.SecretVolumeSource{SecretName: meta.Name},
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{SecretName: meta.Name},
 				},
 			})
-			container.VolumeMounts = append(container.VolumeMounts, kapi.VolumeMount{
+			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 				Name:      "generate-token",
 				MountPath: *token.File,
 			})
 		}
 	}
 
-	pod.Spec.Containers = []kapi.Container{*container}
+	pod.Spec.Containers = []corev1.Container{*container}
 	return pod, secret, nil
 }

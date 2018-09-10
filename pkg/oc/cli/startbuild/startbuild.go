@@ -30,8 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -317,45 +315,19 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 		return err
 	}
 
-	// convert internal envvars returned from the helper to external versions
-	externalEnvVars, err := convertInternalEnvVarsToExternal(env)
-	if err != nil {
-		return err
-	}
-
 	if len(buildLogLevel) > 0 {
-		externalEnvVars = append(externalEnvVars, corev1.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
+		env = append(env, corev1.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
 	}
-	o.EnvVar = externalEnvVars
+	o.EnvVar = env
 
 	// Handle Docker build arguments. In order to leverage existing logic, we
 	// first create an EnvVar array, then convert it to []docker.BuildArg
-	buildArgs, err := utilenv.ParseBuildArg(o.Args, o.In)
+	o.BuildArgs, err = utilenv.ParseBuildArg(o.Args, o.In)
 	if err != nil {
 		return err
 	}
-
-	// convert internal buildargs returned from the helper to external versions
-	externalBuildArgs, err := convertInternalEnvVarsToExternal(buildArgs)
-	if err != nil {
-		return err
-	}
-	o.BuildArgs = externalBuildArgs
 
 	return nil
-}
-
-// convertInternalEnvVarsToExternal attempts to convert a list of EnvVars to external versions
-func convertInternalEnvVarsToExternal(buildArgs []kapi.EnvVar) ([]corev1.EnvVar, error) {
-	externalBuildArgs := []corev1.EnvVar{}
-	for _, internal := range buildArgs {
-		external := &corev1.EnvVar{}
-		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(&internal, external, nil); err != nil {
-			return nil, err
-		}
-		externalBuildArgs = append(externalBuildArgs, *external)
-	}
-	return externalBuildArgs, nil
 }
 
 // Validate returns validation errors regarding start-build

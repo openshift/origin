@@ -6,12 +6,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -415,11 +413,7 @@ func (o *DeploymentHookOptions) lifecycleHook(dc *appsv1.DeploymentConfig) (*app
 			return nil, err
 		}
 		for i := range env {
-			var versionedEnv corev1.EnvVar
-			if err := legacyscheme.Scheme.Convert(&env[i], &versionedEnv, nil); err != nil {
-				return nil, err
-			}
-			hook.ExecNewPod.Env = append(hook.ExecNewPod.Env, versionedEnv)
+			hook.ExecNewPod.Env = append(hook.ExecNewPod.Env, env[i])
 		}
 	}
 	if len(o.Volumes) > 0 {

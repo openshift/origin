@@ -10,13 +10,13 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/dynamic"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -24,8 +24,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
-
-	"github.com/openshift/origin/pkg/oc/util/clientcmd"
 )
 
 var (
@@ -96,7 +94,7 @@ type ProbeOptions struct {
 	DryRun                 bool
 
 	FlagSet       func(string) bool
-	HTTPGetAction *kapi.HTTPGetAction
+	HTTPGetAction *corev1.HTTPGetAction
 
 	// Length of time before health checking is activated.  In seconds.
 	InitialDelaySeconds *int
@@ -232,8 +230,8 @@ func (o *ProbeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 		if host == "localhost" {
 			host = ""
 		}
-		o.HTTPGetAction = &kapi.HTTPGetAction{
-			Scheme: kapi.URIScheme(strings.ToUpper(url.Scheme)),
+		o.HTTPGetAction = &corev1.HTTPGetAction{
+			Scheme: corev1.URIScheme(strings.ToUpper(url.Scheme)),
 			Host:   host,
 			Port:   intOrString(port),
 			Path:   url.Path,
@@ -313,7 +311,7 @@ func (o *ProbeOptions) Run() error {
 	patches := CalculatePatchesExternal(infos, func(info *resource.Info) (bool, error) {
 		transformed := false
 		name := getObjectName(info)
-		_, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+		_, err := o.UpdatePodSpecForObject(info.Object, func(spec *corev1.PodSpec) error {
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
 				fmt.Fprintf(o.ErrOut, "warning: %s does not have any containers matching %q\n", name, o.ContainerSelector)
@@ -325,7 +323,7 @@ func (o *ProbeOptions) Run() error {
 				o.updateContainer(container)
 			}
 			return nil
-		}))
+		})
 		return transformed, err
 	})
 	if singleItemImplied && len(patches) == 0 {
@@ -367,7 +365,7 @@ func (o *ProbeOptions) Run() error {
 
 }
 
-func (o *ProbeOptions) updateContainer(container *kapi.Container) {
+func (o *ProbeOptions) updateContainer(container *corev1.Container) {
 	if o.Remove {
 		if o.Readiness {
 			container.ReadinessProbe = nil
@@ -379,27 +377,27 @@ func (o *ProbeOptions) updateContainer(container *kapi.Container) {
 	}
 	if o.Readiness {
 		if container.ReadinessProbe == nil {
-			container.ReadinessProbe = &kapi.Probe{}
+			container.ReadinessProbe = &corev1.Probe{}
 		}
 		o.updateProbe(container.ReadinessProbe)
 	}
 	if o.Liveness {
 		if container.LivenessProbe == nil {
-			container.LivenessProbe = &kapi.Probe{}
+			container.LivenessProbe = &corev1.Probe{}
 		}
 		o.updateProbe(container.LivenessProbe)
 	}
 }
 
 // updateProbe updates only those fields with flags set by the user
-func (o *ProbeOptions) updateProbe(probe *kapi.Probe) {
+func (o *ProbeOptions) updateProbe(probe *corev1.Probe) {
 	switch {
 	case o.Command != nil:
-		probe.Handler = kapi.Handler{Exec: &kapi.ExecAction{Command: o.Command}}
+		probe.Handler = corev1.Handler{Exec: &corev1.ExecAction{Command: o.Command}}
 	case o.HTTPGetAction != nil:
-		probe.Handler = kapi.Handler{HTTPGet: o.HTTPGetAction}
+		probe.Handler = corev1.Handler{HTTPGet: o.HTTPGetAction}
 	case len(o.OpenTCPSocket) > 0:
-		probe.Handler = kapi.Handler{TCPSocket: &kapi.TCPSocketAction{Port: intOrString(o.OpenTCPSocket)}}
+		probe.Handler = corev1.Handler{TCPSocket: &corev1.TCPSocketAction{Port: intOrString(o.OpenTCPSocket)}}
 	}
 	if o.InitialDelaySeconds != nil {
 		probe.InitialDelaySeconds = int32(*o.InitialDelaySeconds)

@@ -7,11 +7,14 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	ocnewapp "github.com/openshift/origin/pkg/oc/cli/newapp"
 	newapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
@@ -118,8 +121,6 @@ func NewCmdNewBuild(name, baseName string, f kcmdutil.Factory, streams genericcl
 		},
 	}
 
-	o.PrintFlags.AddFlags(cmd)
-
 	cmd.Flags().StringSliceVar(&o.Config.SourceRepositories, "code", o.Config.SourceRepositories, "Source code in the build configuration.")
 	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image", "", o.Config.ImageStreams, "Name of an image stream to to use as a builder. (deprecated)")
 	cmd.Flags().MarkDeprecated("image", "use --image-stream instead")
@@ -155,6 +156,7 @@ func NewCmdNewBuild(name, baseName string, f kcmdutil.Factory, streams genericcl
 	o.Action.BindForOutput(cmd.Flags(), "output", "template")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -200,7 +202,17 @@ func (o *BuildOptions) RunNewBuild() error {
 	}
 
 	if o.Action.ShouldPrint() {
-		return o.Printer.PrintObj(result.List, o.Out)
+		// TODO(juanvallejo): this needs to be fixed by updating QueryResult.List to be of type corev1.List
+		printableList := &corev1.List{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta: metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "List"},
+		}
+		for _, obj := range result.List.Items {
+			printableList.Items = append(printableList.Items, runtime.RawExtension{
+				Object: obj,
+			})
+		}
+		return o.Printer.PrintObj(printableList, o.Out)
 	}
 
 	if errs := o.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
@@ -214,7 +226,7 @@ func (o *BuildOptions) RunNewBuild() error {
 	indent := o.Action.DefaultIndent()
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
-		case *buildapi.BuildConfig:
+		case *buildv1.BuildConfig:
 			if len(t.Spec.Triggers) > 0 && t.Spec.Source.Binary == nil {
 				fmt.Fprintf(out, "%sBuild configuration %q created and build triggered.\n", indent, t.Name)
 				fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, o.BaseName, t.Name)

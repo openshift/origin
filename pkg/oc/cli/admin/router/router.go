@@ -13,6 +13,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,17 +31,16 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	"github.com/openshift/api/security"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	appsv1 "github.com/openshift/api/apps/v1"
+	authv1 "github.com/openshift/api/authorization/v1"
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1typedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
@@ -372,10 +372,10 @@ func generateMutualTLSSecretName(prefix string) string {
 
 // generateSecretsConfig generates any Secret and Volume objects, such
 // as SSH private keys, that are necessary for the router container.
-func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaultCert, mtlsAuthCA, mtlsAuthCRL []byte) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount, error) {
-	var secrets []*kapi.Secret
-	var volumes []kapi.Volume
-	var mounts []kapi.VolumeMount
+func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaultCert, mtlsAuthCA, mtlsAuthCRL []byte) ([]*corev1.Secret, []corev1.Volume, []corev1.VolumeMount, error) {
+	var secrets []*corev1.Secret
+	var volumes []corev1.Volume
+	var mounts []corev1.VolumeMount
 
 	if len(cfg.ExternalHostPrivateKey) != 0 {
 		privkeyData, err := fileutil.LoadData(cfg.ExternalHostPrivateKey)
@@ -383,7 +383,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 			return secrets, volumes, mounts, fmt.Errorf("error reading private key for external host: %v", err)
 		}
 
-		secret := &kapi.Secret{
+		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: privkeySecretName,
 			},
@@ -391,17 +391,17 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 		}
 		secrets = append(secrets, secret)
 
-		volume := kapi.Volume{
+		volume := corev1.Volume{
 			Name: secretsVolumeName,
-			VolumeSource: kapi.VolumeSource{
-				Secret: &kapi.SecretVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
 					SecretName: privkeySecretName,
 				},
 			},
 		}
 		volumes = append(volumes, volume)
 
-		mount := kapi.VolumeMount{
+		mount := corev1.VolumeMount{
 			Name:      secretsVolumeName,
 			ReadOnly:  true,
 			MountPath: secretsPath,
@@ -424,14 +424,14 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 			return nil, nil, nil, fmt.Errorf("the default cert must contain a private key")
 		}
 		// The TLSCertKey contains the pem file passed in as the default cert
-		secret := &kapi.Secret{
+		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: certName,
 			},
-			Type: kapi.SecretTypeTLS,
+			Type: corev1.SecretTypeTLS,
 			Data: map[string][]byte{
-				kapi.TLSCertKey:       defaultCert,
-				kapi.TLSPrivateKeyKey: keys,
+				corev1.TLSCertKey:       defaultCert,
+				corev1.TLSPrivateKeyKey: keys,
 			},
 		}
 		secrets = append(secrets, secret)
@@ -443,15 +443,15 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 			// when we are generating a serving cert, we need to reuse the existing cert
 			metricsCertName = certName
 		}
-		volumes = append(volumes, kapi.Volume{
+		volumes = append(volumes, corev1.Volume{
 			Name: "metrics-server-certificate",
-			VolumeSource: kapi.VolumeSource{
-				Secret: &kapi.SecretVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
 					SecretName: metricsCertName,
 				},
 			},
 		})
-		mounts = append(mounts, kapi.VolumeMount{
+		mounts = append(mounts, corev1.VolumeMount{
 			Name:      "metrics-server-certificate",
 			ReadOnly:  true,
 			MountPath: "/etc/pki/tls/metrics/",
@@ -462,17 +462,17 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 	// user supplied default cert (pem format) or the secret generated
 	// by the service anotation (cert only format).
 	// In either case the secret has the same name and it has the same mount point.
-	volume := kapi.Volume{
+	volume := corev1.Volume{
 		Name: "server-certificate",
-		VolumeSource: kapi.VolumeSource{
-			Secret: &kapi.SecretVolumeSource{
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
 				SecretName: certName,
 			},
 		},
 	}
 	volumes = append(volumes, volume)
 
-	mount := kapi.VolumeMount{
+	mount := corev1.VolumeMount{
 		Name:      volume.Name,
 		ReadOnly:  true,
 		MountPath: defaultCertificateDir,
@@ -489,7 +489,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 
 	if len(mtlsSecretData) > 0 {
 		secretName := generateMutualTLSSecretName(cfg.Name)
-		secret := &kapi.Secret{
+		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: secretName,
 			},
@@ -497,17 +497,17 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 		}
 		secrets = append(secrets, secret)
 
-		volume := kapi.Volume{
+		volume := corev1.Volume{
 			Name: "mutual-tls-config",
-			VolumeSource: kapi.VolumeSource{
-				Secret: &kapi.SecretVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
 					SecretName: secretName,
 				},
 			},
 		}
 		volumes = append(volumes, volume)
 
-		mount := kapi.VolumeMount{
+		mount := corev1.VolumeMount{
 			Name:      volume.Name,
 			ReadOnly:  true,
 			MountPath: clientCertConfigDir,
@@ -518,17 +518,17 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 	return secrets, volumes, mounts, nil
 }
 
-func generateProbeConfigForRouter(path string, cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	var probe *kapi.Probe
+func generateProbeConfigForRouter(path string, cfg *RouterConfig, ports []corev1.ContainerPort) *corev1.Probe {
+	var probe *corev1.Probe
 
 	if cfg.Type == "haproxy-router" {
-		probe = &kapi.Probe{}
+		probe = &corev1.Probe{}
 		probePort := defaultStatsPort
 		if cfg.StatsPort > 0 {
 			probePort = cfg.StatsPort
 		}
 
-		probe.Handler.HTTPGet = &kapi.HTTPGetAction{
+		probe.Handler.HTTPGet = &corev1.HTTPGetAction{
 			Path: path,
 			Port: intstr.IntOrString{
 				Type:   intstr.Int,
@@ -547,7 +547,7 @@ func generateProbeConfigForRouter(path string, cfg *RouterConfig, ports []kapi.C
 	return probe
 }
 
-func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+func generateLivenessProbeConfig(cfg *RouterConfig, ports []corev1.ContainerPort) *corev1.Probe {
 	probe := generateProbeConfigForRouter("/healthz", cfg, ports)
 	if probe != nil {
 		probe.InitialDelaySeconds = 10
@@ -555,7 +555,7 @@ func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) 
 	return probe
 }
 
-func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+func generateReadinessProbeConfig(cfg *RouterConfig, ports []corev1.ContainerPort) *corev1.Probe {
 	probe := generateProbeConfigForRouter("healthz/ready", cfg, ports)
 	if probe != nil {
 		probe.InitialDelaySeconds = 10
@@ -612,10 +612,10 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	}
 
 	if cfg.StatsPort > 0 {
-		port := kapi.ContainerPort{
+		port := corev1.ContainerPort{
 			Name:          "stats",
 			ContainerPort: int32(cfg.StatsPort),
-			Protocol:      kapi.ProtocolTCP,
+			Protocol:      corev1.ProtocolTCP,
 		}
 		if cfg.HostPorts {
 			port.HostPort = int32(cfg.StatsPort)
@@ -721,7 +721,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		if err != nil {
 			return err
 		}
-		securityClient, err := securityclientinternal.NewForConfig(clientConfig)
+		securityClient, err := securityv1typedclient.NewForConfig(clientConfig)
 		if err != nil {
 			return err
 		}
@@ -845,10 +845,10 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		return fmt.Errorf("router could not be created: %v", err)
 	}
 
-	var configMaps []*kapi.ConfigMap
+	var configMaps []*corev1.ConfigMap
 
 	if cfg.Type == "haproxy-router" && cfg.ExtendedLogging {
-		configMaps = append(configMaps, &kapi.ConfigMap{
+		configMaps = append(configMaps, &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "rsyslog-config",
 			},
@@ -856,11 +856,11 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 				"rsyslog.conf": rsyslogConfigurationFile,
 			},
 		})
-		volumes = append(volumes, kapi.Volume{
+		volumes = append(volumes, corev1.Volume{
 			Name: "rsyslog-config",
-			VolumeSource: kapi.VolumeSource{
-				ConfigMap: &kapi.ConfigMapVolumeSource{
-					LocalObjectReference: kapi.LocalObjectReference{
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
 						Name: "rsyslog-config",
 					},
 				},
@@ -870,13 +870,13 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		// namespace, but rsyslog does not support that, so we need a
 		// filesystem that is common to the router and syslog
 		// containers.
-		volumes = append(volumes, kapi.Volume{
+		volumes = append(volumes, corev1.Volume{
 			Name: "rsyslog-socket",
-			VolumeSource: kapi.VolumeSource{
-				EmptyDir: &kapi.EmptyDirVolumeSource{},
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		})
-		routerMounts = append(routerMounts, kapi.VolumeMount{
+		routerMounts = append(routerMounts, corev1.VolumeMount{
 			Name:      "rsyslog-socket",
 			MountPath: "/var/lib/rsyslog",
 		})
@@ -887,14 +887,14 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	livenessProbe := generateLivenessProbeConfig(cfg, ports)
 	readinessProbe := generateReadinessProbeConfig(cfg, ports)
 
-	exposedPorts := make([]kapi.ContainerPort, len(ports))
+	exposedPorts := make([]corev1.ContainerPort, len(ports))
 	copy(exposedPorts, ports)
 	if !cfg.HostPorts {
 		for i := range exposedPorts {
 			exposedPorts[i].HostPort = 0
 		}
 	}
-	containers := []kapi.Container{
+	containers := []corev1.Container{
 		{
 			Name:            "router",
 			Image:           image,
@@ -902,18 +902,18 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 			Env:             env.List(),
 			LivenessProbe:   livenessProbe,
 			ReadinessProbe:  readinessProbe,
-			ImagePullPolicy: kapi.PullIfNotPresent,
+			ImagePullPolicy: corev1.PullIfNotPresent,
 			VolumeMounts:    routerMounts,
-			Resources: kapi.ResourceRequirements{
-				Requests: kapi.ResourceList{
-					kapi.ResourceCPU:    resource.MustParse("100m"),
-					kapi.ResourceMemory: resource.MustParse("256Mi"),
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("100m"),
+					corev1.ResourceMemory: resource.MustParse("256Mi"),
 				},
 			},
 		},
 	}
 	if cfg.Type == "haproxy-router" && cfg.ExtendedLogging {
-		containers = append(containers, kapi.Container{
+		containers = append(containers, corev1.Container{
 			Name:  "syslog",
 			Image: image,
 			Command: []string{
@@ -923,8 +923,8 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 				"-i", "/tmp/rsyslog.pid",
 				"-f", "/etc/rsyslog/rsyslog.conf",
 			},
-			ImagePullPolicy: kapi.PullIfNotPresent,
-			VolumeMounts: []kapi.VolumeMount{
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "rsyslog-config",
 					MountPath: "/etc/rsyslog",
@@ -934,10 +934,10 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 					MountPath: "/var/lib/rsyslog",
 				},
 			},
-			Resources: kapi.ResourceRequirements{
-				Requests: kapi.ResourceList{
-					kapi.ResourceCPU:    resource.MustParse("100m"),
-					kapi.ResourceMemory: resource.MustParse("256Mi"),
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("100m"),
+					corev1.ResourceMemory: resource.MustParse("256Mi"),
 				},
 			},
 		})
@@ -952,44 +952,48 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	}
 
 	objects = append(objects,
-		&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: cfg.ServiceAccount}},
-		&authapi.ClusterRoleBinding{
+		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: cfg.ServiceAccount}},
+		&authv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
-			Subjects: []kapi.ObjectReference{
+			Subjects: []corev1.ObjectReference{
 				{
 					Kind:      "ServiceAccount",
 					Name:      cfg.ServiceAccount,
 					Namespace: namespace,
 				},
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Kind: "ClusterRole",
 				Name: "system:router",
 			},
 		},
 	)
 
-	objects = append(objects, &appsapi.DeploymentConfig{
+	objects = append(objects, &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: label,
 		},
-		Spec: appsapi.DeploymentConfigSpec{
-			Strategy: appsapi.DeploymentStrategy{
-				Type:          appsapi.DeploymentStrategyTypeRolling,
-				RollingParams: &appsapi.RollingDeploymentStrategyParams{MaxUnavailable: intstr.FromString("25%")},
+		Spec: appsv1.DeploymentConfigSpec{
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.DeploymentStrategyTypeRolling,
+				RollingParams: &appsv1.RollingDeploymentStrategyParams{
+					MaxUnavailable: &intstr.IntOrString{
+						Type:   intstr.String,
+						StrVal: "25%",
+					},
+				},
 			},
 			Replicas: cfg.Replicas,
 			Selector: label,
-			Triggers: []appsapi.DeploymentTriggerPolicy{
-				{Type: appsapi.DeploymentTriggerOnConfigChange},
+			Triggers: []appsv1.DeploymentTriggerPolicy{
+				{Type: appsv1.DeploymentTriggerOnConfigChange},
 			},
-			Template: &kapi.PodTemplateSpec{
+			Template: &corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: label},
-				Spec: kapi.PodSpec{
-					SecurityContext: &kapi.PodSecurityContext{
-						HostNetwork: cfg.HostNetwork,
-					},
+				Spec: corev1.PodSpec{
+					SecurityContext:    &corev1.PodSecurityContext{},
+					HostNetwork:        cfg.HostNetwork,
 					ServiceAccountName: cfg.ServiceAccount,
 					NodeSelector:       nodeSelector,
 					Containers:         containers,
@@ -1003,7 +1007,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	// set the service port to the provided output port value
 	for i := range objects {
 		switch t := objects[i].(type) {
-		case *kapi.Service:
+		case *corev1.Service:
 			if t.Annotations == nil {
 				t.Annotations = make(map[string]string)
 			}
@@ -1096,12 +1100,12 @@ func generateStatsPassword() string {
 	return strings.Join(password, "")
 }
 
-func validateServiceAccount(client securityclientinternal.Interface, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
+func validateServiceAccount(client securityv1typedclient.SecurityV1Interface, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
 	if !hostNetwork && !hostPorts {
 		return nil
 	}
 	// get cluster sccs
-	sccList, err := client.Security().SecurityContextConstraints().List(metav1.ListOptions{})
+	sccList, err := client.SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)
@@ -1137,7 +1141,7 @@ func validateServiceAccount(client securityclientinternal.Interface, ns string, 
 // if it is usable by the userInfo.  This is a copy from some server code.
 // TODO remove this and have the router SA check do a SAR check instead.
 // Anything we do here needs to work with a deny authorizer so the choices are limited to SAR / Authorizer
-func constraintAppliesTo(constraint *securityapi.SecurityContextConstraints, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
+func constraintAppliesTo(constraint *securityv1.SecurityContextConstraints, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
 	for _, user := range constraint.Users {
 		if userInfo.GetName() == user {
 			return true
@@ -1165,14 +1169,14 @@ func constraintSupportsGroup(group string, constraintGroups []string) bool {
 }
 
 // authorizedForSCC returns true if info is authorized to perform the "use" verb on the SCC resource.
-func authorizedForSCC(constraint *securityapi.SecurityContextConstraints, info user.Info, namespace string, a authorizer.Authorizer) bool {
+func authorizedForSCC(constraint *securityv1.SecurityContextConstraints, info user.Info, namespace string, a authorizer.Authorizer) bool {
 	// check against the namespace that the pod is being created in to allow per-namespace SCC grants.
 	attr := authorizer.AttributesRecord{
 		User:            info,
 		Verb:            "use",
 		Namespace:       namespace,
 		Name:            constraint.Name,
-		APIGroup:        security.GroupName,
+		APIGroup:        securityv1.GroupName,
 		Resource:        "securitycontextconstraints",
 		ResourceRequest: true,
 	}

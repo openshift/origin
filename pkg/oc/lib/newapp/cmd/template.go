@@ -6,71 +6,11 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/template/templateprocessing"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	templatev1 "github.com/openshift/api/template/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 )
-
-// TODO: remove this helper once all consumers are switched to external versions
-// TransformTemplate processes a template with the provided parameters, returning an error if transformation fails.
-func TransformTemplateInternal(tpl *templateapi.Template, templateProcessor templateinternalclient.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templateapi.Template, error) {
-	// only set values that match what's expected by the template.
-	for k, value := range parameters {
-		v := templateprocessing.DeprecatedGetParameterByNameInternal(tpl, k)
-		if v != nil {
-			v.Value = value
-			v.Generate = ""
-		} else if !ignoreUnknownParameters {
-			return nil, fmt.Errorf("unexpected parameter name %q", k)
-		}
-	}
-
-	name := localOrRemoteName(tpl.ObjectMeta, namespace)
-
-	// transform the template
-	result, err := templateProcessor.Process(tpl)
-	if err != nil {
-		return nil, fmt.Errorf("error processing template %q: %v", name, err)
-	}
-
-	// ensure the template objects are decoded
-	if errs := runtime.DecodeList(result.Objects, legacyscheme.Codecs.LegacyCodec(legacy.GroupVersion)); len(errs) > 0 {
-		err = errors.NewAggregate(errs)
-		return nil, fmt.Errorf("error processing template %q: %v", name, err)
-	}
-
-	// use universal / unstructured decoder on any objects
-	// that failed to be decoded through the legacy codec.
-	decoded := []runtime.Object{}
-	needToDecode := []runtime.Object{}
-	if len(result.Objects) > 0 {
-		for _, obj := range result.Objects {
-			if _, ok := obj.(*runtime.Unknown); ok {
-				needToDecode = append(needToDecode, obj)
-				continue
-			}
-
-			decoded = append(decoded, obj)
-		}
-	}
-	if len(needToDecode) > 0 {
-		if errs := runtime.DecodeList(needToDecode, legacyscheme.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme); len(errs) > 0 {
-			err = errors.NewAggregate(errs)
-			return nil, fmt.Errorf("error processing template %q: %v", name, err)
-		}
-	}
-
-	result.Objects = append(decoded, needToDecode...)
-	return result, nil
-}
 
 // TransformTemplateV1 processes a template with the provided parameters, returning an error if transformation fails.
 func TransformTemplate(tpl *templatev1.Template, templateProcessor templateclientv1.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templatev1.Template, error) {
@@ -105,7 +45,7 @@ func formatString(out io.Writer, tab, s string) {
 }
 
 // DescribeGeneratedTemplate writes a description of the provided template to out.
-func DescribeGeneratedTemplate(out io.Writer, input string, result *templateapi.Template, baseNamespace string) {
+func DescribeGeneratedTemplate(out io.Writer, input string, result *templatev1.Template, baseNamespace string) {
 	qualifiedName := localOrRemoteName(result.ObjectMeta, baseNamespace)
 	if len(input) > 0 && result.ObjectMeta.Name != input {
 		fmt.Fprintf(out, "--> Deploying template %q for %q to project %s\n", qualifiedName, input, baseNamespace)

@@ -7,17 +7,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
+	templatev1 "github.com/openshift/api/template/v1"
+	templatefake "github.com/openshift/client-go/template/clientset/versioned/fake"
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 )
 
-func testTemplateClient(templates *templateapi.TemplateList) templateclient.TemplateInterface {
+func testTemplateClient(templates *templatev1.TemplateList) templatev1client.TemplateV1Interface {
 	fake := &templatefake.Clientset{}
 	fake.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if len(action.GetNamespace()) > 0 {
-			matchingTemplates := &templateapi.TemplateList{
-				Items: []templateapi.Template{},
+			matchingTemplates := &templatev1.TemplateList{
+				Items: []templatev1.Template{},
 			}
 			for _, template := range templates.Items {
 				if template.Namespace == action.GetNamespace() {
@@ -102,13 +102,13 @@ func TestTemplateSearcher(t *testing.T) {
 	}
 }
 
-func fakeTemplates(testData map[string][]string) *templateapi.TemplateList {
-	templates := &templateapi.TemplateList{
-		Items: []templateapi.Template{},
+func fakeTemplates(testData map[string][]string) *templatev1.TemplateList {
+	templates := &templatev1.TemplateList{
+		Items: []templatev1.Template{},
 	}
 	for namespace, templateNames := range testData {
 		for _, templateName := range templateNames {
-			template := &templateapi.Template{
+			template := &templatev1.Template{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      templateName,
 					Namespace: namespace,

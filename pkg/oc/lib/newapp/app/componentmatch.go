@@ -1,8 +1,9 @@
 package app
 
 import (
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 )
 
 // ComponentMatch is a match to a provided component
@@ -24,10 +25,10 @@ type ComponentMatch struct {
 
 	// The source of the match. Generally only a single source is
 	// available.
-	Image       *imageapi.DockerImage
-	ImageStream *imageapi.ImageStream
+	DockerImage *dockerv10.DockerImage
+	ImageStream *imagev1.ImageStream
 	ImageTag    string
-	Template    *templateapi.Template
+	Template    *templatev1.Template
 
 	// Input to generators extracted from the source
 	Builder        bool

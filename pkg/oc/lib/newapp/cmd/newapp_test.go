@@ -8,28 +8,31 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
+	"k8s.io/apimachinery/pkg/api/testing"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	fakev1 "k8s.io/client-go/kubernetes/fake"
 	clientfake "k8s.io/client-go/rest/fake"
 	"k8s.io/client-go/restmapper"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	image "github.com/openshift/origin/pkg/image/apis/image"
-	imagefakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	"github.com/openshift/api"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	templatev1 "github.com/openshift/api/template/v1"
+	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
+	routefakev1client "github.com/openshift/client-go/route/clientset/versioned/fake"
+	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
+	"github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
-	routefakeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templatefakeclient "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -197,24 +200,27 @@ func TestBuildTemplates(t *testing.T) {
 		appCfg.ClassificationWinners = map[string]ArgumentClassificationWinner{}
 
 		// the previous fake was broken and didn't 404 properly.  this test is relying on that
-		templateFake := templatefakeclient.NewSimpleClientset()
-		imageFake := imagefakeclient.NewSimpleClientset()
+		imageFake := fakeimagev1client.NewSimpleClientset()
+		templateFake := faketemplatev1client.NewSimpleClientset()
+		routeFake := routefakev1client.NewSimpleClientset()
+
+		customScheme, _ := apitesting.SchemeForOrDie(api.Install)
 
 		appCfg.Builder = resource.NewFakeBuilder(
 			func(version schema.GroupVersion) (resource.RESTClient, error) {
 				return &clientfake.RESTClient{}, nil
 			},
 			func() (meta.RESTMapper, error) {
-				return testrestmapper.TestOnlyStaticRESTMapper(ocscheme.ReadingInternalScheme), nil
+				return testrestmapper.TestOnlyStaticRESTMapper(customScheme, customScheme.PrioritizedVersionsAllGroups()...), nil
 			},
 			func() (restmapper.CategoryExpander, error) {
 				return resource.FakeCategoryExpander, nil
 			})
 
 		appCfg.SetOpenShiftClient(
-			imageFake.Image(), templateFake.Template(), routefakeclient.NewSimpleClientset().Route(),
+			imageFake.ImageV1(), templateFake.TemplateV1(), routeFake.RouteV1(),
 			c.namespace, nil)
-		appCfg.KubeClient = fake.NewSimpleClientset()
+		appCfg.KubeClient = fakev1.NewSimpleClientset()
 		appCfg.TemplateSearcher = fakeTemplateSearcher()
 		appCfg.AddArguments([]string{c.templateName})
 		appCfg.TemplateParameters = []string{}
@@ -266,21 +272,22 @@ func TestBuildTemplates(t *testing.T) {
 }
 
 func fakeTemplateSearcher() app.Searcher {
-	client := templatefakeclient.NewSimpleClientset()
+	client := faketemplatev1client.NewSimpleClientset()
 	client.PrependReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, templateList(), nil
 	})
+
 	return app.TemplateSearcher{
-		Client:     client.Template(),
+		Client:     client.TemplateV1(),
 		Namespaces: []string{"default"},
 	}
 }
 
-func templateList() *templateapi.TemplateList {
-	return &templateapi.TemplateList{
-		Items: []templateapi.Template{
+func templateList() *templatev1.TemplateList {
+	return &templatev1.TemplateList{
+		Items: []templatev1.Template{
 			{
-				Objects: []runtime.Object{},
+				Objects: []runtime.RawExtension{},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "first-stored-template",
 					Namespace: "default",
@@ -474,25 +481,25 @@ func TestBuildOutputCycleResilience(t *testing.T) {
 	}
 
 	dfn := "mockdockerfilename"
-	malOutputBC := &buildapi.BuildConfig{
+	malOutputBC := &buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "buildCfgWithWeirdOutputObjectRef",
 		},
-		Spec: buildapi.BuildConfigSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
+		Spec: buildv1.BuildConfigSpec{
+			CommonSpec: buildv1.CommonSpec{
+				Source: buildv1.BuildSource{
 					Dockerfile: &dfn,
 				},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+				Strategy: buildv1.BuildStrategy{
+					DockerStrategy: &buildv1.DockerBuildStrategy{
+						From: &corev1.ObjectReference{
 							Kind: "ImageStreamTag",
 							Name: "mockimagestream:latest",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "NewTypeOfRef",
 						Name: "Yet-to-be-implemented",
 					},
@@ -513,30 +520,30 @@ func TestBuildOutputCycleWithCircularTag(t *testing.T) {
 	dfn := "mockdockerfilename"
 
 	tests := []struct {
-		bc       *buildapi.BuildConfig
+		bc       *buildv1.BuildConfig
 		is       []runtime.Object
 		expected string
 	}{
 		{
-			bc: &buildapi.BuildConfig{
+			bc: &buildv1.BuildConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "buildCfgWithWeirdOutputObjectRef",
 				},
-				Spec: buildapi.BuildConfigSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Source: buildapi.BuildSource{
+				Spec: buildv1.BuildConfigSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Source: buildv1.BuildSource{
 							Dockerfile: &dfn,
 						},
-						Strategy: buildapi.BuildStrategy{
-							DockerStrategy: &buildapi.DockerBuildStrategy{
-								From: &kapi.ObjectReference{
+						Strategy: buildv1.BuildStrategy{
+							DockerStrategy: &buildv1.DockerBuildStrategy{
+								From: &corev1.ObjectReference{
 									Kind: "ImageStreamTag",
 									Name: "mockimagestream:latest",
 								},
 							},
 						},
-						Output: buildapi.BuildOutput{
-							To: &kapi.ObjectReference{
+						Output: buildv1.BuildOutput{
+							To: &corev1.ObjectReference{
 								Kind: "ImageStreamTag",
 								Name: "mockimagestream:10.0",
 							},
@@ -545,20 +552,22 @@ func TestBuildOutputCycleWithCircularTag(t *testing.T) {
 				},
 			},
 			is: []runtime.Object{
-				&image.ImageStream{
+				&imagev1.ImageStream{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "mockimagestream",
 					},
-					Spec: image.ImageStreamSpec{
-						Tags: map[string]image.TagReference{
-							"latest": {
-								From: &kapi.ObjectReference{
+					Spec: imagev1.ImageStreamSpec{
+						Tags: []imagev1.TagReference{
+							{
+								Name: "latest",
+								From: &corev1.ObjectReference{
 									Kind: "ImageStreamTag",
 									Name: "10.0",
 								},
 							},
-							"10.0": {
-								From: &kapi.ObjectReference{
+							{
+								Name: "10.0",
+								From: &corev1.ObjectReference{
 									Kind: "ImageStreamTag",
 									Name: "latest",
 								},
@@ -570,25 +579,25 @@ func TestBuildOutputCycleWithCircularTag(t *testing.T) {
 			expected: "image stream tag reference \"mockimagestream:latest\" is a circular loop of image stream tags",
 		},
 		{
-			bc: &buildapi.BuildConfig{
+			bc: &buildv1.BuildConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "buildCfgWithWeirdOutputObjectRef",
 				},
-				Spec: buildapi.BuildConfigSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Source: buildapi.BuildSource{
+				Spec: buildv1.BuildConfigSpec{
+					CommonSpec: buildv1.CommonSpec{
+						Source: buildv1.BuildSource{
 							Dockerfile: &dfn,
 						},
-						Strategy: buildapi.BuildStrategy{
-							DockerStrategy: &buildapi.DockerBuildStrategy{
-								From: &kapi.ObjectReference{
+						Strategy: buildv1.BuildStrategy{
+							DockerStrategy: &buildv1.DockerBuildStrategy{
+								From: &corev1.ObjectReference{
 									Kind: "ImageStreamTag",
 									Name: "mockimagestream:latest",
 								},
 							},
 						},
-						Output: buildapi.BuildOutput{
-							To: &kapi.ObjectReference{
+						Output: buildv1.BuildOutput{
+							To: &corev1.ObjectReference{
 								Kind: "ImageStreamTag",
 								Name: "fakeimagestream:latest",
 							},
@@ -597,14 +606,15 @@ func TestBuildOutputCycleWithCircularTag(t *testing.T) {
 				},
 			},
 			is: []runtime.Object{
-				&image.ImageStream{
+				&imagev1.ImageStream{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "mockimagestream",
 					},
-					Spec: image.ImageStreamSpec{
-						Tags: map[string]image.TagReference{
-							"latest": {
-								From: &kapi.ObjectReference{
+					Spec: imagev1.ImageStreamSpec{
+						Tags: []imagev1.TagReference{
+							{
+								Name: "latest",
+								From: &corev1.ObjectReference{
 									Kind: "ImageStreamTag",
 									Name: "fakeimagestream:latest",
 								},
@@ -612,14 +622,15 @@ func TestBuildOutputCycleWithCircularTag(t *testing.T) {
 						},
 					},
 				},
-				&image.ImageStream{
+				&imagev1.ImageStream{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "fakeimagestream",
 					},
-					Spec: image.ImageStreamSpec{
-						Tags: map[string]image.TagReference{
-							"latest": {
-								From: &kapi.ObjectReference{
+					Spec: imagev1.ImageStreamSpec{
+						Tags: []imagev1.TagReference{
+							{
+								Name: "latest",
+								From: &corev1.ObjectReference{
 									Kind: "ImageStreamTag",
 									Name: "mockimagestream:latest",
 								},
@@ -634,15 +645,18 @@ func TestBuildOutputCycleWithCircularTag(t *testing.T) {
 
 	config := &AppConfig{}
 	for _, test := range tests {
+		imageFake := fakeimagev1client.NewSimpleClientset()
+		imageFakeConfig := fakeimagev1client.NewSimpleClientset(test.is...)
+
 		objs := append(test.is, test.bc)
 		// so we test both with the fake image client seeded with the image streams, i.e. existing image streams
 		// and without, i.e. the generate flow is creating the image streams as well
-		config.ImageClient = imagefakeclient.NewSimpleClientset().Image()
+		config.ImageClient = imageFake.ImageV1()
 		err := config.checkCircularReferences(objs)
 		if err == nil || err.Error() != test.expected {
 			t.Errorf("Expected error from followRefToDockerImage: got \"%v\" versus expected %q", err, test.expected)
 		}
-		config.ImageClient = imagefakeclient.NewSimpleClientset(test.is...).Image()
+		config.ImageClient = imageFakeConfig.ImageV1()
 		err = config.checkCircularReferences(objs)
 		if err == nil || err.Error() != test.expected {
 			t.Errorf("Expected error from followRefToDockerImage: got \"%v\" versus expected %q", err, test.expected)

@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 var argumentEnvironment = regexp.MustCompile(`(?ms)^(.+)\=(.*)$`)
@@ -40,8 +40,8 @@ func SplitEnvironmentFromResources(args []string) (resources, envArgs []string, 
 
 // parseIntoEnvVar parses the list of key-value pairs into kubernetes EnvVar.
 // envVarType is for making errors more specific to user intentions.
-func parseIntoEnvVar(spec []string, defaultReader io.Reader, envVarType string) ([]kapi.EnvVar, []string, error) {
-	env := []kapi.EnvVar{}
+func parseIntoEnvVar(spec []string, defaultReader io.Reader, envVarType string) ([]corev1.EnvVar, []string, error) {
+	env := []corev1.EnvVar{}
 	exists := sets.NewString()
 	var remove []string
 	for _, envSpec := range spec {
@@ -62,7 +62,7 @@ func parseIntoEnvVar(spec []string, defaultReader io.Reader, envVarType string) 
 				return nil, nil, fmt.Errorf("%s %s is invalid, %s", envVarType, envSpec, strings.Join(errs, "; "))
 			}
 			exists.Insert(n)
-			env = append(env, kapi.EnvVar{
+			env = append(env, corev1.EnvVar{
 				Name:  n,
 				Value: v,
 			})
@@ -80,12 +80,12 @@ func parseIntoEnvVar(spec []string, defaultReader io.Reader, envVarType string) 
 	return env, remove, nil
 }
 
-func ParseBuildArg(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, error) {
+func ParseBuildArg(spec []string, defaultReader io.Reader) ([]corev1.EnvVar, error) {
 	env, _, err := parseIntoEnvVar(spec, defaultReader, "build-arg")
 	return env, err
 }
 
-func ParseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
+func ParseEnv(spec []string, defaultReader io.Reader) ([]corev1.EnvVar, []string, error) {
 	return parseIntoEnvVar(spec, defaultReader, "environment variable")
 }
 
@@ -98,8 +98,8 @@ func ParseAnnotation(spec []string, defaultReader io.Reader) (map[string]string,
 	return annotations, remove, err
 }
 
-func readEnv(r io.Reader, envVarType string) ([]kapi.EnvVar, error) {
-	env := []kapi.EnvVar{}
+func readEnv(r io.Reader, envVarType string) ([]corev1.EnvVar, error) {
+	env := []corev1.EnvVar{}
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		envSpec := scanner.Text()
@@ -111,7 +111,7 @@ func readEnv(r io.Reader, envVarType string) ([]kapi.EnvVar, error) {
 			if len(parts) != 2 {
 				return nil, fmt.Errorf("invalid %s: %v", envVarType, envSpec)
 			}
-			env = append(env, kapi.EnvVar{
+			env = append(env, corev1.EnvVar{
 				Name:  parts[0],
 				Value: parts[1],
 			})

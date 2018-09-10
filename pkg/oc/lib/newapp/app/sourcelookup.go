@@ -16,11 +16,11 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/git"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
 )
@@ -100,8 +100,8 @@ type SourceRepository struct {
 	localDir        string
 	remoteURL       *s2igit.URL
 	contextDir      string
-	secrets         []buildapi.SecretBuildSource
-	configMaps      []buildapi.ConfigMapBuildSource
+	secrets         []buildv1.SecretBuildSource
+	configMaps      []buildv1.ConfigMapBuildSource
 	info            *SourceRepositoryInfo
 	sourceImage     ComponentReference
 	sourceImageFrom string
@@ -359,12 +359,12 @@ func (r *SourceRepository) ContextDir() string {
 }
 
 // ConfigMaps returns the configMap build sources
-func (r *SourceRepository) ConfigMaps() []buildapi.ConfigMapBuildSource {
+func (r *SourceRepository) ConfigMaps() []buildv1.ConfigMapBuildSource {
 	return r.configMaps
 }
 
 // Secrets returns the secret build sources
-func (r *SourceRepository) Secrets() []buildapi.SecretBuildSource {
+func (r *SourceRepository) Secrets() []buildv1.SecretBuildSource {
 	return r.secrets
 }
 
@@ -401,7 +401,7 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 // optional and when not specified the default is the current working directory.
 func (r *SourceRepository) AddBuildConfigMaps(configMaps []string) error {
 	injections := s2iapi.VolumeList{}
-	r.configMaps = []buildapi.ConfigMapBuildSource{}
+	r.configMaps = []buildv1.ConfigMapBuildSource{}
 	for _, in := range configMaps {
 		if err := injections.Set(in); err != nil {
 			return err
@@ -425,8 +425,8 @@ func (r *SourceRepository) AddBuildConfigMaps(configMaps []string) error {
 		if configMapExists(in.Source) {
 			return fmt.Errorf("the %q configMap can be used just once", in.Source)
 		}
-		r.configMaps = append(r.configMaps, buildapi.ConfigMapBuildSource{
-			ConfigMap:      kapi.LocalObjectReference{Name: in.Source},
+		r.configMaps = append(r.configMaps, buildv1.ConfigMapBuildSource{
+			ConfigMap:      corev1.LocalObjectReference{Name: in.Source},
 			DestinationDir: in.Destination,
 		})
 	}
@@ -438,7 +438,7 @@ func (r *SourceRepository) AddBuildConfigMaps(configMaps []string) error {
 // optional and when not specified the default is the current working directory.
 func (r *SourceRepository) AddBuildSecrets(secrets []string) error {
 	injections := s2iapi.VolumeList{}
-	r.secrets = []buildapi.SecretBuildSource{}
+	r.secrets = []buildv1.SecretBuildSource{}
 	for _, in := range secrets {
 		if err := injections.Set(in); err != nil {
 			return err
@@ -462,8 +462,8 @@ func (r *SourceRepository) AddBuildSecrets(secrets []string) error {
 		if secretExists(in.Source) {
 			return fmt.Errorf("the %q secret can be used just once", in.Source)
 		}
-		r.secrets = append(r.secrets, buildapi.SecretBuildSource{
-			Secret:         kapi.LocalObjectReference{Name: in.Source},
+		r.secrets = append(r.secrets, buildv1.SecretBuildSource{
+			Secret:         corev1.LocalObjectReference{Name: in.Source},
 			DestinationDir: in.Destination,
 		})
 	}

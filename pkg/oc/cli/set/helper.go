@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
-func selectContainers(containers []kapi.Container, spec string) ([]*kapi.Container, []*kapi.Container) {
-	out := []*kapi.Container{}
-	skipped := []*kapi.Container{}
+func selectContainers(containers []corev1.Container, spec string) ([]*corev1.Container, []*corev1.Container) {
+	out := []*corev1.Container{}
+	skipped := []*corev1.Container{}
 	for i, c := range containers {
 		if selectString(c.Name, spec) {
 			out = append(out, &containers[i])
@@ -63,8 +63,8 @@ func selectString(s, spec string) bool {
 	return match
 }
 
-func updateEnv(existing []kapi.EnvVar, env []kapi.EnvVar, remove []string) []kapi.EnvVar {
-	out := []kapi.EnvVar{}
+func updateEnv(existing []corev1.EnvVar, env []corev1.EnvVar, remove []string) []corev1.EnvVar {
+	out := []corev1.EnvVar{}
 	covered := sets.NewString(remove...)
 	for _, e := range existing {
 		if covered.Has(e.Name) {
@@ -88,13 +88,13 @@ func updateEnv(existing []kapi.EnvVar, env []kapi.EnvVar, remove []string) []kap
 	return out
 }
 
-func findEnv(env []kapi.EnvVar, name string) (kapi.EnvVar, bool) {
+func findEnv(env []corev1.EnvVar, name string) (corev1.EnvVar, bool) {
 	for _, e := range env {
 		if e.Name == name {
 			return e, true
 		}
 	}
-	return kapi.EnvVar{}, false
+	return corev1.EnvVar{}, false
 }
 
 // Patch represents the result of a mutation to an object.

@@ -1,20 +1,23 @@
 package app
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagefake "github.com/openshift/client-go/image/clientset/versioned/fake"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
-func testImageStreamClient(imageStreams *imageapi.ImageStreamList, images map[string]*imageapi.ImageStreamImage) imageclient.ImageInterface {
+func testImageStreamClient(imageStreams *imagev1.ImageStreamList, images map[string]*imagev1.ImageStreamImage) imagev1client.ImageV1Interface {
 	fake := &imagefake.Clientset{}
 
 	fake.AddReactor("list", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -24,20 +27,22 @@ func testImageStreamClient(imageStreams *imageapi.ImageStreamList, images map[st
 		return true, images[action.(clientgotesting.GetAction).GetName()], nil
 	})
 
-	return fake.Image()
+	return fake.ImageV1()
 }
 
 func TestImageStreamByAnnotationSearcherAndResolver(t *testing.T) {
 	streams, images := fakeImageStreams(
 		&fakeImageStreamDesc{
 			name: "ruby",
-			tags: map[string]imageapi.TagReference{
-				"ruby20": {
+			tags: []imagev1.TagReference{
+				{
+					Name: "ruby20",
 					Annotations: map[string]string{
 						"supports": "ruby:2.0,ruby:2.1,ruby",
 					},
 				},
-				"ruby19": {
+				{
+					Name: "ruby19",
 					Annotations: map[string]string{
 						"supports": "ruby:1.9,ruby:1.9.4,ruby",
 					},
@@ -46,13 +51,15 @@ func TestImageStreamByAnnotationSearcherAndResolver(t *testing.T) {
 		},
 		&fakeImageStreamDesc{
 			name: "wildfly",
-			tags: map[string]imageapi.TagReference{
-				"v8": {
+			tags: []imagev1.TagReference{
+				{
+					Name: "v8",
 					Annotations: map[string]string{
 						"supports": "wildfly:8.0,java,jee",
 					},
 				},
-				"v7": {
+				{
+					Name: "v7",
 					Annotations: map[string]string{
 						"supports": "wildfly:7.0,java",
 					},
@@ -112,14 +119,16 @@ func TestImageStreamSearcher(t *testing.T) {
 	streams, images := fakeImageStreams(
 		&fakeImageStreamDesc{
 			name: "nodejs1",
-			tags: map[string]imageapi.TagReference{
-				"0.10": {
+			tags: []imagev1.TagReference{
+				{
+					Name: "0.10",
 					Annotations: map[string]string{
 						"supports": "nodejs1:0.10,nodejs1:0.1,nodejs1",
 						"tags":     "hidden",
 					},
 				},
-				"4": {
+				{
+					Name: "4",
 					Annotations: map[string]string{
 						"supports": "nodejs1:4,nodejs1",
 					},
@@ -128,8 +137,9 @@ func TestImageStreamSearcher(t *testing.T) {
 		},
 		&fakeImageStreamDesc{
 			name: "nodejs2",
-			tags: map[string]imageapi.TagReference{
-				"0.10": {
+			tags: []imagev1.TagReference{
+				{
+					Name: "0.10",
 					Annotations: map[string]string{
 						"supports": "nodejs2:0.10,nodejs2:0.1,nodejs2",
 						"tags":     "hidden",
@@ -139,8 +149,9 @@ func TestImageStreamSearcher(t *testing.T) {
 		},
 		&fakeImageStreamDesc{
 			name: "nodejs3",
-			tags: map[string]imageapi.TagReference{
-				"4": {
+			tags: []imagev1.TagReference{
+				{
+					Name: "4",
 					Annotations: map[string]string{
 						"supports": "nodejs3:4,nodejs3",
 						"tags":     "hidden",
@@ -151,13 +162,15 @@ func TestImageStreamSearcher(t *testing.T) {
 		},
 		&fakeImageStreamDesc{
 			name: "nodejs4",
-			tags: map[string]imageapi.TagReference{
-				"0.10": {
+			tags: []imagev1.TagReference{
+				{
+					Name: "0.10",
 					Annotations: map[string]string{
 						"supports": "nodejs4:0.10,nodejs4:0.1,nodejs4",
 					},
 				},
-				"4": {
+				{
+					Name: "4",
 					Annotations: map[string]string{
 						"supports": "nodejs4:4,nodejs4",
 						"tags":     "hidden",
@@ -171,8 +184,9 @@ func TestImageStreamSearcher(t *testing.T) {
 		},
 		&fakeImageStreamDesc{
 			name: "ruby20",
-			tags: map[string]imageapi.TagReference{
-				"stable": {
+			tags: []imagev1.TagReference{
+				{
+					Name: "stable",
 					Annotations: map[string]string{
 						"supports": "ruby:1.9,ruby:1.9.4",
 					},
@@ -181,13 +195,15 @@ func TestImageStreamSearcher(t *testing.T) {
 		},
 		&fakeImageStreamDesc{
 			name: "wildfly",
-			tags: map[string]imageapi.TagReference{
-				"v8": {
+			tags: []imagev1.TagReference{
+				{
+					Name: "v8",
 					Annotations: map[string]string{
 						"supports": "java,jee",
 					},
 				},
-				"v7": {
+				{
+					Name: "v7",
 					Annotations: map[string]string{
 						"supports": "java",
 					},
@@ -197,7 +213,7 @@ func TestImageStreamSearcher(t *testing.T) {
 		},
 	)
 	client := testImageStreamClient(streams, images)
-	searcher := ImageStreamSearcher{Client: client, ImageStreamImages: client, Namespaces: []string{"default"}}
+	searcher := ImageStreamSearcher{Client: client, Namespaces: []string{"default"}}
 	resolver := UniqueExactOrInexactMatchResolver{Searcher: searcher}
 	tests := []struct {
 		value       string
@@ -327,18 +343,21 @@ func TestMatchSupportsAnnotation(t *testing.T) {
 func TestAnnotationMatches(t *testing.T) {
 	stream, images := fakeImageStream(&fakeImageStreamDesc{
 		name: "builder",
-		tags: map[string]imageapi.TagReference{
-			"ruby": {
+		tags: []imagev1.TagReference{
+			{
+				Name: "ruby",
 				Annotations: map[string]string{
 					"supports": "ruby,ruby:2.0,ruby:1.9",
 				},
 			},
-			"java": {
+			{
+				Name: "java",
 				Annotations: map[string]string{
 					"supports": "java,jee,wildfly",
 				},
 			},
-			"wildfly": {
+			{
+				Name: "wildfly",
 				Annotations: map[string]string{
 					"supports": "wildfly:8.0",
 				},
@@ -392,9 +411,9 @@ func TestAnnotationMatches(t *testing.T) {
 			continue
 		}
 		for _, match := range matches {
-			expectedScore := test.expectScores[match.Image.ID]
+			expectedScore := test.expectScores[match.DockerImage.ID]
 			if match.Score != expectedScore {
-				t.Errorf("%s: unexpected score for match %s. Got: %f, Expected: %f\n", test.name, match.Image.ID, match.Score, expectedScore)
+				t.Errorf("%s: unexpected score for match %s. Got: %f, Expected: %f\n", test.name, match.DockerImage.ID, match.Score, expectedScore)
 			}
 		}
 	}
@@ -402,16 +421,16 @@ func TestAnnotationMatches(t *testing.T) {
 
 type fakeImageStreamDesc struct {
 	name              string
-	tags              map[string]imageapi.TagReference
+	tags              []imagev1.TagReference
 	latest            string
 	latestannotations map[string]string
 }
 
-func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imageapi.ImageStreamList, map[string]*imageapi.ImageStreamImage) {
-	streams := &imageapi.ImageStreamList{
-		Items: []imageapi.ImageStream{},
+func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imagev1.ImageStreamList, map[string]*imagev1.ImageStreamImage) {
+	streams := &imagev1.ImageStreamList{
+		Items: []imagev1.ImageStream{},
 	}
-	allImages := map[string]*imageapi.ImageStreamImage{}
+	allImages := map[string]*imagev1.ImageStreamImage{}
 	for _, desc := range descs {
 		stream, images := fakeImageStream(desc)
 		streams.Items = append(streams.Items, *stream)
@@ -422,52 +441,64 @@ func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imageapi.ImageStreamList,
 	return streams, allImages
 }
 
-func fakeImageStream(desc *fakeImageStreamDesc) (*imageapi.ImageStream, map[string]*imageapi.ImageStreamImage) {
-	stream := &imageapi.ImageStream{
+func fakeImageStream(desc *fakeImageStreamDesc) (*imagev1.ImageStream, map[string]*imagev1.ImageStreamImage) {
+	stream := &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      desc.name,
 			Namespace: "namespace",
 		},
-		Spec: imageapi.ImageStreamSpec{
-			Tags: map[string]imageapi.TagReference{},
+		Spec: imagev1.ImageStreamSpec{
+			Tags: []imagev1.TagReference{},
 		},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{},
+		Status: imagev1.ImageStreamStatus{
+			Tags: []imagev1.NamedTagEventList{},
 		},
 	}
-	images := map[string]*imageapi.ImageStreamImage{}
-	for tag, value := range desc.tags {
-		stream.Spec.Tags[tag] = value
-		stream.Status.Tags[tag] = imageapi.TagEventList{
-			Items: []imageapi.TagEvent{
+	images := map[string]*imagev1.ImageStreamImage{}
+	for _, value := range desc.tags {
+		stream.Spec.Tags = append(stream.Spec.Tags, value)
+		stream.Status.Tags = append(stream.Status.Tags, imagev1.NamedTagEventList{
+			Tag: value.Name,
+			Items: []imagev1.TagEvent{
 				{
-					Image: tag + "-image",
+					Image: value.Name + "-image",
 				},
 			},
+		})
+
+		imageMeta := runtime.RawExtension{
+			Object: &dockerv10.DockerImage{
+				ID: value.Name,
+			},
 		}
-		images[desc.name+"@"+tag+"-image"] = &imageapi.ImageStreamImage{
-			Image: imageapi.Image{
-				DockerImageReference: "example/" + tag,
-				DockerImageMetadata:  imageapi.DockerImage{ID: tag},
+		imageMeta.Raw, _ = json.Marshal(imageMeta.Object)
+
+		images[desc.name+"@"+value.Name+"-image"] = &imagev1.ImageStreamImage{
+			Image: imagev1.Image{
+				DockerImageReference: "example/" + value.Name,
+				DockerImageMetadata:  imageMeta,
 			},
 		}
 	}
 	if len(desc.latest) > 0 {
-		stream.Spec.Tags["latest"] = imageapi.TagReference{
-			From: &kapi.ObjectReference{
+		stream.Spec.Tags = append(stream.Spec.Tags, imagev1.TagReference{
+			Name: "latest",
+			From: &corev1.ObjectReference{
 				Kind:      "ImageStreamTag",
 				Name:      desc.latest,
 				Namespace: "namespace",
 			},
 			Annotations: desc.latestannotations,
-		}
-		stream.Status.Tags["latest"] = imageapi.TagEventList{
-			Items: []imageapi.TagEvent{
+		})
+
+		stream.Status.Tags = append(stream.Status.Tags, imagev1.NamedTagEventList{
+			Tag: "latest",
+			Items: []imagev1.TagEvent{
 				{
 					Image: desc.latest + "-image",
 				},
 			},
-		}
+		})
 	}
 	return stream, images
 }
@@ -482,12 +513,12 @@ func TestInputImageFromMatch(t *testing.T) {
 		{
 			name: "image stream",
 			match: &ComponentMatch{
-				ImageStream: &imageapi.ImageStream{
+				ImageStream: &imagev1.ImageStream{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "testimage",
 						Namespace: "myns",
 					},
-					Status: imageapi.ImageStreamStatus{
+					Status: imagev1.ImageStreamStatus{
 						DockerImageRepository: "test/imagename",
 					},
 				},
@@ -497,12 +528,12 @@ func TestInputImageFromMatch(t *testing.T) {
 		{
 			name: "image stream with tag",
 			match: &ComponentMatch{
-				ImageStream: &imageapi.ImageStream{
+				ImageStream: &imagev1.ImageStream{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "testimage",
 						Namespace: "myns",
 					},
-					Status: imageapi.ImageStreamStatus{
+					Status: imagev1.ImageStreamStatus{
 						DockerImageRepository: "test/imagename",
 					},
 				},
@@ -513,16 +544,16 @@ func TestInputImageFromMatch(t *testing.T) {
 		{
 			name: "docker image",
 			match: &ComponentMatch{
-				Image: &imageapi.DockerImage{},
-				Value: "test/dockerimage",
+				DockerImage: &imageapi.DockerImage{},
+				Value:       "test/dockerimage",
 			},
 			expectedRef: "test/dockerimage",
 		},
 		{
 			name: "docker image with tag",
 			match: &ComponentMatch{
-				Image: &imageapi.DockerImage{},
-				Value: "test/dockerimage:tag",
+				DockerImage: &imageapi.DockerImage{},
+				Value:       "test/dockerimage:tag",
 			},
 			expectedRef: "test/dockerimage:tag",
 		},

@@ -4,36 +4,36 @@ import (
 	cryptorand "crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"os"
 	"path"
 	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	kappsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/dynamic"
+	corev1typedclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/print"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
-
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
+	authv1 "github.com/openshift/api/authorization/v1"
 	configcmd "github.com/openshift/origin/pkg/bulk"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 )
 
 var (
@@ -85,17 +85,22 @@ type RegistryOptions struct {
 	// helpers required for Run.
 	factory       kcmdutil.Factory
 	cmd           *cobra.Command
-	out           io.Writer
 	label         map[string]string
 	nodeSelector  map[string]string
-	ports         []kapi.ContainerPort
+	ports         []corev1.ContainerPort
 	namespace     string
-	serviceClient kcoreclient.ServicesGetter
+	serviceClient corev1typedclient.ServicesGetter
 	image         string
+
+	genericclioptions.IOStreams
 }
 
 // RegistryConfig contains configuration for the registry that will be created.
 type RegistryConfig struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	Action configcmd.BulkAction
 
 	Name           string
@@ -147,18 +152,28 @@ const (
 	defaultCertificateDir = "/etc/pki/tls/private"
 )
 
+func NewRegistryOpts(streams genericclioptions.IOStreams) *RegistryOptions {
+	return &RegistryOptions{
+		Config: &RegistryConfig{
+			PrintFlags: genericclioptions.NewPrintFlags("configured").WithTypeSetter(scheme.Scheme),
+
+			ImageTemplate:  variable.NewDefaultImageTemplate(),
+			Name:           "registry",
+			Labels:         defaultLabel,
+			Ports:          strconv.Itoa(defaultPort),
+			Volume:         "/registry",
+			ServiceAccount: "registry",
+			Replicas:       1,
+			EnforceQuota:   false,
+		},
+
+		IOStreams: streams,
+	}
+}
+
 // NewCmdRegistry implements the OpenShift cli registry command
 func NewCmdRegistry(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
-	cfg := &RegistryConfig{
-		ImageTemplate:  variable.NewDefaultImageTemplate(),
-		Name:           "registry",
-		Labels:         defaultLabel,
-		Ports:          strconv.Itoa(defaultPort),
-		Volume:         "/registry",
-		ServiceAccount: "registry",
-		Replicas:       1,
-		EnforceQuota:   false,
-	}
+	o := NewRegistryOpts(streams)
 
 	cmd := &cobra.Command{
 		Use:     name,
@@ -166,46 +181,38 @@ func NewCmdRegistry(f kcmdutil.Factory, parentName, name string, streams generic
 		Long:    registryLong,
 		Example: fmt.Sprintf(registryExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			opts := &RegistryOptions{
-				Config: cfg,
-			}
-			kcmdutil.CheckErr(opts.Complete(f, cmd, streams.Out, streams.ErrOut, args))
-			err := opts.RunCmdRegistry()
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.RunCmdRegistry())
 		},
 	}
 
-	cmd.Flags().StringVar(&cfg.Type, "type", "docker-registry", "The registry image to use - if you specify --images this flag may be ignored.")
-	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this registry on - ${component} will be replaced with --type")
-	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest image for the registry instead of the latest release.")
-	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, fmt.Sprintf("A comma delimited list of ports or port pairs to expose on the registry pod. The default is set for %d.", defaultPort))
-	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the registry; commonly 2 when high availability is desired.")
-	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the registry and its components.")
-	cmd.Flags().StringVar(&cfg.Volume, "volume", cfg.Volume, "The volume path to use for registry storage; defaults to /registry which is the default for origin-docker-registry.")
-	cmd.Flags().StringVar(&cfg.HostMount, "mount-host", cfg.HostMount, "If set, the registry volume will be created as a host-mount at this path.")
+	cmd.Flags().StringVar(&o.Config.Type, "type", "docker-registry", "The registry image to use - if you specify --images this flag may be ignored.")
+	cmd.Flags().StringVar(&o.Config.ImageTemplate.Format, "images", o.Config.ImageTemplate.Format, "The image to base this registry on - ${component} will be replaced with --type")
+	cmd.Flags().BoolVar(&o.Config.ImageTemplate.Latest, "latest-images", o.Config.ImageTemplate.Latest, "If true, attempt to use the latest image for the registry instead of the latest release.")
+	cmd.Flags().StringVar(&o.Config.Ports, "ports", o.Config.Ports, fmt.Sprintf("A comma delimited list of ports or port pairs to expose on the registry pod. The default is set for %d.", defaultPort))
+	cmd.Flags().Int32Var(&o.Config.Replicas, "replicas", o.Config.Replicas, "The replication factor of the registry; commonly 2 when high availability is desired.")
+	cmd.Flags().StringVar(&o.Config.Labels, "labels", o.Config.Labels, "A set of labels to uniquely identify the registry and its components.")
+	cmd.Flags().StringVar(&o.Config.Volume, "volume", o.Config.Volume, "The volume path to use for registry storage; defaults to /registry which is the default for origin-docker-registry.")
+	cmd.Flags().StringVar(&o.Config.HostMount, "mount-host", o.Config.HostMount, "If set, the registry volume will be created as a host-mount at this path.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
-	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the registry pod.")
-	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.")
-	cmd.Flags().StringVar(&cfg.ServingCertPath, "tls-certificate", cfg.ServingCertPath, "An optional path to a PEM encoded certificate (which may contain the private key) for serving over TLS")
-	cmd.Flags().StringVar(&cfg.ServingKeyPath, "tls-key", cfg.ServingKeyPath, "An optional path to a PEM encoded private key for serving over TLS")
-	cmd.Flags().StringSliceVar(&cfg.SupplementalGroups, "supplemental-groups", cfg.SupplementalGroups, "Specify supplemental groups which is an array of ID's that grants group access to registry shared storage")
-	cmd.Flags().StringVar(&cfg.FSGroup, "fs-group", "", "Specify fsGroup which is an ID that grants group access to registry block storage")
-	cmd.Flags().StringVar(&cfg.ClusterIP, "cluster-ip", "", "Specify the ClusterIP value for the docker-registry service")
-	cmd.Flags().BoolVar(&cfg.DaemonSet, "daemonset", cfg.DaemonSet, "If true, use a daemonset instead of a deployment config.")
-	cmd.Flags().BoolVar(&cfg.EnforceQuota, "enforce-quota", cfg.EnforceQuota, "If true, the registry will refuse to write blobs if they exceed quota limits")
-	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
+	cmd.Flags().StringVar(&o.Config.ServiceAccount, "service-account", o.Config.ServiceAccount, "Name of the service account to use to run the registry pod.")
+	cmd.Flags().StringVar(&o.Config.Selector, "selector", o.Config.Selector, "Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.")
+	cmd.Flags().StringVar(&o.Config.ServingCertPath, "tls-certificate", o.Config.ServingCertPath, "An optional path to a PEM encoded certificate (which may contain the private key) for serving over TLS")
+	cmd.Flags().StringVar(&o.Config.ServingKeyPath, "tls-key", o.Config.ServingKeyPath, "An optional path to a PEM encoded private key for serving over TLS")
+	cmd.Flags().StringSliceVar(&o.Config.SupplementalGroups, "supplemental-groups", o.Config.SupplementalGroups, "Specify supplemental groups which is an array of ID's that grants group access to registry shared storage")
+	cmd.Flags().StringVar(&o.Config.FSGroup, "fs-group", "", "Specify fsGroup which is an ID that grants group access to registry block storage")
+	cmd.Flags().StringVar(&o.Config.ClusterIP, "cluster-ip", "", "Specify the ClusterIP value for the docker-registry service")
+	cmd.Flags().BoolVar(&o.Config.DaemonSet, "daemonset", o.Config.DaemonSet, "If true, use a daemonset instead of a deployment config.")
+	cmd.Flags().BoolVar(&o.Config.EnforceQuota, "enforce-quota", o.Config.EnforceQuota, "If true, the registry will refuse to write blobs if they exceed quota limits")
+	cmd.Flags().BoolVar(&o.Config.Local, "local", o.Config.Local, "If true, do not contact the apiserver")
 
-	cfg.Action.BindForOutput(cmd.Flags())
-	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
-
+	o.Config.PrintFlags.AddFlags(cmd)
+	o.Config.Action.BindForOutput(cmd.Flags(), "output", "template")
 	return cmd
 }
 
 // Complete completes any options that are required by validate or run steps.
-func (opts *RegistryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer, args []string) error {
+func (opts *RegistryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageErrorf(cmd, "No arguments are allowed to this command")
 	}
@@ -266,15 +273,31 @@ func (opts *RegistryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ou
 	}
 
 	if !opts.Config.Local {
-		kClient, kClientErr := f.ClientSet()
-		if kClientErr != nil {
-			return fmt.Errorf("error getting client: %v", kClientErr)
+		config, err := f.ToRESTConfig()
+		if err != nil {
+			return err
 		}
-		opts.serviceClient = kClient.Core()
+
+		kclient, err := corev1typedclient.NewForConfig(config)
+		if err != nil {
+			return err
+		}
+
+		opts.serviceClient = kclient
 	}
 
 	if opts.Config.Local && !opts.Config.Action.DryRun {
 		return fmt.Errorf("--local cannot be specified without --dry-run")
+	}
+
+	if opts.Config.DryRun {
+		opts.Config.PrintFlags.Complete("%s (dry run)")
+	}
+
+	var err error
+	opts.Config.Printer, err = opts.Config.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
 	}
 
 	restMapper, err := f.ToRESTMapper()
@@ -291,12 +314,11 @@ func (opts *RegistryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ou
 	}
 
 	opts.Config.Action.Bulk.Scheme = legacyscheme.Scheme
-	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, errout
+	opts.Config.Action.Out, opts.Config.Action.ErrOut = opts.Out, opts.ErrOut
 	opts.Config.Action.Bulk.Op = configcmd.Creator{
 		Client:     dynamicClient,
 		RESTMapper: restMapper,
 	}.Create
-	opts.out = out
 	opts.cmd = cmd
 	opts.factory = f
 
@@ -309,8 +331,8 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	var clusterIP string
 
-	output := opts.Config.Action.ShouldPrint()
-	generate := output
+	shouldPrint := opts.Config.PrintFlags.OutputFormat != nil && len(*opts.Config.PrintFlags.OutputFormat) > 0 && *opts.Config.PrintFlags.OutputFormat != "name"
+	generate := shouldPrint
 	if !opts.Config.Local {
 		service, err := opts.serviceClient.Services(opts.namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
@@ -329,7 +351,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	}
 
 	if !generate {
-		fmt.Fprintf(opts.out, "Docker registry %q service exists\n", name)
+		fmt.Fprintf(opts.Out, "Docker registry %q service exists\n", name)
 		return nil
 	}
 
@@ -379,45 +401,45 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	readinessProbe := generateReadinessProbeConfig(healthzPort, tls)
 
 	mountHost := len(opts.Config.HostMount) > 0
-	podTemplate := &kapi.PodTemplateSpec{
+	podTemplate := &corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{Labels: opts.label},
-		Spec: kapi.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeSelector: opts.nodeSelector,
-			Containers: []kapi.Container{
+			Containers: []corev1.Container{
 				{
 					Name:  "registry",
 					Image: opts.image,
 					Ports: opts.ports,
 					Env:   env.List(),
-					VolumeMounts: append(mounts, kapi.VolumeMount{
+					VolumeMounts: append(mounts, corev1.VolumeMount{
 						Name:      "registry-storage",
 						MountPath: opts.Config.Volume,
 					}),
-					SecurityContext: &kapi.SecurityContext{
+					SecurityContext: &corev1.SecurityContext{
 						Privileged: &mountHost,
 					},
 					LivenessProbe:  livenessProbe,
 					ReadinessProbe: readinessProbe,
-					Resources: kapi.ResourceRequirements{
-						Requests: kapi.ResourceList{
-							kapi.ResourceCPU:    resource.MustParse("100m"),
-							kapi.ResourceMemory: resource.MustParse("256Mi"),
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("100m"),
+							corev1.ResourceMemory: resource.MustParse("256Mi"),
 						},
 					},
 				},
 			},
-			Volumes: append(volumes, kapi.Volume{
+			Volumes: append(volumes, corev1.Volume{
 				Name:         "registry-storage",
-				VolumeSource: kapi.VolumeSource{},
+				VolumeSource: corev1.VolumeSource{},
 			}),
 			ServiceAccountName: opts.Config.ServiceAccount,
 			SecurityContext:    generateSecurityContext(opts.Config),
 		},
 	}
 	if mountHost {
-		podTemplate.Spec.Volumes[len(podTemplate.Spec.Volumes)-1].HostPath = &kapi.HostPathVolumeSource{Path: opts.Config.HostMount}
+		podTemplate.Spec.Volumes[len(podTemplate.Spec.Volumes)-1].HostPath = &corev1.HostPathVolumeSource{Path: opts.Config.HostMount}
 	} else {
-		podTemplate.Spec.Volumes[len(podTemplate.Spec.Volumes)-1].EmptyDir = &kapi.EmptyDirVolumeSource{}
+		podTemplate.Spec.Volumes[len(podTemplate.Spec.Volumes)-1].EmptyDir = &corev1.EmptyDirVolumeSource{}
 	}
 
 	objects := []runtime.Object{}
@@ -426,17 +448,23 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	}
 
 	objects = append(objects,
-		&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: opts.Config.ServiceAccount}},
-		&authapi.ClusterRoleBinding{
+		&corev1.ServiceAccount{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta:   metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "ServiceAccount"},
+			ObjectMeta: metav1.ObjectMeta{Name: opts.Config.ServiceAccount},
+		},
+		&authv1.ClusterRoleBinding{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta:   metav1.TypeMeta{APIVersion: authv1.SchemeGroupVersion.String(), Kind: "ClusterRoleBinding"},
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("registry-%s-role", opts.Config.Name)},
-			Subjects: []kapi.ObjectReference{
+			Subjects: []corev1.ObjectReference{
 				{
 					Kind:      "ServiceAccount",
 					Name:      opts.Config.ServiceAccount,
 					Namespace: opts.namespace,
 				},
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Kind: "ClusterRole",
 				Name: "system:registry",
 			},
@@ -444,30 +472,34 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	)
 
 	if opts.Config.DaemonSet {
-		objects = append(objects, &extensions.DaemonSet{
+		objects = append(objects, &kappsv1.DaemonSet{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta: metav1.TypeMeta{APIVersion: kappsv1.SchemeGroupVersion.String(), Kind: "DaemonSet"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
 				Labels: opts.label,
 			},
-			Spec: extensions.DaemonSetSpec{
+			Spec: kappsv1.DaemonSetSpec{
 				Selector: &metav1.LabelSelector{MatchLabels: opts.label},
-				Template: kapi.PodTemplateSpec{
+				Template: corev1.PodTemplateSpec{
 					ObjectMeta: podTemplate.ObjectMeta,
 					Spec:       podTemplate.Spec,
 				},
 			},
 		})
 	} else {
-		objects = append(objects, &appsapi.DeploymentConfig{
+		objects = append(objects, &appsv1.DeploymentConfig{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta: metav1.TypeMeta{APIVersion: appsv1.SchemeGroupVersion.String(), Kind: "DeploymentConfig"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
 				Labels: opts.label,
 			},
-			Spec: appsapi.DeploymentConfigSpec{
+			Spec: appsv1.DeploymentConfigSpec{
 				Replicas: opts.Config.Replicas,
 				Selector: opts.label,
-				Triggers: []appsapi.DeploymentTriggerPolicy{
-					{Type: appsapi.DeploymentTriggerOnConfigChange},
+				Triggers: []appsv1.DeploymentTriggerPolicy{
+					{Type: appsv1.DeploymentTriggerOnConfigChange},
 				},
 				Template: podTemplate,
 			},
@@ -482,8 +514,8 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	// changing the internal value.
 	for _, obj := range objects {
 		switch t := obj.(type) {
-		case *kapi.Service:
-			t.Spec.SessionAffinity = kapi.ServiceAffinityClientIP
+		case *corev1.Service:
+			t.Spec.SessionAffinity = corev1.ServiceAffinityClientIP
 			t.Spec.ClusterIP = clusterIP
 		}
 	}
@@ -491,10 +523,15 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	// TODO: label all created objects with the same label
 	list := &kapi.List{Items: objects}
 
-	if opts.Config.Action.ShouldPrint() {
-		opts.cmd.Flag("output-version").Value.Set("extensions/v1beta1,v1")
-		fn := print.VersionedPrintObject(kcmdutil.PrintObject, opts.cmd, opts.out)
-		if err := fn(list); err != nil {
+	if shouldPrint {
+		printableList := &corev1.List{}
+		for _, obj := range objects {
+			printableList.Items = append(printableList.Items, runtime.RawExtension{
+				Object: obj,
+			})
+		}
+
+		if err := opts.Config.Printer.PrintObj(printableList, opts.Out); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}
 		return nil
@@ -506,26 +543,26 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	return nil
 }
 
-func generateLivenessProbeConfig(port int, https bool) *kapi.Probe {
+func generateLivenessProbeConfig(port int, https bool) *corev1.Probe {
 	probeConfig := generateProbeConfig(port, https)
 	probeConfig.InitialDelaySeconds = 10
 
 	return probeConfig
 }
 
-func generateReadinessProbeConfig(port int, https bool) *kapi.Probe {
+func generateReadinessProbeConfig(port int, https bool) *corev1.Probe {
 	return generateProbeConfig(port, https)
 }
 
-func generateProbeConfig(port int, https bool) *kapi.Probe {
-	var scheme kapi.URIScheme
+func generateProbeConfig(port int, https bool) *corev1.Probe {
+	var scheme corev1.URIScheme
 	if https {
-		scheme = kapi.URISchemeHTTPS
+		scheme = corev1.URISchemeHTTPS
 	}
-	return &kapi.Probe{
+	return &corev1.Probe{
 		TimeoutSeconds: healthzRouteTimeoutSeconds,
-		Handler: kapi.Handler{
-			HTTPGet: &kapi.HTTPGetAction{
+		Handler: corev1.Handler{
+			HTTPGet: &corev1.HTTPGetAction{
 				Scheme: scheme,
 				Path:   healthzRoute,
 				Port:   intstr.FromInt(port),
@@ -539,10 +576,10 @@ func generateProbeConfig(port int, https bool) *kapi.Probe {
 // Runs true if the registry should be served over TLS.
 func generateSecretsConfig(
 	cfg *RegistryConfig, defaultCrt, defaultKey []byte,
-) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount, app.Environment, bool, error) {
-	var secrets []*kapi.Secret
-	var volumes []kapi.Volume
-	var mounts []kapi.VolumeMount
+) ([]*corev1.Secret, []corev1.Volume, []corev1.VolumeMount, app.Environment, bool, error) {
+	var secrets []*corev1.Secret
+	var volumes []corev1.Volume
+	var mounts []corev1.VolumeMount
 	extraEnv := app.Environment{}
 
 	if len(defaultCrt) > 0 && len(defaultKey) == 0 {
@@ -557,28 +594,28 @@ func generateSecretsConfig(
 	}
 
 	if len(defaultCrt) > 0 {
-		secret := &kapi.Secret{
+		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%s-certs", cfg.Name),
 			},
-			Type: kapi.SecretTypeTLS,
+			Type: corev1.SecretTypeTLS,
 			Data: map[string][]byte{
-				kapi.TLSCertKey:       defaultCrt,
-				kapi.TLSPrivateKeyKey: defaultKey,
+				corev1.TLSCertKey:       defaultCrt,
+				corev1.TLSPrivateKeyKey: defaultKey,
 			},
 		}
 		secrets = append(secrets, secret)
-		volume := kapi.Volume{
+		volume := corev1.Volume{
 			Name: "server-certificate",
-			VolumeSource: kapi.VolumeSource{
-				Secret: &kapi.SecretVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
 					SecretName: secret.Name,
 				},
 			},
 		}
 		volumes = append(volumes, volume)
 
-		mount := kapi.VolumeMount{
+		mount := corev1.VolumeMount{
 			Name:      volume.Name,
 			ReadOnly:  true,
 			MountPath: defaultCertificateDir,
@@ -586,8 +623,8 @@ func generateSecretsConfig(
 		mounts = append(mounts, mount)
 
 		extraEnv.Add(app.Environment{
-			"REGISTRY_HTTP_TLS_CERTIFICATE": path.Join(defaultCertificateDir, kapi.TLSCertKey),
-			"REGISTRY_HTTP_TLS_KEY":         path.Join(defaultCertificateDir, kapi.TLSPrivateKeyKey),
+			"REGISTRY_HTTP_TLS_CERTIFICATE": path.Join(defaultCertificateDir, corev1.TLSCertKey),
+			"REGISTRY_HTTP_TLS_KEY":         path.Join(defaultCertificateDir, corev1.TLSPrivateKeyKey),
 		})
 	}
 
@@ -601,8 +638,8 @@ func generateSecretsConfig(
 	return secrets, volumes, mounts, extraEnv, len(defaultCrt) > 0, nil
 }
 
-func generateSecurityContext(conf *RegistryConfig) *kapi.PodSecurityContext {
-	result := &kapi.PodSecurityContext{}
+func generateSecurityContext(conf *RegistryConfig) *corev1.PodSecurityContext {
+	result := &corev1.PodSecurityContext{}
 	if len(conf.SupplementalGroups) > 0 {
 		result.SupplementalGroups = []int64{}
 		for _, val := range conf.SupplementalGroups {

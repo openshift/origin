@@ -25,7 +25,6 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -250,22 +249,10 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 
 	o.Builder = f.NewBuilder
 
-	internalAddEnv, removeEnv, err := utilenv.ParseEnv(envArgs, nil)
+	o.AddEnv, o.RemoveEnv, err = utilenv.ParseEnv(envArgs, nil)
 	if err != nil {
 		return err
 	}
-
-	// convert EnvVars that we should add, from internal to external
-	for _, internal := range internalAddEnv {
-		external := corev1.EnvVar{}
-		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(&internal, &external, nil); err != nil {
-			return err
-		}
-
-		o.AddEnv = append(o.AddEnv, external)
-	}
-
-	o.RemoveEnv = removeEnv
 
 	cmdParent := cmd.Parent()
 	if cmdParent != nil && len(cmdParent.CommandPath()) > 0 && kcmdutil.IsSiblingCommandExists(cmd, "describe") {

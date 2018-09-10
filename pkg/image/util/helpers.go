@@ -325,6 +325,15 @@ func LatestObservedTagGeneration(stream *imagev1.ImageStream, tag string) int64 
 	return lastGen
 }
 
+func HasAnnotationTag(tagRef *imagev1.TagReference, searchTag string) bool {
+	for _, tag := range strings.Split(tagRef.Annotations["tags"], ",") {
+		if tag == searchTag {
+			return true
+		}
+	}
+	return false
+}
+
 // LatestTaggedImage returns the most recent TagEvent for the specified image
 // repository and tag. Will resolve lookups for the empty tag. Returns nil
 // if tag isn't present in stream.status.tags.
