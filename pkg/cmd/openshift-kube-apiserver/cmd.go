@@ -23,6 +23,7 @@ import (
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configdefault"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
@@ -121,6 +122,7 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer() error {
 		if err := helpers.ResolvePaths(configconversion.GetKubeAPIServerConfigFileReferences(config), configFileLocation); err != nil {
 			return err
 		}
+		configdefault.SetRecommendedKubeAPIServerConfigDefaults(config)
 
 		return RunOpenShiftKubeAPIServerServer(config)
 	}

@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: etcd
+parameters:
+- name: NAMESPACE
+  value: kube-system
+objects:
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: etcd
+    namespace: ${NAMESPACE}
+  spec:
+    selector:
+      openshift.io/component: etcd
+    ports:
+    - name: listen
+      port: 4001
+      protocol: TCP
