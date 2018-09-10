@@ -10,8 +10,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -19,10 +17,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
 )
 
@@ -75,17 +73,14 @@ var (
 type MigrateImageReferenceOptions struct {
 	migrate.ResourceOptions
 
-	Client          imagetypedclient.ImageStreamsGetter
+	Client          imagev1typedclient.ImageStreamsGetter
 	Mappings        ImageReferenceMappings
-	UpdatePodSpecFn func(obj runtime.Object, fn func(*corev1.PodSpec) error) (bool, error)
+	UpdatePodSpecFn polymorphichelpers.UpdatePodSpecForObjectFunc
 }
 
 func NewMigrateImageReferenceOptions(streams genericclioptions.IOStreams) *MigrateImageReferenceOptions {
 	return &MigrateImageReferenceOptions{
-		ResourceOptions: migrate.ResourceOptions{
-			IOStreams: streams,
-			Include:   []string{"imagestream", "image", "secrets"},
-		},
+		ResourceOptions: *migrate.NewResourceOptions(streams).WithIncludes([]string{"imagestream", "image", "secrets"}),
 	}
 }
 
@@ -138,11 +133,10 @@ func (o *MigrateImageReferenceOptions) Complete(f kcmdutil.Factory, c *cobra.Com
 	if err != nil {
 		return err
 	}
-	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
+	o.Client, err = imagev1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.Client = imageClient.Image()
 
 	return nil
 }
@@ -166,7 +160,7 @@ func (o MigrateImageReferenceOptions) Run() error {
 // on the provided object.
 func (o *MigrateImageReferenceOptions) save(info *resource.Info, reporter migrate.Reporter) error {
 	switch t := info.Object.(type) {
-	case *imageapi.ImageStream:
+	case *imagev1.ImageStream:
 		// update status first so that a subsequent spec update won't pull incorrect values
 		if reporter.(imageChangeInfo).status {
 			updated, err := o.Client.ImageStreams(t.Namespace).UpdateStatus(t)
@@ -197,14 +191,14 @@ func (o *MigrateImageReferenceOptions) save(info *resource.Info, reporter migrat
 func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Reporter, error) {
 	fn := o.Mappings.MapReference
 	switch t := obj.(type) {
-	case *imageapi.Image:
+	case *imagev1.Image:
 		var changed bool
 		if updated := fn(t.DockerImageReference); updated != t.DockerImageReference {
 			changed = true
 			t.DockerImageReference = updated
 		}
 		return migrate.ReporterBool(changed), nil
-	case *imageapi.ImageStream:
+	case *imagev1.ImageStream:
 		var info imageChangeInfo
 		if len(t.Spec.DockerImageRepository) > 0 {
 			info.spec = updateString(&t.Spec.DockerImageRepository, fn)
@@ -221,11 +215,11 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 			}
 		}
 		return info, nil
-	case *kapi.Secret:
+	case *corev1.Secret:
 		switch t.Type {
-		case kapi.SecretTypeDockercfg:
+		case corev1.SecretTypeDockercfg:
 			var v credentialprovider.DockerConfig
-			if err := json.Unmarshal(t.Data[kapi.DockerConfigKey], &v); err != nil {
+			if err := json.Unmarshal(t.Data[corev1.DockerConfigKey], &v); err != nil {
 				return nil, err
 			}
 			if !updateDockerConfig(v, o.Mappings.MapDockerAuthKey) {
@@ -235,11 +229,11 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 			if err != nil {
 				return nil, err
 			}
-			t.Data[kapi.DockerConfigKey] = data
+			t.Data[corev1.DockerConfigKey] = data
 			return migrate.ReporterBool(true), nil
-		case kapi.SecretTypeDockerConfigJson:
+		case corev1.SecretTypeDockerConfigJson:
 			var v credentialprovider.DockerConfigJson
-			if err := json.Unmarshal(t.Data[kapi.DockerConfigJsonKey], &v); err != nil {
+			if err := json.Unmarshal(t.Data[corev1.DockerConfigJsonKey], &v); err != nil {
 				return nil, err
 			}
 			if !updateDockerConfig(v.Auths, o.Mappings.MapDockerAuthKey) {
@@ -249,12 +243,12 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 			if err != nil {
 				return nil, err
 			}
-			t.Data[kapi.DockerConfigJsonKey] = data
+			t.Data[corev1.DockerConfigJsonKey] = data
 			return migrate.ReporterBool(true), nil
 		default:
 			return migrate.ReporterBool(false), nil
 		}
-	case *buildapi.BuildConfig:
+	case *buildv1.BuildConfig:
 		var changed bool
 		if to := t.Spec.Output.To; to != nil && to.Kind == "DockerImage" {
 			changed = updateString(&to.Name, fn) || changed
@@ -277,10 +271,10 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 	default:
 		if o.UpdatePodSpecFn != nil {
 			var changed bool
-			supports, err := o.UpdatePodSpecFn(obj, convertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+			supports, err := o.UpdatePodSpecFn(obj, func(spec *corev1.PodSpec) error {
 				changed = updatePodSpec(spec, fn)
 				return nil
-			}))
+			})
 			if !supports {
 				return nil, nil
 			}
@@ -315,31 +309,12 @@ func updateString(value *string, fn TransformImageFunc) bool {
 	return false
 }
 
-func updatePodSpec(spec *kapi.PodSpec, fn TransformImageFunc) bool {
+func updatePodSpec(spec *corev1.PodSpec, fn TransformImageFunc) bool {
 	var changed bool
 	for i := range spec.Containers {
 		changed = updateString(&spec.Containers[i].Image, fn) || changed
 	}
 	return changed
-}
-
-// TODO(juanvallejo): this needs to die once this command is switched to externals
-func convertInteralPodSpecToExternal(inFn func(*kapi.PodSpec) error) func(*corev1.PodSpec) error {
-	return func(specToMutate *corev1.PodSpec) error {
-		internalPodSpec := &kapi.PodSpec{}
-		if err := legacyscheme.Scheme.Convert(specToMutate, internalPodSpec, nil); err != nil {
-			return err
-		}
-		if err := inFn(internalPodSpec); err != nil {
-			return err
-		}
-		externalPodSpec := &corev1.PodSpec{}
-		if err := legacyscheme.Scheme.Convert(internalPodSpec, externalPodSpec, nil); err != nil {
-			return err
-		}
-		*specToMutate = *externalPodSpec
-		return nil
-	}
 }
 
 func updateDockerConfig(cfg credentialprovider.DockerConfig, fn TransformImageFunc) bool {

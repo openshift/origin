@@ -91,12 +91,10 @@ func NewMigrateAPIStorageOptions(streams genericclioptions.IOStreams) *MigrateAP
 
 		bandwidth: 10,
 
-		ResourceOptions: migrate.ResourceOptions{
-			IOStreams: streams,
-
-			Unstructured: true,
-			Include:      []string{"*"},
-			DefaultExcludes: []schema.GroupResource{
+		ResourceOptions: *migrate.NewResourceOptions(streams).
+			WithIncludes([]string{"*"}).
+			WithUnstructured().
+			WithExcludes([]schema.GroupResource{
 				// openshift resources:
 				{Resource: "appliedclusterresourcequotas"},
 				{Resource: "imagestreamimages"}, {Resource: "imagestreamtags"}, {Resource: "imagestreammappings"}, {Resource: "imagestreamimports"},
@@ -116,9 +114,8 @@ func NewMigrateAPIStorageOptions(streams genericclioptions.IOStreams) *MigrateAP
 				{Resource: "replicationcontrollerdummies.extensions"},
 				{Resource: "podtemplates"},
 				{Resource: "selfsubjectaccessreviews", Group: "authorization.k8s.io"}, {Resource: "localsubjectaccessreviews", Group: "authorization.k8s.io"},
-			},
-			// Resources known to share the same storage
-			OverlappingResources: []sets.String{
+			}).
+			WithOverlappingResources([]sets.String{
 				// openshift resources:
 				sets.NewString("deploymentconfigs.apps.openshift.io", "deploymentconfigs"),
 
@@ -182,8 +179,7 @@ func NewMigrateAPIStorageOptions(streams genericclioptions.IOStreams) *MigrateAP
 				// kubernetes resources:
 				sets.NewString("horizontalpodautoscalers.autoscaling", "horizontalpodautoscalers.extensions"),
 				sets.NewString("jobs.batch", "jobs.extensions"),
-			},
-		},
+			}),
 	}
 }
 
@@ -267,12 +263,10 @@ func (o *MigrateAPIStorageOptions) Complete(f kcmdutil.Factory, c *cobra.Command
 	clientConfigCopy.Burst = 99999
 	clientConfigCopy.QPS = 99999
 
-	client, err := dynamic.NewForConfig(clientConfigCopy)
+	o.client, err = dynamic.NewForConfig(clientConfigCopy)
 	if err != nil {
 		return err
 	}
-
-	o.client = client
 
 	return nil
 }

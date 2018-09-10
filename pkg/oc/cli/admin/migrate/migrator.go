@@ -10,7 +10,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -19,9 +18,9 @@ import (
 	"k8s.io/client-go/discovery"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
-
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 // MigrateVisitFunc is invoked for each returned object, and may return a
@@ -101,6 +100,10 @@ func (w *syncedWriter) write(p []byte) (int, error) {
 // ResourceOptions assists in performing migrations on any object that
 // can be retrieved via the API.
 type ResourceOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	Printer printers.ResourcePrinter
+
 	Unstructured  bool
 	AllNamespaces bool
 	Include       []string
@@ -135,6 +138,38 @@ type ResourceOptions struct {
 	genericclioptions.IOStreams
 }
 
+func NewResourceOptions(streams genericclioptions.IOStreams) *ResourceOptions {
+	return &ResourceOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("migrated").WithTypeSetter(scheme.Scheme),
+		IOStreams:  streams,
+	}
+}
+
+func (o *ResourceOptions) WithIncludes(include []string) *ResourceOptions {
+	o.Include = include
+	return o
+}
+
+func (o *ResourceOptions) WithExcludes(defaultExcludes []schema.GroupResource) *ResourceOptions {
+	o.DefaultExcludes = defaultExcludes
+	return o
+}
+
+func (o *ResourceOptions) WithOverlappingResources(resources []sets.String) *ResourceOptions {
+	o.OverlappingResources = resources
+	return o
+}
+
+func (o *ResourceOptions) WithUnstructured() *ResourceOptions {
+	o.Unstructured = true
+	return o
+}
+
+func (o *ResourceOptions) WithAllNamespaces() *ResourceOptions {
+	o.AllNamespaces = true
+	return o
+}
+
 func (o *ResourceOptions) Bind(c *cobra.Command) {
 	c.Flags().StringSliceVar(&o.Include, "include", o.Include, "Resource types to migrate. Passing --filename will override this flag.")
 	c.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", true, "Migrate objects in all namespaces. Defaults to true.")
@@ -143,10 +178,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 	c.Flags().StringVar(&o.FromKey, "from-key", o.FromKey, "If specified, only migrate items with a key (namespace/name or name) greater than or equal to this value")
 	c.Flags().StringVar(&o.ToKey, "to-key", o.ToKey, "If specified, only migrate items with a key (namespace/name or name) less than this value")
 
-	// kcmdutil.PrinterForCommand needs these flags, however they are useless
-	// here because oc process returns list of heterogeneous objects that is
-	// not suitable for formatting as a table.
-	kcmdutil.AddNonDeprecatedPrinterFlags(c)
+	o.PrintFlags.AddFlags(c)
 
 	usage := "Filename, directory, or URL to docker-compose.yml file to use"
 	kcmdutil.AddJsonFilenameFlag(c.Flags(), &o.Filenames, usage)
@@ -154,25 +186,28 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 
 func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 	o.Output = kcmdutil.GetFlagString(c, "output")
+
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+
+	var err error
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
 	switch {
 	case len(o.Output) > 0:
-		printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(c, false))
-		if err != nil {
-			return err
-		}
 		first := true
 		o.PrintFn = func(info *resource.Info, _ Reporter) error {
-			obj, err := legacyscheme.Scheme.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupVersion())
-			if err != nil {
-				return err
-			}
-			// TODO: PrintObj is not correct for YAML - it should inject document separators itself
+			// We would normally pass an API list to the printer, however this command is special
+			// and does not have all of the infos it wants to print at the same time.
 			if o.Output == "yaml" && !first {
 				fmt.Fprintln(o.Out, "---")
 			}
 			first = false
-			printer.PrintObj(obj, o.Out)
-			return nil
+			return o.Printer.PrintObj(info.Object, o.Out)
 		}
 		o.DryRun = true
 	case o.Confirm:
@@ -310,7 +345,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 	if o.Unstructured {
 		o.Builder.Unstructured()
 	} else {
-		o.Builder.WithScheme(ocscheme.ReadingInternalScheme)
+		o.Builder.WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...)
 	}
 
 	if !allNamespaces {
