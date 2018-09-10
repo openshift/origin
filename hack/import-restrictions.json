@@ -544,7 +544,6 @@
       "github.com/openshift/origin/pkg/api/legacygroupification",
       "github.com/openshift/origin/pkg/apps/apis/apps",
       "github.com/openshift/origin/pkg/apps/apis/apps/install",
-      "github.com/openshift/origin/pkg/apps/apis/apps/internaltest",
       "github.com/openshift/origin/pkg/apps/util/test",
       "github.com/openshift/origin/pkg/apps/client/internalversion",
       "github.com/openshift/origin/pkg/apps/client/v1",
