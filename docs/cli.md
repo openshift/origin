@@ -647,31 +647,6 @@ $ oc process -f examples/sample-app/application-template-stibuild.json > config.
 $ oc process -f template.json | oc create -f -
 ```
 
-### oc export
-
-This displays to standard output the specified resource(s) in YAML format.
-The general form is:
-
-```bash
-$ oc export <resource-type>/<name> [options]
-```
-
-The options are:
-
-| Option                | Description                                      |
-|:----------------------|:-------------------------------------------------|
-|`-f` *filename*        | Write to *filename* instead of standard output.  |
-|`--as-template` *name* | Output in template format with name *name*.      |
-|`--all-namespace`      | If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace. |
-|`--exact`              | Preserve fields that may be cluster specific, such as service `clusterIP`s or generated names. |
-|`--raw`                | Do not alter the resources in any way after they are loaded. |
-
-The following example exports all services to a template with name `test`.
-
-```bash
-$ oc export service --as-template=test
-```
-
 ## Settings Commands
 
 ### oc logout
