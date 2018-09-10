@@ -1,5 +1,5 @@
-hash: 7a39ba76dd7417789ddcf8b78f18ad67113efb88e0f5ec0c79499f1581272509
-updated: 2018-09-07T13:17:51.235169419-04:00
+hash: 572c20f12c413595a027a07c157c43c4ed1e3e293d4dfb58f38bcec882a5e787
+updated: 2018-09-10T10:13:52.571385-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -96,7 +96,7 @@ imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
-  version: deb3ae2ef2610fde3330947281941c562861188b
+  version: ee1a9a0726d2ae45f54118cac878c990d4016ded
 - name: github.com/chai2010/gettext-go
   version: c6fed771bfd517099caf0f7a961671fa8ed08723
   subpackages:
@@ -613,9 +613,9 @@ imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
-  version: e48e440e4c92e3251d812f8ce7858944dfa3331c
+  version: 9e1f5955c0d22b55d9e20d6faa28589f83b2faca
 - name: github.com/gorilla/securecookie
-  version: 51f47194a536d357035c4ad9304e2fa42dde262a
+  version: 3a8eb0de07814569f0bdadffc60dda1668de90bd
 - name: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
 - name: github.com/gorilla/websocket
@@ -772,6 +772,8 @@ imports:
   version: d59fa0ac68bb5dd932ee8d24eed631cdd519efc3
   subpackages:
   - format
+  - gstruct
+  - gstruct/errors
   - internal/assertion
   - internal/asyncassertion
   - internal/oraclematcher
@@ -1162,6 +1164,7 @@ imports:
   - list
   - lookup
   - lookup/methods
+  - lookup/simulator
   - lookup/types
   - nfc
   - object
@@ -1170,8 +1173,12 @@ imports:
   - pbm/types
   - property
   - session
+  - simulator
+  - simulator/esx
+  - simulator/vpx
   - sts
   - sts/internal
+  - sts/simulator
   - task
   - vim25
   - vim25/debug
@@ -1287,7 +1294,11 @@ imports:
 - name: golang.org/x/tools
   version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
   subpackages:
+  - benchmark/parse
   - container/intsets
+  - go/ast/astutil
+  - go/vcs
+  - imports
 - name: google.golang.org/api
   version: 8e296ef260056b6323d10727db40512dac6d92d5
   subpackages:
@@ -2684,7 +2695,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 2fce749cdc6721edd1b2d74e875e55cc1fe6abfb
+  version: a678900f2f745168dad0fe7e7ffd678ee8b10b52
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1
