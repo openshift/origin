@@ -3,7 +3,6 @@ Coming soon...
 
 Controller to mint and manage serving certificates for Kubernetes services.
 
-
 Current thinking of how this will be structured (this is subject to change).
  1. Controller to create service serving cert/key pairs as today
  2. Controller to keep apiservices up to date with a CA bundle based on an annotation on the apiservice.
