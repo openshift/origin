@@ -16,8 +16,8 @@ func (GroupResource) SwaggerDoc() map[string]string {
 }
 
 var map_ImageCondition = map[string]string{
-	"":     "ImageCondition defines the conditions for matching a particular image source. The conditions below are all required (logical AND). If Reject is specified, the condition is false if all conditions match, and true otherwise.",
-	"name": "Name is the name of this policy rule for reference. It must be unique across all rules.",
+	"":                        "ImageCondition defines the conditions for matching a particular image source. The conditions below are all required (logical AND). If Reject is specified, the condition is false if all conditions match, and true otherwise.",
+	"name":                    "Name is the name of this policy rule for reference. It must be unique across all rules.",
 	"ignoreNamespaceOverride": "IgnoreNamespaceOverride prevents this condition from being overridden when the `alpha.image.policy.openshift.io/ignore-rules` is set on a namespace and contains this rule name.",
 	"onResources":             "OnResources determines which resources this applies to. Defaults to 'pods' for ImageExecutionPolicyRules.",
 	"invertMatch":             "InvertMatch means the value of the condition is logically inverted (true -> false, false -> true).",

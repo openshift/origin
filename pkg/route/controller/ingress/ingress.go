@@ -487,9 +487,9 @@ func newRouteForIngress(
 			return nil
 		}
 		tlsConfig = &routev1.TLSConfig{
-			Termination: routev1.TLSTerminationEdge,
-			Certificate: string(secret.Data[v1.TLSCertKey]),
-			Key:         string(secret.Data[v1.TLSPrivateKeyKey]),
+			Termination:                   routev1.TLSTerminationEdge,
+			Certificate:                   string(secret.Data[v1.TLSCertKey]),
+			Key:                           string(secret.Data[v1.TLSPrivateKeyKey]),
 			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
 		}
 	}

@@ -54,7 +54,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 			expectedImages: []imagev1.ImageImportSpec{{
@@ -68,7 +68,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 			err: `"nonexisting" does not exist on the image stream`,
@@ -80,7 +80,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 			expectedRepository: &imagev1.RepositoryImportSpec{
@@ -96,7 +96,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 		},
@@ -109,7 +109,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 			expectedRepository: &imagev1.RepositoryImportSpec{
@@ -370,7 +370,7 @@ func TestCreateImageImport(t *testing.T) {
 				},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 			expectedImages: []imagev1.ImageImportSpec{{
@@ -390,7 +390,7 @@ func TestCreateImageImport(t *testing.T) {
 				},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 			expectedImages: []imagev1.ImageImportSpec{{
@@ -453,7 +453,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 			expectedRepository: &imagev1.RepositoryImportSpec{
@@ -566,7 +566,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
-					Tags: []imagev1.TagReference{},
+					Tags:                  []imagev1.TagReference{},
 				},
 			},
 			expectedRepository: &imagev1.RepositoryImportSpec{

@@ -47,7 +47,7 @@ func mockBuild(name string, phase buildv1.BuildPhase, stamp *metav1.Time) buildv
 			Namespace:         "namespace",
 			CreationTimestamp: *stamp,
 			Labels: map[string]string{
-				"app": appName[0],
+				"app":                      appName[0],
 				buildutil.BuildConfigLabel: fmt.Sprintf("%v-build", appName[0]),
 				"buildconfig":              fmt.Sprintf("%v-build", appName[0]),
 			},

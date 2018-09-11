@@ -68,8 +68,8 @@ type DockercfgControllerOptions struct {
 // NewDockercfgController returns a new *DockercfgController.
 func NewDockercfgController(serviceAccounts informers.ServiceAccountInformer, secrets informers.SecretInformer, cl kclientset.Interface, options DockercfgControllerOptions) *DockercfgController {
 	e := &DockercfgController{
-		client: cl,
-		queue:  workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		client:                cl,
+		queue:                 workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		dockerURLsInitialized: options.DockerURLsInitialized,
 	}
 

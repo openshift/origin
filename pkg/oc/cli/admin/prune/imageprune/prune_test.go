@@ -81,9 +81,9 @@ func TestImagePruning(t *testing.T) {
 		expectedErrorString           string
 	}{
 		{
-			name:   "1 pod - phase pending - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodPending, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "1 pod - phase pending - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodPending, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
@@ -99,9 +99,9 @@ func TestImagePruning(t *testing.T) {
 		},
 
 		{
-			name:   "1 pod - phase running - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodRunning, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "1 pod - phase running - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodRunning, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
@@ -117,9 +117,9 @@ func TestImagePruning(t *testing.T) {
 		},
 
 		{
-			name:   "pod phase succeeded - prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "pod phase succeeded - prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -132,25 +132,25 @@ func TestImagePruning(t *testing.T) {
 		},
 
 		{
-			name:          "pod phase succeeded - prune leave registry alone",
-			pruneRegistry: newBool(false),
-			images:        testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:          testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "pod phase succeeded - prune leave registry alone",
+			pruneRegistry:          newBool(false),
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions:  []string{},
 		},
 
 		{
-			name:   "pod phase succeeded, pod less than min pruning age - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:   testutil.PodList(testutil.AgedPod("foo", "pod1", corev1.PodSucceeded, 5, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "pod phase succeeded, pod less than min pruning age - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   testutil.PodList(testutil.AgedPod("foo", "pod1", corev1.PodSucceeded, 5, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
-			name:   "pod phase succeeded, image less than min pruning age - don't prune",
-			images: testutil.ImageList(testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", 5)),
-			pods:   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "pod phase succeeded, image less than min pruning age - don't prune",
+			images:                 testutil.ImageList(testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", 5)),
+			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
@@ -244,16 +244,16 @@ func TestImagePruning(t *testing.T) {
 		},
 
 		{
-			name:   "referenced by rc - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			rcs:    testutil.RCList(testutil.RC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "referenced by rc - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			rcs:                    testutil.RCList(testutil.RC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
-			name:   "referenced by dc - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			dcs:    testutil.DCList(testutil.DC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "referenced by dc - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			dcs:                    testutil.DCList(testutil.DC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
@@ -263,7 +263,7 @@ func TestImagePruning(t *testing.T) {
 				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
 				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
-			dss: testutil.DSList(testutil.DS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			dss:                    testutil.DSList(testutil.DS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
@@ -274,7 +274,7 @@ func TestImagePruning(t *testing.T) {
 				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
 				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
-			rss: testutil.RSList(testutil.RS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			rss:                    testutil.RSList(testutil.RS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
@@ -291,44 +291,44 @@ func TestImagePruning(t *testing.T) {
 		},
 
 		{
-			name:   "referenced by bc - sti - ImageStreamImage - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:    testutil.BCList(testutil.BC("foo", "bc1", "source", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "referenced by bc - sti - ImageStreamImage - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "source", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
-			name:   "referenced by bc - docker - ImageStreamImage - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:    testutil.BCList(testutil.BC("foo", "bc1", "docker", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "referenced by bc - docker - ImageStreamImage - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "docker", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
-			name:   "referenced by bc - custom - ImageStreamImage - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:    testutil.BCList(testutil.BC("foo", "bc1", "custom", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "referenced by bc - custom - ImageStreamImage - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "custom", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
-			name:   "referenced by bc - sti - DockerImage - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:    testutil.BCList(testutil.BC("foo", "bc1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "referenced by bc - sti - DockerImage - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
-			name:   "referenced by bc - docker - DockerImage - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:    testutil.BCList(testutil.BC("foo", "bc1", "docker", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "referenced by bc - docker - DockerImage - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "docker", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
-			name:   "referenced by bc - custom - DockerImage - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:    testutil.BCList(testutil.BC("foo", "bc1", "custom", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			name:                   "referenced by bc - custom - DockerImage - don't prune",
+			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "custom", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
@@ -1577,21 +1577,21 @@ func TestRegistryPruning(t *testing.T) {
 			keepYoungerThan := 60 * time.Minute
 			keepTagRevisions := 1
 			options := PrunerOptions{
-				KeepYoungerThan:  &keepYoungerThan,
-				KeepTagRevisions: &keepTagRevisions,
-				PruneRegistry:    &test.pruneRegistry,
-				Images:           &test.images,
-				ImageWatcher:     watch.NewFake(),
-				Streams:          &test.streams,
-				StreamWatcher:    watch.NewFake(),
-				Pods:             &corev1.PodList{},
-				RCs:              &corev1.ReplicationControllerList{},
-				BCs:              &buildv1.BuildConfigList{},
-				Builds:           &buildv1.BuildList{},
-				DSs:              &kappsv1.DaemonSetList{},
-				Deployments:      &kappsv1.DeploymentList{},
-				DCs:              &appsv1.DeploymentConfigList{},
-				RSs:              &kappsv1.ReplicaSetList{},
+				KeepYoungerThan:       &keepYoungerThan,
+				KeepTagRevisions:      &keepTagRevisions,
+				PruneRegistry:         &test.pruneRegistry,
+				Images:                &test.images,
+				ImageWatcher:          watch.NewFake(),
+				Streams:               &test.streams,
+				StreamWatcher:         watch.NewFake(),
+				Pods:                  &corev1.PodList{},
+				RCs:                   &corev1.ReplicationControllerList{},
+				BCs:                   &buildv1.BuildConfigList{},
+				Builds:                &buildv1.BuildList{},
+				DSs:                   &kappsv1.DaemonSetList{},
+				Deployments:           &kappsv1.DeploymentList{},
+				DCs:                   &appsv1.DeploymentConfigList{},
+				RSs:                   &kappsv1.ReplicaSetList{},
 				RegistryClientFactory: FakeRegistryClientFactory,
 				RegistryURL:           &url.URL{Scheme: "https", Host: "registry1.io"},
 			}
@@ -1943,18 +1943,18 @@ func TestChangeImageStreamsWhilePruning(t *testing.T) {
 	rss := testutil.RSList()
 
 	options := PrunerOptions{
-		Images:        &images,
-		ImageWatcher:  watch.NewFake(),
-		Streams:       &streams,
-		StreamWatcher: streamWatcher,
-		Pods:          &pods,
-		RCs:           &rcs,
-		BCs:           &bcs,
-		Builds:        &builds,
-		DSs:           &dss,
-		Deployments:   &deployments,
-		DCs:           &dcs,
-		RSs:           &rss,
+		Images:                &images,
+		ImageWatcher:          watch.NewFake(),
+		Streams:               &streams,
+		StreamWatcher:         streamWatcher,
+		Pods:                  &pods,
+		RCs:                   &rcs,
+		BCs:                   &bcs,
+		Builds:                &builds,
+		DSs:                   &dss,
+		Deployments:           &deployments,
+		DCs:                   &dcs,
+		RSs:                   &rss,
 		RegistryClientFactory: FakeRegistryClientFactory,
 		RegistryURL:           &url.URL{Scheme: "https", Host: "registry1.io"},
 		NumWorkers:            1,

@@ -167,10 +167,10 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	buildTriggerCauses := webhook.GenerateBuildTriggerInfo(revision, hookType)
 
 	request := &buildv1.BuildRequest{
-		TriggeredBy: buildTriggerCauses,
-		ObjectMeta:  metav1.ObjectMeta{Name: name},
-		Revision:    revision,
-		Env:         envvars,
+		TriggeredBy:           buildTriggerCauses,
+		ObjectMeta:            metav1.ObjectMeta{Name: name},
+		Revision:              revision,
+		Env:                   envvars,
 		DockerStrategyOptions: dockerStrategyOptions,
 	}
 

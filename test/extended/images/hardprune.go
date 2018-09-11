@@ -202,7 +202,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 				*/
 				ManifestLinks: RepoLinks{oc.Namespace() + "/c": []string{childImg1}},
 				Blobs: []string{
-					childImg1, // manifest blob
+					childImg1,                              // manifest blob
 					imgs[childImg1].DockerImageMetadata.ID, // manifest config
 					imgs[childImg1].DockerImageLayers[0].Name,
 				},
@@ -218,7 +218,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				Blobs: []string{
-					baseImg1, // manifest blob
+					baseImg1,                              // manifest blob
 					imgs[baseImg1].DockerImageMetadata.ID, // manifest config
 					imgs[baseImg1].DockerImageLayers[0].Name,
 					imgs[baseImg1].DockerImageLayers[1].Name,
@@ -242,7 +242,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 				*/
 				ManifestLinks: RepoLinks{oc.Namespace() + "/b": []string{childImg2}},
 				Blobs: []string{
-					childImg2, // manifest blob
+					childImg2,                              // manifest blob
 					imgs[childImg2].DockerImageMetadata.ID, // manifest config
 					imgs[childImg2].DockerImageLayers[0].Name,
 				},
@@ -270,7 +270,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 				*/
 				Repos: []string{oc.Namespace() + "/b"},
 				Blobs: []string{
-					baseImg2, // manifest blob
+					baseImg2,                              // manifest blob
 					imgs[baseImg2].DockerImageMetadata.ID, // manifest config
 					imgs[baseImg2].DockerImageLayers[0].Name,
 					imgs[baseImg2].DockerImageLayers[1].Name,

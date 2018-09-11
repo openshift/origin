@@ -465,7 +465,7 @@ func TestNameFromGitURL(t *testing.T) {
 		"empty host":             {url: emptyHostURL, expectedName: "", expectedSuccess: false},
 		"host port":              {url: hostPortURL, expectedName: "www.example.com", expectedSuccess: true},
 		"non standard host port": {url: nonStandardHostPortURL, expectedName: "www.example.com", expectedSuccess: true},
-		"host": {url: hostURL, expectedName: "www.example.com", expectedSuccess: true},
+		"host":                   {url: hostURL, expectedName: "www.example.com", expectedSuccess: true},
 	}
 
 	for name, test := range tests {

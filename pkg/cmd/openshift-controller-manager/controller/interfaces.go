@@ -117,9 +117,9 @@ func NewControllerContext(
 		InternalQuotaInformers:    quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		InternalRouteInformers:    routeinformer.NewSharedInformerFactory(routerClient, defaultInformerResyncPeriod),
 		InternalTemplateInformers: templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod),
-		Stop:             stopCh,
-		InformersStarted: make(chan struct{}),
-		RestMapper:       dynamicRestMapper,
+		Stop:                      stopCh,
+		InformersStarted:          make(chan struct{}),
+		RestMapper:                dynamicRestMapper,
 	}
 	openshiftControllerContext.GenericResourceInformer = openshiftControllerContext.ToGenericInformer()
 
