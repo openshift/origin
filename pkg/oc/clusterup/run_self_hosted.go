@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/components/pivot"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubelet"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/staticpods"
@@ -78,6 +79,15 @@ var (
 				Namespace:       "kube-system",
 				NamespaceObj:    newNamespaceBytes("kube-system", runlevelZeroLabel),
 				InstallTemplate: manifests.MustAsset("install/etcd/install.yaml"),
+			},
+		},
+		{
+			ComponentImage: "cluster-kube-apiserver-operator",
+			Template: componentinstall.Template{
+				Name:            "openshift-kube-apiserver-operator",
+				Namespace:       "openshift-core-operators",
+				NamespaceObj:    newNamespaceBytes("openshift-core-operators", runlevelZeroLabel),
+				InstallTemplate: manifests.MustAsset("install/cluster-kube-apiserver-operator/install.yaml"),
 			},
 		},
 		{
@@ -192,6 +202,17 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	if err := waitForHealthyKubeAPIServer(clientConfig); err != nil {
 		return err
 	}
+	glog.Info("kube-apiserver is ready.")
+	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.pullPolicy, c.BaseDir, c.ServerLogLevel)
+	if err != nil {
+		return err
+	}
+
+	glog.Info("Create initial config content...")
+	err = (&pivot.KubeAPIServerContent{InstallContext: installContext}).Install(c.GetDockerClient())
+	if err != nil {
+		return err
+	}
 
 	// bootstrap the service-ca operator with the legacy service-signer.crt and key.
 	err = createServiceCASigningSecret(clientConfig,
@@ -213,11 +234,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		templateSubstitutionValues,
 		c.GetDockerClient(),
 	)
-	if err != nil {
-		return err
-	}
-
-	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.pullPolicy, c.BaseDir, c.ServerLogLevel)
 	if err != nil {
 		return err
 	}
