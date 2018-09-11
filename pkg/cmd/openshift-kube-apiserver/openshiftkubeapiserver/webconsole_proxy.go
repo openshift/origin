@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 
@@ -85,11 +86,16 @@ type webConsolePublicURLAccessor struct {
 	polling         time.Duration
 }
 
-func newWebConsolePublicURLAccessor(clientConfig *rest.Config) *webConsolePublicURLAccessor {
+func newWebConsolePublicURLAccessor(clientConfig *rest.Config) (*webConsolePublicURLAccessor, map[string]genericapiserver.PostStartHookFunc) {
+	postStartHook := map[string]genericapiserver.PostStartHookFunc{}
 	accessor := &webConsolePublicURLAccessor{
 		configMapGetter: coreclientv1.NewForConfigOrDie(clientConfig),
 	}
-	return accessor
+	postStartHook["openshift.io-webconsolepublicurl"] = func(context genericapiserver.PostStartHookContext) error {
+		go accessor.Run(context.StopCh)
+		return nil
+	}
+	return accessor, postStartHook
 }
 
 func (a *webConsolePublicURLAccessor) getPublicConsoleURL() string {

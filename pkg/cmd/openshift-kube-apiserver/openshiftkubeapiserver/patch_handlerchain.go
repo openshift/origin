@@ -26,10 +26,14 @@ const (
 func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string, oauthConfig *osinv1.OAuthConfig, userAgentMatchingConfig kubecontrolplanev1.UserAgentMatchingConfig) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
 	extraPostStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 
-	webconsoleProxyHandler, err := newWebConsoleProxy(kubeInformers, legacyServiceServingCertSignerCABundle)
+	webconsoleProxyHandler, proxyPostStartHooks, err := newWebConsoleProxy(kubeInformers, legacyServiceServingCertSignerCABundle)
 	if err != nil {
 		return nil, nil, err
 	}
+	for name, fn := range proxyPostStartHooks {
+		extraPostStartHooks[name] = fn
+	}
+
 	oauthServerHandler, newPostStartHooks, err := NewOAuthServerHandler(genericConfig, oauthConfig)
 	if err != nil {
 		return nil, nil, err
@@ -38,16 +42,15 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers inf
 		extraPostStartHooks[name] = fn
 	}
 
-	return func(apiHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
-			// Machinery that let's use discover the Web Console Public URL
-			accessor := newWebConsolePublicURLAccessor(genericConfig.LoopbackClientConfig)
-			// the webconsole is proxied through the API server.  This starts a small controller that keeps track of where to proxy.
-			// TODO stop proxying the webconsole. Should happen in a future release.
-			extraPostStartHooks["openshift.io-webconsolepublicurl"] = func(context genericapiserver.PostStartHookContext) error {
-				go accessor.Run(context.StopCh)
-				return nil
-			}
+	// Machinery that let's use discover the Web Console Public URL.
+	// The webconsole is proxied through the API server.  This starts a small controller that keeps track of where to proxy.
+	// TODO stop proxying the webconsole. Should happen in a future release.
+	accessor, consolePostStartHooks := newWebConsolePublicURLAccessor(genericConfig.LoopbackClientConfig)
+	for name, fn := range consolePostStartHooks {
+		extraPostStartHooks[name] = fn
+	}
 
+	return func(apiHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
 			// these are after the kube handler
 			handler := versionSkewFilter(apiHandler, userAgentMatchingConfig)
 
@@ -72,16 +75,32 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, kubeInformers inf
 		nil
 }
 
-func newWebConsoleProxy(kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string) (http.Handler, error) {
+func newWebConsoleProxy(kubeInformers informers.SharedInformerFactory, legacyServiceServingCertSignerCABundle string) (http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
+
 	caBundle, err := ioutil.ReadFile(legacyServiceServingCertSignerCABundle)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	proxyHandler, err := newServiceProxyHandler("webconsole", "openshift-web-console", aggregatorapiserver.NewClusterIPServiceResolver(kubeInformers.Core().V1().Services().Lister()), caBundle, "OpenShift web console")
+
+	caBundleUpdater, err := NewServiceCABundleUpdater(kubeInformers, "webconsole.openshift-web-console.svc", caBundle)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return proxyHandler, nil
+
+	proxyHandler := &serviceProxyHandler{
+		serviceName:            "webconsole",
+		serviceNamespace:       "openshift-web-console",
+		serviceResolver:        aggregatorapiserver.NewClusterIPServiceResolver(kubeInformers.Core().V1().Services().Lister()),
+		applicationDisplayName: "OpenShift web console",
+		proxyRoundTripper:      caBundleUpdater.rt,
+	}
+
+	postStartHooks["openshift.io-catransportupdater"] = func(context genericapiserver.PostStartHookContext) error {
+		go caBundleUpdater.Run(context.StopCh)
+		return nil
+	}
+	return proxyHandler, postStartHooks, nil
 }
 
 func withOAuthRedirection(oauthConfig *osinv1.OAuthConfig, handler, oauthServerHandler http.Handler) http.Handler {

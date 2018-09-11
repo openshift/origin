@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/proxy"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
-	restclient "k8s.io/client-go/rest"
 )
 
 var proxyErrorPageTemplate = template.Must(template.New("proxyErrorPage").Parse(proxyErrorPageTemplateString))
@@ -86,31 +85,6 @@ type serviceProxyHandler struct {
 
 	// proxyRoundTripper is the re-useable portion of the transport.  It does not vary with any request.
 	proxyRoundTripper http.RoundTripper
-
-	restConfig *restclient.Config
-}
-
-// newServiceProxyHandler is a simple proxy that doesn't handle upgrades, passes headers directly through, and doesn't assert any identity.
-func newServiceProxyHandler(serviceName string, serviceNamespace string, serviceResolver ServiceResolver, caBundle []byte, applicationDisplayName string) (*serviceProxyHandler, error) {
-	restConfig := &restclient.Config{
-		TLSClientConfig: restclient.TLSClientConfig{
-			ServerName: serviceName + "." + serviceNamespace + ".svc",
-			CAData:     caBundle,
-		},
-	}
-	proxyRoundTripper, err := restclient.TransportFor(restConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return &serviceProxyHandler{
-		serviceName:            serviceName,
-		serviceNamespace:       serviceNamespace,
-		serviceResolver:        serviceResolver,
-		applicationDisplayName: applicationDisplayName,
-		proxyRoundTripper:      proxyRoundTripper,
-		restConfig:             restConfig,
-	}, nil
 }
 
 func (r *serviceProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
