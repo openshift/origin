@@ -62,7 +62,7 @@ func (opt *BootkubeRunConfig) RunStart(dockerClient dockerhelper.Interface) (str
 
 	startCommand := []string{
 		"start",
-		"--pod-manifest-path=/static-pod-manifests",
+		"--pod-manifest-path=/etc/kubernetes/manifests",
 		"--asset-dir=/assets",
 		"--strict",
 	}
