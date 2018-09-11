@@ -215,7 +215,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("by checking that the second deployment exists"))
-			err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, 50*time.Second, func() (bool, error) {
 				_, rcs, _, err := deploymentInfo(oc, dcName)
 				if err != nil {
 					return false, nil
