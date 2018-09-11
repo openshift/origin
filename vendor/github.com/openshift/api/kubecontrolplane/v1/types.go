@@ -32,9 +32,8 @@ type KubeAPIServerConfig struct {
 	// servicesNodePortRange is the range to use for assigning service public ports on a host.
 	ServicesNodePortRange string `json:"servicesNodePortRange" protobuf:"bytes,6,opt,name=servicesNodePortRange"`
 
-	// legacyServiceServingCertSignerCABundle is the old service serving cert signer before we switched to a separate controller
-	// TODO this should be removable in a later release after we've completed migration
-	LegacyServiceServingCertSignerCABundle string `json:"legacyServiceServingCertSignerCABundle" protobuf:"bytes,7,opt,name=legacyServiceServingCertSignerCABundle"`
+	// consolePublicURL is an optional URL to provide a redirect from the kube-apiserver to the webconsole
+	ConsolePublicURL string `json:"consolePublicURL" protobuf:"bytes,15,opt,name=consolePublicURL"`
 
 	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
 	// TODO I think we should just drop this feature.

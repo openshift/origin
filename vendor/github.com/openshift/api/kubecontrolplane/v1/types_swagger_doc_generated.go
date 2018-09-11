@@ -21,17 +21,17 @@ func (AggregatorConfig) SwaggerDoc() map[string]string {
 }
 
 var map_KubeAPIServerConfig = map[string]string{
-	"authConfig":                             "authConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
-	"aggregatorConfig":                       "aggregatorConfig has options for configuring the aggregator component of the API server.",
-	"kubeletClientInfo":                      "kubeletClientInfo contains information about how to connect to kubelets",
-	"servicesSubnet":                         "servicesSubnet is the subnet to use for assigning service IPs",
-	"servicesNodePortRange":                  "servicesNodePortRange is the range to use for assigning service public ports on a host.",
-	"legacyServiceServingCertSignerCABundle": "legacyServiceServingCertSignerCABundle is the old service serving cert signer before we switched to a separate controller",
-	"userAgentMatchingConfig":                "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
-	"imagePolicyConfig":                      "imagePolicyConfig feeds the image policy admission plugin",
-	"projectConfig":                          "projectConfig feeds an admission plugin",
-	"serviceAccountPublicKeyFiles":           "serviceAccountPublicKeyFiles is a list of files, each containing a PEM-encoded public RSA key. (If any file contains a private key, the public portion of the key is used) The list of public keys is used to verify presented service account tokens. Each key is tried in order until the list is exhausted or verification succeeds. If no keys are specified, no service account authentication will be available.",
-	"oauthConfig":                            "oauthConfig, if present start the /oauth endpoint in this process",
+	"authConfig":                   "authConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
+	"aggregatorConfig":             "aggregatorConfig has options for configuring the aggregator component of the API server.",
+	"kubeletClientInfo":            "kubeletClientInfo contains information about how to connect to kubelets",
+	"servicesSubnet":               "servicesSubnet is the subnet to use for assigning service IPs",
+	"servicesNodePortRange":        "servicesNodePortRange is the range to use for assigning service public ports on a host.",
+	"consolePublicURL":             "consolePublicURL is an optional URL to provide a redirect from the kube-apiserver to the webconsole",
+	"userAgentMatchingConfig":      "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
+	"imagePolicyConfig":            "imagePolicyConfig feeds the image policy admission plugin",
+	"projectConfig":                "projectConfig feeds an admission plugin",
+	"serviceAccountPublicKeyFiles": "serviceAccountPublicKeyFiles is a list of files, each containing a PEM-encoded public RSA key. (If any file contains a private key, the public portion of the key is used) The list of public keys is used to verify presented service account tokens. Each key is tried in order until the list is exhausted or verification succeeds. If no keys are specified, no service account authentication will be available.",
+	"oauthConfig":                  "oauthConfig, if present start the /oauth endpoint in this process",
 }
 
 func (KubeAPIServerConfig) SwaggerDoc() map[string]string {
