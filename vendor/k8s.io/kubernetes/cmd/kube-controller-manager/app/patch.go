@@ -25,12 +25,6 @@ func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOpt
 	if err := applyOpenShiftConfigFlags(controllerManagerOptions, controllerManager, openshiftConfig); err != nil {
 		return func() {}, err
 	}
-	// set up a non-default template
-	// TODO this should be replaced by the installer setting up the recycle template file and flags for us
-	cleanupFn, err := applyOpenShiftDefaultRecycler(controllerManager, openshiftConfig)
-	if err != nil {
-		return func() {}, err
-	}
 
 	// TODO this should be replaced by using a flex volume to inject service serving cert CAs into pods instead of adding it to the sa token
 	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.OpenShiftContext.OpenShiftConfig), openshiftConfig); err != nil {
@@ -46,10 +40,10 @@ func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOpt
 	// Overwrite the informers, because we have our custom generic informers for quota.
 	// TODO update quota to create its own informer like garbage collection
 	if informers, err := newInformerFactory(controllerManager.Kubeconfig); err != nil {
-		return cleanupFn, err
+		return func() {}, err
 	} else {
 		InformerFactoryOverride = informers
 	}
 
-	return cleanupFn, nil
+	return func() {}, nil
 }
