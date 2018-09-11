@@ -16789,7 +16789,7 @@ spec:
         set -o allexport
         source /etc/origin/master/master.env
       fi
-      exec hypershift openshift-kube-apiserver --config=/etc/origin/master/master-config.yaml
+      exec hypershift openshift-kube-apiserver --config=/etc/origin/master/config.json
     securityContext:
       privileged: true
     volumeMounts:

@@ -464,6 +464,7 @@
       "github.com/openshift/origin/pkg/cmd/server/apis/config",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",
+      "github.com/openshift/origin/pkg/configconversion",
       "github.com/openshift/origin/pkg/serviceaccounts/oauthclient",
       "github.com/openshift/origin/pkg/util/http/links",
       "github.com/openshift/origin/pkg/util/httprequest"
@@ -575,6 +576,7 @@
       "github.com/openshift/origin/pkg/cmd/util/print",
       "github.com/openshift/origin/pkg/cmd/util/term",
       "github.com/openshift/origin/pkg/cmd/util/variable",
+      "github.com/openshift/origin/pkg/configconversion",
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
       "github.com/openshift/origin/pkg/image/apis/image/docker10",

@@ -378,7 +378,7 @@ func (rc *incompleteKubeMasterConfig) Complete(
 		return nil, err
 	}
 
-	_, oauthMetadata, _ := oauthutil.PrepOauthMetadata(masterConfig.OAuthConfig, masterConfig.AuthConfig.OAuthMetadataFile)
+	_, oauthMetadata, _ := oauthutil.DeprecatedPrepOauthMetadata(masterConfig.OAuthConfig, masterConfig.AuthConfig.OAuthMetadataFile)
 
 	// override config values
 	kubeVersion := kversion.Get()

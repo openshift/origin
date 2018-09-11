@@ -21,12 +21,17 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 
-	oauthapi "github.com/openshift/api/oauth/v1"
+	"bytes"
+
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/configconversion"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
@@ -37,7 +42,25 @@ var (
 	codecs = serializer.NewCodecFactory(scheme)
 )
 
-func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
+// TODO we need to switch the oauth server to an external type, but that can be done after we get our externally facing flag values fixed
+func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
+	legacyConfig := &legacyconfigv1.MasterConfig{}
+	legacyConfig.OAuthConfig = &legacyconfigv1.OAuthConfig{}
+	if err := configconversion.Convert_osinv1_OAuthConfig_to_legacyconfigv1_OAuthConfig(&oauthConfig, legacyConfig.OAuthConfig, nil); err != nil {
+		return nil, err
+	}
+	buf := &bytes.Buffer{}
+	if err := latest.Codec.Encode(legacyConfig, buf); err != nil {
+		return nil, err
+	}
+	internalConfig := &configapi.MasterConfig{}
+	if _, _, err := latest.Codec.Decode(buf.Bytes(), nil, internalConfig); err != nil {
+		return nil, err
+	}
+	return NewOAuthServerConfigFromInternal(*internalConfig.OAuthConfig, userClientConfig)
+}
+
+func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
 	genericConfig := genericapiserver.NewRecommendedConfig(codecs)
 	genericConfig.LoopbackClientConfig = userClientConfig
 
@@ -231,36 +254,36 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 	// the TODO above still applies, but this makes it possible for this poststarthook to do its job with a split kubeapiserver and not run forever
 	go func() {
 		wait.PollUntil(1*time.Second, func() (done bool, err error) {
-			webConsoleClient := oauthapi.OAuthClient{
+			webConsoleClient := oauthv1.OAuthClient{
 				ObjectMeta:            metav1.ObjectMeta{Name: openShiftWebConsoleClientID},
 				Secret:                "",
 				RespondWithChallenges: false,
 				RedirectURIs:          c.ExtraOAuthConfig.AssetPublicAddresses,
-				GrantMethod:           oauthapi.GrantHandlerAuto,
+				GrantMethod:           oauthv1.GrantHandlerAuto,
 			}
 			if err := ensureOAuthClient(webConsoleClient, c.ExtraOAuthConfig.OAuthClientClient, true, false); err != nil {
 				utilruntime.HandleError(err)
 				return false, nil
 			}
 
-			browserClient := oauthapi.OAuthClient{
+			browserClient := oauthv1.OAuthClient{
 				ObjectMeta:            metav1.ObjectMeta{Name: openShiftBrowserClientID},
 				Secret:                crypto.Random256BitsString(),
 				RespondWithChallenges: false,
 				RedirectURIs:          []string{urls.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
-				GrantMethod:           oauthapi.GrantHandlerAuto,
+				GrantMethod:           oauthv1.GrantHandlerAuto,
 			}
 			if err := ensureOAuthClient(browserClient, c.ExtraOAuthConfig.OAuthClientClient, true, true); err != nil {
 				utilruntime.HandleError(err)
 				return false, nil
 			}
 
-			cliClient := oauthapi.OAuthClient{
+			cliClient := oauthv1.OAuthClient{
 				ObjectMeta:            metav1.ObjectMeta{Name: openShiftCLIClientID},
 				Secret:                "",
 				RespondWithChallenges: true,
 				RedirectURIs:          []string{urls.OpenShiftOAuthTokenImplicitURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
-				GrantMethod:           oauthapi.GrantHandlerAuto,
+				GrantMethod:           oauthv1.GrantHandlerAuto,
 			}
 			if err := ensureOAuthClient(cliClient, c.ExtraOAuthConfig.OAuthClientClient, false, false); err != nil {
 				utilruntime.HandleError(err)
