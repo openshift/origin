@@ -330,6 +330,18 @@ function os::build::place_bins() {
         fi
       done
 
+      # Link binaries that we want to link (eg. oc->kubectl)
+      local suffix=""
+      if [[ $platform == "windows/amd64" ]]; then
+        suffix=".exe"
+      fi
+      for linkname in "${OC_BINARY_COPY[@]}"; do
+        local src="${OS_OUTPUT_BINPATH}/${platform}/oc${suffix}"
+        if [[ -f "${src}" ]]; then
+          ln -f "$src" "${OS_OUTPUT_BINPATH}/${platform}/${linkname}${suffix}"
+        fi
+      done
+
       # If no release archive was requested, we're done.
       if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
         continue
@@ -342,14 +354,10 @@ function os::build::place_bins() {
       done
 
       # Create binary copies where specified.
-      local suffix=""
-      if [[ $platform == "windows/amd64" ]]; then
-        suffix=".exe"
-      fi
       for linkname in "${OC_BINARY_COPY[@]}"; do
         local src="${release_binpath}/oc${suffix}"
         if [[ -f "${src}" ]]; then
-          ln "${release_binpath}/oc${suffix}" "${release_binpath}/${linkname}${suffix}"
+          cp -f "${release_binpath}/oc${suffix}" "${release_binpath}/${linkname}${suffix}"
         fi
       done
 
