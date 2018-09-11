@@ -151,7 +151,8 @@ type AddVolumeOptions struct {
 	ClaimMode   string
 	ClaimClass  string
 
-	TypeChanged bool
+	TypeChanged  bool
+	ClassChanged bool
 }
 
 func NewVolumeOptions(streams genericclioptions.IOStreams) *VolumeOptions {
@@ -357,6 +358,7 @@ func (o *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 
 	o.AddOpts.TypeChanged = cmd.Flag("type").Changed
+	o.AddOpts.ClassChanged = cmd.Flag("claim-class").Changed
 
 	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
 	if o.DryRun {
@@ -637,7 +639,7 @@ func (a *AddVolumeOptions) createClaim() *corev1.PersistentVolumeClaim {
 			},
 		},
 	}
-	if len(a.ClaimClass) > 0 {
+	if a.ClassChanged {
 		pvc.Annotations = map[string]string{
 			storageAnnClass: a.ClaimClass,
 		}

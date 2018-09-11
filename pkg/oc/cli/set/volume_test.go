@@ -258,21 +258,59 @@ func TestAddRemoveVolumeWithExistingClaim(t *testing.T) {
 }
 
 func TestCreateClaim(t *testing.T) {
-	addOpts := &AddVolumeOptions{
-		Type:       "persistentVolumeClaim",
-		ClaimClass: "foobar",
-		ClaimName:  "foo-vol",
-		ClaimSize:  "5G",
-		MountPath:  "/sandbox",
+	tests := []struct {
+		name          string
+		addOpts       *AddVolumeOptions
+		expAnnotation string
+	}{
+		{
+			"Create ClaimClass with a value",
+			&AddVolumeOptions{
+				Type:         "persistentVolumeClaim",
+				ClaimClass:   "foobar",
+				ClassChanged: true,
+				ClaimName:    "foo-vol",
+				ClaimSize:    "5G",
+				MountPath:    "/sandbox",
+			},
+			"foobar",
+		},
+		{
+			"Create ClaimClass with an empty value",
+			&AddVolumeOptions{
+				Type:         "persistentVolumeClaim",
+				ClaimClass:   "",
+				ClassChanged: true,
+				ClaimName:    "foo-vol",
+				ClaimSize:    "5G",
+				MountPath:    "/sandbox",
+			},
+			"",
+		},
+		{
+			"Create ClaimClass without a value",
+			&AddVolumeOptions{
+				Type:         "persistentVolumeClaim",
+				ClassChanged: false,
+				ClaimName:    "foo-vol",
+				ClaimSize:    "5G",
+				MountPath:    "/sandbox",
+			},
+			"",
+		},
 	}
 
-	pvc := addOpts.createClaim()
-	if len(pvc.Annotations) == 0 {
-		t.Errorf("Expected storage class annotation")
-	}
+	for _, testCase := range tests {
+		pvc := testCase.addOpts.createClaim()
+		if testCase.addOpts.ClassChanged && len(pvc.Annotations) == 0 {
+			t.Errorf("%s: Expected storage class annotation", testCase.name)
+		} else if !testCase.addOpts.ClassChanged && len(pvc.Annotations) != 0 {
+			t.Errorf("%s: Unexpected storage class annotation", testCase.name)
+		}
 
-	if pvc.Annotations[storageAnnClass] != "foobar" {
-		t.Errorf("Expected storage annotated class to be %s", addOpts.ClaimClass)
+		if pvc.Annotations[storageAnnClass] != testCase.expAnnotation {
+			t.Errorf("%s: Expected storage annotated class to be \"%s\", but had \"%s\"", testCase.name, testCase.addOpts.ClaimClass, pvc.Annotations[storageAnnClass])
+		}
 	}
 }
 
