@@ -19,6 +19,8 @@ var rolesToHide = sets.NewString(
 	"registry-admin",
 	"registry-editor",
 	"registry-viewer",
+	"resource-metrics-view",
+	"resource-metrics-cluster-view",
 	"self-access-reviewer",
 	"self-provisioner",
 	"storage-admin",
