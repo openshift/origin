@@ -150,6 +150,13 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 	chainArray = append(chainArray,
 		Chain{
 			table:    "filter",
+			name:     "OPENSHIFT-ADMIN-INPUT-RULES",
+			srcChain: "INPUT",
+			srcRule:  []string{"-m", "comment", "--comment", "administrator overrides"},
+			rules:    nil,
+		},
+		Chain{
+			table:    "filter",
 			name:     "OPENSHIFT-FIREWALL-ALLOW",
 			srcChain: "INPUT",
 			srcRule:  []string{"-m", "comment", "--comment", "firewall overrides"},
