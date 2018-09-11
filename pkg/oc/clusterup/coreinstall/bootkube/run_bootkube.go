@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
@@ -41,7 +42,7 @@ func (opt *BootkubeRunConfig) RunRender(dockerClient dockerhelper.Interface, hos
 	binds = append(binds, fmt.Sprintf("%s:/assets:z", opt.AssetsDir))
 
 	containerID, exitCode, err := imageRunHelper.Image(opt.BootkubeImage).
-		Name("bootkube-render").
+		Name(openshift.BootkubeRenderContainerName).
 		User(fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())).
 		DiscardContainer().
 		Bind(binds...).
@@ -70,7 +71,7 @@ func (opt *BootkubeRunConfig) RunStart(dockerClient dockerhelper.Interface) (str
 	binds = append(binds, fmt.Sprintf("%s:/assets:z", opt.AssetsDir))
 
 	containerID, exitCode, err := imageRunHelper.Image(opt.BootkubeImage).
-		Name("bootkube-start").
+		Name(openshift.BootkubeStartContainerName).
 		DiscardContainer().
 		HostNetwork().
 		HostPid().

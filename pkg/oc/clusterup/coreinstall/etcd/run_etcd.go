@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
@@ -41,7 +42,7 @@ func (opt *EtcdConfig) Start(dockerClient dockerhelper.Interface) (string, error
 	binds = append(binds, fmt.Sprintf("%s:/var/run/etcd/data:z", opt.EtcdDataDir))
 
 	containerID, err := imageRunHelper.Image(opt.EtcdImage).
-		Name("etcd").
+		Name(openshift.EtcdContainerName).
 		HostNetwork().
 		HostPid().
 		Privileged().

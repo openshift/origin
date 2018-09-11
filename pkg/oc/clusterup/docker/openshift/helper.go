@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/sets"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
@@ -25,15 +26,19 @@ const (
 	cmdDetermineNodeHost = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
 
 	// TODO: Figure out why cluster up relies on this name
-	ContainerName = "origin"
-	Namespace     = "openshift"
+	OriginContainerName         = "origin"
+	EtcdContainerName           = "etcd"
+	BootkubeRenderContainerName = "bootkube-render"
+	BootkubeStartContainerName  = "bootkube-start"
+	Namespace                   = "openshift"
 )
 
 var (
-	BasePorts    = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
-	RouterPorts  = []int{80, 443}
-	AllPorts     = append(RouterPorts, BasePorts...)
-	SocatPidFile = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-8443.pid")
+	ClusterUpContainers = sets.NewString(OriginContainerName, EtcdContainerName, BootkubeRenderContainerName, BootkubeStartContainerName)
+	BasePorts           = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
+	RouterPorts         = []int{80, 443}
+	AllPorts            = append(RouterPorts, BasePorts...)
+	SocatPidFile        = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-8443.pid")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup

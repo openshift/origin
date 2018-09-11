@@ -57,7 +57,7 @@ func (c *ClientStopConfig) Stop() error {
 		glog.V(2).Infof("error: cannot kill socat: %v", err)
 	}
 	glog.V(4).Infof("Stopping and removing origin container")
-	if err = helper.StopAndRemoveContainer(openshift.ContainerName); err != nil {
+	if err = helper.StopAndRemoveContainer(openshift.OriginContainerName); err != nil {
 		glog.V(2).Infof("Error stopping origin container: %v", err)
 	}
 
@@ -66,10 +66,13 @@ func (c *ClientStopConfig) Stop() error {
 		return err
 	}
 	for _, name := range names {
-		if _, err = parseDockerName(name); err != nil {
-			continue
-		}
 		name = strings.TrimLeft(name, "/")
+		if openshift.ClusterUpContainers.Has(name) {
+			if _, err = parseDockerName(name); err != nil {
+				continue
+			}
+		}
+
 		glog.V(4).Infof("Stopping container %s", name)
 		if err = client.ContainerStop(name, 0); err != nil {
 			glog.V(2).Infof("Error stopping container %s: %v", name, err)

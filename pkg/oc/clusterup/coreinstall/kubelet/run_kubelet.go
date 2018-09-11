@@ -160,7 +160,7 @@ func (opt KubeletRunConfig) StartKubelet(dockerClient dockerhelper.Interface, po
 	runKubeletCmd = append(runKubeletCmd, opt.Args...)
 
 	containerID, err := imageRunHelper.Image(opt.NodeImage).
-		Name(openshift.ContainerName).
+		Name(openshift.OriginContainerName).
 		Privileged().
 		DiscardContainer().
 		HostNetwork().

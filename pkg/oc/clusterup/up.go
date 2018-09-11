@@ -489,7 +489,7 @@ func (c *ClusterUpConfig) GetDockerClient() dockerhelper.Interface {
 // If one is already running, it throws an error.
 // If one exists, it removes it so a new one can be created.
 func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper) error {
-	container, running, err := dockerHelper.GetContainerState(openshift.ContainerName)
+	container, running, err := dockerHelper.GetContainerState(openshift.OriginContainerName)
 	if err != nil {
 		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
@@ -497,7 +497,7 @@ func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper) error {
 		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", "oc cluster down")
 	}
 	if container != nil {
-		err = dockerHelper.RemoveContainer(openshift.ContainerName)
+		err = dockerHelper.RemoveContainer(openshift.OriginContainerName)
 		if err != nil {
 			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
@@ -709,7 +709,7 @@ func (c *ClusterUpConfig) checkProxySettings() string {
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
 func (c *ClusterUpConfig) OpenShiftHelper() *openshift.Helper {
 	if c.openshiftHelper == nil {
-		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.openshiftImage(), openshift.ContainerName)
+		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.openshiftImage(), openshift.OriginContainerName)
 	}
 	return c.openshiftHelper
 }
