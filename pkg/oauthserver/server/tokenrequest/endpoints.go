@@ -39,7 +39,7 @@ func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli
 	return &endpointDetails{
 		publicMasterURL:       publicMasterURL,
 		osinOAuthClientGetter: osinOAuthClientGetter,
-		ready: make(chan struct{}),
+		ready:                 make(chan struct{}),
 	}
 }
 

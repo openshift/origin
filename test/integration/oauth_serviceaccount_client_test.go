@@ -265,12 +265,12 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 
 	{
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
-			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
-			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
-			RedirectUrl:  redirectURL,
-			Scope:        scope.Join([]string{"user:info", "role:edit:" + projectName}),
+			ClientId:                 apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret:             string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:              redirectURL,
+			Scope:                    scope.Join([]string{"user:info", "role:edit:" + projectName}),
 			SendClientSecretInParams: true,
 		}
 		t.Log("Testing allowed scopes")
@@ -301,12 +301,12 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 
 	{
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
-			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
-			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
-			RedirectUrl:  redirectURL,
-			Scope:        scope.Join([]string{"user:info", "role:edit:other-ns"}),
+			ClientId:                 apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret:             string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:              redirectURL,
+			Scope:                    scope.Join([]string{"user:info", "role:edit:other-ns"}),
 			SendClientSecretInParams: true,
 		}
 		t.Log("Testing disallowed scopes")
@@ -323,12 +323,12 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	{
 		t.Log("Testing invalid scopes")
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
-			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
-			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
-			RedirectUrl:  redirectURL,
-			Scope:        scope.Join([]string{"unknown-scope"}),
+			ClientId:                 apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret:             string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:              redirectURL,
+			Scope:                    scope.Join([]string{"unknown-scope"}),
 			SendClientSecretInParams: true,
 		}
 		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, false, []string{
@@ -344,12 +344,12 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	{
 		t.Log("Testing allowed scopes with failed API call")
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
-			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
-			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
-			RedirectUrl:  redirectURL,
-			Scope:        scope.Join([]string{"user:info"}),
+			ClientId:                 apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret:             string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:              redirectURL,
+			Scope:                    scope.Join([]string{"user:info"}),
 			SendClientSecretInParams: true,
 		}
 		// First time, the approval is needed
@@ -379,12 +379,12 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 
 	{
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
-			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
-			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
-			RedirectUrl:  redirectURL,
-			Scope:        scope.Join([]string{"user:info", "role:edit:" + projectName}),
+			ClientId:                 apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret:             string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:              redirectURL,
+			Scope:                    scope.Join([]string{"user:info", "role:edit:" + projectName}),
 			SendClientSecretInParams: true,
 		}
 		t.Log("Testing grant flow is reentrant")

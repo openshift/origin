@@ -275,10 +275,10 @@ func generateHAProxyMap(name string, td templateData) []string {
 var helperFunctions = template.FuncMap{
 	"endpointsForAlias":        endpointsForAlias,        //returns the list of valid endpoints
 	"processEndpointsForAlias": processEndpointsForAlias, //returns the list of valid endpoints after processing them
-	"env":          env,          //tries to get an environment variable, returns the first non-empty default value or "" on failure
-	"matchPattern": matchPattern, //anchors provided regular expression and evaluates against given string
-	"isInteger":    isInteger,    //determines if a given variable is an integer
-	"matchValues":  matchValues,  //compares a given string to a list of allowed strings
+	"env":                      env,                      //tries to get an environment variable, returns the first non-empty default value or "" on failure
+	"matchPattern":             matchPattern,             //anchors provided regular expression and evaluates against given string
+	"isInteger":                isInteger,                //determines if a given variable is an integer
+	"matchValues":              matchValues,              //compares a given string to a list of allowed strings
 
 	"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp,             //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
 	"generateRouteRegexp":        generateRouteRegexp,                    //generates a regular expression matching the route hosts (and paths)

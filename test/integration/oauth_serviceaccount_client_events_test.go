@@ -315,12 +315,12 @@ func setupTestSecrets(client kclientset.Interface, sa *kapi.ServiceAccount) (*ka
 // the specific sequence does not matter, as long as it can generate the server_error that we expect.
 func runTestOAuthFlow(t *testing.T, ts *testServer, sa *kapi.ServiceAccount, secret *kapi.Secret, redirectURL string, expectBadRequest bool) {
 	oauthClientConfig := &osincli.ClientConfig{
-		ClientId:     apiserverserviceaccount.MakeUsername(sa.Namespace, sa.Name),
-		ClientSecret: string(secret.Data[kapi.ServiceAccountTokenKey]),
-		AuthorizeUrl: ts.clusterAdminClientConfig.Host + "/oauth/authorize",
-		TokenUrl:     ts.clusterAdminClientConfig.Host + "/oauth/token",
-		RedirectUrl:  redirectURL,
-		Scope:        scope.Join([]string{"user:info", "role:edit:" + projectName}),
+		ClientId:                 apiserverserviceaccount.MakeUsername(sa.Namespace, sa.Name),
+		ClientSecret:             string(secret.Data[kapi.ServiceAccountTokenKey]),
+		AuthorizeUrl:             ts.clusterAdminClientConfig.Host + "/oauth/authorize",
+		TokenUrl:                 ts.clusterAdminClientConfig.Host + "/oauth/token",
+		RedirectUrl:              redirectURL,
+		Scope:                    scope.Join([]string{"user:info", "role:edit:" + projectName}),
 		SendClientSecretInParams: true,
 	}
 

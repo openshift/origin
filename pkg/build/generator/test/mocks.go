@@ -191,7 +191,7 @@ func MockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 		},
 		Status: imagev1.ImageStreamStatus{
 			DockerImageRepository: dockerImageRepo,
-			Tags: tagHistory,
+			Tags:                  tagHistory,
 		},
 	}
 }

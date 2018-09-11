@@ -17,9 +17,9 @@ import (
 // NewAllOpenShiftGroupLister returns a new allOpenShiftGroupLister
 func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient userv1client.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &allOpenShiftGroupLister{
-		blacklist: sets.NewString(blacklist...),
-		client:    groupClient,
-		ldapURL:   ldapURL,
+		blacklist:                        sets.NewString(blacklist...),
+		client:                           groupClient,
+		ldapURL:                          ldapURL,
 		ldapGroupUIDToOpenShiftGroupName: map[string]string{},
 	}
 }
@@ -104,10 +104,10 @@ func validateGroupAnnotations(ldapURL string, group userv1.Group) (bool, error) 
 // each entry in the given whitelist of OpenShift Group names
 func NewOpenShiftGroupLister(whitelist, blacklist []string, ldapURL string, client userv1client.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &openshiftGroupLister{
-		whitelist: whitelist,
-		blacklist: sets.NewString(blacklist...),
-		client:    client,
-		ldapURL:   ldapURL,
+		whitelist:                        whitelist,
+		blacklist:                        sets.NewString(blacklist...),
+		client:                           client,
+		ldapURL:                          ldapURL,
 		ldapGroupUIDToOpenShiftGroupName: map[string]string{},
 	}
 }

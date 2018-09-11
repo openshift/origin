@@ -338,8 +338,8 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	substitutions := map[string]string{
 		"/path/to/master/config-dir":              configs.masterConfigDir,
 		"/path/to/openshift-apiserver/config-dir": configs.openshiftAPIServerConfigDir,
-		"ETCD_VOLUME":                             "emptyDir:\n",
-		"OPENSHIFT_PULL_POLICY":                   c.pullPolicy,
+		"ETCD_VOLUME":           "emptyDir:\n",
+		"OPENSHIFT_PULL_POLICY": c.pullPolicy,
 	}
 
 	if len(c.HostDataDir) > 0 {

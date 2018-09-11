@@ -19,8 +19,8 @@ func TestServiceFromTemplate(t *testing.T) {
 			Name: "name",
 			UID:  "ee33151d-a34d-442d-a0ca-6353b73a58fd",
 			Annotations: map[string]string{
-				"description": "description",
-				"tags":        "tag1,tag2",
+				"description":                        "description",
+				"tags":                               "tag1,tag2",
 				"openshift.io/display-name":          "displayName",
 				"iconClass":                          "iconClass",
 				"openshift.io/long-description":      "longDescription",

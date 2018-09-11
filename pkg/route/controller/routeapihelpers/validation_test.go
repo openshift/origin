@@ -1399,7 +1399,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					TLS: &routev1.TLSConfig{
 						Termination:              routev1.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChain,
-						Key: "-----BEGIN UNRECOGNIZED-----\n-----END UNRECOGNIZED-----\n",
+						Key:                      "-----BEGIN UNRECOGNIZED-----\n-----END UNRECOGNIZED-----\n",
 					},
 				},
 			},
@@ -1408,7 +1408,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					TLS: &routev1.TLSConfig{
 						Termination:              routev1.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChainCanonical,
-						Key: "",
+						Key:                      "",
 					},
 				},
 			},
@@ -1421,7 +1421,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					TLS: &routev1.TLSConfig{
 						Termination:              routev1.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChain,
-						Key: "-----BEGIN UNRECOGNIZED-----\n----END UNRECOGNIZED-----\n",
+						Key:                      "-----BEGIN UNRECOGNIZED-----\n----END UNRECOGNIZED-----\n",
 					},
 				},
 			},
@@ -1430,7 +1430,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					TLS: &routev1.TLSConfig{
 						Termination:              routev1.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChainCanonical,
-						Key: "",
+						Key:                      "",
 					},
 				},
 			},
@@ -1443,7 +1443,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					TLS: &routev1.TLSConfig{
 						Termination:              routev1.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChain,
-						Key: "-----BEGIN EC PARAMETERS-----\n-----END EC PARAMETERS-----\n",
+						Key:                      "-----BEGIN EC PARAMETERS-----\n-----END EC PARAMETERS-----\n",
 					},
 				},
 			},
@@ -1452,7 +1452,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					TLS: &routev1.TLSConfig{
 						Termination:              routev1.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChainCanonical,
-						Key: "",
+						Key:                      "",
 					},
 				},
 			},

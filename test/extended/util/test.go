@@ -286,7 +286,7 @@ var (
 			`\[Feature:Audit\]`,                         // Needs special configuration
 			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
 
-			`kube-dns-autoscaler`,                                                    // Don't run kube-dns
+			`kube-dns-autoscaler`, // Don't run kube-dns
 			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
 			`DNS configMap`, // this tests dns federation configuration via configmap, which we don't support yet
 

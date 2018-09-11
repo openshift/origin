@@ -53,7 +53,7 @@ func NewExecutionRulesAccepter(rules []imagepolicy.ImageExecutionPolicyRule, int
 			a, ok := mapped[gr]
 			if !ok {
 				a = &executionAccepter{
-					covers: gr,
+					covers:                    gr,
 					integratedRegistryMatcher: integratedRegistryMatcher,
 				}
 				mapped[gr] = a
