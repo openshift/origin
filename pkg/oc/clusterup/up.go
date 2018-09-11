@@ -750,6 +750,10 @@ func (c *ClusterUpConfig) hyperkubeImage() string {
 	return c.ImageTemplate.ExpandOrDie("hyperkube")
 }
 
+func (c *ClusterUpConfig) nodeImage() string {
+	return c.ImageTemplate.ExpandOrDie("node")
+}
+
 func (c *ClusterUpConfig) podImage() string {
 	return c.ImageTemplate.ExpandOrDie("pod")
 }

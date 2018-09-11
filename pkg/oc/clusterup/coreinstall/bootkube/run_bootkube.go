@@ -87,7 +87,7 @@ func (opt *BootkubeRunConfig) RunStart(dockerClient dockerhelper.Interface) (str
 
 // PostRenderSubstitutions mutate the generated bootkube manifests and substitute OpenShift images and paths.
 // TODO: It should be possible to do this via bootkube directly, however bootkube currently have these compiled in.
-func (opt *BootkubeRunConfig) PostRenderSubstitutions(kubernetesDir string, hyperKubeImage string) error {
+func (opt *BootkubeRunConfig) PostRenderSubstitutions(kubernetesDir string, hyperKubeImage, nodeImage string) error {
 	if err := opt.substitute("bootstrap-manifests/bootstrap-apiserver.yaml", map[string]string{
 		"/etc/kubernetes/bootstrap-secrets": filepath.Join(kubernetesDir, "bootstrap-secrets"),
 		"k8s.gcr.io/hyperkube:v1.11.0":      hyperKubeImage,
@@ -136,7 +136,7 @@ func (opt *BootkubeRunConfig) PostRenderSubstitutions(kubernetesDir string, hype
 	}
 
 	if err := opt.substitute("manifests/kube-proxy.yaml", map[string]string{
-		"k8s.gcr.io/hyperkube:v1.11.0": hyperKubeImage,
+		"k8s.gcr.io/hyperkube:v1.11.0": nodeImage,
 		"- ./hyperkube":                "- /usr/bin/hyperkube",
 		"- proxy":                      "- kube-proxy",
 	}); err != nil {

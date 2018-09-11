@@ -153,7 +153,7 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		return nil, err
 	}
 
-	if err := bk.PostRenderSubstitutions(configs.kubernetesDir, c.hyperkubeImage()); err != nil {
+	if err := bk.PostRenderSubstitutions(configs.kubernetesDir, c.hyperkubeImage(), c.nodeImage()); err != nil {
 		return nil, err
 	}
 
