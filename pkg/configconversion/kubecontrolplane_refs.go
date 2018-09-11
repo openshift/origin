@@ -35,7 +35,6 @@ func GetKubeAPIServerConfigFileReferences(config *kubecontrolplanev1.KubeAPIServ
 	refs = append(refs, &config.AggregatorConfig.ProxyClientInfo.CertFile)
 	refs = append(refs, &config.AggregatorConfig.ProxyClientInfo.KeyFile)
 
-	refs = append(refs, &config.LegacyServiceServingCertSignerCABundle)
 	for i := range config.ServiceAccountPublicKeyFiles {
 		refs = append(refs, &config.ServiceAccountPublicKeyFiles[i])
 	}

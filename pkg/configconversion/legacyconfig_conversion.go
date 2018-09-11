@@ -80,8 +80,6 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 		ServicesSubnet:        input.KubernetesMasterConfig.ServicesSubnet,
 		ServicesNodePortRange: input.KubernetesMasterConfig.ServicesNodePortRange,
 
-		LegacyServiceServingCertSignerCABundle: input.ControllerConfig.ServiceServingCert.Signer.CertFile,
-
 		ImagePolicyConfig: kubecontrolplanev1.KubeAPIServerImagePolicyConfig{
 			InternalRegistryHostname: input.ImagePolicyConfig.InternalRegistryHostname,
 			ExternalRegistryHostname: input.ImagePolicyConfig.ExternalRegistryHostname,
