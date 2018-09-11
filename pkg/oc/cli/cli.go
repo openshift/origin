@@ -32,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/debug"
 	configcmd "github.com/openshift/origin/pkg/oc/cli/experimental/config"
 	"github.com/openshift/origin/pkg/oc/cli/experimental/dockergc"
-	"github.com/openshift/origin/pkg/oc/cli/export"
 	"github.com/openshift/origin/pkg/oc/cli/expose"
 	"github.com/openshift/origin/pkg/oc/cli/extract"
 	"github.com/openshift/origin/pkg/oc/cli/idle"
@@ -200,7 +199,6 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				kubectlwrappers.NewCmdApply(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdPatch(fullName, f, ioStreams),
 				process.NewCmdProcess(fullName, f, ioStreams),
-				export.NewCmdExport(fullName, f, ioStreams),
 				extract.NewCmdExtract(fullName, f, ioStreams),
 				idle.NewCmdIdle(fullName, f, ioStreams),
 				observe.NewCmdObserve(fullName, f, ioStreams),
