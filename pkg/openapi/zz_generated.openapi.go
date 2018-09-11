@@ -9001,9 +9001,9 @@ func schema_openshift_api_kubecontrolplane_v1_KubeAPIServerConfig(ref common.Ref
 							Format:      "",
 						},
 					},
-					"legacyServiceServingCertSignerCABundle": {
+					"consolePublicURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "legacyServiceServingCertSignerCABundle is the old service serving cert signer before we switched to a separate controller",
+							Description: "consolePublicURL is an optional URL to provide a redirect from the kube-apiserver to the webconsole",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -9067,7 +9067,7 @@ func schema_openshift_api_kubecontrolplane_v1_KubeAPIServerConfig(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "authConfig", "aggregatorConfig", "kubeletClientInfo", "servicesSubnet", "servicesNodePortRange", "legacyServiceServingCertSignerCABundle", "userAgentMatchingConfig", "imagePolicyConfig", "projectConfig", "serviceAccountPublicKeyFiles", "oauthConfig", "apiServerArguments"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "authConfig", "aggregatorConfig", "kubeletClientInfo", "servicesSubnet", "servicesNodePortRange", "consolePublicURL", "userAgentMatchingConfig", "imagePolicyConfig", "projectConfig", "serviceAccountPublicKeyFiles", "oauthConfig", "apiServerArguments"},
 			},
 		},
 		Dependencies: []string{
