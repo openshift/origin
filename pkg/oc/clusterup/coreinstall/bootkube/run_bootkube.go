@@ -143,6 +143,12 @@ func (opt *BootkubeRunConfig) PostRenderSubstitutions(kubernetesDir string, hype
 		return err
 	}
 
+	if err := opt.substitute("manifests/pod-checkpointer.yaml", map[string]string{
+		"path: /etc/kubernetes": fmt.Sprintf("path: %q", kubernetesDir),
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
