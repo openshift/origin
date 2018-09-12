@@ -115,13 +115,13 @@ func (o *ProjectOptions) Complete(f genericclioptions.RESTClientGetter, args []s
 
 		// if the argument for o.ProjectName passed by the user is a context name,
 		// prevent local context-switching from failing due to an unreachable
-		// server or an unfetchable RESTConfig.
+		// server or an unfetchable KubeControlPlaneRESTConfig.
 		o.Config.CurrentContext = o.ProjectName
 		if err := kclientcmd.ModifyConfig(o.PathOptions, o.Config, true); err != nil {
 			return err
 		}
 
-		// since we failed to retrieve RESTConfig for the current server,
+		// since we failed to retrieve KubeControlPlaneRESTConfig for the current server,
 		// fetch local OpenShift client config
 		o.RESTConfig, err = f.ToRESTConfig()
 		if err != nil {

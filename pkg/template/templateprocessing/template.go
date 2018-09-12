@@ -55,7 +55,7 @@ func (p *Processor) Process(template *templateapi.Template) field.ErrorList {
 	// instruct a user on next steps for the template.
 	template.Message, _ = p.EvaluateParameterSubstitution(paramMap, template.Message)
 
-	// Substitute parameters in ObjectLabels - must be done before the template
+	// substitute parameters in ObjectLabels - must be done before the template
 	// objects themselves are iterated.
 	for k, v := range template.ObjectLabels {
 		newk, _ := p.EvaluateParameterSubstitution(paramMap, k)
