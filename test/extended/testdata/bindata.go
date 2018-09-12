@@ -4922,11 +4922,11 @@ spec:
       - -c
       - |
         set -e
+        sleep 15  # give tests time to set up
         openshift-deploy --until=50%
         echo Halfway
         openshift-deploy
         echo Finished
-        sleep 1
   template:
     metadata:
       labels:
@@ -5741,7 +5741,9 @@ spec:
           command:
           - /bin/bash
           - -c
-          - "echo 'test pre hook executed' && sleep 15"
+          - |
+            sleep 15  # give tests time to setup
+            echo 'test pre hook executed'
   template:
     metadata:
       labels:
