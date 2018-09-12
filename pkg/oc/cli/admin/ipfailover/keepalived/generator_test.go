@@ -9,8 +9,8 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 )
 
-func makeIPFailoverConfigOptions(selector string, replicas int32, serviceAccount string) *ipfailover.IPFailoverConfigCmdOptions {
-	return &ipfailover.IPFailoverConfigCmdOptions{
+func makeIPFailoverConfigOptions(selector string, replicas int32, serviceAccount string) *ipfailover.IPFailoverConfigOptions {
+	return &ipfailover.IPFailoverConfigOptions{
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
 		Selector:         selector,
 		VirtualIPs:       "",
@@ -22,7 +22,7 @@ func makeIPFailoverConfigOptions(selector string, replicas int32, serviceAccount
 
 }
 
-func makeSelector(options *ipfailover.IPFailoverConfigCmdOptions) map[string]string {
+func makeSelector(options *ipfailover.IPFailoverConfigOptions) map[string]string {
 	labels, _, err := app.LabelsFromSpec(strings.Split(options.Selector, ","))
 	if err == nil {
 		return labels
@@ -101,7 +101,7 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 		}
 
 		podSpec := dc.Spec.Template.Spec
-		if !podSpec.SecurityContext.HostNetwork {
+		if !podSpec.HostNetwork {
 			t.Errorf("Test case for %s got HostNetwork disabled where HostNetwork was expected to be enabled", tc.Name)
 		}
 

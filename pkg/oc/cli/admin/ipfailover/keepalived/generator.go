@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
-	dapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/oc/cli/admin/ipfailover/ipfailover"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 )
@@ -18,7 +17,7 @@ const libModulesVolumeName = "lib-modules"
 const libModulesPath = "/lib/modules"
 
 //  Generate the IP failover monitor (keepalived) container environment entries.
-func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOptions) app.Environment {
+func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigOptions) app.Environment {
 	watchPort := strconv.Itoa(options.WatchPort)
 	replicas := strconv.FormatInt(int64(options.Replicas), 10)
 	interval := strconv.Itoa(options.CheckInterval)
@@ -47,66 +46,54 @@ func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOpti
 }
 
 //  Generate the IP failover monitor (keepalived) container configuration.
-func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPFailoverConfigCmdOptions, env app.Environment) *kapi.Container {
+func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPFailoverConfigOptions, env app.Environment) *corev1.Container {
 	containerName := fmt.Sprintf("%s-%s", name, options.Type)
 
 	imageName := fmt.Sprintf("%s-%s", options.Type, ipfailover.DefaultName)
 	image := options.ImageTemplate.ExpandOrDie(imageName)
 
 	//  Container port to expose the service interconnects between keepaliveds.
-	ports := make([]kapi.ContainerPort, 1)
-	ports[0] = kapi.ContainerPort{
+	ports := make([]corev1.ContainerPort, 1)
+	ports[0] = corev1.ContainerPort{
 		ContainerPort: int32(options.ServicePort),
 		HostPort:      int32(options.ServicePort),
 	}
 
-	mounts := make([]kapi.VolumeMount, 1)
-	mounts[0] = kapi.VolumeMount{
+	mounts := make([]corev1.VolumeMount, 1)
+	mounts[0] = corev1.VolumeMount{
 		Name:      libModulesVolumeName,
 		ReadOnly:  true,
 		MountPath: libModulesPath,
 	}
 
-	livenessProbe := &kapi.Probe{
+	livenessProbe := &corev1.Probe{
 		InitialDelaySeconds: 10,
 
-		Handler: kapi.Handler{
-			Exec: &kapi.ExecAction{
+		Handler: corev1.Handler{
+			Exec: &corev1.ExecAction{
 				Command: []string{"pgrep", "keepalived"},
 			},
 		},
 	}
 
-	// TODO: remove this once this command is switched over to external versions
-	internalEnvVar := []kapi.EnvVar{}
-	for _, e := range env.List() {
-		internal := &kapi.EnvVar{}
-		err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&e, internal, nil)
-		if err != nil {
-			continue
-		}
-
-		internalEnvVar = append(internalEnvVar, *internal)
-	}
-
 	privileged := true
-	return &kapi.Container{
+	return &corev1.Container{
 		Name:  containerName,
 		Image: image,
 		Ports: ports,
-		SecurityContext: &kapi.SecurityContext{
+		SecurityContext: &corev1.SecurityContext{
 			Privileged: &privileged,
 		},
-		ImagePullPolicy: kapi.PullIfNotPresent,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		VolumeMounts:    mounts,
-		Env:             internalEnvVar,
+		Env:             env.List(),
 		LivenessProbe:   livenessProbe,
 	}
 }
 
 //  Generate the IP failover monitor (keepalived) container configuration.
-func generateContainerConfig(name string, options *ipfailover.IPFailoverConfigCmdOptions) ([]kapi.Container, error) {
-	containers := make([]kapi.Container, 0)
+func generateContainerConfig(name string, options *ipfailover.IPFailoverConfigOptions) ([]corev1.Container, error) {
+	containers := make([]corev1.Container, 0)
 
 	if len(options.VirtualIPs) < 1 {
 		return containers, nil
@@ -123,14 +110,14 @@ func generateContainerConfig(name string, options *ipfailover.IPFailoverConfigCm
 }
 
 //  Generate the IP failover monitor (keepalived) container volume config.
-func generateVolumeConfig() []kapi.Volume {
+func generateVolumeConfig() []corev1.Volume {
 	//  The keepalived container needs access to the kernel modules
 	//  directory in order to load the module.
-	hostPath := &kapi.HostPathVolumeSource{Path: libModulesPath}
-	src := kapi.VolumeSource{HostPath: hostPath}
+	hostPath := &corev1.HostPathVolumeSource{Path: libModulesPath}
+	src := corev1.VolumeSource{HostPath: hostPath}
 
-	vol := kapi.Volume{Name: libModulesVolumeName, VolumeSource: src}
-	return []kapi.Volume{vol}
+	vol := corev1.Volume{Name: libModulesVolumeName, VolumeSource: src}
+	return []corev1.Volume{vol}
 }
 
 //  Generates the node selector (if any) to use.
@@ -145,7 +132,7 @@ func generateNodeSelector(name string, selector map[string]string) map[string]st
 }
 
 // GenerateDeploymentConfig generates an IP Failover deployment configuration.
-func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigCmdOptions, selector map[string]string) (*dapi.DeploymentConfig, error) {
+func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigOptions, selector map[string]string) (*appsv1.DeploymentConfig, error) {
 	containers, err := generateContainerConfig(name, options)
 	if err != nil {
 		return nil, err
@@ -154,28 +141,28 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 	labels := map[string]string{
 		"ipfailover": name,
 	}
-	podTemplate := &kapi.PodTemplateSpec{
+	podTemplate := &corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,
 		},
-		Spec: kapi.PodSpec{
-			SecurityContext: &kapi.PodSecurityContext{
-				HostNetwork: true,
-			},
+		Spec: corev1.PodSpec{
+			HostNetwork:        true,
 			NodeSelector:       generateNodeSelector(name, selector),
 			Containers:         containers,
 			Volumes:            generateVolumeConfig(),
 			ServiceAccountName: options.ServiceAccount,
 		},
 	}
-	return &dapi.DeploymentConfig{
+	return &appsv1.DeploymentConfig{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta: metav1.TypeMeta{APIVersion: appsv1.SchemeGroupVersion.String(), Kind: "DeploymentConfig"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: labels,
 		},
-		Spec: dapi.DeploymentConfigSpec{
-			Strategy: dapi.DeploymentStrategy{
-				Type: dapi.DeploymentStrategyTypeRecreate,
+		Spec: appsv1.DeploymentConfigSpec{
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.DeploymentStrategyTypeRecreate,
 			},
 			// TODO: v0.1 requires a manual resize of the
 			//       replicas to match current cluster state.
@@ -184,8 +171,8 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 			//       manual intervention.
 			Replicas: options.Replicas,
 			Template: podTemplate,
-			Triggers: []dapi.DeploymentTriggerPolicy{
-				{Type: dapi.DeploymentTriggerOnConfigChange},
+			Triggers: []appsv1.DeploymentTriggerPolicy{
+				{Type: appsv1.DeploymentTriggerOnConfigChange},
 			},
 		},
 	}, nil
