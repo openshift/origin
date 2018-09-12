@@ -256,8 +256,8 @@ func (o *NewOptions) Run() error {
 				metadata[name] = imageData{Directory: filepath.Join(o.FromDirectory, f.Name())}
 				ordered = append(ordered, name)
 			}
-			if f.Name() == "images" {
-				data, err := ioutil.ReadFile(filepath.Join(o.FromDirectory, "images"))
+			if f.Name() == "image-references" {
+				data, err := ioutil.ReadFile(filepath.Join(o.FromDirectory, "image-references"))
 				if err != nil {
 					return err
 				}
@@ -343,6 +343,19 @@ func (o *NewOptions) Run() error {
 			fmt.Fprintf(o.ErrOut, "info: Manifests will be extracted to %s\n", dir)
 		}
 
+		if len(is.Spec.Tags) > 0 {
+			if err := os.MkdirAll(dir, 0770); err != nil {
+				return err
+			}
+			data, err := json.MarshalIndent(is, "", "  ")
+			if err != nil {
+				return err
+			}
+			if err := ioutil.WriteFile(filepath.Join(dir, "image-references"), data, 0640); err != nil {
+				return err
+			}
+		}
+
 		opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 		opts.OnlyFiles = true
 		opts.MaxPerRegistry = o.MaxPerRegistry
@@ -357,9 +370,6 @@ func (o *NewOptions) Run() error {
 
 		for _, tag := range is.Spec.Tags {
 			dstDir := filepath.Join(dir, tag.Name)
-			if err := os.MkdirAll(dstDir, 0770); err != nil {
-				return err
-			}
 			src := tag.From.Name
 			ref, err := imagereference.Parse(src)
 			if err != nil {
@@ -379,7 +389,10 @@ func (o *NewOptions) Run() error {
 						glog.V(2).Infof("Image %s has no io.openshift.release.operator label, skipping", m.ImageRef)
 						return false, nil
 					}
-					fmt.Fprintf(o.Out, "Loading manifests from %s ...\n", src)
+					if err := os.MkdirAll(dstDir, 0770); err != nil {
+						return false, err
+					}
+					fmt.Fprintf(o.Out, "Loading manifests from %s: %s ...\n", tag.Name, src)
 					return true, nil
 				},
 			})
@@ -533,9 +546,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 			continue
 		}
 
-		transform := func(data []byte) ([]byte, error) {
-			return data, nil
-		}
+		transform := NopManifestMapper
 
 		if fi := takeFileByName(&contents, "image-references"); fi != nil {
 			path := filepath.Join(data.Directory, fi.Name())
@@ -579,6 +590,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 			if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: dst, Size: int64(len(modified))}); err != nil {
 				return nil, err
 			}
+			glog.V(6).Infof("Writing payload to %s\n%s", dst, string(modified))
 			if _, err := tw.Write(modified); err != nil {
 				return nil, err
 			}
