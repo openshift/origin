@@ -140,10 +140,6 @@ func (h *Helper) CheckAndPullImage(image string, forcePull bool, out io.Writer) 
 		fmt.Fprintf(out, "%s\n", s)
 	}
 
-	pw := imageprogress.NewPullWriter(logProgress)
-	defer pw.Close()
-	outputStream := pw.(io.Writer)
-
 	normalized, err := reference.ParseNormalizedNamed(image)
 	if err != nil {
 		return err
@@ -186,11 +182,23 @@ func (h *Helper) CheckAndPullImage(image string, forcePull bool, out io.Writer) 
 		auth = base64.URLEncoding.EncodeToString(buf.Bytes())
 	}
 
-	if err := h.client.ImagePull(normalized.String(), types.ImagePullOptions{RegistryAuth: auth}, outputStream); err != nil {
-		return starterrors.NewError("error pulling image %s", image).WithCause(err)
+	var pullErr error
+	func() { // A scope for defer
+		pw := imageprogress.NewPullWriter(logProgress)
+		defer func() {
+			err := pw.Close()
+			if pullErr == nil {
+				pullErr = err
+			}
+		}()
+		outputStream := pw.(io.Writer)
+		pullErr = h.client.ImagePull(normalized.String(), types.ImagePullOptions{RegistryAuth: auth}, outputStream)
+	}()
+	if pullErr != nil {
+		return starterrors.NewError("error pulling image %s", image).WithCause(pullErr)
 	}
 
-	// This is to work around issue https://github.com/docker/docker/api/issues/138
+	// This is to work around issue https://github.com/docker/engine-api/issues/138
 	// where engine-api/client/ImagePull does not return an error when it should.
 	// which also still seems to exist in https://github.com/moby/moby/blob/master/client/image_pull.go
 	_, _, err = h.client.ImageInspectWithRaw(image, false)
