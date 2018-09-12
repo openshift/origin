@@ -18,6 +18,17 @@ func TestNewImageMapper(t *testing.T) {
 		// TODO: Add test cases.
 		{name: "empty input"},
 		{
+			name: "empty source repository",
+			args: args{
+				images: map[string]ImageReference{
+					"etcd": {
+						TargetPullSpec: "quay.io/openshift/origin-etcd@sha256:1234",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "duplicate source repositories",
 			args: args{
 				images: map[string]ImageReference{
@@ -47,6 +58,32 @@ func TestNewImageMapper(t *testing.T) {
 			output: "image: quay.io/openshift/origin-etcd@sha256:1234",
 		},
 		{
+			name: "replace tag with digest",
+			args: args{
+				images: map[string]ImageReference{
+					"etcd": {
+						SourceRepository: "quay.io/coreos/etcd:latest",
+						TargetPullSpec:   "quay.io/openshift/origin-etcd@sha256:1234",
+					},
+				},
+			},
+			input:  "image: quay.io/coreos/etcd:latest",
+			output: "image: quay.io/openshift/origin-etcd@sha256:1234",
+		},
+		{
+			name: "replace repository with tag with trailing whitespace",
+			args: args{
+				images: map[string]ImageReference{
+					"etcd": {
+						SourceRepository: "quay.io/coreos/etcd",
+						TargetPullSpec:   "quay.io/openshift/origin-etcd@sha256:1234",
+					},
+				},
+			},
+			input:  "image: quay.io/coreos/etcd:latest\n",
+			output: "image: quay.io/openshift/origin-etcd@sha256:1234\n",
+		},
+		{
 			name: "replace repository with digest",
 			args: args{
 				images: map[string]ImageReference{
@@ -60,7 +97,7 @@ func TestNewImageMapper(t *testing.T) {
 			output: "image: quay.io/openshift/origin-etcd@sha256:1234",
 		},
 		{
-			name: "ignore bare repository - in the future we may fix this",
+			name: "replace bare repository when told to do so",
 			args: args{
 				images: map[string]ImageReference{
 					"etcd": {
@@ -70,7 +107,20 @@ func TestNewImageMapper(t *testing.T) {
 				},
 			},
 			input:  "image: quay.io/coreos/etcd",
-			output: "image: quay.io/coreos/etcd",
+			output: "image: quay.io/openshift/origin-etcd@sha256:1234",
+		},
+		{
+			name: "replace bare repository with trailing whitespace when told to do so",
+			args: args{
+				images: map[string]ImageReference{
+					"etcd": {
+						SourceRepository: "quay.io/coreos/etcd",
+						TargetPullSpec:   "quay.io/openshift/origin-etcd@sha256:1234",
+					},
+				},
+			},
+			input:  "image: quay.io/coreos/etcd ",
+			output: "image: quay.io/openshift/origin-etcd@sha256:1234 ",
 		},
 		{
 			name: "Ignore things that only look like images",

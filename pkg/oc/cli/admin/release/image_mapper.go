@@ -13,11 +13,6 @@ import (
 
 type ManifestMapper func(data []byte) ([]byte, error)
 
-// patternImageFormat attempts to match a docker pull spec by prefix (%s) and capture the
-// prefix and either a tag or digest. It requires leading and trailing whitespace, quotes, or
-// end of file.
-const patternImageFormat = `([\s\"\']|^)(%s)(:[a-zA-Z\d][\w\-_]*[a-zA-Z\d]|@\w+:\w+)?([\s"']|$)`
-
 func NewImageMapperFromImageStreamFile(path string, input *imageapi.ImageStream, allowMissingImages bool) (ManifestMapper, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -34,6 +29,9 @@ func NewImageMapperFromImageStreamFile(path string, input *imageapi.ImageStream,
 	for _, tag := range is.Spec.Tags {
 		if tag.From == nil || tag.From.Kind != "DockerImage" {
 			continue
+		}
+		if len(tag.From.Name) == 0 {
+			return nil, fmt.Errorf("Image file %q did not specify a valid target location for tag %q - no from.name for the tag", path, tag.Name)
 		}
 		ref := ImageReference{SourceRepository: tag.From.Name}
 		for _, inputTag := range input.Spec.Tags {
@@ -59,15 +57,31 @@ type ImageReference struct {
 	TargetPullSpec   string
 }
 
+func NopManifestMapper(data []byte) ([]byte, error) {
+	return data, nil
+}
+
+// patternImageFormat attempts to match a docker pull spec by prefix (%s) and capture the
+// prefix and either a tag or digest. It requires leading and trailing whitespace, quotes, or
+// end of file.
+const patternImageFormat = `([\s\"\']|^)(%s)(:[\w][\w.-]{0,127}|@[A-Za-z][A-Za-z0-9]*(?:[-_+.][A-Za-z][A-Za-z0-9]*)*[:][[:xdigit:]]{2,})?([\s"']|$)`
+
 func NewImageMapper(images map[string]ImageReference) (ManifestMapper, error) {
 	repositories := make([]string, 0, len(images))
 	bySource := make(map[string]string)
 	for name, ref := range images {
+		if len(ref.SourceRepository) == 0 {
+			return nil, fmt.Errorf("an empty source repository is not allowed for name %q", name)
+		}
 		if existing, ok := bySource[ref.SourceRepository]; ok {
 			return nil, fmt.Errorf("the source repository %q was defined more than once (for %q and %q)", ref.SourceRepository, existing, name)
 		}
 		bySource[ref.SourceRepository] = name
 		repositories = append(repositories, regexp.QuoteMeta(ref.SourceRepository))
+	}
+	if len(repositories) == 0 {
+		glog.V(5).Infof("No images are mapped, will not replace any contents")
+		return NopManifestMapper, nil
 	}
 	pattern := fmt.Sprintf(patternImageFormat, strings.Join(repositories, "|"))
 	re := regexp.MustCompile(pattern)
@@ -84,11 +98,11 @@ func NewImageMapper(images map[string]ImageReference) (ManifestMapper, error) {
 			ref := images[name]
 
 			suffix := parts[3]
-			glog.V(2).Infof("found repository %q with locator %q in the input, switching to %q", string(repository), string(suffix), ref.TargetPullSpec)
+			glog.V(2).Infof("found repository %q with locator %q in the input, switching to %q (from pattern %s)", string(repository), string(suffix), ref.TargetPullSpec, pattern)
 			switch {
 			case len(suffix) == 0:
-				// TODO: we found a repository, but no tag or digest - leave it alone for now
-				return in
+				// we found a repository, but no tag or digest (implied latest), or we got an exact match
+				return []byte(string(parts[1]) + ref.TargetPullSpec + string(parts[4]))
 			case suffix[0] == '@':
 				// we got a digest
 				return []byte(string(parts[1]) + ref.TargetPullSpec + string(parts[4]))
