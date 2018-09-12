@@ -61,12 +61,13 @@ Currently Linux (including a Linux VM running on another platform) is the only s
      or edit the `/etc/docker/daemon.json` file and add the following:
      ```json
      {
+         "storage-driver": "overlay2",
         "insecure-registries": [
           "172.30.0.0/16"
         ]
      }
      ```
-
+      Important: If you got problem with docker aufs storage driver, you need select `overlay2` as storage driver. which seems stable, and works well with `oc cluster up`
    - After editing the config, reload systemd and restart the Docker daemon.
      ```
      $ sudo systemctl daemon-reload
