@@ -214,6 +214,10 @@ func deploymentReachedCompletion(dc *appsv1.DeploymentConfig, rcs []*corev1.Repl
 		return false, nil
 	}
 
+	if appsutil.IsFailedDeployment(rc) {
+		return true, fmt.Errorf("deployment %s/%s failed", rc.Namespace, rc.Name)
+	}
+
 	if !appsutil.IsCompleteDeployment(rc) {
 		return false, nil
 	}
@@ -278,8 +282,11 @@ func deploymentRunning(dc *appsv1.DeploymentConfig, rcs []*corev1.ReplicationCon
 			return true, nil
 		}
 		return false, fmt.Errorf("deployment failed: %v", appsutil.DeploymentStatusReasonFor(rc))
+
 	case appsv1.DeploymentStatusRunning, appsv1.DeploymentStatusComplete:
+		e2e.Logf("deployment %s/%s reached state %q", rc.Namespace, rc.Name, status)
 		return true, nil
+
 	default:
 		return false, nil
 	}

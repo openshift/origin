@@ -318,28 +318,36 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		})
 
 		g.It("should run a deployment to completion and then scale to zero", func() {
-			dc, err := createDeploymentConfig(oc, deploymentFixture)
+			namespace := oc.Namespace()
+
+			dc, err := readDCFixture(deploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
+
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Name).To(o.Equal(dcName))
+			e2e.Logf("created DC, creationTimestamp: %v", dc.CreationTimestamp)
 
 			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
 
 			out, err := oc.Run("logs").Args("-f", "dc/deployment-test").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("oc logs finished")
 
-			g.By("verifying the deployment is marked complete and scaled to zero")
+			e2e.Logf("verifying the deployment is marked complete and scaled to zero")
 			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
+			e2e.Logf("checking the logs for substrings\n%s", out)
 			o.Expect(out).To(o.ContainSubstring("deployment-test-1 to 2"))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
 			o.Expect(out).To(o.ContainSubstring("--> Success"))
 
-			g.By("verifying that scaling does not result in new pods")
+			e2e.Logf("verifying that scaling does not result in new pods")
 			out, err = oc.Run("scale").Args("dc/deployment-test", "--replicas=1").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("ensuring no scale up of the deployment happens")
+			e2e.Logf("ensuring no scale up of the deployment happens")
 			wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
 				rc, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).Get("deployment-test-1", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -348,13 +356,13 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				return false, nil
 			})
 
-			g.By("verifying the scale is updated on the deployment config")
+			e2e.Logf("verifying the scale is updated on the deployment config")
 			config, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get("deployment-test", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(config.Spec.Replicas).Should(o.BeEquivalentTo(1))
 			o.Expect(config.Spec.Test).Should(o.BeTrue())
 
-			g.By("deploying a few more times")
+			e2e.Logf("deploying a few more times")
 			for i := 0; i < 3; i++ {
 				rolloutCompleteWithLogs := make(chan struct{})
 				out := ""
@@ -371,12 +379,12 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				// deployer container runs.
 				_, err := oc.Run("rollout").Args("latest", "deployment-test").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By(fmt.Sprintf("waiting for the rollout #%d to finish", i+2))
+				e2e.Logf("waiting for the rollout #%d to finish", i+2)
 				<-rolloutCompleteWithLogs
 				o.Expect(out).NotTo(o.BeEmpty())
 				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-				g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
+				e2e.Logf("checking the logs for substrings\n%s", out)
 				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("deployment-test-%d up to 1", i+2)))
 				o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
 				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
@@ -575,19 +583,27 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		})
 
 		g.It("should run the custom deployment steps", func() {
-			dc, err := createDeploymentConfig(oc, customDeploymentFixture)
+			namespace := oc.Namespace()
+
+			dc, err := readDCFixture(customDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
+
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Name).To(o.Equal(dcName))
+			e2e.Logf("created DC, creationTimestamp: %v", dc.CreationTimestamp)
 
 			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
 
 			out, err := oc.Run("logs").Args("--follow", "dc/custom-deployment").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("oc logs finished")
 
-			g.By("verifying the deployment is marked complete")
+			e2e.Logf("verifying the deployment is marked complete")
 			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
+			e2e.Logf("checking the logs for substrings\n%s", out)
 			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
 			o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 			o.Expect(out).To(o.ContainSubstring("--> Scaling custom-deployment-1 to 2"))
