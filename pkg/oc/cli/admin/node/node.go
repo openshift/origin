@@ -57,6 +57,8 @@ type ManageNodeOptions struct {
 	listPodsOptions    *ListPodsOptions
 	schedulableOptions *SchedulableOptions
 
+	schedulableSpecified bool
+
 	genericclioptions.IOStreams
 }
 
@@ -69,9 +71,7 @@ func NewManageNodeOptions(streams genericclioptions.IOStreams) *ManageNodeOption
 			Options:         nodeOpts,
 			printPodHeaders: true,
 		},
-		schedulableOptions: &SchedulableOptions{
-			Options: nodeOpts,
-		},
+		schedulableOptions: NewSchedulableOptions(nodeOpts),
 
 		IOStreams: streams,
 	}
@@ -87,7 +87,7 @@ func NewCommandManageNode(f kcmdutil.Factory, commandName, fullName string, stre
 		Example: fmt.Sprintf(manageNodeExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(c, f, args))
-			kcmdutil.CheckErr(o.Validate(c))
+			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.RunManageNode(c))
 		},
 	}
@@ -110,23 +110,22 @@ func NewCommandManageNode(f kcmdutil.Factory, commandName, fullName string, stre
 }
 
 func (o *ManageNodeOptions) Complete(c *cobra.Command, f kcmdutil.Factory, args []string) error {
+	o.schedulableSpecified = c.Flag("schedulable").Changed
 	return o.nodeOptions.Complete(f, c, args)
 }
 
-func (o *ManageNodeOptions) Validate(c *cobra.Command) error {
-	if err := ValidOperation(c); err != nil {
-		return kcmdutil.UsageErrorf(c, err.Error())
+func (o *ManageNodeOptions) Validate() error {
+	if err := o.validOperation(); err != nil {
+		return err
 	}
 
-	checkNodeSelector := c.Flag("selector").Changed
-	if err := o.nodeOptions.Validate(checkNodeSelector); err != nil {
-		return kcmdutil.UsageErrorf(c, err.Error())
+	if err := o.nodeOptions.Validate(); err != nil {
+		return err
 	}
 
 	// Cross op validations
 	if o.evacuateOptions.DryRun && !evacuate {
-		err := errors.New("--dry-run is only applicable for --evacuate")
-		return kcmdutil.UsageErrorf(c, err.Error())
+		return errors.New("--dry-run is only applicable for --evacuate")
 	}
 
 	return nil
@@ -134,7 +133,7 @@ func (o *ManageNodeOptions) Validate(c *cobra.Command) error {
 
 func (o *ManageNodeOptions) RunManageNode(c *cobra.Command) error {
 	var err error
-	if c.Flag("schedulable").Changed {
+	if o.schedulableSpecified {
 		o.schedulableOptions.Schedulable = schedulable
 		err = o.schedulableOptions.Run()
 	} else if evacuate {
@@ -148,9 +147,9 @@ func (o *ManageNodeOptions) RunManageNode(c *cobra.Command) error {
 	return err
 }
 
-func ValidOperation(c *cobra.Command) error {
+func (o *ManageNodeOptions) validOperation() error {
 	numOps := 0
-	if c.Flag("schedulable").Changed {
+	if o.schedulableSpecified {
 		numOps++
 	}
 	if evacuate {
