@@ -75,7 +75,8 @@ func (opt *installReadyDockerConfigSecret) Install(dockerClient dockerhelper.Int
 
 	dockerConfigJsonBytes, err := ioutil.ReadFile(path.Join(home, ".docker", "config.json"))
 	if err != nil {
-		return fmt.Errorf("Error reading $HOME/.docker/config.json: %v", err)
+		glog.Warningf("Error reading $HOME/.docker/config.json: %v, imagestream import credentials will not be setup", err)
+		return nil
 	}
 
 	glog.Infof("Installing %q", opt.Name())
