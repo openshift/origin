@@ -93,10 +93,10 @@ if [[ "${OS_BUILD_RELEASE_ARCHIVES-}" != "n" ]]; then
   os::build::release_sha
 else
   # Place binaries only
-  OS_BUILD_PLATFORMS=("${platforms[@]+"${platforms[@]}"}") \
-    os::build::place_bins "${OS_CROSS_COMPILE_BINARIES[@]}"
-  OS_BUILD_PLATFORMS=("${image_platforms[@]+"${image_platforms[@]}"}") \
-    os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
+  OS_BUILD_PLATFORMS=("${platforms[@]+"${platforms[@]}"}")
+  os::build::place_bins "${OS_CROSS_COMPILE_BINARIES[@]}"
+  OS_BUILD_PLATFORMS=("${image_platforms[@]+"${image_platforms[@]}"}")
+  os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
 fi
 
 if [[ "${OS_GIT_TREE_STATE:-dirty}" == "clean"  ]]; then
