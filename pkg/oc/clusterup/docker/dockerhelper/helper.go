@@ -204,7 +204,7 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
 	}
 
-	// This is to work around issue https://github.com/docker/docker/api/issues/138
+	// This is to work around issue https://github.com/docker/engine-api/issues/138
 	// where engine-api/client/ImagePull does not return an error when it should.
 	// which also still seems to exist in https://github.com/moby/moby/blob/master/client/image_pull.go
 	_, _, err = h.client.ImageInspectWithRaw(image, false)
