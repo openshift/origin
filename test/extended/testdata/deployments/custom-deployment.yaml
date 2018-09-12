@@ -22,11 +22,11 @@ spec:
       - -c
       - |
         set -e
+        sleep 15  # give tests time to set up
         openshift-deploy --until=50%
         echo Halfway
         openshift-deploy
         echo Finished
-        sleep 1
   template:
     metadata:
       labels:
