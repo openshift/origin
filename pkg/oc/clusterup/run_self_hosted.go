@@ -68,8 +68,18 @@ var (
 		},
 	}
 
+	runlevelZeroLabel         = map[string]string{"openshift.io/run-level": "0"}
 	runlevelOneLabel          = map[string]string{"openshift.io/run-level": "1"}
 	runLevelOneKubeComponents = []componentInstallTemplate{
+		{
+			ComponentImage: "hypershift",
+			Template: componentinstall.Template{
+				Name:            "etcd",
+				Namespace:       "kube-system",
+				NamespaceObj:    newNamespaceBytes("kube-system", runlevelZeroLabel),
+				InstallTemplate: manifests.MustAsset("install/etcd/install.yaml"),
+			},
+		},
 		{
 			ComponentImage: "control-plane",
 			Template: componentinstall.Template{

@@ -270,6 +270,7 @@
 // install/automationservicebroker/install-rbac.yaml
 // install/automationservicebroker/install.yaml
 // install/etcd/etcd.yaml
+// install/etcd/install.yaml
 // install/kube-apiserver/apiserver.yaml
 // install/kube-controller-manager/kube-controller-manager.yaml
 // install/kube-dns/install.yaml
@@ -32450,6 +32451,44 @@ func installEtcdEtcdYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installEtcdInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: etcd
+parameters:
+- name: NAMESPACE
+  value: kube-system
+objects:
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: etcd
+    namespace: ${NAMESPACE}
+  spec:
+    selector:
+      openshift.io/component: etcd
+    ports:
+    - name: listen
+      port: 4001
+      protocol: TCP
+`)
+
+func installEtcdInstallYamlBytes() ([]byte, error) {
+	return _installEtcdInstallYaml, nil
+}
+
+func installEtcdInstallYaml() (*asset, error) {
+	bytes, err := installEtcdInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/etcd/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installKubeApiserverApiserverYaml = []byte(`kind: Pod
 apiVersion: v1
 metadata:
@@ -34533,6 +34572,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/automationservicebroker/install-rbac.yaml": installAutomationservicebrokerInstallRbacYaml,
 	"install/automationservicebroker/install.yaml": installAutomationservicebrokerInstallYaml,
 	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
+	"install/etcd/install.yaml": installEtcdInstallYaml,
 	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
 	"install/kube-controller-manager/kube-controller-manager.yaml": installKubeControllerManagerKubeControllerManagerYaml,
 	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
@@ -34666,6 +34706,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"etcd": &bintree{nil, map[string]*bintree{
 			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
+			"install.yaml": &bintree{installEtcdInstallYaml, map[string]*bintree{}},
 		}},
 		"kube-apiserver": &bintree{nil, map[string]*bintree{
 			"apiserver.yaml": &bintree{installKubeApiserverApiserverYaml, map[string]*bintree{}},
