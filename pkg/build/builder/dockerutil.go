@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -68,25 +67,12 @@ type DockerClient interface {
 	TagImage(name string, opts docker.TagImageOptions) error
 }
 
-func retryImageAction(opts interface{}, action func() error) error {
+func retryImageAction(actionName string, action func() error) error {
 	var err error
 	var retriableError = false
-	var actionName string
-
-	pullOpt := docker.PullImageOptions{}
-	pushOpt := docker.PushImageOptions{}
 
 	for retries := 0; retries <= DefaultPushOrPullRetryCount; retries++ {
-		if reflect.TypeOf(opts) == reflect.TypeOf(pullOpt) {
-			actionName = "Pull"
-			err = action()
-		} else if reflect.TypeOf(opts) == reflect.TypeOf(pushOpt) {
-			actionName = "Push"
-			err = action()
-		} else {
-			return errors.New("not match Pull or Push action")
-		}
-
+		err = action()
 		if err == nil {
 			return nil
 		}
@@ -141,7 +127,7 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		opts.OutputStream = os.Stderr
 		opts.RawJSONStream = false
 	}
-	return retryImageAction(opts, func() error {
+	return retryImageAction("Pull", func() error {
 		return client.PullImage(opts, authConfig)
 	})
 }
@@ -175,7 +161,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		RawJSONStream: true,
 	}
 
-	if err := retryImageAction(opts, func() error {
+	if err := retryImageAction("Push", func() error {
 		return client.PushImage(opts, authConfig)
 	}); err != nil {
 		return "", err
