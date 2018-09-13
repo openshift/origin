@@ -28,7 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
-	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
+	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/legacyadmission"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	_ "github.com/openshift/origin/pkg/printers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"

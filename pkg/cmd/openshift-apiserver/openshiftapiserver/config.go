@@ -22,6 +22,7 @@ import (
 
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
 	"github.com/openshift/origin/pkg/api/legacy"
+	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"

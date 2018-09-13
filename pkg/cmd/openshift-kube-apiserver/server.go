@@ -15,8 +15,8 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
-	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 )
 
