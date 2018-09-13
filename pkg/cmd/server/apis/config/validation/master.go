@@ -41,7 +41,7 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) c
 
 	if config.DNSConfig != nil {
 		dnsConfigPath := fldPath.Child("dnsConfig")
-		validationResults.AddErrors(ValidateHostPort(config.DNSConfig.BindAddress, dnsConfigPath.Child("bindAddress"))...)
+		validationResults.AddErrors(common.ValidateHostPort(config.DNSConfig.BindAddress, dnsConfigPath.Child("bindAddress"))...)
 		switch config.DNSConfig.BindNetwork {
 		case "tcp", "tcp4", "tcp6":
 		default:
@@ -181,7 +181,7 @@ func ValidateMasterAuthConfig(config configapi.MasterAuthConfig, fldPath *field.
 func ValidateAggregatorConfig(config configapi.AggregatorConfig, fldPath *field.Path) common.ValidationResults {
 	validationResults := common.ValidationResults{}
 
-	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
+	validationResults.AddErrors(common.ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
 	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
 		validationResults.AddWarnings(field.Invalid(fldPath.Child("proxyClientInfo"), "", "if no client certificate is specified, the aggregator will be unable to proxy to remote servers"))
 	}
@@ -294,7 +294,7 @@ func ValidateControllerConfig(config configapi.ControllerConfig, fldPath *field.
 	if config.ServiceServingCert.Signer == nil {
 		validationResults.AddWarnings(field.Required(fldPath.Child("serviceServingCert", "signer"), "required for the service serving cert signer; automatic serving certificate signing will fail"))
 	} else {
-		validationResults.AddErrors(ValidateCertInfo(*config.ServiceServingCert.Signer, true, fldPath.Child("serviceServingCert.signer"))...)
+		validationResults.AddErrors(common.ValidateCertInfo(*config.ServiceServingCert.Signer, true, fldPath.Child("serviceServingCert.signer"))...)
 	}
 
 	return validationResults
@@ -479,7 +479,7 @@ func ValidateKubeletConnectionInfo(config configapi.KubeletConnectionInfo, fldPa
 	if len(config.CA) > 0 {
 		allErrs = append(allErrs, common.ValidateFile(config.CA, fldPath.Child("ca"))...)
 	}
-	allErrs = append(allErrs, ValidateCertInfo(config.ClientCert, false, fldPath)...)
+	allErrs = append(allErrs, common.ValidateCertInfo(config.ClientCert, false, fldPath)...)
 
 	return allErrs
 }
@@ -491,7 +491,7 @@ func ValidateKubernetesMasterConfig(config configapi.KubernetesMasterConfig, fld
 		validationResults.AddErrors(common.ValidateSpecifiedIP(config.MasterIP, fldPath.Child("masterIP"))...)
 	}
 
-	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
+	validationResults.AddErrors(common.ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
 	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
 		validationResults.AddWarnings(field.Invalid(fldPath.Child("proxyClientInfo"), "", "if no client certificate is specified, TLS pods and services cannot validate requests came from the proxy"))
 	}
