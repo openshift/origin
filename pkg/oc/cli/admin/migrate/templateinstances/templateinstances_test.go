@@ -3,10 +3,10 @@ package templateinstances
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatev1 "github.com/openshift/api/template/v1"
 )
 
 func TestDefaultMigrations(t *testing.T) {
@@ -94,11 +94,11 @@ func TestDefaultMigrations(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc // copy the iteration variable to a non-iteration memory location
 		t.Run(tc.name, func(t *testing.T) {
-			oldTI := &templateapi.TemplateInstance{
-				Status: templateapi.TemplateInstanceStatus{
-					Objects: []templateapi.TemplateInstanceObject{
+			oldTI := &templatev1.TemplateInstance{
+				Status: templatev1.TemplateInstanceStatus{
+					Objects: []templatev1.TemplateInstanceObject{
 						{
-							Ref: kapi.ObjectReference{
+							Ref: corev1.ObjectReference{
 								APIVersion: tc.input.APIVersion,
 								Kind:       tc.input.Kind,
 								Name:       tc.name,

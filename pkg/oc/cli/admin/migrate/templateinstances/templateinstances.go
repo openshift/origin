@@ -7,17 +7,16 @@ import (
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	templatev1 "github.com/openshift/api/template/v1"
+	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	templateinternalclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
 
 type apiType struct {
@@ -69,7 +68,7 @@ func prettyPrintMigrations(versionKinds map[apiType]apiType) string {
 }
 
 type MigrateTemplateInstancesOptions struct {
-	templateClient templateinternalclient.TemplateInterface
+	templateClient templatev1typedclient.TemplateV1Interface
 
 	migrate.ResourceOptions
 
@@ -78,13 +77,8 @@ type MigrateTemplateInstancesOptions struct {
 
 func NewMigrateTemplateInstancesOptions(streams genericclioptions.IOStreams) *MigrateTemplateInstancesOptions {
 	return &MigrateTemplateInstancesOptions{
-		ResourceOptions: migrate.ResourceOptions{
-			IOStreams: streams,
-
-			AllNamespaces: true,
-			Include:       []string{"templateinstance"},
-		},
-		transforms: transforms,
+		ResourceOptions: *migrate.NewResourceOptions(streams).WithIncludes([]string{"templateinstance"}).WithAllNamespaces(),
+		transforms:      transforms,
 	}
 }
 
@@ -121,11 +115,10 @@ func (o *MigrateTemplateInstancesOptions) Complete(name string, f kcmdutil.Facto
 	if err != nil {
 		return err
 	}
-	templateClient, err := templateclientset.NewForConfig(clientConfig)
+	o.templateClient, err = templatev1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.templateClient = templateClient.Template()
 
 	return nil
 }
@@ -141,7 +134,7 @@ func (o MigrateTemplateInstancesOptions) Run() error {
 }
 
 func (o *MigrateTemplateInstancesOptions) checkAndTransform(templateInstanceRaw runtime.Object) (migrate.Reporter, error) {
-	templateInstance, wasTI := templateInstanceRaw.(*templateapi.TemplateInstance)
+	templateInstance, wasTI := templateInstanceRaw.(*templatev1.TemplateInstance)
 	if !wasTI {
 		return nil, fmt.Errorf("unrecognized object %#v", templateInstanceRaw)
 	}
@@ -158,7 +151,7 @@ func (o *MigrateTemplateInstancesOptions) checkAndTransform(templateInstanceRaw 
 	return migrate.ReporterBool(updated), nil
 }
 
-func (o *MigrateTemplateInstancesOptions) transform(ref kapi.ObjectReference) (apiType, bool) {
+func (o *MigrateTemplateInstancesOptions) transform(ref corev1.ObjectReference) (apiType, bool) {
 	oldType := apiType{ref.Kind, ref.APIVersion}
 	if newType, ok := o.transforms[oldType]; ok {
 		return newType, true
@@ -170,7 +163,7 @@ func (o *MigrateTemplateInstancesOptions) transform(ref kapi.ObjectReference) (a
 // the migration visitor method. It should return an error  if the input type cannot be saved
 // It returns migrate.ErrRecalculate if migration should be re-run on the provided object.
 func (o *MigrateTemplateInstancesOptions) save(info *resource.Info, reporter migrate.Reporter) error {
-	templateInstance, wasTI := info.Object.(*templateapi.TemplateInstance)
+	templateInstance, wasTI := info.Object.(*templatev1.TemplateInstance)
 	if !wasTI {
 		return fmt.Errorf("unrecognized object %#v", info.Object)
 	}

@@ -3,8 +3,8 @@ package legacyhpa
 import (
 	"testing"
 
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
 )
 
 func TestDefaultMigrations(t *testing.T) {
@@ -57,9 +57,9 @@ func TestDefaultMigrations(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc // copy the iteration variable to a non-iteration memory location
 		t.Run(tc.name, func(t *testing.T) {
-			oldHPA := &autoscaling.HorizontalPodAutoscaler{
-				Spec: autoscaling.HorizontalPodAutoscalerSpec{
-					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+			oldHPA := &autoscalingv1.HorizontalPodAutoscaler{
+				Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
 						APIVersion: tc.input.APIVersion,
 						Kind:       tc.input.Kind,
 						Name:       tc.name,

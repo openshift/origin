@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	autoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
+	autoscalingv1typedclient "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -67,19 +67,14 @@ type MigrateLegacyHPAOptions struct {
 	// as HPAs use (CrossVersionObjectReferences) for ease of access.
 	finalVersionKinds map[metav1.TypeMeta]metav1.TypeMeta
 
-	hpaClient autoscalingclient.AutoscalingInterface
+	hpaClient autoscalingv1typedclient.AutoscalingV1Interface
 
 	migrate.ResourceOptions
 }
 
 func NewMigrateLegacyHPAOptions(streams genericclioptions.IOStreams) *MigrateLegacyHPAOptions {
 	return &MigrateLegacyHPAOptions{
-		ResourceOptions: migrate.ResourceOptions{
-			IOStreams: streams,
-
-			AllNamespaces: true,
-			Include:       []string{"horizontalpodautoscalers.autoscaling"},
-		},
+		ResourceOptions: *migrate.NewResourceOptions(streams).WithIncludes([]string{"horizontalpodautoscalers.autoscaling"}).WithAllNamespaces(),
 	}
 }
 
@@ -119,11 +114,15 @@ func (o *MigrateLegacyHPAOptions) Complete(name string, f kcmdutil.Factory, c *c
 		o.finalVersionKinds[initial] = final
 	}
 
-	kubeClientSet, err := f.ClientSet()
+	config, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	o.hpaClient = kubeClientSet.Autoscaling()
+
+	o.hpaClient, err = autoscalingv1typedclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -142,7 +141,7 @@ func (o MigrateLegacyHPAOptions) Run() error {
 }
 
 func (o *MigrateLegacyHPAOptions) checkAndTransform(hpaRaw runtime.Object) (migrate.Reporter, error) {
-	hpa, wasHPA := hpaRaw.(*autoscaling.HorizontalPodAutoscaler)
+	hpa, wasHPA := hpaRaw.(*autoscalingv1.HorizontalPodAutoscaler)
 	if !wasHPA {
 		return nil, fmt.Errorf("unrecognized object %#v", hpaRaw)
 	}
@@ -175,7 +174,7 @@ func (o *MigrateLegacyHPAOptions) latestVersionKind(current metav1.TypeMeta) met
 // the migration visitor method. It should return an error  if the input type cannot be saved
 // It returns migrate.ErrRecalculate if migration should be re-run on the provided object.
 func (o *MigrateLegacyHPAOptions) save(info *resource.Info, reporter migrate.Reporter) error {
-	hpa, wasHPA := info.Object.(*autoscaling.HorizontalPodAutoscaler)
+	hpa, wasHPA := info.Object.(*autoscalingv1.HorizontalPodAutoscaler)
 	if !wasHPA {
 		return fmt.Errorf("unrecognized object %#v", info.Object)
 	}
