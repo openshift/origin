@@ -524,7 +524,19 @@ func (eit *EgressIPTracker) findEgressIPAllocation(ip net.IP, allocation map[str
 }
 
 func (eit *EgressIPTracker) makeEmptyAllocation() (map[string][]string, map[string]bool) {
-	return make(map[string][]string), make(map[string]bool)
+	allocation := make(map[string][]string)
+	alreadyAllocated := make(map[string]bool)
+
+	// We don't want to auto-allocate/reallocate IPs for NetNamespaces using
+	// multiple-egress-IP HA, so those should be considered "already allocated"
+	// even before we start.
+	for egressIP, eip := range eit.egressIPs {
+		if eip.assignedNodeIP != "" && len(eip.namespaces[0].requestedIPs) > 1 {
+			alreadyAllocated[egressIP] = true
+		}
+	}
+
+	return allocation, alreadyAllocated
 }
 
 func (eit *EgressIPTracker) allocateExistingEgressIPs(allocation map[string][]string, alreadyAllocated map[string]bool) bool {
