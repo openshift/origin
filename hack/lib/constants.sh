@@ -350,7 +350,7 @@ function os::build::check_binaries() {
   # IMPORTANT: contact Clayton or another master team member before altering this code
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
     size=$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/oc" | cut -f 1)
-    if [[ "${size}" -gt "118" ]]; then
+    if [[ "${size}" -gt "125" ]]; then
       os::log::fatal "oc binary has grown substantially to ${size}. You must have approval before bumping this limit."
     fi
   fi
