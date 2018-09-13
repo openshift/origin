@@ -53,17 +53,21 @@ func LoadPolicyFromFile(filePath string) (*auditinternal.Policy, error) {
 		return nil, fmt.Errorf("failed to read file path %q: %+v", filePath, err)
 	}
 
+	return LoadPolicyFromBytes(policyDef, filePath)
+}
+
+func LoadPolicyFromBytes(policyDef []byte, location string) (*auditinternal.Policy, error) {
 	policy := &auditinternal.Policy{}
 	decoder := audit.Codecs.UniversalDecoder(apiGroupVersions...)
 
 	_, gvk, err := decoder.Decode(policyDef, nil, policy)
 	if err != nil {
-		return nil, fmt.Errorf("failed decoding file %q: %v", filePath, err)
+		return nil, fmt.Errorf("failed decoding file %q: %v", location, err)
 	}
 
 	// Ensure the policy file contained an apiVersion and kind.
 	if !apiGroupVersionSet[schema.GroupVersion{Group: gvk.Group, Version: gvk.Version}] {
-		return nil, fmt.Errorf("unknown group version field %v in policy file %s", gvk, filePath)
+		return nil, fmt.Errorf("unknown group version field %v in policy file %s", gvk, location)
 	}
 
 	if err := validation.ValidatePolicy(policy); err != nil {
@@ -72,8 +76,8 @@ func LoadPolicyFromFile(filePath string) (*auditinternal.Policy, error) {
 
 	policyCnt := len(policy.Rules)
 	if policyCnt == 0 {
-		return nil, fmt.Errorf("loaded illegal policy with 0 rules from file %s", filePath)
+		return nil, fmt.Errorf("loaded illegal policy with 0 rules from file %s", location)
 	}
-	glog.V(4).Infof("Loaded %d audit policy rules from file %s", policyCnt, filePath)
+	glog.V(4).Infof("Loaded %d audit policy rules from file %s", policyCnt, location)
 	return policy, nil
 }
