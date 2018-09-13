@@ -34,7 +34,9 @@ os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a
 os::cmd::expect_failure_and_text 'oc observe services --once --all-namespaces -a "bad{ .missingkey }key" --strict-templates' 'missingkey is not found'
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .unknown }}" --output=gotemplate' '""'
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ or (.unknown) \"\" }}key" --output=gotemplate' 'badkey'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ .unknown }}key" --output=gotemplate --strict-templates' '\<no value\>'
+os::cmd::expect_failure_and_text 'oc observe services --once --all-namespaces -a "bad{{ .unknown }}key" --output=gotemplate --strict-templates' 'error executing template'
+# ensure columns for multiple arguments are printed
+os::cmd::expect_success_and_text "oc observe services --once --all-namespaces -a='{ .spec.clusterIP }' -a='{ .metadata.name }'" '172.30.0.1 kubernetes'
 
 # --type-env-var
 os::cmd::expect_success_and_text 'MYENV=should_be_passed oc observe services --once --all-namespaces --type-env-var=EVENT -- /bin/sh -c "echo \$EVENT \$MYENV"' 'Sync should_be_passed'

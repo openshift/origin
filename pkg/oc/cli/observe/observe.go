@@ -1,8 +1,6 @@
 package observe
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,7 +13,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"text/template"
 	"time"
 
 	"github.com/golang/glog"
@@ -27,18 +24,19 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/jsonpath"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/origin/pkg/util/proc"
 )
@@ -162,8 +160,10 @@ var (
 )
 
 type ObserveOptions struct {
-	debugOut  io.Writer
-	noHeaders bool
+	PrintFlags *genericclioptions.PrintFlags
+
+	debugOut io.Writer
+	quiet    bool
 
 	client           resource.RESTClient
 	mapping          *meta.RESTMapping
@@ -198,9 +198,8 @@ type ObserveOptions struct {
 	printMetricsOnExit bool
 
 	// control the output of the command
-	templateType    string
 	templates       stringSliceFlag
-	printer         ColumnPrinter
+	printer         VersionedPrinterList
 	strictTemplates bool
 
 	argumentStore *objectArgumentsStore
@@ -212,10 +211,12 @@ type ObserveOptions struct {
 
 func NewObserveOptions(streams genericclioptions.IOStreams) *ObserveOptions {
 	return &ObserveOptions{
+		PrintFlags: (&genericclioptions.PrintFlags{
+			TemplatePrinterFlags: genericclioptions.NewKubeTemplatePrintFlags(),
+		}).WithDefaultOutput("jsonpath").WithTypeSetter(scheme.Scheme),
 		IOStreams: streams,
 
 		retryCount:    2,
-		templateType:  "jsonpath",
 		maximumErrors: 20,
 		listenAddr:    ":11251",
 	}
@@ -246,34 +247,36 @@ func NewCmdObserve(fullName string, f kcmdutil.Factory, streams genericclioption
 	}
 
 	// flags controlling what to select
-	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", false, "If true, list the requested object(s) across all projects. Project in current context is ignored.")
+	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "If true, list the requested object(s) across all projects. Project in current context is ignored.")
 
 	// to perform deletion synchronization
 	cmd.Flags().VarP(&o.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify multiple times to add arguments.")
 	cmd.Flags().Var(&o.nameSyncCommand, "names", "A command that will list all of the currently known names, optional. Specify multiple times to add arguments. Use to get notifications when objects are deleted.")
 
 	// add additional arguments / info to the server
-	cmd.Flags().StringVar(&o.templateType, "output", o.templateType, "Controls the template type used for the --argument flags. Supported values are gotemplate and jsonpath.")
-	cmd.Flags().BoolVar(&o.strictTemplates, "strict-templates", false, "If true return an error on any field or map key that is not missing in a template.")
+	cmd.Flags().BoolVar(&o.strictTemplates, "strict-templates", o.strictTemplates, "If true return an error on any field or map key that is not missing in a template.")
 	cmd.Flags().VarP(&o.templates, "argument", "a", "Template for the arguments to be passed to each command in the format defined by --output.")
-	cmd.Flags().StringVar(&o.typeEnvVar, "type-env-var", "", "The name of an env var to set with the type of event received ('Sync', 'Updated', 'Deleted', 'Added') to the reaction command or --delete.")
-	cmd.Flags().StringVar(&o.objectEnvVar, "object-env-var", "", "The name of an env var to serialize the object to when calling the command, optional.")
+	cmd.Flags().StringVar(&o.typeEnvVar, "type-env-var", o.typeEnvVar, "The name of an env var to set with the type of event received ('Sync', 'Updated', 'Deleted', 'Added') to the reaction command or --delete.")
+	cmd.Flags().StringVar(&o.objectEnvVar, "object-env-var", o.objectEnvVar, "The name of an env var to serialize the object to when calling the command, optional.")
 
 	// control retries of individual commands
 	cmd.Flags().IntVar(&o.maximumErrors, "maximum-errors", o.maximumErrors, "Exit after this many errors have been detected with. May be set to -1 for no maximum.")
-	cmd.Flags().IntVar(&o.retryExitStatus, "retry-on-exit-code", 0, "If any command returns this exit code, retry up to --retry-count times.")
+	cmd.Flags().IntVar(&o.retryExitStatus, "retry-on-exit-code", o.retryExitStatus, "If any command returns this exit code, retry up to --retry-count times.")
 	cmd.Flags().IntVar(&o.retryCount, "retry-count", o.retryCount, "The number of times to retry a failing command before continuing.")
 
 	// control observe program behavior
-	cmd.Flags().BoolVar(&o.once, "once", false, "If true, exit with a status code 0 after all current objects have been processed.")
-	cmd.Flags().DurationVar(&o.exitAfterPeriod, "exit-after", 0, "Exit with status code 0 after the provided duration, optional.")
-	cmd.Flags().DurationVar(&o.resyncPeriod, "resync-period", 0, "When non-zero, periodically reprocess every item from the server as a Sync event. Use to ensure external systems are kept up to date.")
-	cmd.Flags().BoolVar(&o.printMetricsOnExit, "print-metrics-on-exit", false, "If true, on exit write all metrics to stdout.")
+	cmd.Flags().BoolVar(&o.once, "once", o.once, "If true, exit with a status code 0 after all current objects have been processed.")
+	cmd.Flags().DurationVar(&o.exitAfterPeriod, "exit-after", o.exitAfterPeriod, "Exit with status code 0 after the provided duration, optional.")
+	cmd.Flags().DurationVar(&o.resyncPeriod, "resync-period", o.resyncPeriod, "When non-zero, periodically reprocess every item from the server as a Sync event. Use to ensure external systems are kept up to date.")
+	cmd.Flags().BoolVar(&o.printMetricsOnExit, "print-metrics-on-exit", o.printMetricsOnExit, "If true, on exit write all metrics to stdout.")
 	cmd.Flags().StringVar(&o.listenAddr, "listen-addr", o.listenAddr, "The name of an interface to listen on to expose metrics and health checking.")
 
 	// additional debug output
-	cmd.Flags().BoolVar(&o.noHeaders, "no-headers", false, "If true, skip printing information about each event prior to executing the command.")
+	cmd.Flags().BoolVar(&o.quiet, "no-headers", o.quiet, "If true, skip printing information about each event prior to executing the command.")
+	cmd.Flags().MarkDeprecated("no-headers", "This flag will be removed in a future release. Use --quiet instead.")
+	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", o.quiet, "If true, skip printing information about each event prior to executing the command.")
 
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -327,24 +330,62 @@ func (o *ObserveOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 		return err
 	}
 
-	switch o.templateType {
-	case "jsonpath":
-		p, err := NewJSONPathArgumentPrinter(o.includeNamespace, o.strictTemplates, o.templates...)
-		if err != nil {
-			return err
-		}
-		o.printer = p
-	case "gotemplate":
-		p, err := NewGoTemplateArgumentPrinter(o.includeNamespace, o.strictTemplates, o.templates...)
-		if err != nil {
-			return err
-		}
-		o.printer = p
-	default:
-		return fmt.Errorf("template type %q not recognized - valid values are jsonpath and gotemplate", o.templateType)
+	// TODO: Remove in the next release
+	// support backwards compatibility with misspelling of "go-template" output format
+	if o.PrintFlags.OutputFormat != nil && *o.PrintFlags.OutputFormat == "gotemplate" {
+		fmt.Fprintf(o.ErrOut, "DEPRECATED: The %q output format has been replaced by %q, please use the new spelling instead\n", "gotemplate", "go-template")
+		*o.PrintFlags.OutputFormat = "go-template"
 	}
-	o.printer = NewVersionedColumnPrinter(o.printer, legacyscheme.Scheme, version.GroupVersion())
-	if o.noHeaders {
+
+	// TODO: Remove in the next release
+	// support backwards compatibility with incorrect flag --strict-templates
+	if o.strictTemplates {
+		fmt.Fprintf(o.ErrOut, "DEPRECATED: %q has been replaced by %q, please use the new flag instead\n", "--strict-templates", "--allow-missing-template-keys=false")
+		*o.PrintFlags.TemplatePrinterFlags.AllowMissingKeys = !o.strictTemplates
+	}
+
+	// prevent output-format from defaulting to go-template if no --output format
+	// is explicitly provided by the user
+	o.PrintFlags.OutputFlagSpecified = func() bool { return true }
+	printerList := []printers.ResourcePrinter{}
+
+	if p, err := o.PrintFlags.ToPrinter(); err == nil {
+		// here we only want to see if a valid output format containing a template arg was specified
+		// and there is a matching printer. If so, add that printer to our list
+		printerList = append(printerList, p)
+	}
+
+	// normalize --output value, keep the specified go-template or jsonpath output format,
+	// but remove any template arg specified as part of it
+	if o.PrintFlags.OutputFormat != nil {
+		*o.PrintFlags.OutputFormat = strings.Split(*o.PrintFlags.OutputFormat, "=")[0]
+	}
+
+	for _, arg := range o.templates {
+		if len(arg) == 0 {
+			continue
+		}
+
+		// take the value of our existing PrintFlags, and re-wrap them
+		// in a new TypeSetter printer to end up with new value.
+		// we do this in order to avoid dealing with the same TypeSetter object
+		// on every iteration, and instead obtain a new printer altogether.
+		printFlags := *o.PrintFlags.WithTypeSetter(scheme.Scheme)
+
+		// we want to set the template argument value at the address
+		// that TemplateArgument already points to, since that address
+		// is shared with both the JSONPath and GoTemplate PrintFlags.
+		*printFlags.TemplatePrinterFlags.TemplateArgument = arg
+		templatePrinter, err := printFlags.ToPrinter()
+		if err != nil {
+			return err
+		}
+
+		printerList = append(printerList, templatePrinter)
+	}
+
+	o.printer = VersionedPrinterList(printerList)
+	if o.quiet {
 		o.debugOut = ioutil.Discard
 	} else {
 		o.debugOut = o.Out
@@ -560,11 +601,12 @@ func (o *ObserveOptions) calculateArguments(delta cache.Delta) (runtime.Object, 
 		if obj, ok := t.Obj.(runtime.Object); ok {
 			object = obj
 
-			args, data, err := o.printer.Print(obj)
+			args := &ArgsWriter{}
+			data, err := o.printer.PrintObj(obj, args)
 			if err != nil {
 				return nil, nil, nil, fmt.Errorf("unable to write arguments: %v", err)
 			}
-			arguments = args
+			arguments = args.Args()
 			output = data
 
 		} else {
@@ -587,11 +629,12 @@ func (o *ObserveOptions) calculateArguments(delta cache.Delta) (runtime.Object, 
 	case runtime.Object:
 		object = t
 
-		args, data, err := o.printer.Print(t)
+		args := &ArgsWriter{}
+		data, err := o.printer.PrintObj(t, args)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("unable to write arguments: %v", err)
 		}
-		arguments = args
+		arguments = args.Args()
 		output = data
 
 		key, _ = cache.MetaNamespaceKeyFunc(t)
@@ -817,136 +860,63 @@ func (lw restListWatcher) Watch(opt metav1.ListOptions) (watch.Interface, error)
 	return lw.Helper.Watch(lw.namespace, opt.ResourceVersion, &opt)
 }
 
-type JSONPathColumnPrinter struct {
-	includeNamespace bool
-	rawTemplates     []string
-	templates        []*jsonpath.JSONPath
-	buf              *bytes.Buffer
+type flushableWriter interface {
+	Flush()
 }
 
-func NewJSONPathArgumentPrinter(includeNamespace, strict bool, templates ...string) (*JSONPathColumnPrinter, error) {
-	p := &JSONPathColumnPrinter{
-		includeNamespace: includeNamespace,
-		rawTemplates:     templates,
-		buf:              &bytes.Buffer{},
+type ArgsWriter struct {
+	buffer []byte
+	args   []string
+}
+
+func (w *ArgsWriter) Args() []string {
+	return w.args
+}
+
+func (w *ArgsWriter) Flush() {
+	w.args = append(w.args, string(w.buffer))
+	w.buffer = []byte{}
+}
+
+func (w *ArgsWriter) Write(p []byte) (n int, err error) {
+	w.buffer = append(w.buffer, p...)
+	return len(w.buffer), nil
+}
+
+// VersionedPrinterList wraps a list of template printers for a given object
+// and converts the object to a groupified external API version before printing.
+type VersionedPrinterList []printers.ResourcePrinter
+
+func (p VersionedPrinterList) PrintObj(obj runtime.Object, out io.Writer) ([]byte, error) {
+	// TODO(juanvallejo): This conversion to externals needs to be removed
+	// once we switch to using the dynamic client. This is being tracked
+	// in https://github.com/openshift/origin/issues/20992.
+	data, err := runtime.Encode(scheme.DefaultJSONEncoder(), obj)
+	if err != nil {
+		return nil, err
 	}
-	for _, s := range templates {
-		t := jsonpath.New("template").AllowMissingKeys(!strict)
-		if err := t.Parse(s); err != nil {
+
+	// decode object, preferring prioritized versions
+	decoder := serializer.NewCodecFactory(scheme.Scheme).UniversalDecoder(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+
+	converted, err := runtime.Decode(decoder, data)
+	if err != nil {
+		if !runtime.IsNotRegisteredError(err) {
 			return nil, err
 		}
-		p.templates = append(p.templates, t)
+		converted = obj
 	}
-	return p, nil
-}
 
-func (p *JSONPathColumnPrinter) Print(obj interface{}) ([]string, []byte, error) {
-	var columns []string
-	for i, t := range p.templates {
-		p.buf.Reset()
-		if err := t.Execute(p.buf, obj); err != nil {
-			return nil, nil, fmt.Errorf("error executing template '%v': '%v'\n----data----\n%+v\n", p.rawTemplates[i], err, obj)
-		}
-		columns = append(columns, p.buf.String())
-	}
-	return columns, nil, nil
-}
-
-type GoTemplateColumnPrinter struct {
-	includeNamespace bool
-	strict           bool
-	rawTemplates     []string
-	templates        []*template.Template
-	buf              *bytes.Buffer
-}
-
-func NewGoTemplateArgumentPrinter(includeNamespace, strict bool, templates ...string) (*GoTemplateColumnPrinter, error) {
-	p := &GoTemplateColumnPrinter{
-		includeNamespace: includeNamespace,
-		strict:           strict,
-		rawTemplates:     templates,
-		buf:              &bytes.Buffer{},
-	}
-	for _, s := range templates {
-		t := template.New("template")
-		child, err := t.Parse(s)
-		if err != nil {
+	for _, printer := range p {
+		if err := printer.PrintObj(converted, out); err != nil {
 			return nil, err
 		}
-		if !strict {
-			child.Option("missingkey=zero")
-		}
-		p.templates = append(p.templates, child)
-	}
-	return p, nil
-}
-
-func (p *GoTemplateColumnPrinter) Print(obj interface{}) ([]string, []byte, error) {
-	var columns []string
-	for i, t := range p.templates {
-		p.buf.Reset()
-		if err := t.Execute(p.buf, obj); err != nil {
-			return nil, nil, fmt.Errorf("error executing template '%v': '%v'\n----data----\n%+v\n", p.rawTemplates[i], err, obj)
-		}
-		// if the template resolves to the special <no value> result, return it as an empty string
-		// most arguments will prefer empty vs an arbitrary constant, and we are making gotemplates consistent with
-		// jsonpath
-		if p.buf.String() == "<no value>" {
-			if p.strict {
-				return nil, nil, fmt.Errorf("error executing template '%v': <no value>", p.rawTemplates[i])
-			}
-			columns = append(columns, "")
-		} else {
-			columns = append(columns, p.buf.String())
+		if w, ok := out.(flushableWriter); ok {
+			w.Flush()
 		}
 	}
-	return columns, nil, nil
-}
 
-type ColumnPrinter interface {
-	Print(obj interface{}) ([]string, []byte, error)
-}
-
-// VersionedPrinter takes runtime objects and ensures they are converted to a given API version
-// prior to being passed to a nested printer.
-type VersionedColumnPrinter struct {
-	printer   ColumnPrinter
-	convertor runtime.ObjectConvertor
-	version   runtime.GroupVersioner
-}
-
-// NewVersionedHumanReadablePrinter wraps a printer to convert objects to a known API version prior to printing.
-func NewVersionedColumnPrinter(printer ColumnPrinter, convertor runtime.ObjectConvertor, version runtime.GroupVersioner) ColumnPrinter {
-	return &VersionedColumnPrinter{
-		printer:   printer,
-		convertor: convertor,
-		version:   version,
-	}
-}
-
-// Print converts the object to a map[string]interface{} in the target version before calling the nested printer.
-func (p *VersionedColumnPrinter) Print(out interface{}) ([]string, []byte, error) {
-	var output []byte
-	if obj, ok := out.(runtime.Object); ok {
-		converted, err := p.convertor.ConvertToVersion(obj, p.version)
-		if err != nil {
-			if !runtime.IsNotRegisteredError(err) {
-				return nil, nil, err
-			}
-			converted = obj
-		}
-		data, err := json.Marshal(converted)
-		if err != nil {
-			return nil, nil, err
-		}
-		output = data
-		out = map[string]interface{}{}
-		if err := json.Unmarshal(data, &out); err != nil {
-			return nil, nil, err
-		}
-	}
-	args, _, err := p.printer.Print(out)
-	return args, output, err
+	return data, nil
 }
 
 type knownObjects interface {
