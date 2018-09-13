@@ -6,14 +6,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/diff"
 
-	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
-func mkAllowed(insecure bool, regs ...string) serverapi.AllowedRegistries {
-	ret := make(serverapi.AllowedRegistries, 0, len(regs))
+func mkAllowed(insecure bool, regs ...string) openshiftcontrolplanev1.AllowedRegistries {
+	ret := make(openshiftcontrolplanev1.AllowedRegistries, 0, len(regs))
 	for _, reg := range regs {
-		ret = append(ret, serverapi.RegistryLocation{DomainName: reg, Insecure: insecure})
+		ret = append(ret, openshiftcontrolplanev1.RegistryLocation{DomainName: reg, Insecure: insecure})
 	}
 	return ret
 }
@@ -22,7 +22,7 @@ func TestRegistryWhitelister(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
 		transport WhitelistTransport
-		whitelist serverapi.AllowedRegistries
+		whitelist openshiftcontrolplanev1.AllowedRegistries
 		hostnames map[string]error
 		difs      map[imageapi.DockerImageReference]error
 		pullSpecs map[string]error
@@ -287,7 +287,7 @@ func TestRegistryWhitelister(t *testing.T) {
 }
 
 func TestWhitelistRegistry(t *testing.T) {
-	rwClean, err := NewRegistryWhitelister(serverapi.AllowedRegistries{}, nil)
+	rwClean, err := NewRegistryWhitelister(openshiftcontrolplanev1.AllowedRegistries{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +331,7 @@ func TestNewRegistryWhitelister(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		insecure      bool
-		whitelist     serverapi.AllowedRegistries
+		whitelist     openshiftcontrolplanev1.AllowedRegistries
 		expectedError error
 	}{
 		{

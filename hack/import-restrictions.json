@@ -37,6 +37,7 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/apiserver/admission",
       "github.com/openshift/origin/pkg/apps/apiserver",
       "github.com/openshift/origin/pkg/build/apiserver",
       "github.com/openshift/origin/pkg/image/apiserver",
@@ -76,6 +77,7 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/apiserver/admission",
       "github.com/openshift/origin/pkg/image/generated",
       "github.com/openshift/origin/pkg/network/generated",
       "github.com/openshift/origin/pkg/oauth/generated",

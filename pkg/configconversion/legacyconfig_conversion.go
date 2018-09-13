@@ -7,6 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	"fmt"
+
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
@@ -207,6 +209,13 @@ func ConvertMasterConfigToOpenShiftAPIServerConfig(input *legacyconfigv1.MasterC
 	ret.JenkinsPipelineConfig, err = ToJenkinsPipelineConfig(&input.JenkinsPipelineConfig)
 	if err != nil {
 		return nil, err
+	}
+
+	if filenames, ok := input.KubernetesMasterConfig.APIServerArguments["cloud-config"]; ok {
+		if len(filenames) != 1 {
+			return nil, fmt.Errorf(`one or zero "--cloud-config" required, not %v`, filenames)
+		}
+		ret.CloudProviderFile = filenames[0]
 	}
 
 	return ret, nil

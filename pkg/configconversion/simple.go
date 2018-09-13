@@ -117,9 +117,9 @@ func ToJenkinsPipelineConfig(in *legacyconfigv1.JenkinsPipelineConfig) (out open
 	return out, nil
 }
 
-func ToAllowedRegistries(in *legacyconfigv1.AllowedRegistries) (*openshiftcontrolplanev1.AllowedRegistries, error) {
+func ToAllowedRegistries(in *legacyconfigv1.AllowedRegistries) (openshiftcontrolplanev1.AllowedRegistries, error) {
 	if in == nil {
-		return nil, nil
+		return openshiftcontrolplanev1.AllowedRegistries{}, nil
 	}
 
 	out := openshiftcontrolplanev1.AllowedRegistries{}
@@ -131,5 +131,5 @@ func ToAllowedRegistries(in *legacyconfigv1.AllowedRegistries) (*openshiftcontro
 		}
 		out = append(out, currOut)
 	}
-	return &out, nil
+	return out, nil
 }

@@ -20,8 +20,8 @@ import (
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	imageapiv1 "github.com/openshift/api/image/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
@@ -45,7 +45,7 @@ type ExtraConfig struct {
 	KubeAPIServerClientConfig          *restclient.Config
 	LimitVerifier                      imageadmission.LimitVerifier
 	RegistryHostnameRetriever          registryhostname.RegistryHostnameRetriever
-	AllowedRegistriesForImport         *configapi.AllowedRegistries
+	AllowedRegistriesForImport         openshiftcontrolplanev1.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
 	AdditionalTrustedCA                []byte
 
@@ -192,9 +192,9 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	}
 
 	var whitelister whitelist.RegistryWhitelister
-	if c.ExtraConfig.AllowedRegistriesForImport != nil {
+	if len(c.ExtraConfig.AllowedRegistriesForImport) > 0 {
 		whitelister, err = whitelist.NewRegistryWhitelister(
-			*c.ExtraConfig.AllowedRegistriesForImport,
+			c.ExtraConfig.AllowedRegistriesForImport,
 			c.ExtraConfig.RegistryHostnameRetriever)
 		if err != nil {
 			return nil, fmt.Errorf("error building registry whitelister: %v", err)

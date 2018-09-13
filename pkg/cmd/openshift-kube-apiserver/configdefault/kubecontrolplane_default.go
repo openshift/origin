@@ -6,18 +6,19 @@ import (
 	"path"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	"github.com/openshift/library-go/pkg/config/configdefaults"
 )
 
 func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAPIServerConfig) {
-	DefaultString(&config.GenericAPIServerConfig.StorageConfig.StoragePrefix, "kubernetes.io")
+	configdefaults.DefaultString(&config.GenericAPIServerConfig.StorageConfig.StoragePrefix, "kubernetes.io")
 
-	SetRecommendedGenericAPIServerConfigDefaults(&config.GenericAPIServerConfig)
+	configdefaults.SetRecommendedGenericAPIServerConfigDefaults(&config.GenericAPIServerConfig)
 	SetRecommendedMasterAuthConfigDefaults(&config.AuthConfig)
 	SetRecommendedAggregatorConfigDefaults(&config.AggregatorConfig)
 	SetRecommendedKubeletConnectionInfoDefaults(&config.KubeletClientInfo)
 
-	DefaultString(&config.ServicesSubnet, "10.0.0.0/24")
-	DefaultString(&config.ServicesNodePortRange, "30000-32767")
+	configdefaults.DefaultString(&config.ServicesSubnet, "10.0.0.0/24")
+	configdefaults.DefaultString(&config.ServicesNodePortRange, "30000-32767")
 
 	if len(config.ServiceAccountPublicKeyFiles) == 0 {
 		contents, err := ioutil.ReadDir("/var/run/configmaps/sa-token-signing-certs")
@@ -39,11 +40,27 @@ func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAP
 	// TODO this indicates that we're set two different things to the same value
 	if config.AuthConfig.RequestHeader == nil {
 		config.AuthConfig.RequestHeader = &kubecontrolplanev1.RequestHeaderAuthenticationOptions{}
-		DefaultStringSlice(&config.AuthConfig.RequestHeader.ClientCommonNames, []string{"system:openshift-aggregator"})
-		DefaultString(&config.AuthConfig.RequestHeader.ClientCA, "/var/run/configmaps/aggregator-client-ca/ca-bundle.crt")
-		DefaultStringSlice(&config.AuthConfig.RequestHeader.UsernameHeaders, []string{"X-Remote-User"})
-		DefaultStringSlice(&config.AuthConfig.RequestHeader.GroupHeaders, []string{"X-Remote-Group"})
-		DefaultStringSlice(&config.AuthConfig.RequestHeader.ExtraHeaderPrefixes, []string{"X-Remote-Extra-"})
+		configdefaults.DefaultStringSlice(&config.AuthConfig.RequestHeader.ClientCommonNames, []string{"system:openshift-aggregator"})
+		configdefaults.DefaultString(&config.AuthConfig.RequestHeader.ClientCA, "/var/run/secrets/aggregator-client-ca/ca-bundle.crt")
+		configdefaults.DefaultStringSlice(&config.AuthConfig.RequestHeader.UsernameHeaders, []string{"X-Remote-User"})
+		configdefaults.DefaultStringSlice(&config.AuthConfig.RequestHeader.GroupHeaders, []string{"X-Remote-Group"})
+		configdefaults.DefaultStringSlice(&config.AuthConfig.RequestHeader.ExtraHeaderPrefixes, []string{"X-Remote-Extra-"})
+	}
+
+	// Set defaults Cache TTLs for external Webhook Token Reviewers
+	for i := range config.AuthConfig.WebhookTokenAuthenticators {
+		if len(config.AuthConfig.WebhookTokenAuthenticators[i].CacheTTL) == 0 {
+			config.AuthConfig.WebhookTokenAuthenticators[i].CacheTTL = "2m"
+		}
+	}
+
+	if config.OAuthConfig != nil {
+		for _, curr := range config.OAuthConfig.IdentityProviders {
+			// By default, only let one identity provider authenticate a particular user
+			// If multiple identity providers collide, the second one in will fail to auth
+			// The admin can set this to "add" if they want to allow new identities to join existing users
+			configdefaults.DefaultString(&curr.MappingMethod, "claim")
+		}
 	}
 }
 
@@ -51,15 +68,15 @@ func SetRecommendedMasterAuthConfigDefaults(config *kubecontrolplanev1.MasterAut
 }
 
 func SetRecommendedAggregatorConfigDefaults(config *kubecontrolplanev1.AggregatorConfig) {
-	DefaultString(&config.ProxyClientInfo.KeyFile, "/var/run/secrets/aggregator-client/tls.key")
-	DefaultString(&config.ProxyClientInfo.CertFile, "/var/run/secrets/aggregator-client/tls.crt")
+	configdefaults.DefaultString(&config.ProxyClientInfo.KeyFile, "/var/run/secrets/aggregator-client/tls.key")
+	configdefaults.DefaultString(&config.ProxyClientInfo.CertFile, "/var/run/secrets/aggregator-client/tls.crt")
 }
 
 func SetRecommendedKubeletConnectionInfoDefaults(config *kubecontrolplanev1.KubeletConnectionInfo) {
 	if config.Port == 0 {
 		config.Port = 10250
 	}
-	DefaultString(&config.CertInfo.KeyFile, "/var/run/secrets/kubelet-client/tls.key")
-	DefaultString(&config.CertInfo.CertFile, "/var/run/secrets/kubelet-client/tls.crt")
-	DefaultString(&config.CA, "/var/run/configmaps/kubelet-serving-ca/ca-bundle.crt")
+	configdefaults.DefaultString(&config.CertInfo.KeyFile, "/var/run/secrets/kubelet-client/tls.key")
+	configdefaults.DefaultString(&config.CertInfo.CertFile, "/var/run/secrets/kubelet-client/tls.crt")
+	configdefaults.DefaultString(&config.CA, "/var/run/configmaps/kubelet-serving-ca/ca-bundle.crt")
 }

@@ -1,7 +1,7 @@
 package configprocessing
 
 import (
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configv1 "github.com/openshift/api/config/v1"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -10,13 +10,13 @@ import (
 )
 
 // GetEtcdOptions takes configuration information and flag overrides to produce the upstream etcdoptions.
-func GetEtcdOptions(startingFlags map[string][]string, etcdConnectionInfo configapi.EtcdConnectionInfo, storagePrefix string, defaultWatchCacheSizes map[schema.GroupResource]int) (*options.EtcdOptions, error) {
-	storageConfig := storagebackend.NewDefaultConfig(storagePrefix, nil)
+func GetEtcdOptions(startingFlags map[string][]string, serializedConfig configv1.EtcdStorageConfig, defaultWatchCacheSizes map[schema.GroupResource]int) (*options.EtcdOptions, error) {
+	storageConfig := storagebackend.NewDefaultConfig(serializedConfig.StoragePrefix, nil)
 	storageConfig.Type = "etcd3"
-	storageConfig.ServerList = etcdConnectionInfo.URLs
-	storageConfig.KeyFile = etcdConnectionInfo.ClientCert.KeyFile
-	storageConfig.CertFile = etcdConnectionInfo.ClientCert.CertFile
-	storageConfig.CAFile = etcdConnectionInfo.CA
+	storageConfig.ServerList = serializedConfig.URLs
+	storageConfig.KeyFile = serializedConfig.KeyFile
+	storageConfig.CertFile = serializedConfig.CertFile
+	storageConfig.CAFile = serializedConfig.CA
 
 	etcdOptions := options.NewEtcdOptions(storageConfig)
 	etcdOptions.DefaultStorageMediaType = "application/vnd.kubernetes.protobuf"

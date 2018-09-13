@@ -18,6 +18,7 @@ import (
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
+	configv1 "github.com/openshift/api/config/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -177,9 +178,7 @@ func fixupAdmissionPlugins(plugins []string) []string {
 
 func NewAdmissionChains(
 	admissionConfigFiles []string,
-	pluginConfig map[string]*configapi.AdmissionPluginConfig,
-	// TODO don't allow this when we upgrade to the next release.
-	pluginOrderOverride []string,
+	pluginConfig map[string]configv1.AdmissionPluginConfig,
 	admissionInitializer admission.PluginInitializer,
 	admissionDecorator admission.Decorator,
 ) (admission.Interface, error) {
@@ -210,9 +209,6 @@ func NewAdmissionChains(
 	}
 
 	admissionPluginNames := CombinedAdmissionControlPlugins
-	if len(pluginOrderOverride) > 0 {
-		admissionPluginNames = pluginOrderOverride
-	}
 	admissionPluginNames = fixupAdmissionPlugins(admissionPluginNames)
 
 	admissionChain, err := newAdmissionChainFunc(admissionPluginNames, admissionPluginConfigFilename, admissionInitializer, admissionDecorator)
@@ -335,7 +331,7 @@ func splitStream(config io.Reader) (io.Reader, io.Reader, error) {
 	return bytes.NewBuffer(configBytes), bytes.NewBuffer(configBytes), nil
 }
 
-func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]*configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
+func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
 	ret := &apiserver.AdmissionConfiguration{}
 
 	for _, pluginName := range sets.StringKeySet(in).List() {
@@ -346,16 +342,9 @@ func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]*configa
 			Path: openshiftConfig.Location,
 		}
 
-		if openshiftConfig.Configuration != nil {
-			configBytes, err := runtime.Encode(configapilatest.Codec, openshiftConfig.Configuration)
-			if err != nil {
-				return nil, err
-			}
-			kubeConfig.Configuration = &runtime.Unknown{
-				Raw: configBytes,
-			}
+		kubeConfig.Configuration = &runtime.Unknown{
+			Raw: openshiftConfig.Configuration.Raw,
 		}
-
 		ret.Plugins = append(ret.Plugins, kubeConfig)
 	}
 

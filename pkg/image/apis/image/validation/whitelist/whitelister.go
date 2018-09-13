@@ -11,7 +11,7 @@ import (
 	kerrutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	stringsutil "github.com/openshift/origin/pkg/util/strings"
 )
@@ -72,7 +72,7 @@ var _ RegistryWhitelister = &registryWhitelister{}
 // NewRegistryWhitelister creates a whitelister that admits registry domains and pull specs based on the given
 // list of allowed registries and the current domain name of the integrated Docker registry.
 func NewRegistryWhitelister(
-	whitelist serverapi.AllowedRegistries,
+	whitelist openshiftcontrolplanev1.AllowedRegistries,
 	registryHostRetriever RegistryHostnameRetriever,
 ) (RegistryWhitelister, error) {
 	errs := []error{}

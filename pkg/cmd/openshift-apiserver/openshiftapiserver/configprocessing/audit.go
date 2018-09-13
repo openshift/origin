@@ -14,11 +14,11 @@ import (
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configv1 "github.com/openshift/api/config/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
-func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpolicy.Checker, error) {
+func GetAuditConfig(auditConfig configv1.AuditConfig) (audit.Backend, auditpolicy.Checker, error) {
 	if !auditConfig.Enabled {
 		return nil, nil, nil
 	}
@@ -30,9 +30,9 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 	if len(auditConfig.AuditFilePath) > 0 {
 		writer = &lumberjack.Logger{
 			Filename:   auditConfig.AuditFilePath,
-			MaxAge:     auditConfig.MaximumFileRetentionDays,
-			MaxBackups: auditConfig.MaximumRetainedFiles,
-			MaxSize:    auditConfig.MaximumFileSizeMegabytes,
+			MaxAge:     int(auditConfig.MaximumFileRetentionDays),
+			MaxBackups: int(auditConfig.MaximumRetainedFiles),
+			MaxSize:    int(auditConfig.MaximumFileSizeMegabytes),
 		}
 	} else {
 		// backwards compatible writer to regular log
@@ -46,13 +46,19 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 	})
 
 	// when a policy file is defined we enable the advanced auditing
-	if auditConfig.PolicyConfiguration != nil || len(auditConfig.PolicyFile) > 0 {
+	if len(auditConfig.PolicyConfiguration.Raw) != 0 || len(auditConfig.PolicyFile) > 0 {
 		// policy configuration
-		if auditConfig.PolicyConfiguration != nil {
-			p := auditConfig.PolicyConfiguration.(*auditinternal.Policy)
+		if len(auditConfig.PolicyConfiguration.Raw) != 0 {
+			p, err := auditpolicy.LoadPolicyFromBytes(auditConfig.PolicyConfiguration.Raw, "config.json")
+			if err != nil {
+				return nil, nil, err
+			}
 			policyChecker = auditpolicy.NewChecker(p)
 		} else if len(auditConfig.PolicyFile) > 0 {
-			p, _ := auditpolicy.LoadPolicyFromFile(auditConfig.PolicyFile)
+			p, err := auditpolicy.LoadPolicyFromFile(auditConfig.PolicyFile)
+			if err != nil {
+				return nil, nil, err
+			}
 			policyChecker = auditpolicy.NewChecker(p)
 		}
 

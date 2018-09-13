@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 )
@@ -612,7 +612,7 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 		dockerImageRepository string
 		specTags              map[string]imageapi.TagReference
 		statusTags            map[string]imageapi.TagEventList
-		whitelist             *serverapi.AllowedRegistries
+		whitelist             openshiftcontrolplanev1.AllowedRegistries
 		expected              field.ErrorList
 	}{
 		"forbid spec references not on the whitelist": {
@@ -853,7 +853,7 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 func TestValidateImageStreamUpdateWithWhitelister(t *testing.T) {
 	for _, tc := range []struct {
 		name                     string
-		whitelist                *serverapi.AllowedRegistries
+		whitelist                openshiftcontrolplanev1.AllowedRegistries
 		oldDockerImageRepository string
 		newDockerImageRepository string
 		oldSpecTags              map[string]imageapi.TagReference
@@ -1124,7 +1124,7 @@ func TestValidateISTUpdate(t *testing.T) {
 func TestValidateISTUpdateWithWhitelister(t *testing.T) {
 	for _, tc := range []struct {
 		name        string
-		whitelist   *serverapi.AllowedRegistries
+		whitelist   openshiftcontrolplanev1.AllowedRegistries
 		oldTagRef   *imageapi.TagReference
 		newTagRef   *imageapi.TagReference
 		registryURL string
@@ -1252,7 +1252,7 @@ func TestValidateISTUpdateWithWhitelister(t *testing.T) {
 				Tag:        tc.newTagRef,
 			}
 
-			whitelister, err := whitelist.NewRegistryWhitelister(*tc.whitelist, &simpleHostnameRetriever{registryURL: tc.registryURL})
+			whitelister, err := whitelist.NewRegistryWhitelister(tc.whitelist, &simpleHostnameRetriever{registryURL: tc.registryURL})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1282,26 +1282,26 @@ func TestValidateRegistryAllowedForImport(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
 		hostname  string
-		whitelist serverapi.AllowedRegistries
+		whitelist openshiftcontrolplanev1.AllowedRegistries
 		expected  field.ErrorList
 	}{
 		{
 			name:      "allow whitelisted",
 			hostname:  "example.com:443",
-			whitelist: *mkAllowed(false, "example.com"),
+			whitelist: mkAllowed(false, "example.com"),
 			expected:  nil,
 		},
 
 		{
 			name:      "fail when not on whitelist",
 			hostname:  "example.com:443",
-			whitelist: *mkAllowed(false, "foo.bar"),
+			whitelist: mkAllowed(false, "foo.bar"),
 			expected: field.ErrorList{field.Forbidden(nil,
 				`importing images from registry "example.com:443" is forbidden: registry "example.com:443" not allowed by whitelist: "foo.bar:443"`)},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			whitelister := mkWhitelister(t, &tc.whitelist)
+			whitelister := mkWhitelister(t, tc.whitelist)
 			host, port, err := net.SplitHostPort(tc.hostname)
 			if err != nil {
 				t.Fatal(err)
@@ -1500,20 +1500,20 @@ func TestValidateImageStreamImport(t *testing.T) {
 	}
 }
 
-func mkAllowed(insecure bool, regs ...string) *serverapi.AllowedRegistries {
-	ret := make(serverapi.AllowedRegistries, 0, len(regs))
+func mkAllowed(insecure bool, regs ...string) openshiftcontrolplanev1.AllowedRegistries {
+	ret := make(openshiftcontrolplanev1.AllowedRegistries, 0, len(regs))
 	for _, reg := range regs {
-		ret = append(ret, serverapi.RegistryLocation{DomainName: reg, Insecure: insecure})
+		ret = append(ret, openshiftcontrolplanev1.RegistryLocation{DomainName: reg, Insecure: insecure})
 	}
-	return &ret
+	return ret
 }
 
-func mkWhitelister(t *testing.T, wl *serverapi.AllowedRegistries) whitelist.RegistryWhitelister {
+func mkWhitelister(t *testing.T, wl openshiftcontrolplanev1.AllowedRegistries) whitelist.RegistryWhitelister {
 	var whitelister whitelist.RegistryWhitelister
 	if wl == nil {
 		whitelister = whitelist.WhitelistAllRegistries()
 	} else {
-		rw, err := whitelist.NewRegistryWhitelister(*wl, nil)
+		rw, err := whitelist.NewRegistryWhitelister(wl, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -9,12 +9,12 @@ import (
 	"k8s.io/kubernetes/pkg/capabilities"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
 
-func RunOpenShiftAPIServer(serverConfig *configapi.OpenshiftAPIServerConfig) error {
+func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPIServerConfig) error {
 	util.InitLogrus()
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{
