@@ -10,6 +10,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	externaliprangerv1 "github.com/openshift/origin/pkg/service/admission/apis/externalipranger/v1"
 	restrictedendpointsv1 "github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints/v1"
 )
@@ -103,43 +104,107 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 	if err != nil {
 		return nil, err
 	}
-
-	ret.OAuthConfig, err = ToOAuthConfig(input.OAuthConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	ret.AuthConfig, err = ToMasterAuthConfig(&input.AuthConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	ret.AggregatorConfig, err = ToAggregatorConfig(&input.AggregatorConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	ret.AuditConfig, err = ToAuditConfig(&input.AuditConfig)
 	if err != nil {
 		return nil, err
 	}
-
 	ret.StorageConfig.EtcdConnectionInfo, err = ToEtcdConnectionInfo(&input.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
 
+	ret.OAuthConfig, err = ToOAuthConfig(input.OAuthConfig)
+	if err != nil {
+		return nil, err
+	}
+	ret.AuthConfig, err = ToMasterAuthConfig(&input.AuthConfig)
+	if err != nil {
+		return nil, err
+	}
+	ret.AggregatorConfig, err = ToAggregatorConfig(&input.AggregatorConfig)
+	if err != nil {
+		return nil, err
+	}
 	ret.KubeletClientInfo, err = ToKubeletConnectionInfo(&input.KubeletClientInfo)
 	if err != nil {
 		return nil, err
 	}
+	ret.AdmissionPluginConfig, err = ToAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
+	if err != nil {
+		return nil, err
+	}
+	ret.UserAgentMatchingConfig, err = ToUserAgentMatchingConfig(&input.PolicyConfig.UserAgentMatchingConfig)
+	if err != nil {
+		return nil, err
+	}
 
+	return ret, nil
+}
+
+// ConvertMasterConfigToKubeAPIServerConfig mutates it's input.  This is acceptable because we do not need it by the time we get to 4.0.
+func ConvertMasterConfigToOpenShiftAPIServerConfig(input *legacyconfigv1.MasterConfig) (*openshiftcontrolplanev1.OpenShiftAPIServerConfig, error) {
+	var err error
+
+	ret := &openshiftcontrolplanev1.OpenShiftAPIServerConfig{
+		GenericAPIServerConfig: configv1.GenericAPIServerConfig{
+			CORSAllowedOrigins: input.CORSAllowedOrigins,
+			StorageConfig: configv1.EtcdStorageConfig{
+				StoragePrefix: input.EtcdStorageConfig.OpenShiftStoragePrefix,
+			},
+		},
+
+		ImagePolicyConfig: openshiftcontrolplanev1.ImagePolicyConfig{
+			MaxImagesBulkImportedPerRepository: input.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
+			InternalRegistryHostname:           input.ImagePolicyConfig.InternalRegistryHostname,
+			ExternalRegistryHostname:           input.ImagePolicyConfig.ExternalRegistryHostname,
+			AdditionalTrustedCA:                input.ImagePolicyConfig.AdditionalTrustedCA,
+		},
+		ProjectConfig: openshiftcontrolplanev1.ProjectConfig{
+			DefaultNodeSelector:    input.ProjectConfig.DefaultNodeSelector,
+			ProjectRequestMessage:  input.ProjectConfig.ProjectRequestMessage,
+			ProjectRequestTemplate: input.ProjectConfig.ProjectRequestTemplate,
+		},
+		RoutingConfig: openshiftcontrolplanev1.RoutingConfig{
+			Subdomain: input.RoutingConfig.Subdomain,
+		},
+
+		// TODO this needs to be removed.
+		APIServerArguments: map[string][]string{},
+	}
+	for k, v := range input.KubernetesMasterConfig.APIServerArguments {
+		ret.APIServerArguments[k] = v
+	}
+
+	// TODO this is likely to be a little weird.  I think we override most of this in the operator
+	ret.ServingInfo, err = ToHTTPServingInfo(&input.ServingInfo)
+	if err != nil {
+		return nil, err
+	}
+	ret.KubeClientConfig, err = ToKubeClientConfig(&input.MasterClients)
+	if err != nil {
+		return nil, err
+	}
+	ret.AuditConfig, err = ToAuditConfig(&input.AuditConfig)
+	if err != nil {
+		return nil, err
+	}
+	ret.StorageConfig.EtcdConnectionInfo, err = ToEtcdConnectionInfo(&input.EtcdClientInfo)
+	if err != nil {
+		return nil, err
+	}
 	ret.AdmissionPluginConfig, err = ToAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	ret.UserAgentMatchingConfig, err = ToUserAgentMatchingConfig(&input.PolicyConfig.UserAgentMatchingConfig)
+	ret.ImagePolicyConfig.AllowedRegistriesForImport, err = ToAllowedRegistries(input.ImagePolicyConfig.AllowedRegistriesForImport)
+	if err != nil {
+		return nil, err
+	}
+	if input.OAuthConfig != nil {
+		ret.ServiceAccountOAuthGrantMethod = openshiftcontrolplanev1.GrantHandlerType(string(input.OAuthConfig.GrantConfig.ServiceAccountMethod))
+	}
+	ret.JenkinsPipelineConfig, err = ToJenkinsPipelineConfig(&input.JenkinsPipelineConfig)
 	if err != nil {
 		return nil, err
 	}
