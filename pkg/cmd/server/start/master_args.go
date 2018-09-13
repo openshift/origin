@@ -484,6 +484,7 @@ func (args MasterArgs) GetServerCertHostnames() (sets.String, error) {
 		"kubernetes.default.svc",
 		"kubernetes.default",
 		"kubernetes",
+		"etcd.kube-system.svc",
 		masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
 
 	if _, ipnet, err := net.ParseCIDR(args.NetworkArgs.ServiceNetworkCIDR); err == nil {

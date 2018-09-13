@@ -27,6 +27,9 @@ func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAP
 			panic(err) // some weird, unexpected error
 		default:
 			for _, content := range contents {
+				if !content.Mode().IsRegular() {
+					continue
+				}
 				config.ServiceAccountPublicKeyFiles = append(config.ServiceAccountPublicKeyFiles, path.Join("/var/run/configmaps/sa-token-signing-certs", content.Name()))
 			}
 		}
@@ -37,7 +40,7 @@ func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAP
 	if config.AuthConfig.RequestHeader == nil {
 		config.AuthConfig.RequestHeader = &kubecontrolplanev1.RequestHeaderAuthenticationOptions{}
 		DefaultStringSlice(&config.AuthConfig.RequestHeader.ClientCommonNames, []string{"system:openshift-aggregator"})
-		DefaultString(&config.AuthConfig.RequestHeader.ClientCA, "/var/run/secrets/aggregator-client-ca/ca-bundle.crt")
+		DefaultString(&config.AuthConfig.RequestHeader.ClientCA, "/var/run/configmaps/aggregator-client-ca/ca-bundle.crt")
 		DefaultStringSlice(&config.AuthConfig.RequestHeader.UsernameHeaders, []string{"X-Remote-User"})
 		DefaultStringSlice(&config.AuthConfig.RequestHeader.GroupHeaders, []string{"X-Remote-Group"})
 		DefaultStringSlice(&config.AuthConfig.RequestHeader.ExtraHeaderPrefixes, []string{"X-Remote-Extra-"})

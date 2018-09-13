@@ -40,6 +40,7 @@
 // examples/service-catalog/service-catalog.yaml
 // install/automationservicebroker/install-rbac.yaml
 // install/automationservicebroker/install.yaml
+// install/cluster-kube-apiserver-operator/install.yaml
 // install/etcd/etcd.yaml
 // install/etcd/install.yaml
 // install/kube-apiserver/apiserver.yaml
@@ -16713,6 +16714,134 @@ func installAutomationservicebrokerInstallYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installClusterKubeApiserverOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: NAMESPACE
+  # This namespace must not be changed.
+  value: openshift-core-operators
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      openshift.io/run-level: "0"
+    name: openshift-core-operators
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: kubeapiserveroperatorconfigs.kubeapiserver.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: kubeapiserver.operator.openshift.io
+    version: v1alpha1
+    names:
+      kind: KubeApiserverOperatorConfig
+      plural: kubeapiserveroperatorconfigs
+      singular: kubeapiserveroperatorconfig
+    subresources:
+      status: {}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:cluster-kube-apiserver-operator
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-kube-apiserver-operator
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-kube-apiserver-operator-config
+  data:
+    config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-kube-apiserver-operator
+    labels:
+      app: openshift-cluster-kube-apiserver-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-cluster-kube-apiserver-operator
+    template:
+      metadata:
+        name: openshift-cluster-kube-apiserver-operator
+        labels:
+          app: openshift-cluster-kube-apiserver-operator
+      spec:
+        serviceAccountName: openshift-cluster-kube-apiserver-operator
+        containers:
+        - name: operator
+          image: openshift/origin-cluster-kube-apiserver-operator:latest
+          imagePullPolicy: IfNotPresent
+          command: ["cluster-kube-apiserver-operator", "operator"]
+          args:
+          - "--config=/var/run/configmaps/config/config.yaml"
+          - "-v=4"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 400
+            secretName: openshift-cluster-kube-apiserver-operator-serving-cert
+            optional: true
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-cluster-kube-apiserver-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-kube-apiserver-operator
+    labels:
+      app: openshift-cluster-kube-apiserver-operator
+
+- apiVersion: kubeapiserver.operator.openshift.io/v1alpha1
+  kind: KubeApiserverOperatorConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: openshift/origin-hypershift:latest
+    version: 3.11.0
+    logging:
+      level: 4
+    replicas: 2
+`)
+
+func installClusterKubeApiserverOperatorInstallYamlBytes() ([]byte, error) {
+	return _installClusterKubeApiserverOperatorInstallYaml, nil
+}
+
+func installClusterKubeApiserverOperatorInstallYaml() (*asset, error) {
+	bytes, err := installClusterKubeApiserverOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/cluster-kube-apiserver-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installEtcdEtcdYaml = []byte(`kind: Pod
 apiVersion: v1
 metadata:
@@ -18693,6 +18822,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
 	"install/automationservicebroker/install-rbac.yaml": installAutomationservicebrokerInstallRbacYaml,
 	"install/automationservicebroker/install.yaml": installAutomationservicebrokerInstallYaml,
+	"install/cluster-kube-apiserver-operator/install.yaml": installClusterKubeApiserverOperatorInstallYaml,
 	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
 	"install/etcd/install.yaml": installEtcdInstallYaml,
 	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
@@ -18816,6 +18946,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"automationservicebroker": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installAutomationservicebrokerInstallRbacYaml, map[string]*bintree{}},
 			"install.yaml": &bintree{installAutomationservicebrokerInstallYaml, map[string]*bintree{}},
+		}},
+		"cluster-kube-apiserver-operator": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installClusterKubeApiserverOperatorInstallYaml, map[string]*bintree{}},
 		}},
 		"etcd": &bintree{nil, map[string]*bintree{
 			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
