@@ -80,7 +80,7 @@ func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface) err
 
 	glog.Infof("Installing %q\n", opt.Name())
 
-	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(opt.baseDir, "kube-apiserver", "admin.kubeconfig"))
+	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(opt.baseDir, "bootkube", "auth", "kubeconfig"))
 	if err != nil {
 		return err
 	}

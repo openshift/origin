@@ -5,16 +5,17 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 
 	"github.com/golang/glog"
-
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/bootkube"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/components/pivot"
@@ -151,6 +152,10 @@ type configDirs struct {
 	podManifestDir string
 	assetsDir      string
 	kubernetesDir  string
+
+	// renderTlsDir has the input for the operator render command. This is going to be provided by the real installer.
+	// For now we derive it from the bootkube-render output, and fill it up with files from legacy cluster-up config.
+	renderTlsDir string
 }
 
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
@@ -161,6 +166,8 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		kubernetesDir: filepath.Join(c.BaseDir, "kubernetes"),
 		// Directory that kubelet scans for static manifests
 		podManifestDir: filepath.Join(c.BaseDir, "kubernetes/manifests"),
+		// Directory where operator render gets the certs+keys from
+		renderTlsDir: filepath.Join(c.BaseDir, "render-tls"),
 	}
 
 	if _, err := os.Stat(configs.assetsDir); os.IsNotExist(err) {
@@ -203,10 +210,40 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	}
 
 	// LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY
-	// fill up with legacy config
-	// TODO: get rid of this
-	if _, err = c.makeMasterConfig(); err != nil {
-		return nil, err
+	// TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION
+
+	legacyBootkubeMapping := map[string]string{
+		"ca.crt":                     path.Join(configs.assetsDir, "tls", "ca.crt"),
+		"admin.crt":                  path.Join(configs.assetsDir, "tls", "admin.crt"),
+		"admin.key":                  path.Join(configs.assetsDir, "tls", "admin.key"),
+		"openshift-master.crt":       path.Join(configs.assetsDir, "tls", "admin.crt"),
+		"openshift-master.key":       path.Join(configs.assetsDir, "tls", "admin.key"),
+		"master.server.crt":          path.Join(configs.assetsDir, "tls", "apiserver.crt"),
+		"master.server.key":          path.Join(configs.assetsDir, "tls", "apiserver.key"),
+		"master.etcd-client-ca.crt":  path.Join(configs.assetsDir, "tls", "etcd-client-ca.crt"), // this does not exist in legacy cluster-up, but might be necessary for etcd access
+		"master.etcd-client.crt":     path.Join(configs.assetsDir, "tls", "etcd-client.crt"),
+		"master.etcd-client.key":     path.Join(configs.assetsDir, "tls", "etcd-client.key"),
+		"serviceaccounts.public.key": path.Join(configs.assetsDir, "tls", "service-account.pub"),
+		"frontproxy-ca.crt":          path.Join(configs.assetsDir, "tls", "apiserver.crt"), // this does not exist in bootkube, but might be necessary for aggregated apiserver authn
+		"openshift-aggregator.crt":   path.Join(configs.assetsDir, "tls", "apiserver.crt"), // this does not exist in bootkube, but might be necessary for aggregated apiserver authn
+		"openshift-aggregator.key":   path.Join(configs.assetsDir, "tls", "apiserver.key"), // this does not exist in bootkube, but might be necessary for aggregated apiserver authn
+		"master.kubelet-client.crt":  path.Join(configs.assetsDir, "tls", "apiserver.crt"),
+		"master.kubelet-client.key":  path.Join(configs.assetsDir, "tls", "apiserver.key"),
+		"master.proxy-client.crt":    path.Join(configs.assetsDir, "tls", "apiserver.crt"),
+		"master.proxy-client.key":    path.Join(configs.assetsDir, "tls", "apiserver.key"),
+	}
+
+	// copy bootkube files to render-tls dir, simulating what c.makeMasterConfig would generate
+	if _, err := os.Stat(configs.renderTlsDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(configs.renderTlsDir, 0755); err != nil {
+			return nil, err
+		}
+	}
+	for legacy, bootkubeFile := range legacyBootkubeMapping {
+		dest := path.Join(configs.renderTlsDir, legacy)
+		if err := admin.CopyFile(bootkubeFile, dest, 0644); err != nil {
+			return nil, fmt.Errorf("failed to copy bootkube tls file %q to %q: %v", bootkubeFile, dest, err)
+		}
 	}
 
 	return configs, nil

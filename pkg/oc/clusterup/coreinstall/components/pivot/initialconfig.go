@@ -51,7 +51,7 @@ const (
 )
 
 func (c *KubeAPIServerContent) Install(dockerClient dockerhelper.Interface) error {
-	kubAPIServerConfigDir := path.Join(c.InstallContext.BaseDir(), "kube-apiserver")
+	kubAPIServerConfigDir := path.Join(c.InstallContext.BaseDir(), "render-tls")
 	kubeClient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (c *KubeAPIServerContent) Install(dockerClient dockerhelper.Interface) erro
 	if err := ensureCABundle(kubeClient, kubAPIServerConfigDir, apiserverClientCABundle, "ca.crt"); err != nil {
 		return err
 	}
-	if err := ensureCABundle(kubeClient, kubAPIServerConfigDir, etcdServingCABundle, "ca.crt"); err != nil {
+	if err := ensureCABundle(kubeClient, kubAPIServerConfigDir, etcdServingCABundle, "master.etcd-client-ca.crt"); err != nil {
 		return err
 	}
 

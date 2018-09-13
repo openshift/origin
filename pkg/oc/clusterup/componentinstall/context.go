@@ -8,8 +8,6 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 )
 
-const adminKubeConfigFileName = "admin.kubeconfig"
-
 type Context interface {
 	// ClusterAdminClientConfig is the cluster admin client configuration components can use to make their client.
 	ClusterAdminClientConfig() *restclient.Config
