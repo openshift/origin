@@ -21,6 +21,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -29,11 +30,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	oauthv1typedclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
+	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/host"
@@ -45,13 +44,6 @@ const (
 	// CmdUpRecommendedName is the recommended command name
 	CmdUpRecommendedName = "up"
 
-	initialUser     = "developer"
-	initialPassword = "developer"
-
-	initialProjectName    = "myproject"
-	initialProjectDisplay = "My Project"
-	initialProjectDesc    = "Initial developer project"
-
 	defaultRedirectClient  = "openshift-web-console"
 	developmentRedirectURI = "https://localhost:9000"
 
@@ -60,7 +52,8 @@ const (
 
 var (
 	cmdUpLong = templates.LongDesc(`
-		Starts an OpenShift cluster using Docker containers and creates a default project.
+		Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
+		initial templates, and a default project.
 
 		This command will attempt to use an existing connection to a Docker daemon. Before running
 		the command, ensure that you can execute docker commands successfully (i.e. 'docker ps').
@@ -83,6 +76,7 @@ type ClusterUpConfig struct {
 	ImageTemplate variable.ImageTemplate
 	ImageTag      string
 
+	DockerMachine  string
 	PortForwarding bool
 	KubeOnly       bool
 
@@ -96,8 +90,10 @@ type ClusterUpConfig struct {
 	ServerLogLevel    int
 
 	HostVolumesDir           string
+	HostConfigDir            string
 	WriteConfig              bool
 	HostDataDir              string
+	UsePorts                 []int
 	DNSPort                  int
 	ServerIP                 string
 	AdditionalIPs            []string
@@ -114,6 +110,10 @@ type ClusterUpConfig struct {
 	openshiftHelper     *openshift.Helper
 	command             *cobra.Command
 	defaultClientConfig clientcmdapi.Config
+	isRemoteDocker      bool
+
+	usingDefaultImages         bool
+	usingDefaultOpenShiftImage bool
 
 	pullPolicy string
 
@@ -124,6 +124,7 @@ type ClusterUpConfig struct {
 
 func NewClusterUpConfig(streams genericclioptions.IOStreams) *ClusterUpConfig {
 	return &ClusterUpConfig{
+		UsePorts:       openshift.BasePorts,
 		PortForwarding: defaultPortForwarding(),
 		DNSPort:        openshift.DefaultDNSPort,
 
@@ -207,6 +208,8 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 
 	c.command = cmd
 
+	c.isRemoteDocker = len(os.Getenv("DOCKER_HOST")) > 0
+
 	c.ImageTemplate.Format = variable.Expand(c.ImageTemplate.Format, func(s string) (string, bool) {
 		if s == "version" {
 			if len(c.ImageTag) == 0 {
@@ -248,14 +251,6 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 		return err
 	}
 	c.dockerClient = client
-
-	// Ensure that the OpenShift Docker image is available.
-	// If not present, pull it.
-	// We do this here because the image is used in the next step if running Red Hat docker.
-	c.printProgress(fmt.Sprintf("Checking if image %s is available", c.openshiftImage()))
-	if err := c.checkOpenShiftImage(); err != nil {
-		return err
-	}
 
 	// Check whether the Docker host has the right binaries to use Kubernetes' nsenter mounter
 	// If not, use a shared volume to mount volumes on OpenShift
@@ -384,10 +379,8 @@ func (c *ClusterUpConfig) Check() error {
 		return err
 	}
 
-	// Ensure that the OpenShift Docker image is available.
-	// If not present, pull it.
 	c.printProgress(fmt.Sprintf("Checking if image %s is available", c.openshiftImage()))
-	if err := c.checkOpenShiftImage(); err != nil {
+	if err := c.checkRequiredImagesAvailable(); err != nil {
 		return err
 	}
 
@@ -410,6 +403,9 @@ func (c *ClusterUpConfig) Start() error {
 	if c.WriteConfig {
 		return nil
 	}
+	if err := c.PostClusterStartupMutations(c.Out); err != nil {
+		return err
+	}
 
 	// if we're only supposed to install kube, only install kube.  Maybe later we'll add back components.
 	if c.KubeOnly {
@@ -422,21 +418,6 @@ func (c *ClusterUpConfig) Start() error {
 	c.printProgress("Adding default OAuthClient redirect URIs")
 	if err := c.ensureDefaultRedirectURIs(c.Out); err != nil {
 		return err
-	}
-
-	if c.ShouldCreateUser() {
-		// Login with an initial default user
-		c.printProgress("Login to server")
-		if err := c.login(c.IOStreams); err != nil {
-			return err
-		}
-		c.createdUser = true
-
-		// Create an initial project
-		c.printProgress(fmt.Sprintf("Creating initial project %q", initialProjectName))
-		if err := c.createProject(c.Out); err != nil {
-			return err
-		}
 	}
 
 	c.printProgress("Server Information")
@@ -518,7 +499,7 @@ func (c *ClusterUpConfig) GetDockerClient() dockerhelper.Interface {
 // If one is already running, it throws an error.
 // If one exists, it removes it so a new one can be created.
 func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper) error {
-	container, running, err := dockerHelper.GetContainerState(openshift.ContainerName)
+	container, running, err := dockerHelper.GetContainerState(openshift.OriginContainerName)
 	if err != nil {
 		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
@@ -526,7 +507,7 @@ func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper) error {
 		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", "oc cluster down")
 	}
 	if container != nil {
-		err = dockerHelper.RemoveContainer(openshift.ContainerName)
+		err = dockerHelper.RemoveContainer(openshift.OriginContainerName)
 		if err != nil {
 			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
@@ -535,16 +516,19 @@ func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper) error {
 	return nil
 }
 
-// checkOpenShiftImage checks whether the OpenShift image exists.
+// checkRequiredImagesAvailable checks whether the OpenShift image exists.
 // If not it tells the Docker daemon to pull it.
-func (c *ClusterUpConfig) checkOpenShiftImage() error {
+func (c *ClusterUpConfig) checkRequiredImagesAvailable() error {
 	if err := c.DockerHelper().CheckAndPull(c.openshiftImage(), c.Out); err != nil {
 		return err
 	}
 	if err := c.DockerHelper().CheckAndPull(c.cliImage(), c.Out); err != nil {
 		return err
 	}
-	if err := c.DockerHelper().CheckAndPull(c.nodeImage(), c.Out); err != nil {
+	if err := c.DockerHelper().CheckAndPull(c.etcdImage(), c.Out); err != nil {
+		return err
+	}
+	if err := c.DockerHelper().CheckAndPull(c.bootkubeImage(), c.Out); err != nil {
 		return err
 	}
 	if err := c.DockerHelper().CheckAndPull(c.hyperkubeImage(), c.Out); err != nil {
@@ -567,16 +551,16 @@ func checkPortForwardingPrerequisites() error {
 
 // ensureDefaultRedirectURIs merges a default URL to an auth client's RedirectURIs array
 func (c *ClusterUpConfig) ensureDefaultRedirectURIs(out io.Writer) error {
-	restConfig, err := c.RESTConfig()
+	restConfig, err := c.KubeControlPlaneRESTConfig()
 	if err != nil {
 		return err
 	}
-	oauthClient, err := oauthv1typedclient.NewForConfig(restConfig)
+	oauthClient, err := oauthclientinternal.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
 
-	webConsoleOAuth, err := oauthClient.OAuthClients().Get(defaultRedirectClient, metav1.GetOptions{})
+	webConsoleOAuth, err := oauthClient.Oauth().OAuthClients().Get(defaultRedirectClient, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			fmt.Fprintf(out, "Unable to find OAuthClient %q\n", defaultRedirectClient)
@@ -598,7 +582,7 @@ func (c *ClusterUpConfig) ensureDefaultRedirectURIs(out io.Writer) error {
 
 	webConsoleOAuth.RedirectURIs = append(webConsoleOAuth.RedirectURIs, developmentRedirectURI)
 
-	_, err = oauthClient.OAuthClients().Update(webConsoleOAuth)
+	_, err = oauthClient.Oauth().OAuthClients().Update(webConsoleOAuth)
 	if err != nil {
 		// announce error without interrupting remaining tasks
 		suggestedCmd := fmt.Sprintf("oc patch %s/%s -p '{%q:[%q]}'", "oauthclient", defaultRedirectClient, "redirectURIs", developmentRedirectURI)
@@ -664,23 +648,26 @@ func (c *ClusterUpConfig) updateNoProxy() {
 	}
 }
 
+func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
+	restConfig, err := c.KubeControlPlaneRESTConfig()
+	if err != nil {
+		return err
+	}
+	kClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+
+	// Remove any duplicate nodes
+	if err := c.OpenShiftHelper().CheckNodes(kClient); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *ClusterUpConfig) imageFormat() string {
 	return c.ImageTemplate.Format
-}
-
-// Login logs into the new server and sets up a default user and project
-func (c *ClusterUpConfig) login(streams genericclioptions.IOStreams) error {
-	server := c.OpenShiftHelper().Master(c.ServerIP)
-	return openshift.Login(initialUser, initialPassword, server, c.GetKubeAPIServerConfigDir(), c.defaultClientConfig, c.command, streams)
-}
-
-// createProject creates a new project for the current user
-func (c *ClusterUpConfig) createProject(out io.Writer) error {
-	f, err := openshift.LoggedInUserFactory()
-	if err != nil {
-		return errors.NewError("cannot get logged in user client").WithCause(err)
-	}
-	return openshift.CreateProject(f, initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
 }
 
 // serverInfo displays server information after a successful start
@@ -691,14 +678,6 @@ func (c *ClusterUpConfig) serverInfo(out io.Writer) {
 		"The server is accessible via web console at:\n"+
 		"    %s\n\n", masterURL)
 
-	if c.createdUser {
-		msg += fmt.Sprintf("You are logged in as:\n"+
-			"    User:     %s\n"+
-			"    Password: <any value>\n\n", initialUser)
-		msg += "To login as administrator:\n" +
-			"    oc login -u system:admin\n\n"
-	}
-
 	msg += c.checkProxySettings()
 
 	fmt.Fprintf(out, msg)
@@ -707,7 +686,7 @@ func (c *ClusterUpConfig) serverInfo(out io.Writer) {
 // checkProxySettings compares proxy settings specified for cluster up
 // and those on the Docker daemon and generates appropriate warnings.
 func (c *ClusterUpConfig) checkProxySettings() string {
-	warnings := []string{}
+	var warnings []string
 	dockerHTTPProxy, dockerHTTPSProxy, _, err := c.DockerHelper().GetDockerProxySettings()
 	if err != nil {
 		return "Unexpected error: " + err.Error()
@@ -743,7 +722,7 @@ func (c *ClusterUpConfig) checkProxySettings() string {
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
 func (c *ClusterUpConfig) OpenShiftHelper() *openshift.Helper {
 	if c.openshiftHelper == nil {
-		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.openshiftImage(), openshift.ContainerName)
+		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.openshiftImage(), openshift.OriginContainerName)
 	}
 	return c.openshiftHelper
 }
@@ -764,6 +743,14 @@ func (c *ClusterUpConfig) DockerHelper() *dockerhelper.Helper {
 	return c.dockerHelper
 }
 
+func (c *ClusterUpConfig) etcdImage() string {
+	return "quay.io/coreos/etcd:v3.2.24"
+}
+
+func (c *ClusterUpConfig) bootkubeImage() string {
+	return "quay.io/coreos/bootkube:v0.13.0"
+}
+
 func (c *ClusterUpConfig) openshiftImage() string {
 	return c.ImageTemplate.ExpandOrDie("control-plane")
 }
@@ -776,12 +763,16 @@ func (c *ClusterUpConfig) hyperkubeImage() string {
 	return c.ImageTemplate.ExpandOrDie("hyperkube")
 }
 
-func (c *ClusterUpConfig) cliImage() string {
-	return c.ImageTemplate.ExpandOrDie("cli")
-}
-
 func (c *ClusterUpConfig) nodeImage() string {
 	return c.ImageTemplate.ExpandOrDie("node")
+}
+
+func (c *ClusterUpConfig) podImage() string {
+	return c.ImageTemplate.ExpandOrDie("pod")
+}
+
+func (c *ClusterUpConfig) cliImage() string {
+	return c.ImageTemplate.ExpandOrDie("cli")
 }
 
 func (c *ClusterUpConfig) determineAdditionalIPs(ip string) ([]string, error) {
@@ -802,7 +793,7 @@ func (c *ClusterUpConfig) determineAdditionalIPs(ip string) ([]string, error) {
 }
 
 func (c *ClusterUpConfig) localIPs() ([]string, error) {
-	ips := []string{}
+	var ips []string
 	devices, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -880,39 +871,12 @@ func (c *ClusterUpConfig) determineIP() (string, error) {
 	return "", errors.NewError("cannot determine an IP to use for your server.")
 }
 
-// ShouldCreateUser determines whether a user and project should
-// be created. If the user provider has been modified in the config, then it should
-// not attempt to create a user. Also, even if the user provider has not been
-// modified, but data has been initialized, then we should also not create user.
-func (c *ClusterUpConfig) ShouldCreateUser() bool {
-	restClientConfig, err := c.RESTConfig()
-	if err != nil {
-		glog.Warningf("error checking user: %v", err)
-		return true
-	}
-	userClient, err := userv1client.NewForConfig(restClientConfig)
-	if err != nil {
-		glog.Warningf("error checking user: %v", err)
-		return true
-	}
-	_, err = userClient.UserV1().Users().Get(initialUser, metav1.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return true
-	}
-	if err != nil {
-		glog.Warningf("error checking user: %v", err)
-		return true
-	}
-
-	return false
+func (c *ClusterUpConfig) KubeControlPlaneAuthDir() string {
+	return path.Join(c.BaseDir, "bootkube", "auth")
 }
 
-func (c *ClusterUpConfig) GetKubeAPIServerConfigDir() string {
-	return path.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName)
-}
-
-func (c *ClusterUpConfig) RESTConfig() (*rest.Config, error) {
-	clusterAdminKubeConfigBytes, err := c.ClusterAdminKubeConfigBytes()
+func (c *ClusterUpConfig) KubeControlPlaneRESTConfig() (*rest.Config, error) {
+	clusterAdminKubeConfigBytes, err := c.KubeControlPlaneKubeConfigBytes()
 	if err != nil {
 		return nil, err
 	}
@@ -924,8 +888,8 @@ func (c *ClusterUpConfig) RESTConfig() (*rest.Config, error) {
 	return clusterAdminKubeConfig, nil
 }
 
-func (c *ClusterUpConfig) ClusterAdminKubeConfigBytes() ([]byte, error) {
-	return ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
+func (c *ClusterUpConfig) KubeControlPlaneKubeConfigBytes() ([]byte, error) {
+	return ioutil.ReadFile(path.Join(c.KubeControlPlaneAuthDir(), "kubeconfig"))
 }
 
 func (c *ClusterUpConfig) GetPublicHostName() string {

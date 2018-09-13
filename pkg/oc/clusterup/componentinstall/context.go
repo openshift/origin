@@ -67,7 +67,7 @@ func (c *installContext) ImagePullPolicy() string {
 }
 
 func NewComponentInstallContext(clientImageName, imageFormat, pullPolicy, baseDir string, logLevel int) (Context, error) {
-	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(baseDir, "kube-apiserver", adminKubeConfigFileName))
+	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(baseDir, "bootkube", "auth", "kubeconfig"))
 	if err != nil {
 		return nil, err
 	}

@@ -8,8 +8,11 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/sets"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
@@ -20,19 +23,22 @@ import (
 const (
 	defaultNodeName      = "localhost"
 	DefaultDNSPort       = 8053
-	DefaultSvcCIDR       = "172.30.0.0/16"
 	cmdDetermineNodeHost = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
 
 	// TODO: Figure out why cluster up relies on this name
-	ContainerName = "origin"
-	Namespace     = "openshift"
+	OriginContainerName         = "origin"
+	EtcdContainerName           = "etcd"
+	BootkubeRenderContainerName = "bootkube-render"
+	BootkubeStartContainerName  = "bootkube-start"
+	Namespace                   = "openshift"
 )
 
 var (
-	BasePorts    = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
-	RouterPorts  = []int{80, 443}
-	AllPorts     = append(RouterPorts, BasePorts...)
-	SocatPidFile = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-8443.pid")
+	ClusterUpContainers = sets.NewString(OriginContainerName, EtcdContainerName, BootkubeRenderContainerName, BootkubeStartContainerName)
+	BasePorts           = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
+	RouterPorts         = []int{80, 443}
+	AllPorts            = append(RouterPorts, BasePorts...)
+	SocatPidFile        = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-8443.pid")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
@@ -142,7 +148,7 @@ func (h *Helper) OtherIPs(excludeIP string) ([]string, error) {
 	}
 
 	candidates := strings.Split(result, " ")
-	resultIPs := []string{}
+	var resultIPs []string
 	for _, ip := range candidates {
 		if len(strings.TrimSpace(ip)) == 0 {
 			continue
@@ -160,7 +166,7 @@ func (h *Helper) Master(ip string) string {
 
 func checkPortsInUse(data string, ports []int) error {
 	used := getUsedPorts(data)
-	conflicts := []int{}
+	var conflicts []int
 	for _, port := range ports {
 		if _, inUse := used[port]; inUse {
 			conflicts = append(conflicts, port)

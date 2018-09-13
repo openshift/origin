@@ -39,3 +39,12 @@ func noDockerClientSolution() string {
 	}
 	return fmt.Sprintf("Platform %s is not supported by this command", runtime.GOOS)
 }
+
+func kubeConfigSolution() string {
+	switch runtime.GOOS {
+	case "windows":
+		return KubeConfigSolutionWindows
+	default:
+		return KubeConfigSolutionUnix
+	}
+}
