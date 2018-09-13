@@ -368,7 +368,8 @@ func (o *NewOptions) Run() error {
 			}
 		}
 
-		for _, tag := range is.Spec.Tags {
+		for i := range is.Spec.Tags {
+			tag := is.Spec.Tags[i]
 			dstDir := filepath.Join(dir, tag.Name)
 			src := tag.From.Name
 			ref, err := imagereference.Parse(src)
