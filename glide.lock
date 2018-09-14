@@ -1,5 +1,5 @@
-hash: 666dc36213dabc0537c478feca9a5e7e24dafaaa9ab2155c90e255e697bf4ac7
-updated: 2018-09-14T12:43:05.78431182-04:00
+hash: 88c89d9bddf585fab516f7cb0a67165636c9ac68998eae2b45da3938b973af9b
+updated: 2018-09-14T12:51:24.644291448-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -326,8 +326,8 @@ imports:
   - registry/storage/cache/memory
   - uuid
 - name: github.com/docker/docker
-  version: fcdab531a6d9b133eaa3f2a3f6c11fd02a97de75
-  repo: https://github.com/openshift/moby-moby.git
+  version: 095e6c40a62271add3e6e9d4079c448dcfc28296
+  repo: https://github.com/nalind/docker.git
   subpackages:
   - api
   - api/types

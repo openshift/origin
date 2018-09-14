@@ -82,8 +82,8 @@ import:
   version: openshift-3.10-docker-edc3ab2
 # close-write carry
 - package: github.com/docker/docker
-  repo:    https://github.com/openshift/moby-moby.git
-  version: openshift-3.10-docker-b68221c
+  repo:    https://github.com/nalind/docker.git
+  version: b68221c37e+SIGUNUSED
 
 # ours: shared with kube, but forced by openshift
 # master
