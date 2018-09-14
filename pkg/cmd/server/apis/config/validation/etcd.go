@@ -30,7 +30,7 @@ func ValidateEtcdConnectionInfo(config config.EtcdConnectionInfo, server *config
 	if len(config.CA) > 0 {
 		allErrs = append(allErrs, common.ValidateFile(config.CA, fldPath.Child("ca"))...)
 	}
-	allErrs = append(allErrs, ValidateCertInfo(config.ClientCert, false, fldPath)...)
+	allErrs = append(allErrs, common.ValidateCertInfo(config.ClientCert, false, fldPath)...)
 
 	// If we have server config info, make sure the client connection info will work with it
 	if server != nil {
@@ -57,7 +57,7 @@ func ValidateEtcdConfig(config *config.EtcdConfig, fldPath *field.Path) common.V
 	validationResults := common.ValidationResults{}
 
 	servingInfoPath := fldPath.Child("servingInfo")
-	validationResults.Append(ValidateServingInfo(config.ServingInfo, true, servingInfoPath))
+	validationResults.Append(common.ValidateServingInfo(config.ServingInfo, true, servingInfoPath))
 	if config.ServingInfo.BindNetwork == "tcp6" {
 		validationResults.AddErrors(field.Invalid(servingInfoPath.Child("bindNetwork"), config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for etcd, must be tcp or tcp4"))
 	}
@@ -66,7 +66,7 @@ func ValidateEtcdConfig(config *config.EtcdConfig, fldPath *field.Path) common.V
 	}
 
 	peerServingInfoPath := fldPath.Child("peerServingInfo")
-	validationResults.Append(ValidateServingInfo(config.PeerServingInfo, true, peerServingInfoPath))
+	validationResults.Append(common.ValidateServingInfo(config.PeerServingInfo, true, peerServingInfoPath))
 	if config.ServingInfo.BindNetwork == "tcp6" {
 		validationResults.AddErrors(field.Invalid(peerServingInfoPath.Child("bindNetwork"), config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for etcd peers, must be tcp or tcp4"))
 	}
@@ -74,8 +74,8 @@ func ValidateEtcdConfig(config *config.EtcdConfig, fldPath *field.Path) common.V
 		validationResults.AddErrors(field.Invalid(peerServingInfoPath.Child("namedCertificates"), "<not shown>", "namedCertificates are not supported for etcd"))
 	}
 
-	validationResults.AddErrors(ValidateHostPort(config.Address, fldPath.Child("address"))...)
-	validationResults.AddErrors(ValidateHostPort(config.PeerAddress, fldPath.Child("peerAddress"))...)
+	validationResults.AddErrors(common.ValidateHostPort(config.Address, fldPath.Child("address"))...)
+	validationResults.AddErrors(common.ValidateHostPort(config.PeerAddress, fldPath.Child("peerAddress"))...)
 
 	if len(config.StorageDir) == 0 {
 		validationResults.AddErrors(field.Required(fldPath.Child("storageDirectory"), ""))

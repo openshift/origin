@@ -1,4 +1,4 @@
-package start
+package network
 
 import (
 	"errors"
@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/master/ports"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/start/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
@@ -56,9 +57,9 @@ type NodeArgs struct {
 	// NetworkPluginName is the network plugin to be called for configuring networking for pods.
 	NetworkPluginName string
 
-	ListenArg          *ListenArg
-	ImageFormatArgs    *ImageFormatArgs
-	KubeConnectionArgs *KubeConnectionArgs
+	ListenArg          *options.ListenArg
+	ImageFormatArgs    *options.ImageFormatArgs
+	KubeConnectionArgs *options.KubeConnectionArgs
 }
 
 // BindNodeNetworkArgs binds the options to the flags with prefix + default flag names
@@ -88,9 +89,9 @@ func NewDefaultNetworkArgs() *NodeArgs {
 
 		NetworkPluginName: "",
 
-		ListenArg:          NewDefaultListenArg(),
-		ImageFormatArgs:    NewDefaultImageFormatArgs(),
-		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
+		ListenArg:          options.NewDefaultListenArg(),
+		ImageFormatArgs:    options.NewDefaultImageFormatArgs(),
+		KubeConnectionArgs: options.NewDefaultKubeConnectionArgs(),
 	}
 	config.ConfigDir.Default("openshift.local.config/node")
 

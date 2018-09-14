@@ -565,6 +565,9 @@ func (c *ClusterUpConfig) checkOpenShiftImage() error {
 	if err := c.DockerHelper().CheckAndPull(c.nodeImage(), c.Out); err != nil {
 		return err
 	}
+	if err := c.DockerHelper().CheckAndPull(c.hyperkubeImage(), c.Out); err != nil {
+		return err
+	}
 	return nil
 }
 

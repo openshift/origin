@@ -59,11 +59,12 @@ objects:
         - name: kube-proxy
           image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["openshift", "start", "network"]
+          command: ["openshift-sdn"]
           args:
           - "--enable=proxy"
           - "--listen=https://0.0.0.0:8444"
           - "--config=/etc/origin/node/node-config.yaml"
+          - "--kubeconfig=/etc/origin/node/node.kubeconfig"
           securityContext:
             privileged: true
             runAsUser: 0

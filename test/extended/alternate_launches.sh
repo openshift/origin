@@ -58,7 +58,7 @@ date
 os::log::info "Testing alternate node configurations"
 
 # proxy only
-sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start network --enable=proxy \
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift-sdn --enable=proxy \
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-network-1.log" &
@@ -69,7 +69,7 @@ os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-1.log' 'Starting nod
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-1.log' 'Started Kubernetes Proxy on'
 
 # proxy only
-sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start network --enable=proxy \
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift-sdn --enable=proxy \
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-node-1.log" &
@@ -80,7 +80,7 @@ os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-1.log' 'Starting node n
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-1.log' 'Started Kubernetes Proxy on'
 
 # plugins only
-sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start network --enable=plugins \
+sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift-sdn --enable=plugins \
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-network-2.log" &
@@ -103,7 +103,7 @@ sudo env "PATH=${PATH}"  hyperkube kubelet \
 export OS_PID=$!
 
 os::log::info "Starting network"
-sudo env "PATH=${PATH}"  OPENSHIFT_ON_PANIC=crash openshift start network \
+sudo env "PATH=${PATH}"  OPENSHIFT_ON_PANIC=crash openshift-sdn \
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-network.log" &

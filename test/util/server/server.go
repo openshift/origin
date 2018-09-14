@@ -265,34 +265,6 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 	return nil
 }
 
-func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
-	getSignerOptions := &admin.SignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca"),
-		KeyFile:    admin.DefaultKeyFilename(nodeArgs.MasterCertDir, "ca"),
-		SerialFile: admin.DefaultSerialFilename(nodeArgs.MasterCertDir, "ca"),
-	}
-
-	createNodeConfig := admin.NewDefaultCreateNodeConfigOptions()
-	createNodeConfig.IOStreams = genericclioptions.IOStreams{Out: os.Stdout}
-	createNodeConfig.SignerCertOptions = getSignerOptions
-	createNodeConfig.NodeConfigDir = nodeArgs.ConfigDir.Value()
-	createNodeConfig.NodeName = nodeArgs.NodeName
-	createNodeConfig.Hostnames = []string{nodeArgs.NodeName}
-	createNodeConfig.ListenAddr = nodeArgs.ListenArg.ListenAddr
-	createNodeConfig.APIServerURL = masterURL
-	createNodeConfig.APIServerCAFiles = []string{admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")}
-	createNodeConfig.NodeClientCAFile = admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
-
-	if err := createNodeConfig.Validate(nil); err != nil {
-		return err
-	}
-	if _, err := createNodeConfig.CreateNodeFolder(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func MasterEtcdClients(config *configapi.MasterConfig) (*etcdclientv3.Client, error) {
 	etcd3, err := etcd.MakeEtcdClientV3(config.EtcdClientInfo)
 	if err != nil {

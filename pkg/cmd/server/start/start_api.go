@@ -13,9 +13,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/openshift/origin/pkg/cmd/server/start/options"
 )
 
 var apiLong = templates.LongDesc(`
@@ -30,32 +31,32 @@ var apiLong = templates.LongDesc(`
 
 // NewCommandStartMasterAPI starts only the APIserver
 func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
-	options := &MasterOptions{Output: out}
-	options.DefaultsFromName(basename)
+	opts := &MasterOptions{Output: out}
+	opts.DefaultsFromName(basename)
 
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Launch master API",
 		Long:  fmt.Sprintf(apiLong, basename, name),
 		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(); err != nil {
+			if err := opts.Complete(); err != nil {
 				fmt.Fprintln(errout, kcmdutil.UsageErrorf(c, err.Error()))
 				return
 			}
 
-			if len(options.ConfigFile) == 0 {
+			if len(opts.ConfigFile) == 0 {
 				fmt.Fprintln(errout, kcmdutil.UsageErrorf(c, "--config is required for this command"))
 				return
 			}
 
-			if err := options.Validate(args); err != nil {
+			if err := opts.Validate(args); err != nil {
 				fmt.Fprintln(errout, kcmdutil.UsageErrorf(c, err.Error()))
 				return
 			}
 
-			origin.StartProfiler()
+			serviceability.StartProfiler()
 
-			if err := options.StartMaster(); err != nil {
+			if err := opts.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
@@ -79,7 +80,7 @@ func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*co
 	}.Default()
 
 	// allow the listen address to be overridden on a per process basis
-	listenArg := &ListenArg{
+	listenArg := &options.ListenArg{
 		ListenAddr: flagtypes.Addr{
 			Value:         "127.0.0.1:8444",
 			DefaultScheme: "https",
@@ -88,9 +89,9 @@ func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*co
 		}.Default(),
 	}
 
-	options.MasterArgs = NewDefaultMasterArgs()
-	options.MasterArgs.StartAPI = true
-	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
+	opts.MasterArgs = NewDefaultMasterArgs()
+	opts.MasterArgs.StartAPI = true
+	opts.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
 		// we do not currently enable multi host etcd for the cluster
 		config.EtcdConfig = nil
 		if masterAddr.Provided {
@@ -109,12 +110,12 @@ func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*co
 
 	flags := cmd.Flags()
 	// This command only supports reading from config and the override master address
-	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. Required")
+	flags.StringVar(&opts.ConfigFile, "config", "", "Location of the master configuration file to run from. Required")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
 	flags.Var(&masterAddr, "master", "The address the master should register for itself. Defaults to the master address from the config.")
-	BindListenArg(listenArg, flags, "")
+	options.BindListenArg(listenArg, flags, "")
 
-	return cmd, options
+	return cmd, opts
 }
 
 // applyBindAddressOverride takes a given address and overrides the relevant sections of a MasterConfig

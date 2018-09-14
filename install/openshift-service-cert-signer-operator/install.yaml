@@ -64,7 +64,7 @@ objects:
         serviceAccountName: openshift-service-cert-signer-operator
         containers:
         - name: operator
-          image: openshift/origin-service-serving-cert-signer:v3.11
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["service-serving-cert-signer", "operator"]
           args:
@@ -98,7 +98,7 @@ objects:
     name: instance
   spec:
     managementState: Managed
-    imagePullSpec: openshift/origin-service-serving-cert-signer:v3.11
+    imagePullSpec: ${IMAGE}
     version: 3.10.0
     logging:
       level: 4
