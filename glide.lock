@@ -1,5 +1,5 @@
-hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
-updated: 2018-08-30T14:58:17.700952+02:00
+hash: 4c5b21a9c56a9277f69d9d0c5020b028015c86a7e5bf252ee54076095c52f1b4
+updated: 2018-09-14T12:09:30.831394353-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1260,7 +1260,7 @@ imports:
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: 95c6576299259db960f6c5b9b69ea52422860fce
+  version: d0be0721c37eeb5299f245a996a483160fc36940
   subpackages:
   - unix
   - windows

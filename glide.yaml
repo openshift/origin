@@ -132,6 +132,9 @@ import:
 # pinned to the level that kubernetes uses.  Not sure why glide isn't matching this
 - package: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+# we need some of the newer constants
+- package: golang.org/x/sys
+  version: master
 
 # mine: specific to openshift
 # networking
