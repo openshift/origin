@@ -47,6 +47,7 @@ type phase struct {
 
 	lock   sync.Mutex
 	failed bool
+	errs   []error
 }
 
 func (p *phase) Failed() {
@@ -55,10 +56,23 @@ func (p *phase) Failed() {
 	p.failed = true
 }
 
+func (p *phase) ExecutionFailure(err ...error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.failed = true
+	p.errs = append(p.errs, err...)
+}
+
 func (p *phase) IsFailed() bool {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	return p.failed
+}
+
+func (p *phase) ExecutionFailures() []error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.errs
 }
 
 func (p *phase) calculateStats(existingBlobs map[string]sets.String) {
