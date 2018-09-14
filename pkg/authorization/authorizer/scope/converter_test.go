@@ -23,13 +23,13 @@ func TestUserEvaluator(t *testing.T) {
 		{
 			name:     "missing-part",
 			scopes:   []string{UserIndicator},
-			err:      "unrecognized scope",
+			err:      "no scope evaluator found",
 			numRules: 1, // we always add the discovery rules
 		},
 		{
 			name:     "bad-part",
 			scopes:   []string{UserIndicator + "foo"},
-			err:      "unrecognized scope",
+			err:      "no scope evaluator found",
 			numRules: 1, // we always add the discovery rules
 		},
 		{
@@ -40,7 +40,7 @@ func TestUserEvaluator(t *testing.T) {
 		{
 			name:     "one-error",
 			scopes:   []string{UserIndicator, UserInfo},
-			err:      "unrecognized scope",
+			err:      "no scope evaluator found",
 			numRules: 2,
 		},
 		{

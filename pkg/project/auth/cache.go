@@ -486,7 +486,7 @@ func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, err
 		}
 	}
 
-	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], ac.clusterRoleLister)
+	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], ac.clusterRoleLister, true)
 	if err != nil {
 		return nil, err
 	}

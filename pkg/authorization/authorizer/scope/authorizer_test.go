@@ -62,19 +62,17 @@ func TestAuthorize(t *testing.T) {
 				Namespace:       "ns",
 			},
 			expectedAllowed: kauthorizer.DecisionDeny,
-			expectedMsg:     `scopes [does-not-exist] prevent this action`,
-			expectedErr:     `no scope evaluator found for "does-not-exist"`,
+			expectedMsg:     `scopes [does-not-exist] prevent this action, additionally the following non-fatal errors were reported: no scope evaluator found for "does-not-exist"`,
 		},
 		{
 			name: "bad scope 2",
 			attributes: kauthorizer.AttributesRecord{
-				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:dne"}}},
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"role:dne"}}},
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
 			expectedAllowed: kauthorizer.DecisionDeny,
-			expectedMsg:     `scopes [user:dne] prevent this action`,
-			expectedErr:     `unrecognized scope: user:dne`,
+			expectedMsg:     `scopes [role:dne] prevent this action, additionally the following non-fatal errors were reported: bad format for scope role:dne`,
 		},
 		{
 			name: "scope doesn't cover",
