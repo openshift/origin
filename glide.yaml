@@ -212,4 +212,4 @@ import:
 # yours that I suspect aren't pinning because vendor.conf is respected
 # yours: containers/image.  No idea why this isn't self-pinning.
 - package: github.com/containers/storage
-  version: 47536c89fcc545a87745e1a1573addc439409165
+  version: master

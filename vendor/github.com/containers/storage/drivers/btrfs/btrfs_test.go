@@ -30,12 +30,12 @@ func TestBtrfsCreateSnap(t *testing.T) {
 
 func TestBtrfsSubvolDelete(t *testing.T) {
 	d := graphtest.GetDriver(t, "btrfs")
-	if err := d.CreateReadWrite("test", "", "", nil); err != nil {
+	if err := d.CreateReadWrite("test", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	defer graphtest.PutDriver(t)
 
-	dir, err := d.Get("test", "")
+	dir, err := d.Get("test", "", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,6 +56,10 @@ func TestBtrfsSubvolDelete(t *testing.T) {
 	if _, err := os.Stat(path.Join(dir, "subvoltest")); !os.IsNotExist(err) {
 		t.Fatalf("expected not exist error on nested subvol, got: %v", err)
 	}
+}
+
+func TestBtrfsEcho(t *testing.T) {
+	graphtest.DriverTestEcho(t, "btrfs")
 }
 
 func TestBtrfsTeardown(t *testing.T) {

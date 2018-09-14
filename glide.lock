@@ -1,5 +1,5 @@
-hash: 4c5b21a9c56a9277f69d9d0c5020b028015c86a7e5bf252ee54076095c52f1b4
-updated: 2018-09-14T12:09:30.831394353-04:00
+hash: 9f358cece95369674bae4d522cac862e16d48ee1705bb1eac45f61f5f49bb8db
+updated: 2018-09-14T12:34:02.312549775-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -178,9 +178,13 @@ imports:
   - types
   - version
 - name: github.com/containers/storage
-  version: 47536c89fcc545a87745e1a1573addc439409165
+  version: 02db7cbb0bb082681f9855131fec8c8e1a3f4cb6
   subpackages:
+  - pkg/fileutils
   - pkg/homedir
+  - pkg/idtools
+  - pkg/mount
+  - pkg/system
 - name: github.com/coreos/bbolt
   version: 32c383e75ce054674c53b5a07e55de85332aee14
 - name: github.com/coreos/etcd

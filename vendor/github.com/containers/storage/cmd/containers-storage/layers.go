@@ -24,12 +24,14 @@ func layers(flags *mflag.FlagSet, action string, m storage.Store, args []string)
 	imageMap := make(map[string]*[]storage.Image)
 	if images, err := m.Images(); err == nil {
 		for _, image := range images {
-			if ilist, ok := imageMap[image.TopLayer]; ok && ilist != nil {
-				list := append(*ilist, image)
-				imageMap[image.TopLayer] = &list
-			} else {
-				list := []storage.Image{image}
-				imageMap[image.TopLayer] = &list
+			for _, layerID := range append([]string{image.TopLayer}, image.MappedTopLayers...) {
+				if ilist, ok := imageMap[layerID]; ok && ilist != nil {
+					list := append(*ilist, image)
+					imageMap[layerID] = &list
+				} else {
+					list := []storage.Image{image}
+					imageMap[layerID] = &list
+				}
 			}
 		}
 	}
