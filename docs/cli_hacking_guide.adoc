@@ -23,7 +23,6 @@ Commands are organized in the package structure as:
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/infra[pkg/cmd/infra]
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/builder[pkg/cmd/infra/builder] - `openshift-sti-build` and `openshift-docker-build` commands.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/deployer[pkg/cmd/infra/deployer] - `openshift-deploy` command.
-*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/gitserver[pkg/cmd/infra/gitserver] - `openshift-gitserver` command.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/router[pkg/cmd/infra/router] - `openshift-router` command.
 
 * https://github.com/openshift/origin/tree/master/pkg/oc[pkg/oc]
@@ -192,26 +191,6 @@ In case you need additional control over how flags behave in terms of code compl
 |`cmd.MarkFlagFilename("my-flag-name", "yaml", "yml")`  |consider the given file extensions when doing autocomplete.
 |`cmd.MarkFlagRequired("my-flag-name")`                 |mark a flag as required.
 |=======
-
-=== Automatically Generated Documentation
-
-The same goes for automatically generated documentation. If you introduce structural changes, verify that docs are up-to-date:
-
-====
-[source,bash,options="nowrap"]
-----
-$ hack/verify-generated-docs.sh
-----
-====
-
-And, if an update is needed:
-
-====
-[source,bash,options="nowrap"]
-----
-$ hack/update-generated-docs.sh
-----
-====
 
 === Handling Errors
 

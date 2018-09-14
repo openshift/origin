@@ -1,5 +1,0 @@
-[url "http://127.0.0.1"]
-   insteadOf = http://git
-[user]
-   email = dev@openshift
-   name = Development

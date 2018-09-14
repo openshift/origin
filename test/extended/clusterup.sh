@@ -189,11 +189,10 @@ function os::test::extended::clusterup::svcaccess () {
 
     arg=$@
     os::cmd::expect_success "oc cluster up --base-dir=${base_dir} $arg"
-    os::cmd::expect_success "oc create -f ${OS_ROOT}/examples/gitserver/gitserver-persistent.yaml"
 	os::cmd::try_until_text "oc get endpoints git -o jsonpath='{ .subsets[*].ports[?(@.port==8080)].port }'" "8080" $(( 10*minute )) 1
     # Test that a service can be accessed from a peer pod
     sleep 10
-    os::cmd::expect_success "timeout 20s oc run peer --image=openshift/origin-gitserver:latest --attach --restart=Never --command -- curl http://git:8080/_/healthz"
+    os::cmd::expect_success "timeout 20s oc run peer --image=openshift/origin-node:latest --attach --restart=Never --command -- curl http://git:8080/_/healthz"
 
     # Test that a service can be accessed from the same pod
     # This doesn't work in any cluster i've tried, not sure why but it's not a cluster up issue.
@@ -207,7 +206,7 @@ function os::test::extended::clusterup::portinuse () {
     base_dir=$(os::test::extended::clusterup::make_base_dir "port_in_use")
 
     # Start listening on the host's 127.0.0.1 interface, port 53
-    os::cmd::expect_success "docker run -d --name=port53 --entrypoint=/bin/bash --net=host openshift/origin-gitserver:latest -c \"socat TCP-LISTEN:53,bind=127.0.0.1,fork SYSTEM:'echo hello'\""
+    os::cmd::expect_success "docker run -d --name=port53 --entrypoint=/bin/bash --net=host openshift/origin-node:latest -c \"socat TCP-LISTEN:53,bind=127.0.0.1,fork SYSTEM:'echo hello'\""
     arg=$@
     os::cmd::expect_success "oc cluster up --base-dir=${base_dir} $arg"
 }
