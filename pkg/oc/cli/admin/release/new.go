@@ -459,7 +459,7 @@ func (o *NewOptions) Run() error {
 			return err
 		}
 	default:
-		fmt.Fprintf(os.Stderr, "info: Extracting operator contents to disk without building a release artifact\n")
+		fmt.Fprintf(o.ErrOut, "info: Extracting operator contents to disk without building a release artifact\n")
 		if _, err := io.Copy(ioutil.Discard, pr); err != nil {
 			return err
 		}
