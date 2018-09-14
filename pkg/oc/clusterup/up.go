@@ -28,7 +28,6 @@ import (
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
@@ -154,9 +153,20 @@ func NewCmdUp(name, fullName string, f genericclioptions.RESTClientGetter, strea
 		Long:    cmdUpLong,
 		Example: fmt.Sprintf(cmdUpExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(config.Complete(f, c))
-			kcmdutil.CheckErr(config.Validate())
-			kcmdutil.CheckErr(config.Check())
+			var err error
+
+			if err = config.Complete(f, c); err != nil {
+				PrintError(err, streams.ErrOut)
+				os.Exit(1)
+			}
+			if err = config.Validate(); err != nil {
+				PrintError(err, streams.ErrOut)
+				os.Exit(1)
+			}
+			if err = config.Check(); err != nil {
+				PrintError(err, streams.ErrOut)
+				os.Exit(1)
+			}
 			if err := config.Start(); err != nil {
 				PrintError(err, streams.ErrOut)
 				os.Exit(1)
