@@ -1,11 +1,10 @@
 approve_by_comment: true
-approve_regex: '^(Approved|lgtm|LGTM|:shipit:|:star:|:\+1:|:ship:)'
+approve_regex: ^LGTM
 reject_regex: ^Rejected
 reset_on_push: true
-signed_off_by:
-  required: true
+author_approval: ignored
 reviewers:
   teams:
-  - go-selinux-maintainers
+    - selinux-maintainers
   name: default
   required: 2

@@ -41,7 +41,7 @@ func TestInit(t *testing.T) {
 		t.Fatal(err)
 	}
 	if plabel != "user_u:user_r:user_t:s0:c1,c15" || (mlabel != "user_u:object_r:container_file_t:s0:c1,c15" && mlabel != "user_u:object_r:svirt_sandbox_file_t:s0:c1,c15") {
-		t.Log("InitLabels User Match Failed")
+		t.Logf("InitLabels User Match Failed %s, %s", plabel, mlabel)
 		t.Log(plabel, mlabel)
 		t.Fatal(err)
 	}
@@ -143,4 +143,19 @@ func TestIsShared(t *testing.T) {
 		t.Fatalf("Expected label `Zz` to be shared, got %v", shared)
 	}
 
+}
+
+func TestSELinuxNoLevel(t *testing.T) {
+	if !selinux.GetEnabled() {
+		return
+	}
+	tlabel := "system_u:system_r:container_t"
+	dup := DupSecOpt(tlabel)
+	if len(dup) != 3 {
+		t.Errorf("DupSecOpt Failed on non mls label")
+	}
+	con := selinux.NewContext(tlabel)
+	if con.Get() != tlabel {
+		t.Errorf("NewContaxt and con.Get() Failed on non mls label")
+	}
 }

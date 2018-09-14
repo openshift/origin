@@ -1,5 +1,5 @@
-hash: 9f358cece95369674bae4d522cac862e16d48ee1705bb1eac45f61f5f49bb8db
-updated: 2018-09-14T12:34:02.312549775-04:00
+hash: 666dc36213dabc0537c478feca9a5e7e24dafaaa9ab2155c90e255e697bf4ac7
+updated: 2018-09-14T12:43:05.78431182-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -818,7 +818,7 @@ imports:
   subpackages:
   - specs-go
 - name: github.com/opencontainers/selinux
-  version: 4a2974bf1ee960774ffd517717f1f45325af0206
+  version: b6fa367ed7f534f9ba25391cc2d467085dbb445a
   subpackages:
   - go-selinux
   - go-selinux/label
