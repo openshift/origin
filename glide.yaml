@@ -194,6 +194,9 @@ import:
 # etcd pins a very old version that has contention issues
 - package: github.com/google/btree
   version: master
+# builds
+- package: github.com/projectatomic/buildah
+  version: master
 # new enough to know how to disable itself when cross-compiling
 - package: github.com/opencontainers/selinux
   version: b6fa367ed7f534f9ba25391cc2d467085dbb445a

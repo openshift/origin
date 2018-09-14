@@ -1,0 +1,996 @@
+- Changelog for v0.9.1.1 (2018-09-10)
+  * Update release notes for 0.9.1.1
+  * Replace existing iptables handler with firewall code
+  * Vendor CNI plugins firewall code
+  * Fix displaying size on size calculation error
+  * Bump gitvalidation epoch
+  * Bump to v0.9.2-dev
+
+- Changelog for v0.9.1 (2018-09-07)
+  * Update RELEASE_NOTES for 0.9.1 release
+  * Fix pod sharing for utsmode
+  * Respect user-added mounts over default spec mounts
+  * Ensure we do not overlap mounts in the spec
+  * Change references to cri-o to point at new repository
+  * fix docs for podman build
+  * use layer cache when building images
+  * Add first pass for baseline pod tests
+  * Change shm test to be less flaky.
+  * Update WaitForTimeOut to output OutputString to help with debugging.
+  * Fixups for baseline test script
+  * Fix nameing of Namespaces to be more consistent
+  * Start pod infra container when pod is created
+  * vendor containerd/cgroups
+  * Fix up libpod.conf man pages and referencese to it.
+  * Print errors from individual pull attempts
+  * Added GOPATH/bin to PATH install.md
+  * We should fail Podman with ExitCode 125 by default
+  * Add CRI logs parsing to podman logs
+  * rmi remove all not error when no images are present
+  * rootless: check uid with Geteuid() instead of Getuid()
+  * rootless, tests: add tests for the pod command
+  * rootless, create: support --pod
+  * rootless, run: support --pod
+  * rootless: create compatible pod infra container
+  * rootless: be in an userns to initialize the runtime
+  * commandNotFoundHandler: use stderr and exit code 1
+  * Bump gitvalidation epoch
+  * Bump to v0.9.1-dev
+  * Update release notes for 0.8.5
+
+- Changelog for v0.8.5 (2018-08-31)
+  * Add proper support for systemd inside of podman
+  * We are mistakenly seeing repos as registries.
+  * container: resolve rootfs symlinks
+  * Up time between checks for podman wait
+  * Turn on test debugging
+  * Add support for remote commands
+  * fixup A few language changes and subuid(5)
+  * Make the documentation of user namespace options in podman-run clearer
+  * pod create: restore help flag
+  * catch command-not-found errors
+  * don't print help message for usage errors
+  * Vendor in latest containers/storage and containers/image
+  * add conmon to copr spec
+  * docs: consistent format for example
+  * docs: consistent headings
+  * docs: make HISTORY consistent
+  * docs: fix headers
+  * varlink: fix --timeout usage
+  * run/create: reserve `-h` flag for hostname
+  * podman,varlink: inform user about --timeout 0
+  * rootless: show an error when stats is used
+  * rootless: show an error when pause/unpause are used
+  * rootless: unexport GetUserNSForPid
+  * rootless, exec: use the new function to join the userns
+  * rootless: fix top
+  * rootless: add new function to join existing namespace
+  * Vendor in latest projectatomic/buildah
+  * Set nproc in containers unless explicitly overridden
+  * Do not set max open files by default if we are rootless
+  * Set default max open files in spec
+  * Resolve /etc/resolv.conf before reading
+  * document `--rm` semantics
+  * allow specification of entrypoint in the form of a slice
+  * Test RPM build and install for regressions
+  * rootless, search: do not create a new userns
+  * rootless, login, logout: do not create a new userns
+  * rootless, kill: do not create a new userns
+  * rootless, stop: do not create a new userns
+  * Ensure return errors match API docs
+  * Fix manpage to note how multiple filters are combined
+  * Fix handling of multiple filters in podman ps
+  * Fix Mount Propagation
+  * docs: add containers-mounts.conf(5)
+  * docs: use "containers-" prefix for registries and storage
+  * rootless: fix --pid=host
+  * rootless: fix --ipc=host
+  * spec: bind mount /sys only when userNS are enabled
+  * rootless, tests: add test for --uts=host
+  * Dockerfile.Fedora: install slirp4netns
+  * rootless: don't use kill --all
+  * rootless: exec handle processes that create an user namespace
+  * rootless: fix exec
+  * Move whale-says test to end of baseline
+  * Bump gitvalidation epoch
+  * Bump to v0.8.5-dev
+
+- Changelog for v0.8.4 (2018-08-24)
+  * Add release notes
+  * Regenerate easyjson after rebase
+  * Vendor easyjson code to fix build
+  * Swap from FFJSON to easyjson
+  * Make 'make clean' remove FFJSON generated code
+  * rootless: allow to override policy.json by the user
+  * add completion for --pod in run and create
+  * Fixed formatting and lowered verbosity of pod ps
+  * Do not try to enable AppArmor in rootless mode
+  * exposes tcp port only if no proto specified.
+  * rpm-spec: use skopeo-containers instead of containers-common
+  * Reveal information about container capabilities
+  * Vendor in latest projectatomic/buildah
+  * Refactor error checking in With*NSFromPod options
+  * Fixing network ns segfault
+  * Change pause container to infra container
+  * Support pause containers in varlink
+  * Added option to share kernel namespaces in libpod and podman
+  * Changed GetContainerStats to return ErrCtrStateInvalid
+  * Add GetPodStats to varlink
+  * rpm-spec: update distro-specific dependencies
+  * Add podman pod top
+  * Include pod stats and top in commands/completions
+  * Vendor changes to psgo
+  * Fix syntax description of --ulimit command
+  * Swap test image in exec test to fedora for useradd
+  * Add tests for exec --user
+  * Properly translate users into runc format for exec
+  * test: ad more tests for rootless containers
+  * rootless: fix --net host --privileged
+  * Fix a bug with hook ALWAYS matching with a process
+  * Fixed segfault in stats where container had netNS none or from container
+  * Enable pod stats with short ID and name
+  * Touch up cert-dir in man pages
+  * make dbuild fixed on ubuntu/debian
+  * vendor latest github.com/urfave/cli
+  * Add retry decorator for flakey tests
+  * Update error message from reviews
+  * Support Attach subcommand in pypodman
+  * Fix handling of devices
+  * tutorial: point to containers/skopeo
+  * point to containers/skopeo
+  * install.md:  point to containers/libpod
+  * Bump gitvalidation epoch
+  * Bump to v0.8.4-dev
+
+- Changelog for v0.8.3 (2018-08-17)
+  * Make failure to retrieve individual ctrs/pods nonfatal
+  * Mention that systemd is the default cgroup manager
+  * Add dependency for python3-psutil module
+  * Vendor in latest buildah and imagebuilder
+  * Don't fail on size.
+  * Fix handling of socket connection refusal.
+  * podman: fix --uts=host
+  * podman pod stats
+  * Added helper function for libpod pod api calls
+  * CreatePod args now PodCreate structure
+  * Added reason to PodContainerError
+  * Change batchcontainer to shared
+  * Add Pod API to varlink.
+  * Change pod varlink API.
+  * Moved getPodStatus to pod API to be used in varlink
+  * Vendor in latest containers/psgo code
+  * switch projectatomic to containers
+  * Revert "spec: bind mount /sys only for rootless containers"
+  * Suport format param for varlink Commit
+  * Fix segfault in top when -l and no args are passed
+  * Document STORAGE_DRIVER and STORAGE_OPTS environment variable
+  * podman.spec: recommend slirp4netns
+  * Do not 'make all' on Travis for Linux
+  * Fix build on non-Linux OSes
+  * Create pod CGroups when using the systemd cgroup driver
+  * Switch systemd default CGroup parent to machine.slice
+  * spec: bind mount /sys only for rootless containers
+  * build, rootless: specify IsolationOCIRootless
+  * vendor: update buildah version
+  * Fix handling of hostname in --net=host
+  * Updated pod_api to reflect function spec
+  * Add create and pull commands
+  * rootless: not require userns for help/version
+  * pkg/apparmor: use a pipe instead of a tmp file
+  * pkg/apparmor: move data under Linux/apparmor buildtags
+  * pkg/apparmor: move all linux-code into apparmor_linux*
+  * podman in rootless mode will only work with cgroupfs at this point.
+  * when searching, survive errors for multiple registries
+  * Remove unused function in runtime.go
+  * Fix papr tests by forcing cgroupfs in CI
+  * Bump gitvalidation epoch
+  * Bump to v0.8.3-dev
+
+- Changelog for v0.8.2.1 (2018-08-11)
+  * Ensure pod inspect is locked and validity-checked
+  * Further fix tests
+  * Bump gitvalidation epoch
+  * Bump to v0.8.3-dev
+  * Fix python tests again
+  * Fix python tests to use cgroupfs
+  * Fix typo breaking tests
+  * Force cgroupfs for python tests
+  * Swap default CGroup manager to systemd
+  * Only use cgroupfs for containerized tests
+  * Temporarily force all tests to use cgroupfs driver
+
+- Changelog for v0.8.2 (2018-08-10)
+  * We need to sort mounts so that one mount does not over mount another.
+  * search name should include registry
+  * Split pod.go into 3 files
+  * Make errors during refresh nonfatal
+  * Add batch check to container stats lock
+  * removeContainer: fix deadlock
+  * Add FFJSON to build container
+  * Don't require .gopathok for individual FFJSON targets
+  * Add FFJSON generation to makefile
+  * Re-add FFJSON for container and pod structs
+  * Fixed a bug setting dependencies on the wrong container
+  * Always connect to the stdout and stderr of stream
+  * apparmor: respect "unconfined" setting
+  * oci.go: syslog: fix debug formatting
+  * add podman pod inspect
+  * Fix ambiguity in adding localhost to podman save
+  * Fix CGroupFS cgroup manager cgroup creation for pods
+  * Update Conmon commit for testing
+  * Pass newly-added --log-level flag to Conmon
+  * Cleanup man pages
+  * Improve ps handling of container start/stop time
+  * rootless: fix user lookup if USER= is not set
+  * enabled copr epel builds again
+  * Handle yum and dnf
+  * Test regressions against the RPM spec file
+  * Pass DESTDIR down to python Makefile
+  * Add dpkg support for returning oci/conmon versions
+  * Have info print conmon/oci runtime information
+  * Better pull error for fully-qualified images
+  * Stub varlink pod methods.
+  * Remove inotify work around
+  * Rename varlink socket and interface
+  * Change tarball filename in copr prepare and match short-commit length
+  * Add Runc and Conmon versions to Podman Version
+  * update copr spec, lets get it building again
+  * Add missing dependencies to build system
+  * Port to MacOS
+  * Make one runtime for the varlink service
+  * Bump gitvalidation epoch
+  * Bump to v0.8.2-dev
+
+- Changelog for v0.8.1 (2018-08-03)
+  * Vendor in latest github.com/projectatomic/buildah
+  * Update gitvalidation epoch
+  * Check for missing arguments in /proc/self/cmdline
+  * Added ps --pod option
+  * clarify pull error message
+  * rootless: do not set setgroups to deny when using newuidmap
+  * Man page fixes found by https://pagure.io/ManualPageScan
+  * Inline pullGoalNamesFromPossiblyUnqualifiedName into Runtime.pullGoalFromPossibly...
+  * Replace getPullRefName by Runtime.getPullRefPair
+  * Inline pullGoalNamesFromImageReference back into Runtime.pullGoalFromImageReference
+  * Introduce getSinglePullRefNameGoal
+  * Test Runtime.pullGoalFromPossiblyUnqualifiedName instead of pullGoalNameFrom...
+  * Test Runtime.pullGoalFromImageReference instead of pullGoalNamesFromImageReference
+  * Use REGISTRIES_CONFIG_PATH for all tests
+  * rootless: do not segfault if the parent already died
+  * RFC: Rename runtime.pullImage to runtime.pullImageFromHeuristicSource
+  * Introduce Runtime.pullImageFromReference, call it in Runtime.FromImageReference
+  * RFC: Remove unused transport name constants from libpod
+  * Replace Runtime.LoadFromArchive with Runtime.LoadFromArchiveReference
+  * Rename the "image" variable to "imageName"
+  * Fix the heuristic for docker-archive: sources in (podman pull)
+  * Split doPullImage from pullImage
+  * Remove the forceCompress parameter from getCopyOptions and DRO.GetSystemContext
+  * Remove the authFile parameter from getCopyOptions and DRO.GetSystemContext
+  * Remove the signaturePolicyPath parameter from getCopyOptions and DRO.GetSystemContext
+  * Add a *types.SystemContext parameter to getCopyOptions and DRO.GetSystemContext
+  * Move pullImage from Image to Runtime
+  * Do not re-parse the list of search registries just for an error message
+  * Eliminate duplicate determination whether to use search registries
+  * Eliminate the "DockerArchive means pull all refPairs" special case
+  * Introduce struct pullGoalNames
+  * Introduce struct pullGoal
+  * Use []pullRefPair instead of []*pullRefPair
+  * Use []pullRefName instead of []*pullRefName
+  * Introduce singlePullRefNameGoal
+  * Use an early return from refNamesFromPossiblyUnqualifiedName
+  * RFC: Rename Image.PushImage to Image.PushImageToHeuristicDestination
+  * Remove an unnecessary use of alltransports.ParseImageName
+  * RFC? Hard-code "format" string values instead of using libpod.* transport names
+  * Use PushImageToReference for (podman save)
+  * Call imageNameForSaveDestination while creating the references
+  * Exit early in the simple case in imageNameForSaveDestination
+  * Rename parameters of imageNameForSaveDestination
+  * Split imageNameForSaveDestination from saveCmd
+  * Split a single if statement into two.
+  * Move source handling before destination parsing
+  * Split Image.PushImageToReference from Image.PushImage
+  * Don't format to string and re-parse a DockerReference()
+  * Remove the :// end from DockerTransport
+  * Remove the TransportNames arrays
+  * Document the properties of DefaultTransport a bit better.
+  * Eliminate the "dest" variable.
+  * Use an early exit if a docker-archive: image has no repo tags
+  * Reorganize the tag loading in DockerArchive case
+  * Return early in refNamesFromImageReference instead of appending to pullNames
+  * Use srcRef.StringWithinTransport() instead of parsing imgName again
+  * Use a switch instead of if/if else/.../else
+  * Remove the error return value from getPullRefName
+  * Rename getPullListFromRef to refPairsFromImageReference
+  * Split refNamesFromImageReference from Runtime.getPullListFromRef
+  * Replace getPullRefPair with getPullRefName
+  * Include the rejected reference when parsing it fails in pullRefPairsFromRefNames
+  * Add --force to podman umount to force the unmounting of the rootfs
+  * Integration Test Improvements #3
+  * Ensure container and pod refresh picks up a State
+  * Fix build on non-linux platforms
+  * Rework state testing to allow State structs to be empty
+  * Add additional comments on accessing state in API
+  * Do not fetch pod and ctr State on retrieval in Bolt
+  * network: add support for rootless network with slirp4netns
+  * varlink ImageRemove should always return image ID
+  * Add documentations on how to setup /etc/subuid and /etc/subgid
+  * Integration Test Improvements #2
+  * avoid spewing fds do to restore of cached images
+  * Add load test for xz compressed images
+  * Speed up test results
+  * Show duration for each ginkgo test and test speed improvements
+  * vendor: update containers/storage
+  * Clean up pylint warnings and errors for podman
+  * podman rmi shouldn't delete named referenced images
+  * Bump gitvalidation epoch
+  * Bump to v0.8.1-dev
+
+- Changelog for v0.7.4 (2018-07-27)
+  * Add pod pause/unpause
+  * Fix up docker compatibility messages
+  * Update vendored version of runc,buildah,containers/image
+  * Refactored method of getting pods
+  * Fix godoc comment in pkg/netns
+  * Fix handling of Linux network namespaces
+  * Update containernetworking/plugins to current master
+  * Cleanup descriptions and help information
+  * Skip seccomp-dependent tests on non-Linux
+  * Use the Linux version BoltState.getContainerFromDB on all platforms.
+  * Split parseNetNSBoltData from BoltState.getContainerFromDB
+  * Use testify/require in a few places to avoid panics in tests
+  * Skip unit tests which require storage when not running as root
+  * Don't pollute the build output with failures to build checkseccomp
+  * Remove cmd/podman/user.go
+  * double papr timeout for all ci tests
+  * vendor latest containers/psgo
+  * Vendor latest container/storage to fix overlay mountopt
+  * Add pod kill
+  * Added pod restart
+  * Added pod.Restart() functionality to libpod.
+  * Add a mutex to BoltDB state to prevent lock issues
+  * Clear variables used to store options after parsing for every volume
+  * Clean up pylint warnings and errors
+  * podman: allow to specify the IPC namespace to join
+  * podman: allow to specify the UTS namespace to join
+  * podman: allow to specify the PID namespace to join
+  * podman: allow to specify the userns to join
+  * network: support ns: prefix to join existing namespace
+  * spec: allow container:NAME network mode
+  * Update comments in BoltDB and In-Memory states
+  * Add an E2E test to verify basic namespace functionality
+  * Add libpod namespace to config
+  * Add missing runtime.go lines to set namespace
+  * Address first round of review comments
+  * Set namespace for new pods/containers based on runtime
+  * Add --namespace flag to Podman
+  * Update documentation for the State interface
+  * Ensure pods are part of the set namespace when added
+  * Enforce namespace checks on container add
+  * Add tests for state namespacing
+  * Add namespaces to in memory state
+  * Untested implementation of namespaced BoltDB access
+  * Add constraint that dependencies must be in the same ns
+  * Add namespaces and initial constraints to database
+  * Add container and pod namespaces to configs
+  * Fix varlink API usage of psgo
+  * Update issue template to point build bugs at buildah
+  * We don't currently support --mac-address
+  * Vendor in latest containers/psgo code
+  * Update container Mounted() and Mountpoint() functions
+  * [WIP] Refactor and simplify python builds
+  * AppArmor: runtime check if it's enabled on the host
+  * Add format descriptors infor to podman top
+  * Fix error handling in pod start/stop.
+  * docs/podman-top: fix typo and whitespace
+  * Use the result of reference.Parse when checking for digests.
+  * Make refNamesFromPossiblyUnqualifiedName independent from Image
+  * Make Image.HasShaInInputName to an independent local function
+  * Split createNamesToPull into ref{Names,Pairs}FromPossiblyUnqualifiedName
+  * Rename local variables in Runtime.pullRefPairsFromRefNames
+  * Split Runtime.pullRefPairsFromRefNames from Image.createNamesToPull
+  * Rename nameToPull to pullRefName
+  * Rename pullStruct to pullRefPair
+  * Replace optional nameToPull.shaPullName with mandatory dstName
+  * Introduce nameToPull, move shaPullName in there
+  * Split normalizeTag from Image.TagImage
+  * Remove Image.isShortName
+  * Inline getTags into its only user
+  * Add unit tests for imageParts
+  * Add OnBuild and usernamespace test to baseline
+  * Bump gitvalidation epoch
+  * Bump to v0.7.4-dev
+
+- Changelog for v0.7.3 (2018-07-20)
+  * Update psgo vendor
+  * Podman load/tag/save prepend localhost when no repository is present
+  * Pod ps now uses pod.Status()
+  * Added pod start and stop
+  * rootless: support a per-user mounts.conf
+  * secrets: parse only one mounts configuration file
+  * rootless: allow a per-user registries.conf file
+  * pull: get registries using the registries pkg
+  * rootless: allow a per-user storage.conf file
+  * rootless, docs: document the libpod.conf file used in rootless mode
+  * Let containers/storage keep track of mounts
+  * podman-top: use containers/psgo
+  * Vendor in latest code for storage,image, buildah
+  * Abort a test on nil containers, so that future tests don't panic
+  * Fix TestPostDeleteHooks on macOS
+  * Use `...` for a regexp constant to improve readability
+  * oci: keep exposed ports busy and leak the fd into conmon
+  * Dockerfile: install nmap-ncat
+  * Update podman_tutorial.md
+  * Update transfer.md
+  * Add missing podman commands
+  * Update gitvalidation epoch
+  * Fix ps filter with key=value labels
+  * rootless: require subids to be present
+  * Downgrade setup.py
+  * Bump gitvalidation epoch
+  * Bump to v0.7.3-dev
+
+- Changelog for v0.7.2 (2018-07-13)
+  * Change logic for detecting conflicting flags in ps
+  * Update python directories to better support setup.py
+  * Fix ps --sort=size test
+  * remote python client for podman
+  * Only print container size JSON if --size was requested
+  * Don't print rootfs and rw sizes if they're empty
+  * Major fixes to podman ps --format=json output
+  * Ignore running containers in ps exit-code filters
+  * Record whether the container has exited
+  * rootless: correctly propagate the exit status from the container
+  * rootless: unshare mount namespace
+  * Need to wait for container to exit before completing run/start completes
+  * If proxy fails then then signal should be sent to the main process
+  * fix pull image that includes a sha
+  * Added full podman pod ps, with tests and man page
+  * Podman pod create/rm commands with man page and tests.
+  * Added created time to pod state
+  * Support multiple networks
+  * Log all output of logrus to syslog as well as stdout/stderr
+  * podman rmi should only untag image if parent of another
+  * Changed container status of Unknown from being printed as Dead to Error in Ps
+  * Fix podman build completions
+  * Refactor attach()/start() after podman changes
+  * create conmon sockets when getting their paths
+  * build: enable ostree in containers/storage when available
+  * podman/libpod: add default AppArmor profile
+  * runtime: delete unused function
+  * rootless: propagate errors from GetRootlessRuntimeDir()
+  * rootless: resolve the user home directory
+  * rootless: fix when argv[0] is not an absolute path
+  * Allow Init() on stopped containers
+  * urfave/cli: fix regression in short-opts parsing
+  * Add --volumes-from flag to podman run and create
+  * Vendor in latest buildah to add masks for /proc/keys and /proc/acpi
+  * Vendor in latest containers/storage
+  * Mask /proc/keys to protect information leak about keys on host
+  * ctime: Drop 32-/64-bit distinction on Linux
+  * Podman stats with no containers listed is the same as podman stats --all
+  * Refactor unittest for change in history API
+  * Bump gitvalidation epoch
+  * Bump to v0.7.2-dev
+
+- Changelog for v0.7.1 (2018-07-06)
+  * pkg/ctime: Factor libpod/finished* into a separate package
+  * Block use of /proc/acpi from inside containers
+  * remove buildah requirement for the libpod image library
+  * contrib/python/test/test_tunnel: Fix -nNT -> -nNTq
+  * Refactor podman/utils with a single container start and attach function
+  * Remove now-unneeded cleanupCgroup() for unsupported OS
+  * Remove per-container CGroup parents
+  * Fix nits and GOPATH in tutorial
+  * spec: Make addPrivilegedDevices and createBlockIO per-platform
+  * libpod/runtime_pod: Make removePod per-platform
+  * libpod/networking_unsupported: Remove JoinNetworkNameSpace
+  * .travis: Run gofmt and lint on OS X
+  * rootless: Merge rootless.go back into rootless_linux.go
+  * Makefile: Use a pattern rule for cross-compilation
+  * more changes to compile darwin
+  * Fix timeout issue with built-in volume test
+  * rootless: add /run/user/$UID to the lookup paths
+  * rootless: add function to retrieve the original UID
+  * rootless: always set XDG_RUNTIME_DIR
+  * rootless: set XDG_RUNTIME_DIR also for state and exec
+  * libpod/container: Replace containerState* with containerPlatformState
+  * urfave/cli: fix parsing of short opts
+  * docs: Follow man-pages(7) suggestions for SYNOPSIS
+  * Allow multiple mounts
+  * Makefile: Use 'git diff' to show gofmt changes
+  * Skip a test in Travis that has timeout issues
+  * vendor in selinux and buildah for darwin compilation
+  * add image user to inspect data
+  * changes to allow for darwin compilation
+  * Bump gitvalidation epoch
+  * Bump to v0.7.1-dev
+
+- Changelog for v0.6.5 (2018-06-29)
+  * Fix built-in volume issue with podman run/create
+  * Add `podman container cleanup` to CLI
+  * Allow multiple containers and all for umount
+  * Returning joining namespace error should not be fatal
+  * Start using github.com/seccomp/containers-golang
+  * Test to verify overlay quotas work, show container overhead on quota
+  * conmon no longer writes to syslog
+  * Fix broken f28/cloud instance
+  * Vendor latest projectatomic/buildah
+  * vendor in latest golang/x/sys
+  * vendor in latest docker package
+  * Remove the --registry flag from podman search
+  * utils: fix endless write of resize event
+  * Start prints UUID or container name that user inputs on success
+  * cmd/podman/utils.go: Cancel-able resize writes
+  * Fix podman hangs when detecting startup error in container attached mode
+  * travis: bump go to 1.9.x and 1.10.x
+  * podman-build --help: update description
+  * *: Replace Generator.Spec() with Generator.Config
+  * generator.New() requires an OS string input variable
+  * Vendor in latest buildah
+  * Vendor in latest runtime-tools
+  * docs: add documentation for rootless containers
+  * runtime: change rootless data storage default path
+  * rootless: use $HOME/.config/containers/libpod.conf
+  * test: add env variables to the debug output
+  * rootless: do not configure additional groups
+  * oci: set XDG_RUNTIME_DIR to the runtime from GetRootlessRuntimeDir()
+  * rootless: add management for the userNS
+  * container_internal: don't ignore error from cleanupNetwork()
+  * Mark containers invalid earlier during removal
+  * Add --authfile to podman search
+  * Vendor in latest containers/image
+  * add podman remote client
+  * Vendor in go-selinux again
+  * Update the vendoring of github.com/opencontainers/selinux
+  * Containers can dissappear
+  * Add podman-image and podman-container man page links
+  * Update ocicni vendor to pick up bugfixes
+  * make varlink optional for podman
+  * Bump gitvalidation epoch
+  * Bump to v0.6.5-dev
+
+- Changelog for v0.6.4 (2018-06-22)
+  * Add tests for podman refresh
+  * Point podman-refresh at the right manpage
+  * Add bash completions for podman refresh
+  * Add manpages for podman refresh
+  * Move podman refresh under the container subcommand
+  * Make CGroups cleanup optional on whether they exist
+  * Add podman refresh command
+  * Add Refresh() to ctrs to refresh state after db change
+  * Add information about the configuration files to the install docs
+  * Add unittests and fix bugs
+  * Fix docs on --sig-proxy to match current behaviour
+  * Podman history now prints out intermediate image IDs
+  * Add cap-add and cap-drop to build man page
+  * Option handling has become large and should be a shared function
+  * Fix image volumes access and mount problems on restart
+  * We are using err in defer function, needs to be defined name
+  * Update the version of conmon used in test
+  * install: need to install make on Fedora-like distros
+  * Vendor containers/storage for better error reporting on dups
+  * libpod: fix race with attach/start
+  * Implement SSH tunnels between client and podman server
+  * Add carriage return to log message when using --tty flag
+  * Errors from closing a netns on removal from DB are nonfatal
+  * Vendor in latest go-selinux
+  * Added --sort to ps
+  * Fix podman build -q
+  * Add extra debug so we can tell apart postdelete hooks
+  * hack/ostree_tag.sh: Fill in OSTree dependencies
+  * TLS verify is skipped per registry.
+  * Add missing functionality for podman build layers
+  * Add --all,-a flag to podman images
+  * Add MacAddress to inspect
+  * Update gitvalidation epoch
+  * top: make output tabular
+  * Add more network info ipv4/ipv6 and be more compatible with docker
+  * Do not run iptablesDNS workaround on IPv6 addresses
+  * Added --tls-verify functionality to podman search, with tests
+  * Bump gitvalidation epoch
+  * Bump to v0.6.4-dev
+
+- Changelog for v0.6.3 (2018-06-15)
+  * spec: remove dead code
+  * test: add test for running a rootless container
+  * container: specify path to error message
+  * podman: use a different store for the rootless case
+  * container: do not set any mapping when using a rootfs
+  * podman: do not use Chown in rootless mode
+  * network: do not attempt to create a network in rootless mode
+  * oci: do not set resources in rootless mode
+  * oci: do not use hooks in rootless mode
+  * oci: do not set the cgroup path in Rootless mode
+  * spec: change mount options for /dev/pts in rootless mode
+  * container: do not add shm in rootless mode
+  * oci: pass XDG_RUNTIME_DIR down to the OCI runtime
+  * podman: allow to override Tmpdir
+  * podman: provide a default UID mapping when non root
+  * podman: accept option --rootfs to use exploded images
+  * When setting a memory limit, also set a swap limit
+  * Fix cleaning up network namespaces on detached ctrs
+  * Vendor in latest projectatomic/buildah
+  * Temporarily turn of ps --last test until fixed
+  * Implement --latest for ps
+  * Correctly report errors retrieving containers in ps
+  * Doc changes to fix alignment on most of the docs
+  * Added --sort flag to podman image
+  * add podman container and image command
+  * Vendor in latest buildah code
+  * rmi: remove image if all tags are specified
+  * Aliases do not work with IsSet
+  * Touchups for registries.conf across a few man pages
+  * Remove container from state before cleaning up.
+  * hack/release.sh: Add a guard against -dev suffixes for argv[2]
+  * Bump gitvalidation epoch
+  * Bump to v0.6.3-dev
+
+- Changelog for v0.6.2 (2018-06-08)
+  * Test to make sure we are getting proper exit codes on podman run
+  * Propegate exit code on Exec calls and integrated test
+  * Vendor in latest buildah code
+  * Update epoch to fix validation problems
+  * Touch up whitespace issue in build man
+  * Add disable-content flag info to man page for build
+  * podman-run: clean up some formatting issues
+  * Add pointers for Integration Tests to docs
+  * Remove SELinux transition rule after conmon is started.
+  * Add --all flag even though it is a noop so scripts will work
+  * Add support for BuildImage
+  * Added a defer to an Unlock that immediately followed a Lock
+  * varlink build fixes
+  * podman-varlink: log timeouts
+  * bash completion: remove shebang
+  * install.md: fix typo
+  * Vendor in latest buildah code
+  * Update OWNERS file to be based on reality
+  * Add logo to transfer page
+  * libpod: Execute poststop hooks locally
+  * Add some test for podman run flag security-opt
+  * Add a function for e2e test to write json file
+  * Use go-selinux for selinux check
+  * Add flag to add annotations to a container
+  * Want to change the log level on buildah by default to warnf
+  * vendor in latest github.com/varlink/go
+  * hooks: Add debug logging for initial hook loading
+  * hooks/docs: Fix 1.0.0 Nvidia example (adding version, etc.)
+  * hooks/1.0.0/when_test: Fix "both, and" -> "both, or" name typo
+  * hooks/1.0.0: Fix 'annotation' -> 'annotations' in JSON
+  * hooks: Fail ReadDir if a configured hook executable is missing
+  * Cleanup transfer.md page, remove CRI-O content
+  * Vendor in latest containers/storage
+  * Bump gitvalidation epoch
+  * Bump to v0.6.2-dev
+
+- Changelog for v0.6.1 (2018-06-01)
+  * hack/release.sh: Bump spec in dev_version_commit
+  * hack/release.sh: No longer need to bump setup.py
+  * Provide examples for python podman API
+  * Bump Buildah vendor to pick up fix for tests
+  * Log podman build failures in papr
+  * Use Version from spec file in setup.py
+  * Attempt to use fedora 28 atomic host
+  * Fix lable handling
+  * runtime: add /usr/libexec/podman/conmon to the conmon paths
+  * varlink build
+  * Add OnBuild support for podman build
+  * return all inspect info for varlink containerinspect
+  * hooks/exec: Allow successful reaps for 0s post-kill timeouts
+  * hack/release.sh: Add a release script
+  * Implement container attach
+  * If user specifies UIDMapSlice without GIDMapSlice, set them equal
+  * fix panic with podman pull
+  * pkg/hooks/exec: Add a new package for local hook execution
+  * Remove --net flag and make it an alias for --network
+  * Catch does not exist error
+  * hooks: Rename Hooks() output to extensionStageHooks
+  * hooks: Allow local control of OCI stages via extensionStages
+  * We need to change the SELinux label of the conmon process to s0
+  * Clear all caps, except the bounding set, when --user is specified.
+  * Makefile: Add stderr redirect to HAS_PYTHON3 definition
+  * Force update of API.md
+  * do not allow port related args to be used with --network=container:
+  * Update .gitignore for Varlink code and gopathok
+  * sort containers and images by create time
+  * Cleanup man pages
+  * add go generate varlink to copr spec
+  * Remove varlink's generated Go file
+  * Bump gitvalidation epoch
+  * Bump to v0.6.1-dev
+
+- Changelog for v0.5.4 (2018-05-25):
+  * Vendor in latest projectatomic/buildah
+  * Rename addFIPSsModeSecret to addFIPSModeSecret
+  * Make references to the Process part of Spec conditional
+  * save and load should support multi-tag for docker-archive
+  * Implement python podman create and start
+  * Spell check strings and comments
+  * hooks/1.0.0: Error on empty process.args instead of panicking
+  * Set Entrypoint from image only if not already set
+  * Update podman build to match buildah bud functionality
+  * Fix test_runner call of podman varlink
+  * Fix handling of command in images
+  * Add support for Zulu timestamp parsing
+  * Clarify using podman build with a URL, Git repo, or archive.
+  * Vendor in latest container/storage for devicemapper support
+  * set varlink timeout to 1 seconds
+  * podman create, start, getattachsocket
+  * use $GO env-var instead of hard-coded go binary
+  * tidy up the copr spec
+  * honor multiple change values
+  * hooks/README: Fix some Markdown typos (e.g. missing runc target)
+  * oci-hooks.5: Discuss directory precedence and monitoring
+  * finish changing the path for varlink
+  * Tighten the security on the podman varlink socket
+  * Implement podman.containers.commit()
+
+- Changelog for v0.5.3 (2018-05-18):
+  * remove hooks files reference and no varlink-python on f27 or epel
+  * contrib/spec/podman.spec.in: Drop README-hooks
+  * troubleshooting: Add console syntax highlighting
+  * Fix typo
+  * Refresh pods when refreshing podman state
+  * Add per-pod CGroups
+  * Add pod state
+  * hooks: Fix monitoring of multiple directories
+  * make sure hooks are renamed for copr spec
+  * Use container cleanup() functions when removing
+  * docs/podman.1: Link to hook documentation
+  * hooks/docs: Add oci-hooks.5 and per-package man page building
+  * Add Troubleshooting guide
+  * chrootuser: default to GID 0 when given a numeric --user
+  * Add python3 package to podman
+  * libpod: fix panic when using -t and the process fails to start
+  * Makefile: Use ?= for shell variables (ISODATE, etc.)
+  * Skip tests that are flaking, holding up merge queue
+  * Remove old varlink tests
+  * Allow push/save without image reference
+  * Vendor in latest containers/image
+  * Makefile: Respect GOBIN
+  * Fix podman inspect bash completions
+  * Update Tutorial with Fedora kit location
+  * Makefile: Drop find-godeps.sh for podman target
+  * Support pulling Dockerfile from http
+  * Refactor libpod python varlink bindings
+  * add more bash completions
+  * improve podman commit documentation and error messages
+  * Touch up logo links
+  * implement varlink commit
+  * fix segfault for podman push
+  * Add the Podman Logo
+  * logo: Remove unused directory
+  * hooks: Add package support for extension stages
+  * Gracefully handle containers removed from c/storage
+  * Add packaging for hooks/README.md
+  * Remove stop on error from Docker install switch in baseline tests
+  * docs: fix contrib/cni broken link
+
+- Changelog for v0.5.2 (2018-05-11):
+  * vendor/golang.org/x/text: Vendor collate and language
+  * hooks: Order injection by collated JSON filename
+  * libpod: Add HooksDirNotExistFatal
+  * hooks/read: Ignore IsNotExist for JSON files in ReadDir
+  * pkg/hooks: Version the hook structure and add 1.0.0 hooks
+  * Fix varlink remove image force
+  * Update Podman-specific readme
+  * Update main README
+  * vendor.conf: Pin containernetworking/plugins to 1fb94a42
+  * Do not error trying to remove cgroups that don't exist
+  * Remove parent cgroup we create with cgroupfs
+  * Place Conmon and Container in separate CGroups
+  * Add --cgroup-manager flag to Podman binary
+  * Major fixes to systemd cgroup handling
+  * Skip systemd-style CGroups test
+  * Alter CGroup path handling for 'podman top'
+  * Add validation for CGroup parents. Pass CGroups path into runc
+  * vendor/github.com/docker/docker/hack: Remove unused directory
+  * varlink info
+  * vendor.conf: Bump containerd/cgroups to 77e62851
+  * vendor.conf: Bump CNI to v0.6.0
+  * Dont eat the pull error message for varlink
+  * podman push should honor registries.conf
+  * alphabetize the varlink methods, types, and errors in the docs
+  * Add missing newline to podman port
+  * Generate varlink API documentation automatically
+  * Allow streaming on some varlink container methods
+  * Remove extra close from attach resize channel
+  * Vendor in latest containers/storage fix for UserNS
+  * container.go: fix lint error
+  * Dockerfile.Fedora: use fedora:28 instead of fedora:27
+  * Fix calculation of RunningFor in ps json output
+  * Should not error out if container no longer exists in oci
+  * Make invalid state nonfatal when cleaning up in run
+  * test/e2e/run_userns_test.go: new file
+  * podman, userNS: configure an intermediate mount namespace
+  * networking, userNS: configure the network namespace after create
+  * Begin wiring in USERNS Support into podman
+
+- Changelog for v0.5.1 (2018-05-04):
+  * Fix pulling from secure registry
+  * Optionally init() during container restart
+  * bashcompletion enhancements
+  * Add directory for systemd socket and service if not present
+  * varlink containers
+  * Make podman commit to localhost rather then docker.io
+  * Trivial refactor on volume addition
+  * When adding volumes to DB, handle nontrivial cases
+  * Add accessors for new image fields in container config
+  * Store user Volumes, Entrypoint, Command in database
+  * Further fix Godoc comments in options.go
+  * Update hooks to use config bool to detect volume mounts
+  * Fix Godoc comments in options.go
+  * Add config bool to indicate there are user volumes
+  * Print the Buildah comment from commit to given writer
+  * Do not print unnecessary Buildah details during commit
+  * remove options from create/run that we cannot support
+  * fix typos in the inspect json structs
+  * Fix podman logout --all flag
+  * podman should assign a host port to -p when omitted
+  * Vendor in latest buildah
+  * Fix misc stuff found by jhonce
+  * libpod.conf: Podman's conmon path on openSUSE
+  * Add iidfile parame to build and commit man pages
+  * do not commit default volumes from container
+  * correct varlink command in service file
+  * Vendor in latest containers/image
+  * Make ':' a restricted character for file names
+  * Add more validation to --volume flag for run and create
+  * Fix libseccomp not working in travis
+  * CONTRIBUTING: Document PR approval and link to OWNERS
+  * OWNERS: rename 'assignees' to 'approvers'
+
+- Changelog for v0.4.4 (2018-04-27):
+  * Use buildah commit and bud in podman
+  * README: Link to CONTRIBUTING.md
+  * Remove systemd-cat support
+  * Refactor unittest for varlink component
+  * Update .gitignore for python work
+  * Modify secrets pkg
+  * varlink images
+  * Retrieve IP addresses for container from DB
+  * Add --default-mounts-file hidden flag
+  * Add isolation note to build man page
+  * Modify man pages so they compile correctly in mandb
+  * Strip transport from image name when looking for local image
+  * readme: improve formatting, add links
+  * updated epoch for bad dco
+  * Only generate the varlink glue code if needed and from the vendor dir
+  * Latest revendoring deleted the cmd dir in varlink
+  * Remove more Errorf in favor of Wrapf
+  * Do not eat error messages from pullImage
+  * Updated varlink vendored code
+  * Add unit files to the copr spec
+  * packagers need the varlink generated file
+  * Makefile; make podman depend on varlink_generate
+  * Modify --user flag for podman create and run
+  * Add some podman search test with filter
+  * Fix podman search no-trunc test
+  * Dusty would prefer it to be part of the release.
+  * Add FIPS mode secret
+  * Initial varlink implementation
+  * Add restart test with timeout
+  * Improve restart latest container test
+  * Add start time check for restart test
+  * add libpod.conf man page
+  * Add seconds after epoch to copr rpms to tie break versioning
+  * enable no test cache
+
+- Changelog for v0.4.3 (2018-04-20):
+  * podman push without destination image
+  * Add make .git target
+  * Fix tests for podman run --attach
+  * Print ctr ID if neither STDOUT and STDERR are attached
+  * Add one test case for check diff in container and committed image
+  * Vendor in latest containers/image and contaners/storage
+  * Fix a typo
+  * It is OK to start an already running container (with no attach)
+  * Refactor logic for forceSecure in pull for readability
+  * Small logic fix for podman pull with tls-verify
+  * Allow podman start to attach to a running container
+  * regression: tls verify should be set on registries.conf if insecure
+  * ip validation game too strong
+  * - reverse host field order (ip goes first) - fix host string split to permit IPv6
+  * Allow podman to exit exit codes of removed containers
+  * Modify diff and inspect docs
+  * Add oci-systemd-hook as a runtime dep to copr spec
+  * validate dns-search values prior to creation
+  * Change container.locked to batched
+  * Add a function for check if command exist
+  * Add WaitContainerReady for wait for docker registry ready
+  * Add several podman push tests
+  * podman pull should always try to pull
+  * Allow the use of -i/-a on any container
+  * Fix secrets patch
+  * Remove demos.sh file from test
+
+- Changelog for v0.4.2 (2018-04-13):
+  * Fix podman run --attach tests
+  * Fix another comparison of a Go interface against nil
+  * Allowing attaching stdin to non-interactive containers
+  * Add tests for podman attach
+  * Change attach to accept a struct containing streams
+  * Fix terminal attach
+  * Changes to attach to enable per-stream attaching
+  * HACK temporary fix for test suite
+  * Fix locking interaction in batched Exec() on container
+  * Fix leaking files in Ginkgo
+  * Force host UID/GID mapping when creating containers
+  * Do not lock all containers during pod kill
+  * Make pod stop lock one container at a time
+  * Do not lock all containers during pod start
+  * Containers transitioning to stop should not break stats
+  * Add -i to exec for compatibility reasons
+  * Unescape characters in inspect JSON format output
+  * Use buildah commit for podman commit
+  * Functionality changes to the following flags
+  * Vendor in latest containers/storage and containers/image
+
+- Changelog for v0.4.1 (2018-04-05):
+  * Remove image via storage if a buildah container is associated
+  * Add hooks support to podman
+  * Run images with no names
+  * Prevent a potential race when stopping containers
+  * Only allocate tty when -t
+  * Stopping a stopped container should not be an error
+  * Add conmon-pidfile flag to bash completions/manpages
+  * --entrypoint= should delete existing entrypoint
+  * Fix golint
+  * Remove explicit Init() calls in run and start
+  * Refactor dependency checks from init() into public API
+  * Do not require Init() before Start()
+  * Ensure dependencies are running before initializing containers
+  * Add container dependencies to Inspect output
+  * Add backend code for generic dependencies
+  * Vendor in latest containers/image
+  * Makefile: Fix typo podmon -> podman
+  * Correct a godoc comment
+  * Sleep for 5 seconds before pushing to registry in tests
+  * Change errorf to warnf in warning removing ctr storage
+  * Don't return an ImageConfig when creating storage
+  * More gracefully handle unexpected storage deletion
+  * Remove crictl from Dockerfile
+  * Eliminate raceyness of sig-proxy test
+
+- Changelog for v0.3.5 (2018-03-29):
+  * Allow sha256: prefix for input
+  * Add secrets patch to podman
+  * Fix tests
+  * Remove a loop in container graph
+  * Only start containers that are not running in pod start
+  * Change pod Start() to use container dependency graph
+  * Add tests for container graphs
+  * Initial implementation of container graph generation
+  * Error is already wrapped properly.
+  * Check for duplicate names when generating new container and pod names.
+  * podman: new option --conmon-pidfile=
+  * Ensure container dependencies are part of the same pod
+  * Prevent ctrs not in pods from depending on pod ctrs
+  * Disable --sig-proxy tests due to race conditions
+  * Remove dependency on kubernetes
+  * Vendor in lots of kubernetes stuff to shrink image size
+  * Fix some minor issues lint has been picking up
+  * cmd/podman/run.go: Error nicely when no image found
+  * podman exec should handle options --env foo
+  * Remove current SQLite DB driver
+  * Update containers/storage to pick up overlay driver fix
+  * First tag, untag THEN reload the image
+  * Add files section to podman man page
+
+- Changelog for v0.3.4 (2018-03-23):
+  * Bump version to v0.3.4
+  * Make container env variable conditional
+  * Stage 4 Image cleanup
+  * Add CONTAINER environment variable
+  * Small manpage reword
+  * Document .containerenv in manpages. Move it to /run.
+  * Add .containerenv file
+  * Add script to determine dependency sizes
+  * If cidfile exists, do not proceed
+  * Removing tagged images change in behavior
+  * Use podman to test podman on FAH
+  * Migrate podman inspect and tag to image library
+  * Migrate podman images to image library
+  * Makefile: add changelog target
+  * Image library stage 4 - create and commit
+  * Add 'podman restart' asciinema
+  * Fix Travis tests for sig-proxy
