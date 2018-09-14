@@ -341,6 +341,8 @@ var (
 			`\[sig-scalability\]`,                          // disable from the default set for now
 			`should create and stop a working application`, // Inordinately slow tests
 
+			`\[Feature:PerformanceDNS\]`, // very slow
+
 			`should ensure that critical pod is scheduled in case there is no resources available`, // should be tagged disruptive, consumes 100% of cluster CPU
 
 			"Pod should avoid to schedule to node that have avoidPod annotation",
@@ -372,6 +374,7 @@ var (
 
 	excludedTests = []string{
 		`\[Disabled:.+\]`,
+		`\[Disruptive\]`,
 		`\[Skipped\]`,
 		`\[Slow\]`,
 		`\[Flaky\]`,
