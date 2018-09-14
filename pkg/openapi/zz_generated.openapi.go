@@ -128,10 +128,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.AdmissionPluginConfig":                                          schema_openshift_api_config_v1_AdmissionPluginConfig(ref),
 		"github.com/openshift/api/config/v1.AuditConfig":                                                    schema_openshift_api_config_v1_AuditConfig(ref),
 		"github.com/openshift/api/config/v1.CertInfo":                                                       schema_openshift_api_config_v1_CertInfo(ref),
+		"github.com/openshift/api/config/v1.ClientConnectionOverrides":                                      schema_openshift_api_config_v1_ClientConnectionOverrides(ref),
 		"github.com/openshift/api/config/v1.EtcdConnectionInfo":                                             schema_openshift_api_config_v1_EtcdConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.EtcdStorageConfig":                                              schema_openshift_api_config_v1_EtcdStorageConfig(ref),
 		"github.com/openshift/api/config/v1.GenericAPIServerConfig":                                         schema_openshift_api_config_v1_GenericAPIServerConfig(ref),
 		"github.com/openshift/api/config/v1.HTTPServingInfo":                                                schema_openshift_api_config_v1_HTTPServingInfo(ref),
+		"github.com/openshift/api/config/v1.KubeClientConfig":                                               schema_openshift_api_config_v1_KubeClientConfig(ref),
 		"github.com/openshift/api/config/v1.LeaderElection":                                                 schema_openshift_api_config_v1_LeaderElection(ref),
 		"github.com/openshift/api/config/v1.NamedCertificate":                                               schema_openshift_api_config_v1_NamedCertificate(ref),
 		"github.com/openshift/api/config/v1.RemoteConnectionInfo":                                           schema_openshift_api_config_v1_RemoteConnectionInfo(ref),
@@ -287,6 +289,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/oauth/v1.OAuthRedirectReference":                                          schema_openshift_api_oauth_v1_OAuthRedirectReference(ref),
 		"github.com/openshift/api/oauth/v1.RedirectReference":                                               schema_openshift_api_oauth_v1_RedirectReference(ref),
 		"github.com/openshift/api/oauth/v1.ScopeRestriction":                                                schema_openshift_api_oauth_v1_ScopeRestriction(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig":                               schema_openshift_api_openshiftcontrolplane_v1_ImagePolicyConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.JenkinsPipelineConfig":                           schema_openshift_api_openshiftcontrolplane_v1_JenkinsPipelineConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.OpenShiftAPIServerConfig":                        schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.ProjectConfig":                                   schema_openshift_api_openshiftcontrolplane_v1_ProjectConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.RegistryLocation":                                schema_openshift_api_openshiftcontrolplane_v1_RegistryLocation(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.RoutingConfig":                                   schema_openshift_api_openshiftcontrolplane_v1_RoutingConfig(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthentication":                                schema_openshift_api_operator_v1alpha1_DelegatedAuthentication(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization":                                 schema_openshift_api_operator_v1alpha1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/operator/v1alpha1.GenerationHistory":                                      schema_openshift_api_operator_v1alpha1_GenerationHistory(ref),
@@ -6703,6 +6711,47 @@ func schema_openshift_api_config_v1_CertInfo(ref common.ReferenceCallback) commo
 	}
 }
 
+func schema_openshift_api_config_v1_ClientConnectionOverrides(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"acceptContentTypes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "acceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the default value of 'application/json'. This field will control all connections to the server used by a particular client.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"contentType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "contentType is the content type used when sending data to the server from this client.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"qps": {
+						SchemaProps: spec.SchemaProps{
+							Description: "qps controls the number of queries per second allowed for this connection.",
+							Type:        []string{"number"},
+							Format:      "float",
+						},
+					},
+					"burst": {
+						SchemaProps: spec.SchemaProps{
+							Description: "burst allows extra queries to accumulate when a client is exceeding its rate.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"acceptContentTypes", "contentType", "qps", "burst"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_openshift_api_config_v1_EtcdConnectionInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -6857,12 +6906,17 @@ func schema_openshift_api_config_v1_GenericAPIServerConfig(ref common.ReferenceC
 							},
 						},
 					},
+					"kubeClientConfig": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/config/v1.KubeClientConfig"),
+						},
+					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo"},
+			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig"},
 	}
 }
 
@@ -6961,6 +7015,33 @@ func schema_openshift_api_config_v1_HTTPServingInfo(ref common.ReferenceCallback
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/config/v1.NamedCertificate"},
+	}
+}
+
+func schema_openshift_api_config_v1_KubeClientConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"kubeConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "kubeConfig is a .kubeconfig filename for going to the owning kube-apiserver.  Empty uses an in-cluster-config",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"connectionOverrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "connectionOverrides specifies client overrides for system components to loop back to this master.",
+							Ref:         ref("github.com/openshift/api/config/v1.ClientConnectionOverrides"),
+						},
+					},
+				},
+				Required: []string{"kubeConfig", "connectionOverrides"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ClientConnectionOverrides"},
 	}
 }
 
@@ -8969,6 +9050,11 @@ func schema_openshift_api_kubecontrolplane_v1_KubeAPIServerConfig(ref common.Ref
 							},
 						},
 					},
+					"kubeClientConfig": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/config/v1.KubeClientConfig"),
+						},
+					},
 					"authConfig": {
 						SchemaProps: spec.SchemaProps{
 							Description: "authConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
@@ -9067,11 +9153,11 @@ func schema_openshift_api_kubecontrolplane_v1_KubeAPIServerConfig(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "authConfig", "aggregatorConfig", "kubeletClientInfo", "servicesSubnet", "servicesNodePortRange", "consolePublicURL", "userAgentMatchingConfig", "imagePolicyConfig", "projectConfig", "serviceAccountPublicKeyFiles", "oauthConfig", "apiServerArguments"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig", "authConfig", "aggregatorConfig", "kubeletClientInfo", "servicesSubnet", "servicesNodePortRange", "consolePublicURL", "userAgentMatchingConfig", "imagePolicyConfig", "projectConfig", "serviceAccountPublicKeyFiles", "oauthConfig", "apiServerArguments"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/kubecontrolplane/v1.AggregatorConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeAPIServerImagePolicyConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeAPIServerProjectConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeletConnectionInfo", "github.com/openshift/api/kubecontrolplane/v1.MasterAuthConfig", "github.com/openshift/api/kubecontrolplane/v1.UserAgentMatchingConfig", "github.com/openshift/api/osin/v1.OAuthConfig"},
+			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/kubecontrolplane/v1.AggregatorConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeAPIServerImagePolicyConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeAPIServerProjectConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeletConnectionInfo", "github.com/openshift/api/kubecontrolplane/v1.MasterAuthConfig", "github.com/openshift/api/kubecontrolplane/v1.UserAgentMatchingConfig", "github.com/openshift/api/osin/v1.OAuthConfig"},
 	}
 }
 
@@ -15084,6 +15170,335 @@ func schema_openshift_api_oauth_v1_ScopeRestriction(ref common.ReferenceCallback
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/oauth/v1.ClusterRoleScopeRestriction"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_ImagePolicyConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"maxImagesBulkImportedPerRepository": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a Docker repository. This number is set low to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"allowedRegistriesForImport": {
+						SchemaProps: spec.SchemaProps{
+							Description: "allowedRegistriesForImport limits the docker registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.RegistryLocation"),
+									},
+								},
+							},
+						},
+					},
+					"internalRegistryHostname": {
+						SchemaProps: spec.SchemaProps{
+							Description: "internalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format. For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY environment variable but this setting overrides the environment variable.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"externalRegistryHostname": {
+						SchemaProps: spec.SchemaProps{
+							Description: "externalRegistryHostname sets the hostname for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"additionalTrustedCA": {
+						SchemaProps: spec.SchemaProps{
+							Description: "additionalTrustedCA is a path to a pem bundle file containing additional CAs that should be trusted during imagestream import.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"maxImagesBulkImportedPerRepository", "allowedRegistriesForImport", "internalRegistryHostname", "externalRegistryHostname", "additionalTrustedCA"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/openshiftcontrolplane/v1.RegistryLocation"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_JenkinsPipelineConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
+				Properties: map[string]spec.Schema{
+					"autoProvisionEnabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "autoProvisionEnabled determines whether a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"templateNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "templateNamespace contains the namespace name where the Jenkins template is stored",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"templateName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "templateName is the name of the default Jenkins template",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"serviceName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "serviceName is the name of the Jenkins service OpenShift uses to detect whether a Jenkins pipeline handler has already been installed in a project. This value *must* match a service name in the provided template.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"parameters": {
+						SchemaProps: spec.SchemaProps{
+							Description: "parameters specifies a set of optional parameters to the Jenkins template.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"autoProvisionEnabled", "templateNamespace", "templateName", "serviceName", "parameters"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"servingInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServingInfo describes how to start serving",
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
+						},
+					},
+					"corsAllowedOrigins": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CORSAllowedOrigins",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"auditConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AuditConfig describes how to configure audit information",
+							Ref:         ref("github.com/openshift/api/config/v1.AuditConfig"),
+						},
+					},
+					"storageConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StorageConfig contains information about how to use",
+							Ref:         ref("github.com/openshift/api/config/v1.EtcdStorageConfig"),
+						},
+					},
+					"admissionPluginConfig": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.AdmissionPluginConfig"),
+									},
+								},
+							},
+						},
+					},
+					"kubeClientConfig": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/config/v1.KubeClientConfig"),
+						},
+					},
+					"imagePolicyConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "imagePolicyConfig feeds the image policy admission plugin",
+							Ref:         ref("github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig"),
+						},
+					},
+					"projectConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "projectConfig feeds an admission plugin",
+							Ref:         ref("github.com/openshift/api/openshiftcontrolplane/v1.ProjectConfig"),
+						},
+					},
+					"routingConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "routingConfig holds information about routing and route generation",
+							Ref:         ref("github.com/openshift/api/openshiftcontrolplane/v1.RoutingConfig"),
+						},
+					},
+					"serviceAccountOAuthGrantMethod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "serviceAccountOAuthGrantMethod is used for determining client authorization for service account oauth client. It must be either: deny, prompt, or \"\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"jenkinsPipelineConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "jenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
+							Ref:         ref("github.com/openshift/api/openshiftcontrolplane/v1.JenkinsPipelineConfig"),
+						},
+					},
+					"cloudProviderFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "cloudProviderFile points to the cloud config file",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiServerArguments": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type: []string{"array"},
+										Items: &spec.SchemaOrArray{
+											Schema: &spec.Schema{
+												SchemaProps: spec.SchemaProps{
+													Type:   []string{"string"},
+													Format: "",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig", "imagePolicyConfig", "projectConfig", "routingConfig", "serviceAccountOAuthGrantMethod", "jenkinsPipelineConfig", "cloudProviderFile", "apiServerArguments"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig", "github.com/openshift/api/openshiftcontrolplane/v1.JenkinsPipelineConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ProjectConfig", "github.com/openshift/api/openshiftcontrolplane/v1.RoutingConfig"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_ProjectConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"defaultNodeSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "defaultNodeSelector holds default project node label selector",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"projectRequestMessage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "projectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"projectRequestTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "projectRequestTemplate is the template to use for creating projects in response to projectrequest. It is in the format namespace/template and it is optional. If it is not specified, a default template is used.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"defaultNodeSelector", "projectRequestMessage", "projectRequestTemplate"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_RegistryLocation(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RegistryLocation contains a location of the registry specified by the registry domain name. The domain name might include wildcards, like '*' or '??'.",
+				Properties: map[string]spec.Schema{
+					"domainName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DomainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"insecure": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"domainName"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_RoutingConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RoutingConfig holds the necessary configuration options for routing to subdomains",
+				Properties: map[string]spec.Schema{
+					"subdomain": {
+						SchemaProps: spec.SchemaProps{
+							Description: "subdomain is the suffix appended to $service.$namespace. to form the default route hostname DEPRECATED: This field is being replaced by routers setting their own defaults. This is the \"default\" route.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"subdomain"},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 

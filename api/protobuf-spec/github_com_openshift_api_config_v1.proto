@@ -69,6 +69,22 @@ message CertInfo {
   optional string keyFile = 2;
 }
 
+message ClientConnectionOverrides {
+  // acceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the
+  // default value of 'application/json'. This field will control all connections to the server used by a particular
+  // client.
+  optional string acceptContentTypes = 1;
+
+  // contentType is the content type used when sending data to the server from this client.
+  optional string contentType = 2;
+
+  // qps controls the number of queries per second allowed for this connection.
+  optional float qps = 3;
+
+  // burst allows extra queries to accumulate when a client is exceeding its rate.
+  optional int32 burst = 4;
+}
+
 // EtcdConnectionInfo holds information necessary for connecting to an etcd server
 message EtcdConnectionInfo {
   // URLs are the URLs for etcd
@@ -106,6 +122,8 @@ message GenericAPIServerConfig {
   optional EtcdStorageConfig storageConfig = 4;
 
   map<string, AdmissionPluginConfig> admissionPluginConfig = 5;
+
+  optional KubeClientConfig kubeClientConfig = 6;
 }
 
 // HTTPServingInfo holds configuration for serving HTTP
@@ -119,6 +137,14 @@ message HTTPServingInfo {
   // RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if
   // -1 there is no limit on requests.
   optional int64 requestTimeoutSeconds = 3;
+}
+
+message KubeClientConfig {
+  // kubeConfig is a .kubeconfig filename for going to the owning kube-apiserver.  Empty uses an in-cluster-config
+  optional string kubeConfig = 1;
+
+  // connectionOverrides specifies client overrides for system components to loop back to this master.
+  optional ClientConnectionOverrides connectionOverrides = 2;
 }
 
 // LeaderElection provides information to elect a leader
