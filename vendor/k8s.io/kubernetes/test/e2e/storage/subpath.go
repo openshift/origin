@@ -24,7 +24,6 @@ import (
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -330,7 +329,9 @@ var _ = utils.SIGDescribe("Subpath", func() {
 				pod.Spec.Volumes[0].VolumeSource = *roVol
 
 				// Pod should fail
-				testPodFailSubpathError(f, pod, "")
+				// Reason should be 'CreateContainerConfigError'
+				// Message should be 'Error: failed to create subPath directory for volumeMount "test-volume" of container "test-container-subpath-'
+				testPodFailSubpathError(f, pod, "subPath")
 			})
 		})
 	}
@@ -513,21 +514,11 @@ func testPodFailSubpathError(f *framework.Framework, pod *v1.Pod, errorMsg strin
 	defer func() {
 		framework.DeletePodWithWait(f, f.ClientSet, pod)
 	}()
-	err = framework.WaitTimeoutForPodRunningInNamespace(f.ClientSet, pod.Name, pod.Namespace, time.Minute)
-	Expect(err).To(HaveOccurred(), "while waiting for pod to be running")
-
-	By("Checking for subpath error event")
-	selector := fields.Set{
-		"involvedObject.kind":      "Pod",
-		"involvedObject.name":      pod.Name,
-		"involvedObject.namespace": f.Namespace.Name,
-		"reason":                   "Failed",
-	}.AsSelector().String()
-	options := metav1.ListOptions{FieldSelector: selector}
-	events, err := f.ClientSet.CoreV1().Events(f.Namespace.Name).List(options)
-	Expect(err).NotTo(HaveOccurred(), "while getting pod events")
-	Expect(len(events.Items)).NotTo(Equal(0), "no events found")
-	Expect(events.Items[0].Message).To(ContainSubstring(errorMsg), fmt.Sprintf("%q error not found", errorMsg))
+	podClient := f.PodClient()
+	event, err := podClient.WaitForErrorEvent(pod)
+	Expect(err).NotTo(HaveOccurred(), "while waiting for pod error event")
+	Expect(event).NotTo(BeNil())
+	Expect(event.Message).To(ContainSubstring(errorMsg), fmt.Sprintf("%q error not found", errorMsg))
 }
 
 // Tests that the existing subpath mount is detected when a container restarts
