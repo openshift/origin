@@ -509,8 +509,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 			glog.Infof(volumeToMount.GenerateMsgDetailed("MountVolume.MountDevice succeeded", fmt.Sprintf("device mount path %q", deviceMountPath)))
 
 			// Update actual state of world to reflect volume is globally mounted
-			markDeviceMountedErr := actualStateOfWorld.MarkDeviceAsMounted(
-				volumeToMount.VolumeName)
+			markDeviceMountedErr := actualStateOfWorld.MarkDeviceAsMounted(volumeToMount.VolumeName, devicePath)
 			if markDeviceMountedErr != nil {
 				// On failure, return error. Caller will log and retry.
 				return volumeToMount.GenerateError("MountVolume.MarkDeviceAsMounted failed", markDeviceMountedErr)
@@ -850,8 +849,7 @@ func (og *operationGenerator) GenerateMapVolumeFunc(
 			glog.Infof(volumeToMount.GenerateMsgDetailed("MapVolume.WaitForAttach succeeded", fmt.Sprintf("DevicePath %q", devicePath)))
 
 			// Update actual state of world to reflect volume is globally mounted
-			markDeviceMappedErr := actualStateOfWorld.MarkDeviceAsMounted(
-				volumeToMount.VolumeName)
+			markDeviceMappedErr := actualStateOfWorld.MarkDeviceAsMounted(volumeToMount.VolumeName, devicePath)
 			if markDeviceMappedErr != nil {
 				// On failure, return error. Caller will log and retry.
 				return volumeToMount.GenerateError("MapVolume.MarkDeviceAsMounted failed", markDeviceMappedErr)
