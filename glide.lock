@@ -1,5 +1,5 @@
-hash: 88c89d9bddf585fab516f7cb0a67165636c9ac68998eae2b45da3938b973af9b
-updated: 2018-09-14T12:51:24.644291448-04:00
+hash: 2dd5102215517b9c275e09d47efda9755b3eb884ef64365f0d661015ecde252c
+updated: 2018-09-14T13:22:23.463207282-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -164,15 +164,17 @@ imports:
   - pkg/ns
   - pkg/utils/hwaddr
 - name: github.com/containers/image
-  version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
-  repo: https://github.com/openshift/containers-image.git
+  version: b71bf1684764e8636b8c41b5bd543c0473ea4a36
+  repo: https://github.com/nalind/image
   subpackages:
   - docker
   - docker/policyconfiguration
   - docker/reference
   - image
   - manifest
+  - pkg/docker/config
   - pkg/strslice
+  - pkg/tlsclientconfig
   - signature
   - transports
   - types
@@ -369,6 +371,11 @@ imports:
   - pkg/term
   - pkg/term/windows
   - pkg/tlsconfig
+- name: github.com/docker/docker-credential-helpers
+  version: 73e5f5dbfea31ee3b81111ebbf189785fa69731c
+  subpackages:
+  - client
+  - credentials
 - name: github.com/docker/go-connections
   version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
   subpackages:
@@ -389,6 +396,8 @@ imports:
   - spdy
 - name: github.com/elazarl/go-bindata-assetfs
   version: 3dcc96556217539f50599357fb481ac0dc7439b9
+- name: github.com/elazarl/goproxy
+  version: c4fc26588b6ef8af07a191fcb6476387bdd46711
 - name: github.com/emicklei/go-restful
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:

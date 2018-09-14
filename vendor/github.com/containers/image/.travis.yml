@@ -24,4 +24,4 @@ script: >
   -e GOPATH=/gopath -e TRASH_CACHE=/gopath/.trashcache
   -v /etc/passwd:/etc/passwd -v /etc/sudoers:/etc/sudoers -v /etc/sudoers.d:/etc/sudoers.d
   -v /var/run:/var/run:z -v $HOME/gopath:/gopath:Z
-  -w /gopath/src/github.com/containers/image image-test bash -c "PATH=$PATH:/gopath/bin make tools .gitvalidation validate test test-skopeo SUDO=sudo BUILDTAGS=\"$BUILDTAGS\""
+  -w /gopath/src/github.com/containers/image image-test bash -c "PATH=$PATH:/gopath/bin make cross tools .gitvalidation validate test test-skopeo SUDO=sudo BUILDTAGS=\"$BUILDTAGS\""

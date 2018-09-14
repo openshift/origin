@@ -1,7 +1,11 @@
-% REGISTRIES.D(5) Registries.d Man Page
+% CONTAINERS-REGISTRIES.D(5) Registries.d Man Page
 % Miloslav Trmač
 % August 2016
-# Registries Configuration Directory
+
+# NAME
+containers-registries.d - Directory for various registries configurations
+
+# DESCRIPTION
 
 The registries configuration directory contains configuration for various registries
 (servers storing remote container images), and for content stored in them,

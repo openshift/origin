@@ -64,8 +64,8 @@ import:
   repo:    https://github.com/openshift/onsi-ginkgo.git
   version: release-v1.2.0
 - package: github.com/containers/image
-  repo:    https://github.com/openshift/containers-image.git
-  version: openshift-3.8
+  repo:    https://github.com/nalind/image
+  version: ip-registry
 # pod - sjenning
 # origin-3.11-runc-871ba2e
 - package: github.com/opencontainers/runc
