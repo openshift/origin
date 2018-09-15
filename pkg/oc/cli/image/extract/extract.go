@@ -87,6 +87,10 @@ var (
 `)
 )
 
+// TarEntryFunc is called once per entry in the tar file. It may return
+// an error, or false to stop processing.
+type TarEntryFunc func(*tar.Header, io.Reader) (cont bool, err error)
+
 type Options struct {
 	Mappings []Mapping
 
@@ -104,7 +108,13 @@ type Options struct {
 
 	genericclioptions.IOStreams
 
+	// ImageMetadataCallback is invoked once per image retrieved, and may be called in parallel if
+	// MaxPerRegistry is set higher than 1.
 	ImageMetadataCallback func(m *Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig)
+	// TarEntryCallback, if set, is passed each entry in the viewed layers. Entries will be filtered
+	// by name and only the entry in the highest layer will be passed to the callback. Returning false
+	// will halt processing of the image.
+	TarEntryCallback TarEntryFunc
 }
 
 func NewOptions(streams genericclioptions.IOStreams) *Options {
@@ -318,10 +328,43 @@ func (o *Options) Run() error {
 					alter = append(alter, removePermissions{})
 				}
 
+				var byEntry TarEntryFunc = o.TarEntryCallback
+				if o.DryRun {
+					path := mapping.To
+					out := o.Out
+					byEntry = func(hdr *tar.Header, r io.Reader) (bool, error) {
+						if len(hdr.Name) == 0 {
+							return true, nil
+						}
+						mode := hdr.FileInfo().Mode().String()
+						switch hdr.Typeflag {
+						case tar.TypeDir:
+							fmt.Fprintf(out, "%s %12d %s\n", mode, hdr.Size, filepath.Join(path, hdr.Name))
+						case tar.TypeReg, tar.TypeRegA:
+							fmt.Fprintf(out, "%s %12d %s\n", mode, hdr.Size, filepath.Join(path, hdr.Name))
+						case tar.TypeLink:
+							fmt.Fprintf(out, "%s %12d %s -> %s\n", mode, hdr.Size, hdr.Name, filepath.Join(path, hdr.Linkname))
+						case tar.TypeSymlink:
+							fmt.Fprintf(out, "%s %12d %s -> %s\n", mode, hdr.Size, hdr.Name, filepath.Join(path, hdr.Linkname))
+						default:
+							fmt.Fprintf(out, "%s %12d %s %x\n", mode, hdr.Size, filepath.Join(path, hdr.Name), hdr.Typeflag)
+						}
+						return true, nil
+					}
+				}
+
+				// walk the layers in reverse order, only showing a given path once
+				alreadySeen := make(map[string]struct{})
+				if byEntry != nil {
+					for i, j := 0, len(filteredLayers)-1; i < j; i, j = i+1, j-1 {
+						filteredLayers[i], filteredLayers[j] = filteredLayers[j], filteredLayers[i]
+					}
+				}
+
 				for i := range filteredLayers {
 					layer := &filteredLayers[i]
 
-					err := func() error {
+					cont, err := func() (bool, error) {
 						fromBlobs := repo.Blobs(ctx)
 
 						glog.V(5).Infof("Extracting from layer: %#v", layer)
@@ -329,7 +372,7 @@ func (o *Options) Run() error {
 						// source
 						r, err := fromBlobs.Open(ctx, layer.Digest)
 						if err != nil {
-							return fmt.Errorf("unable to access the source layer %s: %v", layer.Digest, err)
+							return false, fmt.Errorf("unable to access the source layer %s: %v", layer.Digest, err)
 						}
 						defer r.Close()
 
@@ -338,18 +381,21 @@ func (o *Options) Run() error {
 							Chown:        preserveOwnership,
 						}
 
-						if o.DryRun {
-							return printLayer(os.Stdout, r, mapping.To, options)
+						if byEntry != nil {
+							return layerByEntry(r, options, byEntry, alreadySeen)
 						}
 
 						glog.V(4).Infof("Extracting layer %s with options %#v", layer.Digest, options)
 						if _, err := archive.ApplyLayer(mapping.To, r, options); err != nil {
-							return err
+							return false, err
 						}
-						return nil
+						return true, nil
 					}()
 					if err != nil {
 						return err
+					}
+					if !cont {
+						break
 					}
 				}
 
@@ -362,10 +408,10 @@ func (o *Options) Run() error {
 	})
 }
 
-func printLayer(w io.Writer, r io.Reader, path string, options *archive.TarOptions) error {
+func layerByEntry(r io.Reader, options *archive.TarOptions, fn TarEntryFunc, alreadySeen map[string]struct{}) (bool, error) {
 	rc, err := dockerarchive.DecompressStream(r)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer rc.Close()
 	tr := tar.NewReader(rc)
@@ -373,35 +419,35 @@ func printLayer(w io.Writer, r io.Reader, path string, options *archive.TarOptio
 		hdr, err := tr.Next()
 		if err != nil {
 			if err == io.EOF {
-				return nil
+				return true, nil
 			}
-			return err
+			return false, err
 		}
 		glog.V(6).Infof("Printing layer entry %#v", hdr)
 		if options.AlterHeaders != nil {
 			ok, err := options.AlterHeaders.Alter(hdr)
 			if err != nil {
-				return err
+				return false, err
 			}
 			if !ok {
 				glog.V(5).Infof("Exclude entry %s %x %d", hdr.Name, hdr.Typeflag, hdr.Size)
 				continue
 			}
 		}
-		if len(hdr.Name) == 0 {
+
+		// prevent duplicates from being sent to the handler
+		if _, ok := alreadySeen[hdr.Name]; ok {
 			continue
 		}
-		switch hdr.Typeflag {
-		case tar.TypeDir:
-			fmt.Fprintf(w, "Creating directory %s\n", filepath.Join(path, hdr.Name))
-		case tar.TypeReg, tar.TypeRegA:
-			fmt.Fprintf(w, "Creating file %s\n", filepath.Join(path, hdr.Name))
-		case tar.TypeLink:
-			fmt.Fprintf(w, "Link %s to %s\n", hdr.Name, filepath.Join(path, hdr.Linkname))
-		case tar.TypeSymlink:
-			fmt.Fprintf(w, "Symlink %s to %s\n", hdr.Name, filepath.Join(path, hdr.Linkname))
-		default:
-			fmt.Fprintf(w, "Extracting %s with type %0x\n", filepath.Join(path, hdr.Name), hdr.Typeflag)
+		alreadySeen[hdr.Name] = struct{}{}
+		// TODO: need to do prefix filtering for whiteouts
+
+		cont, err := fn(hdr, tr)
+		if err != nil {
+			return false, err
+		}
+		if !cont {
+			return false, nil
 		}
 	}
 }
