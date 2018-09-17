@@ -29,8 +29,9 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -38,7 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	"github.com/openshift/origin/test/util"
 
 	// install all APIs
@@ -515,7 +515,7 @@ func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, ac
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
 func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser string) (kclientset.Interface, *restclient.Config, error) {
-	projectClient, err := projectclient.NewForConfig(clientConfig)
+	projectClient, err := projectv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -523,16 +523,15 @@ func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser st
 	if err != nil {
 		return nil, nil, err
 	}
-	authorizationClient, err := authorizationclient.NewForConfig(clientConfig)
+	authorizationClient, err := authorizationv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	authorizationInterface := authorizationClient.Authorization()
 
 	newProjectOptions := &newproject.NewProjectOptions{
 		ProjectClient:   projectClient,
 		RbacClient:      kubeExternalClient.RbacV1(),
-		SARClient:       authorizationInterface.SubjectAccessReviews(),
+		SARClient:       authorizationClient.SubjectAccessReviews(),
 		ProjectName:     projectName,
 		AdminRole:       bootstrappolicy.AdminRoleName,
 		AdminUser:       adminUser,

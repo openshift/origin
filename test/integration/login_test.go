@@ -10,12 +10,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/login"
 	"github.com/openshift/origin/pkg/oc/cli/whoami"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -48,10 +48,10 @@ func TestLogin(t *testing.T) {
 		t.Fatalf("Unexpected user after authentication: %#v", loginOptions)
 	}
 	rbacClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig)
-	authorizationInterface := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	authorizationInterface := authorizationv1typedclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		ProjectClient:   projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project(),
+		ProjectClient:   projectv1typedclient.NewForConfigOrDie(clusterAdminClientConfig),
 		RbacClient:      rbacClient,
 		SARClient:       authorizationInterface.SubjectAccessReviews(),
 		ProjectName:     project,
@@ -64,11 +64,11 @@ func TestLogin(t *testing.T) {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)
 	}
 
-	projectClient, err := projectclient.NewForConfig(loginOptions.Config)
+	projectClient, err := projectv1typedclient.NewForConfig(loginOptions.Config)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	p, err := projectClient.Project().Projects().Get(project, metav1.GetOptions{})
+	p, err := projectClient.Projects().Get(project, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

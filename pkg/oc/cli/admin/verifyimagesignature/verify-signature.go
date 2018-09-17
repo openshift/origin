@@ -16,16 +16,16 @@ import (
 	sigtypes "github.com/containers/image/types"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 var (
@@ -86,7 +86,7 @@ type VerifyImageSignatureOptions struct {
 	RegistryURL       string
 	Insecure          bool
 
-	ImageClient imageclient.ImageInterface
+	ImageClient imagev1typedclient.ImageV1Interface
 
 	genericclioptions.IOStreams
 }
@@ -154,13 +154,12 @@ func (o *VerifyImageSignatureOptions) Complete(f kcmdutil.Factory, cmd *cobra.Co
 	if err != nil {
 		return err
 	}
-	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
+	o.ImageClient, err = imagev1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.ImageClient = imageClient.Image()
 
-	userClient, err := userclientinternal.NewForConfig(clientConfig)
+	userClient, err := userv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -168,7 +167,7 @@ func (o *VerifyImageSignatureOptions) Complete(f kcmdutil.Factory, cmd *cobra.Co
 	// We need the current user name so we can record it into an verification condition and
 	// we need a bearer token so we can fetch the manifest from the registry.
 	// TODO: Add support for external registries (currently only integrated registry will
-	if me, err := userClient.User().Users().Get("~", metav1.GetOptions{}); err != nil {
+	if me, err := userClient.Users().Get("~", metav1.GetOptions{}); err != nil {
 		return err
 	} else {
 		o.CurrentUser = me.Name
@@ -206,7 +205,7 @@ func (o VerifyImageSignatureOptions) Run() error {
 	defer pc.Destroy()
 
 	if o.RemoveAll {
-		img.Signatures = []imageapi.ImageSignature{}
+		img.Signatures = []imagev1.ImageSignature{}
 	}
 
 	for i, s := range img.Signatures {
@@ -214,16 +213,16 @@ func (o VerifyImageSignatureOptions) Run() error {
 		signedBy, err := o.verifySignature(pc, img, s.Content)
 		if err != nil {
 			fmt.Fprintf(o.ErrOut, "error verifying signature %s for image %s (verification status will be removed): %v\n", img.Signatures[i].Name, o.InputImage, err)
-			img.Signatures[i] = imageapi.ImageSignature{}
+			img.Signatures[i] = imagev1.ImageSignature{}
 			continue
 		}
 		fmt.Fprintf(o.Out, "image %q identity is now confirmed (signed by GPG key %q)\n", o.InputImage, signedBy)
 
 		now := metav1.Now()
-		newConditions := []imageapi.SignatureCondition{
+		newConditions := []imagev1.SignatureCondition{
 			{
 				Type:               imageapi.SignatureTrusted,
-				Status:             kapi.ConditionTrue,
+				Status:             corev1.ConditionTrue,
 				LastProbeTime:      now,
 				LastTransitionTime: now,
 				Reason:             "manually verified",
@@ -232,13 +231,13 @@ func (o VerifyImageSignatureOptions) Run() error {
 			// TODO: This should be not needed (need to relax validation).
 			{
 				Type:               imageapi.SignatureForImage,
-				Status:             kapi.ConditionTrue,
+				Status:             corev1.ConditionTrue,
 				LastProbeTime:      now,
 				LastTransitionTime: now,
 			},
 		}
 		img.Signatures[i].Conditions = newConditions
-		img.Signatures[i].IssuedBy = &imageapi.SignatureIssuer{}
+		img.Signatures[i].IssuedBy = &imagev1.SignatureIssuer{}
 		// TODO: This should not be just a key id but a human-readable identity.
 		img.Signatures[i].IssuedBy.CommonName = signedBy
 	}
@@ -253,7 +252,7 @@ func (o VerifyImageSignatureOptions) Run() error {
 }
 
 // getImageManifest fetches the manifest for provided image from the integrated registry.
-func (o *VerifyImageSignatureOptions) getImageManifest(img *imageapi.Image) ([]byte, error) {
+func (o *VerifyImageSignatureOptions) getImageManifest(img *imagev1.Image) ([]byte, error) {
 	parsed, err := imageapi.ParseDockerImageReference(img.DockerImageReference)
 	if err != nil {
 		return nil, err
@@ -273,7 +272,7 @@ func (o *VerifyImageSignatureOptions) getImageManifest(img *imageapi.Image) ([]b
 // signature message and the manifest matches as well.
 // In case the image identity is confirmed, this function returns the matching GPG key in
 // short form, otherwise it returns rejection reason.
-func (o *VerifyImageSignatureOptions) verifySignature(pc *signature.PolicyContext, img *imageapi.Image, sigBlob []byte) (string, error) {
+func (o *VerifyImageSignatureOptions) verifySignature(pc *signature.PolicyContext, img *imagev1.Image, sigBlob []byte) (string, error) {
 	manifest, err := o.getImageManifest(img)
 	if err != nil {
 		return "", fmt.Errorf("failed to get image %q manifest: %v", img.Name, err)

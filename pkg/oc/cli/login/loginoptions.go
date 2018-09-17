@@ -19,6 +19,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
+	userv1 "github.com/openshift/api/user/v1"
+	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/origin/pkg/client/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/term"
@@ -27,8 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
 	"github.com/openshift/origin/pkg/oc/util/project"
 	loginutil "github.com/openshift/origin/pkg/oc/util/project"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 const defaultClusterURL = "https://localhost:8443"
@@ -261,12 +261,12 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		return fmt.Errorf("current user, %v, does not match expected user %v", me.Name, o.Username)
 	}
 
-	projectClient, err := projectclient.NewForConfig(o.Config)
+	projectClient, err := projectv1typedclient.NewForConfig(o.Config)
 	if err != nil {
 		return err
 	}
 
-	projectsList, err := projectClient.Project().Projects().List(metav1.ListOptions{})
+	projectsList, err := projectClient.Projects().List(metav1.ListOptions{})
 	// if we're running on kube (or likely kube), just set it to "default"
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		fmt.Fprintf(o.Out, "Using \"default\".  You can switch projects with:\n\n '%s project <projectname>'\n", o.CommandName)
@@ -285,7 +285,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 	if len(o.DefaultNamespace) > 0 && !projects.Has(o.DefaultNamespace) {
 		// Attempt a direct get of our current project in case it hasn't appeared in the list yet
-		if currentProject, err := projectClient.Project().Projects().Get(o.DefaultNamespace, metav1.GetOptions{}); err == nil {
+		if currentProject, err := projectClient.Projects().Get(o.DefaultNamespace, metav1.GetOptions{}); err == nil {
 			// If we get it successfully, add it to the list
 			projectsItems = append(projectsItems, *currentProject)
 			projects.Insert(currentProject.Name)
@@ -317,7 +317,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 			}
 		}
 
-		current, err := projectClient.Project().Projects().Get(namespace, metav1.GetOptions{})
+		current, err := projectClient.Projects().Get(namespace, metav1.GetOptions{})
 		if err != nil && !kerrors.IsNotFound(err) && !kerrors.IsForbidden(err) {
 			return err
 		}
@@ -397,7 +397,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	return created, nil
 }
 
-func (o LoginOptions) whoAmI() (*userapi.User, error) {
+func (o LoginOptions) whoAmI() (*userv1.User, error) {
 	return project.WhoAmI(o.Config)
 }
 
