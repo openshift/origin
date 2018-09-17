@@ -62,4 +62,4 @@ $ ./extended.test --ginko.focus="Load cluster" --viper-config=config/test
 After the execution completes the cluster will have deployed the ojects defined
 in the configuration.
 
-[OpenShift.com -- Using Cluster Loader](https://docs.openshift.com/container-platform/3.9/scaling_performance/using_cluster_loader.html)
+[OpenShift.com -- Using Cluster Loader](https://docs.okd.io/latest/scaling_performance/using_cluster_loader.html)
