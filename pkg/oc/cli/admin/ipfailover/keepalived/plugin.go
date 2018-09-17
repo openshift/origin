@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -21,11 +21,11 @@ import (
 type KeepalivedPlugin struct {
 	Name    string
 	Factory kcmdutil.Factory
-	Options *ipfailover.IPFailoverConfigCmdOptions
+	Options *ipfailover.IPFailoverConfigOptions
 }
 
 // NewIPFailoverConfiguratorPlugin creates a new IPFailoverConfigurator (keepalived) plugin instance.
-func NewIPFailoverConfiguratorPlugin(name string, f kcmdutil.Factory, options *ipfailover.IPFailoverConfigCmdOptions) (*KeepalivedPlugin, error) {
+func NewIPFailoverConfiguratorPlugin(name string, f kcmdutil.Factory, options *ipfailover.IPFailoverConfigOptions) (*KeepalivedPlugin, error) {
 	glog.V(4).Infof("Creating new KeepAlived plugin: %q", name)
 
 	p := &KeepalivedPlugin{
@@ -116,7 +116,7 @@ func (p *KeepalivedPlugin) GetDeploymentConfig() (*appsv1.DeploymentConfig, erro
 }
 
 // Generate the config and services for this IP Failover configuration plugin.
-func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
+func (p *KeepalivedPlugin) Generate() ([]runtime.Object, error) {
 	selector, err := p.GetSelector()
 	if err != nil {
 		return nil, fmt.Errorf("error getting selector: %v", err)
@@ -131,8 +131,7 @@ func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
 		return nil, fmt.Errorf("error generating DeploymentConfig: %v", err)
 	}
 
-	configList := &kapi.List{Items: []runtime.Object{dc}}
-
+	configList := []runtime.Object{dc}
 	glog.V(4).Infof("KeepAlived IP Failover DeploymentConfig: %q - generated config: %+v", p.Name, configList)
 
 	return configList, nil

@@ -5,10 +5,16 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	securityv1typedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 // ValidateIPAddress validates IP address.
-func ValidateIPAddress(ip string) error {
+func validateIPAddress(ip string) error {
 	ipaddr := strings.TrimSpace(ip)
 	if net.ParseIP(ipaddr) == nil {
 		return fmt.Errorf("Invalid IP address: %s", ip)
@@ -17,11 +23,11 @@ func ValidateIPAddress(ip string) error {
 	return nil
 }
 
-// ValidateIPAddressRange validates an IP address range or single IP address.
-func ValidateIPAddressRange(iprange string) error {
+// validateIPAddressRange validates an IP address range or single IP address.
+func validateIPAddressRange(iprange string) error {
 	iprange = strings.TrimSpace(iprange)
 	if strings.Count(iprange, "-") < 1 {
-		return ValidateIPAddress(iprange)
+		return validateIPAddress(iprange)
 	}
 	if strings.Count(iprange, "-") > 1 {
 		return fmt.Errorf("invalid IP range format: %s", iprange)
@@ -36,14 +42,14 @@ func ValidateIPAddressRange(iprange string) error {
 	}
 	rangeStart := parts[3]
 	rangeEnd := rangeLimits[1]
-	if err := ValidateIPAddress(startIP); err != nil {
+	if err := validateIPAddress(startIP); err != nil {
 		return err
 	}
 
 	//  Manufacture ending IP address for the range.
 	parts[3] = rangeEnd
 	endIP := strings.Join(parts, ".")
-	if ValidateIPAddress(endIP) != nil {
+	if validateIPAddress(endIP) != nil {
 		return fmt.Errorf("invalid IP range end: %s [%s]", rangeEnd, endIP)
 	}
 
@@ -65,15 +71,15 @@ func ValidateIPAddressRange(iprange string) error {
 	return nil
 }
 
-// ValidateVirtualIPs validates virtual IP range/addresses.
-func ValidateVirtualIPs(vips string) error {
+// validateVirtualIPs validates virtual IP range/addresses.
+func validateVirtualIPs(vips string) error {
 	virtualIPs := strings.TrimSpace(vips)
 	if len(virtualIPs) < 1 {
 		return nil
 	}
 
 	for _, ip := range strings.Split(virtualIPs, ",") {
-		if err := ValidateIPAddressRange(ip); err != nil {
+		if err := validateIPAddressRange(ip); err != nil {
 			return err
 		}
 	}
@@ -81,7 +87,21 @@ func ValidateVirtualIPs(vips string) error {
 	return nil
 }
 
-// ValidateCmdOptions validates command line operations.
-func ValidateCmdOptions(options *IPFailoverConfigCmdOptions) error {
-	return ValidateVirtualIPs(options.VirtualIPs)
+func validateServiceAccount(client securityv1typedclient.SecurityV1Interface, serviceAccount string) error {
+	sccList, err := client.SecurityContextConstraints().List(metav1.ListOptions{})
+	if err != nil && !errors.IsUnauthorized(err) {
+		return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)
+	}
+
+	for _, scc := range sccList.Items {
+		if scc.AllowPrivilegedContainer {
+			for _, user := range scc.Users {
+				if strings.Contains(user, serviceAccount) {
+					return nil
+				}
+			}
+		}
+	}
+	errMsg := "service account %q does not have sufficient privileges, grant access with: oc adm policy add-scc-to-user %s -z %s"
+	return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintPrivileged, serviceAccount)
 }

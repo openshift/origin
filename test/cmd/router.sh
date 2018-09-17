@@ -78,11 +78,12 @@ os::cmd::expect_success "oc adm router -o yaml | oc delete -f -"
 echo "router: ok"
 
 # test ipfailover
-os::cmd::expect_failure_and_text 'oc adm ipfailover --dry-run' 'you must specify at least one virtual IP address'
+os::cmd::expect_failure_and_text 'oc adm ipfailover --dry-run' 'service account "ipfailover" does not have sufficient privileges'
 os::cmd::expect_failure_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'error: ipfailover could not be created'
 os::cmd::expect_success 'oc adm policy add-scc-to-user privileged -z ipfailover'
-os::cmd::expect_success_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'Creating IP failover'
-os::cmd::expect_success_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'Success \(dry run\)'
+os::cmd::expect_failure_and_text 'oc adm ipfailover --dry-run' 'you must specify at least one virtual IP address'
+os::cmd::expect_success_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'serviceaccount/ipfailover created \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'deploymentconfig.apps.openshift.io/ipfailover created \(dry run\)'
 os::cmd::expect_success_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dry-run -o yaml' 'name: ipfailover'
 os::cmd::expect_success_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dry-run -o name' 'deploymentconfig.apps.openshift.io/ipfailover'
 os::cmd::expect_success_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dry-run -o yaml' '1.2.3.4'

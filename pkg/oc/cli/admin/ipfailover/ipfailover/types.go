@@ -1,10 +1,5 @@
 package ipfailover
 
-import (
-	configcmd "github.com/openshift/origin/pkg/bulk"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
-)
-
 const (
 	// DefaultName is the default IP Failover resource name.
 	DefaultName = "ipfailover"
@@ -41,28 +36,3 @@ const (
 	// DefaultInterface is the default network interface.
 	DefaultInterface = "eth0"
 )
-
-// IPFailoverConfigCmdOptions are options supported by the IP Failover admin command.
-type IPFailoverConfigCmdOptions struct {
-	Action configcmd.BulkAction
-
-	Type           string
-	ImageTemplate  variable.ImageTemplate
-	ServicePort    int
-	Selector       string
-	Create         bool
-	ServiceAccount string
-
-	//  Failover options.
-	VirtualIPs       string
-	VIPGroups        uint
-	IptablesChain    string
-	NotifyScript     string
-	CheckScript      string
-	CheckInterval    int
-	Preemption       string
-	NetworkInterface string
-	WatchPort        int
-	VRRPIDOffset     int
-	Replicas         int32
-}
