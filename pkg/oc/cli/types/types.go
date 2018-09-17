@@ -227,11 +227,12 @@ func NewCmdTypes(fullName string, f kcmdutil.Factory, streams genericclioptions.
 		writeConcept(buf, c)
 	}
 	cmd := &cobra.Command{
-		Use:     "types",
-		Short:   "An introduction to concepts and types",
-		Long:    fmt.Sprintf(typesLong, buf.String()),
-		Example: fmt.Sprintf(typesExample, fullName),
-		Run:     kcmdutil.DefaultSubCommandRun(streams.Out),
+		Use:        "types",
+		Short:      "An introduction to concepts and types",
+		Long:       fmt.Sprintf(typesLong, buf.String()),
+		Example:    fmt.Sprintf(typesExample, fullName),
+		Deprecated: "refer to official documentation instead",
+		Run:        kcmdutil.DefaultSubCommandRun(streams.Out),
 	}
 	return cmd
 }
