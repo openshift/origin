@@ -6,13 +6,14 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
-	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	groupscmd "github.com/openshift/origin/pkg/oc/cli/admin/groups"
 	groupsnewcmd "github.com/openshift/origin/pkg/oc/cli/admin/groups/new"
+	groupsuserscmd "github.com/openshift/origin/pkg/oc/cli/admin/groups/users"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -186,15 +187,15 @@ func TestGroupCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	userClient := userv1client.NewForConfigOrDie(clusterAdminClientConfig)
+	userClient := userv1typedclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	newGroup := &groupsnewcmd.NewGroupOptions{
-		GroupClient: userClient.Groups(),
+		GroupClient: userClient,
 		Group:       "group1",
 		Users:       []string{"first", "second", "third", "first"},
 		Printer:     printers.NewDiscardingPrinter(),
 	}
-	if err := newGroup.AddGroup(); err != nil {
+	if err := newGroup.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	group1, err := userClient.Groups().Get("group1", metav1.GetOptions{})
@@ -205,14 +206,16 @@ func TestGroupCommands(t *testing.T) {
 		t.Errorf("expected %v, actual %v", e, a)
 	}
 
-	userClientInternal := userclient.NewForConfigOrDie(clusterAdminClientConfig)
-
-	modifyUsers := &groupscmd.GroupModificationOptions{
-		GroupClient: userClientInternal.Groups(),
-		Group:       "group1",
-		Users:       []string{"second", "fourth", "fifth"},
+	addUsers := &groupsuserscmd.AddUsersOptions{
+		GroupModificationOptions: groupsuserscmd.NewGroupModificationOptions(genericclioptions.NewTestIOStreamsDiscard()),
 	}
-	if err := modifyUsers.AddUsers(); err != nil {
+	addUsers.GroupModificationOptions.GroupClient = userClient
+	addUsers.GroupModificationOptions.Group = "group1"
+	addUsers.GroupModificationOptions.Users = []string{"second", "fourth", "fifth"}
+	addUsers.GroupModificationOptions.ToPrinter = func(string) (printers.ResourcePrinter, error) {
+		return printers.NewDiscardingPrinter(), nil
+	}
+	if err := addUsers.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	group1, err = userClient.Groups().Get("group1", metav1.GetOptions{})
@@ -223,7 +226,16 @@ func TestGroupCommands(t *testing.T) {
 		t.Errorf("expected %v, actual %v", e, a)
 	}
 
-	if err := modifyUsers.RemoveUsers(); err != nil {
+	removeUsers := &groupsuserscmd.RemoveUsersOptions{
+		GroupModificationOptions: groupsuserscmd.NewGroupModificationOptions(genericclioptions.NewTestIOStreamsDiscard()),
+	}
+	removeUsers.GroupModificationOptions.ToPrinter = func(string) (printers.ResourcePrinter, error) {
+		return printers.NewDiscardingPrinter(), nil
+	}
+	removeUsers.GroupModificationOptions.GroupClient = userClient
+	removeUsers.GroupModificationOptions.Group = "group1"
+	removeUsers.GroupModificationOptions.Users = []string{"second", "fourth", "fifth"}
+	if err := removeUsers.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	group1, err = userClient.Groups().Get("group1", metav1.GetOptions{})
@@ -233,5 +245,4 @@ func TestGroupCommands(t *testing.T) {
 	if e, a := []string{"first", "third"}, []string(group1.Users); !reflect.DeepEqual(e, a) {
 		t.Errorf("expected %v, actual %v", e, a)
 	}
-
 }

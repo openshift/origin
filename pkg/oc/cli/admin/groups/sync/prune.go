@@ -3,7 +3,6 @@ package sync
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -13,7 +12,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
@@ -65,8 +64,8 @@ type PruneOptions struct {
 	// Confirm determines whether or not to write to OpenShift
 	Confirm bool
 
-	// GroupInterface is the interface used to interact with OpenShift Group objects
-	GroupInterface userv1client.GroupInterface
+	// GroupClient is the interface used to interact with OpenShift Group objects
+	GroupClient userv1typedclient.GroupsGetter
 
 	genericclioptions.IOStreams
 }
@@ -126,18 +125,17 @@ func (o *PruneOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 	if err != nil {
 		return err
 	}
-	userClient, err := userv1client.NewForConfig(clientConfig)
+	o.GroupClient, err = userv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.GroupInterface = userClient.Groups()
 
 	return nil
 }
 
 func (o *PruneOptions) Validate() error {
 	results := ldap.ValidateLDAPSyncConfig(o.Config)
-	if o.GroupInterface == nil {
+	if o.GroupClient == nil {
 		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface"), ""))
 	}
 	// TODO(skuznets): pretty-print validation results
@@ -167,11 +165,11 @@ func (o *PruneOptions) Run() error {
 	// populate schema-independent pruner fields
 	pruner := &syncgroups.LDAPGroupPruner{
 		Host:        clientConfig.Host(),
-		GroupClient: o.GroupInterface,
+		GroupClient: o.GroupClient.Groups(),
 		DryRun:      !o.Confirm,
 
 		Out: o.Out,
-		Err: os.Stderr,
+		Err: o.ErrOut,
 	}
 
 	listerMapper, err := getOpenShiftGroupListerMapper(clientConfig.Host(), o)
@@ -215,8 +213,8 @@ func (o *PruneOptions) GetBlacklist() []string {
 	return o.Blacklist
 }
 
-func (o *PruneOptions) GetClient() userv1client.GroupInterface {
-	return o.GroupInterface
+func (o *PruneOptions) GetClient() userv1typedclient.GroupInterface {
+	return o.GroupClient.Groups()
 }
 
 func (o *PruneOptions) GetGroupNameMappings() map[string]string {

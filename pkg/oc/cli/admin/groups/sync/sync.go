@@ -3,28 +3,27 @@ package sync
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
-	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync"
@@ -75,147 +74,104 @@ const (
 
 var AllowedSourceTypes = []string{string(GroupSyncSourceLDAP), string(GroupSyncSourceOpenShift)}
 
-func ValidateSource(source GroupSyncSource) bool {
-	return sets.NewString(AllowedSourceTypes...).Has(string(source))
-}
-
 type SyncOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+	Printer    printers.ResourcePrinter
+
 	// Source determines the source of the list of groups to sync
 	Source GroupSyncSource
 
 	// Config is the LDAP sync config read from file
-	Config *config.LDAPSyncConfig
+	Config     *config.LDAPSyncConfig
+	ConfigFile string
 
 	// Whitelist are the names of OpenShift group or LDAP group UIDs to use for syncing
-	Whitelist []string
+	Whitelist     []string
+	WhitelistFile string
 
 	// Blacklist are the names of OpenShift group or LDAP group UIDs to exclude
-	Blacklist []string
+	Blacklist     []string
+	BlacklistFile string
+
+	Type string
 
 	// Confirm determines whether or not to write to OpenShift
 	Confirm bool
 
-	// GroupInterface is the interface used to interact with OpenShift Group objects
-	GroupInterface userv1client.GroupInterface
+	// GroupClient is the interface used to interact with OpenShift Group objects
+	GroupClient userv1typedclient.GroupsGetter
 
-	// Stderr is the writer to write warnings and errors to
-	Stderr io.Writer
-
-	// Out is the writer to write output to
-	Out io.Writer
+	genericclioptions.IOStreams
 }
 
-// CreateErrorHandler creates an error handler for the LDAP sync job
-func (o *SyncOptions) CreateErrorHandler() syncerror.Handler {
-	components := []syncerror.Handler{}
-	if o.Config.RFC2307Config != nil {
-		if o.Config.RFC2307Config.TolerateMemberOutOfScopeErrors {
-			components = append(components, syncerror.NewMemberLookupOutOfBoundsSuppressor(o.Stderr))
-		}
-		if o.Config.RFC2307Config.TolerateMemberNotFoundErrors {
-			components = append(components, syncerror.NewMemberLookupMemberNotFoundSuppressor(o.Stderr))
-		}
-	}
-
-	return syncerror.NewCompoundHandler(components...)
-}
-
-func NewSyncOptions() *SyncOptions {
+func NewSyncOptions(streams genericclioptions.IOStreams) *SyncOptions {
 	return &SyncOptions{
-		Stderr:    os.Stderr,
-		Whitelist: []string{},
+		Whitelist:  []string{},
+		Type:       string(GroupSyncSourceLDAP),
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme).WithDefaultOutput("yaml"),
+		IOStreams:  streams,
 	}
 }
 
 func NewCmdSync(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := NewSyncOptions()
-	options.Out = streams.Out
-
-	typeArg := string(GroupSyncSourceLDAP)
-	whitelistFile := ""
-	blacklistFile := ""
-	configFile := ""
-
+	o := NewSyncOptions(streams)
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [--type=TYPE] [WHITELIST] [--whitelist=WHITELIST-FILE] --sync-config=CONFIG-FILE [--confirm]", name),
 		Short:   "Sync OpenShift groups with records from an external provider.",
 		Long:    syncLong,
 		Example: fmt.Sprintf(syncExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(typeArg, whitelistFile, blacklistFile, configFile, args, f); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if err := options.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			err := options.Run(c, f)
-			if err != nil {
-				if aggregate, ok := err.(kerrs.Aggregate); ok {
-					for _, err := range aggregate.Errors() {
-						fmt.Printf("%s\n", err)
-					}
-					os.Exit(1)
-				}
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist file")
+	cmd.Flags().StringVar(&o.WhitelistFile, "whitelist", o.WhitelistFile, "path to the group whitelist file")
 	cmd.MarkFlagFilename("whitelist", "txt")
-	cmd.Flags().StringVar(&blacklistFile, "blacklist", whitelistFile, "path to the group blacklist file")
+	cmd.Flags().StringVar(&o.BlacklistFile, "blacklist", o.BlacklistFile, "path to the group blacklist file")
 	cmd.MarkFlagFilename("blacklist", "txt")
-
 	// TODO enable this we're able to support string slice elements that have commas
 	// cmd.Flags().StringSliceVar(&options.Blacklist, "blacklist-group", options.Blacklist, "group to blacklist")
-
-	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
+	cmd.Flags().StringVar(&o.ConfigFile, "sync-config", o.ConfigFile, "path to the sync config")
 	cmd.MarkFlagFilename("sync-config", "yaml", "yml")
-
-	cmd.Flags().StringVar(&typeArg, "type", typeArg, "which groups white- and blacklist entries refer to: "+strings.Join(AllowedSourceTypes, ","))
-	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display results of a dry-run")
-
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().Lookup("output").DefValue = "yaml"
-	cmd.Flags().Lookup("output").Value.Set("yaml")
+	cmd.Flags().StringVar(&o.Type, "type", o.Type, "which groups white- and blacklist entries refer to: "+strings.Join(AllowedSourceTypes, ","))
+	cmd.Flags().BoolVar(&o.Confirm, "confirm", o.Confirm, "if true, modify OpenShift groups; if false, display results of a dry-run")
 
 	return cmd
 }
 
-func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile string, args []string, f kcmdutil.Factory) error {
-	switch typeArg {
+func (o *SyncOptions) Complete(f kcmdutil.Factory, args []string) error {
+	switch o.Type {
 	case string(GroupSyncSourceLDAP):
 		o.Source = GroupSyncSourceLDAP
 	case string(GroupSyncSourceOpenShift):
 		o.Source = GroupSyncSourceOpenShift
 	default:
-		return fmt.Errorf("unrecognized --type %q; allowed types %v", typeArg, strings.Join(AllowedSourceTypes, ","))
+		return fmt.Errorf("unrecognized --type %q; allowed types %v", o.Type, strings.Join(AllowedSourceTypes, ","))
 	}
 
 	var err error
-
-	o.Config, err = decodeSyncConfigFromFile(configFile)
+	o.Config, err = decodeSyncConfigFromFile(o.ConfigFile)
 	if err != nil {
 		return err
 	}
 
 	if o.Source == GroupSyncSourceOpenShift {
-		o.Whitelist, err = buildOpenShiftGroupNameList(args, whitelistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
+		o.Whitelist, err = buildOpenShiftGroupNameList(args, o.WhitelistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
 		if err != nil {
 			return err
 		}
-		o.Blacklist, err = buildOpenShiftGroupNameList([]string{}, blacklistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
+		o.Blacklist, err = buildOpenShiftGroupNameList([]string{}, o.BlacklistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
 		if err != nil {
 			return err
 		}
 	} else {
-		o.Whitelist, err = buildNameList(args, whitelistFile)
+		o.Whitelist, err = buildNameList(args, o.WhitelistFile)
 		if err != nil {
 			return err
 		}
-		o.Blacklist, err = buildNameList([]string{}, blacklistFile)
+		o.Blacklist, err = buildNameList([]string{}, o.BlacklistFile)
 		if err != nil {
 			return err
 		}
@@ -225,11 +181,17 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 	if err != nil {
 		return err
 	}
-	userClient, err := userv1client.NewForConfig(clientConfig)
+	o.GroupClient, err = userv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.GroupInterface = userClient.Groups()
+	if !o.Confirm {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -339,13 +301,17 @@ func readLines(path string) ([]string, error) {
 	return trimmedLines, nil
 }
 
+func ValidateSource(source GroupSyncSource) bool {
+	return sets.NewString(AllowedSourceTypes...).Has(string(source))
+}
+
 func (o *SyncOptions) Validate() error {
 	if !ValidateSource(o.Source) {
 		return fmt.Errorf("sync source must be one of the following: %v", strings.Join(AllowedSourceTypes, ","))
 	}
 
 	results := ldap.ValidateLDAPSyncConfig(o.Config)
-	if o.GroupInterface == nil {
+	if o.GroupClient == nil {
 		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface"), ""))
 	}
 	// TODO(skuznets): pretty-print validation results
@@ -355,9 +321,24 @@ func (o *SyncOptions) Validate() error {
 	return nil
 }
 
+// CreateErrorHandler creates an error handler for the LDAP sync job
+func (o *SyncOptions) CreateErrorHandler() syncerror.Handler {
+	components := []syncerror.Handler{}
+	if o.Config.RFC2307Config != nil {
+		if o.Config.RFC2307Config.TolerateMemberOutOfScopeErrors {
+			components = append(components, syncerror.NewMemberLookupOutOfBoundsSuppressor(o.ErrOut))
+		}
+		if o.Config.RFC2307Config.TolerateMemberNotFoundErrors {
+			components = append(components, syncerror.NewMemberLookupMemberNotFoundSuppressor(o.ErrOut))
+		}
+	}
+
+	return syncerror.NewCompoundHandler(components...)
+}
+
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
-func (o *SyncOptions) Run(cmd *cobra.Command, f kcmdutil.Factory) error {
+func (o *SyncOptions) Run() error {
 	bindPassword, err := config.ResolveStringValue(o.Config.BindPassword)
 	if err != nil {
 		return err
@@ -377,11 +358,11 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f kcmdutil.Factory) error {
 	// populate schema-independent syncer fields
 	syncer := &syncgroups.LDAPGroupSyncer{
 		Host:        clientConfig.Host(),
-		GroupClient: o.GroupInterface,
+		GroupClient: o.GroupClient.Groups(),
 		DryRun:      !o.Confirm,
 
 		Out: o.Out,
-		Err: os.Stderr,
+		Err: o.ErrOut,
 	}
 
 	switch o.Source {
@@ -421,19 +402,29 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f kcmdutil.Factory) error {
 
 	// Now we run the Syncer and report any errors
 	openshiftGroups, syncErrors := syncer.Sync()
-	if o.Confirm {
-		return kerrs.NewAggregate(syncErrors)
-	}
+	if !o.Confirm {
+		list := &unstructured.UnstructuredList{
+			Object: map[string]interface{}{
+				"kind":       "List",
+				"apiVersion": "v1",
+				"metadata":   map[string]interface{}{},
+			},
+		}
+		for _, item := range openshiftGroups {
+			unstructuredItem, err := runtime.DefaultUnstructuredConverter.ToUnstructured(item)
+			if err != nil {
+				return err
+			}
+			list.Items = append(list.Items, unstructured.Unstructured{Object: unstructuredItem})
+		}
 
-	list := &kapi.List{}
-	for _, item := range openshiftGroups {
-		list.Items = append(list.Items, item)
+		if err := o.Printer.PrintObj(list, o.Out); err != nil {
+			return err
+		}
 	}
-	fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
-	if err := fn(list); err != nil {
-		return err
+	for _, err := range syncErrors {
+		fmt.Fprintf(o.ErrOut, "%s\n", err)
 	}
-
 	return kerrs.NewAggregate(syncErrors)
 }
 
@@ -505,8 +496,8 @@ func (o *SyncOptions) GetBlacklist() []string {
 	return o.Blacklist
 }
 
-func (o *SyncOptions) GetClient() userv1client.GroupInterface {
-	return o.GroupInterface
+func (o *SyncOptions) GetClient() userv1typedclient.GroupInterface {
+	return o.GroupClient.Groups()
 }
 
 func (o *SyncOptions) GetGroupNameMappings() map[string]string {

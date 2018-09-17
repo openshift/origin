@@ -6,15 +6,16 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	userapiv1 "github.com/openshift/api/user/v1"
-	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	userv1 "github.com/openshift/api/user/v1"
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 const NewGroupRecommendedName = "new"
@@ -37,46 +38,42 @@ var (
 )
 
 type NewGroupOptions struct {
-	PrintFlags  *genericclioptions.PrintFlags
-	GroupClient userv1client.GroupInterface
+	PrintFlags *genericclioptions.PrintFlags
+	Printer    printers.ResourcePrinter
+
+	GroupClient userv1typedclient.GroupsGetter
 
 	Group string
 	Users []string
 
 	DryRun bool
 
-	Printer printers.ResourcePrinter
-
 	genericclioptions.IOStreams
 }
 
 func NewNewGroupOptions(streams genericclioptions.IOStreams) *NewGroupOptions {
 	return &NewGroupOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }
 
 func NewCmdNewGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewNewGroupOptions(streams)
-
 	cmd := &cobra.Command{
 		Use:     name + " GROUP [USER ...]",
 		Short:   "Create a new group",
 		Long:    newLong,
 		Example: fmt.Sprintf(newExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := o.Complete(f, cmd, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Validate())
-			kcmdutil.CheckErr(o.AddGroup())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-
 	o.PrintFlags.AddFlags(cmd)
+	kcmdutil.AddDryRunFlag(cmd)
 
-	cmd.Flags().BoolVar(&o.DryRun, "dry-run", o.DryRun, "Display the group that would be created, without actually creating the group.")
 	return cmd
 }
 
@@ -94,44 +91,39 @@ func (o *NewGroupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 	if err != nil {
 		return err
 	}
-	userClient, err := userv1client.NewForConfig(clientConfig)
+	o.GroupClient, err = userv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
 	if o.DryRun {
 		o.PrintFlags.Complete("%s (dry run)")
 	}
-
 	o.Printer, err = o.PrintFlags.ToPrinter()
 	if err != nil {
 		return err
 	}
 
-	o.GroupClient = userClient.Groups()
 	return nil
 }
 
 func (o *NewGroupOptions) Validate() error {
 	if len(o.Group) == 0 {
-		return fmt.Errorf("Group is required")
-	}
-	if o.GroupClient == nil {
-		return fmt.Errorf("GroupClient is required")
-	}
-	if o.Out == nil {
-		return fmt.Errorf("Out is required")
-	}
-	if o.Printer == nil {
-		return fmt.Errorf("Printer is required")
+		return fmt.Errorf("group is required")
 	}
 
 	return nil
 }
 
-func (o *NewGroupOptions) AddGroup() error {
-	group := &userapiv1.Group{}
-	group.Name = o.Group
+func (o *NewGroupOptions) Run() error {
+	group := &userv1.Group{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta: metav1.TypeMeta{APIVersion: userv1.SchemeGroupVersion.String(), Kind: "Group"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: o.Group,
+		},
+	}
 
 	usedNames := sets.String{}
 	for _, user := range o.Users {
@@ -143,14 +135,12 @@ func (o *NewGroupOptions) AddGroup() error {
 		group.Users = append(group.Users, user)
 	}
 
-	if o.DryRun {
-		return o.Printer.PrintObj(group, o.Out)
-	}
-
-	var err error
-	group, err = o.GroupClient.Create(group)
-	if err != nil {
-		return err
+	if !o.DryRun {
+		var err error
+		group, err = o.GroupClient.Groups().Create(group)
+		if err != nil {
+			return err
+		}
 	}
 
 	return o.Printer.PrintObj(group, o.Out)
