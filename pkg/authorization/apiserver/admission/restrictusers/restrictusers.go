@@ -35,7 +35,7 @@ type GroupCache interface {
 	GroupsFor(string) ([]*userapi.Group, error)
 }
 
-// restrictUsersAdmission implements admission.Interface and enforces
+// restrictUsersAdmission implements admission.ValidateInterface and enforces
 // restrictions on adding rolebindings in a project to permit only designated
 // subjects.
 type restrictUsersAdmission struct {
@@ -50,6 +50,7 @@ type restrictUsersAdmission struct {
 var _ = oadmission.WantsRESTClientConfig(&restrictUsersAdmission{})
 var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
 var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
+var _ = admission.ValidationInterface(&restrictUsersAdmission{})
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
 // restrictions on adding role bindings in a project.
@@ -106,7 +107,7 @@ func subjectsDelta(elementsToIgnore, elements []rbac.Subject) []rbac.Subject {
 // project-scoped role-bindings.  In order for a role binding to be permitted,
 // each subject in the binding must be matched by some rolebinding restriction
 // in the namespace.
-func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
+func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 
 	// We only care about rolebindings
 	if a.GetResource().GroupResource() != rbac.Resource("rolebindings") {

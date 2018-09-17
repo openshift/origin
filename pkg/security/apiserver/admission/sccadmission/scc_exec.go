@@ -25,13 +25,13 @@ func RegisterSCCExecRestrictions(plugins *admission.Plugins) {
 }
 
 var (
-	_ = admission.Interface(&sccExecRestrictions{})
 	_ = initializer.WantsAuthorizer(&sccExecRestrictions{})
 	_ = oadmission.WantsSecurityInformer(&sccExecRestrictions{})
 	_ = kadmission.WantsInternalKubeClientSet(&sccExecRestrictions{})
+	_ = admission.ValidationInterface(&sccExecRestrictions{})
 )
 
-// sccExecRestrictions is an implementation of admission.Interface which says no to a pod/exec on
+// sccExecRestrictions is an implementation of admission.ValidationInterface which says no to a pod/exec on
 // a pod that the user would not be allowed to create
 type sccExecRestrictions struct {
 	*admission.Handler
@@ -39,7 +39,7 @@ type sccExecRestrictions struct {
 	client              kclientset.Interface
 }
 
-func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
+func (d *sccExecRestrictions) Validate(a admission.Attributes) (err error) {
 	if a.GetOperation() != admission.Connect {
 		return nil
 	}
@@ -58,6 +58,8 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 	// TODO, if we want to actually limit who can use which service account, then we'll need to add logic here to make sure that
 	// we're allowed to use the SA the pod is using.  Otherwise, user-A creates pod and user-B (who can't use the SA) can exec into it.
 	createAttributes := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion(""), a.GetNamespace(), a.GetName(), a.GetResource(), "", admission.Create, a.GetUserInfo())
+	// call SCC.Admit instead of SCC.Validate because we accept that a different SCC is chosen. SCC.Validate would require
+	// that the chosen SCC (stored in the "openshift.io/scc" annotation) does not change.
 	if err := d.constraintAdmission.Admit(createAttributes); err != nil {
 		return admission.NewForbidden(a, fmt.Errorf("%s operation is not allowed because the pod's security context exceeds your permissions: %v", a.GetSubresource(), err))
 	}
