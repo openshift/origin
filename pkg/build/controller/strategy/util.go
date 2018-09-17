@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 
+	"github.com/containers/storage"
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
@@ -26,11 +27,12 @@ const (
 	dockerSocketPath      = "/var/run/docker.sock"
 	sourceSecretMountPath = "/var/run/secrets/openshift.io/source"
 
-	DockerPushSecretMountPath         = "/var/run/secrets/openshift.io/push"
-	DockerPullSecretMountPath         = "/var/run/secrets/openshift.io/pull"
-	ConfigMapBuildSourceBaseMountPath = "/var/run/configs/openshift.io/build"
-	SecretBuildSourceBaseMountPath    = "/var/run/secrets/openshift.io/build"
-	SourceImagePullSecretMountPath    = "/var/run/secrets/openshift.io/source-image"
+	DockerPushSecretMountPath            = "/var/run/secrets/openshift.io/push"
+	DockerPullSecretMountPath            = "/var/run/secrets/openshift.io/pull"
+	ConfigMapBuildSourceBaseMountPath    = "/var/run/configs/openshift.io/build"
+	ConfigMapBuildSystemConfigsMountPath = "/var/run/configs/openshift.io/build-system"
+	SecretBuildSourceBaseMountPath       = "/var/run/secrets/openshift.io/build"
+	SourceImagePullSecretMountPath       = "/var/run/secrets/openshift.io/source-image"
 
 	// ExtractImageContentContainer is the name of the container that will
 	// pull down input images and extract their content for input to the build.
@@ -40,6 +42,8 @@ const (
 	// build source repository and also handle binary input content.
 	GitCloneContainer = "git-clone"
 )
+
+var DaemonlessGraphRoot = storage.DefaultStoreOptions.GraphRoot
 
 const (
 	CustomBuild = "custom-build"
@@ -354,4 +358,90 @@ func copyEnvVarSlice(in []corev1.EnvVar) []corev1.EnvVar {
 	out := make([]corev1.EnvVar, len(in))
 	copy(out, in)
 	return out
+}
+
+// setupContainersConfigs sets up volumes for mounting the node's configuration which governs which
+// registries it knows about, whether or not they should be accessed with TLS, and signature policies.
+func setupContainersConfigs(pod *corev1.Pod, container *corev1.Container) {
+	configDir := ConfigMapBuildSystemConfigsMountPath
+	optional := true
+	volumeName := apihelpers.GetName("build-system-configs", "build", kvalidation.DNS1123LabelMaxLength)
+
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		corev1.Volume{
+			Name: volumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "build-system-configs",
+					},
+					Optional: &optional,
+				},
+			},
+		},
+	)
+
+	container.VolumeMounts = append(container.VolumeMounts,
+		corev1.VolumeMount{
+			Name:      volumeName,
+			MountPath: configDir,
+			ReadOnly:  true,
+		},
+	)
+
+	registriesConfPath := filepath.Join(configDir, "registries.conf")
+	registriesDirPath := filepath.Join(configDir, "registries.d")
+	signaturePolicyPath := filepath.Join(configDir, "signature-policy.json")
+	storageConfPath := filepath.Join(configDir, "storage.conf")
+
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_REGISTRIES_CONF_PATH", Value: registriesConfPath})
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_REGISTRIES_DIR_PATH", Value: registriesDirPath})
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_SIGNATURE_POLICY_PATH", Value: signaturePolicyPath})
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_STORAGE_CONF_PATH", Value: storageConfPath})
+}
+
+// setupContainersStorage creates a volume that we'll use for holding images and working
+// root filesystems for building images.
+func setupContainersStorage(pod *corev1.Pod, container *corev1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		corev1.Volume{
+			Name: "container-storage-root",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		corev1.VolumeMount{
+			Name:      "container-storage-root",
+			MountPath: storage.DefaultStoreOptions.GraphRoot,
+		},
+	)
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_STORAGE_DRIVER", Value: "vfs"})
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_ISOLATION", Value: "chroot"})
+}
+
+// setupContainersNodeStorage borrows the appropriate storage directories from the node so
+// that we can share layers that we're using with the node
+func setupContainersNodeStorage(pod *corev1.Pod, container *corev1.Container) {
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+		corev1.Volume{
+			Name: "node-storage-root",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: storage.DefaultStoreOptions.GraphRoot,
+				},
+			},
+		},
+	)
+	container.VolumeMounts = append(container.VolumeMounts,
+		// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+		corev1.VolumeMount{
+			Name:      "node-storage-root",
+			MountPath: storage.DefaultStoreOptions.GraphRoot,
+		},
+	)
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_STORAGE_DRIVER", Value: "overlay"})
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_ISOLATION", Value: "chroot"})
 }

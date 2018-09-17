@@ -35,7 +35,7 @@ func TestApplyLayerInvalidFilenames(t *testing.T) {
 			},
 		},
 	} {
-		if err := testBreakout("applylayer", "docker-TestApplyLayerInvalidFilenames", headers); err != nil {
+		if err := testBreakout("applylayer", "storage-TestApplyLayerInvalidFilenames", headers); err != nil {
 			t.Fatalf("i=%d. %v", i, err)
 		}
 	}
@@ -118,7 +118,7 @@ func TestApplyLayerInvalidHardlink(t *testing.T) {
 			},
 		},
 	} {
-		if err := testBreakout("applylayer", "docker-TestApplyLayerInvalidHardlink", headers); err != nil {
+		if err := testBreakout("applylayer", "storage-TestApplyLayerInvalidHardlink", headers); err != nil {
 			t.Fatalf("i=%d. %v", i, err)
 		}
 	}
@@ -201,7 +201,7 @@ func TestApplyLayerInvalidSymlink(t *testing.T) {
 			},
 		},
 	} {
-		if err := testBreakout("applylayer", "docker-TestApplyLayerInvalidSymlink", headers); err != nil {
+		if err := testBreakout("applylayer", "storage-TestApplyLayerInvalidSymlink", headers); err != nil {
 			t.Fatalf("i=%d. %v", i, err)
 		}
 	}

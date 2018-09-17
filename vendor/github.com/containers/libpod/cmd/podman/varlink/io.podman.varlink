@@ -1,0 +1,820 @@
+# Podman Service Interface and API description.  The master version of this document can be found
+# in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in the upstream libpod repository.
+interface io.podman
+
+
+# Version is the structure returned by GetVersion
+type Version (
+  version: string,
+  go_version: string,
+  git_commit: string,
+  built: int,
+  os_arch: string
+)
+
+type NotImplemented (
+    comment: string
+)
+
+type StringResponse (
+    message: string
+)
+# ContainerChanges describes the return struct for ListContainerChanges
+type ContainerChanges (
+   changed: []string,
+   added: []string,
+   deleted: []string
+)
+
+# ImageInList describes the structure that is returned in
+# ListImages.
+type ImageInList (
+  id: string,
+  parentId: string,
+  repoTags: []string,
+  repoDigests: []string,
+  created: string,
+  size: int,
+  virtualSize: int,
+  containers: int,
+  labels: [string]string
+)
+
+# ImageHistory describes the returned structure from ImageHistory.
+type ImageHistory (
+    id: string,
+    created: string,
+    createdBy: string,
+    tags: []string,
+    size: int,
+    comment: string
+)
+
+# ImageSearch is the returned structure for SearchImage.  It is returned
+# in array form.
+type ImageSearch (
+    description: string,
+    is_official: bool,
+    is_automated: bool,
+    name: string,
+    star_count: int
+)
+
+# ListContainer is the returned struct for an individual container
+type ListContainerData (
+    id: string,
+    image: string,
+    imageid: string,
+    command: []string,
+    createdat: string,
+    runningfor: string,
+    status: string,
+    ports: []ContainerPortMappings,
+    rootfssize: int,
+    rwsize: int,
+    names: string,
+    labels: [string]string,
+    mounts: []ContainerMount,
+    containerrunning: bool,
+    namespaces: ContainerNameSpace
+)
+
+# ContainerStats is the return struct for the stats of a container
+type ContainerStats (
+    id: string,
+    name: string,
+    cpu: float,
+    cpu_nano: int,
+    system_nano: int,
+    mem_usage: int,
+    mem_limit: int,
+    mem_perc: float,
+    net_input: int,
+    net_output: int,
+    block_output: int,
+    block_input: int,
+    pids: int
+)
+
+# ContainerMount describes the struct for mounts in a container
+type ContainerMount (
+    destination: string,
+    type: string,
+    source: string,
+    options: []string
+)
+
+# ContainerPortMappings describes the struct for portmappings in an existing container
+type ContainerPortMappings (
+    host_port: string,
+    host_ip: string,
+    protocol: string,
+    container_port: string
+)
+
+# ContainerNamespace describes the namespace structure for an existing container
+type ContainerNameSpace (
+    user: string,
+    uts: string,
+    pidns: string,
+    pid: string,
+    cgroup: string,
+    net: string,
+    mnt: string,
+    ipc: string
+)
+
+# InfoHost describes the host stats portion of PodmanInfo
+type InfoHost (
+    mem_free: int,
+    mem_total: int,
+    swap_free: int,
+    swap_total: int,
+    arch: string,
+    cpus: int,
+    hostname: string,
+    kernel: string,
+    os: string,
+    uptime: string
+)
+
+# InfoGraphStatus describes the detailed status of the storage driver
+type InfoGraphStatus (
+    backing_filesystem: string,
+    native_overlay_diff: string,
+    supports_d_type: string
+)
+
+# InfoStore describes the host's storage informatoin
+type InfoStore (
+    containers: int,
+    images: int,
+    graph_driver_name: string,
+    graph_driver_options: string,
+    graph_root: string,
+    graph_status: InfoGraphStatus,
+    run_root: string
+)
+
+# InfoPodman provides details on the podman binary
+type InfoPodmanBinary (
+    compiler: string,
+    go_version: string,
+    podman_version: string,
+    git_commit: string
+)
+
+# PodmanInfo describes the Podman host and build
+type PodmanInfo (
+    host: InfoHost,
+    registries: []string,
+    insecure_registries: []string,
+    store: InfoStore,
+    podman: InfoPodmanBinary
+)
+
+# Sockets describes sockets location for a container
+type Sockets(
+    container_id: string,
+    io_socket: string,
+    control_socket: string
+)
+
+# Create is an input structure for creating containers. It closely resembles the
+# CreateConfig structure in libpod/pkg/spec.
+type Create (
+    args: []string,
+    cap_add: []string,
+    cap_drop: []string,
+    conmon_pidfile: string,
+    cgroup_parent: string,
+    command: []string,
+    detach: bool,
+    devices: []string,
+    dns_opt: []string,
+    dns_search: []string,
+    dns_servers: []string,
+    entrypoint: []string,
+    env:  [string]string,
+    exposed_ports: []string,
+    gidmap: []string,
+    group_add: []string,
+    host_add: []string,
+    hostname: string,
+    image: string,
+    image_id: string,
+    builtin_imgvolumes: []string,
+    id_mappings: IDMappingOptions,
+    image_volume_type: string,
+    interactive: bool,
+    ipc_mode: string,
+    labels: [string]string,
+    log_driver: string,
+    log_driver_opt: []string,
+    name: string,
+    net_mode: string,
+    network: string,
+    pid_mode: string,
+    pod: string,
+    privileged: bool,
+    publish: []string,
+    publish_all: bool,
+    quiet: bool,
+    readonly_rootfs: bool,
+    resources: CreateResourceConfig,
+    rm: bool,
+    shm_dir: string,
+    stop_signal: int,
+    stop_timeout: int,
+    subuidmap: string,
+    subgidmap: string,
+    subuidname: string,
+    subgidname: string,
+    sys_ctl: [string]string,
+    tmpfs: []string,
+    tty: bool,
+    uidmap: []string,
+    userns_mode: string,
+    user: string,
+    uts_mode: string,
+    volumes: []string,
+    work_dir: string,
+    mount_label: string,
+    process_label: string,
+    no_new_privs: bool,
+    apparmor_profile: string,
+    seccomp_profile_path: string,
+    security_opts: []string
+)
+
+# CreateResourceConfig is an input structure used to describe host attributes during
+# container creation.  It is only valid inside a [Create](#Create) type.
+type CreateResourceConfig (
+    blkio_weight: int,
+    blkio_weight_device: []string,
+    cpu_period: int,
+    cpu_quota: int,
+    cpu_rt_period: int,
+    cpu_rt_runtime: int,
+    cpu_shares: int,
+    cpus: float,
+    cpuset_cpus: string,
+    cpuset_mems: string,
+    device_read_bps: []string,
+    device_read_iops: []string,
+    device_write_bps: []string,
+    device_write_iops: []string,
+    disable_oomkiller: bool,
+    kernel_memory: int,
+    memory: int,
+    memory_reservation: int,
+    memory_swap: int,
+    memory_swappiness: int,
+    oom_score_adj: int,
+    pids_limit: int,
+    shm_size: int,
+    ulimit: []string
+)
+
+# IDMappingOptions is an input structure used to described ids during container creation.
+type IDMappingOptions (
+    host_uid_mapping: bool,
+    host_gid_mapping: bool,
+    uid_map: IDMap,
+    gid_map: IDMap
+)
+
+# IDMap is used to describe user name spaces during container creation
+type IDMap (
+    container_id: int,
+    host_id: int,
+    size: int
+)
+
+# BuildInfo is used to describe user input for building images
+type BuildInfo (
+    # paths to one or more dockerfiles
+    dockerfile: []string,
+    tags: []string,
+    add_hosts: []string,
+    cgroup_parent: string,
+    cpu_period: int,
+    cpu_quota: int,
+    cpu_shares: int,
+    cpuset_cpus: string,
+    cpuset_mems: string,
+    memory: string,
+    memory_swap: string,
+    security_opts: []string,
+    shm_size: string,
+    ulimit: []string,
+    volume: []string,
+    squash: bool,
+    pull: bool,
+    pull_always: bool,
+    force_rm: bool,
+    rm: bool,
+    label: []string,
+    annotations: []string,
+    build_args: [string]string,
+    image_format: string
+)
+
+# BuildResponse is used to describe the responses for building images
+type BuildResponse (
+    logs: []string,
+    id: string
+)
+
+# ListPodContainerInfo is a returned struct for describing containers
+# in a pod.
+type ListPodContainerInfo (
+    name: string,
+    id: string,
+    status: string
+)
+
+# PodCreate is an input structure for creating pods.
+# It emulates options to podman pod create, however
+# changing pause image name and pause container
+# is not currently supported
+type PodCreate (
+    name: string,
+    cgroupParent: string,
+    labels: [string]string,
+    share: []string,
+    infra: bool
+)
+
+# ListPodData is the returned struct for an individual pod
+type ListPodData (
+    id: string,
+    name: string,
+    createdat: string,
+    cgroup: string,
+    status: string,
+    labels: [string]string,
+    numberofcontainers: string,
+    containersinfo: []ListPodContainerInfo
+)
+
+type PodContainerErrorData (
+    containerid: string,
+    reason: string
+)
+
+# Ping provides a response for developers to ensure their varlink setup is working.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.Ping
+# {
+#   "ping": {
+#     "message": "OK"
+#   }
+# }
+# ~~~
+method Ping() -> (ping: StringResponse)
+
+# GetVersion returns a Version structure describing the libpod setup on their
+# system.
+method GetVersion() -> (version: Version)
+
+# GetInfo returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
+# build information of Podman, and system-wide registries.
+method GetInfo() -> (info: PodmanInfo)
+
+# ListContainers returns a list of containers in no particular order.  There are
+# returned as an array of ListContainerData structs.  See also [GetContainer](#GetContainer).
+method ListContainers() -> (containers: []ListContainerData)
+
+# GetContainer takes a name or ID of a container and returns single ListContainerData
+# structure.  A [ContainerNotFound](#ContainerNotFound) error will be returned if the container cannot be found.
+# See also [ListContainers](ListContainers) and [InspectContainer](#InspectContainer).
+method GetContainer(name: string) -> (container: ListContainerData)
+
+# CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input. The minimum
+# input required for CreateContainer is an image name.  If the image name is not found, an [ImageNotFound](#ImageNotFound)
+# error will be returned.  Otherwise, the ID of the newly created container will be returned.
+# #### Example
+# ~~~
+# $ varlink call unix:/run/podman/io.podman/io.podman.CreateContainer '{"create": {"image": "alpine"}}'
+# {
+#   "container": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
+# }
+# ~~~
+method CreateContainer(create: Create) -> (container: string)
+
+# InspectContainer data takes a name or ID of a container returns the inspection
+# data in string format.  You can then serialize the string into JSON.  A [ContainerNotFound](#ContainerNotFound)
+# error will be returned if the container cannot be found. See also [InspectImage](#InspectImage).
+method InspectContainer(name: string) -> (container: string)
+
+# ListContainerProcesses takes a name or ID of a container and returns the processes
+# running inside the container as array of strings.  It will accept an array of string
+# arguments that represent ps options.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.ListContainerProcesses '{"name": "135d71b9495f", "opts": []}'
+# {
+#   "container": [
+#     "  UID   PID  PPID  C STIME TTY          TIME CMD",
+#     "    0 21220 21210  0 09:05 pts/0    00:00:00 /bin/sh",
+#     "    0 21232 21220  0 09:05 pts/0    00:00:00 top",
+#     "    0 21284 21220  0 09:05 pts/0    00:00:00 vi /etc/hosts"
+#   ]
+# }
+# ~~~
+method ListContainerProcesses(name: string, opts: []string) -> (container: []string)
+
+# GetContainerLogs takes a name or ID of a container and returns the logs of that container.
+# If the container cannot be found, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# The container logs are returned as an array of strings.  GetContainerLogs will honor the streaming
+# capability of varlink if the client invokes it.
+method GetContainerLogs(name: string) -> (container: []string)
+
+# ListContainerChanges takes a name or ID of a container and returns changes between the container and
+# its base image. It returns a struct of changed, deleted, and added path names.
+method ListContainerChanges(name: string) -> (container: ContainerChanges)
+
+# ExportContainer creates an image from a container.  It takes the name or ID of a container and a
+# path representing the target tarfile.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned.
+# The return value is the written tarfile.
+method ExportContainer(name: string, path: string) -> (tarfile: string)
+
+# GetContainerStats takes the name or ID of a container and returns a single ContainerStats structure which
+# contains attributes like memory and cpu usage.  If the container cannot be found, a
+# [ContainerNotFound](#ContainerNotFound) error will be returned. If the container is not running, a [NoContainerRunning](#NoContainerRunning)
+# error will be returned
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.GetContainerStats '{"name": "c33e4164f384"}'
+# {
+#   "container": {
+#     "block_input": 0,
+#     "block_output": 0,
+#     "cpu": 2.571123918839990154678e-08,
+#     "cpu_nano": 49037378,
+#     "id": "c33e4164f384aa9d979072a63319d66b74fd7a128be71fa68ede24f33ec6cfee",
+#     "mem_limit": 33080606720,
+#     "mem_perc": 2.166828456524753747370e-03,
+#     "mem_usage": 716800,
+#     "name": "competent_wozniak",
+#     "net_input": 768,
+#     "net_output": 5910,
+#     "pids": 1,
+#     "system_nano": 10000000
+#   }
+# }
+# ~~~
+method GetContainerStats(name: string) -> (container: ContainerStats)
+
+# This method has not be implemented yet.
+method ResizeContainerTty() -> (notimplemented: NotImplemented)
+
+# StartContainer starts a created or stopped container. It takes the name or ID of container.  It returns
+# the container ID once started.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned.  See also [CreateContainer](#CreateContainer).
+method StartContainer(name: string) -> (container: string)
+
+# StopContainer stops a container given a timeout.  It takes the name or ID of a container as well as a
+# timeout value.  The timeout value the time before a forcible stop to the container is applied.  It
+# returns the container ID once stopped. If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned instead. See also [KillContainer](KillContainer).
+# #### Error
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.StopContainer '{"name": "135d71b9495f", "timeout": 5}'
+# {
+#   "container": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
+# }
+# ~~~
+method StopContainer(name: string, timeout: int) -> (container: string)
+
+# RestartContainer will restart a running container given a container name or ID and timeout value. The timeout
+# value is the time before a forcible stop is used to stop the container.  If the container cannot be found by
+# name or ID, a [ContainerNotFound](#ContainerNotFound)  error will be returned; otherwise, the ID of the
+# container will be returned.
+method RestartContainer(name: string, timeout: int) -> (container: string)
+
+# KillContainer takes the name or ID of a container as well as a signal to be applied to the container.  Once the
+# container has been killed, the container's ID is returned.  If the container cannot be found, a
+# [ContainerNotFound](#ContainerNotFound) error is returned. See also [StopContainer](StopContainer).
+method KillContainer(name: string, signal: int) -> (container: string)
+
+# This method has not be implemented yet.
+method UpdateContainer() -> (notimplemented: NotImplemented)
+
+# This method has not be implemented yet.
+method RenameContainer() -> (notimplemented: NotImplemented)
+
+# PauseContainer takes the name or ID of container and pauses it.  If the container cannot be found,
+# a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
+# See also [UnpauseContainer](#UnpauseContainer).
+method PauseContainer(name: string) -> (container: string)
+
+# UnpauseContainer takes the name or ID of container and unpauses a paused container.  If the container cannot be
+# found, a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
+# See also [PauseContainer](#PauseContainer).
+method UnpauseContainer(name: string) -> (container: string)
+
+# This method has not be implemented yet.
+method AttachToContainer() -> (notimplemented: NotImplemented)
+
+# GetAttachSockets takes the name or ID of an existing container.  It returns file paths for two sockets needed
+# to properly communicate with a container.  The first is the actual I/O socket that the container uses.  The
+# second is a "control" socket where things like resizing the TTY events are sent. If the container cannot be
+# found, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/io.podman/io.podman.GetAttachSockets '{"name": "b7624e775431219161"}'
+# {
+#   "sockets": {
+#     "container_id": "b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca",
+#     "control_socket": "/var/lib/containers/storage/overlay-containers/b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca/userdata/ctl",
+#     "io_socket": "/var/run/libpod/socket/b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca/attach"
+#   }
+# }
+# ~~~
+method GetAttachSockets(name: string) -> (sockets: Sockets)
+
+# WaitContainer takes the name or ID of a container and waits until the container stops.  Upon stopping, the return
+# code of the container is returned. If the container container cannot be found by ID or name,
+# a [ContainerNotFound](#ContainerNotFound) error is returned.
+method WaitContainer(name: string) -> (exitcode: int)
+
+# RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
+# container can be stopped and removed.  Upon successful removal of the container, its ID is returned.  If the
+# container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
+# {
+#   "container": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
+# }
+# ~~~
+method RemoveContainer(name: string, force: bool) -> (container: string)
+
+# DeleteStoppedContainers will delete all containers that are not running. It will return a list the deleted
+# container IDs.  See also [RemoveContainer](RemoveContainer).
+method DeleteStoppedContainers() -> (containers: []string)
+
+# ListImages returns an array of ImageInList structures which provide basic information about
+# an image currently in storage.  See also [InspectImage](InspectImage).
+method ListImages() -> (images: []ImageInList)
+
+# GetImage returns a single image in an [ImageInList](#ImageInList) struct.  You must supply an image name as a string.
+# If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.
+method GetImage(name: string) -> (image: ImageInList)
+
+# BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
+# 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [BuildResponse](#BuildResponse) structure
+# that contains the build logs and resulting image ID.
+method BuildImage(build: BuildInfo) -> (image: BuildResponse)
+
+# This function is not implemented yet.
+method CreateImage() -> (notimplemented: NotImplemented)
+
+# InspectImage takes the name or ID of an image and returns a string respresentation of data associated with the
+#image.  You must serialize the string into JSON to use it further.  An [ImageNotFound](#ImageNotFound) error will
+# be returned if the image cannot be found.
+method InspectImage(name: string) -> (image: string)
+
+# HistoryImage takes the name or ID of an image and returns information about its history and layers.  The returned
+# history is in the form of an array of ImageHistory structures.  If the image cannot be found, an
+# [ImageNotFound](#ImageNotFound) error is returned.
+method HistoryImage(name: string) -> (history: []ImageHistory)
+
+# PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
+# and a boolean as to whether tls-verify should be used.  It will return an [ImageNotFound](#ImageNotFound) error if
+# the image cannot be found in local storage; otherwise the ID of the image will be returned on success.
+method PushImage(name: string, tag: string, tlsverify: bool) -> (image: string)
+
+# TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
+# be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
+method TagImage(name: string, tagged: string) -> (image: string)
+
+# RemoveImage takes the name or ID of an image as well as a boolean that determines if containers using that image
+# should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
+# ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
+# #### Example
+# ~~~
+# varlink call -m unix:/run/podman/io.podman/io.podman.RemoveImage '{"name": "registry.fedoraproject.org/fedora", "force": true}'
+# {
+#   "image": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
+# }
+# ~~~
+method RemoveImage(name: string, force: bool) -> (image: string)
+
+# SearchImage takes the string of an image name and a limit of searches from each registries to be returned.  SearchImage
+# will then use a glob-like match to find the image you are searching for.  The images are returned in an array of
+# ImageSearch structures which contain information about the image as well as its fully-qualified name.
+method SearchImage(name: string, limit: int) -> (images: []ImageSearch)
+
+# DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
+# in a string array.
+method DeleteUnusedImages() -> (images: []string)
+
+# Commit, creates an image from an existing container. It requires the name or
+# ID of the container as well as the resulting image name.  Optionally, you can define an author and message
+# to be added to the resulting image.  You can also define changes to the resulting image for the following
+# attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, ONBUILD, STOPSIGNAL, USER, VOLUME, and WORKDIR_.  To pause the
+# container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
+# be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
+# the resulting image's ID will be returned as a string.
+method Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) -> (image: string)
+
+# ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
+# descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
+method ImportImage(source: string, reference: string, message: string, changes: []string) -> (image: string)
+
+# ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
+# a booleon option to force compression.  It also takes in a string array of tags to be able to save multiple
+# tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
+# of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
+# error will be returned. See also [ImportImage](ImportImage).
+method ExportImage(name: string, destination: string, compress: bool, tags: []string) -> (image: string)
+
+# PullImage pulls an image from a repository to local storage.  After the pull is successful, the ID of the image
+# is returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.PullImage '{"name": "registry.fedoraproject.org/fedora"}'
+# {
+#   "id": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
+# }
+# ~~~
+method PullImage(name: string) -> (id: string)
+
+# CreatePod creates a new empty pod.  It uses a [PodCreate](#PodCreate) type for input.
+# On success, the ID of the newly created pod will be returned.
+# #### Example
+# ~~~
+# $ varlink call unix:/run/podman/io.podman/io.podman.CreatePod '{"create": {"name": "test"}}'
+# {
+#   "pod": "b05dee7bd4ccfee688099fe1588a7a898d6ddd6897de9251d4671c9b0feacb2a"
+# }
+#
+# $ varlink call unix:/run/podman/io.podman/io.podman.CreatePod '{"create": {"infra": true, "share": ["ipc", "net", "uts"]}}'
+# {
+#   "pod": "d7697449a8035f613c1a8891286502aca68fff7d5d49a85279b3bda229af3b28"
+# }
+# ~~~
+method CreatePod(create: PodCreate) -> (pod: string)
+
+# ListPods returns a list of pods in no particular order.  They are
+# returned as an array of ListPodData structs.  See also [GetPod](#GetPod).
+method ListPods() -> (pods: []ListPodData)
+
+# GetPod takes a name or ID of a pod and returns single [ListPodData](#ListPodData)
+# structure.  A [PodNotFound](#PodNotFound) error will be returned if the pod cannot be found.
+# See also [ListPods](ListPods).
+method GetPod(name: string) -> (pod: ListPodData)
+
+# InspectPod takes the name or ID of an image and returns a string respresentation of data associated with the
+# pod.  You must serialize the string into JSON to use it further.  A [PodNotFound](#PodNotFound) error will
+# be returned if the pod cannot be found.
+method InspectPod(name: string) -> (pod: string)
+
+# StartPod starts containers in a pod.  It takes the name or ID of pod.  If the pod cannot be found, a [PodNotFound](#PodNotFound)
+# error will be returned.  Containers in a pod are started independently. If there is an error starting one container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was started with no errors, the pod ID is returned.
+# See also [CreatePod](#CreatePod).
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.StartPod '{"name": "135d71b9495f"}'
+# {
+#   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6",
+# }
+# ~~~
+method StartPod(name: string) -> (pod: string)
+
+# StopPod stops containers in a pod.  It takes the name or ID of a pod.
+# If the pod cannot be found, a [PodNotFound](#PodNotFound) error will be returned instead.
+# Containers in a pod are stopped independently. If there is an error stopping one container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was stopped with no errors, the pod ID is returned.
+# See also [KillPod](KillPod).
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.StopPod '{"name": "135d71b9495f"}'
+# {
+#   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
+# }
+# ~~~
+method StopPod(name: string) -> (pod: string)
+
+# RestartPod will restart containers in a pod given a pod name or ID. Containers in
+# the pod that are running will be stopped, then all stopped containers will be run.
+# If the pod cannot be found by name or ID, a [PodNotFound](#PodNotFound) error will be returned.
+# Containers in a pod are restarted independently. If there is an error restarting one container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was restarted with no errors, the pod ID is returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.RestartPod '{"name": "135d71b9495f"}'
+# {
+#   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
+# }
+# ~~~
+method RestartPod(name: string) -> (pod: string)
+
+# KillPod takes the name or ID of a pod as well as a signal to be applied to the pod.  If the pod cannot be found, a
+# [PodNotFound](#PodNotFound) error is returned.
+# Containers in a pod are killed independently. If there is an error killing one container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was killed with no errors, the pod ID is returned.
+# See also [StopPod](StopPod).
+method KillPod(name: string, signal: int) -> (pod: string)
+
+# PausePod takes the name or ID of a pod and pauses the running containers associated with it.  If the pod cannot be found,
+# a [PodNotFound](#PodNotFound) error will be returned.
+# Containers in a pod are paused independently. If there is an error pausing one container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was paused with no errors, the pod ID is returned.
+# See also [UnpausePod](#UnpausePod).
+method PausePod(name: string) -> (pod: string)
+
+# UnpausePod takes the name or ID of a pod and unpauses the paused containers associated with it.  If the pod cannot be
+# found, a [PodNotFound](#PodNotFound) error will be returned.
+# Containers in a pod are unpaused independently. If there is an error unpausing one container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was unpaused with no errors, the pod ID is returned.
+# See also [PausePod](#PausePod).
+method UnpausePod(name: string) -> (pod: string)
+
+# RemovePod takes the name or ID of a pod as well a boolean representing whether a running
+# container in the pod can be stopped and removed.  If a pod has containers associated with it, and force is not true,
+# an error will occur.
+# If the pod cannot be found by name or ID, a [PodNotFound](#PodNotFound) error will be returned.
+# Containers in a pod are removed independently. If there is an error removing any container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was removed with no errors, the pod ID is returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.RemovePod '{"name": "62f4fd98cb57", "force": "true"}'
+# {
+#   "pod": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
+# }
+# ~~~
+method RemovePod(name: string, force: bool) -> (pod: string)
+
+# This method has not be implemented yet.
+method WaitPod() -> (notimplemented: NotImplemented)
+
+# This method has not been implemented yet.
+method TopPod() -> (notimplemented: NotImplemented)
+
+# GetPodStats takes the name or ID of a pod and returns a pod name and slice of ContainerStats structure which
+# contains attributes like memory and cpu usage.  If the pod cannot be found, a [PodNotFound](#PodNotFound)
+# error will be returned.  If the pod has no running containers associated with it, a [NoContainerRunning](#NoContainerRunning)
+# error will be returned.
+# #### Example
+# ~~~
+# $ varlink call unix:/run/podman/io.podman/io.podman.GetPodStats '{"name": "7f62b508b6f12b11d8fe02e"}'
+# {
+#   "containers": [
+#     {
+#       "block_input": 0,
+#       "block_output": 0,
+#       "cpu": 2.833470544016107524276e-08,
+#       "cpu_nano": 54363072,
+#       "id": "a64b51f805121fe2c5a3dc5112eb61d6ed139e3d1c99110360d08b58d48e4a93",
+#       "mem_limit": 12276146176,
+#       "mem_perc": 7.974359265237864966003e-03,
+#       "mem_usage": 978944,
+#       "name": "quirky_heisenberg",
+#       "net_input": 866,
+#       "net_output": 7388,
+#       "pids": 1,
+#       "system_nano": 20000000
+#     }
+#   ],
+#   "pod": "7f62b508b6f12b11d8fe02e0db4de6b9e43a7d7699b33a4fc0d574f6e82b4ebd"
+# }
+# ~~~
+method GetPodStats(name: string) -> (pod: string, containers: []ContainerStats)
+
+# ImageNotFound means the image could not be found by the provided name or ID in local storage.
+error ImageNotFound (name: string)
+
+# ContainerNotFound means the container could not be found by the provided name or ID in local storage.
+error ContainerNotFound (name: string)
+
+# NoContainerRunning means none of the containers requested are running in a command that requires a running container.
+error NoContainerRunning ()
+
+# PodNotFound means the pod could not be found by the provided name or ID in local storage.
+error PodNotFound (name: string)
+
+# PodContainerError means a container associated with a pod failed to preform an operation. It contains
+# a container ID of the container that failed.
+error PodContainerError (podname: string, errors: []PodContainerErrorData)
+
+# ErrorOccurred is a generic error for an error that occurs during the execution.  The actual error message
+# is includes as part of the error's text.
+error ErrorOccurred (reason: string)
+
+# RuntimeErrors generally means a runtime could not be found or gotten.
+error RuntimeError (reason: string)

@@ -10,8 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
-
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -20,9 +18,6 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		// convert the s2i failure cases to our own StatusReason
-		reasonAssembleFailed  = buildapi.StatusReason(s2istatus.ReasonAssembleFailed)
-		messageAssembleFailed = string(s2istatus.ReasonMessageAssembleFailed)
 		postCommitHookFixture = exutil.FixturePath("testdata", "builds", "statusfail-postcommithook.yaml")
 		fetchDockerSrc        = exutil.FixturePath("testdata", "builds", "statusfail-fetchsourcedocker.yaml")
 		fetchS2ISrc           = exutil.FixturePath("testdata", "builds", "statusfail-fetchsources2i.yaml")
@@ -226,8 +221,8 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 
 				build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(reasonAssembleFailed))
-				o.Expect(build.Status.Message).To(o.Equal(messageAssembleFailed))
+				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonGenericBuildFailed))
+				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageGenericBuildFailed))
 
 				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 			})

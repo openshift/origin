@@ -53,7 +53,6 @@ var (
 // DockerClient is an interface to the Docker client that contains
 // the methods used by the common builder
 type DockerClient interface {
-	AttachToContainerNonBlocking(opts docker.AttachToContainerOptions) (docker.CloseWaiter, error)
 	BuildImage(opts docker.BuildImageOptions) error
 	PushImage(opts docker.PushImageOptions, auth docker.AuthConfiguration) error
 	RemoveImage(name string) error
@@ -62,9 +61,6 @@ type DockerClient interface {
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
 	RemoveContainer(opts docker.RemoveContainerOptions) error
 	InspectImage(name string) (*docker.Image, error)
-	StartContainer(id string, hostConfig *docker.HostConfig) error
-	WaitContainer(id string) (int, error)
-	Logs(opts docker.LogsOptions) error
 	TagImage(name string, opts docker.TagImageOptions) error
 }
 
@@ -109,7 +105,7 @@ func RetryImageAction(client DockerClient, opts interface{}, authConfig docker.A
 	return fmt.Errorf("After retrying %d times, %s image still failed due to error: %v", DefaultPushOrPullRetryCount, actionName, err)
 }
 
-func pullImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
+func dockerPullImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
 	logProgress := func(s string) {
 		glog.V(0).Infof("%s", s)
 	}
@@ -144,7 +140,7 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 	return RetryImageAction(client, opts, authConfig)
 }
 
-// pushImage pushes a docker image to the registry specified in its tag.
+// dockerPushImage pushes a docker image to the registry specified in its tag.
 // The method will retry to push the image when following scenarios occur:
 // - Docker registry is down temporarily or permanently
 // - other image is being pushed to the registry
@@ -152,7 +148,7 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 //
 // Returns the digest of the docker image in the registry, or empty string in
 // case registry didn't send it or we failed to extract it.
-func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) (string, error) {
+func dockerPushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) (string, error) {
 	repository, tag := docker.ParseRepositoryTag(name)
 
 	var progressWriter io.Writer
@@ -183,8 +179,8 @@ func removeImage(client DockerClient, name string) error {
 	return client.RemoveImage(name)
 }
 
-// buildImage invokes a docker build on a particular directory
-func buildImage(client DockerClient, dir string, tar tar.Tar, opts *docker.BuildImageOptions) error {
+// dockerBuildImage invokes a docker build on a particular directory
+func dockerBuildImage(client DockerClient, dir string, tar tar.Tar, opts *docker.BuildImageOptions) error {
 	// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
 	if opts == nil {
 		return fmt.Errorf("%s", "build image options nil")
@@ -326,7 +322,7 @@ func tagImage(dockerClient DockerClient, image, name string) error {
 // dockerRun mimics the 'docker run --rm' CLI command. It uses the Docker Remote
 // API to create and start a container and stream its logs. The container is
 // removed after it terminates.
-func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, attachOpts docker.AttachToContainerOptions) error {
+func dockerRun(client *docker.Client, createOpts docker.CreateContainerOptions, attachOpts docker.AttachToContainerOptions) error {
 	// Create a new container.
 	// First strip any inlined proxy credentials from the *proxy* env variables,
 	// before logging the env variables.
@@ -526,7 +522,7 @@ func newDigestWriter() *digestWriter {
 
 // GetDockerClient returns a valid Docker client, the address of the client, or an error
 // if the client couldn't be created.
-func GetDockerClient() (client *docker.Client, endpoint string, err error) {
+func GetDockerClient() (client DockerClient, endpoint string, err error) {
 	client, err = docker.NewClientFromEnv()
 	if len(os.Getenv("DOCKER_HOST")) > 0 {
 		endpoint = os.Getenv("DOCKER_HOST")

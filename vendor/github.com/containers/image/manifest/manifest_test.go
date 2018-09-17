@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/containers/image/types"
 	"github.com/docker/libtrust"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -122,4 +123,87 @@ func TestAddDummyV2S1Signature(t *testing.T) {
 
 	_, err = AddDummyV2S1Signature([]byte("}this is invalid JSON"))
 	assert.Error(t, err)
+}
+
+func TestMIMETypeIsMultiImage(t *testing.T) {
+	for _, c := range []struct {
+		mt       string
+		expected bool
+	}{
+		{DockerV2ListMediaType, true},
+		{DockerV2Schema1MediaType, false},
+		{DockerV2Schema1SignedMediaType, false},
+		{DockerV2Schema2MediaType, false},
+	} {
+		res := MIMETypeIsMultiImage(c.mt)
+		assert.Equal(t, c.expected, res, c.mt)
+	}
+}
+
+func TestNormalizedMIMEType(t *testing.T) {
+	for _, c := range []string{ // Valid MIME types, normalized to themselves
+		DockerV2Schema1MediaType,
+		DockerV2Schema1SignedMediaType,
+		DockerV2Schema2MediaType,
+		DockerV2ListMediaType,
+		imgspecv1.MediaTypeImageManifest,
+	} {
+		res := NormalizedMIMEType(c)
+		assert.Equal(t, c, res, c)
+	}
+	for _, c := range []string{
+		"application/json",
+		"text/plain",
+		"not at all a valid MIME type",
+		"",
+	} {
+		res := NormalizedMIMEType(c)
+		assert.Equal(t, DockerV2Schema1SignedMediaType, res, c)
+	}
+}
+
+func TestLayerInfosToStrings(t *testing.T) {
+	strings := layerInfosToStrings([]LayerInfo{})
+	assert.Equal(t, []string{}, strings)
+
+	strings = layerInfosToStrings([]LayerInfo{
+		{
+			BlobInfo: types.BlobInfo{
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+				Digest:    "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4",
+				Size:      32,
+			},
+			EmptyLayer: true,
+		},
+		{
+			BlobInfo: types.BlobInfo{
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+				Digest:    "sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
+				Size:      8841833,
+			},
+			EmptyLayer: false,
+		},
+		{
+			BlobInfo: types.BlobInfo{
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+				Digest:    "sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
+				Size:      291,
+			},
+			EmptyLayer: false,
+		},
+		{
+			BlobInfo: types.BlobInfo{
+				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+				Digest:    "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4",
+				Size:      32,
+			},
+			EmptyLayer: true,
+		},
+	})
+	assert.Equal(t, []string{
+		"sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4",
+		"sha256:bbd6b22eb11afce63cc76f6bc41042d99f10d6024c96b655dafba930b8d25909",
+		"sha256:960e52ecf8200cbd84e70eb2ad8678f4367e50d14357021872c10fa3fc5935fa",
+		"sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4",
+	}, strings)
 }

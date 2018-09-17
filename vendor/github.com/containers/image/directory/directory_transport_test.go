@@ -1,11 +1,13 @@
 package directory
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
+	_ "github.com/containers/image/internal/testing/explicitfilepath-tmpdir"
 	"github.com/containers/image/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -130,14 +132,14 @@ func TestReferencePolicyConfigurationNamespaces(t *testing.T) {
 	// It would be nice to test a deeper hierarchy, but it is not obvious what
 	// deeper path is always available in the various distros, AND is not likely
 	// to contains a symbolic link.
-	for _, path := range []string{"/etc/skel", "/etc/skel/./."} {
+	for _, path := range []string{"/usr/share", "/usr/share/./."} {
 		_, err := os.Lstat(path)
 		require.NoError(t, err)
 		ref, err := NewReference(path)
 		require.NoError(t, err)
 		ns := ref.PolicyConfigurationNamespaces()
 		require.NotNil(t, ns)
-		assert.Equal(t, []string{"/etc"}, ns)
+		assert.Equal(t, []string{"/usr"}, ns)
 	}
 
 	// "/" as a corner case.
@@ -150,17 +152,17 @@ func TestReferenceNewImage(t *testing.T) {
 	ref, tmpDir := refToTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
-	dest, err := ref.NewImageDestination(nil)
+	dest, err := ref.NewImageDestination(context.Background(), nil)
 	require.NoError(t, err)
 	defer dest.Close()
 	mFixture, err := ioutil.ReadFile("../manifest/fixtures/v2s1.manifest.json")
 	require.NoError(t, err)
-	err = dest.PutManifest(mFixture)
+	err = dest.PutManifest(context.Background(), mFixture)
 	assert.NoError(t, err)
-	err = dest.Commit()
+	err = dest.Commit(context.Background())
 	assert.NoError(t, err)
 
-	img, err := ref.NewImage(nil)
+	img, err := ref.NewImage(context.Background(), nil)
 	assert.NoError(t, err)
 	defer img.Close()
 }
@@ -169,22 +171,22 @@ func TestReferenceNewImageNoValidManifest(t *testing.T) {
 	ref, tmpDir := refToTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
-	dest, err := ref.NewImageDestination(nil)
+	dest, err := ref.NewImageDestination(context.Background(), nil)
 	require.NoError(t, err)
 	defer dest.Close()
-	err = dest.PutManifest([]byte(`{"schemaVersion":1}`))
+	err = dest.PutManifest(context.Background(), []byte(`{"schemaVersion":1}`))
 	assert.NoError(t, err)
-	err = dest.Commit()
+	err = dest.Commit(context.Background())
 	assert.NoError(t, err)
 
-	_, err = ref.NewImage(nil)
+	_, err = ref.NewImage(context.Background(), nil)
 	assert.Error(t, err)
 }
 
 func TestReferenceNewImageSource(t *testing.T) {
 	ref, tmpDir := refToTempDir(t)
 	defer os.RemoveAll(tmpDir)
-	src, err := ref.NewImageSource(nil, nil)
+	src, err := ref.NewImageSource(context.Background(), nil)
 	assert.NoError(t, err)
 	defer src.Close()
 }
@@ -192,7 +194,7 @@ func TestReferenceNewImageSource(t *testing.T) {
 func TestReferenceNewImageDestination(t *testing.T) {
 	ref, tmpDir := refToTempDir(t)
 	defer os.RemoveAll(tmpDir)
-	dest, err := ref.NewImageDestination(nil)
+	dest, err := ref.NewImageDestination(context.Background(), nil)
 	assert.NoError(t, err)
 	defer dest.Close()
 }
@@ -200,7 +202,7 @@ func TestReferenceNewImageDestination(t *testing.T) {
 func TestReferenceDeleteImage(t *testing.T) {
 	ref, tmpDir := refToTempDir(t)
 	defer os.RemoveAll(tmpDir)
-	err := ref.DeleteImage(nil)
+	err := ref.DeleteImage(context.Background(), nil)
 	assert.Error(t, err)
 }
 
@@ -219,7 +221,7 @@ func TestReferenceLayerPath(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 	dirRef, ok := ref.(dirReference)
 	require.True(t, ok)
-	assert.Equal(t, tmpDir+"/"+hex+".tar", dirRef.layerPath("sha256:"+hex))
+	assert.Equal(t, tmpDir+"/"+hex, dirRef.layerPath("sha256:"+hex))
 }
 
 func TestReferenceSignaturePath(t *testing.T) {
@@ -229,4 +231,12 @@ func TestReferenceSignaturePath(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, tmpDir+"/signature-1", dirRef.signaturePath(0))
 	assert.Equal(t, tmpDir+"/signature-10", dirRef.signaturePath(9))
+}
+
+func TestReferenceVersionPath(t *testing.T) {
+	ref, tmpDir := refToTempDir(t)
+	defer os.RemoveAll(tmpDir)
+	dirRef, ok := ref.(dirReference)
+	require.True(t, ok)
+	assert.Equal(t, tmpDir+"/version", dirRef.versionPath())
 }

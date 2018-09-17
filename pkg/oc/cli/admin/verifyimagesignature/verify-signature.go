@@ -278,7 +278,7 @@ func (o *VerifyImageSignatureOptions) verifySignature(pc *signature.PolicyContex
 	if err != nil {
 		return "", fmt.Errorf("failed to get image %q manifest: %v", img.Name, err)
 	}
-	allowed, err := pc.IsRunningImageAllowed(newUnparsedImage(o.ExpectedIdentity, sigBlob, manifest))
+	allowed, err := pc.IsRunningImageAllowed(context.TODO(), newUnparsedImage(o.ExpectedIdentity, sigBlob, manifest))
 	if !allowed && err == nil {
 		return "", errors.New("signature rejected but no error set")
 	}
@@ -394,16 +394,16 @@ func (ref dummyDockerReference) PolicyConfigurationNamespaces() []string {
 	return policyconfiguration.DockerReferenceNamespaces(ref.ref)
 }
 
-func (ref dummyDockerReference) NewImage(ctx *sigtypes.SystemContext) (sigtypes.Image, error) {
+func (ref dummyDockerReference) NewImage(ctx context.Context, sctx *sigtypes.SystemContext) (sigtypes.ImageCloser, error) {
 	panic("Unimplemented")
 }
-func (ref dummyDockerReference) NewImageSource(ctx *sigtypes.SystemContext, requestedManifestMIMETypes []string) (sigtypes.ImageSource, error) {
+func (ref dummyDockerReference) NewImageSource(ctx context.Context, sctx *sigtypes.SystemContext) (sigtypes.ImageSource, error) {
 	panic("Unimplemented")
 }
-func (ref dummyDockerReference) NewImageDestination(ctx *sigtypes.SystemContext) (sigtypes.ImageDestination, error) {
+func (ref dummyDockerReference) NewImageDestination(ctx context.Context, sctx *sigtypes.SystemContext) (sigtypes.ImageDestination, error) {
 	panic("Unimplemented")
 }
-func (ref dummyDockerReference) DeleteImage(ctx *sigtypes.SystemContext) error {
+func (ref dummyDockerReference) DeleteImage(ctx context.Context, sctx *sigtypes.SystemContext) error {
 	panic("Unimplemented")
 }
 
@@ -433,7 +433,7 @@ func (ui *unparsedImage) Close() error {
 }
 
 // Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
-func (ui *unparsedImage) Manifest() ([]byte, string, error) {
+func (ui *unparsedImage) Manifest(context.Context) ([]byte, string, error) {
 	return ui.manifest, "", nil
 }
 

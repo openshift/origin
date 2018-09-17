@@ -64,8 +64,8 @@ import:
   repo:    https://github.com/openshift/onsi-ginkgo.git
   version: release-v1.2.0
 - package: github.com/containers/image
-  repo:    https://github.com/openshift/containers-image.git
-  version: openshift-3.8
+  repo:    https://github.com/nalind/image
+  version: ip-registry
 # pod - sjenning
 # origin-3.11-runc-871ba2e
 - package: github.com/opencontainers/runc
@@ -82,8 +82,8 @@ import:
   version: openshift-3.10-docker-edc3ab2
 # close-write carry
 - package: github.com/docker/docker
-  repo:    https://github.com/openshift/moby-moby.git
-  version: openshift-3.10-docker-b68221c
+  repo:    https://github.com/nalind/docker.git
+  version: b68221c37e+SIGUNUSED
 
 # ours: shared with kube, but forced by openshift
 # master
@@ -132,6 +132,9 @@ import:
 # pinned to the level that kubernetes uses.  Not sure why glide isn't matching this
 - package: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+# we need some of the newer constants
+- package: golang.org/x/sys
+  version: master
 
 # mine: specific to openshift
 # networking
@@ -191,6 +194,12 @@ import:
 # etcd pins a very old version that has contention issues
 - package: github.com/google/btree
   version: master
+# builds
+- package: github.com/projectatomic/buildah
+  version: master
+# new enough to know how to disable itself when cross-compiling
+- package: github.com/opencontainers/selinux
+  version: b6fa367ed7f534f9ba25391cc2d467085dbb445a
 
 # why do we have this?
 - package: google.golang.org/appengine
@@ -209,4 +218,4 @@ import:
 # yours that I suspect aren't pinning because vendor.conf is respected
 # yours: containers/image.  No idea why this isn't self-pinning.
 - package: github.com/containers/storage
-  version: 47536c89fcc545a87745e1a1573addc439409165
+  version: master

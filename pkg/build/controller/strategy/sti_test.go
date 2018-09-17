@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -88,7 +89,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 
 	// strategy ENV variables are whitelisted(filtered) into the container environment, and not all
 	// the values are allowed, so don't expect to see the filtered values in the result.
-	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
+	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": "", "BUILD_REGISTRIES_CONF_PATH": "", "BUILD_REGISTRIES_DIR_PATH": "", "BUILD_SIGNATURE_POLICY_PATH": "", "BUILD_STORAGE_CONF_PATH": "", "BUILD_STORAGE_DRIVER": "", "BUILD_ISOLATION": ""}
 	if !rootAllowed {
 		expectedKeys["ALLOWED_UIDS"] = ""
 		expectedKeys["DROP_CAPS"] = ""
@@ -105,7 +106,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if len(container.VolumeMounts) != 7 {
 		t.Fatalf("Expected 7 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, "/var/run/crio/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath} {
+	for i, expected := range []string{buildutil.BuildWorkDirMount, DockerPushSecretMountPath, DockerPullSecretMountPath, filepath.Join(SecretBuildSourceBaseMountPath, "secret"), filepath.Join(ConfigMapBuildSourceBaseMountPath, "configmap"), ConfigMapBuildSystemConfigsMountPath, DaemonlessGraphRoot} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}

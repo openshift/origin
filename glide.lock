@@ -1,5 +1,5 @@
-hash: 7a5b382ed6ecdedf7804c015b92ddfde3a8ba0d76b6ecb2780f63cb12bed72e8
-updated: 2018-08-30T14:58:17.700952+02:00
+hash: 28983ff1359017a4364eb6c5fd13e6a748fa5e011e893de3e4e19687915a4d03
+updated: 2018-09-14T13:32:17.765182901-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -95,6 +95,8 @@ imports:
   - quantile
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
+- name: github.com/BurntSushi/toml
+  version: 3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005
 - name: github.com/certifi/gocertifi
   version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/chai2010/gettext-go
@@ -164,23 +166,83 @@ imports:
   - pkg/ns
   - pkg/utils/hwaddr
 - name: github.com/containers/image
-  version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
-  repo: https://github.com/openshift/containers-image.git
+  version: b71bf1684764e8636b8c41b5bd543c0473ea4a36
+  repo: https://github.com/nalind/image
   subpackages:
+  - copy
+  - directory
+  - directory/explicitfilepath
   - docker
+  - docker/archive
+  - docker/daemon
   - docker/policyconfiguration
   - docker/reference
+  - docker/tarfile
   - image
+  - internal/tmpdir
   - manifest
+  - oci/archive
+  - oci/internal
+  - oci/layout
+  - openshift
+  - ostree
+  - pkg/compression
+  - pkg/docker/config
   - pkg/strslice
+  - pkg/sysregistries
+  - pkg/sysregistriesv2
+  - pkg/tlsclientconfig
   - signature
+  - storage
+  - tarball
   - transports
+  - transports/alltransports
   - types
   - version
-- name: github.com/containers/storage
-  version: 47536c89fcc545a87745e1a1573addc439409165
+- name: github.com/containers/libpod
+  version: 2188d8f7ada15caddd8b721745a0a4b6f61ce111
   subpackages:
+  - pkg/chrootuser
+  - pkg/rootless
+  - pkg/secrets
+- name: github.com/containers/storage
+  version: 02db7cbb0bb082681f9855131fec8c8e1a3f4cb6
+  subpackages:
+  - drivers
+  - drivers/aufs
+  - drivers/btrfs
+  - drivers/devmapper
+  - drivers/overlay
+  - drivers/overlayutils
+  - drivers/quota
+  - drivers/register
+  - drivers/vfs
+  - drivers/windows
+  - drivers/zfs
+  - pkg/archive
+  - pkg/chrootarchive
+  - pkg/devicemapper
+  - pkg/directory
+  - pkg/dmesg
+  - pkg/fileutils
+  - pkg/fsutils
   - pkg/homedir
+  - pkg/idtools
+  - pkg/ioutils
+  - pkg/locker
+  - pkg/longpath
+  - pkg/loopback
+  - pkg/mount
+  - pkg/ostree
+  - pkg/parsers
+  - pkg/parsers/kernel
+  - pkg/pools
+  - pkg/promise
+  - pkg/reexec
+  - pkg/stringid
+  - pkg/stringutils
+  - pkg/system
+  - pkg/truncindex
 - name: github.com/coreos/bbolt
   version: 32c383e75ce054674c53b5a07e55de85332aee14
 - name: github.com/coreos/etcd
@@ -322,8 +384,8 @@ imports:
   - registry/storage/cache/memory
   - uuid
 - name: github.com/docker/docker
-  version: fcdab531a6d9b133eaa3f2a3f6c11fd02a97de75
-  repo: https://github.com/openshift/moby-moby.git
+  version: 095e6c40a62271add3e6e9d4079c448dcfc28296
+  repo: https://github.com/nalind/docker.git
   subpackages:
   - api
   - api/types
@@ -359,12 +421,18 @@ imports:
   - pkg/parsers/operatingsystem
   - pkg/pools
   - pkg/promise
+  - pkg/signal
   - pkg/stdcopy
   - pkg/sysinfo
   - pkg/system
   - pkg/term
   - pkg/term/windows
   - pkg/tlsconfig
+- name: github.com/docker/docker-credential-helpers
+  version: 73e5f5dbfea31ee3b81111ebbf189785fa69731c
+  subpackages:
+  - client
+  - credentials
 - name: github.com/docker/go-connections
   version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
   subpackages:
@@ -385,6 +453,8 @@ imports:
   - spdy
 - name: github.com/elazarl/go-bindata-assetfs
   version: 3dcc96556217539f50599357fb481ac0dc7439b9
+- name: github.com/elazarl/goproxy
+  version: c4fc26588b6ef8af07a191fcb6476387bdd46711
 - name: github.com/emicklei/go-restful
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
@@ -630,6 +700,10 @@ imports:
   - runtime
   - runtime/internal
   - utilities
+- name: github.com/hashicorp/errwrap
+  version: 7554cd9344cec97297fa6649b055a8c98c2a1e55
+- name: github.com/hashicorp/go-multierror
+  version: ed905158d87462226a13fe39ddf685ea65f1c11f
 - name: github.com/hashicorp/golang-lru
   version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
   subpackages:
@@ -715,6 +789,9 @@ imports:
   - pbutil
 - name: github.com/Microsoft/go-winio
   version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
+  subpackages:
+  - archive/tar
+  - backuptar
 - name: github.com/Microsoft/hcsshim
   version: 800683ae704ac360b2f3f47fa88f3a6c8c9091b5
 - name: github.com/miekg/dns
@@ -813,8 +890,17 @@ imports:
   version: 02137cd4e50b37a01665e1731fcd4ac2d2178230
   subpackages:
   - specs-go
+- name: github.com/opencontainers/runtime-tools
+  version: d0b00639c292e5296c4b1b3937e14c107fd1be37
+  subpackages:
+  - error
+  - filepath
+  - generate
+  - generate/seccomp
+  - specerror
+  - validate
 - name: github.com/opencontainers/selinux
-  version: 4a2974bf1ee960774ffd517717f1f45325af0206
+  version: b6fa367ed7f534f9ba25391cc2d467085dbb445a
   subpackages:
   - go-selinux
   - go-selinux/label
@@ -1027,6 +1113,11 @@ imports:
   - pkg/util/interrupt
   - pkg/util/status
   - pkg/util/user
+- name: github.com/ostreedev/ostree-go
+  version: 9bcc2bb25a57c9cb5e2f54f8fd6b658008d39e70
+  subpackages:
+  - pkg/glibobject
+  - pkg/otbuiltin
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/pelletier/go-toml
@@ -1047,6 +1138,20 @@ imports:
   version: 0dec1b30a0215bb68605dfc568e8855066c9202d
   subpackages:
   - cacheobject
+- name: github.com/pquerna/ffjson
+  version: af8b230fcd2007c7095168ca8ab94c68b60840c6
+  subpackages:
+  - fflib/v1
+  - fflib/v1/internal
+- name: github.com/projectatomic/buildah
+  version: 6573a81a383df698ec423b994b000ef850809137
+  subpackages:
+  - bind
+  - chroot
+  - docker
+  - imagebuildah
+  - unshare
+  - util
 - name: github.com/prometheus/client_golang
   version: e7e903064f5e9eb5da98208bae10b475d4db0f8c
   subpackages:
@@ -1092,6 +1197,8 @@ imports:
   version: 300106c228d52c8941d4b3de6054a6062a86dda3
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/seccomp/containers-golang
+  version: cdfdaa7543f425678b2f4902a38f2f60994c5bb9
 - name: github.com/seccomp/libseccomp-golang
   version: 1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1
 - name: github.com/shurcooL/sanitized_anchor_name
@@ -1140,10 +1247,26 @@ imports:
   version: e7cb7fa329f456b3855136a2642b197bad7366ba
   subpackages:
   - capability
+- name: github.com/tchap/go-patricia
+  version: 5ad6cdb7538b0097d5598c7e57f0a24072adf7dc
+  subpackages:
+  - patricia
 - name: github.com/ugorji/go
   version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
   subpackages:
   - codec
+- name: github.com/ulikunitz/xz
+  version: 636d36a76670e6c700f22fd5f4588679ff2896c4
+  subpackages:
+  - internal/hash
+  - internal/xlog
+  - lzma
+- name: github.com/vbatts/tar-split
+  version: 61b49a82bb343c846b8dd388c20187c7b3f3c7b5
+  subpackages:
+  - archive/tar
+  - tar/asm
+  - tar/storage
 - name: github.com/vishvananda/netlink
   version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
   subpackages:
@@ -1195,6 +1318,12 @@ imports:
   version: 1e2cbf647e57fa90353612074fdfc42faf5073bf
   subpackages:
   - cloudstack
+- name: github.com/xeipuuv/gojsonpointer
+  version: 6fe8760cad3569743d51ddbb243b26f8456742dc
+- name: github.com/xeipuuv/gojsonreference
+  version: e02fc20de94c78484cd5ffb007f8af96be030a45
+- name: github.com/xeipuuv/gojsonschema
+  version: 0c8571ac0ce161a5feb57375a9cdf148c98c0f70
 - name: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: go4.org
@@ -1260,7 +1389,7 @@ imports:
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: 95c6576299259db960f6c5b9b69ea52422860fce
+  version: d0be0721c37eeb5299f245a996a483160fc36940
   subpackages:
   - unix
   - windows
@@ -1349,6 +1478,8 @@ imports:
   - transport
 - name: gopkg.in/asn1-ber.v1
   version: 379148ca0225df7a432012b8df0355c2a2063ac0
+- name: gopkg.in/cheggaaa/pb.v1
+  version: 226d21d43a305fac52b3a104ef83e721b15275e0
 - name: gopkg.in/gcfg.v1
   version: 27e4946190b4a327b539185f2b5b1f7c84730728
   subpackages:

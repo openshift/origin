@@ -1,6 +1,7 @@
 package openshift
 
 import (
+	"context"
 	"testing"
 
 	"github.com/containers/image/docker/reference"
@@ -120,6 +121,6 @@ func TestReferencePolicyConfigurationNamespaces(t *testing.T) {
 func TestReferenceDeleteImage(t *testing.T) {
 	ref, err := ParseReference("registry.example.com:8443/ns/stream:notlatest")
 	require.NoError(t, err)
-	err = ref.DeleteImage(nil)
+	err = ref.DeleteImage(context.Background(), nil)
 	assert.Error(t, err)
 }

@@ -61,10 +61,13 @@ func (ref refImageMock) Reference() types.ImageReference {
 func (ref refImageMock) Close() error {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageMock) Manifest() ([]byte, string, error) {
+func (ref refImageMock) Manifest(ctx context.Context) ([]byte, string, error) {
 	panic("unexpected call to a mock function")
 }
 func (ref refImageMock) Signatures(context.Context) ([][]byte, error) {
+	panic("unexpected call to a mock function")
+}
+func (ref refImageMock) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	panic("unexpected call to a mock function")
 }
 
@@ -94,16 +97,16 @@ func (ref refImageReferenceMock) PolicyConfigurationIdentity() string {
 func (ref refImageReferenceMock) PolicyConfigurationNamespaces() []string {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageReferenceMock) NewImage(ctx *types.SystemContext) (types.Image, error) {
+func (ref refImageReferenceMock) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageReferenceMock) NewImageSource(ctx *types.SystemContext, requestedManifestMIMETypes []string) (types.ImageSource, error) {
+func (ref refImageReferenceMock) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageReferenceMock) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
+func (ref refImageReferenceMock) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
 	panic("unexpected call to a mock function")
 }
-func (ref refImageReferenceMock) DeleteImage(ctx *types.SystemContext) error {
+func (ref refImageReferenceMock) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	panic("unexpected call to a mock function")
 }
 
@@ -326,10 +329,13 @@ func (ref forbiddenImageMock) Reference() types.ImageReference {
 func (ref forbiddenImageMock) Close() error {
 	panic("unexpected call to a mock function")
 }
-func (ref forbiddenImageMock) Manifest() ([]byte, string, error) {
+func (ref forbiddenImageMock) Manifest(ctx context.Context) ([]byte, string, error) {
 	panic("unexpected call to a mock function")
 }
 func (ref forbiddenImageMock) Signatures(context.Context) ([][]byte, error) {
+	panic("unexpected call to a mock function")
+}
+func (ref forbiddenImageMock) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	panic("unexpected call to a mock function")
 }
 
