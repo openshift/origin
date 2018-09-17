@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/user"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -210,15 +209,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 
 	glog.Info("Create initial config content...")
 	err = (&pivot.KubeAPIServerContent{InstallContext: installContext}).Install(c.GetDockerClient())
-	if err != nil {
-		return err
-	}
-
-	// bootstrap the service-ca operator with the legacy service-signer.crt and key.
-	err = createServiceCASigningSecret(clientConfig,
-		path.Join(c.BaseDir, "openshift-apiserver", "service-signer.crt"),
-		path.Join(c.BaseDir, "openshift-apiserver", "service-signer.key"),
-	)
 	if err != nil {
 		return err
 	}

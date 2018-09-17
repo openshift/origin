@@ -1,0 +1,14 @@
+{
+  "apiVersion": "openshiftcontrolplane.config.openshift.io/v1",
+  "kind": "OpenShiftAPIServerConfig",
+  "servingInfo": {
+    "certFile": "/var/serving-cert/tls.crt",
+    "keyFile": "/var/serving-cert/tls.key",
+    "clientCA": "ca.crt"
+  },
+  "storageConfig": {
+    "ca": "ca.crt",
+    "certFile": "master.etcd-client.crt",
+    "keyFile": "master.etcd-client.key"
+  }
+}

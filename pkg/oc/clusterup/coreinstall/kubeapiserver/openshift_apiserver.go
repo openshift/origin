@@ -1,12 +1,14 @@
 package kubeapiserver
 
 import (
+	"io/ioutil"
+	"os"
 	"path"
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/tmpformac"
+	"github.com/openshift/origin/pkg/oc/clusterup/manifests"
 )
 
 func MakeOpenShiftAPIServerConfig(existingMasterConfig string, basedir string) (string, error) {
@@ -16,23 +18,12 @@ func MakeOpenShiftAPIServerConfig(existingMasterConfig string, basedir string) (
 	if err != nil {
 		return "", err
 	}
-
-	// update some listen information to include starting the DNS server
-	masterconfigFilename := path.Join(configDir, "master-config.yaml")
-	masterconfig, err := componentinstall.ReadMasterConfig(masterconfigFilename)
-	if err != nil {
+	if err := os.Remove(path.Join(configDir, "master-config.yaml")); err != nil {
 		return "", err
 	}
 
-	masterconfig.ServingInfo.BindAddress = "0.0.0.0:8445"
-
-	// use the generated service serving cert
-	masterconfig.ServingInfo.CertFile = "/var/serving-cert/tls.crt"
-	masterconfig.ServingInfo.KeyFile = "/var/serving-cert/tls.key"
-
-	addImagePolicyAdmission(&masterconfig.AdmissionConfig)
-
-	if err := componentinstall.WriteMasterConfig(masterconfigFilename, masterconfig); err != nil {
+	masterConfigFilename := path.Join(configDir, "config.json")
+	if err := ioutil.WriteFile(masterConfigFilename, manifests.MustAsset("install/openshift-apiserver/static-config.json"), 0644); err != nil {
 		return "", err
 	}
 

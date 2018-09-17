@@ -41,7 +41,7 @@ func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAP
 	if config.AuthConfig.RequestHeader == nil {
 		config.AuthConfig.RequestHeader = &kubecontrolplanev1.RequestHeaderAuthenticationOptions{}
 		configdefaults.DefaultStringSlice(&config.AuthConfig.RequestHeader.ClientCommonNames, []string{"system:openshift-aggregator"})
-		configdefaults.DefaultString(&config.AuthConfig.RequestHeader.ClientCA, "/var/run/secrets/aggregator-client-ca/ca-bundle.crt")
+		configdefaults.DefaultString(&config.AuthConfig.RequestHeader.ClientCA, "/var/run/configmaps/aggregator-client-ca/ca-bundle.crt")
 		configdefaults.DefaultStringSlice(&config.AuthConfig.RequestHeader.UsernameHeaders, []string{"X-Remote-User"})
 		configdefaults.DefaultStringSlice(&config.AuthConfig.RequestHeader.GroupHeaders, []string{"X-Remote-Group"})
 		configdefaults.DefaultStringSlice(&config.AuthConfig.RequestHeader.ExtraHeaderPrefixes, []string{"X-Remote-Extra-"})

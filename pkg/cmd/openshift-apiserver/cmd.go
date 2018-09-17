@@ -19,7 +19,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configv1 "github.com/openshift/api/config/v1"
-	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
@@ -110,7 +109,7 @@ func (o *OpenShiftAPIServer) RunAPIServer() error {
 		return err
 	}
 	scheme := runtime.NewScheme()
-	utilruntime.Must(kubecontrolplanev1.Install(scheme))
+	utilruntime.Must(openshiftcontrolplanev1.Install(scheme))
 	codecs := serializer.NewCodecFactory(scheme)
 	obj, err := runtime.Decode(codecs.UniversalDecoder(openshiftcontrolplanev1.GroupVersion, configv1.GroupVersion), configContent)
 	if err == nil {

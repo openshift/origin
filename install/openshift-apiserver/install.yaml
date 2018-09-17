@@ -16,6 +16,18 @@ parameters:
   value: "{}"
 objects:
 
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:openshift-apiserver
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-apiserver
+
 - apiVersion: apps/v1
   kind: DaemonSet
   metadata:
@@ -38,7 +50,6 @@ objects:
       spec:
         serviceAccountName: openshift-apiserver
         restartPolicy: Always
-        hostNetwork: true
         containers:
         - name: apiserver
           image: ${IMAGE}
@@ -48,10 +59,10 @@ objects:
             value: registry.centos.org
           command: ["hypershift", "openshift-apiserver"]
           args:
-          - "--config=/etc/origin/master/master-config.yaml"
+          - "--config=/etc/origin/master/config.json"
           - "-v=${LOGLEVEL}"
           ports:
-          - containerPort: 8445
+          - containerPort: 8443
           securityContext:
             privileged: true
             runAsUser: 0
@@ -65,7 +76,7 @@ objects:
           readinessProbe:
             httpGet:
               path: /healthz
-              port: 8445
+              port: 8443
               scheme: HTTPS
         # sensitive files still sit on disk for now
         volumes:
@@ -100,7 +111,7 @@ objects:
     ports:
     - name: https
       port: 443
-      targetPort: 8445
+      targetPort: 8443
 
 - apiVersion: apiregistration.k8s.io/v1beta1
   kind: APIService
