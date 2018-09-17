@@ -30,10 +30,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	oauthv1typedclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
@@ -589,12 +589,12 @@ func (c *ClusterUpConfig) ensureDefaultRedirectURIs(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	oauthClient, err := oauthclientinternal.NewForConfig(restConfig)
+	oauthClient, err := oauthv1typedclient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
 
-	webConsoleOAuth, err := oauthClient.Oauth().OAuthClients().Get(defaultRedirectClient, metav1.GetOptions{})
+	webConsoleOAuth, err := oauthClient.OAuthClients().Get(defaultRedirectClient, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			fmt.Fprintf(out, "Unable to find OAuthClient %q\n", defaultRedirectClient)
@@ -616,7 +616,7 @@ func (c *ClusterUpConfig) ensureDefaultRedirectURIs(out io.Writer) error {
 
 	webConsoleOAuth.RedirectURIs = append(webConsoleOAuth.RedirectURIs, developmentRedirectURI)
 
-	_, err = oauthClient.Oauth().OAuthClients().Update(webConsoleOAuth)
+	_, err = oauthClient.OAuthClients().Update(webConsoleOAuth)
 	if err != nil {
 		// announce error without interrupting remaining tasks
 		suggestedCmd := fmt.Sprintf("oc patch %s/%s -p '{%q:[%q]}'", "oauthclient", defaultRedirectClient, "redirectURIs", developmentRedirectURI)
