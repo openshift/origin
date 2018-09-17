@@ -21,7 +21,6 @@ import (
 	restfake "k8s.io/client-go/rest/fake"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
@@ -70,7 +69,7 @@ func TestStartBuildWebHook(t *testing.T) {
 		IOStreams:    genericclioptions.NewTestIOStreamsDiscard(),
 		ClientConfig: cfg.Client,
 		FromWebhook:  server.URL + "/webhook",
-		Mapper:       testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme),
+		Mapper:       testrestmapper.TestOnlyStaticRESTMapper(scheme.Scheme),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unable to start hook: %v", err)
