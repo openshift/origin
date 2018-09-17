@@ -31,10 +31,10 @@ import (
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	oappsapiv1 "github.com/openshift/api/apps/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
@@ -95,7 +95,7 @@ type OpenshiftAPIExtraConfig struct {
 	// RegistryHostnameRetriever retrieves the internal and external hostname of
 	// the integrated registry, or false if no such registry is available.
 	RegistryHostnameRetriever          registryhostname.RegistryHostnameRetriever
-	AllowedRegistriesForImport         *configapi.AllowedRegistries
+	AllowedRegistriesForImport         openshiftcontrolplanev1.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
 	AdditionalTrustedCA                []byte
 
@@ -108,7 +108,7 @@ type OpenshiftAPIExtraConfig struct {
 	RESTMapper                *restmapper.DeferredDiscoveryRESTMapper
 
 	// oauth API server
-	ServiceAccountMethod configapi.GrantHandlerType
+	ServiceAccountMethod string
 
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 

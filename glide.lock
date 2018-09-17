@@ -1,5 +1,5 @@
-hash: db582617aa0c48a9964c31dcea842f0b61b576c91b008eb5ecdde5572e5614b6
-updated: 2018-09-11T17:34:00.489849951-04:00
+hash: 381fc9c5d0fd090657e0f84fc31c9bedcb3a26d8c4725a49cbfbe02faac547b0
+updated: 2018-09-17T11:01:21.340258886-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -8,10 +8,6 @@ imports:
   subpackages:
   - compute/metadata
   - internal
-- name: github.com/AaronO/go-git-http
-  version: 1d9485b3a98f7484772acb5f0dda28b69b958fdd
-  subpackages:
-  - auth
 - name: github.com/abbot/go-http-auth
   version: c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35
 - name: github.com/alexbrainman/sspi
@@ -615,7 +611,7 @@ imports:
 - name: github.com/gorilla/mux
   version: 9e1f5955c0d22b55d9e20d6faa28589f83b2faca
 - name: github.com/gorilla/securecookie
-  version: 3a8eb0de07814569f0bdadffc60dda1668de90bd
+  version: bb1ab76598893258e90f45d8a708a2505a95af2a
 - name: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
 - name: github.com/gorilla/websocket
@@ -821,7 +817,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 4b29afbab3edbe5ea5bd2e2ab5b88e8842ba5e8b
+  version: 59a17884a17d085f49a4c3a43b1b528803d00b63
   subpackages:
   - apps
   - apps/v1
@@ -842,6 +838,8 @@ imports:
   - network/v1
   - oauth
   - oauth/v1
+  - openshiftcontrolplane
+  - openshiftcontrolplane/v1
   - operator
   - operator/v1alpha1
   - osin
@@ -978,22 +976,26 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 9e710ba9bcf926e020306b67633bf38b8e671da5
+  version: fbd4f31c568b767447302e08fb3531b33bcbf837
   subpackages:
   - dockerclient
   - imageprogress
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 9e670b0ce8d80455abde88a24032b1d457a76c32
+  version: a7d809ee41d6ca6720192824ee54ed8f19c3cfac
   subpackages:
   - pkg/config/client
+  - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/leaderelection
   - pkg/controller
   - pkg/controller/controllercmd
   - pkg/crypto
   - pkg/git
+  - pkg/image/internal/digest
+  - pkg/image/internal/reference
+  - pkg/image/reference
   - pkg/network/networkapihelpers
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcecread
@@ -1006,7 +1008,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: ac6dc9858fa90b751686436fea9a951f183c79bb
+  version: 66723586e7c3f48f509e8e8f017418ce93edd75e
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1521,7 +1523,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 9661477daf70563d97981c06b3aa7f3277b765c9
+  version: 3777cdb0a89ed87de8c1b2574ef90b24bd2399da
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1876,7 +1878,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: c388e666caa7903dff9d4da6a4f850346d402da3
+  version: 30d120974f190a8468616bebf2bbf047ffeb2f92
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2701,7 +2703,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: a678900f2f745168dad0fe7e7ffd678ee8b10b52
+  version: 1110eaa81bb381332df7842b5e6fc21c3bc174e5
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1
@@ -2715,4 +2717,8 @@ imports:
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:
   - sortorder
-testImports: []
+testImports:
+- name: github.com/AaronO/go-git-http
+  version: 1d9485b3a98f7484772acb5f0dda28b69b958fdd
+  subpackages:
+  - auth

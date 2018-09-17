@@ -4,6 +4,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 )
 
@@ -11,6 +12,14 @@ func ToHTTPServingInfo(in *legacyconfigv1.HTTPServingInfo) (out configv1.HTTPSer
 	err = Convert_legacyconfigv1_HTTPServingInfo_to_configv1_HTTPServingInfo(in, &out, nil)
 	if err != nil {
 		return configv1.HTTPServingInfo{}, err
+	}
+	return out, nil
+}
+
+func ToKubeClientConfig(in *legacyconfigv1.MasterClients) (out configv1.KubeClientConfig, err error) {
+	err = Convert_legacyconfigv1_MasterClients_to_configv1_KubeClientConfig(in, &out, nil)
+	if err != nil {
+		return configv1.KubeClientConfig{}, err
 	}
 	return out, nil
 }
@@ -96,6 +105,31 @@ func ToOAuthConfig(in *legacyconfigv1.OAuthConfig) (*osinv1.OAuthConfig, error) 
 	out := &osinv1.OAuthConfig{}
 	if err := Convert_legacyconfigv1_OAuthConfig_to_osinv1_OAuthConfig(in, out, nil); err != nil {
 		return nil, err
+	}
+	return out, nil
+}
+
+func ToJenkinsPipelineConfig(in *legacyconfigv1.JenkinsPipelineConfig) (out openshiftcontrolplanev1.JenkinsPipelineConfig, err error) {
+	err = Convert_legacyconfigv1_JenkinsPipelineConfig_to_kubecontrolplanev1_JenkinsPipelineConfig(in, &out, nil)
+	if err != nil {
+		return openshiftcontrolplanev1.JenkinsPipelineConfig{}, err
+	}
+	return out, nil
+}
+
+func ToAllowedRegistries(in *legacyconfigv1.AllowedRegistries) (openshiftcontrolplanev1.AllowedRegistries, error) {
+	if in == nil {
+		return openshiftcontrolplanev1.AllowedRegistries{}, nil
+	}
+
+	out := openshiftcontrolplanev1.AllowedRegistries{}
+	for i := range *in {
+		currOut := openshiftcontrolplanev1.RegistryLocation{}
+		err := Convert_legacyconfigv1_RegistryLocation_to_kubecontrolplanev1_RegistryLocation(&(*in)[i], &currOut, nil)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, currOut)
 	}
 	return out, nil
 }

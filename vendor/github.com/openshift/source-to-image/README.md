@@ -14,7 +14,7 @@ For a deep dive on S2I you can view [this presentation](https://www.youtube.com/
 
 Want to try it right now?  Download the [latest release](https://github.com/openshift/source-to-image/releases/latest) and run:
 
-	$ s2i build https://github.com/openshift/django-ex centos/python-35-centos7 hello-python
+	$ s2i build https://github.com/sclorg/django-ex centos/python-35-centos7 hello-python
 	$ docker run -p 8080:8080 hello-python
 
 Now browse to http://localhost:8080 to see the running application.

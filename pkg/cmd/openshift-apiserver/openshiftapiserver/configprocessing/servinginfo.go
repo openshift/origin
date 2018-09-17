@@ -4,13 +4,13 @@ import (
 	"net"
 	"strconv"
 
+	configv1 "github.com/openshift/api/config/v1"
+
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
-
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
-func ToServingOptions(servingInfo configapi.HTTPServingInfo) (*genericapiserveroptions.SecureServingOptionsWithLoopback, error) {
+func ToServingOptions(servingInfo configv1.HTTPServingInfo) (*genericapiserveroptions.SecureServingOptionsWithLoopback, error) {
 	host, portString, err := net.SplitHostPort(servingInfo.BindAddress)
 	if err != nil {
 		return nil, err
@@ -24,8 +24,8 @@ func ToServingOptions(servingInfo configapi.HTTPServingInfo) (*genericapiservero
 	servingOptions.BindAddress = net.ParseIP(host)
 	servingOptions.BindPort = port
 	servingOptions.BindNetwork = servingInfo.BindNetwork
-	servingOptions.ServerCert.CertKey.CertFile = servingInfo.ServerCert.CertFile
-	servingOptions.ServerCert.CertKey.KeyFile = servingInfo.ServerCert.KeyFile
+	servingOptions.ServerCert.CertKey.CertFile = servingInfo.CertFile
+	servingOptions.ServerCert.CertKey.KeyFile = servingInfo.KeyFile
 	servingOptions.CipherSuites = servingInfo.CipherSuites
 	servingOptions.MinTLSVersion = servingInfo.MinTLSVersion
 

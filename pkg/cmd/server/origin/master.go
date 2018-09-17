@@ -15,6 +15,7 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
@@ -33,7 +34,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	// most of the config actually remains the same.  We only need to mess with a couple items
 	genericConfig := kubeAPIServerConfig
 	var err error
-	genericConfig.RESTOptionsGetter, err = openshiftapiserver.NewRESTOptionsGetter(c.Options.KubernetesMasterConfig.APIServerArguments, c.Options.EtcdClientInfo, c.Options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	genericConfig.RESTOptionsGetter, err = legacyconfigprocessing.NewRESTOptionsGetter(c.Options.KubernetesMasterConfig.APIServerArguments, c.Options.EtcdClientInfo, c.Options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +49,19 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		}
 	}
 
-	routeAllocator, err := configprocessing.RouteAllocator(c.Options.RoutingConfig)
+	routeAllocator, err := configprocessing.RouteAllocator(c.Options.RoutingConfig.Subdomain)
 	if err != nil {
 		return nil, err
+	}
+
+	allowedRegistriesForImport := openshiftcontrolplanev1.AllowedRegistries{}
+	if c.Options.ImagePolicyConfig.AllowedRegistriesForImport != nil {
+		for _, curr := range *c.Options.ImagePolicyConfig.AllowedRegistriesForImport {
+			allowedRegistriesForImport = append(allowedRegistriesForImport, openshiftcontrolplanev1.RegistryLocation{
+				Insecure:   curr.Insecure,
+				DomainName: curr.DomainName,
+			})
+		}
 	}
 
 	ret := &openshiftapiserver.OpenshiftAPIConfig{
@@ -66,7 +77,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 			SubjectLocator:                     c.SubjectLocator,
 			LimitVerifier:                      c.LimitVerifier,
 			RegistryHostnameRetriever:          c.RegistryHostnameRetriever,
-			AllowedRegistriesForImport:         c.Options.ImagePolicyConfig.AllowedRegistriesForImport,
+			AllowedRegistriesForImport:         allowedRegistriesForImport,
 			MaxImagesBulkImportedPerRepository: c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
 			AdditionalTrustedCA:                caData,
 			RouteAllocator:                     routeAllocator,
@@ -80,7 +91,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		},
 	}
 	if c.Options.OAuthConfig != nil {
-		ret.ExtraConfig.ServiceAccountMethod = c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod
+		ret.ExtraConfig.ServiceAccountMethod = string(c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod)
 	}
 
 	return ret, ret.ExtraConfig.Validate()

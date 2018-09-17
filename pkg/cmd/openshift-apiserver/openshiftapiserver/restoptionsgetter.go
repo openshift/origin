@@ -10,12 +10,12 @@ import (
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 // NewConfigGetter returns a restoptions.Getter implemented using information from the provided master config.
-func NewRESTOptionsGetter(startingFlags map[string][]string, etcdConnectionInfo configapi.EtcdConnectionInfo, storagePrefix string) (genericregistry.RESTOptionsGetter, error) {
+func NewRESTOptionsGetter(startingFlags map[string][]string, storageConfig configv1.EtcdStorageConfig) (genericregistry.RESTOptionsGetter, error) {
 	var err error
 	targetRAMMB := 0
 	if targetRamString := startingFlags["target-ram-mb"]; len(targetRamString) == 1 {
@@ -27,8 +27,7 @@ func NewRESTOptionsGetter(startingFlags map[string][]string, etcdConnectionInfo 
 
 	etcdOptions, err := configprocessing.GetEtcdOptions(
 		startingFlags,
-		etcdConnectionInfo,
-		storagePrefix,
+		storageConfig,
 		newHeuristicWatchCacheSizes(targetRAMMB),
 	)
 

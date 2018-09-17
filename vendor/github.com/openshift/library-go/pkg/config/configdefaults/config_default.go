@@ -1,4 +1,4 @@
-package configdefault
+package configdefaults
 
 import (
 	configv1 "github.com/openshift/api/config/v1"
@@ -44,6 +44,7 @@ func SetRecommendedServingInfoDefaults(config *configv1.ServingInfo) {
 func SetRecommendedGenericAPIServerConfigDefaults(config *configv1.GenericAPIServerConfig) {
 	SetRecommendedHTTPServingInfoDefaults(&config.ServingInfo)
 	SetRecommendedEtcdConnectionInfoDefaults(&config.StorageConfig.EtcdConnectionInfo)
+	SetRecommendedKubeClientConfigDefaults(&config.KubeClientConfig)
 }
 
 func SetRecommendedEtcdConnectionInfoDefaults(config *configv1.EtcdConnectionInfo) {
@@ -51,4 +52,16 @@ func SetRecommendedEtcdConnectionInfoDefaults(config *configv1.EtcdConnectionInf
 	DefaultString(&config.CertInfo.KeyFile, "/var/run/secrets/etcd-client/tls.key")
 	DefaultString(&config.CertInfo.CertFile, "/var/run/secrets/etcd-client/tls.crt")
 	DefaultString(&config.CA, "/var/run/configmaps/etcd-serving-ca/ca-bundle.crt")
+}
+
+func SetRecommendedKubeClientConfigDefaults(config *configv1.KubeClientConfig) {
+	// these are historical values
+	if config.ConnectionOverrides.QPS <= 0 {
+		config.ConnectionOverrides.QPS = 150.0
+	}
+	if config.ConnectionOverrides.Burst <= 0 {
+		config.ConnectionOverrides.Burst = 300
+	}
+	DefaultString(&config.ConnectionOverrides.AcceptContentTypes, "application/vnd.kubernetes.protobuf,application/json")
+	DefaultString(&config.ConnectionOverrides.ContentType, "application/vnd.kubernetes.protobuf")
 }

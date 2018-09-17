@@ -8,6 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 
+	configv1 "github.com/openshift/api/config/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
@@ -94,14 +96,12 @@ func TestUnusuedKubeAdmissionPlugins(t *testing.T) {
 func TestSeparateAdmissionChainDetection(t *testing.T) {
 	testCases := []struct {
 		name                  string
-		options               configapi.MasterConfig
+		options               openshiftcontrolplanev1.OpenShiftAPIServerConfig
 		admissionChainBuilder func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error)
 	}{
 		{
-			name: "stock everything",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: configapi.KubernetesMasterConfig{},
-			},
+			name:    "stock everything",
+			options: openshiftcontrolplanev1.OpenShiftAPIServerConfig{},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
 				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
 					t.Errorf("%s: expected %v, got %v", "stock everything", CombinedAdmissionControlPlugins, pluginNames)
@@ -110,33 +110,10 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 			},
 		},
 		{
-			name: "specified origin admission order",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: configapi.KubernetesMasterConfig{},
-				AdmissionConfig: configapi.AdmissionConfig{
-					PluginOrderOverride: []string{"foo"},
-				},
-			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
-				isKube := reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins)
-
-				expectedOrigin := []string{"foo"}
-				isOrigin := reflect.DeepEqual(pluginNames, expectedOrigin)
-
-				if !isKube && !isOrigin {
-					t.Errorf("%s: expected either %v or %v, got %v", "specified origin admission order", KubeAdmissionPlugins, expectedOrigin, pluginNames)
-				}
-
-				return nil, nil
-			},
-		},
-		{
 			name: "specified kube admission config file",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: configapi.KubernetesMasterConfig{
-					APIServerArguments: configapi.ExtendedArguments{
-						"admission-control-config-file": []string{"foo"},
-					},
+			options: openshiftcontrolplanev1.OpenShiftAPIServerConfig{
+				APIServerArguments: configapi.ExtendedArguments{
+					"admission-control-config-file": []string{"foo"},
 				},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
@@ -150,10 +127,9 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 		},
 		{
 			name: "specified, non-conflicting plugin configs 01",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: configapi.KubernetesMasterConfig{},
-				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
+			options: openshiftcontrolplanev1.OpenShiftAPIServerConfig{
+				GenericAPIServerConfig: configv1.GenericAPIServerConfig{
+					AdmissionPluginConfig: map[string]configv1.AdmissionPluginConfig{
 						"foo": {
 							Location: "bar",
 						},
@@ -171,7 +147,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 
 	for _, tc := range testCases {
 		newAdmissionChainFunc = tc.admissionChainBuilder
-		_, _ = NewAdmissionChains(tc.options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"], tc.options.AdmissionConfig.PluginConfig, tc.options.AdmissionConfig.PluginOrderOverride, nil, nil)
+		_, _ = NewAdmissionChains(tc.options.APIServerArguments["admission-control-config-file"], tc.options.AdmissionPluginConfig, nil, nil)
 	}
 }
 

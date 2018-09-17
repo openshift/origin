@@ -152,10 +152,12 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 				glog.Fatal(err)
 			}
 
-			d := docker.New(client, cfg.PullAuthentication)
-			err = d.CheckReachable()
-			if err != nil {
-				glog.Fatal(err)
+			if len(cfg.AsDockerfile) == 0 {
+				d := docker.New(client, cfg.PullAuthentication)
+				err := d.CheckReachable()
+				if err != nil {
+					glog.Fatal(err)
+				}
 			}
 
 			glog.V(2).Infof("\n%s\n", describe.Config(client, cfg))

@@ -211,4 +211,28 @@ type GenericAPIServerConfig struct {
 	StorageConfig EtcdStorageConfig `json:"storageConfig" protobuf:"bytes,4,opt,name=storageConfig"`
 
 	AdmissionPluginConfig map[string]AdmissionPluginConfig `json:"admissionPluginConfig" protobuf:"bytes,5,rep,name=admissionPluginConfig"`
+
+	KubeClientConfig KubeClientConfig `json:"kubeClientConfig" protobuf:"bytes,6,opt,name=kubeClientConfig,json=kubeClientConfig"`
+}
+
+type KubeClientConfig struct {
+	// kubeConfig is a .kubeconfig filename for going to the owning kube-apiserver.  Empty uses an in-cluster-config
+	KubeConfig string `json:"kubeConfig" protobuf:"bytes,1,opt,name=kubeConfig"`
+
+	// connectionOverrides specifies client overrides for system components to loop back to this master.
+	ConnectionOverrides ClientConnectionOverrides `json:"connectionOverrides" protobuf:"bytes,2,opt,name=connectionOverrides"`
+}
+
+type ClientConnectionOverrides struct {
+	// acceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the
+	// default value of 'application/json'. This field will control all connections to the server used by a particular
+	// client.
+	AcceptContentTypes string `json:"acceptContentTypes" protobuf:"bytes,1,opt,name=acceptContentTypes"`
+	// contentType is the content type used when sending data to the server from this client.
+	ContentType string `json:"contentType" protobuf:"bytes,2,opt,name=contentType"`
+
+	// qps controls the number of queries per second allowed for this connection.
+	QPS float32 `json:"qps" protobuf:"fixed32,3,opt,name=qps"`
+	// burst allows extra queries to accumulate when a client is exceeding its rate.
+	Burst int32 `json:"burst" protobuf:"varint,4,opt,name=burst"`
 }

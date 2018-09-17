@@ -24,7 +24,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	serveradmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
+	serveradmission "github.com/openshift/origin/pkg/cmd/server/origin/legacyadmission"
 	testtypes "github.com/openshift/origin/test/integration/testing"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

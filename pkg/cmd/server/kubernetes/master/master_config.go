@@ -59,6 +59,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/election"
+	"github.com/openshift/origin/pkg/cmd/server/origin/legacyconfigprocessing"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 )
@@ -85,7 +86,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.ServiceNodePortRange = *portRange
 	server.Features.EnableProfiling = true
 
-	server.SecureServing, err = configprocessing.ToServingOptions(masterConfig.ServingInfo)
+	server.SecureServing, err = legacyconfigprocessing.ToServingOptions(masterConfig.ServingInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 		}
 	}
 
-	server.Etcd, err = configprocessing.GetEtcdOptions(masterConfig.KubernetesMasterConfig.APIServerArguments, masterConfig.EtcdClientInfo, masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, nil)
+	server.Etcd, err = legacyconfigprocessing.GetEtcdOptions(masterConfig.KubernetesMasterConfig.APIServerArguments, masterConfig.EtcdClientInfo, masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +431,7 @@ func (rc *incompleteKubeMasterConfig) Complete(
 
 	// we don't use legacy audit anymore
 	genericConfig.LegacyAuditWriter = nil
-	backend, policyChecker, err := configprocessing.GetAuditConfig(masterConfig.AuditConfig)
+	backend, policyChecker, err := legacyconfigprocessing.GetAuditConfig(masterConfig.AuditConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -49,6 +49,17 @@ func (CertInfo) SwaggerDoc() map[string]string {
 	return map_CertInfo
 }
 
+var map_ClientConnectionOverrides = map[string]string{
+	"acceptContentTypes": "acceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the default value of 'application/json'. This field will control all connections to the server used by a particular client.",
+	"contentType":        "contentType is the content type used when sending data to the server from this client.",
+	"qps":                "qps controls the number of queries per second allowed for this connection.",
+	"burst":              "burst allows extra queries to accumulate when a client is exceeding its rate.",
+}
+
+func (ClientConnectionOverrides) SwaggerDoc() map[string]string {
+	return map_ClientConnectionOverrides
+}
+
 var map_EtcdConnectionInfo = map[string]string{
 	"":     "EtcdConnectionInfo holds information necessary for connecting to an etcd server",
 	"urls": "URLs are the URLs for etcd",
@@ -87,6 +98,15 @@ var map_HTTPServingInfo = map[string]string{
 
 func (HTTPServingInfo) SwaggerDoc() map[string]string {
 	return map_HTTPServingInfo
+}
+
+var map_KubeClientConfig = map[string]string{
+	"kubeConfig":          "kubeConfig is a .kubeconfig filename for going to the owning kube-apiserver.  Empty uses an in-cluster-config",
+	"connectionOverrides": "connectionOverrides specifies client overrides for system components to loop back to this master.",
+}
+
+func (KubeClientConfig) SwaggerDoc() map[string]string {
+	return map_KubeClientConfig
 }
 
 var map_LeaderElection = map[string]string{

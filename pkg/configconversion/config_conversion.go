@@ -53,3 +53,18 @@ func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1
 
 	return ret, nil
 }
+
+func Convert_legacyconfigv1_MasterClients_to_configv1_KubeClientConfig(in *legacyconfigv1.MasterClients, out *configv1.KubeClientConfig, s conversion.Scope) error {
+	out.KubeConfig = in.OpenShiftLoopbackKubeConfig
+	if in.OpenShiftLoopbackClientConnectionOverrides == nil {
+		return nil
+	}
+
+	return Convert_legacyconfigv1_ClientConnectionOverrides_to_configv1_ClientConnectionOverrides(in.OpenShiftLoopbackClientConnectionOverrides, &out.ConnectionOverrides, s)
+}
+
+func Convert_legacyconfigv1_ClientConnectionOverrides_to_configv1_ClientConnectionOverrides(in *legacyconfigv1.ClientConnectionOverrides, out *configv1.ClientConnectionOverrides, s conversion.Scope) error {
+	converter := conversion.NewConverter(conversion.DefaultNameFunc)
+	_, meta := converter.DefaultMeta(reflect.TypeOf(in))
+	return converter.DefaultConvert(in, out, conversion.AllowDifferentFieldTypeNames, meta)
+}
