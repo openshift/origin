@@ -17000,48 +17000,6 @@ _oc_tag()
     noun_aliases=()
 }
 
-_oc_types()
-{
-    last_command="oc_types"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--as=")
-    flags+=("--as-group=")
-    flags+=("--cache-dir=")
-    flags+=("--certificate-authority=")
-    flags+=("--client-certificate=")
-    flags+=("--client-key=")
-    flags+=("--cluster=")
-    flags+=("--config=")
-    flags+=("--context=")
-    flags+=("--insecure-skip-tls-verify")
-    flags+=("--kubeconfig=")
-    flags+=("--loglevel=")
-    flags+=("--logspec=")
-    flags+=("--match-server-version")
-    flags+=("--namespace=")
-    flags_with_completion+=("--namespace")
-    flags_completion+=("__oc_get_namespaces")
-    two_word_flags+=("-n")
-    flags_with_completion+=("-n")
-    flags_completion+=("__oc_get_namespaces")
-    flags+=("--request-timeout=")
-    flags+=("--server=")
-    two_word_flags+=("-s")
-    flags+=("--token=")
-    flags+=("--user=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
 _oc_version()
 {
     last_command="oc_version"
@@ -17268,7 +17226,6 @@ _oc_root_command()
     commands+=("start-build")
     commands+=("status")
     commands+=("tag")
-    commands+=("types")
     commands+=("version")
     commands+=("wait")
     commands+=("whoami")
