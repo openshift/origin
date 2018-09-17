@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -56,6 +57,15 @@ func (opt *BootkubeRunConfig) RunRender(dockerClient dockerhelper.Interface, hos
 	return containerID, nil
 }
 
+// RemoveApiserver removes the apiserver manifest because the cluster-kube-apiserver-operator will generate them.
+// Eventually, our operators will generate all files and we don't need bootkube render anymore.
+func (opt *BootkubeRunConfig) RemoveApiserver(kubernetesDir string) error {
+	os.Remove(path.Join(kubernetesDir, "bootstrap-manifests", "bootstrap-apiserver.yaml"))
+	os.Remove(path.Join(kubernetesDir, "manifests", "kube-apiserver.yaml"))
+
+	return nil
+}
+
 // RunStart runs the bootkube start command. The AssetsDir have to be specified as well as the StaticPodManifestDir.
 func (opt *BootkubeRunConfig) RunStart(dockerClient dockerhelper.Interface) (string, error) {
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
@@ -89,14 +99,6 @@ func (opt *BootkubeRunConfig) RunStart(dockerClient dockerhelper.Interface) (str
 // PostRenderSubstitutions mutate the generated bootkube manifests and substitute OpenShift images and paths.
 // TODO: It should be possible to do this via bootkube directly, however bootkube currently have these compiled in.
 func (opt *BootkubeRunConfig) PostRenderSubstitutions(kubernetesDir string, hyperKubeImage, nodeImage string) error {
-	if err := opt.substitute("bootstrap-manifests/bootstrap-apiserver.yaml", map[string]string{
-		"/etc/kubernetes/bootstrap-secrets": filepath.Join(kubernetesDir, "bootstrap-secrets"),
-		"k8s.gcr.io/hyperkube:v1.11.0":      hyperKubeImage,
-		"- /hyperkube":                      "- /usr/bin/hyperkube",
-	}); err != nil {
-		return err
-	}
-
 	if err := opt.substitute("bootstrap-manifests/bootstrap-controller-manager.yaml", map[string]string{
 		"/etc/kubernetes/bootstrap-secrets": filepath.Join(kubernetesDir, "bootstrap-secrets"),
 		"k8s.gcr.io/hyperkube:v1.11.0":      hyperKubeImage,
@@ -114,13 +116,6 @@ func (opt *BootkubeRunConfig) PostRenderSubstitutions(kubernetesDir string, hype
 	}
 
 	// post-bootstrap manifests:
-
-	if err := opt.substitute("manifests/kube-apiserver.yaml", map[string]string{
-		"k8s.gcr.io/hyperkube:v1.11.0": hyperKubeImage,
-		"- /hyperkube":                 "- /usr/bin/hyperkube",
-	}); err != nil {
-		return err
-	}
 
 	if err := opt.substitute("manifests/kube-controller-manager.yaml", map[string]string{
 		"k8s.gcr.io/hyperkube:v1.11.0": hyperKubeImage,

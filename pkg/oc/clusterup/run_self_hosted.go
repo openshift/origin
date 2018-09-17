@@ -3,6 +3,7 @@ package clusterup
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/controlplane-operator"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -152,22 +154,16 @@ type configDirs struct {
 	podManifestDir string
 	assetsDir      string
 	kubernetesDir  string
-
-	// renderTlsDir has the input for the operator render command. This is going to be provided by the real installer.
-	// For now we derive it from the bootkube-render output, and fill it up with files from legacy cluster-up config.
-	renderTlsDir string
 }
 
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	configs := &configDirs{
-		// Directory where bootkube renders the static pod manifests
+		// Directory where assets ared rendered to
 		assetsDir: filepath.Join(c.BaseDir, "bootkube"),
 		// Directory where bootkube copy the bootstrap secrets
 		kubernetesDir: filepath.Join(c.BaseDir, "kubernetes"),
 		// Directory that kubelet scans for static manifests
 		podManifestDir: filepath.Join(c.BaseDir, "kubernetes/manifests"),
-		// Directory where operator render gets the certs+keys from
-		renderTlsDir: filepath.Join(c.BaseDir, "render-tls"),
 	}
 
 	if _, err := os.Stat(configs.assetsDir); os.IsNotExist(err) {
@@ -209,9 +205,16 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		return nil, err
 	}
 
+	if err := bk.RemoveApiserver(configs.kubernetesDir); err != nil {
+		return nil, err
+	}
+
 	// LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY
 	// TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION
 
+	// copy bootkube-render files to operatpr render input dir, simulating what c.makeMasterConfig would generate
+	// TODO: generate tls files without bootkube-render
+	masterDir := filepath.Join(configs.assetsDir, "master")
 	legacyBootkubeMapping := map[string]string{
 		"ca.crt":                     path.Join(configs.assetsDir, "tls", "ca.crt"),
 		"admin.crt":                  path.Join(configs.assetsDir, "tls", "admin.crt"),
@@ -232,18 +235,39 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		"master.proxy-client.crt":    path.Join(configs.assetsDir, "tls", "apiserver.crt"),
 		"master.proxy-client.key":    path.Join(configs.assetsDir, "tls", "apiserver.key"),
 	}
-
-	// copy bootkube files to render-tls dir, simulating what c.makeMasterConfig would generate
-	if _, err := os.Stat(configs.renderTlsDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(configs.renderTlsDir, 0755); err != nil {
+	if _, err := os.Stat(masterDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(masterDir, 0755); err != nil {
 			return nil, err
 		}
 	}
 	for legacy, bootkubeFile := range legacyBootkubeMapping {
-		dest := path.Join(configs.renderTlsDir, legacy)
+		dest := path.Join(masterDir, legacy)
 		if err := admin.CopyFile(bootkubeFile, dest, 0644); err != nil {
 			return nil, fmt.Errorf("failed to copy bootkube tls file %q to %q: %v", bootkubeFile, dest, err)
 		}
+	}
+
+	// create initial configs
+	apiserverConfigOverride := filepath.Join(masterDir, "kube-apiserver-config-overrides.yaml")
+	if err := ioutil.WriteFile(apiserverConfigOverride,
+		[]byte(`apiVersion: kubecontrolplane.config.openshift.io/v1
+kind: KubeAPIServerConfig
+`), 0644); err != nil {
+		return nil, err
+	}
+
+	// generate kube-apiserver manifests using the corresponding operator render command
+	ok := controlplaneoperator.RenderConfig{
+		OperatorImage:   "openshift/origin-cluster-kube-apiserver-operator:latest",
+		AssetInputDir:   masterDir,
+		AssetsOutputDir: configs.assetsDir,
+		ConfigOutputDir: masterDir, // we put config, overrides and certs+keys in one dir
+		ConfigFileName:  "kube-apiserver-config.yaml",
+		ConfigOverrides: apiserverConfigOverride,
+		ContainerBinds:  nil,
+	}
+	if _, err := ok.RunRender("kube-apiserver", c.hypershiftImage(), c.GetDockerClient(), hostIP); err != nil {
+		return nil, err
 	}
 
 	return configs, nil

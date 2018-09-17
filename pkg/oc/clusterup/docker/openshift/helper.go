@@ -26,19 +26,26 @@ const (
 	cmdDetermineNodeHost = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
 
 	// TODO: Figure out why cluster up relies on this name
-	OriginContainerName         = "origin"
-	EtcdContainerName           = "etcd"
-	BootkubeRenderContainerName = "bootkube-render"
-	BootkubeStartContainerName  = "bootkube-start"
-	Namespace                   = "openshift"
+	OriginContainerName               = "origin"
+	EtcdContainerName                 = "etcd"
+	BootkubeRenderContainerName       = "bootkube-render"
+	OperatorRenderContainerNameSuffix = "-operator-render"
+	BootkubeStartContainerName        = "bootkube-start"
+	Namespace                         = "openshift"
 )
 
 var (
-	ClusterUpContainers = sets.NewString(OriginContainerName, EtcdContainerName, BootkubeRenderContainerName, BootkubeStartContainerName)
-	BasePorts           = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
-	RouterPorts         = []int{80, 443}
-	AllPorts            = append(RouterPorts, BasePorts...)
-	SocatPidFile        = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-8443.pid")
+	ClusterUpContainers = sets.NewString(
+		OriginContainerName,
+		EtcdContainerName,
+		"kube-apiserver"+OperatorRenderContainerNameSuffix,
+		BootkubeRenderContainerName,
+		BootkubeStartContainerName,
+	)
+	BasePorts    = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
+	RouterPorts  = []int{80, 443}
+	AllPorts     = append(RouterPorts, BasePorts...)
+	SocatPidFile = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-8443.pid")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
