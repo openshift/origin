@@ -268,7 +268,6 @@ func (o *LogsOptions) runLogPipeline() error {
 		}
 		fallthrough
 	case isBld:
-		// TODO(juanvallejo): what to do about this? Const not available in external api, but we need to get rid of dependency on internal api
 		urlString, _ := build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation]
 		if len(urlString) == 0 {
 			return fmt.Errorf("the pipeline strategy build %s does not yet contain the log URL; wait a few moments, then try again", build.Name)
