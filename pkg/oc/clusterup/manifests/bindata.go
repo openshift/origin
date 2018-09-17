@@ -39,6 +39,7 @@
 // examples/service-catalog/service-catalog-rbac.yaml
 // examples/service-catalog/service-catalog.yaml
 // install/cluster-kube-apiserver-operator/install.yaml
+// install/cluster-openshift-apiserver-operator/install.yaml
 // install/etcd/etcd.yaml
 // install/etcd/install.yaml
 // install/kube-apiserver/apiserver.yaml
@@ -46,8 +47,6 @@
 // install/kube-dns/install.yaml
 // install/kube-proxy/install.yaml
 // install/kube-scheduler/kube-scheduler.yaml
-// install/openshift-apiserver/install.yaml
-// install/openshift-apiserver/static-config.json
 // install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
 // install/openshift-controller-manager/static-config.json
@@ -16636,6 +16635,8 @@ objects:
       kind: KubeApiserverOperatorConfig
       plural: kubeapiserveroperatorconfigs
       singular: kubeapiserveroperatorconfig
+      categories:
+      - coreoperators
     subresources:
       status: {}
 
@@ -16734,6 +16735,134 @@ func installClusterKubeApiserverOperatorInstallYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "install/cluster-kube-apiserver-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installClusterOpenshiftApiserverOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-hypershift:latest
+- name: NAMESPACE
+  # This namespace must not be changed.
+  value: openshift-core-operators
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      openshift.io/run-level: "0"
+    name: ${NAMESPACE}
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftapiserveroperatorconfigs.openshiftapiserver.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: openshiftapiserver.operator.openshift.io
+    version: v1alpha1
+    names:
+      kind: OpenShiftAPIServerOperatorConfig
+      plural: openshiftapiserveroperatorconfigs
+      singular: openshiftapiserveroperatorconfig
+      categories:
+      - coreoperators
+    subresources:
+      status: {}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:cluster-openshift-apiserver-operator
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-apiserver-operator
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-apiserver-operator-config
+  data:
+    config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-apiserver-operator
+    labels:
+      app: openshift-cluster-openshift-apiserver-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-cluster-openshift-apiserver-operator
+    template:
+      metadata:
+        name: openshift-cluster-openshift-apiserver-operator
+        labels:
+          app: openshift-cluster-openshift-apiserver-operator
+      spec:
+        serviceAccountName: openshift-cluster-openshift-apiserver-operator
+        containers:
+        - name: operator
+          image: ${IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["cluster-openshift-apiserver-operator", "operator"]
+          args:
+          - "--config=/var/run/configmaps/config/config.yaml"
+          - "-v=4"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        volumes:
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-cluster-openshift-apiserver-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-apiserver-operator
+    labels:
+      app: openshift-cluster-openshift-apiserver-operator
+
+- apiVersion: openshiftapiserver.operator.openshift.io/v1alpha1
+  kind: OpenShiftAPIServerOperatorConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: openshift/origin-hypershift:latest
+    version: 3.11.0
+    logging:
+      level: 4
+`)
+
+func installClusterOpenshiftApiserverOperatorInstallYamlBytes() ([]byte, error) {
+	return _installClusterOpenshiftApiserverOperatorInstallYaml, nil
+}
+
+func installClusterOpenshiftApiserverOperatorInstallYaml() (*asset, error) {
+	bytes, err := installClusterOpenshiftApiserverOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/cluster-openshift-apiserver-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -17217,347 +17346,6 @@ func installKubeSchedulerKubeSchedulerYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "install/kube-scheduler/kube-scheduler.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _installOpenshiftApiserverInstallYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-metadata:
-  name: openshift-apiserver
-parameters:
-- name: IMAGE
-  value: openshift/origin-control-plane:latest
-- name: OPENSHIFT_PULL_POLICY
-  value: Always
-- name: NAMESPACE
-  value: openshift-apiserver
-- name: LOGLEVEL
-  value: "0"
-- name: OPENSHIFT_APISERVER_CONFIG_HOST_PATH
-- name: NODE_SELECTOR
-  value: "{}"
-objects:
-
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRoleBinding
-  metadata:
-    name: system:openshift:operator:openshift-apiserver
-  roleRef:
-    kind: ClusterRole
-    name: cluster-admin
-  subjects:
-  - kind: ServiceAccount
-    namespace: ${NAMESPACE}
-    name: openshift-apiserver
-
-- apiVersion: apps/v1
-  kind: DaemonSet
-  metadata:
-    namespace: ${NAMESPACE}
-    name: openshift-apiserver
-    labels:
-      openshift.io/control-plane: "true"
-      openshift.io/component: api
-  spec:
-    selector:
-      matchLabels:
-        openshift.io/control-plane: "true"
-        openshift.io/component: api
-    template:
-      metadata:
-        name: openshift-apiserver
-        labels:
-          openshift.io/control-plane: "true"
-          openshift.io/component: api
-      spec:
-        serviceAccountName: openshift-apiserver
-        restartPolicy: Always
-        containers:
-        - name: apiserver
-          image: ${IMAGE}
-          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          env:
-          - name: ADDITIONAL_ALLOWED_REGISTRIES
-            value: registry.centos.org
-          command: ["hypershift", "openshift-apiserver"]
-          args:
-          - "--config=/etc/origin/master/config.json"
-          - "-v=${LOGLEVEL}"
-          ports:
-          - containerPort: 8443
-          securityContext:
-            privileged: true
-            runAsUser: 0
-          volumeMounts:
-          - mountPath: /var/serving-cert
-            name: serving-cert
-          - mountPath: /etc/origin/master/
-            name: master-config
-          - mountPath: /etc/origin/cloudprovider/
-            name: master-cloud-provider
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8443
-              scheme: HTTPS
-        # sensitive files still sit on disk for now
-        volumes:
-        - name: master-config
-          hostPath:
-            path: ${OPENSHIFT_APISERVER_CONFIG_HOST_PATH}
-        - name: master-cloud-provider
-          hostPath:
-            path: /etc/origin/cloudprovider
-        - name: serving-cert
-          secret:
-            secretName: serving-cert
-
-
-# to be able to assign powers to the process
-- apiVersion: v1
-  kind: ServiceAccount
-  metadata:
-    namespace: ${NAMESPACE}
-    name: openshift-apiserver
-
-- apiVersion: v1
-  kind: Service
-  metadata:
-    namespace: ${NAMESPACE}
-    name: api
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
-  spec:
-    selector:
-      openshift.io/component: api
-    ports:
-    - name: https
-      port: 443
-      targetPort: 8443
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.apps.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: apps.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.authorization.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: authorization.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.build.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: build.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.image.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: image.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.network.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: network.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.oauth.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: oauth.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.project.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: project.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.quota.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: quota.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.route.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: route.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.security.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: security.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.template.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: template.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-
-- apiVersion: apiregistration.k8s.io/v1beta1
-  kind: APIService
-  metadata:
-    name: v1.user.openshift.io
-    annotations:
-      service.alpha.openshift.io/inject-cabundle: "true"
-  spec:
-    group: user.openshift.io
-    version: v1
-    service:
-      namespace: openshift-apiserver
-      name: api
-    groupPriorityMinimum: 9900
-    versionPriority: 15
-`)
-
-func installOpenshiftApiserverInstallYamlBytes() ([]byte, error) {
-	return _installOpenshiftApiserverInstallYaml, nil
-}
-
-func installOpenshiftApiserverInstallYaml() (*asset, error) {
-	bytes, err := installOpenshiftApiserverInstallYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "install/openshift-apiserver/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _installOpenshiftApiserverStaticConfigJson = []byte(`{
-  "apiVersion": "openshiftcontrolplane.config.openshift.io/v1",
-  "kind": "OpenShiftAPIServerConfig",
-  "servingInfo": {
-    "certFile": "/var/serving-cert/tls.crt",
-    "keyFile": "/var/serving-cert/tls.key",
-    "clientCA": "ca.crt"
-  },
-  "storageConfig": {
-    "ca": "ca.crt",
-    "certFile": "master.etcd-client.crt",
-    "keyFile": "master.etcd-client.key"
-  }
-}`)
-
-func installOpenshiftApiserverStaticConfigJsonBytes() ([]byte, error) {
-	return _installOpenshiftApiserverStaticConfigJson, nil
-}
-
-func installOpenshiftApiserverStaticConfigJson() (*asset, error) {
-	bytes, err := installOpenshiftApiserverStaticConfigJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "install/openshift-apiserver/static-config.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -18129,6 +17917,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/service-catalog/service-catalog-rbac.yaml": examplesServiceCatalogServiceCatalogRbacYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
 	"install/cluster-kube-apiserver-operator/install.yaml": installClusterKubeApiserverOperatorInstallYaml,
+	"install/cluster-openshift-apiserver-operator/install.yaml": installClusterOpenshiftApiserverOperatorInstallYaml,
 	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
 	"install/etcd/install.yaml": installEtcdInstallYaml,
 	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
@@ -18136,8 +17925,6 @@ var _bindata = map[string]func() (*asset, error){
 	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
 	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
 	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
-	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
-	"install/openshift-apiserver/static-config.json": installOpenshiftApiserverStaticConfigJson,
 	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
 	"install/openshift-controller-manager/static-config.json": installOpenshiftControllerManagerStaticConfigJson,
@@ -18246,6 +18033,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"cluster-kube-apiserver-operator": &bintree{nil, map[string]*bintree{
 			"install.yaml": &bintree{installClusterKubeApiserverOperatorInstallYaml, map[string]*bintree{}},
 		}},
+		"cluster-openshift-apiserver-operator": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installClusterOpenshiftApiserverOperatorInstallYaml, map[string]*bintree{}},
+		}},
 		"etcd": &bintree{nil, map[string]*bintree{
 			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
 			"install.yaml": &bintree{installEtcdInstallYaml, map[string]*bintree{}},
@@ -18264,10 +18054,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"kube-scheduler": &bintree{nil, map[string]*bintree{
 			"kube-scheduler.yaml": &bintree{installKubeSchedulerKubeSchedulerYaml, map[string]*bintree{}},
-		}},
-		"openshift-apiserver": &bintree{nil, map[string]*bintree{
-			"install.yaml": &bintree{installOpenshiftApiserverInstallYaml, map[string]*bintree{}},
-			"static-config.json": &bintree{installOpenshiftApiserverStaticConfigJson, map[string]*bintree{}},
 		}},
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},

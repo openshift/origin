@@ -88,6 +88,7 @@ var (
 				InstallTemplate: manifests.MustAsset("install/cluster-kube-apiserver-operator/install.yaml"),
 			},
 		},
+
 		{
 			ComponentImage: "node",
 			Template: componentinstall.Template{
@@ -119,12 +120,12 @@ var (
 	}
 	runLevelOneOpenShiftComponents = []componentInstallTemplate{
 		{
-			ComponentImage: "hypershift",
+			ComponentImage: "cluster-openshift-apiserver-operator",
 			Template: componentinstall.Template{
-				Name:            "openshift-apiserver",
-				Namespace:       "openshift-apiserver",
-				NamespaceObj:    newNamespaceBytes("openshift-apiserver", runlevelOneLabel),
-				InstallTemplate: manifests.MustAsset("install/openshift-apiserver/install.yaml"),
+				Name:            "openshift-openshift-apiserver-operator",
+				Namespace:       "openshift-core-operators",
+				NamespaceObj:    newNamespaceBytes("openshift-core-operators", runlevelOneLabel),
+				InstallTemplate: manifests.MustAsset("install/cluster-openshift-apiserver-operator/install.yaml"),
 			},
 		},
 	}
@@ -175,7 +176,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 
 	templateSubstitutionValues := map[string]string{
 		"MASTER_CONFIG_HOST_PATH":                       configDirs.masterConfigDir,
-		"OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          configDirs.openshiftAPIServerConfigDir,
 		"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
 		"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
 		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
@@ -274,7 +274,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 
 type configDirs struct {
 	masterConfigDir              string
-	openshiftAPIServerConfigDir  string
 	openshiftControllerConfigDir string
 	nodeConfigDir                string
 	kubeDNSConfigDir             string
@@ -291,7 +290,6 @@ func (c *ClusterUpConfig) LocalDirFor(componentName string) string {
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	configs := &configDirs{
 		masterConfigDir:              filepath.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName),
-		openshiftAPIServerConfigDir:  filepath.Join(c.BaseDir, kubeapiserver.OpenShiftAPIServerDirName),
 		openshiftControllerConfigDir: filepath.Join(c.BaseDir, kubeapiserver.OpenShiftControllerManagerDirName),
 		nodeConfigDir:                filepath.Join(c.BaseDir, kubelet.NodeConfigDirName),
 		kubeDNSConfigDir:             filepath.Join(c.BaseDir, kubelet.KubeDNSDirName),
@@ -303,13 +301,6 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 
 	if _, err := os.Stat(configs.masterConfigDir); os.IsNotExist(err) {
 		_, err = c.makeMasterConfig()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if _, err := os.Stat(configs.openshiftAPIServerConfigDir); os.IsNotExist(err) {
-		_, err = c.makeOpenShiftAPIServerConfig(originalMasterConfigDir)
 		if err != nil {
 			return nil, err
 		}
@@ -345,10 +336,9 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	}
 
 	substitutions := map[string]string{
-		"/path/to/master/config-dir":              configs.masterConfigDir,
-		"/path/to/openshift-apiserver/config-dir": configs.openshiftAPIServerConfigDir,
-		"ETCD_VOLUME":                             "emptyDir:\n",
-		"OPENSHIFT_PULL_POLICY":                   c.pullPolicy,
+		"/path/to/master/config-dir": configs.masterConfigDir,
+		"ETCD_VOLUME":                "emptyDir:\n",
+		"OPENSHIFT_PULL_POLICY":      c.pullPolicy,
 	}
 
 	if len(c.HostDataDir) > 0 {
@@ -458,10 +448,6 @@ func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) 
 
 func (c *ClusterUpConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
 	return kubelet.MakeKubeDNSConfig(nodeConfig, c.BaseDir, c.ServerIP)
-}
-
-func (c *ClusterUpConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
-	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.BaseDir)
 }
 
 func (c *ClusterUpConfig) makeOpenShiftControllerConfig(masterConfigDir string) (string, error) {
