@@ -12,9 +12,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userv1 "github.com/openshift/api/user/v1"
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 const WhoAmIRecommendedCommandName = "whoami"
@@ -27,7 +26,7 @@ var whoamiLong = templates.LongDesc(`
 	user context.`)
 
 type WhoAmIOptions struct {
-	UserInterface userclient.UserResourceInterface
+	UserInterface userv1typedclient.UserV1Interface
 
 	ClientConfig *rest.Config
 	RawConfig    api.Config
@@ -66,8 +65,8 @@ func NewCmdWhoAmI(name, fullName string, f kcmdutil.Factory, streams genericclio
 	return cmd
 }
 
-func (o WhoAmIOptions) WhoAmI() (*userapi.User, error) {
-	me, err := o.UserInterface.Get("~", metav1.GetOptions{})
+func (o WhoAmIOptions) WhoAmI() (*userv1.User, error) {
+	me, err := o.UserInterface.Users().Get("~", metav1.GetOptions{})
 	if err == nil {
 		fmt.Fprintf(o.Out, "%s\n", me.Name)
 	}
@@ -111,12 +110,11 @@ func (o *WhoAmIOptions) Run() error {
 		return nil
 	}
 
-	client, err := userclientinternal.NewForConfig(o.ClientConfig)
+	var err error
+	o.UserInterface, err = userv1typedclient.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
-
-	o.UserInterface = client.User().Users()
 
 	_, err = o.WhoAmI()
 	return err
