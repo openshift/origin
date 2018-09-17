@@ -1,6 +1,8 @@
 package buildapihelpers
 
 import (
+	"fmt"
+
 	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
@@ -43,4 +45,10 @@ func hasBuildConfigAnnotation(build buildv1.Build, annotationName, annotationVal
 	}
 	value, ok := build.Annotations[annotationName]
 	return ok && value == annotationValue
+}
+
+// BuildNameForConfigVersion returns the name of the version-th build
+// for the config that has the provided name.
+func BuildNameForConfigVersion(name string, version int) string {
+	return fmt.Sprintf("%s-%d", name, version)
 }
