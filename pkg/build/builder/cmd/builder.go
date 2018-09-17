@@ -8,37 +8,34 @@ import (
 	"path/filepath"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
+	buildscheme "github.com/openshift/client-go/build/clientset/versioned/scheme"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/library-go/pkg/git"
-	"github.com/openshift/origin/pkg/api/legacy"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	utilglog "github.com/openshift/origin/pkg/build/builder/util/glog"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 var (
-	buildEnvVarScheme       = runtime.NewScheme()
-	buildEnvVarCodecFactory = serializer.NewCodecFactory(buildEnvVarScheme)
-	buildEnvVarJSONCodec    runtime.Codec
+	glog = utilglog.ToFile(os.Stderr, 2)
+
+	buildScheme       = runtime.NewScheme()
+	buildCodecFactory = serializer.NewCodecFactory(buildscheme.Scheme)
+	buildJSONCodec    runtime.Codec
 )
 
 func init() {
-	// TODO only use external versions, so we only add external types
-	legacy.InstallInternalLegacyBuild(buildEnvVarScheme)
-	utilruntime.Must(buildapiv1.AddToScheme(buildEnvVarScheme))
-	buildEnvVarJSONCodec = buildEnvVarCodecFactory.LegacyCodec(buildapiv1.SchemeGroupVersion, legacy.GroupVersion)
+	buildJSONCodec = buildCodecFactory.LegacyCodec(buildapiv1.SchemeGroupVersion)
 }
 
 type builder interface {
@@ -64,7 +61,7 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 
 	cfg.build = &buildapiv1.Build{}
 
-	obj, _, err := buildEnvVarJSONCodec.Decode([]byte(buildStr), nil, cfg.build)
+	obj, _, err := buildJSONCodec.Decode([]byte(buildStr), nil, cfg.build)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse build string: %v", err)
 	}
@@ -73,9 +70,9 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	if !ok {
 		return nil, fmt.Errorf("build string %s is not a build: %#v", buildStr, obj)
 	}
-	if glog.V(4) {
+	if glog.Is(4) {
 		redactedBuild := builderutil.SafeForLoggingBuild(cfg.build)
-		bytes, err := runtime.Encode(buildEnvVarJSONCodec, redactedBuild)
+		bytes, err := runtime.Encode(buildJSONCodec, redactedBuild)
 		if err != nil {
 			glog.V(4).Infof("unable to print debug line: %v", err)
 		} else {
@@ -169,7 +166,7 @@ func (c *builderConfig) clone() error {
 
 	gitClient := git.NewRepositoryWithEnv(gitEnv)
 
-	buildDir := buildutil.InputContentPath
+	buildDir := bld.InputContentPath
 	sourceInfo, err := bld.GitClone(ctx, gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, buildDir)
 	if err != nil {
 		c.build.Status.Phase = buildapiv1.BuildPhaseFailed
@@ -210,7 +207,7 @@ func (c *builderConfig) extractImageContent() error {
 		bld.HandleBuildStatusUpdate(c.build, c.buildsClient, nil)
 	}()
 
-	buildDir := buildutil.InputContentPath
+	buildDir := bld.InputContentPath
 	return bld.ExtractImageContent(ctx, c.dockerClient, buildDir, c.build)
 }
 
@@ -286,7 +283,7 @@ func RunManageDockerfile(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return bld.ManageDockerfile(buildutil.InputContentPath, cfg.build)
+	return bld.ManageDockerfile(bld.InputContentPath, cfg.build)
 }
 
 // RunExtractImageContent extracts files from existing images

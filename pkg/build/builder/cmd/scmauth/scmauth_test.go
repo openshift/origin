@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/util/file"
+	"github.com/openshift/origin/pkg/build/builder"
 )
 
 func secretDir(t *testing.T, files ...string) string {
@@ -28,7 +28,7 @@ func cleanupConfig(config string) {
 	if len(config) == 0 {
 		return
 	}
-	lines, err := file.ReadLines(config)
+	lines, err := builder.ReadLines(config)
 	if err != nil {
 		// abort cleanup on error
 		return
@@ -50,7 +50,7 @@ func validateConfig(t *testing.T, config string, search string) {
 	if len(config) == 0 {
 		return
 	}
-	lines, err := file.ReadLines(config)
+	lines, err := builder.ReadLines(config)
 	if err != nil {
 		t.Fatalf("cannot read file %s: %v", config, err)
 	}
@@ -64,7 +64,7 @@ func validateConfig(t *testing.T, config string, search string) {
 }
 
 func validateConfigContent(t *testing.T, config string, search string) {
-	lines, err := file.ReadLines(config)
+	lines, err := builder.ReadLines(config)
 	if err != nil {
 		t.Fatalf("cannot read file %s: %v", config, err)
 	}
