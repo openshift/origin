@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -56,13 +55,17 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 			in the '/manifests' directory in their image. This command iterates over a set of
 			operator images and extracts those manifests into a single, ordered list of
 			Kubernetes objects that can then be iteratively updated on a cluster by the
-			cluster version operator when it is time to perform an update.
+			cluster version operator when it is time to perform an update. Manifest files are
+			renamed to '99_<image_name>_<filename>' by default, and an operator author that
+			needs to provide a global-ordered file (before or after other operators) should
+			prepend '0000_' to their filename, which instructs the release builder to not
+			assign a component prefix.
 
 			Experimental: This command is under active development and may change without notice.
 		`),
 		Example: templates.Examples(fmt.Sprintf(`
 			# Create a release from the latest origin images and push to a DockerHub repo
-			%[1]s new --from-image-stream=origin-v3.11 -n openshift --to-image docker.io/mycompany/myrepo:latest
+			%[1]s new --from-image-stream=origin-v4.0 -n openshift --to-image docker.io/mycompany/myrepo:latest
 		`, parentName)),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
@@ -163,8 +166,6 @@ type imageData struct {
 	Directory string
 }
 
-var matchPrefix = regexp.MustCompile(`^(\d+[-_])?(.*)$`)
-
 func findStatusTagEvent(tags []imageapi.NamedTagEventList, name string) *imageapi.TagEvent {
 	for _, tag := range tags {
 		if tag.Tag != name {
@@ -250,9 +251,6 @@ func (o *NewOptions) Run() error {
 		for _, f := range files {
 			if f.IsDir() {
 				name := f.Name()
-				if matches := matchPrefix.FindStringSubmatch(name); matches != nil {
-					name = matches[2]
-				}
 				metadata[name] = imageData{Directory: filepath.Join(o.FromDirectory, f.Name())}
 				ordered = append(ordered, name)
 			}
@@ -485,8 +483,6 @@ type nopCloser struct {
 
 func (_ nopCloser) Close() error { return nil }
 
-var hasNumberPrefix = regexp.MustCompile(`^\d+_`)
-
 // writeNestedTarHeader writes a series of nested tar headers, starting with parts[0] and joining each
 // successive part, but only if the path does not exist already.
 func writeNestedTarHeader(tw *tar.Writer, parts []string, existing map[string]struct{}, hdr tar.Header) error {
@@ -564,8 +560,10 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 			}
 			filename := fi.Name()
 
-			// give every file a unique name and ordering
-			if !hasNumberPrefix.MatchString(filename) {
+			// components that don't declare that they need to be part of the global order
+			// get put in a scoped bucket at the end. Only a few components should need to
+			// be in the global order.
+			if !strings.HasPrefix(filename, "0000_") {
 				filename = fmt.Sprintf("99_%s_%s", name, filename)
 			}
 			if count, ok := files[filename]; ok {
