@@ -6,7 +6,7 @@ import (
 	leaderelectionconverter "github.com/openshift/library-go/pkg/config/leaderelection"
 )
 
-func SetRecommendedOpenShiftControllerConfigDefaults(config *openshiftcontrolplanev1.OpenShiftControllerConfig) {
+func SetRecommendedOpenShiftControllerConfigDefaults(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig) {
 	configdefaults.SetRecommendedHTTPServingInfoDefaults(config.ServingInfo)
 	configdefaults.SetRecommendedKubeClientConfigDefaults(&config.KubeClientConfig)
 	config.LeaderElection = leaderelectionconverter.LeaderElectionDefaulting(config.LeaderElection, "kube-system", "openshift-master-controllers")

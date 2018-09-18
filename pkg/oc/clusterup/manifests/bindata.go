@@ -52,6 +52,7 @@
 // install/openshift-apiserver/static-config.json
 // install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
+// install/openshift-controller-manager/static-config.json
 // install/openshift-service-cert-signer-operator/install-rbac.yaml
 // install/openshift-service-cert-signer-operator/install.yaml
 // install/openshift-web-console-operator/install-rbac.yaml
@@ -17844,38 +17845,42 @@ objects:
       spec:
         serviceAccountName: openshift-controller-manager
         restartPolicy: Always
-        hostNetwork: true
         containers:
-        - name: c
+        - name: controller-manager
           image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "openshift-controller-manager"]
           args:
-          - "--config=/etc/origin/master/master-config.yaml"
+          - "--config=/var/run/configmaps/config/config.json"
           - "--v=${LOGLEVEL}"
           ports:
-          - containerPort: 8444
+          - containerPort: 8443
           securityContext:
             privileged: true
             runAsUser: 0
           volumeMounts:
-           - mountPath: /etc/origin/master/
-             name: master-config
-           - mountPath: /etc/origin/cloudprovider/
-             name: master-cloud-provider
+          - mountPath: /var/run/configmaps/config
+            name: config
+          - mountPath: /var/run/configmaps/client-ca
+            name: client-ca
+          - mountPath: /var/run/secrets/serving-cert
+            name: serving-cert
           readinessProbe:
             httpGet:
               path: /healthz
-              port: 8444
+              port: 8443
               scheme: HTTPS
         # sensitive files still sit on disk for now
         volumes:
-        - name: master-config
+        - name: config
           hostPath:
             path: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}
-        - name: master-cloud-provider
+        - name: client-ca
           hostPath:
-            path: /etc/origin/cloudprovider
+            path: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}
+        - name: serving-cert
+          secret:
+            secretName: serving-cert
 
 
 # to be able to assign powers to the process
@@ -17885,6 +17890,21 @@ objects:
     namespace: ${NAMESPACE}
     name: openshift-controller-manager
 
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${NAMESPACE}
+    name: controller-manager
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  spec:
+    selector:
+      openshift.io/component: controllers
+    ports:
+    - name: https
+      port: 443
+      targetPort: 8443
 `)
 
 func installOpenshiftControllerManagerInstallYamlBytes() ([]byte, error) {
@@ -17898,6 +17918,27 @@ func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "install/openshift-controller-manager/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOpenshiftControllerManagerStaticConfigJson = []byte(`{
+  "apiVersion": "openshiftcontrolplane.config.openshift.io/v1",
+  "kind": "OpenShiftControllerManagerConfig",
+  "controllers": ["*", "-openshift.io/service-serving-cert"]
+}`)
+
+func installOpenshiftControllerManagerStaticConfigJsonBytes() ([]byte, error) {
+	return _installOpenshiftControllerManagerStaticConfigJson, nil
+}
+
+func installOpenshiftControllerManagerStaticConfigJson() (*asset, error) {
+	bytes, err := installOpenshiftControllerManagerStaticConfigJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-controller-manager/static-config.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -18878,6 +18919,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/openshift-apiserver/static-config.json": installOpenshiftApiserverStaticConfigJson,
 	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
+	"install/openshift-controller-manager/static-config.json": installOpenshiftControllerManagerStaticConfigJson,
 	"install/openshift-service-cert-signer-operator/install-rbac.yaml": installOpenshiftServiceCertSignerOperatorInstallRbacYaml,
 	"install/openshift-service-cert-signer-operator/install.yaml": installOpenshiftServiceCertSignerOperatorInstallYaml,
 	"install/openshift-web-console-operator/install-rbac.yaml": installOpenshiftWebConsoleOperatorInstallRbacYaml,
@@ -19021,6 +19063,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
 			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
+			"static-config.json": &bintree{installOpenshiftControllerManagerStaticConfigJson, map[string]*bintree{}},
 		}},
 		"openshift-service-cert-signer-operator": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftServiceCertSignerOperatorInstallRbacYaml, map[string]*bintree{}},

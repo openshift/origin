@@ -41,7 +41,7 @@ import (
 )
 
 func NewControllerContext(
-	config openshiftcontrolplanev1.OpenShiftControllerConfig,
+	config openshiftcontrolplanev1.OpenShiftControllerManagerConfig,
 	inClientConfig *rest.Config,
 	stopCh <-chan struct{},
 ) (*ControllerContext, error) {
@@ -155,7 +155,7 @@ func (c *ControllerContext) ToGenericInformer() genericinformers.GenericResource
 }
 
 type ControllerContext struct {
-	OpenshiftControllerConfig openshiftcontrolplanev1.OpenShiftControllerConfig
+	OpenshiftControllerConfig openshiftcontrolplanev1.OpenShiftControllerManagerConfig
 
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder

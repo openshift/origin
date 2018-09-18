@@ -36,8 +36,8 @@ import (
 const RecommendedStartControllerManagerName = "openshift-controller-manager"
 
 type OpenShiftControllerManager struct {
-	ConfigFile string
-	Output     io.Writer
+	ConfigFilePath string
+	Output         io.Writer
 }
 
 var longDescription = templates.LongDesc(`
@@ -72,7 +72,7 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 
 	flags := cmd.Flags()
 	// This command only supports reading from config
-	flags.StringVar(&options.ConfigFile, "config", options.ConfigFile, "Location of the master configuration file to run from.")
+	flags.StringVar(&options.ConfigFilePath, "config", options.ConfigFilePath, "Location of the master configuration file to run from.")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
 	cmd.MarkFlagRequired("config")
 
@@ -80,7 +80,7 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 }
 
 func (o *OpenShiftControllerManager) Validate() error {
-	if len(o.ConfigFile) == 0 {
+	if len(o.ConfigFilePath) == 0 {
 		return errors.New("--config is required for this command")
 	}
 
@@ -101,7 +101,7 @@ func (o *OpenShiftControllerManager) StartControllerManager() error {
 func (o *OpenShiftControllerManager) RunControllerManager() error {
 	// try to decode into our new types first.  right now there is no validation, no file path resolution.  this unsticks the operator to start.
 	// TODO add those things
-	configContent, err := ioutil.ReadFile(o.ConfigFile)
+	configContent, err := ioutil.ReadFile(o.ConfigFilePath)
 	if err != nil {
 		return err
 	}
@@ -111,13 +111,18 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 	obj, err := runtime.Decode(codecs.UniversalDecoder(openshiftcontrolplanev1.GroupVersion, configv1.GroupVersion), configContent)
 	if err == nil {
 		// Resolve relative to CWD
-		absoluteConfigFile, err := api.MakeAbs(o.ConfigFile, "")
+		absoluteConfigFile, err := api.MakeAbs(o.ConfigFilePath, "")
 		if err != nil {
 			return err
 		}
 		configFileLocation := path.Dir(absoluteConfigFile)
 
-		config := obj.(*openshiftcontrolplanev1.OpenShiftControllerConfig)
+		config := obj.(*openshiftcontrolplanev1.OpenShiftControllerManagerConfig)
+		/// this isn't allowed to be nil when by itself.
+		// TODO remove this when the old path is gone.
+		if config.ServingInfo == nil {
+			config.ServingInfo = &configv1.HTTPServingInfo{}
+		}
 		if err := helpers.ResolvePaths(configconversion.GetOpenShiftControllerConfigFileReferences(config), configFileLocation); err != nil {
 			return err
 		}
@@ -130,7 +135,7 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 		return RunOpenShiftControllerManager(config, clientConfig)
 	}
 
-	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.ConfigFile)
+	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.ConfigFilePath)
 	if err != nil {
 		return err
 	}

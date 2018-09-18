@@ -5,11 +5,12 @@ import (
 	"io/ioutil"
 	"time"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"github.com/openshift/origin/pkg/configconversion"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 
@@ -20,7 +21,7 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
-func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.MasterConfig) *openshiftcontrolplanev1.OpenShiftControllerConfig {
+func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.MasterConfig) *openshiftcontrolplanev1.OpenShiftControllerManagerConfig {
 	// this is the old flag binding logic
 	flagOptions, err := kcmoptions.NewKubeControllerManagerOptions()
 	if err != nil {
@@ -63,7 +64,7 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.Master
 		panic(err)
 	}
 
-	ret := &openshiftcontrolplanev1.OpenShiftControllerConfig{
+	ret := &openshiftcontrolplanev1.OpenShiftControllerManagerConfig{
 		KubeClientConfig: configv1.KubeClientConfig{
 			KubeConfig: in.MasterClients.OpenShiftLoopbackKubeConfig,
 		},
@@ -148,9 +149,7 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.Master
 // getBuildDefaults creates a new BuildDefaults that will apply the defaults specified in the plugin config
 func getBuildDefaults(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig) (*openshiftcontrolplanev1.BuildDefaultsConfig, error) {
 	const buildDefaultsPlugin = "BuildDefaults"
-	scheme := runtime.NewScheme()
-	openshiftcontrolplanev1.Install(scheme)
-	uncastConfig, err := getPluginConfigObj(pluginConfig, buildDefaultsPlugin, scheme)
+	uncastConfig, err := getPluginConfigObj(pluginConfig, buildDefaultsPlugin, &openshiftcontrolplanev1.BuildDefaultsConfig{})
 	if err != nil {
 		return nil, err
 	}
@@ -168,9 +167,7 @@ func getBuildDefaults(pluginConfig map[string]*legacyconfigv1.AdmissionPluginCon
 // getBuildOverrides creates a new BuildOverrides that will apply the overrides specified in the plugin config
 func getBuildOverrides(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig) (*openshiftcontrolplanev1.BuildOverridesConfig, error) {
 	const buildOverridesPlugin = "BuildOverrides"
-	scheme := runtime.NewScheme()
-	openshiftcontrolplanev1.Install(scheme)
-	uncastConfig, err := getPluginConfigObj(pluginConfig, buildOverridesPlugin, scheme)
+	uncastConfig, err := getPluginConfigObj(pluginConfig, buildOverridesPlugin, &openshiftcontrolplanev1.BuildOverridesConfig{})
 	if err != nil {
 		return nil, err
 	}
@@ -185,8 +182,8 @@ func getBuildOverrides(pluginConfig map[string]*legacyconfigv1.AdmissionPluginCo
 	return config, nil
 }
 
-func getPluginConfigObj(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig, pluginName string, scheme *runtime.Scheme) (runtime.Object, error) {
-	yamlContent, err := getPluginConfigYAML(pluginConfig, pluginName, scheme)
+func getPluginConfigObj(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig, pluginName string, target runtime.Object) (runtime.Object, error) {
+	yamlContent, err := getPluginConfigYAML(pluginConfig, pluginName)
 	if err != nil {
 		return nil, err
 	}
@@ -194,25 +191,35 @@ func getPluginConfigObj(pluginConfig map[string]*legacyconfigv1.AdmissionPluginC
 		return nil, nil
 	}
 
-	internalDecoder := serializer.NewCodecFactory(scheme).UniversalDecoder()
 	jsonData, err := kyaml.ToJSON(yamlContent)
 	if err != nil {
 		return nil, err
 	}
-	return runtime.Decode(internalDecoder, jsonData)
+	uncastObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, jsonData)
+	if err != nil {
+		return nil, err
+	}
+	uncastObj.(*unstructured.Unstructured).Object["apiVersion"] = openshiftcontrolplanev1.GroupName + "/v1"
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(uncastObj.(runtime.Unstructured).UnstructuredContent(), target); err != nil {
+		return nil, err
+	}
+	return target, nil
 }
 
 // getPluginConfigYAML gives the byte content of the config for a given plugin
-func getPluginConfigYAML(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig, pluginName string, scheme *runtime.Scheme) ([]byte, error) {
+func getPluginConfigYAML(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig, pluginName string) ([]byte, error) {
 	// Check whether a config is specified for this plugin. If not, default to the
 	// global plugin config file (if any).
 	cfg, hasConfig := pluginConfig[pluginName]
 	if !hasConfig {
 		return nil, nil
 	}
-	if len(cfg.Configuration.Raw) == 0 {
+	switch {
+	case len(cfg.Configuration.Raw) == 0 && len(cfg.Location) == 0:
+		return nil, fmt.Errorf("missing both config and location")
+	case len(cfg.Configuration.Raw) == 0:
 		return ioutil.ReadFile(cfg.Location)
+	default:
+		return cfg.Configuration.Raw, nil
 	}
-
-	return cfg.Configuration.Raw, nil
 }

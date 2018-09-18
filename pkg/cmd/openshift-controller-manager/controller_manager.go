@@ -25,7 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftControllerConfig, clientConfig *rest.Config) error {
+func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig, clientConfig *rest.Config) error {
 	util.InitLogrus()
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {

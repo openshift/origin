@@ -10,7 +10,6 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	testutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 func TestBuildOverrideForcePull(t *testing.T) {
@@ -35,7 +34,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 	ops := []admission.Operation{admission.Create, admission.Update}
 	for _, test := range tests {
 		for _, op := range ops {
-			overrides := BuildOverrides{Config: &configapi.BuildOverridesConfig{ForcePull: true}}
+			overrides := BuildOverrides{Config: &openshiftcontrolplanev1.BuildOverridesConfig{ForcePull: true}}
 			pod := testutil.Pod().WithBuild(t, test.build)
 			err := overrides.ApplyOverrides((*v1.Pod)(pod))
 			if err != nil {

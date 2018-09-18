@@ -10,6 +10,8 @@ import (
 	"path"
 	"path/filepath"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -436,11 +438,22 @@ func (m *Master) Start() error {
 		}()
 
 		// round trip to external
-		externalMasterConfig, err := configapi.Scheme.ConvertToVersion(m.config, legacyconfigv1.LegacySchemeGroupVersion)
+		uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(m.config, legacyconfigv1.LegacySchemeGroupVersion)
 		if err != nil {
 			return err
 		}
-		openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig.(*legacyconfigv1.MasterConfig))
+		legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
+		externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
+		if err != nil {
+			return err
+		}
+		externalMasterConfig := &legacyconfigv1.MasterConfig{}
+		gvk := legacyconfigv1.LegacySchemeGroupVersion.WithKind("MasterConfig")
+		_, _, err = legacyConfigCodec.Decode(externalBytes, &gvk, externalMasterConfig)
+		if err != nil {
+			return err
+		}
+		openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig)
 		// if we're starting the API, then this one isn't supposed to serve
 		if m.api {
 			openshiftControllerConfig.ServingInfo = nil

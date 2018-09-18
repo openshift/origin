@@ -18,7 +18,7 @@ func GetOpenShiftAPIServerConfigFileReferences(config *openshiftcontrolplanev1.O
 	return refs
 }
 
-func GetOpenShiftControllerConfigFileReferences(config *openshiftcontrolplanev1.OpenShiftControllerConfig) []*string {
+func GetOpenShiftControllerConfigFileReferences(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig) []*string {
 	if config == nil {
 		return []*string{}
 	}

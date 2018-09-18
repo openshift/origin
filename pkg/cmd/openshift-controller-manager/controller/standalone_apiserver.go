@@ -134,7 +134,7 @@ func getClientCertCAPool(servingInfo configv1.HTTPServingInfo) (*x509.CertPool, 
 	return roots, nil
 }
 
-// GetNamedCertificateMap returns a map of strings to *tls.Certificate, suitable for use in tls.Config#NamedCertificates
+// getNamedCertificateMap returns a map of strings to *tls.Certificate, suitable for use in tls.Config#NamedCertificates
 // Returns an error if any of the certs cannot be loaded, or do not match the configured name
 // Returns nil if len(namedCertificates) == 0
 func getNamedCertificateMap(namedCertificates []configv1.NamedCertificate) (map[string]*tls.Certificate, error) {
