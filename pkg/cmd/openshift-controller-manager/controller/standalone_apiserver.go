@@ -19,13 +19,13 @@ import (
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 // TODO make this an actual API server built on the genericapiserver
-func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal clientgoclientset.Interface) error {
+func RunControllerServer(servingInfo configv1.HTTPServingInfo, kubeExternal clientgoclientset.Interface) error {
 	clientCAs, err := getClientCertCAPool(servingInfo)
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func initReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, ready
 }
 
 // serve starts serving the provided http.Handler using security settings derived from the MasterConfig
-func serveControllers(servingInfo configapi.HTTPServingInfo, handler http.Handler) error {
+func serveControllers(servingInfo configv1.HTTPServingInfo, handler http.Handler) error {
 	timeout := servingInfo.RequestTimeoutSeconds
 	if timeout == -1 {
 		timeout = 0
@@ -100,7 +100,7 @@ func serveControllers(servingInfo configapi.HTTPServingInfo, handler http.Handle
 	go utilwait.Forever(func() {
 		glog.Infof("Started health checks at %s", servingInfo.BindAddress)
 
-		extraCerts, err := configapi.GetNamedCertificateMap(servingInfo.NamedCertificates)
+		extraCerts, err := getNamedCertificateMap(servingInfo.NamedCertificates)
 		if err != nil {
 			glog.Fatal(err)
 		}
@@ -114,13 +114,13 @@ func serveControllers(servingInfo configapi.HTTPServingInfo, handler http.Handle
 			MinVersion:     crypto.TLSVersionOrDie(servingInfo.MinTLSVersion),
 			CipherSuites:   crypto.CipherSuitesOrDie(servingInfo.CipherSuites),
 		})
-		glog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.ServerCert.CertFile, servingInfo.ServerCert.KeyFile))
+		glog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.CertFile, servingInfo.KeyFile))
 	}, 0)
 
 	return nil
 }
 
-func getClientCertCAPool(servingInfo configapi.HTTPServingInfo) (*x509.CertPool, error) {
+func getClientCertCAPool(servingInfo configv1.HTTPServingInfo) (*x509.CertPool, error) {
 	roots := x509.NewCertPool()
 	// Add CAs for API
 	certs, err := cmdutil.CertificatesFromFile(servingInfo.ClientCA)
@@ -132,4 +132,24 @@ func getClientCertCAPool(servingInfo configapi.HTTPServingInfo) (*x509.CertPool,
 	}
 
 	return roots, nil
+}
+
+// GetNamedCertificateMap returns a map of strings to *tls.Certificate, suitable for use in tls.Config#NamedCertificates
+// Returns an error if any of the certs cannot be loaded, or do not match the configured name
+// Returns nil if len(namedCertificates) == 0
+func getNamedCertificateMap(namedCertificates []configv1.NamedCertificate) (map[string]*tls.Certificate, error) {
+	if len(namedCertificates) == 0 {
+		return nil, nil
+	}
+	namedCerts := map[string]*tls.Certificate{}
+	for _, namedCertificate := range namedCertificates {
+		cert, err := tls.LoadX509KeyPair(namedCertificate.CertFile, namedCertificate.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+		for _, name := range namedCertificate.Names {
+			namedCerts[name] = &cert
+		}
+	}
+	return namedCerts, nil
 }

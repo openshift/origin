@@ -18,10 +18,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	networkapi "github.com/openshift/api/network/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinternalinformers "github.com/openshift/client-go/network/informers/externalversions"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
-	osconfigapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/network"
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -51,7 +51,7 @@ type OsdnMaster struct {
 	hostSubnetNodeIPs map[ktypes.UID]string
 }
 
-func Start(networkConfig osconfigapi.NetworkControllerConfig, networkClient networkclient.Interface,
+func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networkClient networkclient.Interface,
 	kClient kclientset.Interface, kubeInformers informers.SharedInformerFactory,
 	networkInformers networkinternalinformers.SharedInformerFactory) error {
 	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)

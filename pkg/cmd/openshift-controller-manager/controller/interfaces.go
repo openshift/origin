@@ -20,6 +20,7 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsinformer "github.com/openshift/client-go/apps/informers/externalversions"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
@@ -34,14 +35,13 @@ import (
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	templateinformer "github.com/openshift/client-go/template/informers/externalversions"
 	"github.com/openshift/origin/pkg/client/genericinformers"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 )
 
 func NewControllerContext(
-	config configapi.OpenshiftControllerConfig,
+	config openshiftcontrolplanev1.OpenShiftControllerConfig,
 	inClientConfig *rest.Config,
 	stopCh <-chan struct{},
 ) (*ControllerContext, error) {
@@ -155,7 +155,7 @@ func (c *ControllerContext) ToGenericInformer() genericinformers.GenericResource
 }
 
 type ControllerContext struct {
-	OpenshiftControllerConfig configapi.OpenshiftControllerConfig
+	OpenshiftControllerConfig openshiftcontrolplanev1.OpenShiftControllerConfig
 
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder

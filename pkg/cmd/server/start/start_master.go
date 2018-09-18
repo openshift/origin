@@ -10,6 +10,8 @@ import (
 	"path"
 	"path/filepath"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
@@ -433,7 +435,12 @@ func (m *Master) Start() error {
 			)
 		}()
 
-		openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(m.config)
+		// round trip to external
+		externalMasterConfig, err := configapi.Scheme.ConvertToVersion(m.config, legacyconfigv1.LegacySchemeGroupVersion)
+		if err != nil {
+			return err
+		}
+		openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig.(*legacyconfigv1.MasterConfig))
 		// if we're starting the API, then this one isn't supposed to serve
 		if m.api {
 			openshiftControllerConfig.ServingInfo = nil

@@ -7,11 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/version"
+
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -21,9 +17,15 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
+	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/version"
 )
 
-func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, clientConfig *rest.Config) error {
+func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftControllerConfig, clientConfig *rest.Config) error {
 	util.InitLogrus()
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {

@@ -4,28 +4,40 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path"
+
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/configdefault"
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	configv1 "github.com/openshift/api/config/v1"
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
+	"github.com/openshift/origin/pkg/configconversion"
 )
 
 const RecommendedStartControllerManagerName = "openshift-controller-manager"
 
 type OpenShiftControllerManager struct {
-	ConfigFile     string
-	KubeConfigFile string
-	Output         io.Writer
+	ConfigFile string
+	Output     io.Writer
 }
 
 var longDescription = templates.LongDesc(`
@@ -63,8 +75,6 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 	flags.StringVar(&options.ConfigFile, "config", options.ConfigFile, "Location of the master configuration file to run from.")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
 	cmd.MarkFlagRequired("config")
-	flags.StringVar(&options.KubeConfigFile, "kubeconfig", options.KubeConfigFile, "Location of the master configuration file to run from.")
-	cmd.MarkFlagFilename("kubeconfig", "kubeconfig")
 
 	return cmd
 }
@@ -89,6 +99,37 @@ func (o *OpenShiftControllerManager) StartControllerManager() error {
 
 // RunAPIServer takes the options and starts the etcd server
 func (o *OpenShiftControllerManager) RunControllerManager() error {
+	// try to decode into our new types first.  right now there is no validation, no file path resolution.  this unsticks the operator to start.
+	// TODO add those things
+	configContent, err := ioutil.ReadFile(o.ConfigFile)
+	if err != nil {
+		return err
+	}
+	scheme := runtime.NewScheme()
+	utilruntime.Must(openshiftcontrolplanev1.Install(scheme))
+	codecs := serializer.NewCodecFactory(scheme)
+	obj, err := runtime.Decode(codecs.UniversalDecoder(openshiftcontrolplanev1.GroupVersion, configv1.GroupVersion), configContent)
+	if err == nil {
+		// Resolve relative to CWD
+		absoluteConfigFile, err := api.MakeAbs(o.ConfigFile, "")
+		if err != nil {
+			return err
+		}
+		configFileLocation := path.Dir(absoluteConfigFile)
+
+		config := obj.(*openshiftcontrolplanev1.OpenShiftControllerConfig)
+		if err := helpers.ResolvePaths(configconversion.GetOpenShiftControllerConfigFileReferences(config), configFileLocation); err != nil {
+			return err
+		}
+		configdefault.SetRecommendedOpenShiftControllerConfigDefaults(config)
+
+		clientConfig, err := helpers.GetKubeClientConfig(config.KubeClientConfig)
+		if err != nil {
+			return err
+		}
+		return RunOpenShiftControllerManager(config, clientConfig)
+	}
+
 	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.ConfigFile)
 	if err != nil {
 		return err
@@ -104,8 +145,13 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
 	}
 
-	config := ConvertMasterConfigToOpenshiftControllerConfig(masterConfig)
-	clientConfig, err := configapi.GetKubeConfigOrInClusterConfig(o.KubeConfigFile, config.ClientConnectionOverrides)
+	// round trip to external
+	externalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
+	if err != nil {
+		return err
+	}
+	config := ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig.(*legacyconfigv1.MasterConfig))
+	clientConfig, err := helpers.GetKubeClientConfig(config.KubeClientConfig)
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	testutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
@@ -70,7 +70,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 func TestLabelOverrides(t *testing.T) {
 	tests := []struct {
 		buildLabels    []buildv1.ImageLabel
-		overrideLabels []buildapi.ImageLabel
+		overrideLabels []buildv1.ImageLabel
 		expected       []buildv1.ImageLabel
 	}{
 		{
@@ -80,7 +80,7 @@ func TestLabelOverrides(t *testing.T) {
 		},
 		{
 			buildLabels: nil,
-			overrideLabels: []buildapi.ImageLabel{
+			overrideLabels: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
@@ -131,7 +131,7 @@ func TestLabelOverrides(t *testing.T) {
 					Value: "public",
 				},
 			},
-			overrideLabels: []buildapi.ImageLabel{
+			overrideLabels: []buildv1.ImageLabel{
 				{
 					Name:  "distribution-scope",
 					Value: "private",
@@ -159,7 +159,7 @@ func TestLabelOverrides(t *testing.T) {
 					Value: "private",
 				},
 			},
-			overrideLabels: []buildapi.ImageLabel{
+			overrideLabels: []buildv1.ImageLabel{
 				{
 					Name:  "changelog-url",
 					Value: "file:///dev/null",
@@ -179,7 +179,7 @@ func TestLabelOverrides(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		overridesConfig := &configapi.BuildOverridesConfig{
+		overridesConfig := &openshiftcontrolplanev1.BuildOverridesConfig{
 			ImageLabels: test.overrideLabels,
 		}
 
@@ -220,7 +220,7 @@ func TestBuildOverrideNodeSelector(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		overrides := BuildOverrides{Config: &configapi.BuildOverridesConfig{NodeSelector: test.overrides}}
+		overrides := BuildOverrides{Config: &openshiftcontrolplanev1.BuildOverridesConfig{NodeSelector: test.overrides}}
 		pod := testutil.Pod().WithBuild(t, test.build)
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
@@ -272,7 +272,7 @@ func TestBuildOverrideAnnotations(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		overrides := BuildOverrides{Config: &configapi.BuildOverridesConfig{Annotations: test.overrides}}
+		overrides := BuildOverrides{Config: &openshiftcontrolplanev1.BuildOverridesConfig{Annotations: test.overrides}}
 		pod := testutil.Pod().WithBuild(t, test.build)
 		pod.Annotations = test.annotations
 		err := overrides.ApplyOverrides((*v1.Pod)(pod))

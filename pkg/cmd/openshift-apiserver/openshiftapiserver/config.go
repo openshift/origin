@@ -33,7 +33,7 @@ import (
 )
 
 func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerConfig) (*OpenshiftAPIConfig, error) {
-	kubeClientConfig, err := helpers.GetKubeConfigOrInClusterConfig(config.KubeClientConfig.KubeConfig, config.KubeClientConfig.ConnectionOverrides)
+	kubeClientConfig, err := helpers.GetKubeClientConfig(config.KubeClientConfig)
 	if err != nil {
 		return nil, err
 	}

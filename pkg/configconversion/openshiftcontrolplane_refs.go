@@ -17,3 +17,16 @@ func GetOpenShiftAPIServerConfigFileReferences(config *openshiftcontrolplanev1.O
 
 	return refs
 }
+
+func GetOpenShiftControllerConfigFileReferences(config *openshiftcontrolplanev1.OpenShiftControllerConfig) []*string {
+	if config == nil {
+		return []*string{}
+	}
+
+	refs := []*string{}
+
+	refs = append(refs, helpers.GetHTTPServingInfoFileReferences(config.ServingInfo)...)
+	refs = append(refs, helpers.GetKubeClientConfigFileReferences(&config.KubeClientConfig)...)
+
+	return refs
+}
