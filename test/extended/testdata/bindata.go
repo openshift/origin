@@ -269,6 +269,7 @@
 // examples/quickstarts/cakephp-mysql.json
 // install/cluster-kube-apiserver-operator/install.yaml
 // install/cluster-openshift-apiserver-operator/install.yaml
+// install/cluster-openshift-controller-manager-operator/install.yaml
 // install/etcd/etcd.yaml
 // install/etcd/install.yaml
 // install/kube-apiserver/apiserver.yaml
@@ -276,9 +277,6 @@
 // install/kube-dns/install.yaml
 // install/kube-proxy/install.yaml
 // install/kube-scheduler/kube-scheduler.yaml
-// install/openshift-controller-manager/install-rbac.yaml
-// install/openshift-controller-manager/install.yaml
-// install/openshift-controller-manager/static-config.json
 // install/openshift-service-cert-signer-operator/install-rbac.yaml
 // install/openshift-service-cert-signer-operator/install.yaml
 // DO NOT EDIT!
@@ -32554,6 +32552,133 @@ func installClusterOpenshiftApiserverOperatorInstallYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installClusterOpenshiftControllerManagerOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-hypershift:latest
+- name: NAMESPACE
+  # This namespace must not be changed.
+  value: openshift-core-operators
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      openshift.io/run-level: "1"
+    name: ${NAMESPACE}
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftcontrollermanageroperatorconfigs.openshiftcontrollermanager.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: openshiftcontrollermanager.operator.openshift.io
+    version: v1alpha1
+    names:
+      kind: OpenShiftControllerManagerOperatorConfig
+      plural: openshiftcontrollermanageroperatorconfigs
+      singular: openshiftcontrollermanageroperatorconfig
+      categories:
+      - coreoperators
+    subresources:
+      status: {}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:cluster-openshift-controller-manager-operator
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-controller-manager-operator
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-controller-manager-operator-config
+  data:
+    config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-controller-manager-operator
+    labels:
+      app: openshift-cluster-openshift-controller-manager-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-cluster-openshift-controller-manager-operator
+    template:
+      metadata:
+        name: openshift-cluster-openshift-controller-manager-operator
+        labels:
+          app: openshift-cluster-openshift-controller-manager-operator
+      spec:
+        serviceAccountName: openshift-cluster-openshift-controller-manager-operator
+        containers:
+        - name: operator
+          image: openshift/origin-cluster-openshift-controller-manager-operator:v4.0
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["cluster-openshift-controller-manager-operator", "operator"]
+          args:
+          - "--config=/var/run/configmaps/config/config.yaml"
+          - "-v=4"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        volumes:
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-cluster-openshift-controller-manager-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-controller-manager-operator
+    labels:
+      app: openshift-cluster-openshift-controller-manager-operator
+
+- apiVersion: openshiftcontrollermanager.operator.openshift.io/v1alpha1
+  kind: OpenShiftControllerManagerOperatorConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: openshift/origin-hypershift:latest
+    version: 3.11.0
+    logging:
+      level: 4`)
+
+func installClusterOpenshiftControllerManagerOperatorInstallYamlBytes() ([]byte, error) {
+	return _installClusterOpenshiftControllerManagerOperatorInstallYaml, nil
+}
+
+func installClusterOpenshiftControllerManagerOperatorInstallYaml() (*asset, error) {
+	bytes, err := installClusterOpenshiftControllerManagerOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/cluster-openshift-controller-manager-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installEtcdEtcdYaml = []byte(`kind: Pod
 apiVersion: v1
 metadata:
@@ -33033,281 +33158,6 @@ func installKubeSchedulerKubeSchedulerYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "install/kube-scheduler/kube-scheduler.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _installOpenshiftControllerManagerInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-parameters:
-- name: NAMESPACE
-  value: openshift-controller-manager
-- name: KUBE_SYSTEM
-  value: kube-system
-- name: OPENSHIFT_INFRA
-  value: openshift-infra
-objects:
-
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRole
-  metadata:
-    name: system:openshift:openshift-controller-manager
-  rules:
-  # we run cluster resource quota, so we have to be able to see all resources
-  - apiGroups:
-    - "*"
-    resources:
-    - "*"
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - events.k8s.io
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRoleBinding
-  metadata:
-    name: system:openshift:openshift-controller-manager
-  roleRef:
-    kind: ClusterRole
-    name: system:openshift:openshift-controller-manager
-  subjects:
-  - kind: ServiceAccount
-    namespace: openshift-controller-manager
-    name: openshift-controller-manager
-
-# needed to get the legacy lock that we used to use
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: Role
-  metadata:
-    name: system:openshift:leader-locking-openshift-controller-manager
-    namespace: ${KUBE_SYSTEM}
-  rules:
-  - apiGroups:
-    - ""
-    resources:
-    - configmaps
-    verbs:
-    - create
-  - apiGroups:
-    - ""
-    resourceNames:
-    - openshift-master-controllers
-    resources:
-    - configmaps
-    verbs:
-    - get
-    - create
-    - update
-    - patch
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: RoleBinding
-  metadata:
-    namespace: ${KUBE_SYSTEM}
-    name: system:openshift:leader-locking-openshift-controller-manager
-  roleRef:
-    kind: Role
-    name: system:openshift:leader-locking-openshift-controller-manager
-  subjects:
-  - kind: ServiceAccount
-    namespace: ${NAMESPACE}
-    name: openshift-controller-manager
-
-# needed to support the "use separate service accounts" feature.
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: Role
-  metadata:
-    name: system:openshift:sa-creating-openshift-controller-manager
-    namespace: ${OPENSHIFT_INFRA}
-  rules:
-  - apiGroups:
-    - ""
-    resources:
-    - serviceaccounts
-    verbs:
-    - get
-    - create
-    - update
-  - apiGroups:
-    - ""
-    resources:
-    - secrets
-    verbs:
-    - get
-    - list
-    - create
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: RoleBinding
-  metadata:
-    namespace: ${OPENSHIFT_INFRA}
-    name: system:openshift:sa-creating-openshift-controller-manager
-  roleRef:
-    kind: Role
-    name: system:openshift:sa-creating-openshift-controller-manager
-  subjects:
-  - kind: ServiceAccount
-    namespace: ${NAMESPACE}
-    name: openshift-controller-manager
-`)
-
-func installOpenshiftControllerManagerInstallRbacYamlBytes() ([]byte, error) {
-	return _installOpenshiftControllerManagerInstallRbacYaml, nil
-}
-
-func installOpenshiftControllerManagerInstallRbacYaml() (*asset, error) {
-	bytes, err := installOpenshiftControllerManagerInstallRbacYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "install/openshift-controller-manager/install-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _installOpenshiftControllerManagerInstallYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-metadata:
-  name: openshift-controller-manager
-parameters:
-- name: IMAGE
-  value: openshift/origin-control-plane:latest
-- name: OPENSHIFT_PULL_POLICY
-  value: Always
-- name: NAMESPACE
-  value: openshift-controller-manager
-- name: LOGLEVEL
-  value: "0"
-- name: OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH
-- name: NODE_SELECTOR
-  value: "{}"
-objects:
-
-# to create the tsb server
-- apiVersion: apps/v1
-  kind: DaemonSet
-  metadata:
-    namespace: ${NAMESPACE}
-    name: openshift-controller-manager
-    labels:
-      openshift.io/control-plane: "true"
-      openshift.io/component: controllers
-  spec:
-    selector:
-      matchLabels:
-        openshift.io/control-plane: "true"
-        openshift.io/component: controllers
-    template:
-      metadata:
-        name: openshift-controller-manager
-        labels:
-          openshift.io/control-plane: "true"
-          openshift.io/component: controllers
-      spec:
-        serviceAccountName: openshift-controller-manager
-        restartPolicy: Always
-        containers:
-        - name: controller-manager
-          image: ${IMAGE}
-          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["hypershift", "openshift-controller-manager"]
-          args:
-          - "--config=/var/run/configmaps/config/config.json"
-          - "--v=${LOGLEVEL}"
-          ports:
-          - containerPort: 8443
-          securityContext:
-            privileged: true
-            runAsUser: 0
-          volumeMounts:
-          - mountPath: /var/run/configmaps/config
-            name: config
-          - mountPath: /var/run/configmaps/client-ca
-            name: client-ca
-          - mountPath: /var/run/secrets/serving-cert
-            name: serving-cert
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8443
-              scheme: HTTPS
-        # sensitive files still sit on disk for now
-        volumes:
-        - name: config
-          hostPath:
-            path: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}
-        - name: client-ca
-          hostPath:
-            path: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}
-        - name: serving-cert
-          secret:
-            secretName: serving-cert
-
-
-# to be able to assign powers to the process
-- apiVersion: v1
-  kind: ServiceAccount
-  metadata:
-    namespace: ${NAMESPACE}
-    name: openshift-controller-manager
-
-
-- apiVersion: v1
-  kind: Service
-  metadata:
-    namespace: ${NAMESPACE}
-    name: controller-manager
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
-  spec:
-    selector:
-      openshift.io/component: controllers
-    ports:
-    - name: https
-      port: 443
-      targetPort: 8443
-`)
-
-func installOpenshiftControllerManagerInstallYamlBytes() ([]byte, error) {
-	return _installOpenshiftControllerManagerInstallYaml, nil
-}
-
-func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
-	bytes, err := installOpenshiftControllerManagerInstallYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "install/openshift-controller-manager/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _installOpenshiftControllerManagerStaticConfigJson = []byte(`{
-  "apiVersion": "openshiftcontrolplane.config.openshift.io/v1",
-  "kind": "OpenShiftControllerManagerConfig",
-  "controllers": ["*", "-openshift.io/service-serving-cert"]
-}`)
-
-func installOpenshiftControllerManagerStaticConfigJsonBytes() ([]byte, error) {
-	return _installOpenshiftControllerManagerStaticConfigJson, nil
-}
-
-func installOpenshiftControllerManagerStaticConfigJson() (*asset, error) {
-	bytes, err := installOpenshiftControllerManagerStaticConfigJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "install/openshift-controller-manager/static-config.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -33798,6 +33648,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
 	"install/cluster-kube-apiserver-operator/install.yaml": installClusterKubeApiserverOperatorInstallYaml,
 	"install/cluster-openshift-apiserver-operator/install.yaml": installClusterOpenshiftApiserverOperatorInstallYaml,
+	"install/cluster-openshift-controller-manager-operator/install.yaml": installClusterOpenshiftControllerManagerOperatorInstallYaml,
 	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
 	"install/etcd/install.yaml": installEtcdInstallYaml,
 	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
@@ -33805,9 +33656,6 @@ var _bindata = map[string]func() (*asset, error){
 	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
 	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
 	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
-	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
-	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
-	"install/openshift-controller-manager/static-config.json": installOpenshiftControllerManagerStaticConfigJson,
 	"install/openshift-service-cert-signer-operator/install-rbac.yaml": installOpenshiftServiceCertSignerOperatorInstallRbacYaml,
 	"install/openshift-service-cert-signer-operator/install.yaml": installOpenshiftServiceCertSignerOperatorInstallYaml,
 }
@@ -33925,6 +33773,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"cluster-openshift-apiserver-operator": &bintree{nil, map[string]*bintree{
 			"install.yaml": &bintree{installClusterOpenshiftApiserverOperatorInstallYaml, map[string]*bintree{}},
 		}},
+		"cluster-openshift-controller-manager-operator": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installClusterOpenshiftControllerManagerOperatorInstallYaml, map[string]*bintree{}},
+		}},
 		"etcd": &bintree{nil, map[string]*bintree{
 			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
 			"install.yaml": &bintree{installEtcdInstallYaml, map[string]*bintree{}},
@@ -33943,11 +33794,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"kube-scheduler": &bintree{nil, map[string]*bintree{
 			"kube-scheduler.yaml": &bintree{installKubeSchedulerKubeSchedulerYaml, map[string]*bintree{}},
-		}},
-		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
-			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
-			"static-config.json": &bintree{installOpenshiftControllerManagerStaticConfigJson, map[string]*bintree{}},
 		}},
 		"openshift-service-cert-signer-operator": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftServiceCertSignerOperatorInstallRbacYaml, map[string]*bintree{}},
