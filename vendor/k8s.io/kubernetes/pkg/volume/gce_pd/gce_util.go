@@ -269,6 +269,7 @@ func verifyDevicePath(devicePaths []string, sdBeforeSet sets.String) (string, er
 
 	for _, path := range devicePaths {
 		if pathExists, err := volumeutil.PathExists(path); err != nil {
+			glog.Infof("********** hemant Unable to verify the path %s", path)
 			return "", fmt.Errorf("Error checking if path exists: %v", err)
 		} else if pathExists {
 			return path, nil
@@ -339,6 +340,9 @@ func udevadmChangeToNewDrives(sdBeforeSet sets.String) error {
 	if err != nil {
 		return fmt.Errorf("Error filepath.Glob(\"%s\"): %v\r\n", diskSDPattern, err)
 	}
+
+	glog.Infof("********** hemant: before attach set is : %+v", sdBeforeSet)
+	glog.Infof("********** hemant: after attach set is : %+v", sdAfter)
 
 	for _, sd := range sdAfter {
 		if !sdBeforeSet.Has(sd) {

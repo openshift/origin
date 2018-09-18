@@ -154,6 +154,7 @@ func (attacher *gcePersistentDiskAttacher) WaitForAttach(spec *volume.Spec, devi
 	sdBeforeSet := sets.NewString(sdBefore...)
 
 	devicePaths := getDiskByIdPaths(pdName, partition)
+	glog.Infof("********** hemant - looking for disk path : %+v", devicePaths)
 	for {
 		select {
 		case <-ticker.C:
