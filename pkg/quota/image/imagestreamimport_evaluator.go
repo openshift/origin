@@ -17,6 +17,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagev1conversions "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 var imageStreamImportResources = []kapi.ResourceName{
@@ -38,7 +39,9 @@ func NewImageStreamImportEvaluator(store imagev1lister.ImageStreamLister) kquota
 
 // Constraints checks that given object is an image stream import.
 func (i *imageStreamImportEvaluator) Constraints(required []kapi.ResourceName, object runtime.Object) error {
-	if _, ok := object.(*imagev1.ImageStreamImport); !ok {
+	_, okInt := object.(*imageapi.ImageStreamImport)
+	_, okExt := object.(*imagev1.ImageStreamImport)
+	if !okInt && !okExt {
 		return fmt.Errorf("unexpected input object %v", object)
 	}
 	return nil
@@ -70,6 +73,13 @@ func (i *imageStreamImportEvaluator) MatchingResources(input []kapi.ResourceName
 }
 
 func (i *imageStreamImportEvaluator) Usage(item runtime.Object) (kapi.ResourceList, error) {
+	if isiInternal, ok := item.(*imageapi.ImageStreamImport); ok {
+		out := &imagev1.ImageStreamImport{}
+		if err := imagev1conversions.Convert_image_ImageStreamImport_To_v1_ImageStreamImport(isiInternal, out, nil); err != nil {
+			return kapi.ResourceList{}, fmt.Errorf("error converting ImageStreamImport: %v", err)
+		}
+		item = out
+	}
 	isi, ok := item.(*imagev1.ImageStreamImport)
 	if !ok {
 		return kapi.ResourceList{}, fmt.Errorf("item is not an ImageStreamImport: %T", item)
