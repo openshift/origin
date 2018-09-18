@@ -18,9 +18,7 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/bootkube"
-	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/components/pivot"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/etcd"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubelet"
 )
@@ -58,12 +56,13 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 
 	etcdCmd := &etcd.EtcdConfig{
-		EtcdImage:      c.etcdImage(),
-		AssetsDir:      configDirs.assetsDir,
-		EtcdDataDir:    c.HostDataDir,
-		ContainerBinds: []string{},
+		Image:           c.etcdImage(),
+		ImagePullPolicy: c.pullPolicy,
+		StaticPodDir:    configDirs.podManifestDir,
+		TlsDir:          filepath.Join(configDirs.assetsDir, "master"),
+		EtcdDataDir:     c.HostDataDir,
 	}
-	if _, err := etcdCmd.Start(c.GetDockerClient()); err != nil {
+	if err := etcdCmd.Start(); err != nil {
 		return err
 	}
 
@@ -104,18 +103,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	/***************************************************************************************/
 	/* Everything below is legacy bootstrapping of components, to be replaced by operators */
 	/***************************************************************************************/
-
-	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.pullPolicy, c.BaseDir, c.ServerLogLevel)
-	if err != nil {
-		return err
-	}
-
-	glog.Info("Create initial config content...")
-	// TODO: create those from the files used for bootkube phase 1
-	err = (&pivot.KubeAPIServerContent{InstallContext: installContext}).Install(c.GetDockerClient())
-	if err != nil {
-		return err
-	}
 
 	// If we're only supposed to install kubernetes, don't install anything else
 	if c.KubeOnly {
