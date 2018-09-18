@@ -62,7 +62,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/startbuild"
 	"github.com/openshift/origin/pkg/oc/cli/status"
 	"github.com/openshift/origin/pkg/oc/cli/tag"
-	"github.com/openshift/origin/pkg/oc/cli/types"
 	"github.com/openshift/origin/pkg/oc/cli/version"
 	"github.com/openshift/origin/pkg/oc/cli/whoami"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
@@ -134,7 +133,6 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{
-				types.NewCmdTypes(fullName, f, ioStreams),
 				loginCmd,
 				requestproject.NewCmdRequestProject(fullName, f, ioStreams),
 				newapp.NewCmdNewApplication(newapp.NewAppRecommendedCommandName, fullName, f, ioStreams),
