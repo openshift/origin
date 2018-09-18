@@ -756,7 +756,7 @@ Additionally, you can download swagger-ui from http://swagger.io/swagger-ui/
 and use it to point to your local swagger API endpoint.
 
 Note: Hosted API documentation can be found
-[here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
+[here](http://docs.okd.io/latest/rest_api/openshift_v1.html).
 
 
 ## Performance debugging

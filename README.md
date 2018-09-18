@@ -30,8 +30,8 @@ OKD: The Origin Community Distribution of Kubernetes
 
 **Learn More:**
 
-* **[Public Documentation](https://docs.openshift.org/latest/welcome/)**
-  * **[API Documentation](https://docs.openshift.org/latest/rest_api/openshift_v1.html)**
+* **[Public Documentation](https://docs.okd.io/latest/welcome/)**
+  * **[API Documentation](https://docs.okd.io/latest/rest_api/openshift_v1.html)**
 * Our **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
@@ -44,7 +44,7 @@ Getting Started
 If you have downloaded the client tools from the [releases page](https://github.com/openshift/origin/releases), place the included binaries in your PATH.
 
 * On any system with a Docker engine installed, you can run `oc cluster up` to get started immediately.  Try it out now!
-* For a full cluster installation using [Ansible](https://github.com/openshift/openshift-ansible), follow the [Advanced Installation guide](https://docs.openshift.org/latest/install_config/install/advanced_install.html)
+* For a full cluster installation using [Ansible](https://github.com/openshift/openshift-ansible), follow the [Advanced Installation guide](https://docs.okd.io/latest/install_config/install/advanced_install.html)
 * To build and run from source, see [CONTRIBUTING.adoc](CONTRIBUTING.adoc)
 
 The latest OKD Origin images are published to the Docker Hub under the `openshift` account at https://hub.docker.com/u/openshift/. We use a rolling tag system as of v3.9, where the `:latest` tag always points to the most recent alpha release on `master`, the `v3.X` tag points to the most recent build for that release (pre-release and post-release), and `v3.X.Y` is a stable tag for patches to a release.
@@ -53,11 +53,11 @@ The latest OKD Origin images are published to the Docker Hub under the `openshif
 
 OKD builds a developer-centric workflow around Docker containers and Kubernetes runtime concepts.  An **Image Stream** lets you easily tag, import, and publish Docker images from the integrated registry.  A **Build Config** allows you to launch Docker builds, build directly from source code, or trigger Jenkins Pipeline jobs whenever an image stream tag is updated.  A **Deployment Config** allows you to use custom deployment logic to rollout your application, and Kubernetes workflow objects like **DaemonSets**, **Deployments**, or **StatefulSets** are upgraded to automatically trigger when new images are available.  **Routes** make it trivial to expose your Kubernetes services via a public DNS name. As an administrator, you can enable your developers to request new **Projects** which come with predefined roles, quotas, and security controls to fairly divide access.
 
-For more on the underlying concepts of OKD, please see the [documentation site](https://docs.openshift.org/latest/welcome/index.html).
+For more on the underlying concepts of OKD, please see the [documentation site](https://docs.okd.io/latest/welcome/index.html).
 
 ### OKD API
 
-The OKD API is located on each server at `https://<host>:8443/apis`. OKD adds its own API groups alongside the Kubernetes APIs. For more, [see the API documentation](https://docs.openshift.org/latest/rest_api).
+The OKD API is located on each server at `https://<host>:8443/apis`. OKD adds its own API groups alongside the Kubernetes APIs. For more, [see the API documentation](https://docs.okd.io/latest/rest_api).
 
 ### Kubernetes
 
@@ -67,7 +67,7 @@ If you're looking for more information about using Kubernetes or the lower level
 
 * [Kubernetes Getting Started](https://kubernetes.io/docs/tutorials/kubernetes-basics/)
 * [Kubernetes Documentation](https://kubernetes.io/docs/)
-* [Kubernetes API](https://docs.openshift.org/latest/rest_api)
+* [Kubernetes API](https://docs.okd.io/latest/rest_api)
 
 
 ### What can I run on OKD?
@@ -76,7 +76,7 @@ OKD is designed to run any existing Docker images.  Additionally, you can define
 
 For an easier experience running your source code, [Source-to-Image (S2I)](https://github.com/openshift/source-to-image) allows developers to simply provide an application source repository containing code to build and run.  It works by combining an existing S2I-enabled Docker image with application source to produce a new runnable image for your application.
 
-You can see the [full list of Source-to-Image builder images](https://docs.openshift.org/latest/using_images/s2i_images/overview.html) and it's straightforward to [create your own](https://blog.openshift.com/create-s2i-builder-image/).  Some of our available images include:
+You can see the [full list of Source-to-Image builder images](https://docs.okd.io/latest/using_images/s2i_images/overview.html) and it's straightforward to [create your own](https://blog.openshift.com/create-s2i-builder-image/).  Some of our available images include:
 
   * [Ruby](https://github.com/sclorg/s2i-ruby-container)
   * [Python](https://github.com/sclorg/s2i-python-container)
@@ -85,7 +85,7 @@ You can see the [full list of Source-to-Image builder images](https://docs.opens
   * [Perl](https://github.com/sclorg/s2i-perl-container)
   * [WildFly](https://github.com/openshift-s2i/s2i-wildfly)
 
-Your application image can be easily extended with a database service with our [database images](https://docs.openshift.org/latest/using_images/db_images/overview.html):
+Your application image can be easily extended with a database service with our [database images](https://docs.okd.io/latest/using_images/db_images/overview.html):
 
   * [MySQL](https://github.com/sclorg/mysql-container)
   * [MongoDB](https://github.com/sclorg/mongodb-container)
@@ -104,7 +104,7 @@ OKD runs with the following security policy by default:
     * By default, Docker builds can (and often do) run as root. You can control who can create Docker builds through the `builds/docker` and `builds/custom` policy resource.
   * Regular users and project admins cannot change their security quotas.
 
-Many Docker containers expect to run as root (and therefore edit all the contents of the filesystem). The [Image Author's guide](https://docs.openshift.org/latest/creating_images/guidelines.html#openshift-specific-guidelines) gives recommendations on making your image more secure by default:
+Many Docker containers expect to run as root (and therefore edit all the contents of the filesystem). The [Image Author's guide](https://docs.okd.io/latest/creating_images/guidelines.html#openshift-specific-guidelines) gives recommendations on making your image more secure by default:
 
     * Don't run as root
     * Make directories you want to write to group-writable and owned by group id 0
@@ -115,7 +115,7 @@ If you are running your own cluster and want to run a container as root, you can
     # Gives the default service account in the current project access to run as UID 0 (root)
     oc adm add-scc-to-user anyuid -z default
 
-See the [security documentation](https://docs.openshift.org/latest/admin_guide/manage_scc.html) more on confining applications.
+See the [security documentation](https://docs.okd.io/latest/admin_guide/manage_scc.html) more on confining applications.
 
 
 Support for Kubernetes Alpha Features
