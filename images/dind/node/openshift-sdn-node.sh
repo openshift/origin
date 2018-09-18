@@ -46,7 +46,7 @@ function openshift-sdn-node() {
     oc config --config=${sdn_kube_config} set-context "$( oc config --config=${sdn_kube_config} current-context )" --user=sa
   fi
   # Launch the network process
-  exec openshift-sdn --config=${config_dir}/node-config.yaml --kubeconfig=${sdn_kube_config} --loglevel=${DEBUG_LOGLEVEL:-4}
+  exec openshift-sdn-node --config=${config_dir}/node-config.yaml --kubeconfig=${sdn_kube_config} --loglevel=${DEBUG_LOGLEVEL:-4}
 }
 
 if [[ "${OPENSHIFT_NETWORK_PLUGIN}" =~ ^"redhat/" ]]; then

@@ -70,6 +70,7 @@ RUN ln -sf /data/openshift /usr/local/bin/ && \
     ln -sf /data/oc        /usr/local/bin/ && \
     ln -sf /data/hyperkube /usr/local/bin/ && \
     ln -sf /data/openshift-node-config /usr/local/bin/ && \
+    ln -sf /data/openshift-sdn-node /usr/local/bin/openshift-sdn-node && \
     ln -sf /data/openshift /usr/local/bin/openshift-deploy && \
     ln -sf /data/openshift /usr/local/bin/openshift-docker-build && \
     ln -sf /data/openshift /usr/local/bin/openshift-sti-build && \
