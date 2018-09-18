@@ -14,9 +14,9 @@ This document describes the following ways to promote images:
 * **Based on human intervention**
   * using the `oc` and `docker` commands manually
 * **Automated by the OpenShift platform**
-  * using enhanced *DeploymentConfig* [lifecycle hooks](https://docs.openshift.org/latest/dev_guide/deployments/deployment_strategies.html#lifecycle-hooks)
-  * using [ImageChangeTrigger](https://docs.openshift.org/latest/dev_guide/deployments/basic_deployment_operations.html#image-change-trigger)
-  * using [Projects](https://docs.openshift.org/latest/dev_guide/projects.html) for different "stages"
+  * using enhanced *DeploymentConfig* [lifecycle hooks](https://docs.okd.io/latest/dev_guide/deployments/deployment_strategies.html#lifecycle-hooks)
+  * using [ImageChangeTrigger](https://docs.okd.io/latest/dev_guide/deployments/basic_deployment_operations.html#image-change-trigger)
+  * using [Projects](https://docs.okd.io/latest/dev_guide/projects.html) for different "stages"
 * **Based on external Continuous Delivery tool**
   * [Jenkins](https://jenkins-ci.org)
   * [go.cd](http://go.cd)

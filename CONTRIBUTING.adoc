@@ -53,7 +53,7 @@ the local host.
 Currently, OpenShift is built with `go` 1.9 and uses Docker 1.13 on Fedora/CentOS/RHEL.
 MacOS supports builds with `go` 1.9 and Docker CE 17.09.1 - newer versions of go and Docker are not supported.
 The exact requirement for Docker is documented
-https://docs.openshift.org/latest/install_config/install/prerequisites.html#installing-docker[here].
+https://docs.okd.io/latest/install_config/install/prerequisites.html#installing-docker[here].
 
 ==== Installing Prerequisites
 
