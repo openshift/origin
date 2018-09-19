@@ -278,6 +278,7 @@
 // install/kube-proxy/install.yaml
 // install/kube-scheduler/kube-scheduler.yaml
 // install/openshift-apiserver/install.yaml
+// install/openshift-apiserver/static-config.json
 // install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
 // install/openshift-service-cert-signer-operator/install-rbac.yaml
@@ -33030,6 +33031,18 @@ parameters:
   value: "{}"
 objects:
 
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:openshift-apiserver
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-apiserver
+
 - apiVersion: apps/v1
   kind: DaemonSet
   metadata:
@@ -33052,7 +33065,6 @@ objects:
       spec:
         serviceAccountName: openshift-apiserver
         restartPolicy: Always
-        hostNetwork: true
         containers:
         - name: apiserver
           image: ${IMAGE}
@@ -33062,10 +33074,10 @@ objects:
             value: registry.centos.org
           command: ["hypershift", "openshift-apiserver"]
           args:
-          - "--config=/etc/origin/master/master-config.yaml"
+          - "--config=/etc/origin/master/config.json"
           - "-v=${LOGLEVEL}"
           ports:
-          - containerPort: 8445
+          - containerPort: 8443
           securityContext:
             privileged: true
             runAsUser: 0
@@ -33079,7 +33091,7 @@ objects:
           readinessProbe:
             httpGet:
               path: /healthz
-              port: 8445
+              port: 8443
               scheme: HTTPS
         # sensitive files still sit on disk for now
         volumes:
@@ -33114,7 +33126,7 @@ objects:
     ports:
     - name: https
       port: 443
-      targetPort: 8445
+      targetPort: 8443
 
 - apiVersion: apiregistration.k8s.io/v1beta1
   kind: APIService
@@ -33308,6 +33320,36 @@ func installOpenshiftApiserverInstallYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "install/openshift-apiserver/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOpenshiftApiserverStaticConfigJson = []byte(`{
+  "apiVersion": "openshiftcontrolplane.config.openshift.io/v1",
+  "kind": "OpenShiftAPIServerConfig",
+  "servingInfo": {
+    "certFile": "/var/serving-cert/tls.crt",
+    "keyFile": "/var/serving-cert/tls.key",
+    "clientCA": "ca.crt"
+  },
+  "storageConfig": {
+    "ca": "ca.crt",
+    "certFile": "master.etcd-client.crt",
+    "keyFile": "master.etcd-client.key"
+  }
+}`)
+
+func installOpenshiftApiserverStaticConfigJsonBytes() ([]byte, error) {
+	return _installOpenshiftApiserverStaticConfigJson, nil
+}
+
+func installOpenshiftApiserverStaticConfigJson() (*asset, error) {
+	bytes, err := installOpenshiftApiserverStaticConfigJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-apiserver/static-config.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -34713,6 +34755,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
 	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
 	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
+	"install/openshift-apiserver/static-config.json": installOpenshiftApiserverStaticConfigJson,
 	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
 	"install/openshift-service-cert-signer-operator/install-rbac.yaml": installOpenshiftServiceCertSignerOperatorInstallRbacYaml,
@@ -34862,6 +34905,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"openshift-apiserver": &bintree{nil, map[string]*bintree{
 			"install.yaml": &bintree{installOpenshiftApiserverInstallYaml, map[string]*bintree{}},
+			"static-config.json": &bintree{installOpenshiftApiserverStaticConfigJson, map[string]*bintree{}},
 		}},
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},

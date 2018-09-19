@@ -14,7 +14,6 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/origin/pkg/configconversion"
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
@@ -90,8 +89,6 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 		return "", err
 	}
 
-	addImagePolicyAdmission(&masterconfig.AdmissionConfig)
-
 	kubeAPIServerConfig, err := configconversion.ConvertMasterConfigToKubeAPIServerConfig(masterconfig)
 	if err != nil {
 		return "", err
@@ -110,18 +107,4 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 	}
 
 	return masterDir, nil
-}
-
-func addImagePolicyAdmission(admissionConfig *legacyconfigv1.AdmissionConfig) {
-	// default openshift image policy admission
-	if admissionConfig.PluginConfig == nil {
-		admissionConfig.PluginConfig = map[string]*legacyconfigv1.AdmissionPluginConfig{}
-	}
-	// Add default ImagePolicyConfig into openshift api master config
-	policyConfig := []byte(`{"kind":"ImagePolicyConfig","apiVersion":"v1","executionRules":[{"name":"execution-denied",
-"onResources":[{"resource":"pods"},{"resource":"builds"}],"reject":true,"matchImageAnnotations":[{"key":"images.openshift.io/deny-execution",
-"value":"true"}],"skipOnResolutionFailure":true}]}`)
-	admissionConfig.PluginConfig["openshift.io/ImagePolicy"] = &legacyconfigv1.AdmissionPluginConfig{
-		Configuration: runtime.RawExtension{Raw: policyConfig},
-	}
 }
