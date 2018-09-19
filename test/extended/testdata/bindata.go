@@ -11894,9 +11894,6 @@ labels:
   template: gitserver
 metadata:
   name: gitserver
-parameters:
-- name: ROUTE_SUFFIX
-  required: true
 objects:
 # The gitserver is deployed as a singleton pod and uses a very small amount
 # of resources. It can host or transiently serve Git repositories, as well
@@ -12064,7 +12061,6 @@ objects:
     labels:
       app: gitserver
   spec:
-    host: gitserver-tokenauth.${ROUTE_SUFFIX}
     tls:
       termination: edge
     to:
@@ -12093,9 +12089,6 @@ labels:
   template: gitserver
 metadata:
   name: gitserver
-parameters:
-- name: ROUTE_SUFFIX
-  required: true
 objects:
 # The gitserver is deployed as a singleton pod and uses a very small amount
 # of resources. It can host or transiently serve Git repositories, as well
@@ -12263,7 +12256,6 @@ objects:
     labels:
       app: gitserver
   spec:
-    host: gitserver.${ROUTE_SUFFIX}
     tls:
       termination: edge
     to:
