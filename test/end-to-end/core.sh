@@ -155,7 +155,18 @@ os::cmd::expect_success 'oc project cache'
 e2e_user_token="$(oc whoami -t)"
 
 os::log::info "Docker login as e2e-user to ${DOCKER_REGISTRY}"
-os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} ${DOCKER_REGISTRY}"
+set +e
+oc get pods -n default -o yaml
+oc get pods -n default | grep registry
+oc get pods -n default | grep registry | awk '{print $1}' | xargs -n 1 oc logs -n default
+
+echo "ATTEMPTING LOGIN"
+docker login -u e2e-user -p ${e2e_user_token} ${DOCKER_REGISTRY}
+
+oc get pods -n default | grep registry | awk '{print $1}' | xargs -n 1 oc logs -n default
+
+set -e
+os::cmd::try_until_success "docker login -u e2e-user -p ${e2e_user_token} ${DOCKER_REGISTRY}"
 os::log::info "Docker login successful"
 
 os::log::info "Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
