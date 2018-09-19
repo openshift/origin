@@ -11,13 +11,13 @@ kind: Config
 clusters:
 - name: local
   cluster:
-    server: {{ .serverURL }}
-    certificate-authority-data: {{ .caCert }}
+    server: {{ .ServerURL }}
+    certificate-authority-data: {{ .CACert }}
 users:
 - name: admin
   user:
-    client-certificate-data: {{ .adminCert }}
-    client-key-data: {{ .adminKey }}
+    client-certificate-data: {{ .AdminCert }}
+    client-key-data: {{ .AdminKey }}
 contexts:
 - context:
     cluster: local
@@ -25,5 +25,5 @@ contexts:
 `)
 
 func (r *TLSAssetsRenderOptions) newAdminKubeConfig() assetslib.Asset {
-	assetslib.MustCreateAssetFromTemplate(AssetAdminKubeConfig, AdminKubeConfigTemplate, r)
+	return assetslib.MustCreateAssetFromTemplate(AssetAdminKubeConfig, AdminKubeConfigTemplate, &r.config)
 }

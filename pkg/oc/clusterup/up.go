@@ -510,6 +510,11 @@ func (c *ClusterUpConfig) determineIP() (string, error) {
 	return "", errors.NewError("cannot determine an IP to use for your server.")
 }
 
+func (c *ClusterUpConfig) ClusterAdminKubeConfigBytes() ([]byte, error) {
+	return []byte(`apiVersion: v1
+kind: Config`), nil
+}
+
 func (c *ClusterUpConfig) RESTConfig() (*rest.Config, error) {
 	clusterAdminKubeConfigBytes, err := c.ClusterAdminKubeConfigBytes()
 	if err != nil {

@@ -69,8 +69,8 @@ func (r *TLSAssetsRenderOptions) newTLSAssets(caCert *x509.Certificate, caPrivKe
 		return assets, err
 	}
 
-	r.adminKey = adminKey
-	r.adminCert = adminCert
+	r.config.AdminKey = adminKey
+	r.config.AdminCert = adminCert
 
 	assets = append(assets, []assetslib.Asset{
 		{Name: AssetPathCAKey, Data: tlsutil.EncodePrivateKeyPEM(caPrivKey)},

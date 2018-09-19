@@ -10,19 +10,25 @@ import (
 )
 
 type TLSAssetsRenderOptions struct {
-	AltNames *tlsutil.AltNames
+	AltNames tlsutil.AltNames
 
-	etcdServerURL string
-	serverURL     string
-	adminKey      *rsa.PrivateKey
-	adminCert     *x509.Certificate
-	caCert        *x509.Certificate
+	config tlsAssetsRenderConfig
+}
+
+type tlsAssetsRenderConfig struct {
+	EtcdServerURL string
+	ServerURL     string
+	AdminKey      *rsa.PrivateKey
+	AdminCert     *x509.Certificate
+	CACert        *x509.Certificate
 }
 
 func NewTLSAssetsRenderer(hostname string) *TLSAssetsRenderOptions {
 	return &TLSAssetsRenderOptions{
-		serverURL:     "https://" + hostname + ":8443",
-		etcdServerURL: "https://" + hostname + ":2379",
+		config: tlsAssetsRenderConfig{
+			ServerURL:     "https://" + hostname + ":8443",
+			EtcdServerURL: "https://" + hostname + ":2379",
+		},
 	}
 }
 
@@ -34,16 +40,16 @@ func (r *TLSAssetsRenderOptions) Render() (*assetslib.Assets, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.caCert = caCert
+	r.config.CACert = caCert
 
 	// Generate apiserver certs and keys
-	if files, err := r.newTLSAssets(caCert, caPrivateKey, *r.AltNames); err != nil {
+	if files, err := r.newTLSAssets(caCert, caPrivateKey, r.AltNames); err != nil {
 		return nil, err
 	} else {
 		result = append(result, files...)
 	}
 
-	etcdURL, err := url.Parse(r.etcdServerURL)
+	etcdURL, err := url.Parse(r.config.EtcdServerURL)
 	if err != nil {
 		return nil, err
 	}

@@ -36,7 +36,7 @@ type RenderConfig struct {
 // The assets produced by this commands are stored in AssetsOutputDir.
 // The configuration yaml file is stored in ConfigOutputDir, named according to ConfigFileName, with
 // default values overridden according to ConfigOverrides.
-func (opt *RenderConfig) RunRender(component string, hyperShiftImage string, dockerClient util.Interface, hostIP string) (string, error) {
+func (opt *RenderConfig) RunRender(component string, hyperShiftImage, hyperKubeImage string, dockerClient util.Interface, hostIP string) (string, error) {
 	imageRunHelper := run.NewRunHelper(util.NewHelper(dockerClient)).New()
 
 	renderCommand := []string{
@@ -46,6 +46,7 @@ func (opt *RenderConfig) RunRender(component string, hyperShiftImage string, doc
 		fmt.Sprintf("--config-output-file=%s", filepath.Join("/config-output", opt.ConfigFileName)),
 		fmt.Sprintf("--config-override-file=%s", filepath.Join("/config-input", filepath.Base(opt.ConfigOverrides))),
 		fmt.Sprintf("--manifest-image=%s", hyperShiftImage),
+		fmt.Sprintf("--manifest-hyperkube-image=%s", hyperKubeImage),
 		fmt.Sprintf("--manifest-config-host-path=%s", opt.ConfigOutputDir),
 		fmt.Sprintf("--manifest-config-file-name=%s", opt.ConfigFileName),
 	}

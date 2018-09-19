@@ -16,6 +16,7 @@ const (
 	AssetPathEtcdClientCert = "tls/etcd-client.crt"
 
 	AssetPathEtcdPeerCA     = "tls/etcd-peer-ca.crt"
+	AssetPathEtcdPeerKey    = "tls/etcd-peer.key"
 	AssetPathEtcdPeerCert   = "tls/etcd-peer.crt"
 	AssetPathEtcdServerCA   = "tls/etcd-server-ca.crt"
 	AssetPathEtcdServerKey  = "tls/etcd-server.key"
@@ -44,7 +45,6 @@ func (r *TLSAssetsRenderOptions) newEtcdTLSAssets(caCert *x509.Certificate, caPr
 		return nil, err
 	}
 
-	const AssetPathEtcdPeerKey = ""
 	assets = append(assets, []assetslib.Asset{
 		{Name: AssetPathEtcdPeerCA, Data: tlsutil.EncodeCertificatePEM(etcdCACert)},
 		{Name: AssetPathEtcdPeerKey, Data: tlsutil.EncodePrivateKeyPEM(etcdPeerKey)},
