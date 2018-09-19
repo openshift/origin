@@ -414,7 +414,9 @@ func printDeploymentRc(deployment *corev1.ReplicationController, kubeClient kube
 	timeAt := strings.ToLower(formatRelativeTime(deployment.CreationTimestamp.Time))
 	fmt.Fprintf(w, "\tCreated:\t%s ago\n", timeAt)
 	fmt.Fprintf(w, "\tStatus:\t%s\n", appsutil.DeploymentStatusFor(deployment))
-	fmt.Fprintf(w, "\tReplicas:\t%d current / %d desired\n", deployment.Status.Replicas, deployment.Spec.Replicas)
+	if deployment.Spec.Replicas != nil {
+		fmt.Fprintf(w, "\tReplicas:\t%d current / %d desired\n", deployment.Status.Replicas, *deployment.Spec.Replicas)
+	}
 
 	if verbose {
 		fmt.Fprintf(w, "\tSelector:\t%s\n", formatLabels(deployment.Spec.Selector))
