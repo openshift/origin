@@ -22,6 +22,10 @@ func Register(plugins *admission.Plugins) {
 		})
 }
 
+const (
+	KubeProjectNodeSelector = "scheduler.alpha.kubernetes.io/node-selector"
+)
+
 // podNodeEnvironment is an implementation of admission.MutationInterface.
 type podNodeEnvironment struct {
 	*admission.Handler
@@ -60,6 +64,15 @@ func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool)
 	if err != nil {
 		return apierrors.NewForbidden(resource, name, err)
 	}
+
+	// If scheduler.alpha.kubernetes.io/node-selector is set on the pod,
+	// do not process the pod further.
+	if len(namespace.ObjectMeta.Annotations) > 0 {
+		if _, ok := namespace.ObjectMeta.Annotations[KubeProjectNodeSelector]; ok {
+			return nil
+		}
+	}
+
 	projectNodeSelector, err := p.cache.GetNodeSelectorMap(namespace)
 	if err != nil {
 		return err

@@ -156,8 +156,9 @@ func TestNamespaceNodeSelectorMatches(t *testing.T) {
 			name:      "bothSpecified",
 			namespace: bothSpecified,
 			expected: map[string]bool{
-				"fifth": true,
-				"sixth": true,
+				"second": true,
+				"fifth":  true,
+				"sixth":  true,
 			},
 		},
 	}
