@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
@@ -14,10 +15,10 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
+	"k8s.io/kubernetes/pkg/util/interrupt"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -57,7 +58,16 @@ func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Comm
 		Short: "Launch node network",
 		Long:  fmt.Sprintf(networkLong, basename),
 		Run: func(c *cobra.Command, args []string) {
-			options.Run(c, errout, args, wait.NeverStop)
+			ch := make(chan struct{})
+			interrupt.New(func(s os.Signal) {
+				close(ch)
+				fmt.Fprintf(errout, "interrupt: Gracefully shutting down ...\n")
+				time.Sleep(200 * time.Millisecond)
+				os.Exit(1)
+			}).Run(func() error {
+				options.Run(c, errout, args, ch)
+				return nil
+			})
 		},
 	}
 
@@ -112,9 +122,10 @@ func (o NetworkOptions) Complete(cmd *cobra.Command) error {
 	return nil
 }
 
-// StartNode calls RunNode and then waits forever
+// StartNetwork starts the networking processes and then waits until the stop
+// channel receives a message or is closed.
 func (o NetworkOptions) StartNetwork(stopCh <-chan struct{}) error {
-	if err := o.RunNetwork(); err != nil {
+	if err := o.RunNetwork(stopCh); err != nil {
 		return err
 	}
 
@@ -123,10 +134,10 @@ func (o NetworkOptions) StartNetwork(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// RunNetwork takes the options and:
-// 1.  Reads fully specified node config
-// 2.  Starts the node based on the fully specified config
-func (o NetworkOptions) RunNetwork() error {
+// RunNetwork takes the network options and does the following:
+// 1. Reads the fully specified node config.
+// 2. Starts the node networking based on the fully specified config.
+func (o NetworkOptions) RunNetwork(stopCh <-chan struct{}) error {
 	nodeConfig, configFile, err := o.resolveNodeConfig()
 	if err != nil {
 		return err
@@ -175,7 +186,7 @@ func (o NetworkOptions) RunNetwork() error {
 		return err
 	}
 
-	return StartNetwork(*nodeConfig, o.NodeArgs.Components)
+	return StartNetwork(*nodeConfig, o.NodeArgs.Components, stopCh)
 }
 
 // resolveNodeConfig creates a new configuration on disk by reading from the master, reads
@@ -191,8 +202,8 @@ func (o NetworkOptions) resolveNodeConfig() (*configapi.NodeConfig, string, erro
 	return cfg, o.ConfigFile, err
 }
 
-// StartNetwork launches the node processes.
-func StartNetwork(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
+// StartNetwork launches the node networking processes.
+func StartNetwork(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag, stopCh <-chan struct{}) error {
 	glog.Infof("Starting node networking %s (%s)", nodeConfig.NodeName, version.Get().String())
 
 	proxyConfig, err := networkoptions.Build(nodeConfig)
@@ -217,12 +228,12 @@ func StartNetwork(nodeConfig configapi.NodeConfig, components *utilflags.Compone
 		networkConfig.RunProxy()
 	}
 	if components.Enabled(ComponentDNS) && networkConfig.DNSServer != nil {
-		networkConfig.RunDNS(wait.NeverStop)
+		networkConfig.RunDNS(stopCh)
 	}
 
-	networkConfig.InternalKubeInformers.Start(wait.NeverStop)
+	networkConfig.InternalKubeInformers.Start(stopCh)
 	if networkConfig.NetworkInformers != nil {
-		networkConfig.NetworkInformers.Start(wait.NeverStop)
+		networkConfig.NetworkInformers.Start(stopCh)
 	}
 
 	return nil
