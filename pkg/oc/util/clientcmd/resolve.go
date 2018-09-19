@@ -8,11 +8,10 @@ import (
 
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func ParseDockerImageReferenceToStringFunc(spec string) (string, error) {
-	ret, err := imageapi.ParseDockerImageReference(spec)
+	ret, err := reference.Parse(spec)
 	if err != nil {
 		return "", err
 	}

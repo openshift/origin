@@ -4,6 +4,7 @@ import (
 	"github.com/gonum/graph"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
@@ -29,7 +30,7 @@ func AddImageStreamTagRefEdge(g osgraph.MutableUniqueGraph, node *imagegraph.Ima
 
 // AddImageStreamImageRefEdge ensures that a directed edge exists between an ImageStreamImage Node and the IS it references
 func AddImageStreamImageRefEdge(g osgraph.MutableUniqueGraph, node *imagegraph.ImageStreamImageNode) {
-	dockImgRef, _ := imageapi.ParseDockerImageReference(node.Name)
+	dockImgRef, _ := reference.Parse(node.Name)
 	imageStream := &imagev1.ImageStream{}
 	imageStream.Namespace = node.Namespace
 	imageStream.Name = dockImgRef.Name

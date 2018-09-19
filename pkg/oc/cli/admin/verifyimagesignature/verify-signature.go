@@ -25,6 +25,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -129,7 +130,7 @@ func (o *VerifyImageSignatureOptions) Validate() error {
 		if len(o.ExpectedIdentity) == 0 {
 			return errors.New("the --expected-identity is required")
 		}
-		if _, err := imageapi.ParseDockerImageReference(o.ExpectedIdentity); err != nil {
+		if _, err := imageref.Parse(o.ExpectedIdentity); err != nil {
 			return errors.New("the --expected-identity must be valid image reference")
 		}
 	}
@@ -257,6 +258,7 @@ func (o *VerifyImageSignatureOptions) getImageManifest(img *imagev1.Image) ([]by
 	if err != nil {
 		return nil, err
 	}
+	// TODO(juanvallejo): Add missing methods to DockerImageReference object in library-go helper
 	registryURL := parsed.RegistryURL()
 	if len(o.RegistryURL) > 0 {
 		registryURL = &url.URL{Host: o.RegistryURL, Scheme: "https"}

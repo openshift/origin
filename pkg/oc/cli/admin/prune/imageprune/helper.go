@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -76,7 +77,7 @@ func DetermineRegistryHost(images *imagev1.ImageList, imageStreams *imagev1.Imag
 		return "", fmt.Errorf("no managed image found")
 	}
 
-	ref, err := imageapi.ParseDockerImageReference(pullSpec)
+	ref, err := reference.Parse(pullSpec)
 	if err != nil {
 		return "", fmt.Errorf("unable to parse %q: %v", pullSpec, err)
 	}

@@ -42,6 +42,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -458,7 +459,7 @@ func (o *DebugOptions) RunDebug() error {
 // find the ImageStream from which the DeploymentConfig is deploying, then tries
 // to find a match for the Container's image in the ImageStream's Images.
 func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *corev1.Pod, container *corev1.Container) (*imagev1.Image, error) {
-	ref, err := imageapi.ParseDockerImageReference(container.Image)
+	ref, err := reference.Parse(container.Image)
 	if err != nil {
 		return nil, err
 	}
