@@ -36,6 +36,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
@@ -311,6 +312,20 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig) (str
 	if masterConfig.EtcdConfig != nil && len(masterConfig.EtcdConfig.StorageDir) > 0 {
 		os.RemoveAll(masterConfig.EtcdConfig.StorageDir)
 	}
+
+	// for the extraction purposes we need to start etcd manually here
+	etcdserver.RunEtcd(masterConfig.EtcdConfig)
+	etcdClient3, err := etcd.MakeEtcdClientV3(masterConfig.EtcdClientInfo)
+	if err != nil {
+		return "", err
+	}
+	defer etcdClient3.Close()
+	if err := etcd.TestEtcdClientV3(etcdClient3); err != nil {
+		return "", err
+	}
+	// and we need to ensure that StartMaster doesn't start it
+	masterConfig.EtcdConfig = nil
+
 	if err := start.NewMaster(masterConfig, true /* always needed for cluster role aggregation */, true).Start(); err != nil {
 		return "", err
 	}
