@@ -520,7 +520,7 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 		var cfgPath string
 		cfgPath = filepath.Join(currentUser.HomeDir, ".docker", "config.json")
 		// First check if config file exist on the host before add it to the mounts.
-		if _, err := os.Stat(cfgPath); os.IsExist(err) {
+		if _, err := os.Stat(cfgPath); !os.IsNotExist(err) {
 			container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/root/.docker/config.json", cfgPath))
 		}
 	}
