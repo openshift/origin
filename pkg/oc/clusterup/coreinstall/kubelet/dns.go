@@ -8,13 +8,13 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/tmpformac"
+	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/fileutil"
 )
 
 func MakeKubeDNSConfig(existingNodeConfig string, basedir string, hostIP string) (string, error) {
 	configDir := path.Join(basedir, KubeDNSDirName)
 	glog.V(1).Infof("Copying kubelet config to local directory %s", configDir)
-	if err := tmpformac.CopyDirectory(existingNodeConfig, configDir); err != nil {
+	if err := fileutil.CopyDirectory(existingNodeConfig, configDir); err != nil {
 		return "", err
 	}
 

@@ -21,7 +21,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -85,7 +84,6 @@ type ClusterUpConfig struct {
 	ImageTemplate variable.ImageTemplate
 	ImageTag      string
 
-	DockerMachine  string
 	PortForwarding bool
 	KubeOnly       bool
 
@@ -99,10 +97,8 @@ type ClusterUpConfig struct {
 	ServerLogLevel    int
 
 	HostVolumesDir           string
-	HostConfigDir            string
 	WriteConfig              bool
 	HostDataDir              string
-	UsePorts                 []int
 	DNSPort                  int
 	ServerIP                 string
 	AdditionalIPs            []string
@@ -119,10 +115,6 @@ type ClusterUpConfig struct {
 	openshiftHelper     *openshift.Helper
 	command             *cobra.Command
 	defaultClientConfig clientcmdapi.Config
-	isRemoteDocker      bool
-
-	usingDefaultImages         bool
-	usingDefaultOpenShiftImage bool
 
 	pullPolicy string
 
@@ -133,7 +125,6 @@ type ClusterUpConfig struct {
 
 func NewClusterUpConfig(streams genericclioptions.IOStreams) *ClusterUpConfig {
 	return &ClusterUpConfig{
-		UsePorts:       openshift.BasePorts,
 		PortForwarding: defaultPortForwarding(),
 		DNSPort:        openshift.DefaultDNSPort,
 
@@ -217,8 +208,6 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 
 	c.command = cmd
 
-	c.isRemoteDocker = len(os.Getenv("DOCKER_HOST")) > 0
-
 	c.ImageTemplate.Format = variable.Expand(c.ImageTemplate.Format, func(s string) (string, bool) {
 		if s == "version" {
 			if len(c.ImageTag) == 0 {
@@ -289,9 +278,6 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 		if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
 			return err
 		}
-	} else {
-		// Snowflake for OSX Docker for Mac
-		c.HostVolumesDir = c.RemoteDirFor("openshift.local.volumes")
 	}
 
 	c.HostPersistentVolumesDir = path.Join(c.BaseDir, "openshift.local.pv")
@@ -424,9 +410,6 @@ func (c *ClusterUpConfig) Start() error {
 	}
 	if c.WriteConfig {
 		return nil
-	}
-	if err := c.PostClusterStartupMutations(c.Out); err != nil {
-		return err
 	}
 
 	// if we're only supposed to install kube, only install kube.  Maybe later we'll add back components.
@@ -680,24 +663,6 @@ func (c *ClusterUpConfig) updateNoProxy() {
 			c.NoProxy = append(c.NoProxy, v)
 		}
 	}
-}
-
-func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
-	restConfig, err := c.RESTConfig()
-	if err != nil {
-		return err
-	}
-	kClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-
-	// Remove any duplicate nodes
-	if err := c.OpenShiftHelper().CheckNodes(kClient); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (c *ClusterUpConfig) imageFormat() string {
@@ -969,29 +934,4 @@ func (c *ClusterUpConfig) GetPublicHostName() string {
 		return c.PublicHostname
 	}
 	return c.ServerIP
-}
-
-func isComponentEnabled(name string, disabledByDefaultComponents sets.String, components ...string) bool {
-	hasStar := false
-	for _, ctrl := range components {
-		if ctrl == name {
-			return true
-		}
-		if ctrl == "-"+name {
-			return false
-		}
-		if ctrl == "*" {
-			hasStar = true
-		}
-	}
-	// if we get here, there was no explicit choice
-	if !hasStar {
-		// nothing on by default
-		return false
-	}
-	if disabledByDefaultComponents.Has(name) {
-		return false
-	}
-
-	return true
 }

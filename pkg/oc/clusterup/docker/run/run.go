@@ -12,7 +12,6 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/golang/glog"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -64,23 +63,6 @@ func (h *Runner) Name(name string) *Runner {
 // Image sets the image to run
 func (h *Runner) Image(image string) *Runner {
 	h.config.Image = image
-	return h
-}
-
-func (h *Runner) PortForward(local, remote int) *Runner {
-	if h.hostConfig.PortBindings == nil {
-		h.hostConfig.PortBindings = nat.PortMap{}
-	}
-	containerPort := nat.Port(fmt.Sprintf("%d/tcp", remote))
-	binding := nat.PortBinding{
-		HostPort: fmt.Sprintf("%d", local),
-	}
-	h.hostConfig.PortBindings[containerPort] = []nat.PortBinding{binding}
-
-	if h.config.ExposedPorts == nil {
-		h.config.ExposedPorts = map[nat.Port]struct{}{}
-	}
-	h.config.ExposedPorts[containerPort] = struct{}{}
 	return h
 }
 

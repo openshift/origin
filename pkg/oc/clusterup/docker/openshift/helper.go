@@ -8,13 +8,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
@@ -102,21 +98,6 @@ func (h *Helper) TestIP(ip string) error {
 	return testIPDial(ip)
 }
 
-func (h *Helper) TestForwardedIP(ip string) error {
-	// Start test server on host
-	id, err := h.runHelper.New().Image(h.image).
-		PortForward(8443, 8443).
-		Entrypoint("socat").
-		Command("TCP-LISTEN:8443,crlf,reuseaddr,fork", "SYSTEM:\"echo 'hello world'\"").Start()
-	if err != nil {
-		return errors.NewError("cannot start simple server on Docker host").WithCause(err)
-	}
-	defer func() {
-		errors.LogError(h.dockerHelper.StopAndRemoveContainer(id))
-	}()
-	return testIPDial(ip)
-}
-
 func (h *Helper) DetermineNodeHost(hostConfigDir string, names ...string) (string, error) {
 	_, result, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
@@ -173,63 +154,8 @@ func (h *Helper) OtherIPs(excludeIP string) ([]string, error) {
 	return resultIPs, nil
 }
 
-// CheckNodes determines if there is more than one node that corresponds to the
-// current machine and removes the one that doesn't match the default node name
-func (h *Helper) CheckNodes(kclient kubernetes.Interface) error {
-	nodes, err := kclient.CoreV1().Nodes().List(metav1.ListOptions{})
-	if err != nil {
-		return errors.NewError("cannot retrieve nodes").WithCause(err)
-	}
-	if len(nodes.Items) > 1 {
-		glog.V(2).Infof("Found more than one node, will attempt to remove duplicate nodes")
-		nodesToRemove := []string{}
-
-		// First, find default node
-		defaultNodeMachineId := ""
-		for i := 0; i < len(nodes.Items); i++ {
-			if nodes.Items[i].Name == defaultNodeName {
-				defaultNodeMachineId = nodes.Items[i].Status.NodeInfo.MachineID
-				glog.V(5).Infof("machine id for default node is: %s", defaultNodeMachineId)
-				break
-			}
-		}
-
-		for i := 0; i < len(nodes.Items); i++ {
-			if nodes.Items[i].Name != defaultNodeName &&
-				nodes.Items[i].Status.NodeInfo.MachineID == defaultNodeMachineId {
-				glog.V(5).Infof("Found non-default node with duplicate machine id: %s", nodes.Items[i].Name)
-				nodesToRemove = append(nodesToRemove, nodes.Items[i].Name)
-			}
-		}
-
-		for i := 0; i < len(nodesToRemove); i++ {
-			glog.V(2).Infof("Deleting extra node %s", nodesToRemove[i])
-			err = kclient.CoreV1().Nodes().Delete(nodesToRemove[i], nil)
-			if err != nil {
-				return errors.NewError("cannot delete duplicate node %s", nodesToRemove[i]).WithCause(err)
-			}
-		}
-	}
-	return nil
-}
-
-func (h *Helper) OriginLog() string {
-	log := h.dockerHelper.ContainerLog(h.containerName, 10)
-	if len(log) > 0 {
-		return fmt.Sprintf("Last 10 lines of %q container log:\n%s\n", h.containerName, log)
-	}
-	return fmt.Sprintf("No log available from %q container\n", h.containerName)
-}
-
 func (h *Helper) Master(ip string) string {
 	return fmt.Sprintf("https://%s:8443", ip)
-}
-
-func (h *Helper) GetConfigFromLocalDir(configDir string) (*legacyconfigv1.MasterConfig, string, error) {
-	configPath := filepath.Join(configDir, "master-config.yaml")
-	glog.V(1).Infof("Reading master config from %s", configPath)
-	masterConfig, err := componentinstall.ReadMasterConfig(configPath)
-	return masterConfig, configPath, err
 }
 
 func checkPortsInUse(data string, ports []int) error {
