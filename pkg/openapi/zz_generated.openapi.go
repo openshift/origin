@@ -289,12 +289,28 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/oauth/v1.OAuthRedirectReference":                                          schema_openshift_api_oauth_v1_OAuthRedirectReference(ref),
 		"github.com/openshift/api/oauth/v1.RedirectReference":                                               schema_openshift_api_oauth_v1_RedirectReference(ref),
 		"github.com/openshift/api/oauth/v1.ScopeRestriction":                                                schema_openshift_api_oauth_v1_ScopeRestriction(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.BuildControllerConfig":                           schema_openshift_api_openshiftcontrolplane_v1_BuildControllerConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.BuildDefaultsConfig":                             schema_openshift_api_openshiftcontrolplane_v1_BuildDefaultsConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.BuildOverridesConfig":                            schema_openshift_api_openshiftcontrolplane_v1_BuildOverridesConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.ClusterNetworkEntry":                             schema_openshift_api_openshiftcontrolplane_v1_ClusterNetworkEntry(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.DeployerControllerConfig":                        schema_openshift_api_openshiftcontrolplane_v1_DeployerControllerConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.DockerPullSecretControllerConfig":                schema_openshift_api_openshiftcontrolplane_v1_DockerPullSecretControllerConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.ImageConfig":                                     schema_openshift_api_openshiftcontrolplane_v1_ImageConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.ImageImportControllerConfig":                     schema_openshift_api_openshiftcontrolplane_v1_ImageImportControllerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig":                               schema_openshift_api_openshiftcontrolplane_v1_ImagePolicyConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.IngressControllerConfig":                         schema_openshift_api_openshiftcontrolplane_v1_IngressControllerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.JenkinsPipelineConfig":                           schema_openshift_api_openshiftcontrolplane_v1_JenkinsPipelineConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.NetworkControllerConfig":                         schema_openshift_api_openshiftcontrolplane_v1_NetworkControllerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.OpenShiftAPIServerConfig":                        schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.OpenShiftControllerManagerConfig":                schema_openshift_api_openshiftcontrolplane_v1_OpenShiftControllerManagerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.ProjectConfig":                                   schema_openshift_api_openshiftcontrolplane_v1_ProjectConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.RegistryLocation":                                schema_openshift_api_openshiftcontrolplane_v1_RegistryLocation(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.ResourceQuotaControllerConfig":                   schema_openshift_api_openshiftcontrolplane_v1_ResourceQuotaControllerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.RoutingConfig":                                   schema_openshift_api_openshiftcontrolplane_v1_RoutingConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.SecurityAllocator":                               schema_openshift_api_openshiftcontrolplane_v1_SecurityAllocator(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.ServiceAccountControllerConfig":                  schema_openshift_api_openshiftcontrolplane_v1_ServiceAccountControllerConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.ServiceServingCert":                              schema_openshift_api_openshiftcontrolplane_v1_ServiceServingCert(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.SourceStrategyDefaultsConfig":                    schema_openshift_api_openshiftcontrolplane_v1_SourceStrategyDefaultsConfig(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthentication":                                schema_openshift_api_operator_v1alpha1_DelegatedAuthentication(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization":                                 schema_openshift_api_operator_v1alpha1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/operator/v1alpha1.GenerationHistory":                                      schema_openshift_api_operator_v1alpha1_GenerationHistory(ref),
@@ -15173,6 +15189,376 @@ func schema_openshift_api_oauth_v1_ScopeRestriction(ref common.ReferenceCallback
 	}
 }
 
+func schema_openshift_api_openshiftcontrolplane_v1_BuildControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"imageTemplateFormat": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.ImageConfig"),
+						},
+					},
+					"buildDefaults": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.BuildDefaultsConfig"),
+						},
+					},
+					"buildOverrides": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.BuildOverridesConfig"),
+						},
+					},
+				},
+				Required: []string{"imageTemplateFormat", "buildDefaults", "buildOverrides"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/openshiftcontrolplane/v1.BuildDefaultsConfig", "github.com/openshift/api/openshiftcontrolplane/v1.BuildOverridesConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ImageConfig"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_BuildDefaultsConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BuildDefaultsConfig controls the default information for Builds",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"gitHTTPProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "gitHTTPProxy is the location of the HTTPProxy for Git source",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"gitHTTPSProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "gitHTTPSProxy is the location of the HTTPSProxy for Git source",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"gitNoProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "gitNoProxy is the list of domains for which the proxy should not be used",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"env": {
+						SchemaProps: spec.SchemaProps{
+							Description: "env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/core/v1.EnvVar"),
+									},
+								},
+							},
+						},
+					},
+					"sourceStrategyDefaults": {
+						SchemaProps: spec.SchemaProps{
+							Description: "sourceStrategyDefaults are default values that apply to builds using the source strategy.",
+							Ref:         ref("github.com/openshift/api/openshiftcontrolplane/v1.SourceStrategyDefaultsConfig"),
+						},
+					},
+					"imageLabels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "imageLabels is a list of docker labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/build/v1.ImageLabel"),
+									},
+								},
+							},
+						},
+					},
+					"nodeSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeSelector is a selector which must be true for the build pod to fit on a node",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"annotations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "annotations are annotations that will be added to the build pod",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"resources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resources defines resource requirements to execute the build.",
+							Ref:         ref("k8s.io/api/core/v1.ResourceRequirements"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/build/v1.ImageLabel", "github.com/openshift/api/openshiftcontrolplane/v1.SourceStrategyDefaultsConfig", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.ResourceRequirements"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_BuildOverridesConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BuildOverridesConfig controls override settings for builds",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"forcePull": {
+						SchemaProps: spec.SchemaProps{
+							Description: "forcePull indicates whether the build strategy should always be set to ForcePull=true",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"imageLabels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "imageLabels is a list of docker labels that are applied to the resulting image. If user provided a label in their Build/BuildConfig with the same name as one in this list, the user's label will be overwritten.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/build/v1.ImageLabel"),
+									},
+								},
+							},
+						},
+					},
+					"nodeSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeSelector is a selector which must be true for the build pod to fit on a node",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"annotations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "annotations are annotations that will be added to the build pod",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"tolerations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "tolerations is a list of Tolerations that will override any existing tolerations set on a build pod.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/core/v1.Toleration"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"forcePull"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/build/v1.ImageLabel", "k8s.io/api/core/v1.Toleration"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_ClusterNetworkEntry(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
+				Properties: map[string]spec.Schema{
+					"cidr": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CIDR defines the total range of a cluster networks address space.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"hostSubnetLength": {
+						SchemaProps: spec.SchemaProps{
+							Description: "HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pod.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+				Required: []string{"cidr", "hostSubnetLength"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_DeployerControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"imageTemplateFormat": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.ImageConfig"),
+						},
+					},
+				},
+				Required: []string{"imageTemplateFormat"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/openshiftcontrolplane/v1.ImageConfig"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_DockerPullSecretControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"registryURLs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "registryURLs is a list of urls that the docker pull secrets should be valid for.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"registryURLs"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_ImageConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ImageConfig holds the necessary configuration options for building image names for system components",
+				Properties: map[string]spec.Schema{
+					"format": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Format is the format of the name to be built for the system component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"latest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Latest determines if the latest tag will be pulled from the registry",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"format", "latest"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_ImageImportControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"maxScheduledImageImportsPerMinute": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxScheduledImageImportsPerMinute is the maximum number of image streams that will be imported in the background per minute. The default value is 60. Set to -1 for unlimited.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"disableScheduledImport": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disableScheduledImport allows scheduled background import of images to be disabled.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"scheduledImageImportMinimumIntervalSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "scheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams scheduled for background import are checked against the upstream repository. The default value is 15 minutes.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"maxScheduledImageImportsPerMinute", "disableScheduledImport", "scheduledImageImportMinimumIntervalSeconds"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_openshift_api_openshiftcontrolplane_v1_ImagePolicyConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -15225,6 +15611,26 @@ func schema_openshift_api_openshiftcontrolplane_v1_ImagePolicyConfig(ref common.
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/openshiftcontrolplane/v1.RegistryLocation"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_IngressControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"ingressIPNetworkCIDR": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ingressIPNetworkCIDR controls the range to assign ingress ips from for services of type LoadBalancer on bare metal. If empty, ingress ips will not be assigned. It may contain a single CIDR that will be allocated from. For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips, nodes, pods, or services.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"ingressIPNetworkCIDR"},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 
@@ -15281,6 +15687,52 @@ func schema_openshift_api_openshiftcontrolplane_v1_JenkinsPipelineConfig(ref com
 			},
 		},
 		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_NetworkControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MasterNetworkConfig to be passed to the compiled in network plugin",
+				Properties: map[string]spec.Schema{
+					"networkPluginName": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"clusterNetworks": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clusterNetworks contains a list of cluster networks that defines the global overlay networks L3 space.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.ClusterNetworkEntry"),
+									},
+								},
+							},
+						},
+					},
+					"serviceNetworkCIDR": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"vxLANPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+				},
+				Required: []string{"networkPluginName", "clusterNetworks", "serviceNetworkCIDR", "vxLANPort"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/openshiftcontrolplane/v1.ClusterNetworkEntry"},
 	}
 }
 
@@ -15419,6 +15871,115 @@ func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref 
 	}
 }
 
+func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftControllerManagerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kubeClientConfig": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/config/v1.KubeClientConfig"),
+						},
+					},
+					"servingInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "servingInfo describes how to start serving",
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
+						},
+					},
+					"leaderElection": {
+						SchemaProps: spec.SchemaProps{
+							Description: "leaderElection defines the configuration for electing a controller instance to make changes to the cluster. If unspecified, the ControllerTTL value is checked to determine whether the legacy direct etcd election code will be used.",
+							Ref:         ref("github.com/openshift/api/config/v1.LeaderElection"),
+						},
+					},
+					"controllers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "controllers is a list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller \"+ named 'foo', '-foo' disables the controller named 'foo'. Defaults to \"*\".",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"resourceQuota": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.ResourceQuotaControllerConfig"),
+						},
+					},
+					"serviceServingCert": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.ServiceServingCert"),
+						},
+					},
+					"deployer": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.DeployerControllerConfig"),
+						},
+					},
+					"build": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.BuildControllerConfig"),
+						},
+					},
+					"serviceAccount": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.ServiceAccountControllerConfig"),
+						},
+					},
+					"dockerPullSecret": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.DockerPullSecretControllerConfig"),
+						},
+					},
+					"network": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.NetworkControllerConfig"),
+						},
+					},
+					"ingress": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.IngressControllerConfig"),
+						},
+					},
+					"imageImport": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.ImageImportControllerConfig"),
+						},
+					},
+					"securityAllocator": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/openshiftcontrolplane/v1.SecurityAllocator"),
+						},
+					},
+				},
+				Required: []string{"kubeClientConfig", "servingInfo", "leaderElection", "controllers", "resourceQuota", "serviceServingCert", "deployer", "build", "serviceAccount", "dockerPullSecret", "network", "ingress", "imageImport", "securityAllocator"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/config/v1.LeaderElection", "github.com/openshift/api/openshiftcontrolplane/v1.BuildControllerConfig", "github.com/openshift/api/openshiftcontrolplane/v1.DeployerControllerConfig", "github.com/openshift/api/openshiftcontrolplane/v1.DockerPullSecretControllerConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ImageImportControllerConfig", "github.com/openshift/api/openshiftcontrolplane/v1.IngressControllerConfig", "github.com/openshift/api/openshiftcontrolplane/v1.NetworkControllerConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ResourceQuotaControllerConfig", "github.com/openshift/api/openshiftcontrolplane/v1.SecurityAllocator", "github.com/openshift/api/openshiftcontrolplane/v1.ServiceAccountControllerConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ServiceServingCert"},
+	}
+}
+
 func schema_openshift_api_openshiftcontrolplane_v1_ProjectConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -15481,6 +16042,36 @@ func schema_openshift_api_openshiftcontrolplane_v1_RegistryLocation(ref common.R
 	}
 }
 
+func schema_openshift_api_openshiftcontrolplane_v1_ResourceQuotaControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"concurrentSyncs": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"syncPeriod": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+					"minResyncPeriod": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+				},
+				Required: []string{"concurrentSyncs", "syncPeriod", "minResyncPeriod"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
+	}
+}
+
 func schema_openshift_api_openshiftcontrolplane_v1_RoutingConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -15496,6 +16087,109 @@ func schema_openshift_api_openshiftcontrolplane_v1_RoutingConfig(ref common.Refe
 					},
 				},
 				Required: []string{"subdomain"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_SecurityAllocator(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.",
+				Properties: map[string]spec.Schema{
+					"uidAllocatorRange": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the ranges Docker images will use once user namespaces are started).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"mcsAllocatorRange": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MCSAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is \"<prefix>/<numberOfLabels>[,<maxCategory>]\". The default is \"s0/2\" and will allocate from c0 -> c1023, which means a total of 535k labels are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default will allow the server to set them automatically.\n\nExamples: * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511 * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"mcsLabelsPerProject": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MCSLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS ranges (100k namespaces, 535k/5 labels).",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"uidAllocatorRange", "mcsAllocatorRange", "mcsLabelsPerProject"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_ServiceAccountControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"managedNames": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managedNames is a list of service account names that will be auto-created in every namespace. If no names are specified, the ServiceAccountsController will not be started.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"managedNames"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_ServiceServingCert(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
+				Properties: map[string]spec.Schema{
+					"signer": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
+							Ref:         ref("github.com/openshift/api/config/v1.CertInfo"),
+						},
+					},
+				},
+				Required: []string{"signer"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.CertInfo"},
+	}
+}
+
+func schema_openshift_api_openshiftcontrolplane_v1_SourceStrategyDefaultsConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SourceStrategyDefaultsConfig contains values that apply to builds using the source strategy.",
+				Properties: map[string]spec.Schema{
+					"incremental": {
+						SchemaProps: spec.SchemaProps{
+							Description: "incremental indicates if s2i build strategies should perform an incremental build or not",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
 		Dependencies: []string{},
