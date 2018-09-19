@@ -31,7 +31,7 @@ OKD: The Origin Community Distribution of Kubernetes
 **Learn More:**
 
 * **[Public Documentation](https://docs.okd.io/latest/welcome/)**
-  * **[API Documentation](https://docs.okd.io/latest/rest_api/openshift_v1.html)**
+  * **[API Documentation](https://docs.okd.io/latest/rest_api/index.html)**
 * Our **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
