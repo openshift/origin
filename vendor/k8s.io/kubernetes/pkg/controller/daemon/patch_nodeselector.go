@@ -56,22 +56,24 @@ func (dsc *DaemonSetsController) namespaceNodeSelectorMatches(node *v1.Node, ds 
 }
 
 func (dsc *DaemonSetsController) nodeSelectorMatches(node *v1.Node, ns *v1.Namespace) bool {
-	originNodeSelector, ok := ns.Annotations["openshift.io/node-selector"]
-	switch {
-	case ok:
-		selector, err := labels.Parse(originNodeSelector)
-		if err == nil {
-			if !selector.Matches(labels.Set(node.Labels)) {
+	kubeNodeSelector, ok := ns.Annotations["scheduler.alpha.kubernetes.io/node-selector"]
+	if !ok {
+		originNodeSelector, ok := ns.Annotations["openshift.io/node-selector"]
+		switch {
+		case ok:
+			selector, err := labels.Parse(originNodeSelector)
+			if err == nil {
+				if !selector.Matches(labels.Set(node.Labels)) {
+					return false
+				}
+			}
+		case !ok && len(dsc.openshiftDefaultNodeSelectorString) > 0:
+			if !dsc.openshiftDefaultNodeSelector.Matches(labels.Set(node.Labels)) {
 				return false
 			}
 		}
-	case !ok && len(dsc.openshiftDefaultNodeSelectorString) > 0:
-		if !dsc.openshiftDefaultNodeSelector.Matches(labels.Set(node.Labels)) {
-			return false
-		}
 	}
 
-	kubeNodeSelector, ok := ns.Annotations["scheduler.alpha.kubernetes.io/node-selector"]
 	switch {
 	case ok:
 		selector, err := labels.Parse(kubeNodeSelector)
