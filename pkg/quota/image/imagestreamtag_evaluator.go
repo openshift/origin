@@ -18,6 +18,7 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagev1conversions "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 var imageStreamTagResources = []kapi.ResourceName{
@@ -40,7 +41,9 @@ func NewImageStreamTagEvaluator(store imagev1lister.ImageStreamLister, istGetter
 
 // Constraints checks that given object is an image stream tag
 func (i *imageStreamTagEvaluator) Constraints(required []kapi.ResourceName, object runtime.Object) error {
-	if _, ok := object.(*imagev1.ImageStreamTag); !ok {
+	_, okInt := object.(*imageapi.ImageStreamTag)
+	_, okExt := object.(*imagev1.ImageStreamTag)
+	if !okInt && !okExt {
 		return fmt.Errorf("unexpected input object %v", object)
 	}
 	return nil
@@ -73,6 +76,13 @@ func (i *imageStreamTagEvaluator) MatchingResources(input []kapi.ResourceName) [
 }
 
 func (i *imageStreamTagEvaluator) Usage(item runtime.Object) (kapi.ResourceList, error) {
+	if istInternal, ok := item.(*imageapi.ImageStreamTag); ok {
+		out := &imagev1.ImageStreamTag{}
+		if err := imagev1conversions.Convert_image_ImageStreamTag_To_v1_ImageStreamTag(istInternal, out, nil); err != nil {
+			return kapi.ResourceList{}, fmt.Errorf("error converting ImageStreamImport: %v", err)
+		}
+		item = out
+	}
 	ist, ok := item.(*imagev1.ImageStreamTag)
 	if !ok {
 		return kapi.ResourceList{}, nil
