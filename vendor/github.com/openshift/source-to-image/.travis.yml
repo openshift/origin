@@ -1,8 +1,7 @@
 language: go
 
 go:
-  - 1.7.x
-  - master
+  - 1.10.x
 
 install:
   - make install-travis

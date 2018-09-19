@@ -1,8 +1,10 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	configv1 "github.com/openshift/api/config/v1"
 )
 
@@ -132,4 +134,211 @@ type JenkinsPipelineConfig struct {
 	ServiceName string `json:"serviceName" protobuf:"bytes,4,opt,name=serviceName"`
 	// parameters specifies a set of optional parameters to the Jenkins template.
 	Parameters map[string]string `json:"parameters" protobuf:"bytes,5,rep,name=parameters"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type OpenShiftControllerManagerConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	KubeClientConfig configv1.KubeClientConfig `json:"kubeClientConfig"`
+
+	// servingInfo describes how to start serving
+	ServingInfo *configv1.HTTPServingInfo `json:"servingInfo"`
+
+	// leaderElection defines the configuration for electing a controller instance to make changes to
+	// the cluster. If unspecified, the ControllerTTL value is checked to determine whether the
+	// legacy direct etcd election code will be used.
+	LeaderElection configv1.LeaderElection `json:"leaderElection"`
+
+	// controllers is a list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller "+
+	// named 'foo', '-foo' disables the controller named 'foo'.
+	// Defaults to "*".
+	Controllers []string `json:"controllers"`
+
+	ResourceQuota      ResourceQuotaControllerConfig    `json:"resourceQuota"`
+	ServiceServingCert ServiceServingCert               `json:"serviceServingCert"`
+	Deployer           DeployerControllerConfig         `json:"deployer"`
+	Build              BuildControllerConfig            `json:"build"`
+	ServiceAccount     ServiceAccountControllerConfig   `json:"serviceAccount"`
+	DockerPullSecret   DockerPullSecretControllerConfig `json:"dockerPullSecret"`
+	Network            NetworkControllerConfig          `json:"network"`
+	Ingress            IngressControllerConfig          `json:"ingress"`
+	ImageImport        ImageImportControllerConfig      `json:"imageImport"`
+	SecurityAllocator  SecurityAllocator                `json:"securityAllocator"`
+}
+
+type DeployerControllerConfig struct {
+	ImageTemplateFormat ImageConfig `json:"imageTemplateFormat"`
+}
+
+type BuildControllerConfig struct {
+	ImageTemplateFormat ImageConfig `json:"imageTemplateFormat"`
+
+	BuildDefaults  *BuildDefaultsConfig  `json:"buildDefaults"`
+	BuildOverrides *BuildOverridesConfig `json:"buildOverrides"`
+}
+
+type ResourceQuotaControllerConfig struct {
+	ConcurrentSyncs int32           `json:"concurrentSyncs"`
+	SyncPeriod      metav1.Duration `json:"syncPeriod"`
+	MinResyncPeriod metav1.Duration `json:"minResyncPeriod"`
+}
+
+type IngressControllerConfig struct {
+	// ingressIPNetworkCIDR controls the range to assign ingress ips from for services of type LoadBalancer on bare
+	// metal. If empty, ingress ips will not be assigned. It may contain a single CIDR that will be allocated from.
+	// For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips,
+	// nodes, pods, or services.
+	IngressIPNetworkCIDR string `json:"ingressIPNetworkCIDR"`
+}
+
+// MasterNetworkConfig to be passed to the compiled in network plugin
+type NetworkControllerConfig struct {
+	NetworkPluginName string `json:"networkPluginName"`
+	// clusterNetworks contains a list of cluster networks that defines the global overlay networks L3 space.
+	ClusterNetworks    []ClusterNetworkEntry `json:"clusterNetworks"`
+	ServiceNetworkCIDR string                `json:"serviceNetworkCIDR"`
+	VXLANPort          uint32                `json:"vxLANPort"`
+}
+
+type ServiceAccountControllerConfig struct {
+	// managedNames is a list of service account names that will be auto-created in every namespace.
+	// If no names are specified, the ServiceAccountsController will not be started.
+	ManagedNames []string `json:"managedNames"`
+}
+
+type DockerPullSecretControllerConfig struct {
+	// registryURLs is a list of urls that the docker pull secrets should be valid for.
+	RegistryURLs []string `json:"registryURLs"`
+}
+
+type ImageImportControllerConfig struct {
+	// maxScheduledImageImportsPerMinute is the maximum number of image streams that will be imported in the background per minute.
+	// The default value is 60. Set to -1 for unlimited.
+	MaxScheduledImageImportsPerMinute int `json:"maxScheduledImageImportsPerMinute"`
+	// disableScheduledImport allows scheduled background import of images to be disabled.
+	DisableScheduledImport bool `json:"disableScheduledImport"`
+	// scheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams
+	// scheduled for background import are checked against the upstream repository. The default value is 15 minutes.
+	ScheduledImageImportMinimumIntervalSeconds int `json:"scheduledImageImportMinimumIntervalSeconds"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// BuildDefaultsConfig controls the default information for Builds
+type BuildDefaultsConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// gitHTTPProxy is the location of the HTTPProxy for Git source
+	GitHTTPProxy string `json:"gitHTTPProxy,omitempty"`
+
+	// gitHTTPSProxy is the location of the HTTPSProxy for Git source
+	GitHTTPSProxy string `json:"gitHTTPSProxy,omitempty"`
+
+	// gitNoProxy is the list of domains for which the proxy should not be used
+	GitNoProxy string `json:"gitNoProxy,omitempty"`
+
+	// env is a set of default environment variables that will be applied to the
+	// build if the specified variables do not exist on the build
+	Env []corev1.EnvVar `json:"env,omitempty"`
+
+	// sourceStrategyDefaults are default values that apply to builds using the
+	// source strategy.
+	SourceStrategyDefaults *SourceStrategyDefaultsConfig `json:"sourceStrategyDefaults,omitempty"`
+
+	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// User can override a default label by providing a label with the same name in their
+	// Build/BuildConfig.
+	ImageLabels []buildv1.ImageLabel `json:"imageLabels,omitempty"`
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// annotations are annotations that will be added to the build pod
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// resources defines resource requirements to execute the build.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+// SourceStrategyDefaultsConfig contains values that apply to builds using the
+// source strategy.
+type SourceStrategyDefaultsConfig struct {
+
+	// incremental indicates if s2i build strategies should perform an incremental
+	// build or not
+	Incremental *bool `json:"incremental,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// BuildOverridesConfig controls override settings for builds
+type BuildOverridesConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// forcePull indicates whether the build strategy should always be set to ForcePull=true
+	ForcePull bool `json:"forcePull"`
+
+	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// If user provided a label in their Build/BuildConfig with the same name as one in this
+	// list, the user's label will be overwritten.
+	ImageLabels []buildv1.ImageLabel `json:"imageLabels,omitempty"`
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// annotations are annotations that will be added to the build pod
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// tolerations is a list of Tolerations that will override any existing
+	// tolerations set on a build pod.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+}
+
+// ImageConfig holds the necessary configuration options for building image names for system components
+type ImageConfig struct {
+	// Format is the format of the name to be built for the system component
+	Format string `json:"format"`
+	// Latest determines if the latest tag will be pulled from the registry
+	Latest bool `json:"latest"`
+}
+
+// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+// pods fulfilling a service to serve with.
+type ServiceServingCert struct {
+	// Signer holds the signing information used to automatically sign serving certificates.
+	// If this value is nil, then certs are not signed automatically.
+	Signer *configv1.CertInfo `json:"signer"`
+}
+
+// ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.
+type ClusterNetworkEntry struct {
+	// CIDR defines the total range of a cluster networks address space.
+	CIDR string `json:"cidr"`
+	// HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pod.
+	HostSubnetLength uint32 `json:"hostSubnetLength"`
+}
+
+// SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.
+type SecurityAllocator struct {
+	// UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the
+	// block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks
+	// before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the
+	// ranges Docker images will use once user namespaces are started).
+	UIDAllocatorRange string `json:"uidAllocatorRange"`
+	// MCSAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is
+	// "<prefix>/<numberOfLabels>[,<maxCategory>]". The default is "s0/2" and will allocate from c0 -> c1023, which means a total of 535k labels
+	// are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated
+	// to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default
+	// will allow the server to set them automatically.
+	//
+	// Examples:
+	// * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511
+	// * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511
+	//
+	MCSAllocatorRange string `json:"mcsAllocatorRange"`
+	// MCSLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS
+	// ranges (100k namespaces, 535k/5 labels).
+	MCSLabelsPerProject int `json:"mcsLabelsPerProject"`
 }

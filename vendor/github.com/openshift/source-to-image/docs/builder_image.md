@@ -177,4 +177,4 @@ should be the following:
 
 # Additional steps
 ## OpenShift support
-If you are intending to use this image with [OpenShift](https://github.com/openshift/origin), review and follow the OpenShift [image creation guidelines](https://docs.openshift.org/latest/creating_images/guidelines.html).
+If you are intending to use this image with [OpenShift](https://github.com/openshift/origin), review and follow the OpenShift [image creation guidelines](https://docs.okd.io/latest/creating_images/guidelines.html).

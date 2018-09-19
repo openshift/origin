@@ -12,6 +12,11 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
+// GetKubeClientConfig loads in-cluster config if kubeConfigFile is empty or the file if not, then applies overrides.
+func GetKubeClientConfig(kubeClientConnection configv1.KubeClientConfig) (*rest.Config, error) {
+	return GetKubeConfigOrInClusterConfig(kubeClientConnection.KubeConfig, kubeClientConnection.ConnectionOverrides)
+}
+
 // GetKubeConfigOrInClusterConfig loads in-cluster config if kubeConfigFile is empty or the file if not,
 // then applies overrides.
 func GetKubeConfigOrInClusterConfig(kubeConfigFile string, overrides configv1.ClientConnectionOverrides) (*rest.Config, error) {
