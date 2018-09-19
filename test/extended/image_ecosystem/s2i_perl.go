@@ -24,6 +24,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 		oc            = exutil.NewCLI("s2i-perl", exutil.KubeConfigPath())
 		modifyCommand = []string{"sed", "-ie", `s/initial value/modified value/`, "lib/My/Test.pm"}
 		dcName        = "perl"
+		svcName       = "perl"
 		rcNameOne     = fmt.Sprintf("%s-1", dcName)
 		rcNameTwo     = fmt.Sprintf("%s-2", dcName)
 		dcLabelOne    = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameOne))
@@ -80,7 +81,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 				checkPage := func(expected string, dcLabel labels.Selector) {
 					_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-					result, err := CheckPageContains(oc, dcName, "", expected)
+					result, err := CheckPageContains(oc, svcName, "", expected)
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 					o.ExpectWithOffset(1, result).To(o.BeTrue())
 				}

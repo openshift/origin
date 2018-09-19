@@ -25,6 +25,7 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
 		pageCountFn      = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
 		dcName           = "django-ex"
+		svcName          = "django-ex"
 		rcNameOne        = fmt.Sprintf("%s-1", dcName)
 		rcNameTwo        = fmt.Sprintf("%s-2", dcName)
 		dcLabelOne       = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameOne))
@@ -85,7 +86,7 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 
 					result, err := CheckPageContains(oc, dcName, "", pageCountFn(i))
 					if err != nil || !result {
-						exutil.DumpApplicationPodLogs(dcName, oc)
+						exutil.DumpApplicationPodLogs(svcName, oc)
 					}
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 					o.ExpectWithOffset(1, result).To(o.BeTrue())

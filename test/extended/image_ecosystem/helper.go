@@ -39,8 +39,8 @@ func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) e
 
 // CheckPageContains makes a http request for an example application and checks
 // that the result contains given string
-func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, error) {
-	address, err := exutil.GetEndpointAddress(oc, endpoint)
+func CheckPageContains(oc *exutil.CLI, route, path, contents string) (bool, error) {
+	address, err := exutil.GetRouteHost(oc, route)
 	if err != nil {
 		return false, err
 	}
@@ -59,8 +59,8 @@ func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, e
 // CheckPageRegexp makes a http request for an example application and checks
 // that the result satisfies a given regexp; it will also return the submatch array entry
 // present at index for possible comparisons
-func CheckPageRegexp(oc *exutil.CLI, endpoint, path, regex string, index int) (bool, string, error) {
-	address, err := exutil.GetEndpointAddress(oc, endpoint)
+func CheckPageRegexp(oc *exutil.CLI, route, path, regex string, index int) (bool, string, error) {
+	address, err := exutil.GetRouteHost(oc, route)
 	if err != nil {
 		return false, "", err
 	}
