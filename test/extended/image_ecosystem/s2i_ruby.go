@@ -24,6 +24,7 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 		modifyCommand = []string{"sed", "-ie", `s%render :file => 'public/index.html'%%`, "app/controllers/welcome_controller.rb"}
 		removeCommand = []string{"rm", "-f", "public/index.html"}
 		dcName        = "rails-postgresql-example"
+		svcName       = "rails-postgresql-example"
 		rcNameOne     = fmt.Sprintf("%s-1", dcName)
 		rcNameTwo     = fmt.Sprintf("%s-2", dcName)
 		dcLabelOne    = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameOne))
@@ -76,7 +77,7 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 					_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
-					result, err := CheckPageContains(oc, dcName, "", content)
+					result, err := CheckPageContains(oc, svcName, "", content)
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 					o.ExpectWithOffset(1, result).To(o.BeTrue())
 				}

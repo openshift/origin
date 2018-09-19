@@ -1247,6 +1247,24 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 	return fmt.Sprintf("%s:%d", endpoint.Subsets[0].Addresses[0].IP, endpoint.Subsets[0].Ports[0].Port), nil
 }
 
+// GetServiceAddress will return an "ip:port" string for the endpoint.
+func GetServiceAddress(oc *CLI, name string) (string, error) {
+	svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s:%d", svc.Spec.ClusterIP, svc.Spec.Ports[0].Port), nil
+}
+
+// GetRouteHost will return the hostname associated with a route
+func GetRouteHost(oc *CLI, name string) (string, error) {
+	route, err := oc.AdminRouteClient().Route().Routes(oc.Namespace()).Get(name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return route.Spec.Host, nil
+}
+
 // CreateExecPodOrFail creates a simple busybox pod in a sleep loop used as a
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
