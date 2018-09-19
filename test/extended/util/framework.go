@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -1194,23 +1193,32 @@ func FixturePath(elem ...string) string {
 
 // FetchURL grabs the output from the specified url and returns it.
 // It will retry once per second for duration retryTimeout if an error occurs during the request.
-func FetchURL(url string, retryTimeout time.Duration) (response string, err error) {
+func FetchURL(oc *CLI, url string, retryTimeout time.Duration) (string, error) {
+
+	ns := oc.KubeFramework().Namespace.Name
+	execPodName := CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, string(uuid.NewUUID()))
+	defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+	execPod, err := oc.AdminKubeClient().CoreV1().Pods(ns).Get(execPodName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	var response string
 	waitFn := func() (bool, error) {
-		r, err := http.Get(url)
-		if err != nil || r.StatusCode != 200 {
-			// lie to the poller that we didn't get an error even though we did
-			// because otherwise it's going to give up.
-			if err != nil {
-				e2e.Logf("error fetching url: %v", err)
-			}
-			if r != nil {
-				e2e.Logf("non-200 status code fetching url: %d", r.StatusCode)
-			}
+		e2e.Logf("Waiting up to %v to wget %s", retryTimeout, url)
+		//cmd := fmt.Sprintf("wget -T 30 -O- %s", url)
+		cmd := fmt.Sprintf("curl -vvv %s", url)
+		response, err = e2e.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
+		if err != nil {
+			e2e.Logf("got err: %v, retry until timeout", err)
 			return false, nil
 		}
-		defer r.Body.Close()
-		bytes, err := ioutil.ReadAll(r.Body)
-		response = string(bytes)
+		// Need to check output because wget -q might omit the error.
+		if strings.TrimSpace(response) == "" {
+			e2e.Logf("got empty stdout, retry until timeout")
+			return false, nil
+		}
 		return true, nil
 	}
 	pollErr := wait.Poll(time.Duration(1*time.Second), retryTimeout, waitFn)
@@ -1220,7 +1228,7 @@ func FetchURL(url string, retryTimeout time.Duration) (response string, err erro
 	if pollErr != nil {
 		return "", pollErr
 	}
-	return
+	return response, nil
 }
 
 // ParseLabelsOrDie turns the given string into a label selector or
