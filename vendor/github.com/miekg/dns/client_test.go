@@ -489,8 +489,8 @@ func TestTimeout(t *testing.T) {
 	done := make(chan struct{}, 2)
 
 	timeout := time.Millisecond
-	allowable := timeout + (10 * time.Millisecond)
-	abortAfter := timeout + (100 * time.Millisecond)
+	allowable := timeout + 10*time.Millisecond
+	abortAfter := timeout + 100*time.Millisecond
 
 	start := time.Now()
 
@@ -605,8 +605,6 @@ func TestDoHExchange(t *testing.T) {
 	if r == nil || r.Rcode != RcodeSuccess {
 		t.Errorf("failed to get an valid answer\n%v", r)
 	}
-
-	t.Log(r)
 
 	// TODO: proper tests for this
 }
