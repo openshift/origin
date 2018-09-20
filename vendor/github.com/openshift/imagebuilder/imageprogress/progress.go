@@ -3,6 +3,7 @@ package imageprogress
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -143,6 +144,7 @@ func newWriter(reportFn func(report), layersChangedFn func(report, report) bool)
 type imageProgressWriter struct {
 	mutex                  *sync.Mutex
 	internalWriter         io.WriteCloser
+	readingGoroutineStatus <-chan error // Exists if internalWriter != nil
 	layerStatus            map[string]*progressLine
 	lastLayerCount         int
 	stableLines            int
@@ -159,14 +161,10 @@ func (w *imageProgressWriter) Write(data []byte) (int, error) {
 	defer w.mutex.Unlock()
 	if w.internalWriter == nil {
 		var pipeIn *io.PipeReader
+		statusChannel := make(chan error, 1) // Buffered, so that sending a value after this or our caller has failed and exited does not block.
 		pipeIn, w.internalWriter = io.Pipe()
-		decoder := json.NewDecoder(pipeIn)
-		go func() {
-			err := w.readProgress(decoder)
-			if err != nil {
-				pipeIn.CloseWithError(err)
-			}
-		}()
+		w.readingGoroutineStatus = statusChannel
+		go w.readingGoroutine(statusChannel, pipeIn)
 	}
 	return w.internalWriter.Write(data)
 }
@@ -179,10 +177,31 @@ func (w *imageProgressWriter) Close() error {
 		return nil
 	}
 
-	return w.internalWriter.Close()
+	err := w.internalWriter.Close() // As of Go 1.9 and 1.10, PipeWriter.Close() always returns nil
+	readingErr := <-w.readingGoroutineStatus
+	if err == nil && readingErr != nil {
+		err = readingErr
+	}
+	return err
 }
 
-func (w *imageProgressWriter) readProgress(decoder *json.Decoder) error {
+func (w *imageProgressWriter) readingGoroutine(statusChannel chan<- error, pipeIn *io.PipeReader) {
+	err := errors.New("Internal error: unexpected panic in imageProgressWriter.readingGoroutine")
+	defer func() { statusChannel <- err }()
+	defer func() {
+		if err != nil {
+			pipeIn.CloseWithError(err)
+		} else {
+			pipeIn.Close()
+		}
+	}()
+
+	err = w.readProgress(pipeIn)
+	// err is nil on reaching EOF
+}
+
+func (w *imageProgressWriter) readProgress(pipeIn *io.PipeReader) error {
+	decoder := json.NewDecoder(pipeIn)
 	for {
 		line := &progressLine{}
 		err := decoder.Decode(line)
@@ -192,15 +211,23 @@ func (w *imageProgressWriter) readProgress(decoder *json.Decoder) error {
 		if err != nil {
 			return err
 		}
-		w.processLine(line)
+		err = w.processLine(line)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (w *imageProgressWriter) processLine(line *progressLine) {
+func (w *imageProgressWriter) processLine(line *progressLine) error {
+
+	if err := getError(line); err != nil {
+		return err
+	}
+
 	// determine if it's a line we want to process
 	if !islayerStatus(line) {
-		return
+		return nil
 	}
 
 	w.layerStatus[line.ID] = line
@@ -208,7 +235,7 @@ func (w *imageProgressWriter) processLine(line *progressLine) {
 	// if the number of layers has not stabilized yet, return and wait for more
 	// progress
 	if !w.isStableLayerCount() {
-		return
+		return nil
 	}
 
 	r := createReport(w.layerStatus)
@@ -218,7 +245,7 @@ func (w *imageProgressWriter) processLine(line *progressLine) {
 		w.lastReport = r
 		w.lastReportTime = time.Now()
 		w.reportFn(r)
-		return
+		return nil
 	}
 	// If layer counts haven't changed, but enough time has passed (30 sec by default),
 	// at least report on download/push progress
@@ -227,6 +254,7 @@ func (w *imageProgressWriter) processLine(line *progressLine) {
 		w.lastReportTime = time.Now()
 		w.reportFn(r)
 	}
+	return nil
 }
 
 func (w *imageProgressWriter) isStableLayerCount() bool {
@@ -263,6 +291,13 @@ func islayerStatus(line *progressLine) bool {
 		return false
 	}
 	return true
+}
+
+func getError(line *progressLine) error {
+	if len(line.Error) > 0 {
+		return errors.New(line.Error)
+	}
+	return nil
 }
 
 func createReport(dockerProgress map[string]*progressLine) report {

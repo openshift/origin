@@ -1,5 +1,5 @@
-hash: 7a39ba76dd7417789ddcf8b78f18ad67113efb88e0f5ec0c79499f1581272509
-updated: 2018-09-07T13:17:51.235169419-04:00
+hash: d9e6b6718162f20c6c2431df1433763864836aa2faa819e2903ce123de33fc88
+updated: 2018-09-20T15:13:12.529288729-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -399,7 +399,7 @@ imports:
   subpackages:
   - kmsgparser
 - name: github.com/evanphx/json-patch
-  version: f195058310bd062ea7c754a834f0ff43b4b63afb
+  version: 94e38aa1586e8a6c8a75770bddf5ff84c48a106b
 - name: github.com/exponent-io/jsonpath
   version: d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 - name: github.com/fatih/camelcase
@@ -720,7 +720,7 @@ imports:
 - name: github.com/Microsoft/hcsshim
   version: 800683ae704ac360b2f3f47fa88f3a6c8c9091b5
 - name: github.com/miekg/dns
-  version: 5a2b9fab83ff0f8bfc99684bd5f43a37abe560f1
+  version: 426ea785a99b1dad4755492b923feb327d9251a6
 - name: github.com/mindprince/gonvml
   version: fee913ce8fb235edf54739d259ca0ecc226c7b8a
 - name: github.com/mistifyio/go-zfs
@@ -971,7 +971,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 9e710ba9bcf926e020306b67633bf38b8e671da5
+  version: fbd4f31c568b767447302e08fb3531b33bcbf837
   subpackages:
   - dockerclient
   - imageprogress
@@ -998,7 +998,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: ac6dc9858fa90b751686436fea9a951f183c79bb
+  version: 8f7dcac0d9fd3fcb97d7c251dc9dd60fe47bb101
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1079,8 +1079,10 @@ imports:
   - client
 - name: github.com/RangelReale/osin
   version: 2dc1b43167692cdc89446b99b98fa9de6bff020f
+  repo: https://github.com/openshift/osin.git
 - name: github.com/RangelReale/osincli
   version: fababb0555f21315d1a34af6615a16eaab44396b
+  repo: https://github.com/openshift/osincli.git
 - name: github.com/renstrom/dedent
   version: 020d11c3b9c0c7a3c2efcc8e5cf5b9ef7bcea21f
 - name: github.com/robfig/cron
@@ -1504,7 +1506,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 9661477daf70563d97981c06b3aa7f3277b765c9
+  version: 10f1ab2357d4fc15527540fd7d7953ba8e6c98e3
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1818,7 +1820,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 7c242b7f0eabe510ee2f4d25785b54a7fa60dab9
+  version: 660b3ce4ff19afa530c17cfa305df52a17360e09
   repo: https://github.com/openshift/kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -1859,7 +1861,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 91becade863adc3e9a01585d027896fd1f0d12a7
+  version: 4dcbab859230e775d12ea834c8afca1bbfcc56aa
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
