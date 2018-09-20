@@ -8,10 +8,10 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
@@ -104,7 +104,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildv1clie
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	openshiftControllerContext, err := origincontrollers.NewControllerContext(configapi.OpenshiftControllerConfig{}, clusterAdminClientConfig, utilwait.NeverStop)
+	openshiftControllerContext, err := origincontrollers.NewControllerContext(openshiftcontrolplanev1.OpenShiftControllerManagerConfig{}, clusterAdminClientConfig, utilwait.NeverStop)
 	if err != nil {
 		t.Fatal(err)
 	}

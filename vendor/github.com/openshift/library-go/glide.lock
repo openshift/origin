@@ -1,5 +1,5 @@
-hash: 571c1577c42c4038e42fa3eda78be7c2f2a5ea1a3a984d4fa77ad2bbd47171d2
-updated: 2018-09-14T08:57:11.079196572-04:00
+hash: 92ee9b295f6ff28dbd1eeaf1696d41cac71175665275d9047f1b9c53d5b2f01f
+updated: 2018-09-17T16:09:28.422097474-04:00
 imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
@@ -285,6 +285,14 @@ imports:
   - util/flowcontrol
   - util/homedir
   - util/integer
+- name: k8s.io/kube-aggregator
+  version: 89cd614e9090a2f1e78316ed459857c49c55d276
+  subpackages:
+  - pkg/apis/apiregistration
+  - pkg/apis/apiregistration/v1
+  - pkg/apis/apiregistration/v1beta1
+  - pkg/client/clientset_generated/clientset/scheme
+  - pkg/client/clientset_generated/clientset/typed/apiregistration/v1
 - name: k8s.io/kube-openapi
   version: 91cfa479c814065e420cee7ed227db0f63a5854e
   subpackages:

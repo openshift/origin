@@ -1,5 +1,5 @@
 hash: 381fc9c5d0fd090657e0f84fc31c9bedcb3a26d8c4725a49cbfbe02faac547b0
-updated: 2018-09-17T11:01:21.340258886-04:00
+updated: 2018-09-19T08:49:12.117786134-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -817,7 +817,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 59a17884a17d085f49a4c3a43b1b528803d00b63
+  version: 4507dcb6a81f6593aa336c5b47927cf0ae297b72
   subpackages:
   - apps
   - apps/v1
@@ -983,7 +983,7 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: a7d809ee41d6ca6720192824ee54ed8f19c3cfac
+  version: b3c18f039607fbf9c8c6b2967fe6e32b0eed6998
   subpackages:
   - pkg/config/client
   - pkg/config/configdefaults
@@ -1008,7 +1008,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: 66723586e7c3f48f509e8e8f017418ce93edd75e
+  version: 8f7dcac0d9fd3fcb97d7c251dc9dd60fe47bb101
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1523,7 +1523,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 3777cdb0a89ed87de8c1b2574ef90b24bd2399da
+  version: 10f1ab2357d4fc15527540fd7d7953ba8e6c98e3
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1837,7 +1837,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 7c242b7f0eabe510ee2f4d25785b54a7fa60dab9
+  version: 660b3ce4ff19afa530c17cfa305df52a17360e09
   repo: https://github.com/openshift/kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -1878,7 +1878,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 30d120974f190a8468616bebf2bbf047ffeb2f92
+  version: 33510440eac918d7d013a6088db75ecef19c7e00
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

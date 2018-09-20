@@ -604,6 +604,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 			}, 10*time.Second, context.StopCh)
 		}()
 		return nil
+
 	})
 	s.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context genericapiserver.PostStartHookContext) error {
 		go c.ExtraConfig.ClusterQuotaMappingController.Run(5, context.StopCh)

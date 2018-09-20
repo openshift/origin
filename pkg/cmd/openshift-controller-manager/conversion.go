@@ -5,21 +5,23 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/ghodss/yaml"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/openshift/origin/pkg/configconversion"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	legacyconfigv1conversions "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
-func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfig) *configapi.OpenshiftControllerConfig {
+func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.MasterConfig) *openshiftcontrolplanev1.OpenShiftControllerManagerConfig {
 	// this is the old flag binding logic
 	flagOptions, err := kcmoptions.NewKubeControllerManagerOptions()
 	if err != nil {
@@ -56,69 +58,105 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfi
 		panic(err)
 	}
 
-	ret := &configapi.OpenshiftControllerConfig{
-		ClientConnectionOverrides: in.MasterClients.OpenShiftLoopbackClientConnectionOverrides,
-		ServingInfo:               &in.ServingInfo,
-		Controllers:               in.ControllerConfig.Controllers,
-		LeaderElection: configapi.LeaderElectionConfig{
+	servingInfo, err := configconversion.ToHTTPServingInfo(&in.ServingInfo)
+	if err != nil {
+		// this should happen on scrubbed input
+		panic(err)
+	}
+
+	ret := &openshiftcontrolplanev1.OpenShiftControllerManagerConfig{
+		KubeClientConfig: configv1.KubeClientConfig{
+			KubeConfig: in.MasterClients.OpenShiftLoopbackKubeConfig,
+		},
+		ServingInfo: &servingInfo,
+		Controllers: in.ControllerConfig.Controllers,
+		LeaderElection: configv1.LeaderElection{
+			Namespace:     "kube-system",
+			Name:          "openshift-master-controllers",
 			RetryPeriod:   flagOptions.GenericComponent.LeaderElection.RetryPeriod,
 			RenewDeadline: flagOptions.GenericComponent.LeaderElection.RenewDeadline,
 			LeaseDuration: flagOptions.GenericComponent.LeaderElection.LeaseDuration,
 		},
-		ResourceQuota: configapi.ResourceQuotaControllerConfig{
+		ResourceQuota: openshiftcontrolplanev1.ResourceQuotaControllerConfig{
 			ConcurrentSyncs: flagOptions.ResourceQuotaController.ConcurrentResourceQuotaSyncs,
 			SyncPeriod:      flagOptions.ResourceQuotaController.ResourceQuotaSyncPeriod,
 			MinResyncPeriod: flagOptions.GenericComponent.MinResyncPeriod,
 		},
-		ServiceServingCert: in.ControllerConfig.ServiceServingCert,
-		Deployer: configapi.DeployerControllerConfig{
-			ImageTemplateFormat: in.ImageConfig,
+		ServiceServingCert: openshiftcontrolplanev1.ServiceServingCert{
+			Signer: &configv1.CertInfo{
+				CertFile: in.ControllerConfig.ServiceServingCert.Signer.CertFile,
+				KeyFile:  in.ControllerConfig.ServiceServingCert.Signer.KeyFile,
+			},
 		},
-		Build: configapi.BuildControllerConfig{
-			ImageTemplateFormat: in.ImageConfig,
+		Deployer: openshiftcontrolplanev1.DeployerControllerConfig{
+			ImageTemplateFormat: openshiftcontrolplanev1.ImageConfig{
+				Format: in.ImageConfig.Format,
+				Latest: in.ImageConfig.Latest,
+			},
+		},
+		Build: openshiftcontrolplanev1.BuildControllerConfig{
+			ImageTemplateFormat: openshiftcontrolplanev1.ImageConfig{
+				Format: in.ImageConfig.Format,
+				Latest: in.ImageConfig.Latest,
+			},
 
 			BuildDefaults:  buildDefaults,
 			BuildOverrides: buildOverrides,
 		},
-		ServiceAccount: configapi.ServiceAccountControllerConfig{
+		ServiceAccount: openshiftcontrolplanev1.ServiceAccountControllerConfig{
 			ManagedNames: in.ServiceAccountConfig.ManagedNames,
 		},
-		DockerPullSecret: configapi.DockerPullSecretControllerConfig{
+		DockerPullSecret: openshiftcontrolplanev1.DockerPullSecretControllerConfig{
 			RegistryURLs: registryURLs,
 		},
-		Network: configapi.NetworkControllerConfig{
-			ClusterNetworks:    in.NetworkConfig.ClusterNetworks,
+		Network: openshiftcontrolplanev1.NetworkControllerConfig{
 			NetworkPluginName:  in.NetworkConfig.NetworkPluginName,
 			ServiceNetworkCIDR: in.NetworkConfig.ServiceNetworkCIDR,
 			VXLANPort:          in.NetworkConfig.VXLANPort,
 		},
-		Ingress: configapi.IngressControllerConfig{
+		Ingress: openshiftcontrolplanev1.IngressControllerConfig{
 			IngressIPNetworkCIDR: in.NetworkConfig.IngressIPNetworkCIDR,
 		},
-		SecurityAllocator: *in.ProjectConfig.SecurityAllocator,
-		ImageImport: configapi.ImageImportControllerConfig{
+		SecurityAllocator: openshiftcontrolplanev1.SecurityAllocator{
+			UIDAllocatorRange:   in.ProjectConfig.SecurityAllocator.UIDAllocatorRange,
+			MCSAllocatorRange:   in.ProjectConfig.SecurityAllocator.MCSAllocatorRange,
+			MCSLabelsPerProject: in.ProjectConfig.SecurityAllocator.MCSLabelsPerProject,
+		},
+		ImageImport: openshiftcontrolplanev1.ImageImportControllerConfig{
 			DisableScheduledImport:                     in.ImagePolicyConfig.DisableScheduledImport,
 			MaxScheduledImageImportsPerMinute:          in.ImagePolicyConfig.MaxScheduledImageImportsPerMinute,
 			ScheduledImageImportMinimumIntervalSeconds: in.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds,
 		},
 	}
 
+	if in.MasterClients.OpenShiftLoopbackClientConnectionOverrides != nil {
+		ret.KubeClientConfig.ConnectionOverrides.AcceptContentTypes = in.MasterClients.OpenShiftLoopbackClientConnectionOverrides.AcceptContentTypes
+		ret.KubeClientConfig.ConnectionOverrides.Burst = in.MasterClients.OpenShiftLoopbackClientConnectionOverrides.Burst
+		ret.KubeClientConfig.ConnectionOverrides.ContentType = in.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType
+		ret.KubeClientConfig.ConnectionOverrides.QPS = in.MasterClients.OpenShiftLoopbackClientConnectionOverrides.QPS
+	}
+
+	for _, curr := range in.NetworkConfig.ClusterNetworks {
+		ret.Network.ClusterNetworks = append(ret.Network.ClusterNetworks, openshiftcontrolplanev1.ClusterNetworkEntry{
+			CIDR:             curr.CIDR,
+			HostSubnetLength: curr.HostSubnetLength,
+		})
+	}
+
 	return ret
 }
 
 // getBuildDefaults creates a new BuildDefaults that will apply the defaults specified in the plugin config
-func getBuildDefaults(pluginConfig map[string]*configapi.AdmissionPluginConfig) (*configapi.BuildDefaultsConfig, error) {
+func getBuildDefaults(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig) (*openshiftcontrolplanev1.BuildDefaultsConfig, error) {
 	const buildDefaultsPlugin = "BuildDefaults"
-	scheme := runtime.NewScheme()
-	legacyconfigv1conversions.InstallLegacy(scheme)
-	uncastConfig, err := getPluginConfigObj(pluginConfig, buildDefaultsPlugin, scheme)
+	uncastConfig, err := getPluginConfigObj(pluginConfig, buildDefaultsPlugin, &openshiftcontrolplanev1.BuildDefaultsConfig{})
 	if err != nil {
 		return nil, err
 	}
 	if uncastConfig == nil {
 		return nil, nil
 	}
-	config, ok := uncastConfig.(*configapi.BuildDefaultsConfig)
+	config, ok := uncastConfig.(*openshiftcontrolplanev1.BuildDefaultsConfig)
 	if !ok {
 		return nil, fmt.Errorf("expected BuildDefaultsConfig, not %T", uncastConfig)
 	}
@@ -127,18 +165,16 @@ func getBuildDefaults(pluginConfig map[string]*configapi.AdmissionPluginConfig) 
 }
 
 // getBuildOverrides creates a new BuildOverrides that will apply the overrides specified in the plugin config
-func getBuildOverrides(pluginConfig map[string]*configapi.AdmissionPluginConfig) (*configapi.BuildOverridesConfig, error) {
+func getBuildOverrides(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig) (*openshiftcontrolplanev1.BuildOverridesConfig, error) {
 	const buildOverridesPlugin = "BuildOverrides"
-	scheme := runtime.NewScheme()
-	legacyconfigv1conversions.InstallLegacy(scheme)
-	uncastConfig, err := getPluginConfigObj(pluginConfig, buildOverridesPlugin, scheme)
+	uncastConfig, err := getPluginConfigObj(pluginConfig, buildOverridesPlugin, &openshiftcontrolplanev1.BuildOverridesConfig{})
 	if err != nil {
 		return nil, err
 	}
 	if uncastConfig == nil {
 		return nil, err
 	}
-	config, ok := uncastConfig.(*configapi.BuildOverridesConfig)
+	config, ok := uncastConfig.(*openshiftcontrolplanev1.BuildOverridesConfig)
 	if !ok {
 		return nil, fmt.Errorf("expected BuildDefaultsConfig, not %T", uncastConfig)
 	}
@@ -146,8 +182,8 @@ func getBuildOverrides(pluginConfig map[string]*configapi.AdmissionPluginConfig)
 	return config, nil
 }
 
-func getPluginConfigObj(pluginConfig map[string]*configapi.AdmissionPluginConfig, pluginName string, scheme *runtime.Scheme) (runtime.Object, error) {
-	yamlContent, err := getPluginConfigYAML(pluginConfig, pluginName, scheme)
+func getPluginConfigObj(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig, pluginName string, target runtime.Object) (runtime.Object, error) {
+	yamlContent, err := getPluginConfigYAML(pluginConfig, pluginName)
 	if err != nil {
 		return nil, err
 	}
@@ -155,32 +191,35 @@ func getPluginConfigObj(pluginConfig map[string]*configapi.AdmissionPluginConfig
 		return nil, nil
 	}
 
-	internalDecoder := serializer.NewCodecFactory(scheme).UniversalDecoder()
 	jsonData, err := kyaml.ToJSON(yamlContent)
 	if err != nil {
 		return nil, err
 	}
-	return runtime.Decode(internalDecoder, jsonData)
+	uncastObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, jsonData)
+	if err != nil {
+		return nil, err
+	}
+	uncastObj.(*unstructured.Unstructured).Object["apiVersion"] = openshiftcontrolplanev1.GroupName + "/v1"
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(uncastObj.(runtime.Unstructured).UnstructuredContent(), target); err != nil {
+		return nil, err
+	}
+	return target, nil
 }
 
 // getPluginConfigYAML gives the byte content of the config for a given plugin
-func getPluginConfigYAML(pluginConfig map[string]*configapi.AdmissionPluginConfig, pluginName string, scheme *runtime.Scheme) ([]byte, error) {
+func getPluginConfigYAML(pluginConfig map[string]*legacyconfigv1.AdmissionPluginConfig, pluginName string) ([]byte, error) {
 	// Check whether a config is specified for this plugin. If not, default to the
 	// global plugin config file (if any).
 	cfg, hasConfig := pluginConfig[pluginName]
 	if !hasConfig {
 		return nil, nil
 	}
-	obj := cfg.Configuration
-	if obj == nil {
+	switch {
+	case len(cfg.Configuration.Raw) == 0 && len(cfg.Location) == 0:
+		return nil, fmt.Errorf("missing both config and location")
+	case len(cfg.Configuration.Raw) == 0:
 		return ioutil.ReadFile(cfg.Location)
+	default:
+		return cfg.Configuration.Raw, nil
 	}
-
-	codec := serializer.NewCodecFactory(scheme).LegacyCodec(scheme.PrioritizedVersionsAllGroups()...)
-	json, err := runtime.Encode(codec, obj)
-	if err != nil {
-		return nil, err
-	}
-
-	return yaml.JSONToYAML(json)
 }

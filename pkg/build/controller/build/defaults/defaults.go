@@ -7,14 +7,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 type BuildDefaults struct {
-	Config *configapi.BuildDefaultsConfig
+	Config *openshiftcontrolplanev1.BuildDefaultsConfig
 }
 
 // ApplyDefaults applies configured build defaults to a build pod

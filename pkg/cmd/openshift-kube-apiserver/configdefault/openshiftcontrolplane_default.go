@@ -18,4 +18,7 @@ func SetRecommendedOpenShiftAPIServerConfigDefaults(config *openshiftcontrolplan
 		config.ServiceAccountOAuthGrantMethod = openshiftcontrolplanev1.GrantHandlerPrompt
 	}
 
+	if config.ImagePolicyConfig.MaxImagesBulkImportedPerRepository == 0 {
+		config.ImagePolicyConfig.MaxImagesBulkImportedPerRepository = 50
+	}
 }

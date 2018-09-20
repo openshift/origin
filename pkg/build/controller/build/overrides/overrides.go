@@ -10,12 +10,12 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/build/controller/common"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 type BuildOverrides struct {
-	Config *configapi.BuildOverridesConfig
+	Config *openshiftcontrolplanev1.BuildOverridesConfig
 }
 
 // ApplyOverrides applies configured overrides to a build in a build pod
