@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
 
@@ -48,7 +48,7 @@ func NewKubeletRunConfig() *KubeletRunConfig {
 // Start starts the OpenShift master as a Docker container
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
-func (opt KubeletRunConfig) StartKubelet(dockerClient dockerhelper.Interface, podManifestDir, assetsDir, logdir string) (string, error) {
+func (opt KubeletRunConfig) StartKubelet(dockerClient util.Interface, podManifestDir, assetsDir, logdir string) (string, error) {
 	kubeletFlags := []string{
 		"--address=0.0.0.0",
 		"--allow-privileged=true",
@@ -139,7 +139,7 @@ func (opt KubeletRunConfig) StartKubelet(dockerClient dockerhelper.Interface, po
 	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
 	opt.ContainerBinds = append(opt.ContainerBinds, "/sys/devices/virtual/net:/sys/devices/virtual/net:rw")
 
-	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+	imageRunHelper := run.NewRunHelper(util.NewHelper(dockerClient)).New()
 	var env []string
 	if len(opt.HTTPProxy) > 0 {
 		env = append(env, fmt.Sprintf("HTTP_PROXY=%s", opt.HTTPProxy))

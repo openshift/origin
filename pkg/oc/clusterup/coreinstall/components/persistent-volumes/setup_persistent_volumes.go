@@ -25,7 +25,7 @@ import (
 	securitytypedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 )
 
 const (
@@ -99,7 +99,7 @@ func (c *SetupPersistentVolumesOptions) Name() string {
 	return "persistent-volumes"
 }
 
-func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interface) error {
+func (c *SetupPersistentVolumesOptions) Install(dockerClient util.Interface) error {
 	kclient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err

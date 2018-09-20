@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
 
@@ -36,8 +36,8 @@ type RenderConfig struct {
 // The assets produced by this commands are stored in AssetsOutputDir.
 // The configuration yaml file is stored in ConfigOutputDir, named according to ConfigFileName, with
 // default values overridden according to ConfigOverrides.
-func (opt *RenderConfig) RunRender(component string, hyperShiftImage string, dockerClient dockerhelper.Interface, hostIP string) (string, error) {
-	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+func (opt *RenderConfig) RunRender(component string, hyperShiftImage string, dockerClient util.Interface, hostIP string) (string, error) {
+	imageRunHelper := run.NewRunHelper(util.NewHelper(dockerClient)).New()
 
 	renderCommand := []string{
 		"render",

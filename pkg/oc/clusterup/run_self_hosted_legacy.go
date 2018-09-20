@@ -12,7 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 	"github.com/openshift/origin/pkg/oc/clusterup/manifests"
 )
 
@@ -83,7 +83,7 @@ func (c *ClusterUpConfig) makeMasterConfig() (string, error) {
 	publicHost := c.GetPublicHostName()
 
 	container := kubeapiserver.NewKubeAPIServerStartConfig()
-	container.MasterImage = c.openshiftImage()
+	container.MasterImage = OpenShiftImages.Get("control-plane").ToPullSpec()
 	container.Args = []string{
 		"--write-config=/var/lib/origin/openshift.local.config",
 		fmt.Sprintf("--master=%s", c.ServerIP),
@@ -93,7 +93,7 @@ func (c *ClusterUpConfig) makeMasterConfig() (string, error) {
 		"--etcd-dir=/var/lib/etcd",
 	}
 
-	masterConfigDir, err := container.MakeMasterConfig(c.GetDockerClient(), path.Join(c.BaseDir, "legacy"))
+	masterConfigDir, err := container.MakeMasterConfig(c.DockerClient(), path.Join(c.BaseDir, "legacy"))
 	if err != nil {
 		return "", fmt.Errorf("error creating master config: %v", err)
 	}
@@ -111,7 +111,7 @@ func newNamespaceBytes(namespace string, labels map[string]string) []byte {
 	return output
 }
 
-func installComponentTemplates(templates []componentInstallTemplate, imageFormat, baseDir string, params map[string]string, dockerClient dockerhelper.Interface) error {
+func installComponentTemplates(templates []componentInstallTemplate, imageFormat, baseDir string, params map[string]string, dockerClient util.Interface) error {
 	components := []componentinstall.Component{}
 	cliImage := strings.Replace(imageFormat, "${component}", "cli", -1)
 	for _, template := range templates {

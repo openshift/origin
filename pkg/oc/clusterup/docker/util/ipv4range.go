@@ -1,4 +1,4 @@
-package dockerhelper
+package util
 
 import (
 	"net"

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/assets"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/controlplane-operator"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
@@ -29,34 +30,32 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
-	dockerRoot, err := c.DockerHelper().DockerRoot()
-	if err != nil {
-		return err
-	}
-
 	// if we're supposed to write the config, we'll do that and then exit
 	if c.WriteConfig {
-		fmt.Printf("Wrote config to: %q\n", c.BaseDir)
+		fmt.Printf("All cluster bootstrap assets created in: %q\n", c.BaseDir)
 		return nil
+	}
+
+	fmt.Fprintf(c.Out, "Starting self-hosted OpenShift cluster ...")
+
+	dockerRoot, err := c.Docker().DockerRoot()
+	if err != nil {
+		return err
 	}
 
 	kubeletConfig := kubelet.NewKubeletRunConfig()
 	kubeletConfig.HostPersistentVolumesDir = c.HostPersistentVolumesDir
 	kubeletConfig.HostVolumesDir = c.HostVolumesDir
-	kubeletConfig.HTTPProxy = c.HTTPProxy
-	kubeletConfig.HTTPSProxy = c.HTTPSProxy
-	kubeletConfig.NoProxy = c.NoProxy
 	kubeletConfig.DockerRoot = dockerRoot
-	kubeletConfig.UseNsenterMount = c.UseNsenterMount
-	kubeletConfig.NodeImage = c.hyperkubeImage()
-	kubeletConfig.PodImage = c.podImage()
+	kubeletConfig.NodeImage = OpenShiftImages.Get("node").ToPullSpec()
+	kubeletConfig.PodImage = OpenShiftImages.Get("pod").ToPullSpec()
 
-	if _, err := kubeletConfig.StartKubelet(c.GetDockerClient(), configDirs.podManifestDir, configDirs.assetsDir, c.BaseDir); err != nil {
+	if _, err := kubeletConfig.StartKubelet(c.DockerClient(), configDirs.podManifestDir, configDirs.assetsDir, c.BaseDir); err != nil {
 		return err
 	}
 
 	etcdCmd := &etcd.EtcdConfig{
-		Image:           c.etcdImage(),
+		Image:           OpenShiftImages.Get("etcd").ToPullSpec(),
 		ImagePullPolicy: c.pullPolicy,
 		StaticPodDir:    configDirs.podManifestDir,
 		TlsDir:          filepath.Join(configDirs.assetsDir, "master"),
@@ -67,7 +66,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 
 	bk := &bootkube.BootkubeRunConfig{
-		BootkubeImage:        c.bootkubeImage(),
+		BootkubeImage:        OpenShiftImages.Get("bootkube").ToPullSpec(),
 		StaticPodManifestDir: configDirs.podManifestDir,
 		AssetsDir:            configDirs.assetsDir,
 		ContainerBinds: []string{
@@ -76,11 +75,11 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 	glog.Info("Bootkube phase-1 kube-apiserver is ready. Going to call bootkube start ...")
 
-	if _, err := bk.RunStart(c.GetDockerClient()); err != nil {
+	if _, err := bk.RunStart(c.DockerClient()); err != nil {
 		return err
 	}
 
-	clientConfigBuilder, err := kclientcmd.LoadFromFile(filepath.Join(c.BaseDir, "bootkube", "auth", "kubeconfig"))
+	clientConfigBuilder, err := kclientcmd.LoadFromFile(filepath.Join(c.BaseDir, "assets", "auth", "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
@@ -110,11 +109,11 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 
 	templateSubstitutionValues := map[string]string{
-		//"MASTER_CONFIG_HOST_PATH":                       configDirs.masterConfigDir,
-		//"OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          configDirs.openshiftAPIServerConfigDir,
-		//"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
-		//"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
-		//"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
+		// "MASTER_CONFIG_HOST_PATH":                       configDirs.masterConfigDir,
+		// "OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          configDirs.openshiftAPIServerConfigDir,
+		// "OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
+		// "NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
+		// "KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
 		"OPENSHIFT_PULL_POLICY": c.pullPolicy,
 		"LOGLEVEL":              fmt.Sprintf("%d", c.ServerLogLevel),
 	}
@@ -128,7 +127,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		c.ImageTemplate.Format,
 		c.BaseDir,
 		templateSubstitutionValues,
-		c.GetDockerClient(),
+		c.DockerClient(),
 	)
 	if err != nil {
 		return err
@@ -146,7 +145,7 @@ type configDirs struct {
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	configs := &configDirs{
 		// Directory where assets ared rendered to
-		assetsDir: filepath.Join(c.BaseDir, "bootkube"),
+		assetsDir: filepath.Join(c.BaseDir, "assets"),
 		// Directory where bootkube copy the bootstrap secrets
 		kubernetesDir: filepath.Join(c.BaseDir, "kubernetes"),
 		// Directory that kubelet scans for static manifests
@@ -172,7 +171,7 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	}
 
 	bk := bootkube.BootkubeRunConfig{
-		BootkubeImage:        c.bootkubeImage(),
+		BootkubeImage:        OpenShiftImages.Get("bootkube").ToPullSpec(),
 		StaticPodManifestDir: configs.podManifestDir,
 		AssetsDir:            configs.assetsDir,
 		ContainerBinds:       []string{},
@@ -184,15 +183,15 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		return nil, err
 	}
 
-	if _, err := bk.RunRender(c.GetDockerClient(), hostIP); err != nil {
-		return nil, err
-	}
-
-	if err := bk.PostRenderSubstitutions(configs.kubernetesDir, c.hyperkubeImage(), c.nodeImage()); err != nil {
-		return nil, err
-	}
-
 	if err := bk.RemoveApiserver(configs.kubernetesDir); err != nil {
+		return nil, err
+	}
+
+	certs, err := assets.NewTLSAssetsRenderer(c.PublicHostname).Render()
+	if err != nil {
+		return nil, err
+	}
+	if err := certs.WriteFiles(filepath.Join(configs.assetsDir)); err != nil {
 		return nil, err
 	}
 
@@ -245,7 +244,7 @@ kind: KubeAPIServerConfig
 
 	// generate kube-apiserver manifests using the corresponding operator render command
 	ok := controlplaneoperator.RenderConfig{
-		OperatorImage:   "openshift/origin-cluster-kube-apiserver-operator:latest",
+		OperatorImage:   OpenShiftImages.Get("cluster-kube-apiserver-operator").ToPullSpec(),
 		AssetInputDir:   masterDir,
 		AssetsOutputDir: configs.assetsDir,
 		ConfigOutputDir: masterDir, // we put config, overrides and certs+keys in one dir
@@ -253,7 +252,7 @@ kind: KubeAPIServerConfig
 		ConfigOverrides: apiserverConfigOverride,
 		ContainerBinds:  nil,
 	}
-	if _, err := ok.RunRender("kube-apiserver", c.hypershiftImage(), c.GetDockerClient(), hostIP); err != nil {
+	if _, err := ok.RunRender("kube-apiserver", OpenShiftImages.Get("hypershift").ToPullSpec(), c.DockerClient(), hostIP); err != nil {
 		return nil, err
 	}
 

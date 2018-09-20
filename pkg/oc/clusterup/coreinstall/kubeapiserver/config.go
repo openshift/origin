@@ -17,8 +17,8 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/origin/pkg/configconversion"
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
 
@@ -41,9 +41,9 @@ func NewKubeAPIServerStartConfig() *KubeAPIServerStartConfig {
 // Start starts the OpenShift master as a Docker container
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
-func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.Interface, basedir string) (string, error) {
+func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient util.Interface, basedir string) (string, error) {
 	componentName := "create-master-config"
-	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+	imageRunHelper := run.NewRunHelper(util.NewHelper(dockerClient)).New()
 	glog.Infof("Running %q", componentName)
 
 	createConfigCmd := []string{
@@ -75,7 +75,7 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 		return "", err
 	}
 	glog.V(1).Infof("Copying OpenShift config to local directory %s", masterDir)
-	if err = dockerhelper.DownloadDirFromContainer(dockerClient, containerId, "/var/lib/origin/openshift.local.config", masterDir); err != nil {
+	if err = util.DownloadDirFromContainer(dockerClient, containerId, "/var/lib/origin/openshift.local.config", masterDir); err != nil {
 		if removeErr := os.RemoveAll(masterDir); removeErr != nil {
 			glog.V(2).Infof("Error removing temporary config dir %s: %v", masterDir, removeErr)
 		}

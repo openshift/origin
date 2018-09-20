@@ -11,8 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/openshift"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 )
 
 const CmdDownRecommendedName = "down"
@@ -47,18 +47,18 @@ func NewCmdDown(name, fullName string) *cobra.Command {
 // Stop stops the currently running origin container and any
 // containers started by the node.
 func (c *ClientStopConfig) Stop() error {
-	client, err := dockerhelper.GetDockerClient()
+	client, err := util.GetDockerClient()
 	if err != nil {
 		return err
 	}
-	helper := dockerhelper.NewHelper(client)
+	helper := util.NewHelper(client)
 	glog.V(4).Infof("Killing previous socat tunnel")
 	err = openshift.KillExistingSocat()
 	if err != nil {
 		glog.V(2).Infof("error: cannot kill socat: %v", err)
 	}
 	glog.V(4).Infof("Stopping and removing origin container")
-	if err = helper.StopAndRemoveContainer(openshift.OriginContainerName); err != nil {
+	if err = helper.StopAndRemoveContainer("origin"); err != nil {
 		glog.V(2).Infof("Error stopping origin container: %v", err)
 	}
 

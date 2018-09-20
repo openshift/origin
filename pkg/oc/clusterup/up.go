@@ -1,16 +1,11 @@
 package clusterup
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
-	"os/exec"
 	"path"
-	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/docker/docker/api/types/versions"
@@ -18,8 +13,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -32,22 +25,17 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/host"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/openshift"
+	dockerutil "github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 	"github.com/openshift/origin/pkg/version"
 )
 
 const (
 	// CmdUpRecommendedName is the recommended command name
 	CmdUpRecommendedName = "up"
-
-	defaultRedirectClient  = "openshift-web-console"
-	developmentRedirectURI = "https://localhost:9000"
-
-	dockerAPIVersion122 = "1.22"
+	dockerAPIVersion122  = "1.22"
 )
 
 var (
@@ -66,19 +54,13 @@ var (
 	cmdUpExample = templates.Examples(`
 	  # Start OpenShift using a specific public host name
 	  %[1]s --public-hostname=my.address.example.com`)
-
-	// defaultImageStreams is the default key for the above imageStreams mapping.
-	// It should be set during build via -ldflags.
-	defaultImageStreams string
 )
 
 type ClusterUpConfig struct {
 	ImageTemplate variable.ImageTemplate
 	ImageTag      string
 
-	DockerMachine  string
-	PortForwarding bool
-	KubeOnly       bool
+	KubeOnly bool
 
 	// BaseTempDir is the directory to use as the root for temp directories
 	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't
@@ -97,36 +79,28 @@ type ClusterUpConfig struct {
 	DNSPort                  int
 	ServerIP                 string
 	AdditionalIPs            []string
-	UseNsenterMount          bool
 	PublicHostname           string
 	HostPersistentVolumesDir string
-	HTTPProxy                string
-	HTTPSProxy               string
-	NoProxy                  []string
 
-	dockerClient        dockerhelper.Interface
-	dockerHelper        *dockerhelper.Helper
+	dockerClient        dockerutil.Interface
+	dockerHelper        *dockerutil.Helper
 	hostHelper          *host.HostHelper
 	openshiftHelper     *openshift.Helper
 	command             *cobra.Command
 	defaultClientConfig clientcmdapi.Config
-	isRemoteDocker      bool
 
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
 
 	pullPolicy string
 
-	createdUser bool
-
 	genericclioptions.IOStreams
 }
 
 func NewClusterUpConfig(streams genericclioptions.IOStreams) *ClusterUpConfig {
 	return &ClusterUpConfig{
-		UsePorts:       openshift.BasePorts,
-		PortForwarding: defaultPortForwarding(),
-		DNSPort:        openshift.DefaultDNSPort,
+		UsePorts: openshift.BasePorts,
+		DNSPort:  openshift.DefaultDNSPort,
 
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 
@@ -175,13 +149,9 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&c.BaseDir, "base-dir", c.BaseDir, "Directory on Docker host for cluster up configuration")
 	flags.BoolVar(&c.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
-	flags.BoolVar(&c.PortForwarding, "forward-ports", c.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	flags.BoolVar(&c.KubeOnly, "kube-only", c.KubeOnly, "Only install Kubernetes, no OpenShift apiserver or controllers.  Alpha, for development only.  Can result in an unstable cluster.")
 	flags.MarkHidden("kube-only")
-	flags.StringVar(&c.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
-	flags.StringVar(&c.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
-	flags.StringArrayVar(&c.NoProxy, "no-proxy", c.NoProxy, "List of hosts or subnets for which a proxy should not be used")
 }
 
 func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *cobra.Command) error {
@@ -207,8 +177,6 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 	}
 
 	c.command = cmd
-
-	c.isRemoteDocker = len(os.Getenv("DOCKER_HOST")) > 0
 
 	c.ImageTemplate.Format = variable.Expand(c.ImageTemplate.Format, func(s string) (string, bool) {
 		if s == "version" {
@@ -246,32 +214,24 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 	// If a Docker machine was specified, make sure that the machine is running.
 	// Otherwise, use environment variables.
 	c.printProgress("Getting a Docker client")
-	client, err := dockerhelper.GetDockerClient()
+	client, err := dockerutil.GetDockerClient()
 	if err != nil {
 		return err
 	}
 	c.dockerClient = client
 
-	// Check whether the Docker host has the right binaries to use Kubernetes' nsenter mounter
-	// If not, use a shared volume to mount volumes on OpenShift
-	if isRedHatDocker, err := c.DockerHelper().IsRedHat(); err == nil && isRedHatDocker {
-		c.printProgress("Checking type of volume mount")
-		c.UseNsenterMount, err = c.HostHelper().CanUseNsenterMounter()
-		if err != nil {
-			return err
-		}
+	c.printProgress(fmt.Sprintf("Pulling all required images"))
+	if err := OpenShiftImages.EnsurePulled(c.Docker()); err != nil {
+		return err
 	}
 
 	if err := os.MkdirAll(c.BaseDir, 0755); err != nil {
 		return err
 	}
 
-	if c.UseNsenterMount {
-		// This is default path when you run cluster up locally, with local docker daemon
-		c.HostVolumesDir = path.Join(c.BaseDir, "openshift.local.volumes")
-		if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
-			return err
-		}
+	c.HostVolumesDir = path.Join(c.BaseDir, "openshift.local.volumes")
+	if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
+		return err
 	}
 
 	c.HostPersistentVolumesDir = path.Join(c.BaseDir, "openshift.local.pv")
@@ -282,16 +242,6 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 	c.HostDataDir = path.Join(c.BaseDir, "etcd")
 	if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
 		return err
-	}
-
-	// Ensure that host directories exist.
-	// If not using the nsenter mounter, create a volume share on the host machine to
-	// mount OpenShift volumes.
-	if !c.UseNsenterMount {
-		c.printProgress("Creating shared mount directory on the remote host")
-		if err := c.HostHelper().EnsureVolumeUseShareMount(c.HostVolumesDir); err != nil {
-			return err
-		}
 	}
 
 	// Determine an IP to use for OpenShift.
@@ -316,12 +266,6 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 		return err
 	}
 	glog.V(3).Infof("Using %q as primary server IP and %q as additional IPs", c.ServerIP, strings.Join(c.AdditionalIPs, ","))
-
-	// this used to be done in the openshift start method, but its mutating state.
-	if len(c.HTTPProxy) > 0 || len(c.HTTPSProxy) > 0 {
-		c.updateNoProxy()
-	}
-
 	return nil
 }
 
@@ -340,69 +284,30 @@ func (c *ClusterUpConfig) printProgress(msg string) {
 // Check is a spot to do NON-MUTATING, preflight checks. Over time, we should try to move our non-mutating checks out of
 // Complete and into Check.
 func (c *ClusterUpConfig) Check() error {
-	// Check for an OpenShift container. If one exists and is running, exit.
-	// If one exists but not running, delete it.
-	c.printProgress("Checking if OpenShift is already running")
-	if err := checkExistingOpenShiftContainer(c.DockerHelper()); err != nil {
-		return err
-	}
-
-	// Docker checks
 	c.printProgress(fmt.Sprintf("Checking for supported Docker version (=>%s)", dockerAPIVersion122))
-	ver, err := c.DockerHelper().APIVersion()
+	ver, err := c.Docker().APIVersion()
 	if err != nil {
 		return err
 	}
 	if versions.LessThan(ver.APIVersion, dockerAPIVersion122) {
 		return fmt.Errorf("unsupported Docker version %s, need at least %s", ver.APIVersion, dockerAPIVersion122)
 	}
-
-	// Networking checks
-	if c.PortForwarding {
-		c.printProgress("Checking prerequisites for port forwarding")
-		if err := checkPortForwardingPrerequisites(); err != nil {
-			return err
-		}
-		if err := openshift.CheckSocat(); err != nil {
-			return err
-		}
-	}
-
 	c.printProgress("Checking if required ports are available")
 	if err := c.checkAvailablePorts(); err != nil {
 		return err
 	}
-
-	// OpenShift checks
-	c.printProgress("Checking if OpenShift client is configured properly")
-	if err := c.checkOpenShiftClient(); err != nil {
-		return err
-	}
-
-	c.printProgress(fmt.Sprintf("Checking if image %s is available", c.openshiftImage()))
-	if err := c.checkRequiredImagesAvailable(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *ClusterUpConfig) Start() error {
-	fmt.Fprintf(c.Out, "Starting OpenShift using %s ...\n", c.openshiftImage())
-
-	if c.PortForwarding {
-		if err := c.OpenShiftHelper().StartSocatTunnel(c.ServerIP); err != nil {
-			return err
-		}
-	}
-
 	if err := c.StartSelfHosted(c.Out); err != nil {
 		return err
 	}
 	if c.WriteConfig {
 		return nil
 	}
+
 	if err := c.PostClusterStartupMutations(c.Out); err != nil {
 		return err
 	}
@@ -414,188 +319,21 @@ func (c *ClusterUpConfig) Start() error {
 		return nil
 	}
 
-	// Add default redirect URIs to an OAuthClient to enable local web-console development.
-	c.printProgress("Adding default OAuthClient redirect URIs")
-	if err := c.ensureDefaultRedirectURIs(c.Out); err != nil {
-		return err
-	}
-
 	c.printProgress("Server Information")
 	c.serverInfo(c.Out)
 
 	return nil
 }
 
-func defaultPortForwarding() bool {
-	// Defaults to true if running on Mac, with no DOCKER_HOST defined
-	return runtime.GOOS == "darwin" && len(os.Getenv("DOCKER_HOST")) == 0
-}
-
-// checkOpenShiftClient ensures that the client can be configured
-// for the new server
-func (c *ClusterUpConfig) checkOpenShiftClient() error {
-	kubeConfig := os.Getenv("KUBECONFIG")
-	if len(kubeConfig) == 0 {
-		return nil
-	}
-
-	// if you're trying to use the kubeconfig into a subdirectory of the basedir, you're probably using a KUBECONFIG
-	// location that is going to overwrite a "real" kubeconfig, usually admin.kubeconfig which will break every other component
-	// relying on it being a full power kubeconfig
-	kubeConfigDir := filepath.Dir(kubeConfig)
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	absKubeConfigDir, err := cmdutil.MakeAbs(kubeConfigDir, cwd)
-	if err != nil {
-		return err
-	}
-	if strings.HasPrefix(absKubeConfigDir, c.BaseDir+"/") {
-		return fmt.Errorf("cannot choose kubeconfig in subdirectory of the --base-dir: %q", kubeConfig)
-	}
-
-	var (
-		kubeConfigError error
-		f               *os.File
-	)
-	_, err = os.Stat(kubeConfig)
-	switch {
-	case os.IsNotExist(err):
-		err = os.MkdirAll(filepath.Dir(kubeConfig), 0755)
-		if err != nil {
-			kubeConfigError = fmt.Errorf("cannot make directory: %v", err)
-			break
-		}
-		f, err = os.Create(kubeConfig)
-		if err != nil {
-			kubeConfigError = fmt.Errorf("cannot create file: %v", err)
-			break
-		}
-		f.Close()
-	case err == nil:
-		f, err = os.OpenFile(kubeConfig, os.O_RDWR, 0644)
-		if err != nil {
-			kubeConfigError = fmt.Errorf("cannot open %s for write: %v", kubeConfig, err)
-			break
-		}
-		f.Close()
-	default:
-		kubeConfigError = fmt.Errorf("cannot access %s: %v", kubeConfig, err)
-	}
-	if kubeConfigError != nil {
-		return errors.ErrKubeConfigNotWriteable(kubeConfig, kubeConfigError)
-	}
-	return nil
-}
-
-// GetDockerClient obtains a new Docker client from the environment or
+// DockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary
-func (c *ClusterUpConfig) GetDockerClient() dockerhelper.Interface {
+func (c *ClusterUpConfig) DockerClient() dockerutil.Interface {
 	return c.dockerClient
-}
-
-// checkExistingOpenShiftContainer checks the state of an OpenShift container.
-// If one is already running, it throws an error.
-// If one exists, it removes it so a new one can be created.
-func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper) error {
-	container, running, err := dockerHelper.GetContainerState(openshift.OriginContainerName)
-	if err != nil {
-		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
-	}
-	if running {
-		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", "oc cluster down")
-	}
-	if container != nil {
-		err = dockerHelper.RemoveContainer(openshift.OriginContainerName)
-		if err != nil {
-			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
-		}
-		glog.V(2).Info("Deleted existing OpenShift container")
-	}
-	return nil
-}
-
-// checkRequiredImagesAvailable checks whether the OpenShift image exists.
-// If not it tells the Docker daemon to pull it.
-func (c *ClusterUpConfig) checkRequiredImagesAvailable() error {
-	if err := c.DockerHelper().CheckAndPull(c.openshiftImage(), c.Out); err != nil {
-		return err
-	}
-	if err := c.DockerHelper().CheckAndPull(c.cliImage(), c.Out); err != nil {
-		return err
-	}
-	if err := c.DockerHelper().CheckAndPull(c.etcdImage(), c.Out); err != nil {
-		return err
-	}
-	if err := c.DockerHelper().CheckAndPull(c.bootkubeImage(), c.Out); err != nil {
-		return err
-	}
-	if err := c.DockerHelper().CheckAndPull(c.hyperkubeImage(), c.Out); err != nil {
-		return err
-	}
-	return nil
-}
-
-// checkPortForwardingPrerequisites checks that socat is installed when port forwarding is enabled
-// Socat needs to be installed manually on MacOS
-func checkPortForwardingPrerequisites() error {
-	commandOut, err := exec.Command("socat", "-V").CombinedOutput()
-	if err != nil {
-		glog.V(2).Infof("Error from socat command execution: %v\n%s", err, string(commandOut))
-		glog.Warning("Port forwarding requires socat command line utility." +
-			"Cluster public ip may not be reachable. Please make sure socat installed in your operating system.")
-	}
-	return nil
-}
-
-// ensureDefaultRedirectURIs merges a default URL to an auth client's RedirectURIs array
-func (c *ClusterUpConfig) ensureDefaultRedirectURIs(out io.Writer) error {
-	restConfig, err := c.KubeControlPlaneRESTConfig()
-	if err != nil {
-		return err
-	}
-	oauthClient, err := oauthclientinternal.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-
-	webConsoleOAuth, err := oauthClient.Oauth().OAuthClients().Get(defaultRedirectClient, metav1.GetOptions{})
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			fmt.Fprintf(out, "Unable to find OAuthClient %q\n", defaultRedirectClient)
-			return nil
-		}
-
-		// announce fetch error without interrupting remaining tasks
-		suggestedCmd := fmt.Sprintf("oc patch %s/%s -p '{%q:[%q]}'", "oauthclient", defaultRedirectClient, "redirectURIs", developmentRedirectURI)
-		errMsg := fmt.Sprintf("Unable to fetch OAuthClient %q.\nTo manually add a development redirect URI, run %q\n", defaultRedirectClient, suggestedCmd)
-		fmt.Fprintf(out, "%s\n", errMsg)
-		return nil
-	}
-
-	// ensure the default redirect URI is not already present
-	redirects := sets.NewString(webConsoleOAuth.RedirectURIs...)
-	if redirects.Has(developmentRedirectURI) {
-		return nil
-	}
-
-	webConsoleOAuth.RedirectURIs = append(webConsoleOAuth.RedirectURIs, developmentRedirectURI)
-
-	_, err = oauthClient.Oauth().OAuthClients().Update(webConsoleOAuth)
-	if err != nil {
-		// announce error without interrupting remaining tasks
-		suggestedCmd := fmt.Sprintf("oc patch %s/%s -p '{%q:[%q]}'", "oauthclient", defaultRedirectClient, "redirectURIs", developmentRedirectURI)
-		fmt.Fprintf(out, fmt.Sprintf("Unable to add development redirect URI to the %q OAuthClient.\nTo manually add it, run %q\n", defaultRedirectClient, suggestedCmd))
-		return nil
-	}
-
-	return nil
 }
 
 // checkAvailablePorts ensures that ports used by OpenShift are available on the Docker host
 func (c *ClusterUpConfig) checkAvailablePorts() error {
-	err := c.OpenShiftHelper().TestPorts(openshift.AllPorts)
+	err := c.OpenShift().TestPorts(openshift.AllPorts)
 	if err == nil {
 		return nil
 	}
@@ -632,24 +370,8 @@ func (c *ClusterUpConfig) determineServerIP() (string, []string, error) {
 	return serverIP, additionalIPs, nil
 }
 
-// updateNoProxy will add some default values to the NO_PROXY setting if they are not present
-func (c *ClusterUpConfig) updateNoProxy() {
-	values := []string{"127.0.0.1", c.ServerIP, "localhost"}
-	ipFromServer, err := c.OpenShiftHelper().ServerIP()
-	if err == nil {
-		values = append(values, ipFromServer)
-	}
-	noProxySet := sets.NewString(c.NoProxy...)
-	for _, v := range values {
-		if !noProxySet.Has(v) {
-			noProxySet.Insert(v)
-			c.NoProxy = append(c.NoProxy, v)
-		}
-	}
-}
-
 func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
-	restConfig, err := c.KubeControlPlaneRESTConfig()
+	restConfig, err := c.RESTConfig()
 	if err != nil {
 		return err
 	}
@@ -659,7 +381,7 @@ func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
 	}
 
 	// Remove any duplicate nodes
-	if err := c.OpenShiftHelper().CheckNodes(kClient); err != nil {
+	if err := c.OpenShift().CheckNodes(kClient); err != nil {
 		return err
 	}
 
@@ -677,123 +399,45 @@ func (c *ClusterUpConfig) serverInfo(out io.Writer) {
 	msg := fmt.Sprintf("OpenShift server started.\n\n"+
 		"The server is accessible via web console at:\n"+
 		"    %s\n\n", masterURL)
-
-	msg += c.checkProxySettings()
-
 	fmt.Fprintf(out, msg)
 }
 
-// checkProxySettings compares proxy settings specified for cluster up
-// and those on the Docker daemon and generates appropriate warnings.
-func (c *ClusterUpConfig) checkProxySettings() string {
-	var warnings []string
-	dockerHTTPProxy, dockerHTTPSProxy, _, err := c.DockerHelper().GetDockerProxySettings()
-	if err != nil {
-		return "Unexpected error: " + err.Error()
-	}
-	// Check HTTP proxy
-	if len(c.HTTPProxy) > 0 && len(dockerHTTPProxy) == 0 {
-		warnings = append(warnings, "You specified an HTTP proxy for cluster up, but one is not configured for the Docker daemon")
-	} else if len(c.HTTPProxy) == 0 && len(dockerHTTPProxy) > 0 {
-		warnings = append(warnings, fmt.Sprintf("An HTTP proxy (%s) is configured for the Docker daemon, but you did not specify one for cluster up", dockerHTTPProxy))
-	} else if c.HTTPProxy != dockerHTTPProxy {
-		warnings = append(warnings, fmt.Sprintf("The HTTP proxy configured for the Docker daemon (%s) is not the same one you specified for cluster up", dockerHTTPProxy))
-	}
-
-	// Check HTTPS proxy
-	if len(c.HTTPSProxy) > 0 && len(dockerHTTPSProxy) == 0 {
-		warnings = append(warnings, "You specified an HTTPS proxy for cluster up, but one is not configured for the Docker daemon")
-	} else if len(c.HTTPSProxy) == 0 && len(dockerHTTPSProxy) > 0 {
-		warnings = append(warnings, fmt.Sprintf("An HTTPS proxy (%s) is configured for the Docker daemon, but you did not specify one for cluster up", dockerHTTPSProxy))
-	} else if c.HTTPSProxy != dockerHTTPSProxy {
-		warnings = append(warnings, fmt.Sprintf("The HTTPS proxy configured for the Docker daemon (%s) is not the same one you specified for cluster up", dockerHTTPSProxy))
-	}
-
-	if len(warnings) > 0 {
-		buf := &bytes.Buffer{}
-		for _, w := range warnings {
-			fmt.Fprintf(buf, "WARNING: %s\n", w)
-		}
-		return buf.String()
-	}
-	return ""
-}
-
-// OpenShiftHelper returns a helper object to work with OpenShift on the server
-func (c *ClusterUpConfig) OpenShiftHelper() *openshift.Helper {
+// OpenShift returns a helper object to work with OpenShift on the server
+func (c *ClusterUpConfig) OpenShift() *openshift.Helper {
 	if c.openshiftHelper == nil {
-		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.openshiftImage(), openshift.OriginContainerName)
+		c.openshiftHelper = openshift.NewHelper(c.Docker(), OpenShiftImages.Get("control-plane").ToPullSpec(), "origin")
 	}
 	return c.openshiftHelper
 }
 
-// HostHelper returns a helper object to check Host configuration
-func (c *ClusterUpConfig) HostHelper() *host.HostHelper {
+// Host returns a helper object to check Host configuration
+func (c *ClusterUpConfig) Host() *host.HostHelper {
 	if c.hostHelper == nil {
-		c.hostHelper = host.NewHostHelper(c.DockerHelper(), c.openshiftImage())
+		c.hostHelper = host.NewHostHelper(c.Docker(), OpenShiftImages.Get("control-plane").ToPullSpec())
 	}
 	return c.hostHelper
 }
 
-// DockerHelper returns a helper object to work with the Docker client
-func (c *ClusterUpConfig) DockerHelper() *dockerhelper.Helper {
+// Docker returns a helper object to work with the Docker client
+func (c *ClusterUpConfig) Docker() *dockerutil.Helper {
 	if c.dockerHelper == nil {
-		c.dockerHelper = dockerhelper.NewHelper(c.dockerClient)
+		c.dockerHelper = dockerutil.NewHelper(c.dockerClient)
 	}
 	return c.dockerHelper
 }
 
-func (c *ClusterUpConfig) etcdImage() string {
-	return "quay.io/coreos/etcd:v3.2.24"
-}
-
-func (c *ClusterUpConfig) bootkubeImage() string {
-	return "quay.io/coreos/bootkube:v0.13.0"
-}
-
-func (c *ClusterUpConfig) openshiftImage() string {
-	return c.ImageTemplate.ExpandOrDie("control-plane")
-}
-
-func (c *ClusterUpConfig) hypershiftImage() string {
-	return c.ImageTemplate.ExpandOrDie("hypershift")
-}
-
-func (c *ClusterUpConfig) hyperkubeImage() string {
-	return c.ImageTemplate.ExpandOrDie("hyperkube")
-}
-
-func (c *ClusterUpConfig) nodeImage() string {
-	return c.ImageTemplate.ExpandOrDie("node")
-}
-
-func (c *ClusterUpConfig) podImage() string {
-	return c.ImageTemplate.ExpandOrDie("pod")
-}
-
-func (c *ClusterUpConfig) cliImage() string {
-	return c.ImageTemplate.ExpandOrDie("cli")
-}
-
 func (c *ClusterUpConfig) determineAdditionalIPs(ip string) ([]string, error) {
 	additionalIPs := sets.NewString()
-	serverIPs, err := c.OpenShiftHelper().OtherIPs(ip)
+	serverIPs, err := c.OpenShift().OtherIPs(ip)
 	if err != nil {
 		return nil, errors.NewError("could not determine additional IPs").WithCause(err)
 	}
 	additionalIPs.Insert(serverIPs...)
-	if c.PortForwarding {
-		localIPs, err := c.localIPs()
-		if err != nil {
-			return nil, errors.NewError("could not determine additional local IPs").WithCause(err)
-		}
-		additionalIPs.Insert(localIPs...)
-	}
 	return additionalIPs.List(), nil
 }
 
 func (c *ClusterUpConfig) localIPs() ([]string, error) {
-	var ips []string
+	ips := []string{}
 	devices, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -822,17 +466,12 @@ func (c *ClusterUpConfig) determineIP() (string, error) {
 		return ip.String(), nil
 	}
 
-	// If using port-forwarding, use the default loopback address
-	if c.PortForwarding {
-		return "127.0.0.1", nil
-	}
-
 	// Try to get the host from the DOCKER_HOST if communicating via tcp
 	var err error
-	ip := c.DockerHelper().HostIP()
+	ip := c.Docker().HostIP()
 	if ip != "" {
 		glog.V(2).Infof("Testing Docker host IP (%s)", ip)
-		if err = c.OpenShiftHelper().TestIP(ip); err == nil {
+		if err = c.OpenShift().TestIP(ip); err == nil {
 			return ip, nil
 		}
 	}
@@ -841,15 +480,15 @@ func (c *ClusterUpConfig) determineIP() (string, error) {
 	// If IP is not specified, try to use the loopback IP
 	// This is to default to an ip-agnostic client setup
 	// where the real IP of the host will not affect client operations
-	if err = c.OpenShiftHelper().TestIP("127.0.0.1"); err == nil {
+	if err = c.OpenShift().TestIP("127.0.0.1"); err == nil {
 		return "127.0.0.1", nil
 	}
 
 	// Next, use the the --print-ip output from openshift
-	ip, err = c.OpenShiftHelper().ServerIP()
+	ip, err = c.OpenShift().ServerIP()
 	if err == nil {
 		glog.V(2).Infof("Testing openshift --print-ip (%s)", ip)
-		if err = c.OpenShiftHelper().TestIP(ip); err == nil {
+		if err = c.OpenShift().TestIP(ip); err == nil {
 			return ip, nil
 		}
 		glog.V(2).Infof("OpenShift server ip test failed: %v", err)
@@ -857,13 +496,13 @@ func (c *ClusterUpConfig) determineIP() (string, error) {
 	glog.V(2).Infof("Cannot use OpenShift IP: %v", err)
 
 	// Next, try other IPs on Docker host
-	ips, err := c.OpenShiftHelper().OtherIPs(ip)
+	ips, err := c.OpenShift().OtherIPs(ip)
 	if err != nil {
 		return "", err
 	}
 	for i := range ips {
 		glog.V(2).Infof("Testing additional IP (%s)", ip)
-		if err = c.OpenShiftHelper().TestIP(ips[i]); err == nil {
+		if err = c.OpenShift().TestIP(ips[i]); err == nil {
 			return ip, nil
 		}
 		glog.V(2).Infof("OpenShift additional ip test failed: %v", err)
@@ -871,12 +510,8 @@ func (c *ClusterUpConfig) determineIP() (string, error) {
 	return "", errors.NewError("cannot determine an IP to use for your server.")
 }
 
-func (c *ClusterUpConfig) KubeControlPlaneAuthDir() string {
-	return path.Join(c.BaseDir, "bootkube", "auth")
-}
-
-func (c *ClusterUpConfig) KubeControlPlaneRESTConfig() (*rest.Config, error) {
-	clusterAdminKubeConfigBytes, err := c.KubeControlPlaneKubeConfigBytes()
+func (c *ClusterUpConfig) RESTConfig() (*rest.Config, error) {
+	clusterAdminKubeConfigBytes, err := c.ClusterAdminKubeConfigBytes()
 	if err != nil {
 		return nil, err
 	}
@@ -886,10 +521,6 @@ func (c *ClusterUpConfig) KubeControlPlaneRESTConfig() (*rest.Config, error) {
 	}
 
 	return clusterAdminKubeConfig, nil
-}
-
-func (c *ClusterUpConfig) KubeControlPlaneKubeConfigBytes() ([]byte, error) {
-	return ioutil.ReadFile(path.Join(c.KubeControlPlaneAuthDir(), "kubeconfig"))
 }
 
 func (c *ClusterUpConfig) GetPublicHostName() string {

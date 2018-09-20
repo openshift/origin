@@ -10,8 +10,8 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
 
@@ -75,8 +75,8 @@ func (opt installReadyTemplate) Name() string {
 	return opt.template.Name
 }
 
-func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface) error {
-	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+func (opt installReadyTemplate) Install(dockerClient util.Interface) error {
+	imageRunHelper := run.NewRunHelper(util.NewHelper(dockerClient)).New()
 
 	glog.Infof("Installing %q\n", opt.Name())
 

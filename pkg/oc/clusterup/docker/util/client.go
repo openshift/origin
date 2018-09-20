@@ -1,4 +1,4 @@
-package dockerhelper
+package util
 
 import (
 	"fmt"
@@ -293,7 +293,7 @@ func holdHijackedConnection(inputStream io.Reader, outputStream, errorStream io.
 	return nil
 }
 
-// GetDockerClient obtains a new Docker client from the environment or
+// DockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary and permitted
 func GetDockerClient() (Interface, error) {
 	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")

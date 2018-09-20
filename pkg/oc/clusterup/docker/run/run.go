@@ -16,16 +16,16 @@ import (
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 )
 
 type RunHelper struct {
-	client       dockerhelper.Interface
-	dockerHelper *dockerhelper.Helper
+	client       util.Interface
+	dockerHelper *util.Helper
 }
 
-func NewRunHelper(dockerHelper *dockerhelper.Helper) *RunHelper {
+func NewRunHelper(dockerHelper *util.Helper) *RunHelper {
 	return &RunHelper{
 		client:       dockerHelper.Client(),
 		dockerHelper: dockerHelper,
@@ -44,8 +44,8 @@ func (h *RunHelper) New() *Runner {
 // Runner is a helper to run new containers on Docker
 type Runner struct {
 	name            string
-	client          dockerhelper.Interface
-	dockerHelper    *dockerhelper.Helper
+	client          util.Interface
+	dockerHelper    *util.Helper
 	config          *container.Config
 	hostConfig      *container.HostConfig
 	removeContainer bool

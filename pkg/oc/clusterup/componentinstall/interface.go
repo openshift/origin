@@ -8,15 +8,15 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 )
 
 type Component interface {
 	Name() string
-	Install(dockerClient dockerhelper.Interface) error
+	Install(dockerClient util.Interface) error
 }
 
-func InstallComponents(components []Component, dockerClient dockerhelper.Interface) error {
+func InstallComponents(components []Component, dockerClient util.Interface) error {
 	componentNames := []string{}
 	errorCh := make(chan error, len(components))
 	waitGroupOne := sync.WaitGroup{}
