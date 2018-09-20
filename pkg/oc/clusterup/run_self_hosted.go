@@ -31,7 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubelet"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/staticpods"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/host"
 	"github.com/openshift/origin/pkg/oc/clusterup/manifests"
 )
 
@@ -287,12 +286,6 @@ type configDirs struct {
 // LocalDirFor returns a local directory path for the given component.
 func (c *ClusterUpConfig) LocalDirFor(componentName string) string {
 	return filepath.Join(c.BaseDir, componentName)
-}
-
-// RemoteDirFor returns a directory path on remote host
-// DEPRECATED:
-func (c *ClusterUpConfig) RemoteDirFor(componentName string) string {
-	return filepath.Join(host.RemoteHostOriginDir, c.BaseDir, componentName)
 }
 
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {

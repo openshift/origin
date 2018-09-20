@@ -69,24 +69,6 @@ func (h *Helper) CgroupDriver() (string, error) {
 	return info.CgroupDriver, nil
 }
 
-// InsecureRegistryIsConfigured checks to see if the Docker daemon has an appropriate insecure registry argument set so that our services can access the registry
-//hasEntries specifies if Docker daemon has entries at all
-func (h *Helper) InsecureRegistryIsConfigured(insecureRegistryCIDR string) (configured bool, hasEntries bool, error error) {
-	info, err := h.dockerInfo()
-	if err != nil {
-		return false, false, err
-	}
-	registryConfig := NewRegistryConfig(info)
-	if !registryConfig.HasCustomInsecureRegistryCIDRs() {
-		return false, false, nil
-	}
-	containsRegistryCIDR, err := registryConfig.ContainsInsecureRegistryCIDR(insecureRegistryCIDR)
-	if err != nil {
-		return false, true, err
-	}
-	return containsRegistryCIDR, true, nil
-}
-
 var (
 	fedoraPackage = regexp.MustCompile("\\.fc[0-9_]*\\.")
 	rhelPackage   = regexp.MustCompile("\\.el[0-9_]*\\.")

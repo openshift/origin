@@ -7,14 +7,14 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/tmpformac"
+	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/fileutil"
 	"github.com/openshift/origin/pkg/oc/clusterup/manifests"
 )
 
 func MakeOpenShiftControllerConfig(existingMasterConfig string, basedir string) (string, error) {
 	configDir := path.Join(basedir, OpenShiftControllerManagerDirName)
 	glog.V(1).Infof("Copying kube-apiserver config to local directory %s", OpenShiftControllerManagerDirName)
-	if err := tmpformac.CopyDirectory(existingMasterConfig, configDir); err != nil {
+	if err := fileutil.CopyDirectory(existingMasterConfig, configDir); err != nil {
 		return "", err
 	}
 	if err := os.Remove(path.Join(configDir, "master-config.yaml")); err != nil {

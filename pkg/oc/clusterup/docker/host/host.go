@@ -17,9 +17,6 @@ nsenter --mount=/rootfs/proc/1/ns/mnt mkdir -p %[1]s
 grep -F %[1]s /rootfs/proc/1/mountinfo || nsenter --mount=/rootfs/proc/1/ns/mnt mount -o bind %[1]s %[1]s
 grep -F %[1]s /rootfs/proc/1/mountinfo | grep shared || nsenter --mount=/rootfs/proc/1/ns/mnt mount --make-shared %[1]s
 `
-
-	// RemoteHostOriginDir is a directory on the remote machine that runs Docker
-	RemoteHostOriginDir = "/var/lib/origin/cluster-up"
 )
 
 // HostHelper contains methods to help check settings on a Docker host machine

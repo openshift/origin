@@ -1,4 +1,4 @@
-package tmpformac
+package fileutil
 
 import (
 	"io"
