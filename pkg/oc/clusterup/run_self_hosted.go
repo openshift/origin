@@ -503,8 +503,10 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	} else if currentUser, err := user.Current(); err == nil {
 		var cfgPath string
 		cfgPath = filepath.Join(currentUser.HomeDir, ".docker", "config.json")
-		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/root/.docker/config.json", cfgPath))
-		glog.Infof("docker config path %s", cfgPath)
+		// First check if config file exist on the host before add it to the mounts.
+		if _, err := os.Stat(cfgPath); !os.IsNotExist(err) {
+			container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/root/.docker/config.json", cfgPath))
+		}
 	}
 	// Kubelet needs to be able to write to
 	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
