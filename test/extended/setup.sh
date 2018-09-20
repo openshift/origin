@@ -40,6 +40,11 @@ function os::test::extended::focus () {
 #		and then tests are executed.	Tests that depend on fine grained setup should
 #		be done in other contexts.
 function os::test::extended::setup () {
+	echo ""
+	os::log::warning "REMINDER, EXTENDED TESTS NO LONGER START A CLUSTER."
+	os::log::warning "THE CLUSTER REFERENCED BY THE 'KUBECONFIG' ENV VAR IS USED."
+	echo ""
+    
 	# build binaries
 	os::util::ensure::built_binary_exists 'ginkgo' 'vendor/github.com/onsi/ginkgo/ginkgo'
 	os::util::ensure::built_binary_exists 'extended.test' 'test/extended/extended.test'
