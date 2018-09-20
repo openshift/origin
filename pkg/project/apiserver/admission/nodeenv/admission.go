@@ -15,6 +15,10 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
+const (
+	KubeProjectNodeSelector = "scheduler.alpha.kubernetes.io/node-selector"
+)
+
 func Register(plugins *admission.Plugins) {
 	plugins.Register("OriginPodNodeEnvironment",
 		func(config io.Reader) (admission.Interface, error) {
@@ -58,6 +62,15 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	if err != nil {
 		return apierrors.NewForbidden(resource, name, err)
 	}
+
+	// If scheduler.alpha.kubernetes.io/node-selector is set on the pod,
+	// do not process the pod further.
+	if len(namespace.ObjectMeta.Annotations) > 0 {
+		if _, ok := namespace.ObjectMeta.Annotations[KubeProjectNodeSelector]; ok {
+			return nil
+		}
+	}
+
 	projectNodeSelector, err := p.cache.GetNodeSelectorMap(namespace)
 	if err != nil {
 		return err
