@@ -286,9 +286,16 @@ func IsNotMountPoint(mounter Interface, file string) (bool, error) {
 // use in case of bind mount, due to the fact that bind mount doesn't respect mount options.
 // The list equals:
 //   options - 'bind' + 'remount' (no duplicate)
-func isBind(options []string) (bool, []string) {
+func isBind(options []string) (bool, []string, []string) {
 	bindRemountOpts := []string{"remount"}
 	bind := false
+	bindOpts := []string{"bind"}
+
+	// _netdev is a userspace mount option and does not automatically get added when
+	// bind mount is created and hence we must carry it over.
+	if checkForNetDev(options) {
+		bindOpts = append(bindOpts, "_netdev")
+	}
 
 	if len(options) != 0 {
 		for _, option := range options {
@@ -303,8 +310,16 @@ func isBind(options []string) (bool, []string) {
 			}
 		}
 	}
+	return bind, bindOpts, bindRemountOpts
+}
 
-	return bind, bindRemountOpts
+func checkForNetDev(options []string) bool {
+	for _, option := range options {
+		if option == "_netdev" {
+			return true
+		}
+	}
+	return false
 }
 
 // pathWithinBase checks if give path is withing given base directory.
