@@ -50,7 +50,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	serviceaccountcontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/util/configz"
 	utilflag "k8s.io/kubernetes/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/version/verflag"
@@ -128,11 +127,15 @@ func Run(c *config.CompletedConfig) error {
 	// To help debugging, immediately log version
 	glog.Infof("Version: %+v", version.Get())
 
+	// TODO: Disabled because it can race with the scheduler inside openshift start. We should drop this when openshift start is removed
+	//       and integration moves to new path.
+	/*
 	if cfgz, err := configz.New("componentconfig"); err == nil {
 		cfgz.Set(c.ComponentConfig)
 	} else {
 		glog.Errorf("unable to register configz: %c", err)
 	}
+	*/
 
 	// Start the controller manager HTTP server
 	stopCh := make(chan struct{})
