@@ -13,7 +13,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
@@ -124,14 +124,14 @@ func findRegistryInfo(client imageclient.Interface, namespaces ...string) (*Regi
 
 		info := &RegistryInfo{}
 		if value := is.Status.PublicDockerImageRepository; len(value) > 0 {
-			ref, err := imageapi.ParseDockerImageReference(value)
+			ref, err := reference.Parse(value)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse public registry info from the server")
 			}
 			info.Public = ref.Registry
 		}
 		if value := is.Status.DockerImageRepository; len(value) > 0 {
-			ref, err := imageapi.ParseDockerImageReference(value)
+			ref, err := reference.Parse(value)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse internal registry info from the server")
 			}

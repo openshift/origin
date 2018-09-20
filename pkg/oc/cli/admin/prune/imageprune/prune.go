@@ -32,6 +32,7 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -571,7 +572,7 @@ func (p *pruner) addPodSpecToGraph(referrer *corev1.ObjectReference, spec *corev
 
 		glog.V(4).Infof("Examining container image %q", container.Image)
 
-		ref, err := imageapi.ParseDockerImageReference(container.Image)
+		ref, err := reference.Parse(container.Image)
 		if err != nil {
 			glog.Warningf("Unable to parse DockerImageReference %q of %s: %v - skipping", container.Image, getKindName(referrer), err)
 			if !p.ignoreInvalidRefs {
@@ -786,7 +787,7 @@ func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectR
 			glog.V(4).Infof("Ignoring edge from %s because build strategy has no reference to image", getKindName(referrer))
 			return nil
 		}
-		ref, err := imageapi.ParseDockerImageReference(from.Name)
+		ref, err := reference.Parse(from.Name)
 		if err != nil {
 			glog.Warningf("Failed to parse DockerImage name %q of %s: %v", from.Name, getKindName(referrer), err)
 			if !p.ignoreInvalidRefs {
@@ -797,6 +798,7 @@ func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectR
 		imageID = ref.ID
 
 	case "ImageStreamImage":
+		// TODO(juanvallejo): add remaining imageapi helpers to library-go
 		_, id, err := imageapi.ParseImageStreamImageName(from.Name)
 		if err != nil {
 			glog.Warningf("Failed to parse ImageStreamImage name %q of %s: %v", from.Name, getKindName(referrer), err)

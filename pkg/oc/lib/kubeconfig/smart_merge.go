@@ -8,8 +8,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/client/config"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 // getClusterNicknameFromConfig returns host:port of the clientConfig.Host, with .'s replaced by -'s
@@ -34,11 +34,11 @@ func getUserNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
 }
 
 func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
-	userClient, err := userclient.NewForConfig(clientCfg)
+	userClient, err := userv1typedclient.NewForConfig(clientCfg)
 	if err != nil {
 		return "", err
 	}
-	userInfo, err := userClient.User().Users().Get("~", metav1.GetOptions{})
+	userInfo, err := userClient.Users().Get("~", metav1.GetOptions{})
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		// if we're talking to kube (or likely talking to kube), take a best guess consistent with login
 		switch {

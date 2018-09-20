@@ -31,6 +31,7 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	routev1typedclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -403,7 +404,7 @@ func validateEnforcedName(name string) error {
 }
 
 func validateOutputImageReference(ref string) error {
-	if _, err := imageapi.ParseDockerImageReference(ref); err != nil {
+	if _, err := reference.Parse(ref); err != nil {
 		return fmt.Errorf("invalid output image reference: %s", ref)
 	}
 	return nil

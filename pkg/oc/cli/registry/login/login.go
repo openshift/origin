@@ -25,7 +25,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
@@ -191,7 +191,7 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
 		}
 
 		if registry, internal := findPublicHostname(client, ns, "openshift"); len(registry) > 0 {
-			if ref, err := imageapi.ParseDockerImageReference(registry); err == nil {
+			if ref, err := reference.Parse(registry); err == nil {
 				o.HostPort = ref.Registry
 				if internal {
 					fmt.Fprintf(o.ErrOut, "info: Using internal registry hostname %s\n", o.HostPort)

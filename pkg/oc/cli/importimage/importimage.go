@@ -18,6 +18,7 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/tag"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
@@ -150,7 +151,7 @@ func (o *ImportImageOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 }
 
 func (o *ImportImageOptions) parseImageReference() error {
-	targetRef, err := imageapi.ParseDockerImageReference(o.Target)
+	targetRef, err := reference.Parse(o.Target)
 	switch {
 	case err != nil:
 		return fmt.Errorf("the image name must be a valid Docker image pull spec or reference to an image stream (e.g. myregistry/myteam/image:tag)")

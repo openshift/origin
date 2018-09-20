@@ -20,7 +20,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
 
 // LogsRecommendedCommandName is the recommended command name
@@ -261,7 +261,7 @@ func (o *LogsOptions) runLogPipeline() error {
 
 	switch {
 	case isBC:
-		buildName := buildutil.BuildNameForConfigVersion(bc.ObjectMeta.Name, int(bc.Status.LastVersion))
+		buildName := ocbuildapihelpers.BuildNameForConfigVersion(bc.ObjectMeta.Name, int(bc.Status.LastVersion))
 		build, _ = o.Client.Builds(o.Namespace).Get(buildName, metav1.GetOptions{})
 		if build == nil {
 			return fmt.Errorf("the build %s for build config %s was not found", buildName, bc.Name)

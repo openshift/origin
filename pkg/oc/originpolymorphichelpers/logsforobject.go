@@ -14,15 +14,11 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	appsmanualclientv1 "github.com/openshift/origin/pkg/apps/client/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildmanualclientv1 "github.com/openshift/origin/pkg/build/client/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
 
@@ -34,17 +30,6 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 		}
 
 		switch t := object.(type) {
-		case *appsapi.DeploymentConfig:
-			dopts, ok := options.(*appsapi.DeploymentLogOptions)
-			if !ok {
-				return nil, errors.New("provided options object is not a DeploymentLogOptions")
-			}
-			appsClient, err := appsclient.NewForConfig(clientConfig)
-			if err != nil {
-				return nil, err
-			}
-			// TODO: support allContainers flag
-			return []*rest.Request{appsmanualclient.NewRolloutLogClient(appsClient.AppsV1().RESTClient(), t.Namespace).Logs(t.Name, *dopts)}, nil
 		case *appsv1.DeploymentConfig:
 			dopts, ok := options.(*appsv1.DeploymentLogOptions)
 			if !ok {
@@ -90,7 +75,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			}
 			if bopts.Version != nil {
 				// If a version has been specified, try to get the logs from that build.
-				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
+				desired := ocbuildapihelpers.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
 				// TODO: support allContainers flag
 				return []*rest.Request{logClient.Logs(desired, *bopts)}, nil
 			}
@@ -131,7 +116,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			}
 			if bopts.Version != nil {
 				// If a version has been specified, try to get the logs from that build.
-				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
+				desired := ocbuildapihelpers.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
 				// TODO: support allContainers flag
 				return []*rest.Request{logClient.Logs(desired, *bopts)}, nil
 			}

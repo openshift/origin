@@ -6,12 +6,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 )
 
 func ParseDockerImageReferenceToStringFunc(spec string) (string, error) {
-	ret, err := imageapi.ParseDockerImageReference(spec)
+	ret, err := reference.Parse(spec)
 	if err != nil {
 		return "", err
 	}
@@ -20,7 +20,7 @@ func ParseDockerImageReferenceToStringFunc(spec string) (string, error) {
 
 // resolveImagePullSpec resolves the provided source which can be "docker", "istag" or
 // "isimage" and returns the full Docker pull spec.
-func resolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, defaultNamespace string) (string, error) {
+func resolveImagePullSpec(imageClient imagev1typedclient.ImageV1Interface, source, name, defaultNamespace string) (string, error) {
 	// for Docker source, just passtrough the image name
 	if isDockerImageSource(source) {
 		return name, nil
@@ -53,11 +53,11 @@ func resolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, 
 		return "", fmt.Errorf("unable to resolve %s %q", source, name)
 	}
 
-	reference, err := imageapi.ParseDockerImageReference(dockerImageReference)
+	ref, err := reference.Parse(dockerImageReference)
 	if err != nil {
 		return "", err
 	}
-	return reference.String(), nil
+	return ref.String(), nil
 }
 
 func isDockerImageSource(source string) bool {

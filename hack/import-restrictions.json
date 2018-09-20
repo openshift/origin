@@ -497,6 +497,7 @@
       "vendor/github.com/opencontainers/go-digest",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
+      "vendor/github.com/openshift/library-go",
       "vendor/github.com/openshift/imagebuilder",
       "vendor/github.com/openshift/source-to-image",
       "vendor/github.com/prometheus/client_golang",
@@ -546,7 +547,6 @@
       "github.com/openshift/origin/pkg/apps/apis/apps",
       "github.com/openshift/origin/pkg/apps/apis/apps/install",
       "github.com/openshift/origin/pkg/apps/util/test",
-      "github.com/openshift/origin/pkg/apps/client/internalversion",
       "github.com/openshift/origin/pkg/apps/client/v1",
       "github.com/openshift/origin/pkg/apps/util",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
@@ -612,7 +612,6 @@
       "github.com/openshift/origin/pkg/template/templateprocessing",
       "github.com/openshift/origin/pkg/unidling/api",
       "github.com/openshift/origin/pkg/unidling/util",
-      "github.com/openshift/origin/pkg/user/apis/user",
       "github.com/openshift/origin/pkg/user/apis/user/install",
       "github.com/openshift/origin/pkg/util",
       "github.com/openshift/origin/pkg/util/docker/dockerfile",
@@ -626,6 +625,7 @@
       "github.com/openshift/origin/pkg/util/proc",
       "github.com/openshift/origin/pkg/version",
 
+      "vendor/github.com/openshift/library-go/pkg/image/reference",
       "vendor/github.com/openshift/library-go/pkg/network/networkapihelpers",
 
       "vendor/github.com/coreos/etcd/clientv3",

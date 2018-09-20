@@ -12,6 +12,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
@@ -336,7 +337,7 @@ func getImageStreamImageSuggestion(imageID string, imageStream *imagev1.ImageStr
 // associated with an ImageStreamImage reference in fact exists in a given ImageStream; on return, this method returns a true if does exist, and as well as the hexadecimal image
 // id from the ImageStreamImage
 func validImageStreamImage(imageNode *imagegraph.ImageStreamImageNode, imageStream *imagev1.ImageStream) (bool, string) {
-	dockerImageReference, err := imageapi.ParseDockerImageReference(imageNode.Name)
+	dockerImageReference, err := reference.Parse(imageNode.Name)
 	if err == nil {
 		for _, tagEventList := range imageStream.Status.Tags {
 			for _, tagEvent := range tagEventList.Items {

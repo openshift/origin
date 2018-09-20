@@ -15,10 +15,10 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/cli/login"
 	"github.com/openshift/origin/pkg/oc/cli/whoami"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -182,11 +182,11 @@ func TestOAuthOIDC(t *testing.T) {
 		},
 		BearerToken: loginOptions.Config.BearerToken,
 	}
-	userClient, err := userclient.NewForConfig(userConfig)
+	userClient, err := userv1typedclient.NewForConfig(userConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	userWhoamiOptions := whoami.WhoAmIOptions{UserInterface: userClient.Users(), IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
+	userWhoamiOptions := whoami.WhoAmIOptions{UserInterface: userClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

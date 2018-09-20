@@ -12,11 +12,11 @@ import (
 
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/login"
 	"github.com/openshift/origin/pkg/oc/cli/whoami"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -98,16 +98,16 @@ func TestLogin(t *testing.T) {
 	// if _, err = loginOptions.SaveConfig(configFile.Name()); err != nil {
 	// 	t.Fatalf("unexpected error: %v", err)
 	// }
-	userClient, err := userclient.NewForConfig(loginOptions.Config)
+	userClient, err := userv1typedclient.NewForConfig(loginOptions.Config)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	adminUserClient, err := userclient.NewForConfig(clusterAdminClientConfig)
+	adminUserClient, err := userv1typedclient.NewForConfig(clusterAdminClientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	userWhoamiOptions := whoami.WhoAmIOptions{UserInterface: userClient.Users(), IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
+	userWhoamiOptions := whoami.WhoAmIOptions{UserInterface: userClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -116,7 +116,7 @@ func TestLogin(t *testing.T) {
 		t.Errorf("expected %v, got %v", retrievedUser.Name, username)
 	}
 
-	adminWhoamiOptions := whoami.WhoAmIOptions{UserInterface: adminUserClient.Users(), IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
+	adminWhoamiOptions := whoami.WhoAmIOptions{UserInterface: adminUserClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 	retrievedAdmin, err := adminWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

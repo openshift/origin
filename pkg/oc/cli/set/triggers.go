@@ -32,8 +32,8 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
@@ -189,7 +189,7 @@ func (o *TriggersOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 	}
 
 	if len(o.FromImage) > 0 {
-		ref, err := imageapi.ParseDockerImageReference(o.FromImage)
+		ref, err := reference.Parse(o.FromImage)
 		if err != nil {
 			return fmt.Errorf("the value of --from-image does not appear to be a valid reference to an image: %v", err)
 		}

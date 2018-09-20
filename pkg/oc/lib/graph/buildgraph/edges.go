@@ -5,6 +5,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
@@ -65,7 +66,7 @@ func imageRefNode(g osgraph.MutableUniqueGraph, ref *corev1.ObjectReference, bc 
 	}
 	switch ref.Kind {
 	case "DockerImage":
-		if ref, err := imageapi.ParseDockerImageReference(ref.Name); err == nil {
+		if ref, err := reference.Parse(ref.Name); err == nil {
 			tag := ref.Tag
 			ref.Tag = ""
 			return imagegraph.EnsureDockerRepositoryNode(g, ref.String(), tag)

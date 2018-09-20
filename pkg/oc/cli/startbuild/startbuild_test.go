@@ -21,13 +21,12 @@ import (
 	restfake "k8s.io/client-go/rest/fake"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclientmanual "github.com/openshift/origin/pkg/build/client/v1"
-	"github.com/openshift/origin/pkg/oauth/generated/internalclientset/scheme"
 )
 
 type FakeClientConfig struct {
@@ -70,7 +69,7 @@ func TestStartBuildWebHook(t *testing.T) {
 		IOStreams:    genericclioptions.NewTestIOStreamsDiscard(),
 		ClientConfig: cfg.Client,
 		FromWebhook:  server.URL + "/webhook",
-		Mapper:       testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme),
+		Mapper:       testrestmapper.TestOnlyStaticRESTMapper(scheme.Scheme),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unable to start hook: %v", err)
@@ -115,7 +114,7 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 		ClientConfig:   cfg.Client,
 		FromWebhook:    server.URL + "/webhook",
 		GitPostReceive: f.Name(),
-		Mapper:         testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme),
+		Mapper:         testrestmapper.TestOnlyStaticRESTMapper(scheme.Scheme),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

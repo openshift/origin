@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/dockerlayer"
 	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
@@ -107,7 +107,7 @@ func addPodSpecToGraph(g genericgraph.Graph, spec *corev1.PodSpec, predecessor g
 		container := spec.Containers[j]
 
 		glog.V(4).Infof("Examining container image %q", container.Image)
-		ref, err := imageapi.ParseDockerImageReference(container.Image)
+		ref, err := reference.Parse(container.Image)
 		if err != nil {
 			glog.V(2).Infof("Unable to parse DockerImageReference %q: %v - skipping", container.Image, err)
 			continue
