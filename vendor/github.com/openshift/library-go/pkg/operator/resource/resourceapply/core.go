@@ -124,3 +124,49 @@ func ApplySecret(client coreclientv1.SecretsGetter, required *corev1.Secret) (*c
 	actual, err := client.Secrets(required.Namespace).Update(existing)
 	return actual, true, err
 }
+
+func SyncConfigMap(client coreclientv1.ConfigMapsGetter, sourceNamespace, sourceName, targetNamespace, targetName string) (*corev1.ConfigMap, bool, error) {
+	source, err := client.ConfigMaps(sourceNamespace).Get(sourceName, metav1.GetOptions{})
+	switch {
+	case apierrors.IsNotFound(err):
+		deleteErr := client.ConfigMaps(targetNamespace).Delete(targetName, nil)
+		if apierrors.IsNotFound(deleteErr) {
+			return nil, false, nil
+		}
+		if deleteErr == nil {
+			return nil, true, nil
+		}
+		return nil, false, deleteErr
+	case err != nil:
+		return nil, false, err
+	default:
+		source.Namespace = targetNamespace
+		source.Name = targetName
+		source.ResourceVersion = ""
+		source.OwnerReferences = []metav1.OwnerReference{}
+		return ApplyConfigMap(client, source)
+	}
+}
+
+func SyncSecret(client coreclientv1.SecretsGetter, sourceNamespace, sourceName, targetNamespace, targetName string) (*corev1.Secret, bool, error) {
+	source, err := client.Secrets(sourceNamespace).Get(sourceName, metav1.GetOptions{})
+	switch {
+	case apierrors.IsNotFound(err):
+		deleteErr := client.Secrets(targetNamespace).Delete(targetName, nil)
+		if apierrors.IsNotFound(deleteErr) {
+			return nil, false, nil
+		}
+		if deleteErr == nil {
+			return nil, true, nil
+		}
+		return nil, false, deleteErr
+	case err != nil:
+		return nil, false, err
+	default:
+		source.Namespace = targetNamespace
+		source.Name = targetName
+		source.ResourceVersion = ""
+		source.OwnerReferences = []metav1.OwnerReference{}
+		return ApplySecret(client, source)
+	}
+}
