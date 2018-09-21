@@ -8,13 +8,6 @@ import (
 	"testing"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kprinters "k8s.io/kubernetes/pkg/printers"
-
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -24,6 +17,12 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 )
 
 // PrinterCoverageExceptions is the list of API types that do NOT have corresponding printers
@@ -184,7 +183,7 @@ func TestPrintImageStream(t *testing.T) {
 		{
 			name:        "more than three tags",
 			stream:      streams[2],
-			expectedOut: "another,third,latest + 1 more...",
+			expectedOut: "another,third,latest,other",
 		},
 	}
 
@@ -300,7 +299,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "another-ref",
-								Created:              metav1.Date(2015, 9, 4, 13, 55, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 								Image:                "another-image",
 							},
 						},
@@ -395,5 +394,34 @@ func TestPrintTemplate(t *testing.T) {
 			t.Errorf("[%d] expected %q, got %q", i, test.want, got)
 			continue
 		}
+	}
+}
+
+func Test_printTagsUpToWidth(t *testing.T) {
+	type args struct {
+		statusTags     map[string]imageapi.TagEventList
+		preferredWidth int
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{name: "empty"},
+		{name: "1", want: "very-long-name", args: args{statusTags: map[string]imageapi.TagEventList{"very-long-name": {}}}},
+		{name: "2", want: "1234567890", args: args{preferredWidth: 10, statusTags: map[string]imageapi.TagEventList{"1234567890": {}}}},
+		{name: "3", want: "123456789012", args: args{preferredWidth: 10, statusTags: map[string]imageapi.TagEventList{"123456789012": {}}}},
+		{name: "4", want: "1234567890 + 1 more...", args: args{preferredWidth: 10, statusTags: map[string]imageapi.TagEventList{"2": {}, "1234567890": {}}}},
+		{name: "if more than 75% full, don't add a tag", want: "1234567890 + 1 more...", args: args{preferredWidth: 12, statusTags: map[string]imageapi.TagEventList{"2": {}, "1234567890": {}}}},
+		{name: "if less than 75% full, add a tag that fits", want: "123456789,2", args: args{preferredWidth: 12, statusTags: map[string]imageapi.TagEventList{"2": {}, "123456789": {}}}},
+		{name: "if less than 75% full, include a large tag", want: "2,3,4234567890", args: args{preferredWidth: 12, statusTags: map[string]imageapi.TagEventList{"2": {}, "3": {}, "4234567890": {}}}},
+		{name: "if less than 75% full, don't include a very large tag", want: "2,3 + 1 more...", args: args{preferredWidth: 12, statusTags: map[string]imageapi.TagEventList{"2": {}, "3": {}, "42345678901": {}}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := printTagsUpToWidth(tt.args.statusTags, tt.args.preferredWidth); got != tt.want {
+				t.Errorf("printTagsUpToWidth() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

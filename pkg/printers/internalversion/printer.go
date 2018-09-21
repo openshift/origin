@@ -500,8 +500,6 @@ func printImageList(images *imageapi.ImageList, w io.Writer, opts kprinters.Prin
 
 func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, stream.Name, opts.WithKind)
-	tags := ""
-	const numOfTagsShown = 3
 
 	var latest metav1.Time
 	for _, list := range stream.Status.Tags {
@@ -515,16 +513,9 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kprinters.
 	if !latest.IsZero() {
 		latestTime = fmt.Sprintf("%s ago", formatRelativeTime(latest.Time))
 	}
-	list := imageapi.SortStatusTags(stream.Status.Tags)
-	more := false
-	if len(list) > numOfTagsShown {
-		list = list[:numOfTagsShown]
-		more = true
-	}
-	tags = strings.Join(list, ",")
-	if more {
-		tags = fmt.Sprintf("%s + %d more...", tags, len(stream.Status.Tags)-numOfTagsShown)
-	}
+
+	tags := printTagsUpToWidth(stream.Status.Tags, 40)
+
 	if opts.WithNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", stream.Namespace); err != nil {
 			return err
@@ -544,6 +535,36 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kprinters.
 		return err
 	}
 	return nil
+}
+
+// printTagsUpToWidth displays a human readable list of tags with as many tags as will fit in the
+// width we budget. It will always display at least one tag, and will allow a slightly wider width
+// if it's less than 25% of the total width to feel more even.
+func printTagsUpToWidth(statusTags map[string]imageapi.TagEventList, preferredWidth int) string {
+	tags := imageapi.SortStatusTags(statusTags)
+	remaining := preferredWidth
+	for i, tag := range tags {
+		remaining -= len(tag) + 1
+		if remaining >= 0 {
+			continue
+		}
+		if i == 0 {
+			tags = tags[:1]
+			break
+		}
+		// if we've left more than 25% of the width unfilled, and adding the current tag would be
+		// less than 125% of the preferred width, keep going in order to make the edges less ragged.
+		margin := preferredWidth / 4
+		if margin < (remaining+len(tag)) && margin >= (-remaining) {
+			continue
+		}
+		tags = tags[:i]
+		break
+	}
+	if hiddenTags := len(statusTags) - len(tags); hiddenTags > 0 {
+		return fmt.Sprintf("%s + %d more...", strings.Join(tags, ","), hiddenTags)
+	}
+	return strings.Join(tags, ",")
 }
 
 func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, opts kprinters.PrintOptions) error {
