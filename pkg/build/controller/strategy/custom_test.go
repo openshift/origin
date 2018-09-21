@@ -58,8 +58,18 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != corev1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.VolumeMounts) != 4 {
-		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
+
+	// expected volumes:
+	// docker socket
+	// push secret
+	// gitclone secret
+	// input secret
+	// build-system-configmap
+	// container certs.d
+	// docker certs.d
+	// container storage
+	if len(container.VolumeMounts) != 8 {
+		t.Fatalf("Expected 8 volumes in container, got %d: %v", len(container.VolumeMounts), container.VolumeMounts)
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
@@ -72,8 +82,8 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
-	if len(actual.Spec.Volumes) != 4 {
-		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 8 {
+		t.Fatalf("Expected 8 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	buildJSON, _ := runtime.Encode(customBuildEncodingCodecFactory.LegacyCodec(buildv1.GroupVersion), build)
 	errorCases := map[int][]string{

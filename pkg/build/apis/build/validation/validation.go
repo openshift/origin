@@ -510,7 +510,7 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 	case *t == buildapi.ImageOptimizationSkipLayers, *t == buildapi.ImageOptimizationSkipLayersAndWarn,
 		*t == buildapi.ImageOptimizationNone:
 	default:
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("imageOptimizationPolicy"), *t, "must be unset, 'None', 'SkipLayers', or 'SkipLayersAndWarn"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("imageOptimizationPolicy"), *t, "must be unset, 'None', 'SkipLayers', or 'SkipLayersAndWarn'"))
 	}
 
 	if len(strategy.DockerfilePath) != 0 {
