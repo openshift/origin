@@ -258,6 +258,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		return err
 	}
 
+	// if o.Include has * we need to update it via discovery and o.DefaultExcludes and o.OverlappingResources
 	resourceNames := sets.NewString()
 	for i, s := range o.Include {
 		if resourceNames.Has(s) {
@@ -265,13 +266,9 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		}
 		if s != "*" {
 			resourceNames.Insert(s)
-			break
+			continue
 		}
 
-		all, err := FindAllCanonicalResources(discoveryClient, mapper)
-		if err != nil {
-			return fmt.Errorf("could not calculate the list of available resources: %v", err)
-		}
 		exclude := sets.NewString()
 		for _, gr := range o.DefaultExcludes {
 			if len(o.OverlappingResources) > 0 {
@@ -285,7 +282,16 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 			}
 			exclude.Insert(gr.String())
 		}
+
 		candidate := sets.NewString()
+
+		// keep this logic as close to the point of use as possible so that we limit our dependency on discovery
+		// since discovery is cached this does not repeatedly call out to the API
+		all, err := FindAllCanonicalResources(discoveryClient, mapper)
+		if err != nil {
+			return fmt.Errorf("could not calculate the list of available resources: %v", err)
+		}
+
 		for _, gr := range all {
 			// if the user specifies a resource that matches resource or resource+group, skip it
 			if resourceNames.Has(gr.Resource) || resourceNames.Has(gr.String()) || exclude.Has(gr.String()) {
@@ -754,18 +760,21 @@ func DefaultRetriable(info *resource.Info, err error) error {
 	}
 }
 
-// FindAllCanonicalResources returns all resource names that map directly to their kind (Kind -> Resource -> Kind)
-// and are not subresources. This is the closest mapping possible from the client side to resources that can be
-// listed and updated. Note that this may return some virtual resources (like imagestreamtags) that can be otherwise
-// represented.
+// FindAllCanonicalResources returns all resources that:
+// 1. map directly to their kind (Kind -> Resource -> Kind)
+// 2. are not subresources
+// 3. can be listed and updated
+// Note that this may return some virtual resources (like imagestreamtags) that can be otherwise represented.
 // TODO: add a field to APIResources for "virtual" (or that points to the canonical resource).
-// TODO: fallback to the scheme when discovery is not possible.
 func FindAllCanonicalResources(d discovery.ServerResourcesInterface, m meta.RESTMapper) ([]schema.GroupResource, error) {
 	set := make(map[schema.GroupResource]struct{})
+
+	// this call doesn't fail on aggregated apiserver failures
 	all, err := d.ServerResources()
 	if err != nil {
 		return nil, err
 	}
+
 	for _, serverResource := range all {
 		gv, err := schema.ParseGroupVersion(serverResource.GroupVersion)
 		if err != nil {
@@ -774,6 +783,10 @@ func FindAllCanonicalResources(d discovery.ServerResourcesInterface, m meta.REST
 		for _, r := range serverResource.APIResources {
 			// ignore subresources
 			if strings.Contains(r.Name, "/") {
+				continue
+			}
+			// ignore resources that cannot be listed and updated
+			if !sets.NewString(r.Verbs...).HasAll("list", "update") {
 				continue
 			}
 			// because discovery info doesn't tell us whether the object is virtual or not, perform a lookup
@@ -786,6 +799,7 @@ func FindAllCanonicalResources(d discovery.ServerResourcesInterface, m meta.REST
 			}
 		}
 	}
+
 	var groupResources []schema.GroupResource
 	for k := range set {
 		groupResources = append(groupResources, k)
