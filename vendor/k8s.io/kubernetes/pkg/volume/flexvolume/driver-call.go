@@ -222,12 +222,14 @@ type DriverStatus struct {
 type DriverCapabilities struct {
 	Attach         bool `json:"attach"`
 	SELinuxRelabel bool `json:"selinuxRelabel"`
+	FSGroup        bool `json:"fsGroup"`
 }
 
 func defaultCapabilities() *DriverCapabilities {
 	return &DriverCapabilities{
 		Attach:         true,
 		SELinuxRelabel: true,
+		FSGroup:        true,
 	}
 }
 
