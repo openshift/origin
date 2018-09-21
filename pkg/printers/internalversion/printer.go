@@ -35,12 +35,12 @@ import (
 var (
 	buildColumns                = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED", "DURATION"}
 	buildConfigColumns          = []string{"NAME", "TYPE", "FROM", "LATEST"}
-	imageColumns                = []string{"NAME", "DOCKER REF"}
-	imageStreamTagColumns       = []string{"NAME", "DOCKER REF", "UPDATED"}
-	imageStreamTagWideColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
+	imageColumns                = []string{"NAME", "IMAGE REF"}
+	imageStreamTagColumns       = []string{"NAME", "IMAGE REF", "UPDATED"}
+	imageStreamTagWideColumns   = []string{"NAME", "IMAGE REF", "UPDATED", "IMAGENAME"}
 	imageStreamImageColumns     = []string{"NAME", "UPDATED"}
-	imageStreamImageWideColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
-	imageStreamColumns          = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
+	imageStreamImageWideColumns = []string{"NAME", "IMAGE REF", "UPDATED", "IMAGENAME"}
+	imageStreamColumns          = []string{"NAME", "IMAGE REPOSITORY", "TAGS", "UPDATED"}
 	projectColumns              = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns                = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION", "WILDCARD"}
 	deploymentConfigColumns     = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
