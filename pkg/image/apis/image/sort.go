@@ -18,7 +18,12 @@ func (t byCreationTimestamp) Len() int {
 }
 
 func (t byCreationTimestamp) Less(i, j int) bool {
-	return t[i].Created.Time.After(t[j].Created.Time)
+	if t[i].Created.Time.After(t[j].Created.Time) {
+		return true
+	}
+	// time has only second precision, so we need to have a secondary sort condition
+	// to get stable sorts
+	return t[i].Name < t[j].Name
 }
 
 func (t byCreationTimestamp) Swap(i, j int) {
