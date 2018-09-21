@@ -1,5 +1,0 @@
-{
-  "apiVersion": "openshiftcontrolplane.config.openshift.io/v1",
-  "kind": "OpenShiftControllerManagerConfig",
-  "controllers": ["*", "-openshift.io/service-serving-cert"]
-}

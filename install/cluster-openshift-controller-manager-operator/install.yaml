@@ -1,0 +1,111 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-hypershift:latest
+- name: NAMESPACE
+  # This namespace must not be changed.
+  value: openshift-core-operators
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      openshift.io/run-level: "1"
+    name: ${NAMESPACE}
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftcontrollermanageroperatorconfigs.openshiftcontrollermanager.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: openshiftcontrollermanager.operator.openshift.io
+    version: v1alpha1
+    names:
+      kind: OpenShiftControllerManagerOperatorConfig
+      plural: openshiftcontrollermanageroperatorconfigs
+      singular: openshiftcontrollermanageroperatorconfig
+      categories:
+      - coreoperators
+    subresources:
+      status: {}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:cluster-openshift-controller-manager-operator
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-controller-manager-operator
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-controller-manager-operator-config
+  data:
+    config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-controller-manager-operator
+    labels:
+      app: openshift-cluster-openshift-controller-manager-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-cluster-openshift-controller-manager-operator
+    template:
+      metadata:
+        name: openshift-cluster-openshift-controller-manager-operator
+        labels:
+          app: openshift-cluster-openshift-controller-manager-operator
+      spec:
+        serviceAccountName: openshift-cluster-openshift-controller-manager-operator
+        containers:
+        - name: operator
+          image: openshift/origin-cluster-openshift-controller-manager-operator:v4.0
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["cluster-openshift-controller-manager-operator", "operator"]
+          args:
+          - "--config=/var/run/configmaps/config/config.yaml"
+          - "-v=4"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        volumes:
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-cluster-openshift-controller-manager-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-cluster-openshift-controller-manager-operator
+    labels:
+      app: openshift-cluster-openshift-controller-manager-operator
+
+- apiVersion: openshiftcontrollermanager.operator.openshift.io/v1alpha1
+  kind: OpenShiftControllerManagerOperatorConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: openshift/origin-hypershift:latest
+    version: 3.11.0
+    logging:
+      level: 4

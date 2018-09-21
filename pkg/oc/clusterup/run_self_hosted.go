@@ -16,8 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -88,6 +86,7 @@ var (
 				InstallTemplate: manifests.MustAsset("install/cluster-kube-apiserver-operator/install.yaml"),
 			},
 		},
+
 		{
 			ComponentImage: "node",
 			Template: componentinstall.Template{
@@ -119,32 +118,21 @@ var (
 	}
 	runLevelOneOpenShiftComponents = []componentInstallTemplate{
 		{
-			ComponentImage: "hypershift",
+			ComponentImage: "cluster-openshift-apiserver-operator",
 			Template: componentinstall.Template{
-				Name:            "openshift-apiserver",
-				Namespace:       "openshift-apiserver",
-				NamespaceObj:    newNamespaceBytes("openshift-apiserver", runlevelOneLabel),
-				InstallTemplate: manifests.MustAsset("install/openshift-apiserver/install.yaml"),
+				Name:            "openshift-openshift-apiserver-operator",
+				Namespace:       "openshift-core-operators",
+				NamespaceObj:    newNamespaceBytes("openshift-core-operators", runlevelOneLabel),
+				InstallTemplate: manifests.MustAsset("install/cluster-openshift-apiserver-operator/install.yaml"),
 			},
 		},
-	}
-
-	// componentsToInstall DOES NOT INSTALL IN ORDER.  They are installed separately and expected to come up
-	// in any order and self-organize into something that works.  Remember, when the whole system crashes and restarts
-	// you don't get to choose your restart order.  Plan accordingly.  No bugs or attempts at interlocks will be accepted
-	// in cluster up.
-	// TODO we can take a guess at readiness by making sure that pods in the namespace exist and all pods are healthy
-	// TODO it's not perfect, but its fairly good as a starting point.
-	componentsToInstall = []componentInstallTemplate{
 		{
-			ComponentImage: "hypershift",
+			ComponentImage: "cluster-openshift-controller-manager-operator",
 			Template: componentinstall.Template{
-				Name:              "openshift-controller-manager",
-				Namespace:         "openshift-controller-manager",
-				NamespaceObj:      newNamespaceBytes("openshift-controller-manager", nil),
-				PrivilegedSANames: []string{"openshift-controller-manager"},
-				RBACTemplate:      manifests.MustAsset("install/openshift-controller-manager/install-rbac.yaml"),
-				InstallTemplate:   manifests.MustAsset("install/openshift-controller-manager/install.yaml"),
+				Name:            "openshift-controller-manager-operator",
+				Namespace:       "openshift-core-operators",
+				NamespaceObj:    newNamespaceBytes("openshift-core-operators", runlevelOneLabel),
+				InstallTemplate: manifests.MustAsset("install/cluster-openshift-controller-manager-operator/install.yaml"),
 			},
 		},
 	}
@@ -174,13 +162,11 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	glog.V(2).Infof("started kubelet in container %q\n", kubeletContainerID)
 
 	templateSubstitutionValues := map[string]string{
-		"MASTER_CONFIG_HOST_PATH":                       configDirs.masterConfigDir,
-		"OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          configDirs.openshiftAPIServerConfigDir,
-		"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
-		"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
-		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
-		"OPENSHIFT_PULL_POLICY":                         c.pullPolicy,
-		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
+		"MASTER_CONFIG_HOST_PATH":  configDirs.masterConfigDir,
+		"NODE_CONFIG_HOST_PATH":    configDirs.nodeConfigDir,
+		"KUBEDNS_CONFIG_HOST_PATH": configDirs.kubeDNSConfigDir,
+		"OPENSHIFT_PULL_POLICY":    c.pullPolicy,
+		"LOGLEVEL":                 fmt.Sprintf("%d", c.ServerLogLevel),
 	}
 
 	clientConfigBuilder, err := kclientcmd.LoadFromFile(filepath.Join(c.LocalDirFor(kubeapiserver.KubeAPIServerDirName), "admin.kubeconfig"))
@@ -256,31 +242,16 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 	glog.Info("openshift-apiserver available")
 
-	go watchAPIServices(aggregatorClient)
-
-	err = installComponentTemplates(
-		componentsToInstall,
-		c.ImageTemplate.Format,
-		c.BaseDir,
-		templateSubstitutionValues,
-		c.GetDockerClient(),
-	)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 type configDirs struct {
-	masterConfigDir              string
-	openshiftAPIServerConfigDir  string
-	openshiftControllerConfigDir string
-	nodeConfigDir                string
-	kubeDNSConfigDir             string
-	podManifestDir               string
-	baseDir                      string
-	err                          error
+	masterConfigDir  string
+	nodeConfigDir    string
+	kubeDNSConfigDir string
+	podManifestDir   string
+	baseDir          string
+	err              error
 }
 
 // LocalDirFor returns a local directory path for the given component.
@@ -290,33 +261,16 @@ func (c *ClusterUpConfig) LocalDirFor(componentName string) string {
 
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	configs := &configDirs{
-		masterConfigDir:              filepath.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName),
-		openshiftAPIServerConfigDir:  filepath.Join(c.BaseDir, kubeapiserver.OpenShiftAPIServerDirName),
-		openshiftControllerConfigDir: filepath.Join(c.BaseDir, kubeapiserver.OpenShiftControllerManagerDirName),
-		nodeConfigDir:                filepath.Join(c.BaseDir, kubelet.NodeConfigDirName),
-		kubeDNSConfigDir:             filepath.Join(c.BaseDir, kubelet.KubeDNSDirName),
-		podManifestDir:               filepath.Join(c.BaseDir, kubelet.PodManifestDirName),
+		masterConfigDir:  filepath.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName),
+		nodeConfigDir:    filepath.Join(c.BaseDir, kubelet.NodeConfigDirName),
+		kubeDNSConfigDir: filepath.Join(c.BaseDir, kubelet.KubeDNSDirName),
+		podManifestDir:   filepath.Join(c.BaseDir, kubelet.PodManifestDirName),
 	}
 
-	originalMasterConfigDir := configs.masterConfigDir
 	originalNodeConfigDir := configs.nodeConfigDir
 
 	if _, err := os.Stat(configs.masterConfigDir); os.IsNotExist(err) {
 		_, err = c.makeMasterConfig()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if _, err := os.Stat(configs.openshiftAPIServerConfigDir); os.IsNotExist(err) {
-		_, err = c.makeOpenShiftAPIServerConfig(originalMasterConfigDir)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if _, err := os.Stat(configs.openshiftControllerConfigDir); os.IsNotExist(err) {
-		_, err = c.makeOpenShiftControllerConfig(originalMasterConfigDir)
 		if err != nil {
 			return nil, err
 		}
@@ -345,10 +299,9 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	}
 
 	substitutions := map[string]string{
-		"/path/to/master/config-dir":              configs.masterConfigDir,
-		"/path/to/openshift-apiserver/config-dir": configs.openshiftAPIServerConfigDir,
-		"ETCD_VOLUME":                             "emptyDir:\n",
-		"OPENSHIFT_PULL_POLICY":                   c.pullPolicy,
+		"/path/to/master/config-dir": configs.masterConfigDir,
+		"ETCD_VOLUME":                "emptyDir:\n",
+		"OPENSHIFT_PULL_POLICY":      c.pullPolicy,
 	}
 
 	if len(c.HostDataDir) > 0 {
@@ -458,14 +411,6 @@ func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) 
 
 func (c *ClusterUpConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
 	return kubelet.MakeKubeDNSConfig(nodeConfig, c.BaseDir, c.ServerIP)
-}
-
-func (c *ClusterUpConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
-	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.BaseDir)
-}
-
-func (c *ClusterUpConfig) makeOpenShiftControllerConfig(masterConfigDir string) (string, error) {
-	return kubeapiserver.MakeOpenShiftControllerConfig(masterConfigDir, c.BaseDir)
 }
 
 // startKubelet returns the container id
@@ -581,39 +526,6 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 	}
 
 	return err
-}
-
-func watchAPIServices(aggregatorClient aggregatorclient.Interface) {
-	watch, err := aggregatorClient.ApiregistrationV1beta1().APIServices().Watch(metav1.ListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	watchCh := watch.ResultChan()
-	for {
-		select {
-		case watchEvent, ok := <-watchCh:
-			if !ok {
-				glog.V(5).Infof("channel closed, restablishing")
-				watch, err := aggregatorClient.ApiregistrationV1beta1().APIServices().Watch(metav1.ListOptions{})
-				if err != nil {
-					panic(err)
-				}
-				watchCh = watch.ResultChan()
-			}
-			if watchEvent.Object == nil {
-				glog.V(5).Infof("observed %q without an object", watchEvent.Type)
-				break
-			}
-			encoder := json.NewYAMLSerializer(json.DefaultMetaFactory, legacyscheme.Scheme, legacyscheme.Scheme)
-			output, err := kruntime.Encode(encoder, watchEvent.Object)
-			if err != nil {
-				utilruntime.HandleError(err)
-				continue
-			}
-			glog.V(5).Infof("observed %q with\n%v", watchEvent.Type, string(output))
-		}
-	}
 }
 
 func newNamespaceBytes(namespace string, labels map[string]string) []byte {
