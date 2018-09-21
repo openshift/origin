@@ -3,8 +3,6 @@ package builds
 import (
 	"fmt"
 	"net"
-	"net/url"
-	"path/filepath"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -13,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
 // hostname returns the hostname from a hostport specification
@@ -28,12 +25,10 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 	const (
 		gitServerDeploymentConfigName = "gitserver"
 		sourceSecretName              = "sourcesecret"
-		hostNameSuffix                = "nip.io"
 		gitUserName                   = "gituser"
 		gitPassword                   = "gituserpassword"
 		buildConfigName               = "gitauthtest"
-		sourceURLTemplate             = "https://gitserver.%s/ruby-hello-world"
-		sourceURLTemplateTokenAuth    = "https://gitserver-tokenauth.%s/ruby-hello-world"
+		sourceURLTemplate             = "https://%s/ruby-hello-world"
 	)
 
 	var (
@@ -41,7 +36,6 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 		gitServerTokenAuthFixture = exutil.FixturePath("testdata", "test-gitserver-tokenauth.yaml")
 		testBuildFixture          = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
 		oc                        = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
-		caCertPath                = filepath.Join(filepath.Dir(exutil.KubeConfigPath()), "ca.crt")
 	)
 
 	g.Context("", func() {
@@ -66,26 +60,9 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		testGitAuth := func(gitServerYaml, urlTemplate string, secretFunc func() string) {
+		testGitAuth := func(routeName, gitServerYaml, urlTemplate string, secretFunc func() string) {
 
-			g.By("obtaining the configured API server host from config")
-			adminClientConfig, err := testutil.GetClusterAdminClientConfig(exutil.KubeConfigPath())
-			o.Expect(err).NotTo(o.HaveOccurred())
-			hostURL, err := url.Parse(adminClientConfig.Host)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			host, err := hostname(hostURL.Host)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if ip := net.ParseIP(host); ip == nil {
-				// we have a hostname, not an IP, but need to prefix
-				// nip.io addresses with an IP
-				ips, err := net.LookupIP(host)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				host = ips[0].String()
-			}
-			routeSuffix := fmt.Sprintf("%s.%s", host, hostNameSuffix)
-
-			g.By(fmt.Sprintf("calling oc new-app -f %q -p ROUTE_SUFFIX=%s", gitServerYaml, routeSuffix))
-			err = oc.Run("new-app").Args("-f", gitServerYaml, "-p", fmt.Sprintf("ROUTE_SUFFIX=%s", routeSuffix)).Execute()
+			err := oc.Run("new-app").Args("-f", gitServerYaml).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the deployment of the gitserver to be in the Complete phase")
@@ -94,7 +71,10 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 
 			sourceSecretName := secretFunc()
 
-			sourceURL := fmt.Sprintf(urlTemplate, routeSuffix)
+			route, err := oc.AdminRouteClient().Route().Routes(oc.Namespace()).Get(routeName, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			sourceURL := fmt.Sprintf(urlTemplate, route.Spec.Host)
 			g.By(fmt.Sprintf("creating a new BuildConfig by calling oc new-app -f %q -p SOURCE_SECRET=%s -p SOURCE_URL=%s",
 				testBuildFixture, sourceSecretName, sourceURL))
 			err = oc.Run("new-app").Args("-f", testBuildFixture, "-p", fmt.Sprintf("SOURCE_SECRET=%s", sourceSecretName), "-p", fmt.Sprintf("SOURCE_URL=%s", sourceURL)).Execute()
@@ -108,26 +88,38 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 			br.AssertSuccess()
 		}
 
-		g.Describe("Build using a username, password, and CA certificate", func() {
+		g.Describe("Build using a username and password", func() {
 			g.It("should create a new build using the internal gitserver", func() {
-				testGitAuth(gitServerFixture, sourceURLTemplate, func() string {
-					g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s --cacert=%s",
-						sourceSecretName, gitUserName, gitPassword, caCertPath))
-					err := oc.Run("secrets").Args(
-						"new-basicauth", sourceSecretName,
-						fmt.Sprintf("--username=%s", gitUserName),
-						fmt.Sprintf("--password=%s", gitPassword),
-						fmt.Sprintf("--ca-cert=%s", caCertPath),
-					).Execute()
+				testGitAuth("gitserver", gitServerFixture, sourceURLTemplate, func() string {
+					g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s",
+						sourceSecretName, gitUserName, gitPassword))
+					sa, err := oc.KubeClient().Core().ServiceAccounts(oc.Namespace()).Get("builder", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					return sourceSecretName
+					for _, s := range sa.Secrets {
+						if strings.Contains(s.Name, "token") {
+							secret, err := oc.KubeClient().Core().Secrets(oc.Namespace()).Get(s.Name, metav1.GetOptions{})
+							o.Expect(err).NotTo(o.HaveOccurred())
+							err = oc.Run("create").Args(
+								"secret",
+								"generic",
+								sourceSecretName,
+								"--type", "kubernetes.io/basic-auth",
+								"--from-literal", fmt.Sprintf("username=%s", gitUserName),
+								"--from-literal", fmt.Sprintf("password=%s", gitPassword),
+								"--from-literal", fmt.Sprintf("ca.crt=%s", string(secret.Data["ca.crt"])),
+							).Execute()
+							o.Expect(err).NotTo(o.HaveOccurred())
+							return sourceSecretName
+						}
+					}
+					return ""
 				})
 			})
 		})
 
-		g.Describe("Build using a service account token and CA certificate", func() {
+		g.Describe("Build using a service account token", func() {
 			g.It("should create a new build using the internal gitserver", func() {
-				testGitAuth(gitServerTokenAuthFixture, sourceURLTemplateTokenAuth, func() string {
+				testGitAuth("gitserver-tokenauth", gitServerTokenAuthFixture, sourceURLTemplate, func() string {
 					g.By("assigning the edit role to the builder service account")
 					err := oc.Run("policy").Args("add-role-to-user", "edit", "--serviceaccount=builder").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
