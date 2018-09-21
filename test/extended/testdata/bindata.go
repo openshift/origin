@@ -32504,7 +32504,7 @@ objects:
         serviceAccountName: openshift-cluster-openshift-apiserver-operator
         containers:
         - name: operator
-          image: ${IMAGE}
+          image: openshift/origin-cluster-openshift-apiserver-operator:v4.0
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["cluster-openshift-apiserver-operator", "operator"]
           args:
