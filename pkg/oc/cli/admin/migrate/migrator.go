@@ -263,12 +263,12 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		if resourceNames.Has(s) {
 			continue
 		}
-		if s != "*" {
+		if !strings.HasPrefix(s, "*") {
 			resourceNames.Insert(s)
 			break
 		}
 
-		all, err := FindAllCanonicalResources(discoveryClient, mapper)
+		all, err := FindAllCanonicalResourcesForGroup(discoveryClient, mapper, s)
 		if err != nil {
 			return fmt.Errorf("could not calculate the list of available resources: %v", err)
 		}
@@ -759,33 +759,50 @@ func DefaultRetriable(info *resource.Info, err error) error {
 // listed and updated. Note that this may return some virtual resources (like imagestreamtags) that can be otherwise
 // represented.
 // TODO: add a field to APIResources for "virtual" (or that points to the canonical resource).
-// TODO: fallback to the scheme when discovery is not possible.
-func FindAllCanonicalResources(d discovery.ServerResourcesInterface, m meta.RESTMapper) ([]schema.GroupResource, error) {
+func FindAllCanonicalResourcesForGroup(d discovery.DiscoveryInterface, m meta.RESTMapper, groupSpecification string) ([]schema.GroupResource, error) {
 	set := make(map[schema.GroupResource]struct{})
-	all, err := d.ServerResources()
+
+	// this call doesn't fail on aggregated apiserver failures
+	groups, err := d.ServerGroups()
 	if err != nil {
 		return nil, err
 	}
-	for _, serverResource := range all {
-		gv, err := schema.ParseGroupVersion(serverResource.GroupVersion)
+	versionsToCheck := []string{}
+	for _, group := range groups.Groups {
+		// match on "*" and "*.<groupSuffix>"
+		if groupSpecification == "*" || strings.HasSuffix(group.Name, groupSpecification[2:]) {
+			for _, version := range group.Versions {
+				versionsToCheck = append(versionsToCheck, version.GroupVersion)
+			}
+		}
+	}
+
+	for _, versionString := range versionsToCheck {
+		gv, err := schema.ParseGroupVersion(versionString)
 		if err != nil {
 			continue
 		}
-		for _, r := range serverResource.APIResources {
+		versionResources, err := d.ServerResourcesForGroupVersion(versionString)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, serverResource := range versionResources.APIResources {
 			// ignore subresources
-			if strings.Contains(r.Name, "/") {
+			if strings.Contains(serverResource.Name, "/") {
 				continue
 			}
 			// because discovery info doesn't tell us whether the object is virtual or not, perform a lookup
 			// by the kind for resource (which should be the canonical resource) and then verify that the reverse
 			// lookup (KindsFor) does not error.
-			if mapping, err := m.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: r.Kind}, gv.Version); err == nil {
+			if mapping, err := m.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: serverResource.Kind}, gv.Version); err == nil {
 				if _, err := m.KindsFor(mapping.Resource); err == nil {
 					set[mapping.Resource.GroupResource()] = struct{}{}
 				}
 			}
 		}
 	}
+
 	var groupResources []schema.GroupResource
 	for k := range set {
 		groupResources = append(groupResources, k)
