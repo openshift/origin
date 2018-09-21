@@ -45,7 +45,7 @@ func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, e
 		return false, err
 	}
 
-	response, err := exutil.FetchURL(fmt.Sprintf("http://%s/%s", address, path), 3*time.Minute)
+	response, err := exutil.FetchURL(oc, fmt.Sprintf("http://%s/%s", address, path), 3*time.Minute)
 	if err != nil {
 		return false, err
 	}
@@ -65,7 +65,7 @@ func CheckPageRegexp(oc *exutil.CLI, endpoint, path, regex string, index int) (b
 		return false, "", err
 	}
 
-	response, err := exutil.FetchURL(fmt.Sprintf("http://%s/%s", address, path), 3*time.Minute)
+	response, err := exutil.FetchURL(oc, fmt.Sprintf("http://%s/%s", address, path), 3*time.Minute)
 	if err != nil {
 		return false, "", err
 	}

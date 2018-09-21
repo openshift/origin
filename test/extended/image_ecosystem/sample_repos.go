@@ -2,7 +2,7 @@ package image_ecosystem
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -108,11 +108,11 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					g.By("verifying string from app request")
 					var response string
 					err = wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-						response, err = exutil.FetchURL("http://"+serviceIP+":8080"+c.appPath, time.Duration(1*time.Minute))
+						response, err = exutil.FetchURL(oc, "http://"+serviceIP+":8080"+c.appPath, time.Duration(1*time.Minute))
 						if err != nil {
 							o.Expect(err).NotTo(o.HaveOccurred())
 						}
-						if strings.Contains(response, c.expectedString) {
+						if match, _ := regexp.MatchString(c.expectedString, response); match {
 							return true, nil
 						}
 						e2e.Logf("url check got %s, expected it to contain %s", response, c.expectedString)
