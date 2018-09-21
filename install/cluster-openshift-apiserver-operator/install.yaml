@@ -105,7 +105,7 @@ objects:
     name: instance
   spec:
     managementState: Managed
-    imagePullSpec: openshift/origin-hypershift:latest
+    imagePullSpec: openshift/origin-hypershift:v4.0
     version: 3.11.0
     logging:
       level: 4
