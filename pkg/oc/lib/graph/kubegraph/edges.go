@@ -138,6 +138,12 @@ func AddAllManagedByControllerPodEdges(g osgraph.MutableUniqueGraph) {
 				selector = cast.ReplicaSet.Spec.Selector.MatchLabels
 			}
 			AddManagedByControllerPodEdges(g, cast, cast.ReplicaSet.Namespace, selector)
+		case *kubegraph.JobNode:
+			selector := make(map[string]string)
+			if cast.Job.Spec.Selector != nil {
+				selector = cast.Job.Spec.Selector.MatchLabels
+			}
+			AddManagedByControllerPodEdges(g, cast, cast.Job.Namespace, selector)
 		case *kubegraph.StatefulSetNode:
 			selector := make(map[string]string)
 			if cast.StatefulSet.Spec.Selector != nil {
@@ -320,6 +326,37 @@ func addTriggerEdges(obj runtime.Object, podTemplate corev1.PodTemplateSpec, add
 		return appsgraph.TemplateImage{}, false
 	}
 	appsgraph.EachTemplateImage(&podTemplate.Spec, triggerFn, addEdgeFn)
+}
+
+func AddTriggerJobsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.JobNode) *kubegraph.JobNode {
+	addTriggerEdges(node.Job, node.Job.Spec.Template, func(image appsgraph.TemplateImage, err error) {
+		if err != nil {
+			return
+		}
+		if image.From != nil {
+			if len(image.From.Name) == 0 {
+				return
+			}
+			name, tag, _ := imageapi.SplitImageStreamTag(image.From.Name)
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, name, tag))
+			g.AddEdge(in, node, TriggersDeploymentEdgeKind)
+			return
+		}
+
+		tag := image.Ref.Tag
+		image.Ref.Tag = ""
+		in := imagegraph.EnsureDockerRepositoryNode(g, image.Ref.String(), tag)
+		g.AddEdge(in, node, UsedInDeploymentEdgeKind)
+	})
+	return node
+}
+
+func AddAllTriggerJobsEdges(g osgraph.MutableUniqueGraph) {
+	for _, node := range g.(graph.Graph).Nodes() {
+		if sNode, ok := node.(*kubegraph.JobNode); ok {
+			AddTriggerJobsEdges(g, sNode)
+		}
+	}
 }
 
 func AddTriggerStatefulSetsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.StatefulSetNode) *kubegraph.StatefulSetNode {

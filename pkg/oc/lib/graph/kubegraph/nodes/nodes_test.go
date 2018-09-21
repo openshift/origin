@@ -3,6 +3,7 @@ package nodes
 import (
 	"testing"
 
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -87,4 +88,31 @@ func TestReplicationControllerSpecNode(t *testing.T) {
 		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, ptSpecEdges[0])
 	}
 
+}
+
+func TestJobSpecNode(t *testing.T) {
+	g := osgraph.New()
+
+	job := &batchv1.Job{}
+	job.Namespace = "ns"
+	job.Name = "foo"
+	job.Spec.Template = corev1.PodTemplateSpec{}
+
+	jobNode := EnsureJobNode(g, job)
+
+	if len(g.Nodes()) != 4 {
+		t.Errorf("expected 4 nodes, got %v", g.Nodes())
+	}
+
+	if len(g.Edges()) != 3 {
+		t.Errorf("expected 3 edge, got %v", g.Edges())
+	}
+
+	edge := g.Edges()[0]
+	if !g.EdgeKinds(edge).Has(osgraph.ContainsEdgeKind) {
+		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKinds(edge))
+	}
+	if edge.From().ID() != jobNode.ID() {
+		t.Errorf("expected %v, got %v", jobNode.ID(), edge.From())
+	}
 }

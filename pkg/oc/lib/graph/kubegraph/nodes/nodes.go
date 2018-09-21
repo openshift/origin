@@ -5,6 +5,7 @@ import (
 
 	kappsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -112,6 +113,37 @@ func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *corev1.Re
 	g.AddEdge(rcNode, rcSpecNode, osgraph.ContainsEdgeKind)
 
 	return rcNode
+}
+
+// EnsureJobNode adds a graph node for the Job if it does not already exist.
+func EnsureJobNode(g osgraph.MutableUniqueGraph, job *batchv1.Job) *JobNode {
+	jobNodeName := JobNodeName(job)
+	jobNode := osgraph.EnsureUnique(g,
+		jobNodeName,
+		func(node osgraph.Node) graph.Node {
+			return &JobNode{node, job, true}
+		},
+	).(*JobNode)
+
+	jobSpecNode := EnsureJobSpecNode(g, &job.Spec, job.Namespace, jobNodeName)
+	g.AddEdge(jobNode, jobSpecNode, osgraph.ContainsEdgeKind)
+
+	return jobNode
+}
+
+func EnsureJobSpecNode(g osgraph.MutableUniqueGraph, jobSpec *batchv1.JobSpec, namespace string, ownerName osgraph.UniqueName) *JobSpecNode {
+	jobSpecName := JobSpecNodeName(jobSpec, ownerName)
+	jobSpecNode := osgraph.EnsureUnique(g,
+		jobSpecName,
+		func(node osgraph.Node) graph.Node {
+			return &JobSpecNode{node, jobSpec, namespace, ownerName}
+		},
+	).(*JobSpecNode)
+
+	ptSpecNode := EnsurePodTemplateSpecNode(g, &jobSpec.Template, namespace, jobSpecName)
+	g.AddEdge(jobSpecNode, ptSpecNode, osgraph.ContainsEdgeKind)
+
+	return jobSpecNode
 }
 
 // EnsureReplicaSetNode adds a graph node for the ReplicaSet if it does not already exist.

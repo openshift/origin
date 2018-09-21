@@ -6,6 +6,7 @@ import (
 
 	kappsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -21,6 +22,8 @@ var (
 	ServiceAccountNodeKind            = reflect.TypeOf(corev1.ServiceAccount{}).Name()
 	SecretNodeKind                    = reflect.TypeOf(corev1.Secret{}).Name()
 	PersistentVolumeClaimNodeKind     = reflect.TypeOf(corev1.PersistentVolumeClaim{}).Name()
+	JobNodeKind                       = reflect.TypeOf(batchv1.Job{}).Name()
+	JobSpecNodeKind                   = reflect.TypeOf(batchv1.JobSpec{}).Name()
 	HorizontalPodAutoscalerNodeKind   = reflect.TypeOf(autoscalingv1.HorizontalPodAutoscaler{}).Name()
 	StatefulSetNodeKind               = reflect.TypeOf(kappsv1.StatefulSet{}).Name()
 	StatefulSetSpecNodeKind           = reflect.TypeOf(kappsv1.StatefulSetSpec{}).Name()
@@ -340,6 +343,65 @@ func (*PersistentVolumeClaimNode) Kind() string {
 
 func (n PersistentVolumeClaimNode) UniqueName() osgraph.UniqueName {
 	return PersistentVolumeClaimNodeName(n.PersistentVolumeClaim)
+}
+
+func JobNodeName(o *batchv1.Job) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(JobNodeKind, o)
+}
+
+type JobNode struct {
+	osgraph.Node
+	Job *batchv1.Job
+
+	IsFound bool
+}
+
+func (n JobNode) Found() bool {
+	return n.IsFound
+}
+
+func (n JobNode) Object() interface{} {
+	return n.Job
+}
+
+func (n JobNode) String() string {
+	return string(JobNodeName(n.Job))
+}
+
+func (n JobNode) UniqueName() osgraph.UniqueName {
+	return JobNodeName(n.Job)
+}
+
+func (*JobNode) Kind() string {
+	return JobNodeKind
+}
+
+func JobSpecNodeName(o *batchv1.JobSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+	return osgraph.UniqueName(fmt.Sprintf("%s|%v", JobSpecNodeKind, ownerName))
+}
+
+type JobSpecNode struct {
+	osgraph.Node
+	JobSpec   *batchv1.JobSpec
+	Namespace string
+
+	OwnerName osgraph.UniqueName
+}
+
+func (n JobSpecNode) Object() interface{} {
+	return n.JobSpec
+}
+
+func (n JobSpecNode) String() string {
+	return string(n.UniqueName())
+}
+
+func (n JobSpecNode) UniqueName() osgraph.UniqueName {
+	return JobSpecNodeName(n.JobSpec, n.OwnerName)
+}
+
+func (*JobSpecNode) Kind() string {
+	return JobSpecNodeKind
 }
 
 func HorizontalPodAutoscalerNodeName(o *autoscalingv1.HorizontalPodAutoscaler) osgraph.UniqueName {

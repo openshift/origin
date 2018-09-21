@@ -455,6 +455,18 @@ func TestProjectStatus(t *testing.T) {
 			},
 			Time: mustParseTime("2016-04-07T04:12:25Z"),
 		},
+		"standalone job": {
+			File: "job.yaml",
+			Extra: []runtime.Object{
+				&projectv1.Project{
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"job/hello",
+			},
+		},
 		"hpa non-missing scaleref": {
 			File: "hpa-with-scale-ref.yaml",
 			Extra: []runtime.Object{
