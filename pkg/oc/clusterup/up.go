@@ -60,8 +60,7 @@ const (
 
 var (
 	cmdUpLong = templates.LongDesc(`
-		Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
-		initial templates, and a default project.
+		Starts an OpenShift cluster using Docker containers and creates a default project.
 
 		This command will attempt to use an existing connection to a Docker daemon. Before running
 		the command, ensure that you can execute docker commands successfully (i.e. 'docker ps').
