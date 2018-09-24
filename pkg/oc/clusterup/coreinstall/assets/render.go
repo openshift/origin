@@ -62,7 +62,7 @@ func (r *TLSAssetsRenderOptions) Render() (*assetslib.Assets, error) {
 	}
 
 	// Generate admin.kubeconfig
-	result = append(result, r.newAdminKubeConfig())
+	result = append(result, r.newAdminKubeConfig()...)
 
 	return &result, nil
 }

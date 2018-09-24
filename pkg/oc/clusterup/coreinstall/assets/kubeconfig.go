@@ -4,9 +4,12 @@ import (
 	assetslib "github.com/openshift/library-go/pkg/assets"
 )
 
-const AssetAdminKubeConfig = "auth/admin.kubeconfig"
+const (
+	AssetKubeConfig      = "auth/kubeconfig"
+	AssetAdminKubeConfig = "auth/admin.kubeconfig"
+)
 
-var AdminKubeConfigTemplate = []byte(`apiVersion: v1
+var KubeConfigTemplate = []byte(`apiVersion: v1
 kind: Config
 clusters:
 - name: local
@@ -24,6 +27,9 @@ contexts:
     user: admin
 `)
 
-func (r *TLSAssetsRenderOptions) newAdminKubeConfig() assetslib.Asset {
-	return assetslib.MustCreateAssetFromTemplate(AssetAdminKubeConfig, AdminKubeConfigTemplate, &r.config)
+func (r *TLSAssetsRenderOptions) newAdminKubeConfig() []assetslib.Asset {
+	return []assetslib.Asset{
+		assetslib.MustCreateAssetFromTemplate(AssetKubeConfig, KubeConfigTemplate, &r.config),
+		assetslib.MustCreateAssetFromTemplate(AssetAdminKubeConfig, KubeConfigTemplate, &r.config),
+	}
 }
