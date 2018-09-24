@@ -6705,6 +6705,50 @@ _oc_cancel-build()
     noun_aliases=()
 }
 
+_oc_cluster_add()
+{
+    last_command="oc_cluster_add"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--image=")
+    local_nonpersistent_flags+=("--image=")
+    flags+=("--as=")
+    flags+=("--as-group=")
+    flags+=("--cache-dir=")
+    flags+=("--certificate-authority=")
+    flags+=("--client-certificate=")
+    flags+=("--client-key=")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags+=("--context=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--kubeconfig=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    flags_with_completion+=("--namespace")
+    flags_completion+=("__oc_get_namespaces")
+    two_word_flags+=("-n")
+    flags_with_completion+=("-n")
+    flags_completion+=("__oc_get_namespaces")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    two_word_flags+=("-s")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _oc_cluster_down()
 {
     last_command="oc_cluster_down"
@@ -6811,6 +6855,7 @@ _oc_cluster()
 {
     last_command="oc_cluster"
     commands=()
+    commands+=("add")
     commands+=("down")
     commands+=("up")
 
