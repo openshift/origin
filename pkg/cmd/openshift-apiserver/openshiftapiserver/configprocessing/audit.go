@@ -38,7 +38,11 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 		// backwards compatible writer to regular log
 		writer = cmdutil.NewGLogWriterV(0)
 	}
-	backend = auditlog.NewBackend(writer, auditlog.FormatJson, auditv1beta1.SchemeGroupVersion)
+	format := auditConfig.LogFormat
+	if len(format) == 0 {
+		format = auditlog.FormatJson
+	}
+	backend = auditlog.NewBackend(writer, string(format), auditv1beta1.SchemeGroupVersion)
 	policyChecker = auditpolicy.NewChecker(&auditinternal.Policy{
 		// This is for backwards compatibility maintaining the old visibility, ie. just
 		// raw overview of the requests comming in.
