@@ -25,8 +25,6 @@ var OpenShiftImages = Images{
 	{Name: "etcd", PullSpec: "quay.io/coreos/etcd:v3.2.24"},
 }
 
-var defaultTemplate = variable.NewDefaultImageTemplate()
-
 type Image struct {
 	Name string
 
@@ -34,23 +32,29 @@ type Image struct {
 	PullSpec string
 }
 
-func (i *Image) ToPullSpec() string {
+type PullSpec string
+
+func (i *Image) ToPullSpec(tpl variable.ImageTemplate) PullSpec {
 	if len(i.PullSpec) > 0 {
-		return i.PullSpec
+		return PullSpec(i.PullSpec)
 	}
-	return defaultTemplate.ExpandOrDie(i.Name)
+	return PullSpec(tpl.ExpandOrDie(i.Name))
 }
 
-func (i *Image) Pull(puller *dockerutil.Helper) error {
-	return puller.CheckAndPull(i.ToPullSpec(), os.Stdout)
+func (s PullSpec) Pull(puller *dockerutil.Helper) error {
+	return puller.CheckAndPull(string(s), os.Stdout)
+}
+
+func (s PullSpec) String() string {
+	return string(s)
 }
 
 type Images []Image
 
-func (i Images) EnsurePulled(puller *dockerutil.Helper) error {
+func (i Images) EnsurePulled(puller *dockerutil.Helper, tpl variable.ImageTemplate) error {
 	errors := []error{}
 	for _, image := range i {
-		if err := image.Pull(puller); err != nil {
+		if err := image.ToPullSpec(tpl).Pull(puller); err != nil {
 			errors = append(errors, err)
 		}
 	}

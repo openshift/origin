@@ -47,15 +47,16 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	kubeletConfig.HostPersistentVolumesDir = c.HostPersistentVolumesDir
 	kubeletConfig.HostVolumesDir = c.HostVolumesDir
 	kubeletConfig.DockerRoot = dockerRoot
-	kubeletConfig.NodeImage = OpenShiftImages.Get("node").ToPullSpec()
-	kubeletConfig.PodImage = OpenShiftImages.Get("pod").ToPullSpec()
+	kubeletConfig.UseNsenterMount = true
+	kubeletConfig.NodeImage = OpenShiftImages.Get("node").ToPullSpec(c.ImageTemplate).String()
+	kubeletConfig.PodImage = OpenShiftImages.Get("pod").ToPullSpec(c.ImageTemplate).String()
 
 	if _, err := kubeletConfig.StartKubelet(c.DockerClient(), configDirs.podManifestDir, configDirs.assetsDir, c.BaseDir); err != nil {
 		return err
 	}
 
 	etcdCmd := &etcd.EtcdConfig{
-		Image:           OpenShiftImages.Get("etcd").ToPullSpec(),
+		Image:           OpenShiftImages.Get("etcd").ToPullSpec(c.ImageTemplate).String(),
 		ImagePullPolicy: c.pullPolicy,
 		StaticPodDir:    configDirs.podManifestDir,
 		TlsDir:          filepath.Join(configDirs.assetsDir, "master"),
@@ -66,7 +67,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 
 	bk := &bootkube.BootkubeRunConfig{
-		BootkubeImage:        OpenShiftImages.Get("bootkube").ToPullSpec(),
+		BootkubeImage:        OpenShiftImages.Get("bootkube").ToPullSpec(c.ImageTemplate).String(),
 		StaticPodManifestDir: configDirs.podManifestDir,
 		AssetsDir:            configDirs.assetsDir,
 		ContainerBinds: []string{
@@ -171,7 +172,7 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	}
 
 	bk := bootkube.BootkubeRunConfig{
-		BootkubeImage:        OpenShiftImages.Get("bootkube").ToPullSpec(),
+		BootkubeImage:        OpenShiftImages.Get("bootkube").ToPullSpec(c.ImageTemplate).String(),
 		StaticPodManifestDir: configs.podManifestDir,
 		AssetsDir:            configs.assetsDir,
 		ContainerBinds:       []string{},
@@ -244,7 +245,7 @@ kind: KubeAPIServerConfig
 
 	// generate kube-apiserver manifests using the corresponding operator render command
 	ok := controlplaneoperator.RenderConfig{
-		OperatorImage:   OpenShiftImages.Get("cluster-kube-apiserver-operator").ToPullSpec(),
+		OperatorImage:   OpenShiftImages.Get("cluster-kube-apiserver-operator").ToPullSpec(c.ImageTemplate).String(),
 		AssetInputDir:   masterDir,
 		AssetsOutputDir: configs.assetsDir,
 		ConfigOutputDir: masterDir, // we put config, overrides and certs+keys in one dir
@@ -252,7 +253,7 @@ kind: KubeAPIServerConfig
 		ConfigOverrides: apiserverConfigOverride,
 		ContainerBinds:  nil,
 	}
-	if _, err := ok.RunRender("kube-apiserver", OpenShiftImages.Get("hypershift").ToPullSpec(), OpenShiftImages.Get("hyperkube").ToPullSpec(), c.DockerClient(), hostIP); err != nil {
+	if _, err := ok.RunRender("kube-apiserver", OpenShiftImages.Get("hypershift").ToPullSpec(c.ImageTemplate).String(), OpenShiftImages.Get("hyperkube").ToPullSpec(c.ImageTemplate).String(), c.DockerClient(), hostIP); err != nil {
 		return nil, err
 	}
 

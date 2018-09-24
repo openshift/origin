@@ -221,7 +221,7 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 	c.dockerClient = client
 
 	c.printProgress(fmt.Sprintf("Pulling all required images"))
-	if err := OpenShiftImages.EnsurePulled(c.Docker()); err != nil {
+	if err := OpenShiftImages.EnsurePulled(c.Docker(), c.ImageTemplate); err != nil {
 		return err
 	}
 
@@ -405,7 +405,7 @@ func (c *ClusterUpConfig) serverInfo(out io.Writer) {
 // OpenShift returns a helper object to work with OpenShift on the server
 func (c *ClusterUpConfig) OpenShift() *openshift.Helper {
 	if c.openshiftHelper == nil {
-		c.openshiftHelper = openshift.NewHelper(c.Docker(), OpenShiftImages.Get("control-plane").ToPullSpec(), "origin")
+		c.openshiftHelper = openshift.NewHelper(c.Docker(), OpenShiftImages.Get("control-plane").ToPullSpec(c.ImageTemplate).String(), "origin")
 	}
 	return c.openshiftHelper
 }
@@ -413,7 +413,7 @@ func (c *ClusterUpConfig) OpenShift() *openshift.Helper {
 // Host returns a helper object to check Host configuration
 func (c *ClusterUpConfig) Host() *host.HostHelper {
 	if c.hostHelper == nil {
-		c.hostHelper = host.NewHostHelper(c.Docker(), OpenShiftImages.Get("control-plane").ToPullSpec())
+		c.hostHelper = host.NewHostHelper(c.Docker(), OpenShiftImages.Get("control-plane").ToPullSpec(c.ImageTemplate).String())
 	}
 	return c.hostHelper
 }

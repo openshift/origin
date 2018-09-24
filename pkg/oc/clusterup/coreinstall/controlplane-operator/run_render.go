@@ -46,7 +46,6 @@ func (opt *RenderConfig) RunRender(component string, hyperShiftImage, hyperKubeI
 		fmt.Sprintf("--config-output-file=%s", filepath.Join("/config-output", opt.ConfigFileName)),
 		fmt.Sprintf("--config-override-file=%s", filepath.Join("/config-input", filepath.Base(opt.ConfigOverrides))),
 		fmt.Sprintf("--manifest-image=%s", hyperShiftImage),
-		fmt.Sprintf("--manifest-hyperkube-image=%s", hyperKubeImage),
 		fmt.Sprintf("--manifest-config-host-path=%s", opt.ConfigOutputDir),
 		fmt.Sprintf("--manifest-config-file-name=%s", opt.ConfigFileName),
 	}

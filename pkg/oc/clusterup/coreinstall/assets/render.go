@@ -1,8 +1,6 @@
 package assets
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
 	"net/url"
 
 	assetslib "github.com/openshift/library-go/pkg/assets"
@@ -18,9 +16,9 @@ type TLSAssetsRenderOptions struct {
 type tlsAssetsRenderConfig struct {
 	EtcdServerURL string
 	ServerURL     string
-	AdminKey      *rsa.PrivateKey
-	AdminCert     *x509.Certificate
-	CACert        *x509.Certificate
+	AdminKey      []byte
+	AdminCert     []byte
+	CACert        []byte
 }
 
 func NewTLSAssetsRenderer(hostname string) *TLSAssetsRenderOptions {
@@ -40,7 +38,7 @@ func (r *TLSAssetsRenderOptions) Render() (*assetslib.Assets, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.config.CACert = caCert
+	r.config.CACert = tlsutil.EncodeCertificatePEM(caCert)
 
 	// Generate apiserver certs and keys
 	if files, err := r.newTLSAssets(caCert, caPrivateKey, r.AltNames); err != nil {

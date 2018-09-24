@@ -15,12 +15,12 @@ clusters:
 - name: local
   cluster:
     server: {{ .ServerURL }}
-    certificate-authority-data: {{ .CACert }}
+    certificate-authority-data: {{ .CACert | base64 }}
 users:
 - name: admin
   user:
-    client-certificate-data: {{ .AdminCert }}
-    client-key-data: {{ .AdminKey }}
+    client-certificate-data: {{ .AdminCert | base64 }}
+    client-key-data: {{ .AdminKey | base64 }}
 contexts:
 - context:
     cluster: local

@@ -83,7 +83,7 @@ func (c *ClusterUpConfig) makeMasterConfig() (string, error) {
 	publicHost := c.GetPublicHostName()
 
 	container := kubeapiserver.NewKubeAPIServerStartConfig()
-	container.MasterImage = OpenShiftImages.Get("control-plane").ToPullSpec()
+	container.MasterImage = OpenShiftImages.Get("control-plane").ToPullSpec(c.ImageTemplate).String()
 	container.Args = []string{
 		"--write-config=/var/lib/origin/openshift.local.config",
 		fmt.Sprintf("--master=%s", c.ServerIP),
