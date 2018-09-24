@@ -1,4 +1,4 @@
-package openshift_controller_manager
+package openshift_network_controller
 
 import (
 	"errors"
@@ -27,35 +27,36 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/configconversion"
 )
 
-const RecommendedStartControllerManagerName = "openshift-controller-manager"
+const RecommendedStartNetworkControllerName = "openshift-network-controller"
 
-type OpenShiftControllerManager struct {
+type OpenShiftNetworkController struct {
 	ConfigFilePath string
 	Output         io.Writer
 }
 
 var longDescription = templates.LongDesc(`
-	Start the OpenShift controllers`)
+	Start the OpenShift SDN controller`)
 
-func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.Writer) *cobra.Command {
-	options := &OpenShiftControllerManager{Output: out}
+func NewOpenShiftNetworkControllerCommand(name, basename string, out, errout io.Writer) *cobra.Command {
+	options := &OpenShiftNetworkController{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Start the OpenShift controllers",
+		Short: "Start the OpenShift SDN controller",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Validate())
 
 			serviceability.StartProfiler()
 
-			if err := options.StartControllerManager(); err != nil {
+			if err := options.StartNetworkController(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
@@ -79,7 +80,7 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 	return cmd
 }
 
-func (o *OpenShiftControllerManager) Validate() error {
+func (o *OpenShiftNetworkController) Validate() error {
 	if len(o.ConfigFilePath) == 0 {
 		return errors.New("--config is required for this command")
 	}
@@ -87,9 +88,9 @@ func (o *OpenShiftControllerManager) Validate() error {
 	return nil
 }
 
-// StartControllerManager calls RunControllerManager and then waits forever
-func (o *OpenShiftControllerManager) StartControllerManager() error {
-	if err := o.RunControllerManager(); err != nil {
+// StartNetworkController calls RunNetworkController and then waits forever
+func (o *OpenShiftNetworkController) StartNetworkController() error {
+	if err := o.RunNetworkController(); err != nil {
 		return err
 	}
 
@@ -97,8 +98,8 @@ func (o *OpenShiftControllerManager) StartControllerManager() error {
 	select {}
 }
 
-// RunControllerManager takes the options and starts the controllers
-func (o *OpenShiftControllerManager) RunControllerManager() error {
+// RunNetworkController takes the options and starts the network controller
+func (o *OpenShiftNetworkController) RunNetworkController() error {
 	// try to decode into our new types first.  right now there is no validation, no file path resolution.  this unsticks the operator to start.
 	// TODO add those things
 	configContent, err := ioutil.ReadFile(o.ConfigFilePath)
@@ -132,7 +133,7 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 		if err != nil {
 			return err
 		}
-		return RunOpenShiftControllerManager(config, clientConfig)
+		return RunOpenShiftNetworkController(config, clientConfig)
 	}
 
 	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.ConfigFilePath)
@@ -155,11 +156,11 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 	if err != nil {
 		return err
 	}
-	config := ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig.(*legacyconfigv1.MasterConfig))
+	config := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig.(*legacyconfigv1.MasterConfig))
 	clientConfig, err := helpers.GetKubeClientConfig(config.KubeClientConfig)
 	if err != nil {
 		return err
 	}
 
-	return RunOpenShiftControllerManager(config, clientConfig)
+	return RunOpenShiftNetworkController(config, clientConfig)
 }

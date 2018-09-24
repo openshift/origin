@@ -55,7 +55,7 @@ func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftCont
 	}
 
 	originControllerManager := func(stopCh <-chan struct{}) {
-		if err := waitForHealthyAPIServer(kubeClient.Discovery().RESTClient()); err != nil {
+		if err := WaitForHealthyAPIServer(kubeClient.Discovery().RESTClient()); err != nil {
 			glog.Fatal(err)
 		}
 
@@ -105,7 +105,7 @@ func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftCont
 	return nil
 }
 
-func waitForHealthyAPIServer(client rest.Interface) error {
+func WaitForHealthyAPIServer(client rest.Interface) error {
 	var healthzContent string
 	// If apiserver is not running we should wait for some time and fail only then. This is particularly
 	// important when we start apiserver and controller manager at the same time.

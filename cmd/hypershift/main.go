@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/cmd/openshift-etcd"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-network-controller"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -67,6 +68,9 @@ func NewHyperShiftCommand() *cobra.Command {
 
 	startOpenShiftControllerManager := openshift_controller_manager.NewOpenShiftControllerManagerCommand(openshift_controller_manager.RecommendedStartControllerManagerName, "hypershift", os.Stdout, os.Stderr)
 	cmd.AddCommand(startOpenShiftControllerManager)
+
+	startOpenShiftNetworkController := openshift_network_controller.NewOpenShiftNetworkControllerCommand(openshift_network_controller.RecommendedStartNetworkControllerName, "hypershift", os.Stdout, os.Stderr)
+	cmd.AddCommand(startOpenShiftNetworkController)
 
 	return cmd
 }
