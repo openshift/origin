@@ -273,6 +273,7 @@
 // install/etcd/etcd.yaml
 // install/etcd/install.yaml
 // install/kube-apiserver/apiserver.yaml
+// install/kube-controller-manager/config.yaml
 // install/kube-controller-manager/kube-controller-manager.yaml
 // install/kube-dns/install.yaml
 // install/kube-proxy/install.yaml
@@ -32829,6 +32830,59 @@ func installKubeApiserverApiserverYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installKubeControllerManagerConfigYaml = []byte(`apiVersion: kubecontrolplane.config.openshift.io/v1
+kind: KubeControllerManagerConfig
+serviceServingCert:
+  certFile: service-signer.crt
+extendedArguments:
+  enable-dynamic-provisioning:
+  - "true"
+  use-service-account-credentials:
+  - "true"
+  leader-elect-retry-period:
+  - "3s"
+  leader-elect-resource-lock:
+  - "configmaps"
+  controllers:
+  - "*"
+  - "-bootstrapsigner"
+  - "-tokencleaner"
+  - "-horizontalpodautoscaling"
+  pod-eviction-timeout:
+  - "5m"
+  cluster-signing-key-file:
+  - ""
+  cluster-signing-cert-file:
+  - ""
+  experimental-cluster-signing-duration:
+  - "720h"
+  root-ca-file:
+  - "/etc/origin/master/ca-bundle.crt"
+  port:
+  - "10252"
+  service-account-private-key-file:
+  - "/etc/origin/master/serviceaccounts.private.key"
+  kubeconfig:
+  - "/etc/origin/master/openshift-master.kubeconfig"
+  openshift-config:
+  - "/etc/origin/master/master-config.yaml"
+`)
+
+func installKubeControllerManagerConfigYamlBytes() ([]byte, error) {
+	return _installKubeControllerManagerConfigYaml, nil
+}
+
+func installKubeControllerManagerConfigYaml() (*asset, error) {
+	bytes, err := installKubeControllerManagerConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/kube-controller-manager/config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installKubeControllerManagerKubeControllerManagerYaml = []byte(`kind: Pod
 apiVersion: v1
 metadata:
@@ -32846,24 +32900,8 @@ spec:
     imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["hyperkube", "kube-controller-manager"]
     args:
-    - "--enable-dynamic-provisioning=true"
-    - "--use-service-account-credentials=true"
-    - "--leader-elect-retry-period=3s"
-    - "--leader-elect-resource-lock=configmaps"
-    - "--controllers=*"
-    - "--controllers=-ttl"
-    - "--controllers=-bootstrapsigner"
-    - "--controllers=-tokencleaner"
-    - "--controllers=-horizontalpodautoscaling"
-    - "--pod-eviction-timeout=5m"
-    - "--cluster-signing-key-file="
-    - "--cluster-signing-cert-file="
-    - "--experimental-cluster-signing-duration=720h"
-    - "--root-ca-file=/etc/origin/master/ca-bundle.crt"
-    - "--port=10252"
-    - "--service-account-private-key-file=/etc/origin/master/serviceaccounts.private.key"
     - "--kubeconfig=/etc/origin/master/openshift-master.kubeconfig"
-    - "--openshift-config=/etc/origin/master/master-config.yaml"
+    - "--openshift-config=/etc/origin/master/config.yaml"
     securityContext:
       privileged: true
     volumeMounts:
@@ -32879,7 +32917,7 @@ spec:
   volumes:
   - name: master-config
     hostPath:
-      path: /path/to/master/config-dir
+      path: /path/to/kube-controller-manager/config-dir
   - name: master-cloud-provider
     hostPath:
       path: /etc/origin/cloudprovider
@@ -33645,6 +33683,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
 	"install/etcd/install.yaml": installEtcdInstallYaml,
 	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
+	"install/kube-controller-manager/config.yaml": installKubeControllerManagerConfigYaml,
 	"install/kube-controller-manager/kube-controller-manager.yaml": installKubeControllerManagerKubeControllerManagerYaml,
 	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
 	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
@@ -33777,6 +33816,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"apiserver.yaml": &bintree{installKubeApiserverApiserverYaml, map[string]*bintree{}},
 		}},
 		"kube-controller-manager": &bintree{nil, map[string]*bintree{
+			"config.yaml": &bintree{installKubeControllerManagerConfigYaml, map[string]*bintree{}},
 			"kube-controller-manager.yaml": &bintree{installKubeControllerManagerKubeControllerManagerYaml, map[string]*bintree{}},
 		}},
 		"kube-dns": &bintree{nil, map[string]*bintree{
