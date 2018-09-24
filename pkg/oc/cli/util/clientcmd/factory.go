@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -470,6 +471,10 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 		for _, r := range serverResource.APIResources {
 			// ignore subresources
 			if strings.Contains(r.Name, "/") {
+				continue
+			}
+			// ignore resources that cannot be listed and updated
+			if !sets.NewString(r.Verbs...).HasAll("list", "update") {
 				continue
 			}
 			// because discovery info doesn't tell us whether the object is virtual or not, perform a lookup

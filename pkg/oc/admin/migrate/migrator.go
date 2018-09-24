@@ -214,6 +214,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 	}
 	mapper, _ := f.Object()
 
+	// if o.Include has * we need to update it via discovery and o.DefaultExcludes and o.OverlappingResources
 	resourceNames := sets.NewString()
 	for i, s := range o.Include {
 		if resourceNames.Has(s) {
@@ -221,7 +222,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		}
 		if s != "*" {
 			resourceNames.Insert(s)
-			break
+			continue
 		}
 
 		all, err := clientcmd.FindAllCanonicalResources(discoveryClient, mapper)
