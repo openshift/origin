@@ -2,13 +2,12 @@ package image
 
 import (
 	"sort"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 type tag struct {
 	Name    string
-	Created metav1.Time
+	Created time.Time
 }
 
 type byCreationTimestamp []tag
@@ -18,8 +17,12 @@ func (t byCreationTimestamp) Len() int {
 }
 
 func (t byCreationTimestamp) Less(i, j int) bool {
-	if t[i].Created.Time.After(t[j].Created.Time) {
+	delta := t[i].Created.Sub(t[j].Created)
+	if delta > 0 {
 		return true
+	}
+	if delta < 0 {
+		return false
 	}
 	// time has only second precision, so we need to have a secondary sort condition
 	// to get stable sorts
@@ -38,7 +41,7 @@ func SortStatusTags(tags map[string]TagEventList) []string {
 	for tag, list := range tags {
 		tagSlice[index].Name = tag
 		if len(list.Items) > 0 {
-			tagSlice[index].Created = list.Items[0].Created
+			tagSlice[index].Created = list.Items[0].Created.Round(time.Second)
 		}
 		index++
 	}
