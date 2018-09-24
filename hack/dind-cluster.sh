@@ -716,6 +716,7 @@ function copy-runtime() {
   cp "$(os::util::find::built_binary hyperkube)" "${target}"
   cp "$(os::util::find::built_binary openshift-node-config)" "${target}"
   cp "$(os::util::find::built_binary openshift)" "${target}"
+  cp "$(os::util::find::built_binary hypershift)" "${target}"
   cp "$(os::util::find::built_binary oc)" "${target}"
   cp "$(os::util::find::built_binary host-local)" "${target}"
   cp "$(os::util::find::built_binary loopback)" "${target}"

@@ -34,6 +34,8 @@ function openshift-sdn-setup() {
     /usr/local/bin/oc --config="${kube_config}" adm policy add-scc-to-user anyuid -z openshift-sdn
   fi
 
+  /usr/local/bin/oc --config="${kube_config}" create namespace openshift-sdn
+
   os::util::wait-for-condition "kubernetes token" "ensure-token ${config_dir} ${kube_config}" "120"
 }
 
