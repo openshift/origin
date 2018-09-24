@@ -997,6 +997,29 @@ func TestEgressCIDRAllocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+
+	// You can't mix multiple-egress-IP HA with auto-allocated-egress-IP HA
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     45,
+		EgressIPs: []string{"172.17.0.102", "172.17.0.302"},
+	})
+	err = w.assertChanges(
+		"update egress CIDRs",
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	allocation = eit.ReallocateEgressIPs()
+	updateAllocations(eit, allocation)
+	err = w.assertChanges(
+		"release 172.17.0.102 on 172.17.0.4",
+		"namespace 45 dropped",
+		"update egress CIDRs",
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
 }
 
 func TestEgressNodeRenumbering(t *testing.T) {

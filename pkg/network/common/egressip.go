@@ -3,7 +3,9 @@ package common
 import (
 	"fmt"
 	"net"
+	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/golang/glog"
@@ -468,11 +470,12 @@ func (eit *EgressIPTracker) lookupNodeIP(ip string) string {
 	return ip
 }
 
-// Ping a node and return whether or not it is online. We do this by trying to open a TCP
-// connection to the "discard" service (port 9); if the node is offline, the attempt will
-// time out with no response (and we will return false). If the node is online then we
-// presumably will get a "connection refused" error; the code below assumes that anything
-// other than timing out indicates that the node is online.
+// Ping a node and return whether or not we think it is online. We do this by trying to
+// open a TCP connection to the "discard" service (port 9); if the node is offline, the
+// attempt will either time out with no response, or else return "no route to host" (and
+// we will return false). If the node is online then we presumably will get a "connection
+// refused" error; but the code below assumes that anything other than timeout or "no
+// route" indicates that the node is online.
 func (eit *EgressIPTracker) Ping(ip string, timeout time.Duration) bool {
 	// If the caller used a public node IP, replace it with the SDN IP
 	ip = eit.lookupNodeIP(ip)
@@ -481,11 +484,15 @@ func (eit *EgressIPTracker) Ping(ip string, timeout time.Duration) bool {
 	if conn != nil {
 		conn.Close()
 	}
-	if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
-		return false
-	} else {
-		return true
+	if opErr, ok := err.(*net.OpError); ok {
+		if opErr.Timeout() {
+			return false
+		}
+		if sysErr, ok := opErr.Err.(*os.SyscallError); ok && sysErr.Err == syscall.EHOSTUNREACH {
+			return false
+		}
 	}
+	return true
 }
 
 // Finds the best node to allocate the egress IP to, given the existing allocation. The
@@ -517,7 +524,19 @@ func (eit *EgressIPTracker) findEgressIPAllocation(ip net.IP, allocation map[str
 }
 
 func (eit *EgressIPTracker) makeEmptyAllocation() (map[string][]string, map[string]bool) {
-	return make(map[string][]string), make(map[string]bool)
+	allocation := make(map[string][]string)
+	alreadyAllocated := make(map[string]bool)
+
+	// We don't want to auto-allocate/reallocate IPs for NetNamespaces using
+	// multiple-egress-IP HA, so those should be considered "already allocated"
+	// even before we start.
+	for egressIP, eip := range eit.egressIPs {
+		if eip.assignedNodeIP != "" && len(eip.namespaces[0].requestedIPs) > 1 {
+			alreadyAllocated[egressIP] = true
+		}
+	}
+
+	return allocation, alreadyAllocated
 }
 
 func (eit *EgressIPTracker) allocateExistingEgressIPs(allocation map[string][]string, alreadyAllocated map[string]bool) bool {
