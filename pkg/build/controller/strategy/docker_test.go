@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -52,7 +53,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != corev1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
+	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": "", "BUILD_REGISTRIES_CONF_PATH": "", "BUILD_REGISTRIES_DIR_PATH": "", "BUILD_SIGNATURE_POLICY_PATH": "", "BUILD_STORAGE_CONF_PATH": "", "BUILD_ISOLATION": "", "BUILD_STORAGE_DRIVER": ""}
 	gotKeys := map[string]string{}
 	for _, k := range container.Env {
 		gotKeys[k.Name] = ""
@@ -61,19 +62,31 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected environment keys:\n%v\ngot keys\n%v", expectedKeys, gotKeys)
 	}
 
-	// the pod has 6 volumes but the git source secret is not mounted into the main container.
-	if len(container.VolumeMounts) != 7 {
-		t.Fatalf("Expected 7 volumes in container, got %d", len(container.VolumeMounts))
+	// expected volumes:
+	// buildworkdir
+	// pushsecret
+	// pullsecret
+	// inputsecret
+	// inputconfigmap
+	// containerpolicy
+	// containerregistry.conf
+	// containerregistry.d
+	// docker certs.d
+	// container certs.d
+	// container storage
+	if len(container.VolumeMounts) != 11 {
+		t.Fatalf("Expected 11 volumes in container, got %d", len(container.VolumeMounts))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
-	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, "/var/run/crio/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath} {
+	for i, expected := range []string{buildutil.BuildWorkDirMount, "/var/run/docker.sock", "/var/run/crio/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath, filepath.Join(SecretBuildSourceBaseMountPath, "super-secret"), filepath.Join(ConfigMapBuildSourceBaseMountPath, "build-config"), ConfigMapBuildSystemConfigsMountPath, "/etc/containers/certs.d", "/etc/docker/certs.d", "/var/lib/containers/storage"} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 8 {
+	// build pod has an extra volume: the git clone source secret
+	if len(actual.Spec.Volumes) != 12 {
 		t.Fatalf("Expected 8 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
