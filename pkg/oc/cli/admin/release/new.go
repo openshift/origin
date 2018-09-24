@@ -450,7 +450,7 @@ func (o *NewOptions) Run() error {
 		options.From = o.ToImageBase
 		options.DropHistory = true
 		options.ConfigPatch = fmt.Sprintf(`{"Labels":{"io.openshift.release":"%s"}}`, is.Name)
-		options.MetaPatch = `{"architecture":"amd64","os":"Linux"}`
+		options.MetaPatch = `{"architecture":"amd64","os":"linux"}`
 		options.LayerStream = pr
 		options.To = toRef.Exact()
 		if err := options.Run(); err != nil {
