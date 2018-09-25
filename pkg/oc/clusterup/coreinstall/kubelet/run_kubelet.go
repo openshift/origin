@@ -60,7 +60,7 @@ func (opt KubeletRunConfig) StartKubelet(dockerClient util.Interface, podManifes
 		"--authorization-webhook-cache-unauthorized-ttl=5m",
 		"--cadvisor-port=0",
 		"--cgroup-driver=systemd",
-		"--client-ca-file=/var/lib/origin/bootkube/tls/ca.crt",
+		"--client-ca-file=/var/lib/origin/bootkube/tls/kube-ca.crt",
 		"--cluster-domain=cluster.local",
 		"--container-runtime-endpoint=unix:///var/run/dockershim.sock",
 		"--containerized=true",

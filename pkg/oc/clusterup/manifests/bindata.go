@@ -17010,9 +17010,9 @@ spec:
     workingDir: /var/run/etcd/data
     command: ["/usr/local/bin/etcd"]
     args:
-    - --trusted-ca-file=/var/run/etcd/tls/master.etcd-client-ca.crt
-    - --cert-file=/var/run/etcd/tls/master.etcd-client.crt
-    - --key-file=/var/run/etcd/tls/master.etcd-client.key
+    - --trusted-ca-file=/var/run/etcd/tls/etcd-client-ca.crt
+    - --cert-file=/var/run/etcd/tls/etcd-client.crt
+    - --key-file=/var/run/etcd/tls/etcd-client.key
     - --client-cert-auth
     - --listen-client-urls=https://0.0.0.0:2379
     - --advertise-client-urls=https://0.0.0.0:2379

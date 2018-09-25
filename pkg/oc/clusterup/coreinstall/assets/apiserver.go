@@ -9,14 +9,19 @@ import (
 )
 
 const (
-	AssetPathCAKey                 = "tls/ca.key"
-	AssetPathCACert                = "tls/ca.crt"
+	AssetPathRootCAKey             = "tls/root-ca.key"
+	AssetPathRootCACert            = "tls/root-ca.crt"
+	AssetPathKubeCAKey             = "tls/kube-ca.key"
+	AssetPathKubeCACert            = "tls/kube-ca.crt"
 	AssetPathAPIServerKey          = "tls/apiserver.key"
 	AssetPathAPIServerCert         = "tls/apiserver.crt"
 	AssetPathServiceAccountPrivKey = "tls/service-account.key"
 	AssetPathServiceAccountPubKey  = "tls/service-account.pub"
 	AssetPathAdminKey              = "tls/admin.key"
 	AssetPathAdminCert             = "tls/admin.crt"
+	AssetPathAggregatorCACert      = "tls/aggregator-ca.crt"
+	AssetPathApiserverProxyKey     = "tls/apiserver-proxy.key"
+	AssetPathApiserverProxyCert    = "tls/apiserver-proxy.crt"
 )
 
 func (r *TLSAssetsRenderOptions) newAPIKeyAndCert(caCert *x509.Certificate, caPrivKey *rsa.PrivateKey, altNames tlsutil.AltNames) (*rsa.PrivateKey, *x509.Certificate, error) {
@@ -73,14 +78,19 @@ func (r *TLSAssetsRenderOptions) newTLSAssets(caCert *x509.Certificate, caPrivKe
 	r.config.AdminCert = tlsutil.EncodeCertificatePEM(adminCert)
 
 	assets = append(assets, []assetslib.Asset{
-		{Name: AssetPathCAKey, Data: tlsutil.EncodePrivateKeyPEM(caPrivKey)},
-		{Name: AssetPathCACert, Data: tlsutil.EncodeCertificatePEM(caCert)},
+		{Name: AssetPathRootCAKey, Data: tlsutil.EncodePrivateKeyPEM(caPrivKey)},
+		{Name: AssetPathRootCACert, Data: tlsutil.EncodeCertificatePEM(caCert)},
+		{Name: AssetPathKubeCAKey, Data: tlsutil.EncodePrivateKeyPEM(caPrivKey)},
+		{Name: AssetPathKubeCACert, Data: tlsutil.EncodeCertificatePEM(caCert)},
 		{Name: AssetPathAPIServerKey, Data: tlsutil.EncodePrivateKeyPEM(apiKey)},
 		{Name: AssetPathAPIServerCert, Data: tlsutil.EncodeCertificatePEM(apiCert)},
 		{Name: AssetPathServiceAccountPrivKey, Data: tlsutil.EncodePrivateKeyPEM(saPrivKey)},
 		{Name: AssetPathServiceAccountPubKey, Data: saPubKey},
 		{Name: AssetPathAdminKey, Data: tlsutil.EncodePrivateKeyPEM(adminKey)},
 		{Name: AssetPathAdminCert, Data: tlsutil.EncodeCertificatePEM(adminCert)},
+		{Name: AssetPathAggregatorCACert, Data: tlsutil.EncodeCertificatePEM(apiCert)},
+		{Name: AssetPathApiserverProxyKey, Data: tlsutil.EncodePrivateKeyPEM(apiKey)},
+		{Name: AssetPathApiserverProxyCert, Data: tlsutil.EncodeCertificatePEM(apiCert)},
 	}...)
 	return assets, nil
 }

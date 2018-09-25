@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/bootkube"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/etcd"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubelet"
@@ -59,7 +57,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		Image:           OpenShiftImages.Get("etcd").ToPullSpec(c.ImageTemplate).String(),
 		ImagePullPolicy: c.pullPolicy,
 		StaticPodDir:    configDirs.podManifestDir,
-		TlsDir:          filepath.Join(configDirs.assetsDir, "master"),
+		TlsDir:          filepath.Join(configDirs.assetsDir, "tls"),
 		EtcdDataDir:     c.HostDataDir,
 	}
 	if err := etcdCmd.Start(); err != nil {
@@ -196,46 +194,14 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		return nil, err
 	}
 
-	// LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY
-	// TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION TRANSITION
-
-	// copy bootkube-render files to operatpr render input dir, simulating what c.makeMasterConfig would generate
-	// TODO: generate tls files without bootkube-render
-	masterDir := filepath.Join(configs.assetsDir, "master")
-	legacyBootkubeMapping := map[string]string{
-		"ca.crt":                     path.Join(configs.assetsDir, "tls", "ca.crt"),
-		"admin.crt":                  path.Join(configs.assetsDir, "tls", "admin.crt"),
-		"admin.key":                  path.Join(configs.assetsDir, "tls", "admin.key"),
-		"openshift-master.crt":       path.Join(configs.assetsDir, "tls", "admin.crt"),
-		"openshift-master.key":       path.Join(configs.assetsDir, "tls", "admin.key"),
-		"master.server.crt":          path.Join(configs.assetsDir, "tls", "apiserver.crt"),
-		"master.server.key":          path.Join(configs.assetsDir, "tls", "apiserver.key"),
-		"master.etcd-client-ca.crt":  path.Join(configs.assetsDir, "tls", "etcd-client-ca.crt"), // this does not exist in legacy cluster-up, but might be necessary for etcd access
-		"master.etcd-client.crt":     path.Join(configs.assetsDir, "tls", "etcd-client.crt"),
-		"master.etcd-client.key":     path.Join(configs.assetsDir, "tls", "etcd-client.key"),
-		"serviceaccounts.public.key": path.Join(configs.assetsDir, "tls", "service-account.pub"),
-		"frontproxy-ca.crt":          path.Join(configs.assetsDir, "tls", "apiserver.crt"), // this does not exist in bootkube, but might be necessary for aggregated apiserver authn
-		"openshift-aggregator.crt":   path.Join(configs.assetsDir, "tls", "apiserver.crt"), // this does not exist in bootkube, but might be necessary for aggregated apiserver authn
-		"openshift-aggregator.key":   path.Join(configs.assetsDir, "tls", "apiserver.key"), // this does not exist in bootkube, but might be necessary for aggregated apiserver authn
-		"master.kubelet-client.crt":  path.Join(configs.assetsDir, "tls", "apiserver.crt"),
-		"master.kubelet-client.key":  path.Join(configs.assetsDir, "tls", "apiserver.key"),
-		"master.proxy-client.crt":    path.Join(configs.assetsDir, "tls", "apiserver.crt"),
-		"master.proxy-client.key":    path.Join(configs.assetsDir, "tls", "apiserver.key"),
-	}
-	if _, err := os.Stat(masterDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(masterDir, 0755); err != nil {
+	// prepare config
+	configDir := filepath.Join(configs.assetsDir, "config")
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(configDir, 0755); err != nil {
 			return nil, err
 		}
 	}
-	for legacy, bootkubeFile := range legacyBootkubeMapping {
-		dest := path.Join(masterDir, legacy)
-		if err := admin.CopyFile(bootkubeFile, dest, 0644); err != nil {
-			return nil, fmt.Errorf("failed to copy bootkube tls file %q to %q: %v", bootkubeFile, dest, err)
-		}
-	}
-
-	// create initial configs
-	apiserverConfigOverride := filepath.Join(masterDir, "kube-apiserver-config-overrides.yaml")
+	apiserverConfigOverride := filepath.Join(configDir, "kube-apiserver-config-overrides.yaml")
 	if err := ioutil.WriteFile(apiserverConfigOverride,
 		[]byte(`apiVersion: kubecontrolplane.config.openshift.io/v1
 kind: KubeAPIServerConfig
@@ -246,9 +212,9 @@ kind: KubeAPIServerConfig
 	// generate kube-apiserver manifests using the corresponding operator render command
 	ok := controlplaneoperator.RenderConfig{
 		OperatorImage:   OpenShiftImages.Get("cluster-kube-apiserver-operator").ToPullSpec(c.ImageTemplate).String(),
-		AssetInputDir:   masterDir,
+		AssetInputDir:   filepath.Join(configs.assetsDir, "tls"),
 		AssetsOutputDir: configs.assetsDir,
-		ConfigOutputDir: masterDir, // we put config, overrides and certs+keys in one dir
+		ConfigOutputDir: configDir,
 		ConfigFileName:  "kube-apiserver-config.yaml",
 		ConfigOverrides: apiserverConfigOverride,
 		ContainerBinds:  nil,
