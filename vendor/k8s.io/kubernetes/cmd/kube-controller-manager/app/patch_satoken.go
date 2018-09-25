@@ -52,7 +52,12 @@ func applyOpenShiftServiceServingCertCAFunc(openshiftConfigBase string, openshif
 func getServiceServingCertCAFilename(config map[string]interface{}) string {
 	controllerConfig, ok := config["controllerConfig"]
 	if !ok {
-		return ""
+		sscConfig, ok := config["serviceServingCert"]
+		if !ok {
+			return ""
+		}
+		sscConfigMap := sscConfig.(map[string]interface{})
+		return sscConfigMap["certFile"].(string)
 	}
 	controllerConfigMap := controllerConfig.(map[string]interface{})
 	sscConfig, ok := controllerConfigMap["serviceServingCert"]
