@@ -63,7 +63,7 @@ os::cmd::expect_failure_and_text     'oc adm migrate image-references a/b=a/b --
 os::cmd::expect_failure_and_text     'oc adm migrate image-references */*=*/* --loglevel=1' 'at least one change'
 # verify dry run
 os::cmd::expect_success_and_text     'oc adm migrate image-references my.docker.io/*=docker.io/* --loglevel=1' 'migrated=0'
-os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/*=my.docker.io/* --loglevel=1' "migrated \(dry run\): -n ${project} imagestreams/test"
+os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/*=my.docker.io/* --loglevel=1' "migrated \(dry run\): -n ${project} imagestreams.image.openshift.io/test"
 os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/mysql=my.docker.io/* --all-namespaces=false --loglevel=1' 'migrated=1'
 os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/mysql=my.docker.io/* --all-namespaces=false --loglevel=1 -o yaml' 'dockerImageReference: my.docker.io/mysql@sha256:'
 os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/other=my.docker.io/* --all-namespaces=false --loglevel=1' 'migrated=0'
