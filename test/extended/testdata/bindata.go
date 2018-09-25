@@ -32689,10 +32689,11 @@ spec:
     workingDir: /var/run/etcd/data
     command: ["/usr/local/bin/etcd"]
     args:
+    - --ca-file=/var/run/etcd/tls/root-ca.crt
     - --trusted-ca-file=/var/run/etcd/tls/etcd-client-ca.crt
-    - --cert-file=/var/run/etcd/tls/etcd-client.crt
-    - --key-file=/var/run/etcd/tls/etcd-client.key
     - --client-cert-auth
+    - --cert-file=/var/run/etcd/tls/etcd-server.crt
+    - --key-file=/var/run/etcd/tls/etcd-server.key
     - --listen-client-urls=https://0.0.0.0:2379
     - --advertise-client-urls=https://0.0.0.0:2379
     - --data-dir=/var/run/etcd/data

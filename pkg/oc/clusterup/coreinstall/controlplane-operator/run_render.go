@@ -29,6 +29,9 @@ type RenderConfig struct {
 
 	// ContainerBinds is location to additional container bind mounts for bootkube containers.
 	ContainerBinds []string
+
+	// Additional render command flags.
+	AdditionalFlags []string
 }
 
 // Start runs the operator render command.
@@ -36,20 +39,20 @@ type RenderConfig struct {
 // The assets produced by this commands are stored in AssetsOutputDir.
 // The configuration yaml file is stored in ConfigOutputDir, named according to ConfigFileName, with
 // default values overridden according to ConfigOverrides.
-func (opt *RenderConfig) RunRender(component string, hyperShiftImage, hyperKubeImage string, dockerClient util.Interface, hostIP string) (string, error) {
+func (opt *RenderConfig) RunRender(component string, image string, dockerClient util.Interface, hostIP string) (string, error) {
 	imageRunHelper := run.NewRunHelper(util.NewHelper(dockerClient)).New()
 
-	renderCommand := []string{
+	renderCommand := append([]string{
 		"render",
 		"--asset-input-dir=/asset-input",
 		"--asset-output-dir=/asset-output",
 		fmt.Sprintf("--config-output-file=%s", filepath.Join("/config-output", opt.ConfigFileName)),
 		fmt.Sprintf("--config-override-file=%s", filepath.Join("/config-input", filepath.Base(opt.ConfigOverrides))),
-		fmt.Sprintf("--manifest-image=%s", hyperShiftImage),
+		fmt.Sprintf("--manifest-image=%s", image),
 		fmt.Sprintf("--manifest-config-host-path=%s", opt.ConfigOutputDir),
 		fmt.Sprintf("--manifest-config-file-name=%s", opt.ConfigFileName),
 		fmt.Sprintf("--manifest-secrets-host-path=%s", opt.AssetInputDir),
-	}
+	}, opt.AdditionalFlags...)
 
 	binds := opt.ContainerBinds
 	binds = append(binds, fmt.Sprintf("%s:/asset-input:z", opt.AssetInputDir))
@@ -62,7 +65,7 @@ func (opt *RenderConfig) RunRender(component string, hyperShiftImage, hyperKubeI
 		User(fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())).
 		DiscardContainer().
 		Bind(binds...).
-		Entrypoint("cluster-kube-apiserver-operator").
+		Entrypoint(fmt.Sprintf("cluster-%s-operator", component)).
 		Command(renderCommand...).Run()
 
 	if err != nil {

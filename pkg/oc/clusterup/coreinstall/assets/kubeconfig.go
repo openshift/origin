@@ -1,3 +1,4 @@
+
 package assets
 
 import (
@@ -5,8 +6,9 @@ import (
 )
 
 const (
-	AssetKubeConfig      = "auth/kubeconfig"
 	AssetAdminKubeConfig = "auth/admin.kubeconfig"
+	AssetKubeConfig      = "auth/kubeconfig"
+	AssetTLSKubeConfig   = "tls/kubeconfig"
 )
 
 var KubeConfigTemplate = []byte(`apiVersion: v1
@@ -29,7 +31,8 @@ contexts:
 
 func (r *TLSAssetsRenderOptions) newAdminKubeConfig() []assetslib.Asset {
 	return []assetslib.Asset{
-		assetslib.MustCreateAssetFromTemplate(AssetKubeConfig, KubeConfigTemplate, &r.config),
 		assetslib.MustCreateAssetFromTemplate(AssetAdminKubeConfig, KubeConfigTemplate, &r.config),
+		assetslib.MustCreateAssetFromTemplate(AssetKubeConfig, KubeConfigTemplate, &r.config),
+		assetslib.MustCreateAssetFromTemplate(AssetTLSKubeConfig, KubeConfigTemplate, &r.config),
 	}
 }

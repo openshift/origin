@@ -186,7 +186,7 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		return nil, err
 	}
 
-	certs, err := assets.NewTLSAssetsRenderer(c.PublicHostname).Render()
+	certs, err := assets.NewTLSAssetsRenderer(c.GetPublicHostName()).Render()
 	if err != nil {
 		return nil, err
 	}
@@ -210,16 +210,29 @@ kind: KubeAPIServerConfig
 	}
 
 	// generate kube-apiserver manifests using the corresponding operator render command
-	ok := controlplaneoperator.RenderConfig{
+	apiserverConfig := controlplaneoperator.RenderConfig{
 		OperatorImage:   OpenShiftImages.Get("cluster-kube-apiserver-operator").ToPullSpec(c.ImageTemplate).String(),
 		AssetInputDir:   filepath.Join(configs.assetsDir, "tls"),
 		AssetsOutputDir: configs.assetsDir,
 		ConfigOutputDir: configDir,
 		ConfigFileName:  "kube-apiserver-config.yaml",
 		ConfigOverrides: apiserverConfigOverride,
-		ContainerBinds:  nil,
+		AdditionalFlags: []string{fmt.Sprintf("--manifest-etcd-server-urls=https://127.0.0.1:2379")},
 	}
-	if _, err := ok.RunRender("kube-apiserver", OpenShiftImages.Get("hypershift").ToPullSpec(c.ImageTemplate).String(), OpenShiftImages.Get("hyperkube").ToPullSpec(c.ImageTemplate).String(), c.DockerClient(), hostIP); err != nil {
+	if _, err := apiserverConfig.RunRender("kube-apiserver", OpenShiftImages.Get("hypershift").ToPullSpec(c.ImageTemplate).String(), c.DockerClient(), hostIP); err != nil {
+		return nil, err
+	}
+
+	// generate kube-controller-manager manifests using the corresponding operator render command
+	controllerConfig := controlplaneoperator.RenderConfig{
+		OperatorImage:   OpenShiftImages.Get("cluster-kube-controller-manager-operator").ToPullSpec(c.ImageTemplate).String(),
+		AssetInputDir:   filepath.Join(configs.assetsDir, "tls"),
+		AssetsOutputDir: configs.assetsDir,
+		ConfigOutputDir: configDir,
+		ConfigFileName:  "kube-controller-manager-config.yaml",
+		ConfigOverrides: apiserverConfigOverride,
+	}
+	if _, err := controllerConfig.RunRender("kube-controller-manager", OpenShiftImages.Get("hyperkube").ToPullSpec(c.ImageTemplate).String(), c.DockerClient(), hostIP); err != nil {
 		return nil, err
 	}
 

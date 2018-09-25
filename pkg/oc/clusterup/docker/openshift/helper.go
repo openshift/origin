@@ -114,21 +114,6 @@ func (h *Helper) TestIP(ip string) error {
 	return testIPDial(ip)
 }
 
-func (h *Helper) TestForwardedIP(ip string) error {
-	// Start test server on host
-	id, err := h.runHelper.New().Image(h.image).
-		PortForward(8443, 8443).
-		Entrypoint("socat").
-		Command("TCP-LISTEN:8443,crlf,reuseaddr,fork", "SYSTEM:\"echo 'hello world'\"").Start()
-	if err != nil {
-		return errors.NewError("cannot start simple server on Docker host").WithCause(err)
-	}
-	defer func() {
-		errors.LogError(h.dockerHelper.StopAndRemoveContainer(id))
-	}()
-	return testIPDial(ip)
-}
-
 func (h *Helper) DetermineNodeHost(hostConfigDir string, names ...string) (string, error) {
 	_, result, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().

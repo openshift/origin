@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
+	dockerutil "github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
 )
 
@@ -53,8 +53,8 @@ func (opt *installReadyList) Name() string {
 	return opt.list.Name
 }
 
-func (opt *installReadyList) Install(dockerClient dockerhelper.Interface) error {
-	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+func (opt *installReadyList) Install(dockerClient dockerutil.Interface) error {
+	imageRunHelper := run.NewRunHelper(dockerutil.NewHelper(dockerClient)).New()
 
 	glog.Infof("Installing %q", opt.Name())
 

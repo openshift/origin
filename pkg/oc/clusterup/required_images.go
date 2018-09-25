@@ -13,6 +13,7 @@ import (
 var OpenShiftImages = Images{
 	// OpenShift Images
 	{Name: "cluster-kube-apiserver-operator"},
+	{Name: "cluster-kube-controller-manager-operator"},
 	{Name: "control-plane"},
 	{Name: "cli"},
 	{Name: "hyperkube"},

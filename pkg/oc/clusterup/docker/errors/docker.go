@@ -30,6 +30,14 @@ You can unset the KUBECONFIG variable to use the default location for it:
 Or you can set its value to a file that can be written to:
    export KUBECONFIG=/path/to/file
 `
+
+	KubeConfigSolutionWindows = `
+You can clear the KUBECONFIG variable to use the default location for it:
+   set KUBECONFIG=
+
+Or you can set its value to a file that can be written to:
+   set KUBECONFIG=c:\path\to\file
+`
 )
 
 func noDockerClientSolution() string {

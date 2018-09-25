@@ -18,7 +18,6 @@ const (
 	AssetPathEtcdPeerCA     = "tls/etcd-peer-ca.crt"
 	AssetPathEtcdPeerKey    = "tls/etcd-peer.key"
 	AssetPathEtcdPeerCert   = "tls/etcd-peer.crt"
-	AssetPathEtcdServerCA   = "tls/etcd-server-ca.crt"
 	AssetPathEtcdServerKey  = "tls/etcd-server.key"
 	AssetPathEtcdServerCert = "tls/etcd-server.crt"
 )
@@ -26,17 +25,22 @@ const (
 func (r *TLSAssetsRenderOptions) newEtcdTLSAssets(caCert *x509.Certificate, caPrivKey *rsa.PrivateKey, etcdServers []*url.URL) ([]assetslib.Asset, error) {
 	var assets []assetslib.Asset
 
-	// Use the master CA to generate etcd assets.
-	etcdCACert := caCert
-
 	// Create an etcd client cert.
-	etcdClientKey, etcdClientCert, err := r.newEtcdKeyAndCert(caCert, caPrivKey, "etcd-client", etcdServers)
+	etcdClientCAPrivKey, etcdClientCACert, err := r.newCACert()
+	if err != nil {
+		return nil, err
+	}
+	etcdClientKey, etcdClientCert, err := r.newEtcdKeyAndCert(etcdClientCACert, etcdClientCAPrivKey, "etcd-client", etcdServers)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create an etcd peer cert (not consumed by self-hosted components).
-	etcdPeerKey, etcdPeerCert, err := r.newEtcdKeyAndCert(caCert, caPrivKey, "etcd-peer", etcdServers)
+	etcdPeerCAPrivKey, etcdPeerCACert, err := r.newCACert()
+	if err != nil {
+		return nil, err
+	}
+	etcdPeerKey, etcdPeerCert, err := r.newEtcdKeyAndCert(etcdPeerCACert, etcdPeerCAPrivKey, "etcd-peer", etcdServers)
 	if err != nil {
 		return nil, err
 	}
@@ -46,16 +50,15 @@ func (r *TLSAssetsRenderOptions) newEtcdTLSAssets(caCert *x509.Certificate, caPr
 	}
 
 	assets = append(assets, []assetslib.Asset{
-		{Name: AssetPathEtcdPeerCA, Data: tlsutil.EncodeCertificatePEM(etcdCACert)},
+		{Name: AssetPathEtcdPeerCA, Data: tlsutil.EncodeCertificatePEM(etcdPeerCACert)},
 		{Name: AssetPathEtcdPeerKey, Data: tlsutil.EncodePrivateKeyPEM(etcdPeerKey)},
 		{Name: AssetPathEtcdPeerCert, Data: tlsutil.EncodeCertificatePEM(etcdPeerCert)},
-		{Name: AssetPathEtcdServerCA, Data: tlsutil.EncodeCertificatePEM(etcdCACert)},
 		{Name: AssetPathEtcdServerKey, Data: tlsutil.EncodePrivateKeyPEM(etcdServerKey)},
 		{Name: AssetPathEtcdServerCert, Data: tlsutil.EncodeCertificatePEM(etcdServerCert)},
 	}...)
 
 	assets = append(assets, []assetslib.Asset{
-		{Name: AssetPathEtcdClientCA, Data: tlsutil.EncodeCertificatePEM(etcdCACert)},
+		{Name: AssetPathEtcdClientCA, Data: tlsutil.EncodeCertificatePEM(etcdClientCACert)},
 		{Name: AssetPathEtcdClientKey, Data: tlsutil.EncodePrivateKeyPEM(etcdClientKey)},
 		{Name: AssetPathEtcdClientCert, Data: tlsutil.EncodeCertificatePEM(etcdClientCert)},
 	}...)

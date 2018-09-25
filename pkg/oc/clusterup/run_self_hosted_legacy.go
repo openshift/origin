@@ -45,37 +45,6 @@ var (
 			},
 		},
 	}
-	runLevelOneOpenShiftComponents = []componentInstallTemplate{
-		{
-			ComponentImage: "hypershift",
-			Template: componentinstall.Template{
-				Name:            "openshift-apiserver",
-				Namespace:       "openshift-apiserver",
-				NamespaceObj:    newNamespaceBytes("openshift-apiserver", runlevelOneLabel),
-				InstallTemplate: manifests.MustAsset("install/openshift-apiserver/install.yaml"),
-			},
-		},
-	}
-
-	// componentsToInstall DOES NOT INSTALL IN ORDER.  They are installed separately and expected to come up
-	// in any order and self-organize into something that works.  Remember, when the whole system crashes and restarts
-	// you don't get to choose your restart order.  Plan accordingly.  No bugs or attempts at interlocks will be accepted
-	// in cluster up.
-	// TODO we can take a guess at readiness by making sure that pods in the namespace exist and all pods are healthy
-	// TODO it's not perfect, but its fairly good as a starting point.
-	componentsToInstall = []componentInstallTemplate{
-		{
-			ComponentImage: "hypershift",
-			Template: componentinstall.Template{
-				Name:              "openshift-controller-manager",
-				Namespace:         "openshift-controller-manager",
-				NamespaceObj:      newNamespaceBytes("openshift-controller-manager", nil),
-				PrivilegedSANames: []string{"openshift-controller-manager"},
-				RBACTemplate:      manifests.MustAsset("install/openshift-controller-manager/install-rbac.yaml"),
-				InstallTemplate:   manifests.MustAsset("install/openshift-controller-manager/install.yaml"),
-			},
-		},
-	}
 )
 
 // makeMasterConfig returns the directory where a generated masterconfig lives

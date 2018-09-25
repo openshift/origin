@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
+	dockerutil "github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 	"github.com/openshift/origin/pkg/version"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -28,7 +28,7 @@ type AddOptions struct {
 	ComponentsToApply sets.String
 
 	kubeConfigContent []byte
-	dockerClient      dockerhelper.Interface
+	dockerClient      dockerutil.Interface
 }
 
 func NewAddOptions(streams genericclioptions.IOStreams) *AddOptions {
@@ -103,7 +103,7 @@ func (o *AddOptions) Complete(f genericclioptions.RESTClientGetter, cmd *cobra.C
 		o.BaseDir = absHostDir
 	}
 
-	client, err := dockerhelper.GetDockerClient()
+	client, err := dockerutil.GetDockerClient()
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"net"
 	"net/url"
 
 	assetslib "github.com/openshift/library-go/pkg/assets"
@@ -22,7 +23,16 @@ type tlsAssetsRenderConfig struct {
 }
 
 func NewTLSAssetsRenderer(hostname string) *TLSAssetsRenderOptions {
+	var altNames tlsutil.AltNames
+	if len(hostname) > 0 {
+		if ip := net.ParseIP(hostname); ip == nil {
+			altNames.DNSNames = append(altNames.DNSNames, hostname)
+		} else {
+			altNames.IPs = append(altNames.IPs, ip)
+		}
+	}
 	return &TLSAssetsRenderOptions{
+		AltNames: altNames,
 		config: tlsAssetsRenderConfig{
 			ServerURL:     "https://" + hostname + ":8443",
 			EtcdServerURL: "https://" + hostname + ":2379",
@@ -52,8 +62,13 @@ func (r *TLSAssetsRenderOptions) Render() (*assetslib.Assets, error) {
 		return nil, err
 	}
 
+	localEtcdURL, _ := url.Parse("https://127.0.0.1:2379")
+
 	// Generate etcd certs
-	if files, err := r.newEtcdTLSAssets(caCert, caPrivateKey, []*url.URL{etcdURL}); err != nil {
+	if files, err := r.newEtcdTLSAssets(caCert, caPrivateKey, []*url.URL{
+		etcdURL,
+		localEtcdURL,
+	}); err != nil {
 		return nil, err
 	} else {
 		result = append(result, files...)
