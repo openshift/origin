@@ -10,6 +10,7 @@ import (
 
 	kappsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kappsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
 	autoscalingv1client "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
+	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	deployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
@@ -91,17 +93,18 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	g := osgraph.New()
 
 	loaders := []GraphLoader{
-		&serviceLoader{namespace: namespace, lister: d.KubeClient.Core()},
-		&serviceAccountLoader{namespace: namespace, lister: d.KubeClient.Core()},
-		&secretLoader{namespace: namespace, lister: d.KubeClient.Core()},
-		&pvcLoader{namespace: namespace, lister: d.KubeClient.Core()},
-		&rcLoader{namespace: namespace, lister: d.KubeClient.Core()},
-		&podLoader{namespace: namespace, lister: d.KubeClient.Core()},
-		&statefulSetLoader{namespace: namespace, lister: d.KubeClient.Apps()},
-		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.KubeClient.Autoscaling()},
-		&deploymentLoader{namespace: namespace, lister: d.KubeClient.Apps()},
-		&replicasetLoader{namespace: namespace, lister: d.KubeClient.Apps()},
-		&daemonsetLoader{namespace: namespace, lister: d.KubeClient.Apps()},
+		&serviceLoader{namespace: namespace, lister: d.KubeClient.CoreV1()},
+		&serviceAccountLoader{namespace: namespace, lister: d.KubeClient.CoreV1()},
+		&secretLoader{namespace: namespace, lister: d.KubeClient.CoreV1()},
+		&pvcLoader{namespace: namespace, lister: d.KubeClient.CoreV1()},
+		&rcLoader{namespace: namespace, lister: d.KubeClient.CoreV1()},
+		&podLoader{namespace: namespace, lister: d.KubeClient.CoreV1()},
+		&jobLoader{namespace: namespace, lister: d.KubeClient.BatchV1()},
+		&statefulSetLoader{namespace: namespace, lister: d.KubeClient.AppsV1()},
+		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.KubeClient.AutoscalingV1()},
+		&deploymentLoader{namespace: namespace, lister: d.KubeClient.AppsV1()},
+		&replicasetLoader{namespace: namespace, lister: d.KubeClient.AppsV1()},
+		&daemonsetLoader{namespace: namespace, lister: d.KubeClient.AppsV1()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.BuildClient},
@@ -157,6 +160,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	appsedges.AddAllTriggerDeploymentConfigsEdges(g)
 	kubeedges.AddAllTriggerDeploymentsEdges(g)
 	kubeedges.AddAllTriggerStatefulSetsEdges(g)
+	kubeedges.AddAllTriggerJobsEdges(g)
 	appsedges.AddAllDeploymentConfigsDeploymentEdges(g)
 	kubeedges.AddAllDeploymentEdges(g)
 	appsedges.AddAllVolumeClaimEdges(g)
@@ -253,6 +257,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	standaloneDaemonSets, coveredByDaemonSets := graphview.AllDaemonSets(g, coveredNodes)
 	coveredNodes.Insert(coveredByDaemonSets.List()...)
+
+	standaloneJobs, coveredByJobs := graphview.AllJobs(g, coveredNodes)
+	coveredNodes.Insert(coveredByJobs.List()...)
 
 	standalonePods, coveredByPods := graphview.AllPods(g, coveredNodes)
 	coveredNodes.Insert(coveredByPods.List()...)
@@ -427,6 +434,15 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			printLines(out, indent, 0, describeDaemonSetInServiceGroup(f, standaloneDaemonSet)...)
 		}
 
+		for _, standaloneJob := range standaloneJobs {
+			if !standaloneJob.Job.Found() {
+				continue
+			}
+
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeStandaloneJob(f, standaloneJob)...)
+		}
+
 		monopods, err := filterBoringPods(standalonePods)
 		if err != nil {
 			return err
@@ -481,7 +497,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			printMarkerSuggestions(infoMarkers, d.Suggest, out, indent)
 		}
 
-		// We print errors by default and warnings if -v is used. If we get none,
+		// We print errors by default and warnings if --sugest is used. If we get none,
 		// this would be an extra new line.
 		if len(errorMarkers) != 0 || len(infoMarkers) != 0 || (d.Suggest && len(warningMarkers) != 0) {
 			fmt.Fprintln(out)
@@ -670,7 +686,8 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 		return namespaceNameWithType("deployment", t.Deployment.Name, t.Deployment.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.PersistentVolumeClaimNode:
 		return namespaceNameWithType("pvc", t.PersistentVolumeClaim.Name, t.PersistentVolumeClaim.Namespace, f.currentNamespace, f.hideNamespace)
-
+	case *kubegraph.JobNode:
+		return namespaceNameWithType("job", t.Job.Name, t.Job.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.DaemonSetNode:
 		return namespaceNameWithType("daemonset", t.DaemonSet.Name, t.DaemonSet.Namespace, f.currentNamespace, f.hideNamespace)
 
@@ -901,6 +918,39 @@ func describeMonopod(f formatter, podNode *kubegraph.PodNode) []string {
 
 	lines := []string{fmt.Sprintf("%s runs %s", f.ResourceName(podNode), strings.Join(images, ", "))}
 	return lines
+}
+
+func describeStandaloneJob(f formatter, node graphview.Job) []string {
+	local := namespacedFormatter{currentNamespace: node.Job.Job.Namespace}
+	includeLastPass := false
+	format := "%s manages %s"
+	images := []string{}
+	for _, container := range node.Job.Job.Spec.Template.Spec.Containers {
+		images = append(images, container.Image)
+	}
+	imagesWithoutTriggers := ""
+	if len(node.Images) == 0 {
+		imagesWithoutTriggers = strings.Join(images, ",")
+	}
+	if len(node.Images) == 1 {
+		image := node.Images[0]
+		lines := []string{fmt.Sprintf(format, f.ResourceName(node.Job), describeImageInPipeline(local, image, node.Job.Job.Namespace))}
+		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
+		lines = append(lines, describeJobStatus(node.Job.Job))
+		return lines
+	}
+	lines := []string{fmt.Sprintf(format, f.ResourceName(node.Job), imagesWithoutTriggers)}
+	for _, image := range node.Images {
+		lines = append(lines, describeImageInPipeline(local, image, node.Job.Job.Namespace))
+		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
+	}
+	lines = append(lines, describeJobStatus(node.Job.Job))
+	return lines
+}
+
+func describeJobStatus(job *batchv1.Job) string {
+	timeAt := strings.ToLower(formatRelativeTime(job.CreationTimestamp.Time))
+	return fmt.Sprintf("created %s ago %d/%d completed %d running", timeAt, job.Status.Succeeded, *job.Spec.Completions, job.Status.Active)
 }
 
 // exposedRoutes orders strings by their leading prefix (https:// -> http:// other prefixes), then by
@@ -1651,6 +1701,30 @@ func (l *podLoader) Load() error {
 func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		kubegraph.EnsurePodNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type jobLoader struct {
+	namespace string
+	lister    batchv1client.JobsGetter
+	items     []batchv1.Job
+}
+
+func (l *jobLoader) Load() error {
+	list, err := l.lister.Jobs(l.namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *jobLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureJobNode(g, &l.items[i])
 	}
 
 	return nil
