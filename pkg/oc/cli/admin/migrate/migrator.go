@@ -594,12 +594,14 @@ type migrateTracker struct {
 func (t *migrateTracker) report(prefix string, info *resource.Info, err error) {
 	ns := info.Namespace
 	if len(ns) > 0 {
-		ns = "-n " + ns
+		ns = " -n " + ns
 	}
+	groupResource := info.Mapping.Resource.GroupResource()
+	groupResourceStr := (&groupResource).String()
 	if err != nil {
-		fmt.Fprintf(t.out, "E%s %-10s %s %s/%s: %v\n", timeStampNow(), prefix, ns, info.Mapping.Resource.Resource, info.Name, err)
+		fmt.Fprintf(t.out, "E%s %-10s%s %s/%s: %v\n", timeStampNow(), prefix, ns, groupResourceStr, info.Name, err)
 	} else {
-		fmt.Fprintf(t.out, "I%s %-10s %s %s/%s\n", timeStampNow(), prefix, ns, info.Mapping.Resource.Resource, info.Name)
+		fmt.Fprintf(t.out, "I%s %-10s%s %s/%s\n", timeStampNow(), prefix, ns, groupResourceStr, info.Name)
 	}
 }
 
@@ -619,7 +621,8 @@ func (t *migrateTracker) run() {
 		case attemptResultError:
 			t.report("error:", r.data.info, r.data.err)
 			t.errors++
-			t.resourcesWithErrors.Insert(r.data.info.Mapping.Resource.Resource)
+			groupResource := r.data.info.Mapping.Resource.GroupResource()
+			t.resourcesWithErrors.Insert((&groupResource).String())
 		case attemptResultIgnore:
 			t.ignored++
 			if glog.V(2) {
