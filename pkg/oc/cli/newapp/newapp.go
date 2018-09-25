@@ -92,9 +92,11 @@ var (
 	  # List all local templates and image streams that can be used to create an app
 	  %[1]s %[2]s --list
 
-	  # Create an application based on the source code in the current git repository (with a public remote)
-	  # and a Docker image
+	  # Create an application based on the source code in the current git repository (with a public remote) and a Docker image
 	  %[1]s %[2]s . --docker-image=repo/langimage
+
+	  # Create an application myapp with Docker based build strategy expecting binary input 
+	  %[1]s %[2]s  --strategy=docker --binary --name myapp 
 
 	  # Create a Ruby application based on the provided [image]~[source code] combination
 	  %[1]s %[2]s centos/ruby-25-centos7~https://github.com/sclorg/ruby-ex.git
@@ -312,6 +314,7 @@ func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, streams gen
 	cmd.Flags().BoolVar(&o.Config.AllowSecretUse, "grant-install-rights", o.Config.AllowSecretUse, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
 	cmd.Flags().StringVar(&o.Config.SourceSecret, "source-secret", o.Config.SourceSecret, "The name of an existing secret that should be used for cloning a private git repository.")
 	cmd.Flags().BoolVar(&o.Config.SkipGeneration, "no-install", o.Config.SkipGeneration, "Do not attempt to run images that describe themselves as being installable")
+	cmd.Flags().BoolVar(&o.Config.BinaryBuild, "binary", o.Config.BinaryBuild, "Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.")
 
 	o.Action.BindForOutput(cmd.Flags(), "output", "template")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")

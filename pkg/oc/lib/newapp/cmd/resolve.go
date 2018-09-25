@@ -498,10 +498,10 @@ func EnsureHasSource(components app.ComponentReferences, repositories app.Source
 
 	default:
 		switch {
-		case g.BinaryBuild && g.ExpectToBuild:
+		case g.BinaryBuild:
 			// create new "fake" binary repos for any component that doesn't already have a repo
 			// TODO: source repository should possibly be refactored to be an interface or a type that better reflects
-			//   the different types of inputs
+			// the different types of inputs
 			for _, component := range components {
 				input := component.Input()
 				if input.Uses != nil {

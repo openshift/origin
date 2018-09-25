@@ -54,6 +54,36 @@ func TestResolveDockerfileAndSource(t *testing.T) {
 	checkResolveResult(t, componentrefs, err, generate.StrategyDocker)
 }
 
+func TestBinaryContentFlagGeneratesDummySource(t *testing.T) {
+	component := app.ComponentInput{
+		Value:    "foo",
+		From:     "--binary",
+		Argument: "--binary",
+	}
+
+	refs := app.ComponentReferences{
+		&component,
+	}
+
+	input := GenerationInputs{
+		BinaryBuild:   true,
+		ExpectToBuild: true,
+	}
+
+	err := EnsureHasSource(refs, nil, &input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if component.Uses == nil {
+		t.Fatal("expected source repository to be created")
+	}
+
+	if !component.Uses.InUse() {
+		t.Fatal("expected source repository to be in use")
+	}
+}
+
 func checkResolveResult(t *testing.T, componentrefs app.ComponentReferences, err error, strategy generate.Strategy) {
 	if err != nil {
 		t.Fatal(err)
