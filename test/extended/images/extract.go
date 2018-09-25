@@ -62,14 +62,18 @@ var _ = g.Describe("[Feature:ImageExtract] Image extract", func() {
 
 			# command exits if directory doesn't exist
 			! oc image extract --insecure docker-registry.default.svc:5000/%[1]s/1:busybox --path=/:/tmp/doesnotexist
+			# command exits if directory isn't empty
+			! oc image extract --insecure docker-registry.default.svc:5000/%[1]s/1:busybox --path=/:/
 
 			# extract busybox to a directory, verify the contents
 			mkdir -p /tmp/test
 			oc image extract --insecure docker-registry.default.svc:5000/%[1]s/1:busybox --path=/:/tmp/test
 			[ -d /tmp/test/etc ] && [ -d /tmp/test/bin ]
 			[ -f /tmp/test/bin/ls ] && /tmp/test/bin/ls /tmp/test
-			oc image extract --insecure docker-registry.default.svc:5000/%[1]s/1:busybox --path=/etc/shadow:/tmp --path=/etc/localtime:/tmp
-			[ -f /tmp/shadow ] && [ -f /tmp/localtime ]
+
+			mkdir -p /tmp/test2
+			oc image extract --insecure docker-registry.default.svc:5000/%[1]s/1:busybox --path=/etc/shadow:/tmp/test2 --path=/etc/localtime:/tmp/test2
+			[ -f /tmp/test2/shadow ] && [ -f /tmp/test2/localtime ]
 		`, ns)))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)
 	})
