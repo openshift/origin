@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/components/pivot"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
+	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubecontrollermanager"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubelet"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/staticpods"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
@@ -155,14 +156,14 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 	glog.V(2).Infof("kubeletflags := %s\n", kubeletFlags)
 
-	kubeletContainerID, err := c.startKubelet(out, configDirs.masterConfigDir, configDirs.nodeConfigDir, configDirs.podManifestDir, kubeletFlags)
+	kubeletContainerID, err := c.startKubelet(out, configDirs.kubeAPIServerConfigDir, configDirs.nodeConfigDir, configDirs.podManifestDir, kubeletFlags)
 	if err != nil {
 		return err
 	}
 	glog.V(2).Infof("started kubelet in container %q\n", kubeletContainerID)
 
 	templateSubstitutionValues := map[string]string{
-		"MASTER_CONFIG_HOST_PATH":  configDirs.masterConfigDir,
+		"MASTER_CONFIG_HOST_PATH":  configDirs.kubeAPIServerConfigDir,
 		"NODE_CONFIG_HOST_PATH":    configDirs.nodeConfigDir,
 		"KUBEDNS_CONFIG_HOST_PATH": configDirs.kubeDNSConfigDir,
 		"OPENSHIFT_PULL_POLICY":    c.pullPolicy,
@@ -246,12 +247,13 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 }
 
 type configDirs struct {
-	masterConfigDir  string
-	nodeConfigDir    string
-	kubeDNSConfigDir string
-	podManifestDir   string
-	baseDir          string
-	err              error
+	kubeAPIServerConfigDir         string
+	kubeControllerManagerConfigDir string
+	nodeConfigDir                  string
+	kubeDNSConfigDir               string
+	podManifestDir                 string
+	baseDir                        string
+	err                            error
 }
 
 // LocalDirFor returns a local directory path for the given component.
@@ -261,23 +263,31 @@ func (c *ClusterUpConfig) LocalDirFor(componentName string) string {
 
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	configs := &configDirs{
-		masterConfigDir:  filepath.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName),
-		nodeConfigDir:    filepath.Join(c.BaseDir, kubelet.NodeConfigDirName),
-		kubeDNSConfigDir: filepath.Join(c.BaseDir, kubelet.KubeDNSDirName),
-		podManifestDir:   filepath.Join(c.BaseDir, kubelet.PodManifestDirName),
+		kubeAPIServerConfigDir:         filepath.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName),
+		kubeControllerManagerConfigDir: filepath.Join(c.BaseDir, kubeapiserver.KubeControllerManagerDirName),
+		nodeConfigDir:                  filepath.Join(c.BaseDir, kubelet.NodeConfigDirName),
+		kubeDNSConfigDir:               filepath.Join(c.BaseDir, kubelet.KubeDNSDirName),
+		podManifestDir:                 filepath.Join(c.BaseDir, kubelet.PodManifestDirName),
 	}
 
 	originalNodeConfigDir := configs.nodeConfigDir
 
-	if _, err := os.Stat(configs.masterConfigDir); os.IsNotExist(err) {
+	if _, err := os.Stat(configs.kubeAPIServerConfigDir); os.IsNotExist(err) {
 		_, err = c.makeMasterConfig()
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	if _, err := os.Stat(configs.kubeControllerManagerConfigDir); os.IsNotExist(err) {
+		_, err = c.makeKubeControllerManagerConfig(configs.kubeAPIServerConfigDir)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if _, err := os.Stat(configs.nodeConfigDir); os.IsNotExist(err) {
-		_, err = c.makeNodeConfig(configs.masterConfigDir)
+		_, err = c.makeNodeConfig(configs.kubeAPIServerConfigDir)
 		if err != nil {
 			return nil, err
 		}
@@ -299,9 +309,10 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	}
 
 	substitutions := map[string]string{
-		"/path/to/master/config-dir": configs.masterConfigDir,
-		"ETCD_VOLUME":                "emptyDir:\n",
-		"OPENSHIFT_PULL_POLICY":      c.pullPolicy,
+		"/path/to/master/config-dir":                  configs.kubeAPIServerConfigDir,
+		"/path/to/kube-controller-manager/config-dir": configs.kubeControllerManagerConfigDir,
+		"ETCD_VOLUME":                                 "emptyDir:\n",
+		"OPENSHIFT_PULL_POLICY":                       c.pullPolicy,
 	}
 
 	if len(c.HostDataDir) > 0 {
@@ -348,6 +359,10 @@ func (c *ClusterUpConfig) makeMasterConfig() (string, error) {
 	}
 
 	return masterConfigDir, nil
+}
+
+func (c *ClusterUpConfig) makeKubeControllerManagerConfig(kubeAPIServerConfigDir string) (string, error) {
+	return kubecontrollermanager.MakeOpenShiftAPIServerConfig(kubeAPIServerConfigDir, c.BaseDir)
 }
 
 // makeNodeConfig returns the directory where a generated nodeconfig lives

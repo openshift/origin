@@ -1,0 +1,36 @@
+apiVersion: kubecontrolplane.config.openshift.io/v1
+kind: KubeControllerManagerConfig
+serviceServingCert:
+  certFile: service-signer.crt
+extendedArguments:
+  enable-dynamic-provisioning:
+  - "true"
+  use-service-account-credentials:
+  - "true"
+  leader-elect-retry-period:
+  - "3s"
+  leader-elect-resource-lock:
+  - "configmaps"
+  controllers:
+  - "*"
+  - "-bootstrapsigner"
+  - "-tokencleaner"
+  - "-horizontalpodautoscaling"
+  pod-eviction-timeout:
+  - "5m"
+  cluster-signing-key-file:
+  - ""
+  cluster-signing-cert-file:
+  - ""
+  experimental-cluster-signing-duration:
+  - "720h"
+  root-ca-file:
+  - "/etc/origin/master/ca-bundle.crt"
+  port:
+  - "10252"
+  service-account-private-key-file:
+  - "/etc/origin/master/serviceaccounts.private.key"
+  kubeconfig:
+  - "/etc/origin/master/openshift-master.kubeconfig"
+  openshift-config:
+  - "/etc/origin/master/master-config.yaml"

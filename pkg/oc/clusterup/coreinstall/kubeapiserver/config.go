@@ -23,8 +23,7 @@ import (
 )
 
 const KubeAPIServerDirName = "kube-apiserver"
-const OpenShiftAPIServerDirName = "openshift-apiserver"
-const OpenShiftControllerManagerDirName = "openshift-controller-manager"
+const KubeControllerManagerDirName = "kube-controller-manager"
 
 type KubeAPIServerStartConfig struct {
 	// MasterImage is the docker image for openshift start master
