@@ -575,7 +575,6 @@
       "github.com/openshift/origin/pkg/cmd/util/print",
       "github.com/openshift/origin/pkg/cmd/util/term",
       "github.com/openshift/origin/pkg/cmd/util/variable",
-      "github.com/openshift/origin/pkg/configconversion",
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
       "github.com/openshift/origin/pkg/image/apis/image/docker10",
@@ -629,6 +628,8 @@
       "vendor/github.com/coreos/etcd/clientv3",
       "vendor/github.com/coreos/etcd/pkg/transport",
       "vendor/github.com/coreos/etcd/version",
+      "vendor/github.com/pborman/uuid",
+      "vendor/github.com/ghodss/yaml",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "vendor/k8s.io/kubernetes/pkg/controller",
