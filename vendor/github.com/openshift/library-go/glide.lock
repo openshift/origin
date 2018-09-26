@@ -1,5 +1,5 @@
 hash: 92ee9b295f6ff28dbd1eeaf1696d41cac71175665275d9047f1b9c53d5b2f01f
-updated: 2018-09-17T16:09:28.422097474-04:00
+updated: 2018-09-21T11:09:56.113200335-04:00
 imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
@@ -57,11 +57,50 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: 59a17884a17d085f49a4c3a43b1b528803d00b63
+  version: 739bd301126c341c6caddf2cb3e3935ae9e9fff9
   subpackages:
+  - apps
+  - apps/v1
+  - authorization
+  - authorization/v1
+  - build
+  - build/v1
+  - config
   - config/v1
+  - image
+  - image/docker10
+  - image/dockerpre012
+  - image/v1
+  - kubecontrolplane
+  - kubecontrolplane/v1
+  - legacyconfig/v1
+  - network
   - network/v1
+  - oauth
+  - oauth/v1
+  - openshiftcontrolplane
+  - openshiftcontrolplane/v1
+  - operator
   - operator/v1alpha1
+  - osin
+  - osin/v1
+  - pkg/serialization
+  - project
+  - project/v1
+  - quota
+  - quota/v1
+  - route
+  - route/v1
+  - security
+  - security/v1
+  - servicecertsigner
+  - servicecertsigner/v1alpha1
+  - template
+  - template/v1
+  - user
+  - user/v1
+  - webconsole
+  - webconsole/v1
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/peterbourgon/diskv
@@ -84,11 +123,13 @@ imports:
   version: 1c05540f6879653db88113bc4a2b70aec4bd491f
   subpackages:
   - context
-  - context/ctxhttp
+  - html
+  - html/atom
   - http2
   - http2/hpack
   - idna
   - lex/httplex
+  - websocket
 - name: golang.org/x/sys
   version: 95c6576299259db960f6c5b9b69ea52422860fce
   subpackages:
@@ -112,6 +153,7 @@ imports:
 - name: k8s.io/api
   version: 2d6f90ab1293a1fb871cf149423ebb72aa7423aa
   subpackages:
+  - admission/v1beta1
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
   - apps/v1
@@ -130,6 +172,7 @@ imports:
   - core/v1
   - events/v1beta1
   - extensions/v1beta1
+  - imagepolicy/v1alpha1
   - networking/v1
   - policy/v1beta1
   - rbac/v1

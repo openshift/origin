@@ -15,11 +15,11 @@ pushd "${OS_ROOT}" > /dev/null
 "$(os::util::find::gopath_binary go-bindata)" \
     -nocompress \
     -nometadata \
-    -prefix "manifests" \
+    -prefix "bindata" \
     -pkg "v310_00_assets" \
     -o "${OUTPUT_PARENT}/pkg/operator/v310_00_assets/bindata.go" \
     -ignore "OWNERS" \
-    manifests/v3.10.0/...
+    bindata/v3.10.0/...
 
 popd > /dev/null
 

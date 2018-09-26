@@ -55,6 +55,24 @@ func (KubeAPIServerProjectConfig) SwaggerDoc() map[string]string {
 	return map_KubeAPIServerProjectConfig
 }
 
+var map_KubeControllerManagerConfig = map[string]string{
+	"serviceServingCert": "serviceServingCert provides support for the old alpha service serving cert signer CA bundle",
+	"projectConfig":      "projectConfig is an optimization for the daemonset controller",
+	"extendedArguments":  "extendedArguments is used to configure the kube-controller-manager",
+}
+
+func (KubeControllerManagerConfig) SwaggerDoc() map[string]string {
+	return map_KubeControllerManagerConfig
+}
+
+var map_KubeControllerManagerProjectConfig = map[string]string{
+	"defaultNodeSelector": "defaultNodeSelector holds default project node label selector",
+}
+
+func (KubeControllerManagerProjectConfig) SwaggerDoc() map[string]string {
+	return map_KubeControllerManagerProjectConfig
+}
+
 var map_KubeletConnectionInfo = map[string]string{
 	"":     "KubeletConnectionInfo holds information necessary for connecting to a kubelet",
 	"port": "port is the port to connect to kubelets on",
@@ -87,6 +105,15 @@ var map_RequestHeaderAuthenticationOptions = map[string]string{
 
 func (RequestHeaderAuthenticationOptions) SwaggerDoc() map[string]string {
 	return map_RequestHeaderAuthenticationOptions
+}
+
+var map_ServiceServingCert = map[string]string{
+	"":         "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
+	"certFile": "CertFile is a file containing a PEM-encoded certificate",
+}
+
+func (ServiceServingCert) SwaggerDoc() map[string]string {
+	return map_ServiceServingCert
 }
 
 var map_UserAgentDenyRule = map[string]string{

@@ -10,63 +10,63 @@ import (
 // OAuthConfig holds the necessary configuration options for OAuth authentication
 type OAuthConfig struct {
 	// masterCA is the CA for verifying the TLS connection back to the MasterURL.
-	MasterCA *string `json:"masterCA" protobuf:"bytes,1,opt,name=masterCA"`
+	MasterCA *string `json:"masterCA"`
 
 	// masterURL is used for making server-to-server calls to exchange authorization codes for access tokens
-	MasterURL string `json:"masterURL" protobuf:"bytes,2,opt,name=masterURL"`
+	MasterURL string `json:"masterURL"`
 
 	// masterPublicURL is used for building valid client redirect URLs for internal and external access
-	MasterPublicURL string `json:"masterPublicURL" protobuf:"bytes,3,opt,name=masterPublicURL"`
+	MasterPublicURL string `json:"masterPublicURL"`
 
 	// assetPublicURL is used for building valid client redirect URLs for external access
-	AssetPublicURL string `json:"assetPublicURL" protobuf:"bytes,4,opt,name=assetPublicURL"`
+	AssetPublicURL string `json:"assetPublicURL"`
 
 	// alwaysShowProviderSelection will force the provider selection page to render even when there is only a single provider.
-	AlwaysShowProviderSelection bool `json:"alwaysShowProviderSelection" protobuf:"varint,5,opt,name=alwaysShowProviderSelection"`
+	AlwaysShowProviderSelection bool `json:"alwaysShowProviderSelection"`
 
 	//identityProviders is an ordered list of ways for a user to identify themselves
-	IdentityProviders []IdentityProvider `json:"identityProviders" protobuf:"bytes,6,rep,name=identityProviders"`
+	IdentityProviders []IdentityProvider `json:"identityProviders"`
 
 	// grantConfig describes how to handle grants
-	GrantConfig GrantConfig `json:"grantConfig" protobuf:"bytes,7,opt,name=grantConfig"`
+	GrantConfig GrantConfig `json:"grantConfig"`
 
 	// sessionConfig hold information about configuring sessions.
-	SessionConfig *SessionConfig `json:"sessionConfig" protobuf:"bytes,8,opt,name=sessionConfig"`
+	SessionConfig *SessionConfig `json:"sessionConfig"`
 
 	// tokenConfig contains options for authorization and access tokens
-	TokenConfig TokenConfig `json:"tokenConfig" protobuf:"bytes,9,opt,name=tokenConfig"`
+	TokenConfig TokenConfig `json:"tokenConfig"`
 
 	// templates allow you to customize pages like the login page.
-	Templates *OAuthTemplates `json:"templates" protobuf:"bytes,10,opt,name=templates"`
+	Templates *OAuthTemplates `json:"templates"`
 }
 
 // OAuthTemplates allow for customization of pages like the login page
 type OAuthTemplates struct {
 	// login is a path to a file containing a go template used to render the login page.
 	// If unspecified, the default login page is used.
-	Login string `json:"login" protobuf:"bytes,1,opt,name=login"`
+	Login string `json:"login"`
 
 	// providerSelection is a path to a file containing a go template used to render the provider selection page.
 	// If unspecified, the default provider selection page is used.
-	ProviderSelection string `json:"providerSelection" protobuf:"bytes,2,opt,name=providerSelection"`
+	ProviderSelection string `json:"providerSelection"`
 
 	// error is a path to a file containing a go template used to render error pages during the authentication or grant flow
 	// If unspecified, the default error page is used.
-	Error string `json:"error" protobuf:"bytes,3,opt,name=error"`
+	Error string `json:"error"`
 }
 
 // IdentityProvider provides identities for users authenticating using credentials
 type IdentityProvider struct {
 	// name is used to qualify the identities returned by this provider
-	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	Name string `json:"name"`
 	// challenge indicates whether to issue WWW-Authenticate challenges for this provider
-	UseAsChallenger bool `json:"challenge" protobuf:"varint,2,opt,name=challenge"`
+	UseAsChallenger bool `json:"challenge"`
 	// login indicates whether to use this identity provider for unauthenticated browsers to login against
-	UseAsLogin bool `json:"login" protobuf:"varint,3,opt,name=login"`
+	UseAsLogin bool `json:"login"`
 	// mappingMethod determines how identities from this provider are mapped to users
-	MappingMethod string `json:"mappingMethod" protobuf:"bytes,4,opt,name=mappingMethod"`
+	MappingMethod string `json:"mappingMethod"`
 	// provider contains the information about how to set up a specific identity provider
-	Provider runtime.RawExtension `json:"provider" protobuf:"bytes,5,opt,name=provider"`
+	Provider runtime.RawExtension `json:"provider"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -76,7 +76,7 @@ type BasicAuthPasswordIdentityProvider struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// RemoteConnectionInfo contains information about how to connect to the external basic auth server
-	configv1.RemoteConnectionInfo `json:",inline" protobuf:"bytes,1,opt,name=remoteConnectionInfo"`
+	configv1.RemoteConnectionInfo `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -100,7 +100,7 @@ type HTPasswdPasswordIdentityProvider struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// file is a reference to your htpasswd file
-	File string `json:"file" protobuf:"bytes,1,opt,name=file"`
+	File string `json:"file"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -110,38 +110,38 @@ type LDAPPasswordIdentityProvider struct {
 	metav1.TypeMeta `json:",inline"`
 	// url is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is
 	//    ldap://host:port/basedn?attribute?scope?filter
-	URL string `json:"url" protobuf:"bytes,1,opt,name=url"`
+	URL string `json:"url"`
 	// bindDN is an optional DN to bind with during the search phase.
-	BindDN string `json:"bindDN" protobuf:"bytes,2,opt,name=bindDN"`
+	BindDN string `json:"bindDN"`
 	// bindPassword is an optional password to bind with during the search phase.
-	BindPassword configv1.StringSource `json:"bindPassword" protobuf:"bytes,3,opt,name=bindPassword"`
+	BindPassword configv1.StringSource `json:"bindPassword"`
 
 	// insecure, if true, indicates the connection should not use TLS.
 	// Cannot be set to true with a URL scheme of "ldaps://"
 	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
-	Insecure bool `json:"insecure" protobuf:"varint,4,opt,name=insecure"`
+	Insecure bool `json:"insecure"`
 	// ca is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
-	CA string `json:"ca" protobuf:"bytes,5,opt,name=ca"`
+	CA string `json:"ca"`
 	// attributes maps LDAP attributes to identities
-	Attributes LDAPAttributeMapping `json:"attributes" protobuf:"bytes,6,opt,name=attributes"`
+	Attributes LDAPAttributeMapping `json:"attributes"`
 }
 
 // LDAPAttributeMapping maps LDAP attributes to OpenShift identity fields
 type LDAPAttributeMapping struct {
 	// id is the list of attributes whose values should be used as the user ID. Required.
 	// LDAP standard identity attribute is "dn"
-	ID []string `json:"id" protobuf:"bytes,1,rep,name=id"`
+	ID []string `json:"id"`
 	// preferredUsername is the list of attributes whose values should be used as the preferred username.
 	// LDAP standard login attribute is "uid"
-	PreferredUsername []string `json:"preferredUsername" protobuf:"bytes,2,rep,name=preferredUsername"`
+	PreferredUsername []string `json:"preferredUsername"`
 	// name is the list of attributes whose values should be used as the display name. Optional.
 	// If unspecified, no display name is set for the identity
 	// LDAP standard display name attribute is "cn"
-	Name []string `json:"name" protobuf:"bytes,3,rep,name=name"`
+	Name []string `json:"name"`
 	// email is the list of attributes whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
-	Email []string `json:"email" protobuf:"bytes,4,rep,name=email"`
+	Email []string `json:"email"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -150,11 +150,11 @@ type LDAPAttributeMapping struct {
 type KeystonePasswordIdentityProvider struct {
 	metav1.TypeMeta `json:",inline"`
 	// RemoteConnectionInfo contains information about how to connect to the keystone server
-	configv1.RemoteConnectionInfo `json:",inline" protobuf:"bytes,1,opt,name=remoteConnectionInfo"`
+	configv1.RemoteConnectionInfo `json:",inline"`
 	// domainName is required for keystone v3
-	DomainName string `json:"domainName" protobuf:"bytes,2,opt,name=domainName"`
+	DomainName string `json:"domainName"`
 	// useKeystoneIdentity flag indicates that user should be authenticated by keystone ID, not by username
-	UseKeystoneIdentity bool `json:"useKeystoneIdentity" protobuf:"varint,3,opt,name=useKeystoneIdentity"`
+	UseKeystoneIdentity bool `json:"useKeystoneIdentity"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -169,7 +169,7 @@ type RequestHeaderIdentityProvider struct {
 	//   https://www.example.com/sso-login?then=${url}
 	// ${query} is replaced with the current query string
 	//   https://www.example.com/auth-proxy/oauth/authorize?${query}
-	LoginURL string `json:"loginURL" protobuf:"bytes,1,opt,name=loginURL"`
+	LoginURL string `json:"loginURL"`
 
 	// challengeURL is a URL to redirect unauthenticated /authorize requests to
 	// Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here
@@ -177,21 +177,21 @@ type RequestHeaderIdentityProvider struct {
 	//   https://www.example.com/sso-login?then=${url}
 	// ${query} is replaced with the current query string
 	//   https://www.example.com/auth-proxy/oauth/authorize?${query}
-	ChallengeURL string `json:"challengeURL" protobuf:"bytes,2,opt,name=challengeURL"`
+	ChallengeURL string `json:"challengeURL"`
 
 	// clientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
-	ClientCA string `json:"clientCA" protobuf:"bytes,3,opt,name=clientCA"`
+	ClientCA string `json:"clientCA"`
 	// clientCommonNames is an optional list of common names to require a match from. If empty, any client certificate validated against the clientCA bundle is considered authoritative.
-	ClientCommonNames []string `json:"clientCommonNames" protobuf:"bytes,4,rep,name=clientCommonNames"`
+	ClientCommonNames []string `json:"clientCommonNames"`
 
 	// headers is the set of headers to check for identity information
-	Headers []string `json:"headers" protobuf:"bytes,5,rep,name=headers"`
+	Headers []string `json:"headers"`
 	// preferredUsernameHeaders is the set of headers to check for the preferred username
-	PreferredUsernameHeaders []string `json:"preferredUsernameHeaders" protobuf:"bytes,6,rep,name=preferredUsernameHeaders"`
+	PreferredUsernameHeaders []string `json:"preferredUsernameHeaders"`
 	// nameHeaders is the set of headers to check for the display name
-	NameHeaders []string `json:"nameHeaders" protobuf:"bytes,7,rep,name=nameHeaders"`
+	NameHeaders []string `json:"nameHeaders"`
 	// emailHeaders is the set of headers to check for the email address
-	EmailHeaders []string `json:"emailHeaders" protobuf:"bytes,8,rep,name=emailHeaders"`
+	EmailHeaders []string `json:"emailHeaders"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -201,19 +201,19 @@ type GitHubIdentityProvider struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// clientID is the oauth client ID
-	ClientID string `json:"clientID" protobuf:"bytes,1,opt,name=clientID"`
+	ClientID string `json:"clientID"`
 	// clientSecret is the oauth client secret
-	ClientSecret configv1.StringSource `json:"clientSecret" protobuf:"bytes,2,opt,name=clientSecret"`
+	ClientSecret configv1.StringSource `json:"clientSecret"`
 	// organizations optionally restricts which organizations are allowed to log in
-	Organizations []string `json:"organizations" protobuf:"bytes,3,rep,name=organizations"`
+	Organizations []string `json:"organizations"`
 	// teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.
-	Teams []string `json:"teams" protobuf:"bytes,4,rep,name=teams"`
+	Teams []string `json:"teams"`
 	// hostname is the optional domain (e.g. "mycompany.com") for use with a hosted instance of GitHub Enterprise.
 	// It must match the GitHub Enterprise settings value that is configured at /setup/settings#hostname.
-	Hostname string `json:"hostname" protobuf:"bytes,5,opt,name=hostname"`
+	Hostname string `json:"hostname"`
 	// ca is the optional trusted certificate authority bundle to use when making requests to the server.
 	// If empty, the default system roots are used.  This can only be configured when hostname is set to a non-empty value.
-	CA string `json:"ca" protobuf:"bytes,6,opt,name=ca"`
+	CA string `json:"ca"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -224,13 +224,13 @@ type GitLabIdentityProvider struct {
 
 	// ca is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
-	CA string `json:"ca" protobuf:"bytes,1,opt,name=ca"`
+	CA string `json:"ca"`
 	// url is the oauth server base URL
-	URL string `json:"url" protobuf:"bytes,2,opt,name=url"`
+	URL string `json:"url"`
 	// clientID is the oauth client ID
-	ClientID string `json:"clientID" protobuf:"bytes,3,opt,name=clientID"`
+	ClientID string `json:"clientID"`
 	// clientSecret is the oauth client secret
-	ClientSecret configv1.StringSource `json:"clientSecret" protobuf:"bytes,4,opt,name=clientSecret"`
+	ClientSecret configv1.StringSource `json:"clientSecret"`
 	// legacy determines if OAuth2 or OIDC should be used
 	// If true, OAuth2 is used
 	// If false, OIDC is used
@@ -238,7 +238,7 @@ type GitLabIdentityProvider struct {
 	// Otherwise, OAuth2 is used
 	// In a future release, nil will default to using OIDC
 	// Eventually this flag will be removed and only OIDC will be used
-	Legacy *bool `json:"legacy,omitempty" protobuf:"varint,5,opt,name=legacy"`
+	Legacy *bool `json:"legacy,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -248,12 +248,12 @@ type GoogleIdentityProvider struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// clientID is the oauth client ID
-	ClientID string `json:"clientID" protobuf:"bytes,1,opt,name=clientID"`
+	ClientID string `json:"clientID"`
 	// clientSecret is the oauth client secret
-	ClientSecret configv1.StringSource `json:"clientSecret" protobuf:"bytes,2,opt,name=clientSecret"`
+	ClientSecret configv1.StringSource `json:"clientSecret"`
 
 	// hostedDomain is the optional Google App domain (e.g. "mycompany.com") to restrict logins to
-	HostedDomain string `json:"hostedDomain" protobuf:"bytes,3,opt,name=hostedDomain"`
+	HostedDomain string `json:"hostedDomain"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -264,52 +264,52 @@ type OpenIDIdentityProvider struct {
 
 	// ca is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
-	CA string `json:"ca" protobuf:"bytes,1,opt,name=ca"`
+	CA string `json:"ca"`
 
 	// clientID is the oauth client ID
-	ClientID string `json:"clientID" protobuf:"bytes,2,opt,name=clientID"`
+	ClientID string `json:"clientID"`
 	// clientSecret is the oauth client secret
-	ClientSecret configv1.StringSource `json:"clientSecret" protobuf:"bytes,3,opt,name=clientSecret"`
+	ClientSecret configv1.StringSource `json:"clientSecret"`
 
 	// extraScopes are any scopes to request in addition to the standard "openid" scope.
-	ExtraScopes []string `json:"extraScopes" protobuf:"bytes,4,rep,name=extraScopes"`
+	ExtraScopes []string `json:"extraScopes"`
 
 	// extraAuthorizeParameters are any custom parameters to add to the authorize request.
-	ExtraAuthorizeParameters map[string]string `json:"extraAuthorizeParameters" protobuf:"bytes,5,rep,name=extraAuthorizeParameters"`
+	ExtraAuthorizeParameters map[string]string `json:"extraAuthorizeParameters"`
 
 	// urls to use to authenticate
-	URLs OpenIDURLs `json:"urls" protobuf:"bytes,6,opt,name=urls"`
+	URLs OpenIDURLs `json:"urls"`
 
 	// claims mappings
-	Claims OpenIDClaims `json:"claims" protobuf:"bytes,7,opt,name=claims"`
+	Claims OpenIDClaims `json:"claims"`
 }
 
 // OpenIDURLs are URLs to use when authenticating with an OpenID identity provider
 type OpenIDURLs struct {
 	// authorize is the oauth authorization URL
-	Authorize string `json:"authorize" protobuf:"bytes,1,opt,name=authorize"`
+	Authorize string `json:"authorize"`
 	// token is the oauth token granting URL
-	Token string `json:"token" protobuf:"bytes,2,opt,name=token"`
+	Token string `json:"token"`
 	// userInfo is the optional userinfo URL.
 	// If present, a granted access_token is used to request claims
 	// If empty, a granted id_token is parsed for claims
-	UserInfo string `json:"userInfo" protobuf:"bytes,3,opt,name=userInfo"`
+	UserInfo string `json:"userInfo"`
 }
 
 // OpenIDClaims contains a list of OpenID claims to use when authenticating with an OpenID identity provider
 type OpenIDClaims struct {
 	// id is the list of claims whose values should be used as the user ID. Required.
 	// OpenID standard identity claim is "sub"
-	ID []string `json:"id" protobuf:"bytes,1,rep,name=id"`
+	ID []string `json:"id"`
 	// preferredUsername is the list of claims whose values should be used as the preferred username.
 	// If unspecified, the preferred username is determined from the value of the id claim
-	PreferredUsername []string `json:"preferredUsername" protobuf:"bytes,2,rep,name=preferredUsername"`
+	PreferredUsername []string `json:"preferredUsername"`
 	// name is the list of claims whose values should be used as the display name. Optional.
 	// If unspecified, no display name is set for the identity
-	Name []string `json:"name" protobuf:"bytes,3,rep,name=name"`
+	Name []string `json:"name"`
 	// email is the list of claims whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
-	Email []string `json:"email" protobuf:"bytes,4,rep,name=email"`
+	Email []string `json:"email"`
 }
 
 // GrantConfig holds the necessary configuration options for grant handlers
@@ -320,11 +320,11 @@ type GrantConfig struct {
 	//  - auto:   always approves grant requests, useful for trusted clients
 	//  - prompt: prompts the end user for approval of grant requests, useful for third-party clients
 	//  - deny:   always denies grant requests, useful for black-listed clients
-	Method GrantHandlerType `json:"method" protobuf:"bytes,1,opt,name=method,casttype=GrantHandlerType"`
+	Method GrantHandlerType `json:"method"`
 
 	// serviceAccountMethod is used for determining client authorization for service account oauth client.
 	// It must be either: deny, prompt
-	ServiceAccountMethod GrantHandlerType `json:"serviceAccountMethod" protobuf:"bytes,2,opt,name=serviceAccountMethod,casttype=GrantHandlerType"`
+	ServiceAccountMethod GrantHandlerType `json:"serviceAccountMethod"`
 }
 
 type GrantHandlerType string
@@ -342,19 +342,19 @@ const (
 type SessionConfig struct {
 	// sessionSecretsFile is a reference to a file containing a serialized SessionSecrets object
 	// If no file is specified, a random signing and encryption key are generated at each server start
-	SessionSecretsFile string `json:"sessionSecretsFile" protobuf:"bytes,1,opt,name=sessionSecretsFile"`
+	SessionSecretsFile string `json:"sessionSecretsFile"`
 	// sessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession
-	SessionMaxAgeSeconds int32 `json:"sessionMaxAgeSeconds" protobuf:"varint,2,opt,name=sessionMaxAgeSeconds"`
+	SessionMaxAgeSeconds int32 `json:"sessionMaxAgeSeconds"`
 	// sessionName is the cookie name used to store the session
-	SessionName string `json:"sessionName" protobuf:"bytes,3,opt,name=sessionName"`
+	SessionName string `json:"sessionName"`
 }
 
 // TokenConfig holds the necessary configuration options for authorization and access tokens
 type TokenConfig struct {
 	// authorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens
-	AuthorizeTokenMaxAgeSeconds int32 `json:"authorizeTokenMaxAgeSeconds" protobuf:"varint,1,opt,name=authorizeTokenMaxAgeSeconds"`
+	AuthorizeTokenMaxAgeSeconds int32 `json:"authorizeTokenMaxAgeSeconds"`
 	// accessTokenMaxAgeSeconds defines the maximum age of access tokens
-	AccessTokenMaxAgeSeconds int32 `json:"accessTokenMaxAgeSeconds" protobuf:"varint,2,opt,name=accessTokenMaxAgeSeconds"`
+	AccessTokenMaxAgeSeconds int32 `json:"accessTokenMaxAgeSeconds"`
 	// accessTokenInactivityTimeoutSeconds defined the default token
 	// inactivity timeout for tokens granted by any client.
 	// Setting it to nil means the feature is completely disabled (default)
@@ -367,5 +367,5 @@ type TokenConfig struct {
 	// - 0: Tokens never time out
 	// - X: Tokens time out if there is no activity for X seconds
 	// The current minimum allowed value for X is 300 (5 minutes)
-	AccessTokenInactivityTimeoutSeconds *int32 `json:"accessTokenInactivityTimeoutSeconds,omitempty" protobuf:"varint,3,opt,name=accessTokenInactivityTimeoutSeconds"`
+	AccessTokenInactivityTimeoutSeconds *int32 `json:"accessTokenInactivityTimeoutSeconds,omitempty"`
 }

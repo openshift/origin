@@ -9,3 +9,6 @@ RUN cd /go/src/github.com/openshift/service-serving-cert-signer && go build ./cm
 
 FROM centos:7
 COPY --from=0 /go/src/github.com/openshift/service-serving-cert-signer/service-serving-cert-signer /usr/bin/service-serving-cert-signer
+
+COPY manifests /manifests
+LABEL io.openshift.release.operator=true

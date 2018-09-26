@@ -32,6 +32,7 @@ func Resource(resource string) schema.GroupResource {
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
 		&KubeAPIServerConfig{},
+		&KubeControllerManagerConfig{},
 	)
 	return nil
 }
