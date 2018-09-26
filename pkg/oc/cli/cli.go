@@ -352,8 +352,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandExtractImageContent(basename)
 	case "openshift-router":
 		cmd = irouter.NewCommandTemplateRouter(basename)
-	case "openshift-f5-router":
-		cmd = irouter.NewCommandF5Router(basename)
 	case "openshift-recycle":
 		cmd = recycle.NewCommandRecycle(basename, out)
 	default:
