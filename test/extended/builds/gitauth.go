@@ -106,7 +106,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 								"--type", "kubernetes.io/basic-auth",
 								"--from-literal", fmt.Sprintf("username=%s", gitUserName),
 								"--from-literal", fmt.Sprintf("password=%s", gitPassword),
-								"--from-literal", fmt.Sprintf("ca.crt=%s", string(secret.Data["ca.crt"])),
+								"--from-literal", fmt.Sprintf("ca.crt=%s", string(secret.Data["service-ca.crt"])),
 							).Execute()
 							o.Expect(err).NotTo(o.HaveOccurred())
 							return sourceSecretName
