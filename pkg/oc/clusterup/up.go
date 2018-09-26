@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -60,8 +59,6 @@ type ClusterUpConfig struct {
 	ImageTemplate variable.ImageTemplate
 	ImageTag      string
 
-	KubeOnly bool
-
 	// BaseTempDir is the directory to use as the root for temp directories
 	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't
 	// doing crazy thing like dirtying /var on the host (that does weird stuff)
@@ -73,7 +70,6 @@ type ClusterUpConfig struct {
 
 	HostVolumesDir           string
 	HostConfigDir            string
-	WriteConfig              bool
 	HostDataDir              string
 	UsePorts                 []int
 	DNSPort                  int
@@ -148,9 +144,7 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&c.ImageTemplate.Format, "image", c.ImageTemplate.Format, "Specify the images to use for OpenShift")
 	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&c.BaseDir, "base-dir", c.BaseDir, "Directory on Docker host for cluster up configuration")
-	flags.BoolVar(&c.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
 	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
-	flags.BoolVar(&c.KubeOnly, "kube-only", c.KubeOnly, "Only install Kubernetes, no OpenShift apiserver or controllers.  Alpha, for development only.  Can result in an unstable cluster.")
 	flags.MarkHidden("kube-only")
 }
 
@@ -304,20 +298,6 @@ func (c *ClusterUpConfig) Start() error {
 	if err := c.StartSelfHosted(c.Out); err != nil {
 		return err
 	}
-	if c.WriteConfig {
-		return nil
-	}
-
-	if err := c.PostClusterStartupMutations(c.Out); err != nil {
-		return err
-	}
-
-	// if we're only supposed to install kube, only install kube.  Maybe later we'll add back components.
-	if c.KubeOnly {
-		c.printProgress("Server Information")
-		c.serverInfo(c.Out)
-		return nil
-	}
 
 	c.printProgress("Server Information")
 	c.serverInfo(c.Out)
@@ -368,24 +348,6 @@ func (c *ClusterUpConfig) determineServerIP() (string, []string, error) {
 		return "", nil, errors.NewError("cannot determine additional IPs").WithCause(err)
 	}
 	return serverIP, additionalIPs, nil
-}
-
-func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
-	restConfig, err := c.RESTConfig()
-	if err != nil {
-		return err
-	}
-	kClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-
-	// Remove any duplicate nodes
-	if err := c.OpenShift().CheckNodes(kClient); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (c *ClusterUpConfig) imageFormat() string {

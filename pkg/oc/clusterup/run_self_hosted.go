@@ -28,12 +28,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
-	// if we're supposed to write the config, we'll do that and then exit
-	if c.WriteConfig {
-		fmt.Printf("All cluster bootstrap assets created in: %q\n", c.BaseDir)
-		return nil
-	}
-
 	fmt.Fprintf(c.Out, "Starting self-hosted OpenShift cluster ...")
 
 	dockerRoot, err := c.Docker().DockerRoot()
@@ -64,6 +58,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
+	glog.Info("Bootkube phase-1 kube-apiserver is ready. Going to call bootkube start ...")
 	bk := &bootkube.BootkubeRunConfig{
 		BootkubeImage:        OpenShiftImages.Get("bootkube").ToPullSpec(c.ImageTemplate).String(),
 		StaticPodManifestDir: configDirs.podManifestDir,
@@ -72,8 +67,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 			fmt.Sprintf("%s:/etc/kubernetes:z", filepath.Join(c.BaseDir, "kubernetes")),
 		},
 	}
-	glog.Info("Bootkube phase-1 kube-apiserver is ready. Going to call bootkube start ...")
-
 	if _, err := bk.RunStart(c.DockerClient()); err != nil {
 		return err
 	}
@@ -94,41 +87,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 
 	glog.Info("Waiting for bootkube phase-2 kubernetes control plane to be ready ...")
 	if err := waitForHealthyKubeAPIServer(clientConfig); err != nil {
-		return err
-	}
-	glog.Info("Bootkube phase-2 kube-apiserver is ready. Going to start operators ...")
-
-	/***************************************************************************************/
-	/* Everything below is legacy bootstrapping of components, to be replaced by operators */
-	/***************************************************************************************/
-
-	// If we're only supposed to install kubernetes, don't install anything else
-	if c.KubeOnly {
-		return nil
-	}
-
-	templateSubstitutionValues := map[string]string{
-		// "MASTER_CONFIG_HOST_PATH":                       configDirs.masterConfigDir,
-		// "OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          configDirs.openshiftAPIServerConfigDir,
-		// "OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
-		// "NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
-		// "KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
-		"OPENSHIFT_PULL_POLICY": c.pullPolicy,
-		"LOGLEVEL":              fmt.Sprintf("%d", c.ServerLogLevel),
-	}
-
-	runLevelOneComponents := append([]componentInstallTemplate{}, runLevelOneKubeComponents...)
-	if !c.KubeOnly {
-		//runLevelOneComponents = append(runLevelOneComponents, runLevelOneOpenShiftComponents...)
-	}
-	err = installComponentTemplates(
-		runLevelOneComponents,
-		c.ImageTemplate.Format,
-		c.BaseDir,
-		templateSubstitutionValues,
-		c.DockerClient(),
-	)
-	if err != nil {
 		return err
 	}
 
