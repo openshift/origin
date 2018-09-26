@@ -28,7 +28,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 		gitUserName                   = "gituser"
 		gitPassword                   = "gituserpassword"
 		buildConfigName               = "gitauthtest"
-		sourceURLTemplate             = "https://%s/ruby-hello-world"
+		sourceURLTemplate             = "http://%s/ruby-hello-world"
 	)
 
 	var (
