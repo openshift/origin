@@ -11094,6 +11094,8 @@ _oc_image_extract()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--confirm")
+    local_nonpersistent_flags+=("--confirm")
     flags+=("--dry-run")
     local_nonpersistent_flags+=("--dry-run")
     flags+=("--filter-by-os=")

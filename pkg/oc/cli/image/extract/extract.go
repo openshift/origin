@@ -103,6 +103,7 @@ type Options struct {
 
 	MaxPerRegistry int
 
+	Confirm  bool
 	DryRun   bool
 	Insecure bool
 
@@ -144,6 +145,7 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	flag := cmd.Flags()
 	o.FilterOptions.Bind(flag)
 
+	flag.BoolVar(&o.Confirm, "confirm", o.Confirm, "Pass to allow extracting to non-empty directories.")
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing any contents.")
 	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow pull operations to registries to be made over HTTP")
 
@@ -174,7 +176,7 @@ type Mapping struct {
 	ConditionFn func(m *Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error)
 }
 
-func parseMappings(images, paths []string) ([]Mapping, error) {
+func parseMappings(images, paths []string, requireEmpty bool) ([]Mapping, error) {
 	layerFilter := regexp.MustCompile(`^(.*)\[([^\]]*)\](.*)$`)
 
 	var mappings []Mapping
@@ -210,6 +212,20 @@ func parseMappings(images, paths []string) ([]Mapping, error) {
 				if !fi.IsDir() {
 					return nil, fmt.Errorf("invalid argument: %s is not a directory", arg)
 				}
+				if requireEmpty {
+					f, err := os.Open(mapping.To)
+					if err != nil {
+						return nil, fmt.Errorf("unable to check directory: %v", err)
+					}
+					names, err := f.Readdirnames(1)
+					f.Close()
+					if err != nil && err != io.EOF {
+						return nil, fmt.Errorf("could not check for empty directory: %v", err)
+					}
+					if len(names) > 0 {
+						return nil, fmt.Errorf("directory %s must be empty, pass --confirm to potentially overwrite contents of directory", mapping.To)
+					}
+				}
 			}
 			src, err := imagereference.Parse(mapping.Image)
 			if err != nil {
@@ -235,7 +251,7 @@ func (o *Options) Complete(cmd *cobra.Command, args []string) error {
 	}
 
 	var err error
-	o.Mappings, err = parseMappings(args, o.Paths)
+	o.Mappings, err = parseMappings(args, o.Paths, !o.Confirm)
 	if err != nil {
 		return err
 	}
