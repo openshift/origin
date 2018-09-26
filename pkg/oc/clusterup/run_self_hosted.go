@@ -208,6 +208,13 @@ kind: KubeAPIServerConfig
 `), 0644); err != nil {
 		return nil, err
 	}
+	controllerManagerConfigOverride := filepath.Join(configDir, "kube-controller-manager-config-overrides.yaml")
+	if err := ioutil.WriteFile(controllerManagerConfigOverride,
+		[]byte(`apiVersion: kubecontrolplane.config.openshift.io/v1
+kind: KubeControllerManagerConfig
+`), 0644); err != nil {
+		return nil, err
+	}
 
 	// generate kube-apiserver manifests using the corresponding operator render command
 	apiserverConfig := controlplaneoperator.RenderConfig{
@@ -230,7 +237,7 @@ kind: KubeAPIServerConfig
 		AssetsOutputDir: configs.assetsDir,
 		ConfigOutputDir: configDir,
 		ConfigFileName:  "kube-controller-manager-config.yaml",
-		ConfigOverrides: apiserverConfigOverride,
+		ConfigOverrides: controllerManagerConfigOverride,
 	}
 	if _, err := controllerConfig.RunRender("kube-controller-manager", OpenShiftImages.Get("hyperkube").ToPullSpec(c.ImageTemplate).String(), c.DockerClient(), hostIP); err != nil {
 		return nil, err
