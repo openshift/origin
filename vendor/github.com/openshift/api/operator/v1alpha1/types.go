@@ -21,25 +21,25 @@ const (
 // inside of the Spec struct for you particular operator.
 type OperatorSpec struct {
 	// managementState indicates whether and how the operator should manage the component
-	ManagementState ManagementState `json:"managementState" protobuf:"bytes,1,opt,name=managementState,casttype=ManagementState"`
+	ManagementState ManagementState `json:"managementState"`
 
 	// imagePullSpec is the image to use for the component.
-	ImagePullSpec string `json:"imagePullSpec" protobuf:"bytes,2,opt,name=imagePullSpec"`
+	ImagePullSpec string `json:"imagePullSpec"`
 
 	// version is the desired state in major.minor.micro-patch.  Usually patch is ignored.
-	Version string `json:"version" protobuf:"bytes,3,opt,name=version"`
+	Version string `json:"version"`
 
 	// logging contains glog parameters for the component pods.  It's always a command line arg for the moment
-	Logging LoggingConfig `json:"logging,omitempty" protobuf:"bytes,4,opt,name=logging"`
+	Logging LoggingConfig `json:"logging,omitempty"`
 }
 
 // LoggingConfig holds information about configuring logging
 type LoggingConfig struct {
 	// level is passed to glog.
-	Level int64 `json:"level" protobuf:"varint,1,opt,name=level"`
+	Level int64 `json:"level"`
 
 	// vmodule is passed to glog.
-	Vmodule string `json:"vmodule" protobuf:"bytes,2,opt,name=vmodule"`
+	Vmodule string `json:"vmodule"`
 }
 
 type ConditionStatus string
@@ -56,60 +56,60 @@ const (
 
 // OperatorCondition is just the standard condition fields.
 type OperatorCondition struct {
-	Type               string          `json:"type" protobuf:"bytes,1,opt,name=type"`
-	Status             ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
-	LastTransitionTime metav1.Time     `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
-	Reason             string          `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
-	Message            string          `json:"message,omitempty" protobuf:"bytes,5,opt,name=message"`
+	Type               string          `json:"type"`
+	Status             ConditionStatus `json:"status"`
+	LastTransitionTime metav1.Time     `json:"lastTransitionTime,omitempty"`
+	Reason             string          `json:"reason,omitempty"`
+	Message            string          `json:"message,omitempty"`
 }
 
 // VersionAvailablity gives information about the synchronization and operational status of a particular version of the component
 type VersionAvailablity struct {
 	// version is the level this availability applies to
-	Version string `json:"version" protobuf:"bytes,1,opt,name=version"`
+	Version string `json:"version"`
 	// updatedReplicas indicates how many replicas are at the desired state
-	UpdatedReplicas int32 `json:"updatedReplicas" protobuf:"varint,2,opt,name=updatedReplicas"`
+	UpdatedReplicas int32 `json:"updatedReplicas"`
 	// readyReplicas indicates how many replicas are ready and at the desired state
-	ReadyReplicas int32 `json:"readyReplicas" protobuf:"varint,3,opt,name=readyReplicas"`
+	ReadyReplicas int32 `json:"readyReplicas"`
 	// errors indicates what failures are associated with the operator trying to manage this version
-	Errors []string `json:"errors" protobuf:"bytes,4,rep,name=errors"`
+	Errors []string `json:"errors"`
 	// generations allows an operator to track what the generation of "important" resources was the last time we updated them
-	Generations []GenerationHistory `json:"generations" protobuf:"bytes,5,rep,name=generations"`
+	Generations []GenerationHistory `json:"generations"`
 }
 
 // GenerationHistory keeps track of the generation for a given resource so that decisions about forced updated can be made.
 type GenerationHistory struct {
 	// group is the group of the thing you're tracking
-	Group string `json:"group" protobuf:"bytes,1,opt,name=group"`
+	Group string `json:"group"`
 	// resource is the resource type of the thing you're tracking
-	Resource string `json:"resource" protobuf:"bytes,2,opt,name=resource"`
+	Resource string `json:"resource"`
 	// namespace is where the thing you're tracking is
-	Namespace string `json:"namespace" protobuf:"bytes,3,opt,name=namespace"`
+	Namespace string `json:"namespace"`
 	// name is the name of the thing you're tracking
-	Name string `json:"name" protobuf:"bytes,4,opt,name=name"`
+	Name string `json:"name"`
 	// lastGeneration is the last generation of the workload controller involved
-	LastGeneration int64 `json:"lastGeneration" protobuf:"varint,5,opt,name=lastGeneration"`
+	LastGeneration int64 `json:"lastGeneration"`
 }
 
 // OperatorStatus contains common fields for an operator to need.  It is intended to be anonymous included
 // inside of the Status struct for you particular operator.
 type OperatorStatus struct {
 	// observedGeneration is the last generation change you've dealt with
-	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,1,opt,name=observedGeneration"`
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// conditions is a list of conditions and their status
-	Conditions []OperatorCondition `json:"conditions,omitempty" protobuf:"bytes,2,rep,name=conditions"`
+	Conditions []OperatorCondition `json:"conditions,omitempty"`
 
 	// state indicates what the operator has observed to be its current operational status.
-	State ManagementState `json:"state,omitempty" protobuf:"bytes,3,opt,name=state,casttype=ManagementState"`
+	State ManagementState `json:"state,omitempty"`
 	// taskSummary is a high level summary of what the controller is currently attempting to do.  It is high-level, human-readable
 	// and not guaranteed in any way. (I needed this for debugging and realized it made a great summary).
-	TaskSummary string `json:"taskSummary,omitempty" protobuf:"bytes,4,opt,name=taskSummary"`
+	TaskSummary string `json:"taskSummary,omitempty"`
 
 	// currentVersionAvailability is availability information for the current version.  If it is unmanged or removed, this doesn't exist.
-	CurrentAvailability *VersionAvailablity `json:"currentVersionAvailability,omitempty" protobuf:"bytes,5,opt,name=currentVersionAvailability"`
+	CurrentAvailability *VersionAvailablity `json:"currentVersionAvailability,omitempty"`
 	// targetVersionAvailability is availability information for the target version if we are migrating
-	TargetAvailability *VersionAvailablity `json:"targetVersionAvailability,omitempty" protobuf:"bytes,6,opt,name=targetVersionAvailability"`
+	TargetAvailability *VersionAvailablity `json:"targetVersionAvailability,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -119,25 +119,25 @@ type GenericOperatorConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// ServingInfo is the HTTP serving information for the controller's endpoints
-	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty" protobuf:"bytes,1,opt,name=servingInfo"`
+	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty"`
 
 	// leaderElection provides information to elect a leader. Only override this if you have a specific need
-	LeaderElection configv1.LeaderElection `json:"leaderElection,omitempty" protobuf:"bytes,2,opt,name=leaderElection"`
+	LeaderElection configv1.LeaderElection `json:"leaderElection,omitempty"`
 
 	// authentication allows configuration of authentication for the endpoints
-	Authentication DelegatedAuthentication `json:"authentication,omitempty" protobuf:"bytes,3,opt,name=authentication"`
+	Authentication DelegatedAuthentication `json:"authentication,omitempty"`
 	// authorization allows configuration of authentication for the endpoints
-	Authorization DelegatedAuthorization `json:"authorization,omitempty" protobuf:"bytes,4,opt,name=authorization"`
+	Authorization DelegatedAuthorization `json:"authorization,omitempty"`
 }
 
 // DelegatedAuthentication allows authentication to be disabled.
 type DelegatedAuthentication struct {
 	// disabled indicates that authentication should be disabled.  By default it will use delegated authentication.
-	Disabled bool `json:"disabled,omitempty" protobuf:"varint,1,opt,name=disabled"`
+	Disabled bool `json:"disabled,omitempty"`
 }
 
 // DelegatedAuthorization allows authorization to be disabled.
 type DelegatedAuthorization struct {
 	// disabled indicates that authorization should be disabled.  By default it will use delegated authorization.
-	Disabled bool `json:"disabled,omitempty" protobuf:"varint,1,opt,name=disabled"`
+	Disabled bool `json:"disabled,omitempty"`
 }

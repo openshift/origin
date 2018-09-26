@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: openshift-core-operators
+  name: openshift-service-cert-signer-operator
+  labels:
+    app: openshift-service-cert-signer-operator

@@ -217,5 +217,6 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 	buildCmd.Flags().StringVar(&(networkMode), "network", "", "Specify the default Docker Network name to be used in build process")
 	buildCmd.Flags().StringVarP(&(cfg.AsDockerfile), "as-dockerfile", "", "", "EXPERIMENTAL: Output a Dockerfile to this path instead of building a new image")
 	buildCmd.Flags().BoolVarP(&(cfg.KeepSymlinks), "keep-symlinks", "", false, "When using '--copy', copy symlinks as symlinks. Default behavior is to follow symlinks and copy files by content")
+	buildCmd.Flags().StringArrayVar(&cfg.AddHost, "add-host", []string{}, "Specify additional entries to add to the /etc/hosts in the assemble container, multiple --add-host can be used to add multiple entries")
 	return buildCmd
 }

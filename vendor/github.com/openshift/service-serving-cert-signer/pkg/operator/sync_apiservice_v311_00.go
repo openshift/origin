@@ -13,7 +13,7 @@ import (
 	operatorsv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	scsv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/library-go/pkg/operator/resource/resourcecread"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 	"github.com/openshift/service-serving-cert-signer/pkg/operator/v310_00_assets"
 )

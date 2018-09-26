@@ -5,7 +5,6 @@ syntax = 'proto2';
 
 package github.com.openshift.api.network.v1;
 
-import "github.com/openshift/api/kubecontrolplane/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";

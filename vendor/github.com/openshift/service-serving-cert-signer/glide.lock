@@ -1,5 +1,5 @@
 hash: 3a31c2ad6d46a90d10085820aad8125a5030b008cfa385aa83847c2160461266
-updated: 2018-07-24T10:23:05.94302-04:00
+updated: 2018-09-24T14:23:37.755258+02:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -8,7 +8,7 @@ imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
-  version: deb3ae2ef2610fde3330947281941c562861188b
+  version: ee1a9a0726d2ae45f54118cac878c990d4016ded
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
@@ -74,13 +74,52 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: fc4c02c9169b85b9a80353f11ac15ce542a0944a
+  version: 739bd301126c341c6caddf2cb3e3935ae9e9fff9
   subpackages:
+  - apps
+  - apps/v1
+  - authorization
+  - authorization/v1
+  - build
+  - build/v1
+  - config
   - config/v1
+  - image
+  - image/docker10
+  - image/dockerpre012
+  - image/v1
+  - kubecontrolplane
+  - kubecontrolplane/v1
+  - legacyconfig/v1
+  - network
+  - network/v1
+  - oauth
+  - oauth/v1
+  - openshiftcontrolplane
+  - openshiftcontrolplane/v1
+  - operator
   - operator/v1alpha1
+  - osin
+  - osin/v1
+  - pkg/serialization
+  - project
+  - project/v1
+  - quota
+  - quota/v1
+  - route
+  - route/v1
+  - security
+  - security/v1
+  - servicecertsigner
   - servicecertsigner/v1alpha1
+  - template
+  - template/v1
+  - user
+  - user/v1
+  - webconsole
+  - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 5b198a036f098f34fbf0c42768382d80708cd2a9
+  version: 431ec9a26e5021f35fa41ee9a89842db9bfdb370
   subpackages:
   - servicecertsigner/clientset/versioned
   - servicecertsigner/clientset/versioned/scheme
@@ -91,7 +130,7 @@ imports:
   - servicecertsigner/informers/externalversions/servicecertsigner/v1alpha1
   - servicecertsigner/listers/servicecertsigner/v1alpha1
 - name: github.com/openshift/library-go
-  version: 4fdb3248631788907d4774a1e987bbfabc37fcbc
+  version: 91ddbc425e02ec6b43b523dacae4a85b4f180e6b
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -99,8 +138,8 @@ imports:
   - pkg/controller/controllercmd
   - pkg/crypto
   - pkg/operator/resource/resourceapply
-  - pkg/operator/resource/resourcecread
   - pkg/operator/resource/resourcemerge
+  - pkg/operator/resource/resourceread
   - pkg/operator/v1alpha1helpers
   - pkg/operator/versioning
   - pkg/serviceability
@@ -111,7 +150,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: 5b67d428864e92711fcbd2f8629456121a56d91f
+  version: 057bc52a47ec3c79498dda63f4a6f8298725e976
 - name: github.com/prometheus/client_golang
   version: e7e903064f5e9eb5da98208bae10b475d4db0f8c
   subpackages:
@@ -188,6 +227,7 @@ imports:
 - name: k8s.io/api
   version: 2d6f90ab1293a1fb871cf149423ebb72aa7423aa
   subpackages:
+  - admission/v1beta1
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
   - apps/v1
@@ -206,6 +246,7 @@ imports:
   - core/v1
   - events/v1beta1
   - extensions/v1beta1
+  - imagepolicy/v1alpha1
   - networking/v1
   - policy/v1beta1
   - rbac/v1

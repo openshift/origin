@@ -49,13 +49,3 @@ for pkg in "${packages[@]}"; do
   containingPackage=$(dirname "${pkg}")
   generate_clientset_for "${containingPackage}" "internalclientset"  --input=${shortGroup} ${verify} "$@"
 done
-
-SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
-CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../../../k8s.io/code-generator)}
-
-${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,lister,informer" \
-  github.com/openshift/origin/pkg/cmd/openshift-operators/generated \
-  github.com/openshift/origin/pkg/cmd/openshift-operators/apis \
-  "webconsole:v1alpha1" \
-  --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
-  ${verify}

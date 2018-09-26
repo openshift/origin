@@ -547,6 +547,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 		CapDrop:         config.DropCapabilities,
 		Binds:           config.BuildVolumes,
 		SecurityOpt:     config.SecurityOpt,
+		AddHost:         config.AddHost,
 	}
 
 	dockerpkg.StreamContainerIO(errReader, nil, func(s string) { glog.Info(s) })
@@ -605,6 +606,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		CapDrop:         config.DropCapabilities,
 		Binds:           config.BuildVolumes,
 		SecurityOpt:     config.SecurityOpt,
+		AddHost:         config.AddHost,
 	}
 
 	// If there are injections specified, override the original assemble script

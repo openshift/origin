@@ -1,0 +1,8 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+spec:
+  tags:
+  - name: service-serving-cert-signer
+    from:
+      kind: DockerImage
+      name: quay.io/openshift/origin-service-serving-cert-signer
