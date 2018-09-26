@@ -28743,11 +28743,11 @@ objects:
 
         - name: alert-buffer
           args:
-          - --storage-path=/alert-buffer/messages.db
+          - --storage-path=/message-buffer/messages.db
           image: ${IMAGE_ALERT_BUFFER}
           imagePullPolicy: IfNotPresent
           volumeMounts:
-          - mountPath: /alert-buffer
+          - mountPath: /message-buffer
             name: alerts-data
 
         - name: alertmanager-proxy
