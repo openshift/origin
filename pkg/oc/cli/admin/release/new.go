@@ -60,7 +60,8 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 			renamed to '99_<image_name>_<filename>' by default, and an operator author that
 			needs to provide a global-ordered file (before or after other operators) should
 			prepend '0000_' to their filename, which instructs the release builder to not
-			assign a component prefix.
+			assign a component prefix. Only images with the label
+			'release.openshift.io/operator=true' are considered to be included.
 
 			Experimental: This command is under active development and may change without notice.
 		`),
@@ -75,11 +76,13 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	}
 	flag := cmd.Flags()
 
+	// image inputs
 	flag.StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "A file defining a mapping of input images to use to build the release")
-	flag.StringVarP(&o.ImagePattern, "pattern", "p", o.ImagePattern, "The default image pattern.")
-	flag.StringVar(&o.Name, "name", o.Name, "The name of the release. Will default to the current time.")
 	flag.StringVar(&o.FromImageStream, "from-image-stream", o.FromImageStream, "Look at all tags in the provided image stream and build a release payload from them.")
 	flag.StringVar(&o.FromDirectory, "from-dir", o.FromDirectory, "Use this directory as the source for the release payload.")
+
+	// properties of the release
+	flag.StringVar(&o.Name, "name", o.Name, "The name of the release. Will default to the current time.")
 
 	flag.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
 	flag.StringVar(&o.Directory, "dir", o.Directory, "Directory to write release contents to, will default to a temporary directory.")
@@ -88,6 +91,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 
 	flag.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
 
+	// destination
 	flag.StringVar(&o.ToDir, "to-dir", o.ToDir, "Output the release manifests to a directory instead of creating an image.")
 	flag.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
 	flag.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
@@ -105,6 +109,8 @@ type NewOptions struct {
 	Output        string
 	Name          string
 
+	FromImageStreamObject *imageapi.ImageStream
+
 	FromImageStream string
 	Namespace       string
 
@@ -117,8 +123,7 @@ type NewOptions struct {
 
 	AllowMissingImages bool
 
-	ImagePattern string
-	Mappings     []Mapping
+	Mappings []Mapping
 
 	ImageClient imageclient.Interface
 }
@@ -194,12 +199,9 @@ func (o *NewOptions) Run() error {
 	if len(o.FromImageStream) > 0 && len(o.FromDirectory) > 0 {
 		return fmt.Errorf("only one of --from-image-stream and --from-dir may be specified")
 	}
-	if len(o.FromDirectory) == 0 && len(o.FromImageStream) == 0 {
-		if len(o.Mappings) == 0 && len(o.ImagePattern) == 0 {
-			return fmt.Errorf("must specify an image pattern and/or mappings")
-		}
-		if len(o.ImagePattern) > 0 && strings.Count(o.ImagePattern, "*") != 1 {
-			return fmt.Errorf("image pattern must have exactly one wildcard character, representing the component name")
+	if len(o.FromDirectory) == 0 && len(o.FromImageStream) == 0 && o.FromImageStreamObject == nil {
+		if len(o.Mappings) == 0 {
+			return fmt.Errorf("must specify image mappings")
 		}
 	}
 
@@ -207,19 +209,39 @@ func (o *NewOptions) Run() error {
 	var ordered []string
 
 	var is *imageapi.ImageStream
+	var inputIS *imageapi.ImageStream
 
 	switch {
 	case len(o.FromImageStream) > 0:
-		inputIS, err := o.ImageClient.ImageV1().ImageStreams(o.Namespace).Get(o.FromImageStream, metav1.GetOptions{})
+		is, err := o.ImageClient.ImageV1().ImageStreams(o.Namespace).Get(o.FromImageStream, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
+		inputIS = is
+	case o.FromImageStreamObject != nil:
+		inputIS = o.FromImageStreamObject
+	}
+
+	switch {
+	case inputIS != nil:
 		is = &imageapi.ImageStream{}
-		is.Annotations = map[string]string{
-			"release.openshift.io/from-image-stream":         fmt.Sprintf("%s/%s", o.Namespace, o.FromImageStream),
-			"release.openshift.io/from-image-stream-version": inputIS.ResourceVersion,
+		is.Annotations = map[string]string{}
+		if len(o.FromImageStream) > 0 && len(o.Namespace) > 0 {
+			is.Annotations["release.openshift.io/from-image-stream"] = fmt.Sprintf("%s/%s", o.Namespace, o.FromImageStream)
 		}
+
 		switch {
+		case o.FromImageStreamObject != nil:
+			// assume the author has prepared spec tags appropriately
+			for k, v := range inputIS.Annotations {
+				if _, ok := is.Annotations[k]; !ok {
+					is.Annotations[k] = v
+				}
+			}
+			is.Spec.Tags = inputIS.Spec.Tags
+			for _, tag := range inputIS.Spec.Tags {
+				ordered = append(ordered, tag.Name)
+			}
 		case len(inputIS.Status.PublicDockerImageRepository) > 0:
 			for _, tag := range inputIS.Status.Tags {
 				if len(tag.Items) == 0 {
@@ -244,6 +266,7 @@ func (o *NewOptions) Run() error {
 			// TODO: add support for internal and referential
 			return fmt.Errorf("only image streams with public image repositories can be the source for a release payload")
 		}
+
 	case len(o.FromDirectory) > 0:
 		fmt.Fprintf(o.ErrOut, "info: Using %s as the input to the release\n", o.FromDirectory)
 		files, err := ioutil.ReadDir(o.FromDirectory)
@@ -296,9 +319,6 @@ func (o *NewOptions) Run() error {
 	is.Name = name
 	if is.Annotations == nil {
 		is.Annotations = make(map[string]string)
-	}
-	if len(o.ImagePattern) > 0 {
-		is.Annotations["release.openshift.io/imagePattern"] = o.ImagePattern
 	}
 
 	for _, m := range o.Mappings {

@@ -56,6 +56,8 @@ type ExtractOptions struct {
 
 	Directory string
 	File      string
+
+	ImageMetadataCallback func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig)
 }
 
 func (o *ExtractOptions) Complete(cmd *cobra.Command, args []string) error {
@@ -84,6 +86,9 @@ func (o *ExtractOptions) Run() error {
 
 	switch {
 	case len(o.File) > 0:
+		if o.ImageMetadataCallback != nil {
+			opts.ImageMetadataCallback = o.ImageMetadataCallback
+		}
 		opts.OnlyFiles = true
 		opts.RemovePermissions = true
 		opts.Mappings = []extract.Mapping{
@@ -125,6 +130,9 @@ func (o *ExtractOptions) Run() error {
 			},
 		}
 		opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+			if o.ImageMetadataCallback != nil {
+				o.ImageMetadataCallback(m, dgst, config)
+			}
 			if len(ref.ID) > 0 {
 				fmt.Fprintf(o.Out, "Extracted release payload created at %s\n", config.Created.Format(time.RFC3339))
 			} else {

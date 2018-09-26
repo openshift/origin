@@ -1,30 +1,135 @@
 package release
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	imageapi "github.com/openshift/api/image/v1"
-	imagescheme "github.com/openshift/client-go/image/clientset/versioned/scheme"
+	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 )
+
+type Payload struct {
+	path string
+
+	references *imageapi.ImageStream
+}
+
+func NewPayload(path string) *Payload {
+	return &Payload{path: path}
+}
+
+func (p *Payload) Path() string {
+	return p.path
+}
+
+func (p *Payload) Rewrite(fn func(component string) imagereference.DockerImageReference) error {
+	is, err := p.References()
+	if err != nil {
+		return err
+	}
+
+	replacements := make(map[string]string)
+	for _, tag := range is.Spec.Tags {
+		if tag.From == nil || tag.From.Kind != "DockerImage" {
+			continue
+		}
+		oldImage := tag.From.Name
+		oldRef, err := imagereference.Parse(oldImage)
+		if err != nil {
+			return fmt.Errorf("unable to parse image reference for tag %q from payload: %v", tag.Name, err)
+		}
+		if len(oldRef.Tag) > 0 || len(oldRef.ID) == 0 {
+			return fmt.Errorf("image reference tag %q in payload does not point to an image digest - unable to rewrite payload", tag.Name)
+		}
+		ref := fn(tag.Name)
+		ref.Tag = ""
+		ref.ID = oldRef.ID
+		newImage := ref.Exact()
+		replacements[oldImage] = newImage
+	}
+
+	if glog.V(5) {
+		for k, v := range replacements {
+			glog.Infof("Mapping %s -> %s", k, v)
+		}
+	}
+	mapper, err := NewExactMapper(replacements)
+	if err != nil {
+		return err
+	}
+
+	files, err := ioutil.ReadDir(p.path)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		if filepath.Base(file.Name()) == "image-references" {
+			continue
+		}
+		path := filepath.Join(p.path, file.Name())
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		out, err := mapper(data)
+		if err != nil {
+			return fmt.Errorf("unable to rewrite the contents of %s: %v", path, err)
+		}
+		if !bytes.Equal(data, out) {
+			glog.V(6).Infof("Rewrote\n%s\n\nto\n\n%s", string(data), string(out))
+		}
+		if err := ioutil.WriteFile(path, out, file.Mode()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *Payload) References() (*imageapi.ImageStream, error) {
+	if p.references != nil {
+		return p.references, nil
+	}
+	is, err := parseImageStream(filepath.Join(p.path, "image-references"))
+	if err != nil {
+		return nil, err
+	}
+	p.references = is
+	return is, nil
+}
+
+func parseImageStream(path string) (*imageapi.ImageStream, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read release image info from release contents: %v", err)
+	}
+	is := &imageapi.ImageStream{}
+	if err := yaml.Unmarshal(data, &is); err != nil {
+		return nil, fmt.Errorf("unable to load image-references from release payload at %s: %v", path, err)
+	}
+	if is.Kind != "ImageStream" || is.APIVersion != "image.openshift.io/v1" {
+		return nil, fmt.Errorf("unrecognized image-references in release payload")
+	}
+	return is, nil
+}
 
 type ManifestMapper func(data []byte) ([]byte, error)
 
 func NewImageMapperFromImageStreamFile(path string, input *imageapi.ImageStream, allowMissingImages bool) (ManifestMapper, error) {
-	data, err := ioutil.ReadFile(path)
+	is, err := parseImageStream(path)
 	if err != nil {
 		return nil, err
 	}
-	is := &imageapi.ImageStream{}
-	if _, _, err := imagescheme.Codecs.UniversalDeserializer().Decode(data, nil, is); err != nil {
-		return nil, err
-	}
-	if is.TypeMeta.Kind != "ImageStream" || is.TypeMeta.APIVersion != "image.openshift.io/v1" {
-		return nil, fmt.Errorf("%q was not a valid image stream - kind and apiVersion must be ImageStream and image.openshift.io/v1", path)
-	}
+
 	references := make(map[string]ImageReference)
 	for _, tag := range is.Spec.Tags {
 		if tag.From == nil || tag.From.Kind != "DockerImage" {
@@ -112,5 +217,27 @@ func NewImageMapper(images map[string]ImageReference) (ManifestMapper, error) {
 			}
 		})
 		return out, nil
+	}, nil
+}
+
+// exactImageFormat attempts to match a string on word boundaries
+const exactImageFormat = `\b%s\b`
+
+func NewExactMapper(mappings map[string]string) (ManifestMapper, error) {
+	patterns := make(map[string]*regexp.Regexp)
+	for from, to := range mappings {
+		pattern := fmt.Sprintf(exactImageFormat, regexp.QuoteMeta(from))
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, err
+		}
+		patterns[to] = re
+	}
+
+	return func(data []byte) ([]byte, error) {
+		for to, pattern := range patterns {
+			data = pattern.ReplaceAll(data, []byte(to))
+		}
+		return data, nil
 	}, nil
 }
