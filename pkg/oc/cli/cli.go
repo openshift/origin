@@ -64,7 +64,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/tag"
 	"github.com/openshift/origin/pkg/oc/cli/version"
 	"github.com/openshift/origin/pkg/oc/cli/whoami"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 const productName = `OpenShift`
@@ -336,7 +335,6 @@ func CommandFor(basename string) *cobra.Command {
 
 	switch basename {
 	case "kubectl":
-		kcmdutil.DefaultPrintingScheme = ocscheme.PrintingInternalScheme
 		cmd = kubecmd.NewKubectlCommand(in, out, errout)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
@@ -357,7 +355,6 @@ func CommandFor(basename string) *cobra.Command {
 	case "openshift-recycle":
 		cmd = recycle.NewCommandRecycle(basename, out)
 	default:
-		kcmdutil.DefaultPrintingScheme = ocscheme.PrintingInternalScheme
 		shimKubectlForOc()
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)
 	}

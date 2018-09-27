@@ -32,7 +32,6 @@ import (
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -639,7 +638,7 @@ func (o *IdleOptions) RunIdle() error {
 				continue
 			}
 
-			gvks, _, err := ocscheme.ReadingInternalScheme.ObjectKinds(info.obj)
+			gvks, _, err := scheme.Scheme.ObjectKinds(info.obj)
 			if err != nil {
 				fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true

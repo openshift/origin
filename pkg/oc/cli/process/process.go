@@ -33,7 +33,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
@@ -111,7 +110,7 @@ type ProcessOptions struct {
 }
 
 func NewProcessOptions(streams genericclioptions.IOStreams) *ProcessOptions {
-	printFlags := genericclioptions.NewPrintFlags("processed").WithTypeSetter(ocscheme.PrintingInternalScheme).WithDefaultOutput("json")
+	printFlags := genericclioptions.NewPrintFlags("processed").WithTypeSetter(scheme.Scheme).WithDefaultOutput("json")
 	// disable binding the --template flag so that we can bind our own --template flag with a shorthand (until the shorthand is deprecated)
 	printFlags.TemplatePrinterFlags.TemplateArgument = nil
 
@@ -438,7 +437,7 @@ func (o *ProcessOptions) RunProcess() error {
 
 	// attempt to convert our resulting object to external
 	var externalResultObj templatev1.Template
-	if err := ocscheme.PrintingInternalScheme.Convert(resultObj, &externalResultObj, nil); err != nil {
+	if err := legacyscheme.Scheme.Convert(resultObj, &externalResultObj, nil); err != nil {
 		return fmt.Errorf("unable to convert template to external template object: %v", err)
 	}
 
