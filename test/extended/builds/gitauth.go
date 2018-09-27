@@ -28,14 +28,14 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 		gitUserName                   = "gituser"
 		gitPassword                   = "gituserpassword"
 		buildConfigName               = "gitauthtest"
-		sourceURLTemplate             = "http://%s/ruby-hello-world"
+		sourceURLTemplate             = "https://%s/ruby-hello-world"
 	)
 
 	var (
-		gitServerFixture          = exutil.FixturePath("testdata", "test-gitserver.yaml")
-		gitServerTokenAuthFixture = exutil.FixturePath("testdata", "test-gitserver-tokenauth.yaml")
-		testBuildFixture          = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
-		oc                        = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
+		gitServerFixture = exutil.FixturePath("testdata", "test-gitserver.yaml")
+		//gitServerTokenAuthFixture = exutil.FixturePath("testdata", "test-gitserver-tokenauth.yaml")
+		testBuildFixture = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
+		oc               = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
 	)
 
 	g.Context("", func() {
@@ -117,24 +117,26 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 			})
 		})
 
-		g.Describe("Build using a service account token", func() {
-			g.It("should create a new build using the internal gitserver", func() {
-				testGitAuth("gitserver-tokenauth", gitServerTokenAuthFixture, sourceURLTemplate, func() string {
-					g.By("assigning the edit role to the builder service account")
-					err := oc.Run("policy").Args("add-role-to-user", "edit", "--serviceaccount=builder").Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
+		/*
+			g.Describe("Build using a service account token", func() {
+				g.It("should create a new build using the internal gitserver", func() {
+					testGitAuth("gitserver-tokenauth", gitServerTokenAuthFixture, sourceURLTemplate, func() string {
+						g.By("assigning the edit role to the builder service account")
+						err := oc.Run("policy").Args("add-role-to-user", "edit", "--serviceaccount=builder").Execute()
+						o.Expect(err).NotTo(o.HaveOccurred())
 
-					g.By("getting the token secret name for the builder service account")
-					sa, err := oc.KubeClient().Core().ServiceAccounts(oc.Namespace()).Get("builder", metav1.GetOptions{})
-					o.Expect(err).NotTo(o.HaveOccurred())
-					for _, s := range sa.Secrets {
-						if strings.Contains(s.Name, "token") {
-							return s.Name
+						g.By("getting the token secret name for the builder service account")
+						sa, err := oc.KubeClient().Core().ServiceAccounts(oc.Namespace()).Get("builder", metav1.GetOptions{})
+						o.Expect(err).NotTo(o.HaveOccurred())
+						for _, s := range sa.Secrets {
+							if strings.Contains(s.Name, "token") {
+								return s.Name
+							}
 						}
-					}
-					return ""
+						return ""
+					})
 				})
 			})
-		})
+		*/
 	})
 })
