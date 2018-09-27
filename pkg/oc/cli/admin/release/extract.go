@@ -95,7 +95,7 @@ func (o *ExtractOptions) Run() error {
 			},
 		}
 		found := false
-		opts.TarEntryCallback = func(hdr *tar.Header, r io.Reader) (bool, error) {
+		opts.TarEntryCallback = func(hdr *tar.Header, _ extract.LayerInfo, r io.Reader) (bool, error) {
 			if hdr.Name != o.File {
 				return true, nil
 			}
