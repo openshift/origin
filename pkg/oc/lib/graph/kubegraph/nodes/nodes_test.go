@@ -87,7 +87,6 @@ func TestReplicationControllerSpecNode(t *testing.T) {
 	if !g.EdgeKinds(ptSpecEdges[0]).Has(osgraph.ContainsEdgeKind) {
 		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, ptSpecEdges[0])
 	}
-
 }
 
 func TestJobSpecNode(t *testing.T) {
@@ -108,11 +107,37 @@ func TestJobSpecNode(t *testing.T) {
 		t.Errorf("expected 3 edge, got %v", g.Edges())
 	}
 
-	edge := g.Edges()[0]
-	if !g.EdgeKinds(edge).Has(osgraph.ContainsEdgeKind) {
-		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKinds(edge))
+	jobEdges := g.OutboundEdges(jobNode)
+	if len(jobEdges) != 1 {
+		t.Fatalf("expected 1 edge, got %v for \n%v", jobEdges, g)
 	}
-	if edge.From().ID() != jobNode.ID() {
-		t.Errorf("expected %v, got %v", jobNode.ID(), edge.From())
+	if !g.EdgeKinds(jobEdges[0]).Has(osgraph.ContainsEdgeKind) {
+		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, jobEdges[0])
+	}
+
+	uncastJobSpec := jobEdges[0].To()
+	jobSpec, ok := uncastJobSpec.(*JobSpecNode)
+	if !ok {
+		t.Fatalf("expected jobSpec, got %v", uncastJobSpec)
+	}
+	jobSpecEdges := g.OutboundEdges(jobSpec)
+	if len(jobSpecEdges) != 1 {
+		t.Fatalf("expected 1 edge, got %v", jobSpecEdges)
+	}
+	if !g.EdgeKinds(jobSpecEdges[0]).Has(osgraph.ContainsEdgeKind) {
+		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, jobSpecEdges[0])
+	}
+
+	uncastPTSpec := jobSpecEdges[0].To()
+	ptSpec, ok := uncastPTSpec.(*PodTemplateSpecNode)
+	if !ok {
+		t.Fatalf("expected ptspec, got %v", uncastPTSpec)
+	}
+	ptSpecEdges := g.OutboundEdges(ptSpec)
+	if len(ptSpecEdges) != 1 {
+		t.Fatalf("expected 1 edge, got %v", ptSpecEdges)
+	}
+	if !g.EdgeKinds(ptSpecEdges[0]).Has(osgraph.ContainsEdgeKind) {
+		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, ptSpecEdges[0])
 	}
 }
