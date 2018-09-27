@@ -110,6 +110,7 @@ func NewCmdAppJSON(fullName string, f kcmdutil.Factory, streams genericclioption
 	cmd.Flags().StringVar(&o.Generator, "generator", o.Generator, "The name of the generator strategy to use - specify this value to for backwards compatibility.")
 	cmd.Flags().StringVar(&o.AsTemplate, "as-template", o.AsTemplate, "If set, generate a template with the provided name")
 	cmd.Flags().StringVar(&o.OutputVersionStr, "output-version", o.OutputVersionStr, "The preferred API versions of the output objects")
+	cmd.Flags().MarkDeprecated("output-version", "this flag is deprecated and will be removed in the future")
 
 	o.PrintFlags.AddFlags(cmd)
 	return cmd
