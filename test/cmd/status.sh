@@ -77,10 +77,15 @@ os::cmd::try_until_not_text "oc get projects" "project-bar-2"
 os::cmd::expect_success "oc logout"
 os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything" "You don't have any projects. You can try to create a new project, by running"
 os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
+os::cmd::expect_success "oc new-project project-status --display-name='my project' --description='test project'"
 
 # Verify the deprecated flags are working
 os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecated'
 os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
+
+# Verify jobs are showing in status
+os::cmd::expect_success "oc run pi --image=perl --restart=OnFailure -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
+os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
 
 # logout
 os::cmd::expect_success "oc logout"
