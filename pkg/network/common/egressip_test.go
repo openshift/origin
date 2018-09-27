@@ -512,6 +512,32 @@ func TestDuplicateNodeEgressIPs(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	// Auto-egress-IP assignment should ignore the IP while it is double-booked
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		HostIP:      "172.17.0.5",
+		EgressCIDRs: []string{"172.17.0.0/24"},
+	})
+	err = w.assertChanges(
+		"update egress CIDRs",
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	allocation := eit.ReallocateEgressIPs()
+	if node5ips, ok := allocation["node-5"]; !ok {
+		t.Fatalf("Unexpected IP allocation: %#v", allocation)
+	} else if len(node5ips) != 0 {
+		t.Fatalf("Unexpected IP allocation: %#v", allocation)
+	}
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		HostIP:      "172.17.0.5",
+		EgressCIDRs: []string{},
+	})
+	err = w.assertNoChanges()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
 	// Removing the duplicate node egressIP should restore traffic to the broken namespace
 	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
 		HostIP:    "172.17.0.4",
@@ -607,6 +633,32 @@ func TestDuplicateNamespaceEgressIPs(t *testing.T) {
 		"namespace 42 dropped",
 		"namespace 43 dropped",
 	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Auto-egress-IP assignment should ignore the IP while it is double-booked
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		HostIP:      "172.17.0.5",
+		EgressCIDRs: []string{"172.17.0.0/24"},
+	})
+	err = w.assertChanges(
+		"update egress CIDRs",
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	allocation := eit.ReallocateEgressIPs()
+	if node5ips, ok := allocation["node-5"]; !ok {
+		t.Fatalf("Unexpected IP allocation: %#v", allocation)
+	} else if len(node5ips) != 0 {
+		t.Fatalf("Unexpected IP allocation: %#v", allocation)
+	}
+	updateHostSubnetEgress(eit, &networkapi.HostSubnet{
+		HostIP:      "172.17.0.5",
+		EgressCIDRs: []string{},
+	})
+	err = w.assertNoChanges()
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -1001,10 +1053,16 @@ func TestEgressCIDRAllocation(t *testing.T) {
 	// You can't mix multiple-egress-IP HA with auto-allocated-egress-IP HA
 	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
 		NetID:     45,
-		EgressIPs: []string{"172.17.0.102", "172.17.0.302"},
+		EgressIPs: []string{"172.17.0.102", "172.17.1.102"},
+	})
+	updateNetNamespaceEgress(eit, &networkapi.NetNamespace{
+		NetID:     49,
+		EgressIPs: []string{"172.17.0.109", "172.17.1.109"},
 	})
 	err = w.assertChanges(
 		"update egress CIDRs",
+		"update egress CIDRs",
+		"namespace 49 dropped",
 	)
 	if err != nil {
 		t.Fatalf("%v", err)

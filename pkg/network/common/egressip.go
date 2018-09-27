@@ -527,11 +527,17 @@ func (eit *EgressIPTracker) makeEmptyAllocation() (map[string][]string, map[stri
 	allocation := make(map[string][]string)
 	alreadyAllocated := make(map[string]bool)
 
-	// We don't want to auto-allocate/reallocate IPs for NetNamespaces using
-	// multiple-egress-IP HA, so those should be considered "already allocated"
-	// even before we start.
+	// Filter out egressIPs that we don't want to auto-assign. This will also cause
+	// them to be unassigned if they were previously auto-assigned.
 	for egressIP, eip := range eit.egressIPs {
-		if eip.assignedNodeIP != "" && len(eip.namespaces[0].requestedIPs) > 1 {
+		if len(eip.namespaces) == 0 {
+			// Unused
+			alreadyAllocated[egressIP] = true
+		} else if len(eip.nodes) > 1 || len(eip.namespaces) > 1 {
+			// Erroneously allocated to multiple nodes or multiple namespaces
+			alreadyAllocated[egressIP] = true
+		} else if len(eip.namespaces) == 1 && len(eip.namespaces[0].requestedIPs) > 1 {
+			// Using multiple-egress-IP HA
 			alreadyAllocated[egressIP] = true
 		}
 	}
@@ -578,7 +584,7 @@ func (eit *EgressIPTracker) allocateExistingEgressIPs(allocation map[string][]st
 func (eit *EgressIPTracker) allocateNewEgressIPs(allocation map[string][]string, alreadyAllocated map[string]bool) {
 	// Allocate pending egress IPs that can only go to a single node
 	for egressIP, eip := range eit.egressIPs {
-		if alreadyAllocated[egressIP] || len(eip.namespaces) == 0 {
+		if alreadyAllocated[egressIP] {
 			continue
 		}
 		nodeName, otherNodes := eit.findEgressIPAllocation(eip.parsed, allocation)
@@ -589,7 +595,7 @@ func (eit *EgressIPTracker) allocateNewEgressIPs(allocation map[string][]string,
 	}
 	// Allocate any other pending egress IPs that we can
 	for egressIP, eip := range eit.egressIPs {
-		if alreadyAllocated[egressIP] || len(eip.namespaces) == 0 {
+		if alreadyAllocated[egressIP] {
 			continue
 		}
 		nodeName, _ := eit.findEgressIPAllocation(eip.parsed, allocation)
