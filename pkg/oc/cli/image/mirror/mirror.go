@@ -448,7 +448,9 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 										continue
 									}
 									for _, blob := range srcManifest.References() {
-										registryPlan.AssociateBlob(blob.Digest, canonicalFrom.String())
+										if src.ref.Registry == dst.ref.Registry {
+											registryPlan.AssociateBlob(blob.Digest, canonicalFrom.String())
+										}
 										blobPlan.Copy(blob, srcBlobs, toBlobs)
 									}
 								}
