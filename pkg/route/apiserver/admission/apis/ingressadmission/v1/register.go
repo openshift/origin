@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/openshift/origin/pkg/network/apiserver/admission/apis/ingressadmission"
+	"github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission"
 )
 
 // SchemeGroupVersion is group version used to register these objects

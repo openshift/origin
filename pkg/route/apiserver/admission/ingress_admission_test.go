@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
-	"github.com/openshift/origin/pkg/network/apiserver/admission/apis/ingressadmission"
+	"github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission"
 )
 
 type fakeAuthorizer struct {
