@@ -431,7 +431,7 @@ func setupContainersStorage(pod *corev1.Pod, container *corev1.Container) {
 			MountPath: "/var/lib/containers/storage",
 		},
 	)
-	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_STORAGE_DRIVER", Value: "vfs"})
+	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_STORAGE_DRIVER", Value: "overlay"})
 	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_ISOLATION", Value: "chroot"})
 }
 
