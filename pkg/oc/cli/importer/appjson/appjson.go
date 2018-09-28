@@ -31,7 +31,6 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/lib/newapp/appjson"
 	appcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	templatev1client "github.com/openshift/origin/pkg/template/client/v1"
 )
 
@@ -83,7 +82,7 @@ type AppJSONOptions struct {
 func NewAppJSONOptions(streams genericclioptions.IOStreams) *AppJSONOptions {
 	return &AppJSONOptions{
 		IOStreams:  streams,
-		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(scheme.Scheme),
 		Generator:  AppJSONV1GeneratorName,
 	}
 }

@@ -11,9 +11,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -65,7 +65,7 @@ type CreateRouteSubcommandOptions struct {
 
 func NewCreateRouteSubcommandOptions(ioStreams genericclioptions.IOStreams) *CreateRouteSubcommandOptions {
 	return &CreateRouteSubcommandOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(scheme.Scheme),
 		IOStreams:  ioStreams,
 	}
 }

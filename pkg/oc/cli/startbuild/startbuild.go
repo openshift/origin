@@ -34,6 +34,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -44,7 +45,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	ocerrors "github.com/openshift/origin/pkg/oc/lib/errors"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -135,7 +135,7 @@ type StartBuildOptions struct {
 
 func NewStartBuildOptions(streams genericclioptions.IOStreams) *StartBuildOptions {
 	return &StartBuildOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("started").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("started").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 	}
 }
