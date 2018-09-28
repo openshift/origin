@@ -15,10 +15,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/pkg/archive"
 	"github.com/golang/glog"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 
-	digest "github.com/opencontainers/go-digest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -87,6 +88,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 
 	flag.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
 
+	flag.StringVar(&o.ToDir, "to-dir", o.ToDir, "Output the release manifests to a directory instead of creating an image.")
 	flag.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
 	flag.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
 	flag.StringVar(&o.ToImageBase, "to-image-base", o.ToImageBase, "If specified, the image to add the release layer on top of.")
@@ -106,8 +108,8 @@ type NewOptions struct {
 	FromImageStream string
 	Namespace       string
 
-	ToFile string
-
+	ToFile      string
+	ToDir       string
 	ToImage     string
 	ToImageBase string
 
@@ -417,6 +419,42 @@ func (o *NewOptions) Run() error {
 	}()
 
 	switch {
+	case len(o.ToDir) > 0:
+		if err := os.MkdirAll(o.ToDir, 0755); err != nil {
+			return err
+		}
+		r, err := archive.DecompressStream(pr)
+		if err != nil {
+			return err
+		}
+		tr := tar.NewReader(r)
+		for {
+			hdr, err := tr.Next()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return err
+			}
+			if !strings.HasPrefix(hdr.Name, "release-manifests/") || hdr.Typeflag&tar.TypeReg != tar.TypeReg {
+				continue
+			}
+			name := strings.TrimPrefix(hdr.Name, "release-manifests/")
+			if strings.Count(name, "/") > 0 || name == "." || name == ".." || len(name) == 0 {
+				continue
+			}
+			f, err := os.OpenFile(filepath.Join(o.ToDir, name), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(f, tr); err != nil {
+				f.Close()
+				return err
+			}
+			if err := f.Close(); err != nil {
+				return err
+			}
+		}
 	case len(o.ToFile) > 0:
 		var w io.WriteCloser
 		if o.ToFile == "-" {
