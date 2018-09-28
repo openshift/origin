@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/docker/distribution"
+	"github.com/golang/glog"
 
 	units "github.com/docker/go-units"
 	godigest "github.com/opencontainers/go-digest"
@@ -159,6 +160,8 @@ func (p *plan) RegistryPlan(name string) *registryPlan {
 		parent:      p,
 		name:        name,
 		blobsByRepo: make(map[godigest.Digest]string),
+
+		manifestConversions: make(map[godigest.Digest]godigest.Digest),
 	}
 	p.registries[name] = plan
 	return plan
@@ -304,6 +307,8 @@ type registryPlan struct {
 	repositories map[string]*repositoryPlan
 	blobsByRepo  map[godigest.Digest]string
 
+	manifestConversions map[godigest.Digest]godigest.Digest
+
 	stats struct {
 		uniqueSize  int64
 		sharedSize  int64
@@ -317,6 +322,16 @@ func (p *registryPlan) AssociateBlob(digest godigest.Digest, repo string) {
 	defer p.lock.Unlock()
 
 	p.blobsByRepo[digest] = repo
+}
+
+func (p *registryPlan) SavedManifest(srcDigest, dstDigest godigest.Digest) {
+	if srcDigest == dstDigest {
+		return
+	}
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	glog.V(4).Infof("Associated digest %s with converted digest %s", srcDigest, dstDigest)
+	p.manifestConversions[srcDigest] = dstDigest
 }
 
 func (p *registryPlan) MountFrom(digest godigest.Digest) (string, bool) {

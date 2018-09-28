@@ -3,6 +3,7 @@ package release
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -74,28 +75,32 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
-	flag := cmd.Flags()
+	flags := cmd.Flags()
 
 	// image inputs
-	flag.StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "A file defining a mapping of input images to use to build the release")
-	flag.StringVar(&o.FromImageStream, "from-image-stream", o.FromImageStream, "Look at all tags in the provided image stream and build a release payload from them.")
-	flag.StringVar(&o.FromDirectory, "from-dir", o.FromDirectory, "Use this directory as the source for the release payload.")
+	flags.StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "A file defining a mapping of input images to use to build the release")
+	flags.StringVar(&o.FromImageStream, "from-image-stream", o.FromImageStream, "Look at all tags in the provided image stream and build a release payload from them.")
+	flags.StringVar(&o.FromDirectory, "from-dir", o.FromDirectory, "Use this directory as the source for the release payload.")
+	flags.StringVar(&o.FromReleaseImage, "from-release", o.FromReleaseImage, "Use an existing release image as input.")
 
 	// properties of the release
-	flag.StringVar(&o.Name, "name", o.Name, "The name of the release. Will default to the current time.")
+	flags.StringVar(&o.Name, "name", o.Name, "The name of the release. Will default to the current time.")
 
-	flag.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
-	flag.StringVar(&o.Directory, "dir", o.Directory, "Directory to write release contents to, will default to a temporary directory.")
+	flags.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
+	flags.StringVar(&o.Directory, "dir", o.Directory, "Directory to write release contents to, will default to a temporary directory.")
 
-	flag.BoolVar(&o.AllowMissingImages, "allow-missing-images", o.AllowMissingImages, "Ignore errors when an operator references a release image that is not included.")
+	flags.BoolVar(&o.AllowMissingImages, "allow-missing-images", o.AllowMissingImages, "Ignore errors when an operator references a release image that is not included.")
 
-	flag.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
+	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
+
+	flags.StringVar(&o.Mirror, "mirror", o.Mirror, "Mirror the contents of the release to this repository.")
 
 	// destination
-	flag.StringVar(&o.ToDir, "to-dir", o.ToDir, "Output the release manifests to a directory instead of creating an image.")
-	flag.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
-	flag.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
-	flag.StringVar(&o.ToImageBase, "to-image-base", o.ToImageBase, "If specified, the image to add the release layer on top of.")
+	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Skips changes to external registries via mirroring or pushing images.")
+	flags.StringVar(&o.ToDir, "to-dir", o.ToDir, "Output the release manifests to a directory instead of creating an image.")
+	flags.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
+	flags.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
+	flags.StringVar(&o.ToImageBase, "to-image-base", o.ToImageBase, "If specified, the image to add the release layer on top of.")
 
 	return cmd
 }
@@ -109,15 +114,19 @@ type NewOptions struct {
 	Output        string
 	Name          string
 
-	FromImageStreamObject *imageapi.ImageStream
+	FromReleaseImage string
 
 	FromImageStream string
 	Namespace       string
+
+	DryRun bool
 
 	ToFile      string
 	ToDir       string
 	ToImage     string
 	ToImageBase string
+
+	Mirror string
 
 	MaxPerRegistry int
 
@@ -199,7 +208,7 @@ func (o *NewOptions) Run() error {
 	if len(o.FromImageStream) > 0 && len(o.FromDirectory) > 0 {
 		return fmt.Errorf("only one of --from-image-stream and --from-dir may be specified")
 	}
-	if len(o.FromDirectory) == 0 && len(o.FromImageStream) == 0 && o.FromImageStreamObject == nil {
+	if len(o.FromDirectory) == 0 && len(o.FromImageStream) == 0 && len(o.FromReleaseImage) == 0 {
 		if len(o.Mappings) == 0 {
 			return fmt.Errorf("must specify image mappings")
 		}
@@ -207,41 +216,89 @@ func (o *NewOptions) Run() error {
 
 	metadata := make(map[string]imageData)
 	var ordered []string
-
+	var payload *Payload
 	var is *imageapi.ImageStream
-	var inputIS *imageapi.ImageStream
 
 	switch {
-	case len(o.FromImageStream) > 0:
-		is, err := o.ImageClient.ImageV1().ImageStreams(o.Namespace).Get(o.FromImageStream, metav1.GetOptions{})
-		if err != nil {
-			return err
+	case len(o.FromReleaseImage) > 0:
+		dir := o.Directory
+		if len(dir) == 0 {
+			tempDir, err := ioutil.TempDir("", "release-manifests")
+			if err != nil {
+				return err
+			}
+			defer func() {
+				if err := os.RemoveAll(tempDir); err != nil {
+					glog.Warningf("Unable to remove temporary payload directory %s: %v", dir, err)
+				}
+			}()
+			dir = tempDir
 		}
-		inputIS = is
-	case o.FromImageStreamObject != nil:
-		inputIS = o.FromImageStreamObject
-	}
 
-	switch {
-	case inputIS != nil:
+		var baseDigest string
+		buf := &bytes.Buffer{}
+		extractOpts := NewExtractOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
+		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+			if config.Config != nil {
+				baseDigest = config.Config.Labels["io.openshift.release.base-image-digest"]
+				glog.V(4).Infof("Release image was built on top of %s", baseDigest)
+			}
+		}
+		extractOpts.From = o.FromReleaseImage
+		extractOpts.Directory = dir
+		if err := extractOpts.Run(); err != nil {
+			return fmt.Errorf("unable to retrieve release image info: %v", err)
+		}
+
+		payload = NewPayload(dir)
+
+		inputIS, err := payload.References()
+		if err != nil {
+			return fmt.Errorf("unable to load payload from release contents: %v", err)
+		}
+		is = inputIS
+		if is.Annotations == nil {
+			is.Annotations = map[string]string{}
+		}
+		is.Annotations["release.openshift.io/from-release"] = o.FromReleaseImage
+
+		// default the base image to a matching release payload digest or error
+		if len(o.ToImageBase) == 0 && len(baseDigest) > 0 {
+			for _, tag := range is.Spec.Tags {
+				if tag.From == nil || tag.From.Kind != "DockerImage" {
+					continue
+				}
+				ref, err := imagereference.Parse(tag.From.Name)
+				if err != nil {
+					return fmt.Errorf("release image contains unparseable reference for %q: %v", tag.Name, err)
+				}
+				if ref.ID == baseDigest {
+					o.ToImageBase = tag.From.Name
+					break
+				}
+			}
+			if len(o.ToImageBase) == 0 {
+				return fmt.Errorf("unable to find an image within the release that matches the base image manifest %q, please specify --to-image-base", baseDigest)
+			}
+		}
+
+		if len(o.Name) == 0 {
+			o.Name = is.Name
+		}
+
+	case len(o.FromImageStream) > 0:
 		is = &imageapi.ImageStream{}
 		is.Annotations = map[string]string{}
 		if len(o.FromImageStream) > 0 && len(o.Namespace) > 0 {
 			is.Annotations["release.openshift.io/from-image-stream"] = fmt.Sprintf("%s/%s", o.Namespace, o.FromImageStream)
 		}
 
+		inputIS, err := o.ImageClient.ImageV1().ImageStreams(o.Namespace).Get(o.FromImageStream, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
 		switch {
-		case o.FromImageStreamObject != nil:
-			// assume the author has prepared spec tags appropriately
-			for k, v := range inputIS.Annotations {
-				if _, ok := is.Annotations[k]; !ok {
-					is.Annotations[k] = v
-				}
-			}
-			is.Spec.Tags = inputIS.Spec.Tags
-			for _, tag := range inputIS.Spec.Tags {
-				ordered = append(ordered, tag.Name)
-			}
 		case len(inputIS.Status.PublicDockerImageRepository) > 0:
 			for _, tag := range inputIS.Status.Tags {
 				if len(tag.Items) == 0 {
@@ -296,6 +353,7 @@ func (o *NewOptions) Run() error {
 			}
 		}
 		fmt.Fprintf(o.ErrOut, "info: Found %d operator manifest directories on disk\n", len(ordered))
+
 	default:
 		for _, m := range o.Mappings {
 			ordered = append(ordered, m.Source)
@@ -310,7 +368,7 @@ func (o *NewOptions) Run() error {
 
 	is.TypeMeta = metav1.TypeMeta{APIVersion: "image.openshift.io/v1", Kind: "ImageStream"}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	name := o.Name
 	if len(name) == 0 {
 		name = now.Format("2006-01-02T150405Z")
@@ -321,6 +379,7 @@ func (o *NewOptions) Run() error {
 		is.Annotations = make(map[string]string)
 	}
 
+	// update any custom mappings and then sort the spec tags
 	for _, m := range o.Mappings {
 		tag := hasTag(is.Spec.Tags, m.Source)
 		if tag == nil {
@@ -334,11 +393,11 @@ func (o *NewOptions) Run() error {
 			Kind: "DockerImage",
 		}
 	}
+	sort.Slice(is.Spec.Tags, func(i, j int) bool {
+		return is.Spec.Tags[i].Name < is.Spec.Tags[j].Name
+	})
 
 	if o.Output == "json" {
-		sort.Slice(is.Spec.Tags, func(i, j int) bool {
-			return is.Spec.Tags[i].Name < is.Spec.Tags[j].Name
-		})
 		data, err := json.MarshalIndent(is, "", "  ")
 		if err != nil {
 			return err
@@ -347,10 +406,12 @@ func (o *NewOptions) Run() error {
 		return nil
 	}
 
-	if len(o.FromDirectory) == 0 {
+	if len(o.FromDirectory) == 0 && payload == nil {
 		if len(is.Spec.Tags) == 0 {
 			return fmt.Errorf("no component images defined, unable to build a release payload")
 		}
+
+		glog.V(4).Infof("Extracting manifests for release from input images")
 
 		dir := o.Directory
 		if len(dir) == 0 {
@@ -430,16 +491,49 @@ func (o *NewOptions) Run() error {
 		ordered = filteredNames
 	}
 
+	if len(o.Mirror) > 0 {
+		glog.V(4).Infof("Mirroring release contents to %s", o.Mirror)
+		copied := is.DeepCopy()
+		opts := NewMirrorOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+		opts.DryRun = o.DryRun
+		opts.ImageStream = copied
+		opts.To = o.Mirror
+		opts.SkipRelease = true
+		if err := opts.Run(); err != nil {
+			return err
+		}
+
+		if payload != nil {
+			glog.V(4).Infof("Rewriting payload to point to mirror")
+			targetFn, err := ComponentReferencesForImageStream(copied)
+			if err != nil {
+				return err
+			}
+			if err := payload.Rewrite(targetFn); err != nil {
+				return fmt.Errorf("failed to update contents after mirroring: %v", err)
+			}
+			is, err = payload.References()
+			if err != nil {
+				return fmt.Errorf("unable to recalculate image references: %v", err)
+			}
+		}
+	}
+
 	var operators []string
 	pr, pw := io.Pipe()
 	go func() {
 		var err error
-		operators, err = writePayload(pw, now, is, ordered, metadata, o.AllowMissingImages)
+		if payload != nil {
+			err = copyPayload(pw, now, is, payload.Path())
+		} else {
+			operators, err = writePayload(pw, now, is, ordered, metadata, o.AllowMissingImages)
+		}
 		pw.CloseWithError(err)
 	}()
 
 	switch {
 	case len(o.ToDir) > 0:
+		glog.V(4).Infof("Writing release contents to directory %s", o.ToDir)
 		if err := os.MkdirAll(o.ToDir, 0755); err != nil {
 			return err
 		}
@@ -476,6 +570,7 @@ func (o *NewOptions) Run() error {
 			}
 		}
 	case len(o.ToFile) > 0:
+		glog.V(4).Infof("Writing release contents to file %s", o.ToFile)
 		var w io.WriteCloser
 		if o.ToFile == "-" {
 			w = nopCloser{o.Out}
@@ -494,6 +589,7 @@ func (o *NewOptions) Run() error {
 			return err
 		}
 	case len(o.ToImage) > 0:
+		glog.V(4).Infof("Writing release contents to image %s", o.ToImage)
 		toRef, err := imagereference.Parse(o.ToImage)
 		if err != nil {
 			return fmt.Errorf("--to-image was not valid: %v", err)
@@ -505,10 +601,33 @@ func (o *NewOptions) Run() error {
 			toRef.Tag = o.Name
 		}
 		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+		options.DryRun = o.DryRun
 		options.From = o.ToImageBase
-		options.DropHistory = true
-		options.ConfigPatch = fmt.Sprintf(`{"Labels":{"io.openshift.release":"%s"}}`, is.Name)
-		options.MetaPatch = `{"architecture":"amd64","os":"linux"}`
+		options.ConfigurationCallback = func(dgst digest.Digest, config *docker10.DockerImageConfig) error {
+			// reset any base image info
+			if len(config.OS) == 0 {
+				config.OS = "linux"
+			}
+			if len(config.Architecture) == 0 {
+				config.Architecture = "amd64"
+			}
+			config.Container = ""
+			config.Parent = ""
+			config.Created = now
+			config.ContainerConfig = docker10.DockerConfig{}
+			config.Config.Labels = make(map[string]string)
+
+			// explicitly set release info
+			config.Config.Labels["io.openshift.release"] = is.Name
+			config.History = []docker10.DockerConfigHistory{
+				{Comment: "Release image for OpenShift", Created: now},
+			}
+			if len(dgst) > 0 {
+				config.Config.Labels["io.openshift.release.base-image-digest"] = dgst.String()
+			}
+			return nil
+		}
+
 		options.LayerStream = pr
 		options.To = toRef.Exact()
 		if err := options.Run(); err != nil {
@@ -522,17 +641,23 @@ func (o *NewOptions) Run() error {
 	}
 
 	sort.Strings(operators)
-	if len(operators) == 0 {
+	switch {
+	case operators == nil:
+	case len(operators) == 0:
 		fmt.Fprintf(o.ErrOut, "warning: No operator metadata was found, no operators will be part of the release.\n")
-	} else {
+	default:
 		fmt.Fprintf(o.Out, "Built update image content from %d operators in %d components: %s\n", len(operators), len(metadata), strings.Join(operators, ", "))
 	}
 
-	sort.Slice(is.Spec.Tags, func(i, j int) bool {
-		return is.Spec.Tags[i].Name < is.Spec.Tags[j].Name
-	})
-
 	return nil
+}
+
+func toJSONString(obj interface{}) string {
+	data, err := json.Marshal(obj)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
 }
 
 type nopCloser struct {
@@ -662,6 +787,70 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 		return nil, err
 	}
 	return operators, nil
+}
+
+func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, directory string) error {
+	directories := make(map[string]struct{})
+
+	gw := gzip.NewWriter(w)
+	tw := tar.NewWriter(gw)
+
+	parts := []string{"release-manifests"}
+
+	// ensure the directory exists in the tar bundle
+	if err := writeNestedTarHeader(tw, parts, directories, tar.Header{Mode: 0777, ModTime: now, Typeflag: tar.TypeDir}); err != nil {
+		return err
+	}
+
+	// write image metadata to release-manifests/image-references
+	data, err := json.MarshalIndent(is, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "image-references")...), Size: int64(len(data))}); err != nil {
+		return err
+	}
+	if _, err := tw.Write(data); err != nil {
+		return err
+	}
+
+	// copy each manifest in the given directory
+	contents, err := ioutil.ReadDir(directory)
+	if err != nil {
+		return err
+	}
+
+	// remove image-references because we already wrote it
+	takeFileByName(&contents, "image-references")
+
+	for _, fi := range contents {
+		if fi.IsDir() {
+			continue
+		}
+		filename := fi.Name()
+		src := filepath.Join(directory, filename)
+		dst := path.Join(append(append([]string{}, parts...), filename)...)
+		glog.V(4).Infof("Copying %s to %s", src, dst)
+
+		data, err := ioutil.ReadFile(src)
+		if err != nil {
+			return err
+		}
+		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: dst, Size: int64(len(data))}); err != nil {
+			return err
+		}
+		if _, err := tw.Write(data); err != nil {
+			return err
+		}
+	}
+
+	if err := tw.Close(); err != nil {
+		return err
+	}
+	if err := gw.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func hasTag(tags []imageapi.TagReference, tag string) *imageapi.TagReference {

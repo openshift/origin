@@ -81,6 +81,8 @@ type AppendImageOptions struct {
 	ConfigPatch string
 	MetaPatch   string
 
+	ConfigurationCallback func(dgst digest.Digest, config *docker10.DockerImageConfig) error
+
 	DropHistory bool
 	CreatedAt   string
 
@@ -220,9 +222,10 @@ func (o *AppendImageOptions) Run() error {
 	}
 
 	var (
-		base     *docker10.DockerImageConfig
-		layers   []distribution.Descriptor
-		fromRepo distribution.Repository
+		base       *docker10.DockerImageConfig
+		baseDigest digest.Digest
+		layers     []distribution.Descriptor
+		fromRepo   distribution.Repository
 	)
 	if from != nil {
 		repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.Insecure)
@@ -231,7 +234,7 @@ func (o *AppendImageOptions) Run() error {
 		}
 		fromRepo = repo
 
-		srcManifest, _, location, err := imagemanifest.FirstManifest(ctx, *from, repo, o.FilterOptions.Include)
+		srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, *from, repo, o.FilterOptions.Include)
 		if err != nil {
 			return fmt.Errorf("unable to read image %s: %v", from, err)
 		}
@@ -239,6 +242,7 @@ func (o *AppendImageOptions) Run() error {
 		if err != nil {
 			return fmt.Errorf("unable to parse image %s: %v", from, err)
 		}
+		baseDigest = srcDigest
 
 	} else {
 		base = add.NewEmptyConfig()
@@ -250,32 +254,40 @@ func (o *AppendImageOptions) Run() error {
 		base.Config = &docker10.DockerConfig{}
 	}
 
-	if glog.V(4) {
-		configJSON, _ := json.MarshalIndent(base, "", "  ")
-		glog.Infof("input config:\n%s\nlayers: %#v", configJSON, layers)
-	}
-
-	if createdAt == nil {
-		t := time.Now()
-		createdAt = &t
-	}
-	base.Created = *createdAt
-	if o.DropHistory {
-		base.ContainerConfig = docker10.DockerConfig{}
-		base.History = nil
-		base.Container = ""
-		base.DockerVersion = ""
-		base.Config.Image = ""
-	}
-
-	if len(o.ConfigPatch) > 0 {
-		if err := json.Unmarshal([]byte(o.ConfigPatch), base.Config); err != nil {
-			return fmt.Errorf("unable to patch image from --image: %v", err)
+	if o.ConfigurationCallback != nil {
+		if err := o.ConfigurationCallback(baseDigest, base); err != nil {
+			return err
 		}
-	}
-	if len(o.MetaPatch) > 0 {
-		if err := json.Unmarshal([]byte(o.MetaPatch), base); err != nil {
-			return fmt.Errorf("unable to patch image from --meta: %v", err)
+	} else {
+		if glog.V(4) {
+			configJSON, _ := json.MarshalIndent(base, "", "  ")
+			glog.Infof("input config:\n%s\nlayers: %#v", configJSON, layers)
+		}
+
+		base.Parent = ""
+
+		if createdAt == nil {
+			t := time.Now()
+			createdAt = &t
+		}
+		base.Created = *createdAt
+
+		if o.DropHistory {
+			base.ContainerConfig = docker10.DockerConfig{}
+			base.History = nil
+			base.Container = ""
+			base.DockerVersion = ""
+			base.Config.Image = ""
+		}
+		if len(o.ConfigPatch) > 0 {
+			if err := json.Unmarshal([]byte(o.ConfigPatch), base.Config); err != nil {
+				return fmt.Errorf("unable to patch image from --image: %v", err)
+			}
+		}
+		if len(o.MetaPatch) > 0 {
+			if err := json.Unmarshal([]byte(o.MetaPatch), base); err != nil {
+				return fmt.Errorf("unable to patch image from --meta: %v", err)
+			}
 		}
 	}
 
@@ -304,6 +316,14 @@ func (o *AppendImageOptions) Run() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// all v1 schema images must have a history that equals the number of non-zero blob
+	// layers, but v2 images do not require it
+	for i := len(base.History); i < len(layers); i++ {
+		base.History = append(base.History, docker10.DockerConfigHistory{
+			Created: base.Created,
+		})
 	}
 
 	if o.DryRun {
@@ -384,11 +404,11 @@ func (o *AppendImageOptions) Run() error {
 		return err
 	}
 
-	manifest, err := add.UploadSchema2Config(ctx, toBlobs, base, layers)
+	manifest, configJSON, err := add.UploadSchema2Config(ctx, toBlobs, base, layers)
 	if err != nil {
 		return fmt.Errorf("unable to upload the new image manifest: %v", err)
 	}
-	toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, manifest, to.Tag, toManifests, fromRepo.Blobs(ctx), toRepo.Named())
+	toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, manifest, to.Tag, toManifests, toRepo.Named(), fromRepo.Blobs(ctx), configJSON)
 	if err != nil {
 		return fmt.Errorf("unable to convert the image to a compatible schema version: %v", err)
 	}

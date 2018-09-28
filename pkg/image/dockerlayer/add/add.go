@@ -110,7 +110,7 @@ func AddLayerToConfig(config *docker10.DockerImageConfig, layer distribution.Des
 	config.Size += layer.Size
 }
 
-func UploadSchema2Config(ctx context.Context, blobs distribution.BlobService, config *docker10.DockerImageConfig, layers []distribution.Descriptor) (*schema2.DeserializedManifest, error) {
+func UploadSchema2Config(ctx context.Context, blobs distribution.BlobService, config *docker10.DockerImageConfig, layers []distribution.Descriptor) (*schema2.DeserializedManifest, []byte, error) {
 	// ensure the image size is correct before persisting
 	config.Size = 0
 	for _, layer := range layers {
@@ -118,27 +118,27 @@ func UploadSchema2Config(ctx context.Context, blobs distribution.BlobService, co
 	}
 	configJSON, err := json.Marshal(config)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	return putSchema2ImageConfig(ctx, blobs, dockerV2Schema2ConfigMediaType, configJSON, layers)
 }
 
 // putSchema2ImageConfig uploads the provided configJSON to the blob store and returns the generated manifest
 // for the requested image.
-func putSchema2ImageConfig(ctx context.Context, blobs distribution.BlobService, mediaType string, configJSON []byte, layers []distribution.Descriptor) (*schema2.DeserializedManifest, error) {
+func putSchema2ImageConfig(ctx context.Context, blobs distribution.BlobService, mediaType string, configJSON []byte, layers []distribution.Descriptor) (*schema2.DeserializedManifest, []byte, error) {
 	b := schema2.NewManifestBuilder(blobs, mediaType, configJSON)
 	for _, layer := range layers {
 		if err := b.AppendReference(layer); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	m, err := b.Build(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	manifest, ok := m.(*schema2.DeserializedManifest)
 	if !ok {
-		return nil, fmt.Errorf("unable to turn %T into a DeserializedManifest, unable to store image", m)
+		return nil, nil, fmt.Errorf("unable to turn %T into a DeserializedManifest, unable to store image", m)
 	}
-	return manifest, nil
+	return manifest, configJSON, nil
 }

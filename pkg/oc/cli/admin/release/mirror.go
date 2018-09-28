@@ -42,7 +42,8 @@ func NewMirrorOptions(streams genericclioptions.IOStreams) *MirrorOptions {
 // $ oc adm release mirror \
 //     --from=registry.svc.ci.openshift.org/openshift/v4.0-20180926095350 \
 //     '--to=quay.io/openshift-test-dev/origin-v4.0:v4.1.2-${component}' \
-//     --to-release-image quay.io/openshift-test-dev/origin-release:v4.1.2 \
+//     --to-release-image=quay.io/openshift-test-dev/origin-release:v4.1.2 \
+//     --to-image-base=registry.svc.ci.openshift.org/openshift/v4.0-20180926095350:cluster-version-operator \
 //     --rewrite
 //
 func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStreams) *cobra.Command {
@@ -71,11 +72,10 @@ func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.
 	flags := cmd.Flags()
 	flags.StringVar(&o.From, "from", o.From, "Image containing the release payload.")
 	flags.StringVar(&o.To, "to", o.To, "An image repository to push to.")
+	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Display information about the mirror without actually executing it.")
 
-	flags.StringVar(&o.ToRelease, "to-release-image", o.ToRelease, "Specify one or more alternate locations for the release image instead as tag 'release' in --to")
 	flags.BoolVar(&o.SkipRelease, "skip-release-image", o.SkipRelease, "Do not push the release image.")
-	flags.BoolVar(&o.Rewrite, "rewrite", o.Rewrite, "Update the release image with the new image locations.")
-	flags.StringVar(&o.Rename, "rename", o.Rename, "Change the name of the release - implies --rewrite.")
+	flags.StringVar(&o.ToRelease, "to-release-image", o.ToRelease, "Specify an alternate locations for the release image instead as tag 'release' in --to")
 	return cmd
 }
 
@@ -84,12 +84,14 @@ type MirrorOptions struct {
 
 	From string
 
-	To        string
-	ToRelease string
-
-	Rename      string
-	Rewrite     bool
+	To          string
+	ToRelease   string
 	SkipRelease bool
+
+	DryRun bool
+
+	ImageStream *imageapi.ImageStream
+	TargetFn    func(component string) imagereference.DockerImageReference
 }
 
 func (o *MirrorOptions) Complete(cmd *cobra.Command, args []string) error {
@@ -99,7 +101,7 @@ func (o *MirrorOptions) Complete(cmd *cobra.Command, args []string) error {
 const replaceComponentMarker = "X-X-X-X-X-X-X"
 
 func (o *MirrorOptions) Run() error {
-	if len(o.From) == 0 {
+	if len(o.From) == 0 && o.ImageStream == nil {
 		return fmt.Errorf("must specify an image containing a release payload with --from")
 	}
 
@@ -111,16 +113,8 @@ func (o *MirrorOptions) Run() error {
 		return fmt.Errorf("--skip-release-image and --to-release-image may not both be specified")
 	}
 
-	if len(o.Rename) > 0 {
-		o.Rewrite = true
-	}
-
-	src := o.From
-	srcRef, err := imagereference.Parse(src)
-	if err != nil {
-		return err
-	}
 	var recreateRequired bool
+	var hasPrefix bool
 	var targetFn func(name string) imagereference.DockerImageReference
 	dst := o.To
 	if strings.Contains(dst, "${component}") {
@@ -153,35 +147,63 @@ func (o *MirrorOptions) Run() error {
 			copied.Tag = name
 			return copied
 		}
+		hasPrefix = true
 	}
 
-	if recreateRequired && !o.Rewrite {
-		return fmt.Errorf("when mirroring to multiple repositories, rewriting the release is required")
+	o.TargetFn = targetFn
+
+	if recreateRequired {
+		return fmt.Errorf("when mirroring to multiple repositories, use the new release command with --from-release and --mirror")
 	}
 
-	var is *imageapi.ImageStream
-	var fromDigest digest.Digest
+	is := o.ImageStream
+	if is == nil {
+		o.ImageStream = &imageapi.ImageStream{}
+		is = o.ImageStream
+		// load image references
+		buf := &bytes.Buffer{}
+		extractOpts := NewExtractOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
+		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {}
+		extractOpts.From = o.From
+		extractOpts.File = "image-references"
+		if err := extractOpts.Run(); err != nil {
+			return fmt.Errorf("unable to retrieve release image info: %v", err)
+		}
+		if err := json.Unmarshal(buf.Bytes(), &is); err != nil {
+			return fmt.Errorf("unable to load image-references from release payload: %v", err)
+		}
+		if is.Kind != "ImageStream" || is.APIVersion != "image.openshift.io/v1" {
+			return fmt.Errorf("unrecognized image-references in release payload")
+		}
+	}
 
-	// load image references
-	buf := &bytes.Buffer{}
-	extractOpts := NewExtractOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
-	extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
-		fromDigest = dgst
-	}
-	extractOpts.From = o.From
-	extractOpts.File = "image-references"
-	if err := extractOpts.Run(); err != nil {
-		return fmt.Errorf("unable to retrieve release image info: %v", err)
-	}
-	if err := json.Unmarshal(buf.Bytes(), &is); err != nil {
-		return fmt.Errorf("unable to load image-references from release payload: %v", err)
-	}
-	if is.Kind != "ImageStream" || is.APIVersion != "image.openshift.io/v1" {
-		return fmt.Errorf("unrecognized image-references in release payload")
+	var mappings []mirror.Mapping
+	if len(o.From) > 0 && !o.SkipRelease {
+		src := o.From
+		srcRef, err := imagereference.Parse(src)
+		if err != nil {
+			return err
+		}
+		if len(o.ToRelease) > 0 {
+			dstRef, err := imagereference.Parse(o.ToRelease)
+			if err != nil {
+				return fmt.Errorf("invalid --to-release-image: %v", err)
+			}
+			mappings = append(mappings, mirror.Mapping{
+				Type:        mirror.DestinationRegistry,
+				Source:      srcRef,
+				Destination: dstRef,
+			})
+		} else if !o.SkipRelease {
+			mappings = append(mappings, mirror.Mapping{
+				Type:        mirror.DestinationRegistry,
+				Source:      srcRef,
+				Destination: targetFn("release"),
+			})
+		}
 	}
 
 	// build the mapping list for mirroring and rewrite if necessary
-	var mappings []mirror.Mapping
 	for i := range is.Spec.Tags {
 		tag := &is.Spec.Tags[i]
 		if tag.From == nil || tag.From.Kind != "DockerImage" {
@@ -191,6 +213,10 @@ func (o *MirrorOptions) Run() error {
 		if err != nil {
 			return fmt.Errorf("release tag %q is not valid: %v", tag.Name, err)
 		}
+		if len(from.Tag) > 0 || len(from.ID) == 0 {
+			return fmt.Errorf("image-references should only contain pointers to images by digest: %s", tag.From.Name)
+		}
+
 		mappings = append(mappings, mirror.Mapping{
 			Type:        mirror.DestinationRegistry,
 			Source:      from,
@@ -198,74 +224,67 @@ func (o *MirrorOptions) Run() error {
 		})
 		glog.V(2).Infof("Mapping %#v", mappings[len(mappings)-1])
 
-		if o.Rewrite {
-			if len(from.Tag) > 0 || len(from.ID) == 0 {
-				return fmt.Errorf("image-references should only contain pointers to images by digest: %s", tag.From.Name)
-			}
-			dstRef := targetFn(tag.Name)
-			dstRef.Tag = ""
-			dstRef.ID = from.ID
-			tag.From.Name = dstRef.Exact()
-		}
+		dstRef := targetFn(tag.Name)
+		dstRef.Tag = ""
+		dstRef.ID = from.ID
+		tag.From.Name = dstRef.Exact()
 	}
 
 	if len(mappings) == 0 {
 		fmt.Fprintf(o.ErrOut, "warning: Release image contains no image references - is this a valid release?\n")
 	}
 
-	if len(o.ToRelease) > 0 {
-		dstRef, err := imagereference.Parse(o.ToRelease)
-		if err != nil {
-			return fmt.Errorf("invalid --to-release-image: %v", err)
-		}
-		mappings = append(mappings, mirror.Mapping{
-			Type:        mirror.DestinationRegistry,
-			Source:      srcRef,
-			Destination: dstRef,
-		})
-	} else if !o.SkipRelease {
-		mappings = append(mappings, mirror.Mapping{
-			Type:        mirror.DestinationRegistry,
-			Source:      srcRef,
-			Destination: targetFn("release"),
-		})
-	}
-
 	fmt.Fprintf(os.Stderr, "info: Mirroring %d images to %s ...\n", len(mappings), dst)
 	opts := mirror.NewMirrorImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.Mappings = mappings
+	opts.DryRun = o.DryRun
+	opts.ManifestUpdateCallback = func(registry string, manifests map[digest.Digest]digest.Digest) error {
+		// when uploading to a schema1 registry, manifest ids change and we must remap them
+		for i := range is.Spec.Tags {
+			tag := &is.Spec.Tags[i]
+			if tag.From == nil || tag.From.Kind != "DockerImage" {
+				continue
+			}
+			ref, err := imagereference.Parse(tag.From.Name)
+			if err != nil {
+				return fmt.Errorf("unable to parse image reference %s (%s): %v", tag.Name, tag.From.Name, err)
+			}
+			if ref.Registry != registry {
+				continue
+			}
+			if changed, ok := manifests[digest.Digest(ref.ID)]; ok {
+				ref.ID = changed.String()
+				glog.V(4).Infof("During mirroring, image %s was updated to digest %s", tag.From.Name, changed)
+				tag.From.Name = ref.Exact()
+			}
+		}
+		return nil
+	}
 	if err := opts.Run(); err != nil {
 		return err
 	}
 
-	if o.Rewrite {
-		glog.V(2).Infof("Building a release from %s", o.From)
-
-		if is.Annotations == nil {
-			is.Annotations = make(map[string]string)
-		}
-		is.Annotations["release.openshift.io/mirror-from"] = o.From
-		is.Annotations["release.openshift.io/mirror-from-digest"] = fromDigest.String()
-
-		newOpts := NewNewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-		newOpts.Name = is.Name
-		if len(o.Rename) > 0 {
-			newOpts.Name = o.Rename
-		}
-		newOpts.FromImageStreamObject = is
-		newOpts.ToImageBase = targetFn("cluster-version-operator").Exact()
-		if len(o.ToRelease) > 0 {
-			newOpts.ToImage = o.ToRelease
-		} else {
-			newOpts.ToImage = targetFn("release").Exact()
-		}
-		if err := newOpts.Run(); err != nil {
-			return err
-		}
-		fmt.Fprintf(o.Out, "\nSuccess\nUpdate image:  %s\nMirror prefix: %s\n", newOpts.ToImage, o.To)
-		return nil
+	to := o.ToRelease
+	if len(to) == 0 {
+		to = targetFn("release").String()
 	}
-
-	fmt.Fprintf(o.Out, "\nSuccess\nUpdate image:  %s\nMirror prefix: %s\n", targetFn("release").String(), o.To)
+	if hasPrefix {
+		fmt.Fprintf(o.Out, "\nSuccess\nUpdate image:  %s\nMirror prefix: %s\n", to, o.To)
+	} else {
+		fmt.Fprintf(o.Out, "\nSuccess\nUpdate image:  %s\nMirrored to: %s\n", to, o.To)
+	}
 	return nil
+}
+
+func sourceImageRef(is *imageapi.ImageStream, name string) (string, bool) {
+	for _, tag := range is.Spec.Tags {
+		if tag.Name != name {
+			continue
+		}
+		if tag.From == nil || tag.From.Kind != "DockerImage" {
+			return "", false
+		}
+		return tag.From.Name, true
+	}
+	return "", false
 }

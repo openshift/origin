@@ -28,6 +28,10 @@ func (p *Payload) Path() string {
 	return p.path
 }
 
+// Rewrite updates the image stream to point to the locations described by the provided function.
+// If a new ID appears in the returned reference, it will be used instead of the existing digest.
+// All references in manifest files will be updated and then the image stream will be written to
+// the correct location with any updated metadata.
 func (p *Payload) Rewrite(fn func(component string) imagereference.DockerImageReference) error {
 	is, err := p.References()
 	if err != nil {
@@ -35,7 +39,8 @@ func (p *Payload) Rewrite(fn func(component string) imagereference.DockerImageRe
 	}
 
 	replacements := make(map[string]string)
-	for _, tag := range is.Spec.Tags {
+	for i := range is.Spec.Tags {
+		tag := &is.Spec.Tags[i]
 		if tag.From == nil || tag.From.Kind != "DockerImage" {
 			continue
 		}
@@ -48,10 +53,13 @@ func (p *Payload) Rewrite(fn func(component string) imagereference.DockerImageRe
 			return fmt.Errorf("image reference tag %q in payload does not point to an image digest - unable to rewrite payload", tag.Name)
 		}
 		ref := fn(tag.Name)
-		ref.Tag = ""
-		ref.ID = oldRef.ID
+		if len(ref.ID) == 0 {
+			ref.Tag = ""
+			ref.ID = oldRef.ID
+		}
 		newImage := ref.Exact()
 		replacements[oldImage] = newImage
+		tag.From.Name = newImage
 	}
 
 	if glog.V(5) {
@@ -84,9 +92,10 @@ func (p *Payload) Rewrite(fn func(component string) imagereference.DockerImageRe
 		if err != nil {
 			return fmt.Errorf("unable to rewrite the contents of %s: %v", path, err)
 		}
-		if !bytes.Equal(data, out) {
-			glog.V(6).Infof("Rewrote\n%s\n\nto\n\n%s", string(data), string(out))
+		if bytes.Equal(data, out) {
+			continue
 		}
+		glog.V(6).Infof("Rewrote\n%s\n\nto\n\n%s\n", string(data), string(out))
 		if err := ioutil.WriteFile(path, out, file.Mode()); err != nil {
 			return err
 		}
@@ -239,5 +248,26 @@ func NewExactMapper(mappings map[string]string) (ManifestMapper, error) {
 			data = pattern.ReplaceAll(data, []byte(to))
 		}
 		return data, nil
+	}, nil
+}
+
+func ComponentReferencesForImageStream(is *imageapi.ImageStream) (func(string) imagereference.DockerImageReference, error) {
+	components := make(map[string]imagereference.DockerImageReference)
+	for _, tag := range is.Spec.Tags {
+		if tag.From == nil || tag.From.Kind != "DockerImage" {
+			continue
+		}
+		ref, err := imagereference.Parse(tag.From.Name)
+		if err != nil {
+			return nil, fmt.Errorf("reference for %q is invalid: %v", tag.Name, err)
+		}
+		components[tag.Name] = ref
+	}
+	return func(component string) imagereference.DockerImageReference {
+		ref, ok := components[component]
+		if !ok {
+			panic(fmt.Errorf("unknown component %s", component))
+		}
+		return ref
 	}, nil
 }
