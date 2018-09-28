@@ -322,8 +322,6 @@ var (
 			`Network should set TCP CLOSE_WAIT timeout`,                      // possibly some difference between ubuntu and fedora
 			`should allow ingress access on one named port`,                  // broken even with network policy on
 
-			`CSI plugin test using CSI driver: hostPath should provision storage`, // hangs waiting for binding, csi-pod doesn't start https://bugzilla.redhat.com/show_bug.cgi?id=1622670
-
 			`\[NodeFeature:Sysctls\]`, // needs SCC support
 
 			`validates that there is no conflict between pods with same hostPort but different hostIP and protocol`, // https://github.com/kubernetes/kubernetes/issues/61018
