@@ -87,9 +87,14 @@ var (
 `)
 )
 
+type LayerInfo struct {
+	Index      int
+	Descriptor distribution.Descriptor
+}
+
 // TarEntryFunc is called once per entry in the tar file. It may return
 // an error, or false to stop processing.
-type TarEntryFunc func(*tar.Header, io.Reader) (cont bool, err error)
+type TarEntryFunc func(*tar.Header, LayerInfo, io.Reader) (cont bool, err error)
 
 type Options struct {
 	Mappings []Mapping
@@ -116,6 +121,9 @@ type Options struct {
 	// by name and only the entry in the highest layer will be passed to the callback. Returning false
 	// will halt processing of the image.
 	TarEntryCallback TarEntryFunc
+	// AllLayers ensures the TarEntryCallback is invoked for all files, and will cause the callback
+	// order to start at the lowest layer and work outwards.
+	AllLayers bool
 }
 
 func NewOptions(streams genericclioptions.IOStreams) *Options {
@@ -151,6 +159,7 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 
 	flag.StringSliceVar(&o.Paths, "path", o.Paths, "Extract only part of an image. Must be SRC:DST where SRC is the path within the image and DST a local directory. If not specified the default is to extract everything to the current directory.")
 	flag.BoolVar(&o.OnlyFiles, "only-files", o.OnlyFiles, "Only extract regular files and directories from the image.")
+	flag.BoolVar(&o.AllLayers, "all-layers", o.AllLayers, "For dry-run mode, process from lowest to highest layer and don't omit duplicate files.")
 
 	return cmd
 }
@@ -206,6 +215,9 @@ func parseMappings(images, paths []string, requireEmpty bool) ([]Mapping, error)
 			}
 			if len(mapping.To) > 0 {
 				fi, err := os.Stat(mapping.To)
+				if os.IsNotExist(err) {
+					return nil, fmt.Errorf("destination path does not exist: %s", mapping.To)
+				}
 				if err != nil {
 					return nil, fmt.Errorf("invalid argument: %s", err)
 				}
@@ -223,7 +235,7 @@ func parseMappings(images, paths []string, requireEmpty bool) ([]Mapping, error)
 						return nil, fmt.Errorf("could not check for empty directory: %v", err)
 					}
 					if len(names) > 0 {
-						return nil, fmt.Errorf("directory %s must be empty, pass --confirm to potentially overwrite contents of directory", mapping.To)
+						return nil, fmt.Errorf("directory %s must be empty, pass --confirm to overwrite contents of directory", mapping.To)
 					}
 				}
 			}
@@ -251,7 +263,7 @@ func (o *Options) Complete(cmd *cobra.Command, args []string) error {
 	}
 
 	var err error
-	o.Mappings, err = parseMappings(args, o.Paths, !o.Confirm)
+	o.Mappings, err = parseMappings(args, o.Paths, !o.Confirm && !o.DryRun)
 	if err != nil {
 		return err
 	}
@@ -348,22 +360,22 @@ func (o *Options) Run() error {
 				if o.DryRun {
 					path := mapping.To
 					out := o.Out
-					byEntry = func(hdr *tar.Header, r io.Reader) (bool, error) {
+					byEntry = func(hdr *tar.Header, layerInfo LayerInfo, r io.Reader) (bool, error) {
 						if len(hdr.Name) == 0 {
 							return true, nil
 						}
 						mode := hdr.FileInfo().Mode().String()
 						switch hdr.Typeflag {
 						case tar.TypeDir:
-							fmt.Fprintf(out, "%s %12d %s\n", mode, hdr.Size, filepath.Join(path, hdr.Name))
+							fmt.Fprintf(out, "%2d %s %12d %s\n", layerInfo.Index, mode, hdr.Size, filepath.Join(path, hdr.Name))
 						case tar.TypeReg, tar.TypeRegA:
-							fmt.Fprintf(out, "%s %12d %s\n", mode, hdr.Size, filepath.Join(path, hdr.Name))
+							fmt.Fprintf(out, "%2d %s %12d %s\n", layerInfo.Index, mode, hdr.Size, filepath.Join(path, hdr.Name))
 						case tar.TypeLink:
-							fmt.Fprintf(out, "%s %12d %s -> %s\n", mode, hdr.Size, hdr.Name, filepath.Join(path, hdr.Linkname))
+							fmt.Fprintf(out, "%2d %s %12d %s -> %s\n", layerInfo.Index, mode, hdr.Size, hdr.Name, filepath.Join(path, hdr.Linkname))
 						case tar.TypeSymlink:
-							fmt.Fprintf(out, "%s %12d %s -> %s\n", mode, hdr.Size, hdr.Name, filepath.Join(path, hdr.Linkname))
+							fmt.Fprintf(out, "%2d %s %12d %s -> %s\n", layerInfo.Index, mode, hdr.Size, hdr.Name, filepath.Join(path, hdr.Linkname))
 						default:
-							fmt.Fprintf(out, "%s %12d %s %x\n", mode, hdr.Size, filepath.Join(path, hdr.Name), hdr.Typeflag)
+							fmt.Fprintf(out, "%2d %s %12d %s %x\n", layerInfo.Index, mode, hdr.Size, filepath.Join(path, hdr.Name), hdr.Typeflag)
 						}
 						return true, nil
 					}
@@ -371,14 +383,19 @@ func (o *Options) Run() error {
 
 				// walk the layers in reverse order, only showing a given path once
 				alreadySeen := make(map[string]struct{})
-				if byEntry != nil {
-					for i, j := 0, len(filteredLayers)-1; i < j; i, j = i+1, j-1 {
-						filteredLayers[i], filteredLayers[j] = filteredLayers[j], filteredLayers[i]
+				var layerInfos []LayerInfo
+				if byEntry != nil && !o.AllLayers {
+					for i := len(filteredLayers) - 1; i >= 0; i-- {
+						layerInfos = append(layerInfos, LayerInfo{Index: i, Descriptor: filteredLayers[i]})
+					}
+				} else {
+					for i := range filteredLayers {
+						layerInfos = append(layerInfos, LayerInfo{Index: i, Descriptor: filteredLayers[i]})
 					}
 				}
 
-				for i := range filteredLayers {
-					layer := &filteredLayers[i]
+				for _, info := range layerInfos {
+					layer := info.Descriptor
 
 					cont, err := func() (bool, error) {
 						fromBlobs := repo.Blobs(ctx)
@@ -398,7 +415,7 @@ func (o *Options) Run() error {
 						}
 
 						if byEntry != nil {
-							return layerByEntry(r, options, byEntry, alreadySeen)
+							return layerByEntry(r, options, info, byEntry, o.AllLayers, alreadySeen)
 						}
 
 						glog.V(4).Infof("Extracting layer %s with options %#v", layer.Digest, options)
@@ -424,7 +441,7 @@ func (o *Options) Run() error {
 	})
 }
 
-func layerByEntry(r io.Reader, options *archive.TarOptions, fn TarEntryFunc, alreadySeen map[string]struct{}) (bool, error) {
+func layerByEntry(r io.Reader, options *archive.TarOptions, layerInfo LayerInfo, fn TarEntryFunc, allLayers bool, alreadySeen map[string]struct{}) (bool, error) {
 	rc, err := dockerarchive.DecompressStream(r)
 	if err != nil {
 		return false, err
@@ -452,13 +469,13 @@ func layerByEntry(r io.Reader, options *archive.TarOptions, fn TarEntryFunc, alr
 		}
 
 		// prevent duplicates from being sent to the handler
-		if _, ok := alreadySeen[hdr.Name]; ok {
+		if _, ok := alreadySeen[hdr.Name]; ok && !allLayers {
 			continue
 		}
 		alreadySeen[hdr.Name] = struct{}{}
 		// TODO: need to do prefix filtering for whiteouts
 
-		cont, err := fn(hdr, tr)
+		cont, err := fn(hdr, layerInfo, tr)
 		if err != nil {
 			return false, err
 		}
