@@ -20,8 +20,6 @@ import (
 	buildinformer "github.com/openshift/client-go/build/informers/externalversions"
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
 	imageinformer "github.com/openshift/client-go/image/informers/externalversions"
-	networkclient "github.com/openshift/client-go/network/clientset/versioned"
-	networkinformer "github.com/openshift/client-go/network/informers/externalversions"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
@@ -109,7 +107,6 @@ type combinedInformers struct {
 	authorizationInformers authorizationinformer.SharedInformerFactory
 	buildInformers         buildinformer.SharedInformerFactory
 	imageInformers         imageinformer.SharedInformerFactory
-	networkInformers       networkinformer.SharedInformerFactory
 	oauthInformers         oauthinformer.SharedInformerFactory
 	quotaInformers         quotainformer.SharedInformerFactory
 	routeInformers         routeinformer.SharedInformerFactory
@@ -136,10 +133,6 @@ func newInformerFactory(clientConfig *rest.Config) (informers.SharedInformerFact
 		return nil, err
 	}
 	imageClient, err := imageclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	networkClient, err := networkclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +171,6 @@ func newInformerFactory(clientConfig *rest.Config) (informers.SharedInformerFact
 		authorizationInformers: authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
 		buildInformers:         buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
 		imageInformers:         imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
-		networkInformers:       networkinformer.NewSharedInformerFactory(networkClient, defaultInformerResyncPeriod),
 		oauthInformers:         oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
 		quotaInformers:         quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		routeInformers:         routeinformer.NewSharedInformerFactory(routerClient, defaultInformerResyncPeriod),
@@ -208,9 +200,6 @@ func (i *combinedInformers) GetBuildInformers() buildinformer.SharedInformerFact
 func (i *combinedInformers) GetImageInformers() imageinformer.SharedInformerFactory {
 	return i.imageInformers
 }
-func (i *combinedInformers) GetNetworkInformers() networkinformer.SharedInformerFactory {
-	return i.networkInformers
-}
 func (i *combinedInformers) GetOauthInformers() oauthinformer.SharedInformerFactory {
 	return i.oauthInformers
 }
@@ -237,7 +226,6 @@ func (i *combinedInformers) Start(stopCh <-chan struct{}) {
 	i.authorizationInformers.Start(stopCh)
 	i.buildInformers.Start(stopCh)
 	i.imageInformers.Start(stopCh)
-	i.networkInformers.Start(stopCh)
 	i.oauthInformers.Start(stopCh)
 	i.quotaInformers.Start(stopCh)
 	i.routeInformers.Start(stopCh)
@@ -261,9 +249,6 @@ func (i *combinedInformers) ToGenericInformer() GenericResourceInformer {
 		}),
 		genericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return i.GetImageInformers().ForResource(resource)
-		}),
-		genericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
-			return i.GetNetworkInformers().ForResource(resource)
 		}),
 		genericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return i.GetOauthInformers().ForResource(resource)
