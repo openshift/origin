@@ -583,6 +583,12 @@ func (o *GetOptions) watch(f cmdutil.Factory, cmd *cobra.Command, args []string)
 				return false, nil
 			}
 
+			// if we are watching a single resource, ignore events meant for other resources
+			info, err := meta.Accessor(e.Object)
+			if !isList && err == nil && len(infos) > 0 && info.GetName() != infos[0].Name {
+				return false, err
+			}
+
 			// printing always takes the internal version, but the watch event uses externals
 			// TODO fix printing to use server-side or be version agnostic
 			internalGV := mapping.GroupVersionKind.GroupKind().WithVersion(runtime.APIVersionInternal).GroupVersion()
