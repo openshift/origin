@@ -1231,7 +1231,7 @@ func createSecPod(config *localTestConfig, volume *localTestVolume, hostIPC bool
 
 func createLocalPod(config *localTestConfig, volume *localTestVolume, fsGroup *int64) (*v1.Pod, error) {
 	By("Creating a pod")
-	return framework.CreateSecPod(config.client, config.ns, []*v1.PersistentVolumeClaim{volume.pvc}, false, "", false, false, selinuxLabel, fsGroup, framework.PodStartShortTimeout)
+	return framework.CreateSecPod(config.client, config.ns, []*v1.PersistentVolumeClaim{volume.pvc}, false, "", false, false, selinuxLabel, fsGroup, 2*time.Minute)
 }
 
 func createAndMountTmpfsLocalVolume(config *localTestConfig, dir string, node *v1.Node) {

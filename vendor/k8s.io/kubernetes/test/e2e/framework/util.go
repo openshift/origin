@@ -1421,6 +1421,7 @@ func WaitTimeoutForPodRunningInNamespace(c clientset.Interface, podName, namespa
 	return wait.PollImmediate(Poll, timeout, podRunning(c, podName, namespace))
 }
 
+
 func podRunning(c clientset.Interface, podName, namespace string) wait.ConditionFunc {
 	return func() (bool, error) {
 		pod, err := c.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
@@ -1434,6 +1435,29 @@ func podRunning(c clientset.Interface, podName, namespace string) wait.Condition
 			return false, conditions.ErrPodCompleted
 		}
 		return false, nil
+	}
+}
+
+// WaitTimeoutForEventForPod waits for an event to occur for a pod
+func WaitTimeoutForEventForPod(c clientset.Interface, podName, namespace, event, msg string, timeout time.Duration) error {
+	return wait.PollImmediate(Poll, timeout, eventOccured(c, podName, namespace, event, msg))
+}
+
+func eventOccured(c clientset.Interface, podName, namespace, event, errorMsg string) wait.ConditionFunc {
+	options := metav1.ListOptions{FieldSelector: event}
+	return func() (bool, error) {
+		events, err := c.CoreV1().Events(namespace).List(options)
+		if err != nil {
+			return false, fmt.Errorf("got error while getting pod events: %s", err)
+		}
+		if len(events.Items) == 0 {
+			return false, fmt.Errorf("no events found")
+		}
+		if strings.Contains(events.Items[0].Message, errorMsg) {
+			return false, fmt.Errorf("%q error not found", errorMsg)
+		} else {
+			return true, nil
+		}
 	}
 }
 
