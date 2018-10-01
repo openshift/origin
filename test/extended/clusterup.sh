@@ -219,10 +219,6 @@ function os::test::extended::clusterup::portinuse_cleanup () {
 
 readonly default_tests=(
     "noargs"
-    "hostdirs"
-    "publichostname"
-    "numerichostname"
-    "portinuse"
 )
 
 # BASE_DIR is the base directory used by all tests. This must be a /tmp directory to avoid
