@@ -47,7 +47,6 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/bulk"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/print"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
@@ -167,19 +166,6 @@ type AppOptions struct {
 	RESTClientGetter genericclioptions.RESTClientGetter
 
 	genericclioptions.IOStreams
-}
-
-type versionedPrintObj struct {
-	printer printers.ResourcePrinter
-	cmd     *cobra.Command
-}
-
-func (p *versionedPrintObj) PrintObj(obj runtime.Object, out io.Writer) error {
-	printFn := print.VersionedPrintObject(func(cmd *cobra.Command, obj runtime.Object, out io.Writer) error {
-		return p.printer.PrintObj(obj, out)
-	}, p.cmd, out)
-
-	return printFn(obj)
 }
 
 //Complete sets all common default options for commands (new-app and new-build)
@@ -344,18 +330,22 @@ func (o *AppOptions) RunNewApp() error {
 		}
 
 		if o.Action.ShouldPrint() {
-			// TODO(juanvallejo): this needs to be fixed by updating QueryResult.List to be of type corev1.List
-			printableList := &corev1.List{
-				// this is ok because we know exactly how we want to be serialized
-				TypeMeta: metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "List"},
+			list := &unstructured.UnstructuredList{
+				Object: map[string]interface{}{
+					"kind":       "List",
+					"apiVersion": "v1",
+					"metadata":   map[string]interface{}{},
+				},
 			}
-			for _, obj := range result.List.Items {
-				printableList.Items = append(printableList.Items, runtime.RawExtension{
-					Object: obj,
-				})
+			for _, item := range result.List.Items {
+				unstructuredItem, err := runtime.DefaultUnstructuredConverter.ToUnstructured(item)
+				if err != nil {
+					return err
+				}
+				list.Items = append(list.Items, unstructured.Unstructured{Object: unstructuredItem})
 			}
 
-			return o.Printer.PrintObj(printableList, o.Out)
+			return o.Printer.PrintObj(list, o.Out)
 		}
 
 		return printHumanReadableQueryResult(result, out, o.BaseName, o.CommandName)
