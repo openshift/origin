@@ -32290,6 +32290,9 @@ spec:
   - name: etcd
     image: {{ .Image }}
     imagePullPolicy: {{ .ImagePullPolicy }}
+    securityContext:
+      runAsNonRoot: false
+      privileged: true
     workingDir: /var/run/etcd/data
     command: ["/usr/local/bin/etcd"]
     args:
@@ -32313,8 +32316,7 @@ spec:
       path: {{ .TlsDir }}
   - name: data
     hostPath:
-      path: {{ .EtcdDataDir }}
-`)
+      path: {{ .EtcdDataDir }}`)
 
 func installEtcdEtcdYamlBytes() ([]byte, error) {
 	return _installEtcdEtcdYaml, nil

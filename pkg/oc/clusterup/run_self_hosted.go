@@ -23,6 +23,10 @@ import (
 )
 
 func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
+	// BuildConfig will:
+	// 1. Render the TLS files (certicates/secrets/kubeconfig/etc.)
+	// 2. Render the bootstrap (phase 1) control plane manifests (kube api server, controller manager and scheduler)
+	// 3. Render the phase 2 control plane manifests
 	configDirs, err := c.BuildConfig()
 	if err != nil {
 		return err
@@ -126,21 +130,19 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 			return nil, err
 		}
 	}
-
-	bk := bootkube.BootkubeRunConfig{
-		BootkubeImage:        OpenShiftImages.Get("bootkube").ToPullSpec(c.ImageTemplate).String(),
-		StaticPodManifestDir: configs.podManifestDir,
-		AssetsDir:            configs.assetsDir,
-		ContainerBinds:       []string{},
+	if _, err := os.Stat(filepath.Join(configs.kubernetesDir, "lock")); os.IsNotExist(err) {
+		if err := os.MkdirAll(filepath.Join(configs.kubernetesDir, "lock"), 0777); err != nil {
+			return nil, err
+		}
+	}
+	// We need to make the directory world writeable to bypass selinux
+	if err := os.Chmod(filepath.Join(configs.kubernetesDir, "lock"), 0777); err != nil {
+		return nil, err
 	}
 
 	// If --public-hostname is specified, use that instead of 127.0.0.1
 	hostIP, err := c.determineIP()
 	if err != nil {
-		return nil, err
-	}
-
-	if err := bk.RemoveApiserver(configs.kubernetesDir); err != nil {
 		return nil, err
 	}
 
@@ -159,6 +161,8 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 			return nil, err
 		}
 	}
+
+	// Overrides allow to tweak the api server config
 	apiserverConfigOverride := filepath.Join(configDir, "kube-apiserver-config-overrides.yaml")
 	if err := ioutil.WriteFile(apiserverConfigOverride,
 		[]byte(`apiVersion: kubecontrolplane.config.openshift.io/v1
@@ -166,6 +170,8 @@ kind: KubeAPIServerConfig
 `), 0644); err != nil {
 		return nil, err
 	}
+
+	// Overrides allow to tweak the controller manager config
 	controllerManagerConfigOverride := filepath.Join(configDir, "kube-controller-manager-config-overrides.yaml")
 	if err := ioutil.WriteFile(controllerManagerConfigOverride,
 		[]byte(`apiVersion: kubecontrolplane.config.openshift.io/v1
@@ -180,6 +186,7 @@ kind: KubeControllerManagerConfig
 		AssetInputDir:   filepath.Join(configs.assetsDir, "tls"),
 		AssetsOutputDir: configs.assetsDir,
 		ConfigOutputDir: configDir,
+		LockDir:         filepath.Join(configs.kubernetesDir, "lock"),
 		ConfigFileName:  "kube-apiserver-config.yaml",
 		ConfigOverrides: apiserverConfigOverride,
 		AdditionalFlags: []string{fmt.Sprintf("--manifest-etcd-server-urls=https://127.0.0.1:2379")},
@@ -189,6 +196,8 @@ kind: KubeControllerManagerConfig
 	}
 
 	// generate kube-controller-manager manifests using the corresponding operator render command
+	// TODO: This will also render the scheduler and checkpointer manifests. Those should be owned by their operators but for now they are owned
+	//       by controller manager operator.
 	controllerConfig := controlplaneoperator.RenderConfig{
 		OperatorImage:   OpenShiftImages.Get("cluster-kube-controller-manager-operator").ToPullSpec(c.ImageTemplate).String(),
 		AssetInputDir:   filepath.Join(configs.assetsDir, "tls"),

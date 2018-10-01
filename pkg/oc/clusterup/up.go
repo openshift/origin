@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/docker/docker/api/types/versions"
@@ -234,7 +235,7 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 	}
 
 	c.HostDataDir = path.Join(c.BaseDir, "etcd")
-	if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(c.HostDataDir, "data"), 0755); err != nil {
 		return err
 	}
 

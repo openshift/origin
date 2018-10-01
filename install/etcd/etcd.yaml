@@ -13,6 +13,9 @@ spec:
   - name: etcd
     image: {{ .Image }}
     imagePullPolicy: {{ .ImagePullPolicy }}
+    securityContext:
+      runAsNonRoot: false
+      privileged: true
     workingDir: /var/run/etcd/data
     command: ["/usr/local/bin/etcd"]
     args:

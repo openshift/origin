@@ -20,6 +20,9 @@ type RenderConfig struct {
 	// AssetsOutputDir is the location where the operator will generate the static pod manifests, ready to be used with bootkube start.
 	AssetsOutputDir string
 
+	// LockDir specifies a directory mounted into api server that holds the lock.
+	LockDir string
+
 	// ConfigOutputDir is the location where the operator will create the component config file.
 	ConfigOutputDir string
 	// ConfigFileName is the component config file name inside ConfigOutputDir.
@@ -41,6 +44,11 @@ type RenderConfig struct {
 // default values overridden according to ConfigOverrides.
 func (opt *RenderConfig) RunRender(component string, image string, dockerClient util.Interface, hostIP string) (string, error) {
 	imageRunHelper := run.NewRunHelper(util.NewHelper(dockerClient)).New()
+
+	// Set the lock dir for kube-apiserver
+	if component == "kube-apiserver" {
+		opt.AdditionalFlags = append(opt.AdditionalFlags, fmt.Sprintf("--manifest-lock-host-path=%s", opt.LockDir))
+	}
 
 	renderCommand := append([]string{
 		"render",
