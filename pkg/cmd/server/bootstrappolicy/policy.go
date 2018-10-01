@@ -476,6 +476,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				Annotations: map[string]string{
 					oapi.OpenShiftDescription: "Grants the right to build, push and pull images from within a project.  Used primarily with service accounts for builds.",
 				},
+				// TODO after the 1.12 rebase, we don't need to separate aggregate to admin
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true", "rbac.authorization.k8s.io/aggregate-to-edit": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
 				// push and pull images
@@ -652,7 +654,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: RegistryAdminRoleName,
+				Name:   RegistryAdminRoleName,
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule(readWrite...).Groups(kapiGroup).Resources("serviceaccounts", "secrets").RuleOrDie(),
@@ -673,7 +676,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: RegistryEditorRoleName,
+				Name:   RegistryEditorRoleName,
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-edit": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule(readWrite...).Groups(kapiGroup).Resources("serviceaccounts", "secrets").RuleOrDie(),
@@ -687,7 +691,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: RegistryViewerRoleName,
+				Name:   RegistryViewerRoleName,
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule(read...).Groups(imageGroup, legacyImageGroup).Resources("imagestreamimages", "imagestreammappings", "imagestreams", "imagestreamtags").RuleOrDie(),
@@ -836,9 +841,6 @@ func addDefaultMetadata(obj runtime.Object) {
 
 func GetBootstrapClusterRolesToAggregate() map[string]string {
 	return map[string]string{
-		AdminRoleName:         AggregatedAdminRoleName,
-		EditRoleName:          AggregatedEditRoleName,
-		ViewRoleName:          AggregatedViewRoleName,
 		ClusterReaderRoleName: AggregatedClusterReaderRoleName,
 	}
 }

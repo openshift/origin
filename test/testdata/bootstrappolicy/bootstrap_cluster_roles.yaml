@@ -1389,6 +1389,9 @@ items:
         within a project.  Used primarily with service accounts for builds.
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-admin: "true"
+      rbac.authorization.k8s.io/aggregate-to-edit: "true"
     name: system:image-builder
   rules:
   - apiGroups:
@@ -1932,6 +1935,8 @@ items:
     annotations:
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-admin: "true"
     name: registry-admin
   rules:
   - apiGroups:
@@ -2053,6 +2058,8 @@ items:
     annotations:
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-edit: "true"
     name: registry-editor
   rules:
   - apiGroups:
@@ -2121,6 +2128,8 @@ items:
     annotations:
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-view: "true"
     name: registry-viewer
   rules:
   - apiGroups:
