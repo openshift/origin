@@ -262,9 +262,9 @@ func PutManifestInCompatibleSchema(
 	srcManifest distribution.Manifest,
 	tag string,
 	toManifests distribution.ManifestService,
-	// supports schema2 -> schema1 downconversion
-	blobs distribution.BlobService,
 	ref reference.Named,
+	blobs distribution.BlobService, // support schema2 -> schema1 downconversion
+	configJSON []byte, // optional, if not passed blobs will be used
 ) (digest.Digest, error) {
 	var options []distribution.ManifestServiceOption
 	if len(tag) > 0 {
@@ -295,8 +295,13 @@ func PutManifestInCompatibleSchema(
 		return toDigest, err
 	}
 	glog.V(5).Infof("Registry reported invalid manifest error, attempting to convert to v2schema1 as ref %s", tagRef)
-	schema1Manifest, convertErr := convertToSchema1(ctx, blobs, schema2Manifest, tagRef)
+	schema1Manifest, convertErr := convertToSchema1(ctx, blobs, configJSON, schema2Manifest, tagRef)
 	if convertErr != nil {
+		if glog.V(6) {
+			_, data, _ := schema2Manifest.Payload()
+			glog.Infof("Input schema\n%s", string(data))
+		}
+		glog.V(2).Infof("Unable to convert manifest to schema1: %v", convertErr)
 		return toDigest, err
 	}
 	if glog.V(6) {
@@ -307,15 +312,21 @@ func PutManifestInCompatibleSchema(
 }
 
 // TDOO: remove when quay.io switches to v2 schema
-func convertToSchema1(ctx context.Context, blobs distribution.BlobService, schema2Manifest *schema2.DeserializedManifest, ref reference.Named) (distribution.Manifest, error) {
-	targetDescriptor := schema2Manifest.Target()
-	configJSON, err := blobs.Get(ctx, targetDescriptor.Digest)
-	if err != nil {
-		return nil, err
+func convertToSchema1(ctx context.Context, blobs distribution.BlobService, configJSON []byte, schema2Manifest *schema2.DeserializedManifest, ref reference.Named) (distribution.Manifest, error) {
+	if configJSON == nil {
+		targetDescriptor := schema2Manifest.Target()
+		config, err := blobs.Get(ctx, targetDescriptor.Digest)
+		if err != nil {
+			return nil, err
+		}
+		configJSON = config
 	}
 	trustKey, err := loadPrivateKey()
 	if err != nil {
 		return nil, err
+	}
+	if glog.V(6) {
+		glog.Infof("Down converting v2 schema image:\n%#v\n%s", schema2Manifest.Layers, configJSON)
 	}
 	builder := schema1.NewConfigManifestBuilder(blobs, trustKey, ref, configJSON)
 	for _, d := range schema2Manifest.Layers {

@@ -94,6 +94,8 @@ type MirrorImageOptions struct {
 
 	Filenames []string
 
+	ManifestUpdateCallback func(registry string, manifests map[godigest.Digest]godigest.Digest) error
+
 	genericclioptions.IOStreams
 }
 
@@ -292,6 +294,15 @@ func (o *MirrorImageOptions) Run() error {
 		}
 	}
 
+	if o.ManifestUpdateCallback != nil {
+		for _, reg := range p.registries {
+			glog.V(4).Infof("Manifests mapped %#v", reg.manifestConversions)
+			if err := o.ManifestUpdateCallback(reg.name, reg.manifestConversions); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -448,7 +459,9 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 										continue
 									}
 									for _, blob := range srcManifest.References() {
-										registryPlan.AssociateBlob(blob.Digest, canonicalFrom.String())
+										if src.ref.Registry == dst.ref.Registry {
+											registryPlan.AssociateBlob(blob.Digest, canonicalFrom.String())
+										}
 										blobPlan.Copy(blob, srcBlobs, toBlobs)
 									}
 								}
@@ -600,7 +613,7 @@ func copyManifestToTags(
 		panic(fmt.Sprintf("empty source manifest for %s", srcDigest))
 	}
 	for _, tag := range tags {
-		toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, srcManifest, tag, plan.to, plan.toBlobs, ref)
+		toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, srcManifest, tag, plan.to, ref, plan.toBlobs, nil)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("unable to push manifest to %s: %v", plan.toRef, err))
 			continue
@@ -608,6 +621,7 @@ func copyManifestToTags(
 		for _, desc := range srcManifest.References() {
 			plan.parent.parent.AssociateBlob(desc.Digest, plan.parent.name)
 		}
+		plan.parent.parent.SavedManifest(srcDigest, toDigest)
 		switch plan.destinationType {
 		case DestinationS3:
 			fmt.Fprintf(out, "%s s3://%s:%s\n", toDigest, plan.toRef, tag)
@@ -629,13 +643,14 @@ func copyManifest(
 	if !ok {
 		panic(fmt.Sprintf("empty source manifest for %s", srcDigest))
 	}
-	toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, srcManifest, "", plan.to, plan.toBlobs, ref)
+	toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, srcManifest, "", plan.to, ref, plan.toBlobs, nil)
 	if err != nil {
 		return fmt.Errorf("unable to push manifest to %s: %v", plan.toRef, err)
 	}
 	for _, desc := range srcManifest.References() {
 		plan.parent.parent.AssociateBlob(desc.Digest, plan.parent.name)
 	}
+	plan.parent.parent.SavedManifest(srcDigest, toDigest)
 	switch plan.destinationType {
 	case DestinationS3:
 		fmt.Fprintf(out, "%s s3://%s\n", toDigest, plan.toRef)

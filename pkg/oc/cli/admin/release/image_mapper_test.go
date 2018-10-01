@@ -171,3 +171,51 @@ func TestNewImageMapper(t *testing.T) {
 		})
 	}
 }
+
+func TestNewExactMapper(t *testing.T) {
+	type args struct {
+		mappings map[string]string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		input   string
+		output  string
+		wantErr bool
+	}{
+		{
+			name:   "replace at end of file",
+			args:   args{mappings: map[string]string{"reg/repo@sha256:01234": "reg2/repo2@sha256:01234"}},
+			input:  "image: reg/repo@sha256:01234",
+			output: "image: reg2/repo2@sha256:01234",
+		},
+		{
+			name:   "replace at beginning of file",
+			args:   args{mappings: map[string]string{"reg/repo@sha256:01234": "reg2/repo2@sha256:01234"}},
+			input:  "reg/repo@sha256:01234",
+			output: "reg2/repo2@sha256:01234",
+		},
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m, err := NewExactMapper(tt.args.mappings)
+			if (err != nil) != tt.wantErr {
+				t.Fatal(err)
+			}
+			if err != nil {
+				return
+			}
+			out, err := m([]byte(tt.input))
+			if (err != nil) != tt.wantErr {
+				t.Fatal(err)
+			}
+			if err != nil {
+				return
+			}
+			if string(out) != tt.output {
+				t.Errorf("unexpected output, wanted\n%s\ngot\n%s", tt.output, string(out))
+			}
+		})
+	}
+}
