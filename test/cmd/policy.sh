@@ -172,12 +172,12 @@ os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated' 'cluster role "system:build-strategy-custom" added: "system:authenticated"'
 os::cmd::expect_success_and_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
 
-os::cmd::expect_success 'oc adm policy reconcile-cluster-role-bindings --confirm'
+os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
 
-os::cmd::expect_success_and_text 'oc policy can-i --list' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --all-namespaces' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i create pods' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --as harold' 'no'
+os::cmd::try_until_text 'oc policy can-i --list' 'get update.*imagestreams/layers'
+os::cmd::try_until_text 'oc policy can-i create pods --all-namespaces' 'yes'
+os::cmd::try_until_text 'oc policy can-i create pods' 'yes'
+os::cmd::try_until_text 'oc policy can-i create pods --as harold' 'no'
 os::cmd::expect_failure 'oc policy can-i create pods --as harold --user harold'
 os::cmd::expect_failure 'oc policy can-i --list --as harold --user harold'
 os::cmd::expect_failure 'oc policy can-i create pods --as harold -q'

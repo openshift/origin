@@ -638,8 +638,6 @@
       "vendor/k8s.io/kubernetes/pkg/serviceaccount",
       "vendor/k8s.io/kubernetes/pkg/version",
 
-      "vendor/k8s.io/kubernetes/pkg/registry/rbac/validation",
-
       "vendor/github.com/openshift/library-go/pkg/git"
     ]
   },

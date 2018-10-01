@@ -855,8 +855,8 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
 		// Allow all build strategies by default.
-		// Cluster admins can remove these role bindings, and the reconcile-cluster-role-bindings command
-		// run during an upgrade won't re-add the "system:authenticated" group
+		// These are in separate bindings so that cluster admins can remove the subjects
+		// and use the annotation to prevent reconciliation on server start.
 		newOriginClusterBinding(BuildStrategyDockerRoleBindingName, BuildStrategyDockerRoleName).
 			Groups(AuthenticatedGroup).
 			BindingOrDie(),

@@ -87,8 +87,6 @@ func NewCmdPolicy(name, fullName string, f cmdutil.Factory, streams genericcliop
 		{
 			Message: "Upgrade and repair system policy:",
 			Commands: []*cobra.Command{
-				NewCmdReconcileClusterRoles(ReconcileClusterRolesRecommendedName, fullName+" "+ReconcileClusterRolesRecommendedName, f, streams),
-				NewCmdReconcileClusterRoleBindings(ReconcileClusterRoleBindingsRecommendedName, fullName+" "+ReconcileClusterRoleBindingsRecommendedName, f, streams),
 				NewCmdReconcileSCC(ReconcileSCCRecommendedName, fullName+" "+ReconcileSCCRecommendedName, f, streams),
 			},
 		},
