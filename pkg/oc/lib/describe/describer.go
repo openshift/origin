@@ -33,7 +33,6 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image"
-	"github.com/openshift/api/network"
 	"github.com/openshift/api/oauth"
 	"github.com/openshift/api/project"
 	"github.com/openshift/api/quota"
@@ -53,7 +52,6 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
@@ -79,10 +77,6 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 		glog.V(1).Info(err)
 	}
 	oauthorizationClient, err := oauthorizationclient.NewForConfig(clientConfig)
-	if err != nil {
-		glog.V(1).Info(err)
-	}
-	onetworkClient, err := onetworkclient.NewForConfig(clientConfig)
 	if err != nil {
 		glog.V(1).Info(err)
 	}
@@ -151,10 +145,6 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 		user.Kind("UserIdentityMapping"):             &UserIdentityMappingDescriber{userClient},
 		quota.Kind("ClusterResourceQuota"):           &ClusterQuotaDescriber{quotaClient},
 		quota.Kind("AppliedClusterResourceQuota"):    &AppliedClusterQuotaDescriber{quotaClient},
-		network.Kind("ClusterNetwork"):               &ClusterNetworkDescriber{onetworkClient},
-		network.Kind("HostSubnet"):                   &HostSubnetDescriber{onetworkClient},
-		network.Kind("NetNamespace"):                 &NetNamespaceDescriber{onetworkClient},
-		network.Kind("EgressNetworkPolicy"):          &EgressNetworkPolicyDescriber{onetworkClient},
 		security.Kind("SecurityContextConstraints"):  &SecurityContextConstraintsDescriber{securityClient},
 	}
 
@@ -1731,94 +1721,6 @@ func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings
 		return "", err
 	}
 	return DescribeClusterQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(quota))
-}
-
-type ClusterNetworkDescriber struct {
-	c onetworkclient.NetworkInterface
-}
-
-// Describe returns the description of a ClusterNetwork
-func (d *ClusterNetworkDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	cn, err := d.c.ClusterNetworks().Get(name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, cn.ObjectMeta)
-		formatString(out, "Service Network", cn.ServiceNetwork)
-		formatString(out, "Plugin Name", cn.PluginName)
-		fmt.Fprintf(out, "ClusterNetworks:\n")
-		fmt.Fprintf(out, "CIDR\tHost Subnet Length\n")
-		fmt.Fprintf(out, "----\t------------------\n")
-		for _, clusterNetwork := range cn.ClusterNetworks {
-			fmt.Fprintf(out, "%s\t%d\n", clusterNetwork.CIDR, clusterNetwork.HostSubnetLength)
-		}
-		return nil
-	})
-}
-
-type HostSubnetDescriber struct {
-	c onetworkclient.NetworkInterface
-}
-
-// Describe returns the description of a HostSubnet
-func (d *HostSubnetDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	hs, err := d.c.HostSubnets().Get(name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, hs.ObjectMeta)
-		formatString(out, "Node", hs.Host)
-		formatString(out, "Node IP", hs.HostIP)
-		formatString(out, "Pod Subnet", hs.Subnet)
-		formatString(out, "Egress CIDRs", strings.Join(hs.EgressCIDRs, ", "))
-		formatString(out, "Egress IPs", strings.Join(hs.EgressIPs, ", "))
-		return nil
-	})
-}
-
-type NetNamespaceDescriber struct {
-	c onetworkclient.NetworkInterface
-}
-
-// Describe returns the description of a NetNamespace
-func (d *NetNamespaceDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	netns, err := d.c.NetNamespaces().Get(name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, netns.ObjectMeta)
-		formatString(out, "Name", netns.NetName)
-		formatString(out, "ID", netns.NetID)
-		formatString(out, "Egress IPs", strings.Join(netns.EgressIPs, ", "))
-		return nil
-	})
-}
-
-type EgressNetworkPolicyDescriber struct {
-	c onetworkclient.NetworkInterface
-}
-
-// Describe returns the description of an EgressNetworkPolicy
-func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.c.EgressNetworkPolicies(namespace)
-	policy, err := c.Get(name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, policy.ObjectMeta)
-		for _, rule := range policy.Spec.Egress {
-			if len(rule.To.CIDRSelector) > 0 {
-				fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.CIDRSelector)
-			} else {
-				fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.DNSName)
-			}
-		}
-		return nil
-	})
 }
 
 type RoleBindingRestrictionDescriber struct {
