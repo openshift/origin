@@ -5,13 +5,13 @@
         "app": "httpd-example",
         "template": "httpd-example"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/httpd-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/httpd-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Apache HTTP Server (httpd) application that serves static content. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/httpd-ex/blob/master/README.md.",
+            "description": "An example Apache HTTP Server (httpd) application that serves static content. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/httpd-ex/blob/master/README.md.",
             "iconClass": "icon-apache",
             "openshift.io/display-name": "Apache HTTP Server",
-            "openshift.io/documentation-url": "https://github.com/openshift/httpd-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/httpd-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a static application served by Apache HTTP Server (httpd), including a build configuration and application deployment configuration.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -233,7 +233,7 @@
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/httpd-ex.git"
+            "value": "https://github.com/sclorg/httpd-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
