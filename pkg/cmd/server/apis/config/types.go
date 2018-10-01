@@ -74,7 +74,6 @@ var (
 	OriginAPIGroupUser                = "user.openshift.io"
 	OriginAPIGroupOAuth               = "oauth.openshift.io"
 	OriginAPIGroupRoute               = "route.openshift.io"
-	OriginAPIGroupNetwork             = "network.openshift.io"
 	OriginAPIGroupQuota               = "quota.openshift.io"
 	OriginAPIGroupSecurity            = "security.openshift.io"
 
@@ -113,7 +112,6 @@ var (
 		OriginAPIGroupProject:       {"v1"},
 		OriginAPIGroupUser:          {"v1"},
 		OriginAPIGroupOAuth:         {"v1"},
-		OriginAPIGroupNetwork:       {"v1"},
 		OriginAPIGroupRoute:         {"v1"},
 		OriginAPIGroupQuota:         {"v1"},
 		OriginAPIGroupSecurity:      {"v1"},

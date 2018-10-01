@@ -30,7 +30,6 @@ import (
 	authz "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 	build "github.com/openshift/origin/pkg/build/apis/build/install"
 	image "github.com/openshift/origin/pkg/image/apis/image/install"
-	network "github.com/openshift/origin/pkg/network/apis/network/install"
 	oauth "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
 	project "github.com/openshift/origin/pkg/project/apis/project/install"
 	quota "github.com/openshift/origin/pkg/quota/apis/quota/install"
@@ -45,7 +44,6 @@ func InstallInternalOpenShift(scheme *runtime.Scheme) {
 	authz.Install(scheme)
 	build.Install(scheme)
 	image.Install(scheme)
-	network.Install(scheme)
 	oauth.Install(scheme)
 	project.Install(scheme)
 	quota.Install(scheme)

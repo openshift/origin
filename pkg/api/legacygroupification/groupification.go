@@ -9,7 +9,6 @@ import (
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	networkv1 "github.com/openshift/api/network/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	quotav1 "github.com/openshift/api/quota/v1"
@@ -21,7 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/project/apis/project"
 	"github.com/openshift/origin/pkg/quota/apis/quota"
@@ -110,13 +108,6 @@ func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 		gvk.Group = image.GroupName
 		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
 
-	case *network.ClusterNetwork, *networkv1.ClusterNetwork, *network.ClusterNetworkList, *networkv1.ClusterNetworkList,
-		*network.NetNamespace, *networkv1.NetNamespace, *network.NetNamespaceList, *networkv1.NetNamespaceList,
-		*network.HostSubnet, *networkv1.HostSubnet, *network.HostSubnetList, *networkv1.HostSubnetList,
-		*network.EgressNetworkPolicy, *networkv1.EgressNetworkPolicy, *network.EgressNetworkPolicyList, *networkv1.EgressNetworkPolicyList:
-		gvk.Group = network.GroupName
-		uncast.GetObjectKind().SetGroupVersionKind(*gvk)
-
 	case *project.Project, *projectv1.Project, *project.ProjectList, *projectv1.ProjectList,
 		*project.ProjectRequest, *projectv1.ProjectRequest:
 		gvk.Group = project.GroupName
@@ -184,10 +175,6 @@ var oapiKindsToGroup = map[string]string{
 	"ImageStreamMapping": "image.openshift.io",
 	"ImageStream":        "image.openshift.io", "ImageStreamList": "image.openshift.io",
 	"ImageStreamTag": "image.openshift.io", "ImageStreamTagList": "image.openshift.io",
-	"ClusterNetwork": "network.openshift.io", "ClusterNetworkList": "network.openshift.io",
-	"EgressNetworkPolicy": "network.openshift.io", "EgressNetworkPolicyList": "network.openshift.io",
-	"HostSubnet": "network.openshift.io", "HostSubnetList": "network.openshift.io",
-	"NetNamespace": "network.openshift.io", "NetNamespaceList": "network.openshift.io",
 	"OAuthAccessToken": "oauth.openshift.io", "OAuthAccessTokenList": "oauth.openshift.io",
 	"OAuthAuthorizeToken": "oauth.openshift.io", "OAuthAuthorizeTokenList": "oauth.openshift.io",
 	"OAuthClientAuthorization": "oauth.openshift.io", "OAuthClientAuthorizationList": "oauth.openshift.io",

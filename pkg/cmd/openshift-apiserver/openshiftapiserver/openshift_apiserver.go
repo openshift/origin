@@ -39,7 +39,6 @@ import (
 	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	networkapiserver "github.com/openshift/origin/pkg/network/apiserver"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	projectapiserver "github.com/openshift/origin/pkg/project/apiserver"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -60,7 +59,6 @@ import (
 	authorizationapiv1 "github.com/openshift/api/authorization/v1"
 	buildapiv1 "github.com/openshift/api/build/v1"
 	imageapiv1 "github.com/openshift/api/image/v1"
-	networkapiv1 "github.com/openshift/api/network/v1"
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	projectapiv1 "github.com/openshift/api/project/v1"
 	quotaapiv1 "github.com/openshift/api/quota/v1"
@@ -319,28 +317,6 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: imageapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
-func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
-	cfg := &networkapiserver.NetworkAPIServerConfig{
-		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
-		ExtraConfig: networkapiserver.ExtraConfig{
-			Codecs: legacyscheme.Codecs,
-			Scheme: legacyscheme.Scheme,
-		},
-	}
-	config := cfg.Complete()
-	server, err := config.New(delegateAPIServer)
-	if err != nil {
-		return nil, nil, err
-	}
-	storage, err := config.V1RESTStorage()
-	if err != nil {
-		return nil, nil, err
-	}
-	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
-
-	return server.GenericAPIServer, &legacyStorageVersionMutator{version: networkapiv1.SchemeGroupVersion, storage: storage}, nil
-}
-
 func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
 	cfg := &oauthapiserver.OAuthAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
@@ -537,7 +513,6 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withAuthorizationAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withBuildAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withImageAPIServer)
-	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withNetworkAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withOAuthAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withProjectAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withQuotaAPIServer)
