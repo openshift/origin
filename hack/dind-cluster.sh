@@ -112,6 +112,8 @@ function start() {
   echo "OPENSHIFT_CONTAINER_RUNTIME=${container_runtime}" >> "${config_root}/dind-env"
   echo "OPENSHIFT_REMOTE_RUNTIME_ENDPOINT=${runtime_endpoint}" >> "${config_root}/dind-env"
 
+  cp "${OS_ROOT}/pkg/network/apis/network/v1/types.yaml" "${config_root}/network-types.yaml"
+
   ovn_kubernetes=
   if [[ -d "${ovn_root}" ]]; then
     copy-ovn-runtime "${ovn_root}" "${config_root}/"

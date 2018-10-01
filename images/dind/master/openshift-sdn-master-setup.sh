@@ -15,9 +15,6 @@ function ensure-token() {
   [[ -s "${token_file}" ]]
 }
 
-# Create a ServiceAccount for the openshift-sdn node processes. The token
-# isn't (yet) used by the master, but we generate it in the master to avoid
-# synchronizing between nodes.
 function openshift-sdn-setup() {
   local config_dir=$1
   local kube_config="${config_dir}/admin.kubeconfig"
@@ -34,6 +31,13 @@ function openshift-sdn-setup() {
     /usr/local/bin/oc --config="${kube_config}" adm policy add-scc-to-user anyuid -z openshift-sdn
   fi
 
+  # Create the Network CRDs
+  if ! /usr/local/bin/oc --config="${kube_config}" get customresourcedefinition clusternetworks.network.openshift.io >/dev/null 2>&1; then
+      /usr/local/bin/oc --config="${kube_config}" create -f /data/network-types.yaml
+  fi
+
+  # The token isn't (yet) used by the master, but we generate it in the master to avoid
+  # synchronizing between nodes.
   os::util::wait-for-condition "kubernetes token" "ensure-token ${config_dir} ${kube_config}" "120"
 }
 
