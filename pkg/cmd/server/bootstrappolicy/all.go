@@ -13,10 +13,10 @@ type PolicyData struct {
 
 func Policy() *PolicyData {
 	return &PolicyData{
-		ClusterRoles:            GetBootstrapClusterRoles(),
-		ClusterRoleBindings:     GetBootstrapClusterRoleBindings(),
-		Roles:                   GetBootstrapNamespaceRoles(),
-		RoleBindings:            GetBootstrapNamespaceRoleBindings(),
+		ClusterRoles:            GetOpenshiftBootstrapClusterRoles(),
+		ClusterRoleBindings:     GetOpenshiftBootstrapClusterRoleBindings(),
+		Roles:                   NamespaceRoles(),
+		RoleBindings:            NamespaceRoleBindings(),
 		ClusterRolesToAggregate: GetBootstrapClusterRolesToAggregate(),
 	}
 }
