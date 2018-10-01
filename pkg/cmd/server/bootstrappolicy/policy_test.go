@@ -55,7 +55,7 @@ func TestCreateBootstrapPolicyFile(t *testing.T) {
 }
 
 func TestBootstrapNamespaceRoles(t *testing.T) {
-	allRoles := bootstrappolicy.GetBootstrapNamespaceRoles()
+	allRoles := bootstrappolicy.NamespaceRoles()
 	list := &api.List{}
 	// enforce a strict ordering
 	for _, namespace := range sets.StringKeySet(allRoles).List() {
@@ -68,7 +68,7 @@ func TestBootstrapNamespaceRoles(t *testing.T) {
 }
 
 func TestGetBootstrapNamespaceRoleBindings(t *testing.T) {
-	allRoleBindings := bootstrappolicy.GetBootstrapNamespaceRoleBindings()
+	allRoleBindings := bootstrappolicy.NamespaceRoleBindings()
 	list := &api.List{}
 	// enforce a strict ordering
 	for _, namespace := range sets.StringKeySet(allRoleBindings).List() {
