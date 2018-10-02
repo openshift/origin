@@ -121,28 +121,28 @@ func (h *Helper) GetDockerProxySettings() (httpProxy, httpsProxy, noProxy string
 	return info.HTTPProxy, info.HTTPSProxy, info.NoProxy, nil
 }
 
-// CheckAndPull checks whether a Docker image exists. If not, it pulls it.
-func (h *Helper) CheckAndPull(image string, out io.Writer) error {
-	glog.V(5).Infof("Inspecting Docker image %q", image)
-	imageMeta, _, err := h.client.ImageInspectWithRaw(image, false)
-	if err == nil {
-		glog.V(5).Infof("Image %q found: %#v", image, imageMeta)
-		return nil
+// CheckAndPullImage checks existence of local container image and if the image is not available locally it pulls it.
+// The forcePull option skip checking if the image exists and forces the pull.
+func (h *Helper) CheckAndPullImage(image string, forcePull bool, out io.Writer) error {
+	// If the forcePull option is set, skip checking if image exists locally and pull always
+	if !forcePull {
+		_, _, err := h.client.ImageInspectWithRaw(image, false)
+		if err == nil {
+			return nil
+		}
+		if !client.IsErrImageNotFound(err) {
+			return starterrors.NewError("unexpected error inspecting image %s", image).WithCause(err)
+		}
 	}
-	if !client.IsErrImageNotFound(err) {
-		return starterrors.NewError("unexpected error inspecting image %s", image).WithCause(err)
-	}
-	glog.V(5).Infof("Image %q not found. Pulling", image)
-	fmt.Fprintf(out, "Pulling image %s\n", image)
+
+	fmt.Fprintf(out, "Pulling container image %s ...\n", image)
 	logProgress := func(s string) {
 		fmt.Fprintf(out, "%s\n", s)
 	}
+
 	pw := imageprogress.NewPullWriter(logProgress)
 	defer pw.Close()
 	outputStream := pw.(io.Writer)
-	if glog.V(5) {
-		outputStream = out
-	}
 
 	normalized, err := reference.ParseNormalizedNamed(image)
 	if err != nil {
@@ -156,13 +156,18 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	} else if currentUser, err := user.Current(); err == nil {
 		cfgPath = filepath.Join(currentUser.HomeDir, ".docker", "config.json")
 	}
-	cfg, err := credentialprovider.ReadSpecificDockerConfigJsonFile(cfgPath)
-	if err != nil {
-		glog.Errorf("Reading docker config from %v failed: %v, will attempt to pull image %s anonymously", cfgPath, err, normalized.String())
-	}
 
 	keyring := credentialprovider.BasicDockerKeyring{}
-	keyring.Add(cfg)
+	if _, err := os.Stat(cfgPath); os.IsExist(err) {
+		cfg, err := credentialprovider.ReadSpecificDockerConfigJsonFile(cfgPath)
+		if err != nil {
+			glog.Errorf("Reading docker config from %v failed: %v, will attempt to pull image %s anonymously", cfgPath, err, normalized.String())
+		}
+		keyring.Add(cfg)
+	} else {
+		glog.V(3).Infof("Docker config file not found in %q, will pull without credentials", cfgPath)
+	}
+
 	authConfs, found := keyring.Lookup(normalized.String())
 	if found && len(authConfs) > 0 {
 		glog.V(3).Infof("Using %s user for Docker authentication for image %s", authConfs[0].Username, normalized.String())
@@ -181,9 +186,8 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 		auth = base64.URLEncoding.EncodeToString(buf.Bytes())
 	}
 
-	err = h.client.ImagePull(normalized.String(), types.ImagePullOptions{RegistryAuth: auth}, outputStream)
-	if err != nil {
-		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
+	if err := h.client.ImagePull(normalized.String(), types.ImagePullOptions{RegistryAuth: auth}, outputStream); err != nil {
+		return starterrors.NewError("error pulling image %s", image).WithCause(err)
 	}
 
 	// This is to work around issue https://github.com/docker/docker/api/issues/138
@@ -191,11 +195,10 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	// which also still seems to exist in https://github.com/moby/moby/blob/master/client/image_pull.go
 	_, _, err = h.client.ImageInspectWithRaw(image, false)
 	if err != nil {
-		glog.V(5).Infof("Image %q not found: %v", image, err)
-		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
+		return starterrors.NewError("error pulling image %s", image).WithCause(err)
 	}
 
-	fmt.Fprintln(out, "Image pull complete")
+	fmt.Fprintln(out, fmt.Sprintf("Image %s successfully pulled", image))
 	return nil
 }
 

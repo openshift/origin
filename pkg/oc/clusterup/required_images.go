@@ -26,6 +26,9 @@ var OpenShiftImages = Images{
 	{Name: "etcd", PullSpec: "quay.io/coreos/etcd:v3.2.24"},
 }
 
+// forcePull specifies whether the images should always be pulled.
+var forcePull bool
+
 type Image struct {
 	Name string
 
@@ -43,7 +46,7 @@ func (i *Image) ToPullSpec(tpl variable.ImageTemplate) PullSpec {
 }
 
 func (s PullSpec) Pull(puller *dockerutil.Helper) error {
-	return puller.CheckAndPull(string(s), os.Stdout)
+	return puller.CheckAndPullImage(string(s), forcePull, os.Stdout)
 }
 
 func (s PullSpec) String() string {
