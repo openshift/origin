@@ -6,10 +6,6 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::log::info "Starting containerized end-to-end test"
 
-# cluster up no longer produces a cluster that run the e2e test.  These use cases are already mostly covered
-# in existing e2e suites.  The image-registry related tests stand out as ones that may not have an equivalent.
-exit 0
-
 unset KUBECONFIG
 
 os::util::environment::use_sudo
@@ -76,7 +72,12 @@ oc cluster up --server-loglevel=4 --tag="${TAG}" \
 MASTER_CONFIG_DIR="${CLUSTERUP_DIR}/kube-apiserver"
 
 os::test::junit::declare_suite_start "setup/start-oc_cluster_up"
-os::cmd::try_until_success "oc cluster status" "$((5*TIME_MIN))" "10"
+os::cmd::expect_success "oc login -u system:admin"
+os::cmd::expect_success "oc project default"
+os::cmd::expect_success "oc adm policy add-scc-to-user privileged -z registry"
+REG_DIR=`mktemp -d /tmp/registry.XXXX`
+os::cmd::expect_success "oc adm registry --mount-host=$REG_DIR --images=openshift/origin-docker-registry:${TAG}"
+os::cmd::expect_success "oc login -u developer -p password"
 os::test::junit::declare_suite_end
 
 IMAGE_WORKING_DIR=/var/lib/origin
