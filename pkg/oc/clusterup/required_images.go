@@ -42,8 +42,8 @@ func (i *Image) ToPullSpec(tpl variable.ImageTemplate) PullSpec {
 	return PullSpec(tpl.ExpandOrDie(i.Name))
 }
 
-func (s PullSpec) Pull(puller *dockerutil.Helper) error {
-	return puller.CheckAndPull(string(s), os.Stdout)
+func (s PullSpec) Pull(puller *dockerutil.Helper, forcePull bool) error {
+	return puller.CheckAndPullImage(string(s), forcePull, os.Stdout)
 }
 
 func (s PullSpec) String() string {
@@ -52,10 +52,10 @@ func (s PullSpec) String() string {
 
 type Images []Image
 
-func (i Images) EnsurePulled(puller *dockerutil.Helper, tpl variable.ImageTemplate) error {
+func (i Images) EnsurePulled(puller *dockerutil.Helper, tpl variable.ImageTemplate, forcePull bool) error {
 	errors := []error{}
 	for _, image := range i {
-		if err := image.ToPullSpec(tpl).Pull(puller); err != nil {
+		if err := image.ToPullSpec(tpl).Pull(puller, forcePull); err != nil {
 			errors = append(errors, err)
 		}
 	}
