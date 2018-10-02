@@ -203,6 +203,7 @@ kind: KubeControllerManagerConfig
 		AssetInputDir:   filepath.Join(configs.assetsDir, "tls"),
 		AssetsOutputDir: configs.assetsDir,
 		ConfigOutputDir: configDir,
+		LockDir:         filepath.Join(configs.kubernetesDir, "lock"),
 		ConfigFileName:  "kube-controller-manager-config.yaml",
 		ConfigOverrides: controllerManagerConfigOverride,
 	}
