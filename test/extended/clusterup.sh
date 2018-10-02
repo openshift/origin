@@ -219,10 +219,6 @@ function os::test::extended::clusterup::portinuse_cleanup () {
 
 readonly default_tests=(
     "noargs"
-    "hostdirs"
-    "publichostname"
-    "numerichostname"
-    "portinuse"
 )
 
 # BASE_DIR is the base directory used by all tests. This must be a /tmp directory to avoid
@@ -254,8 +250,14 @@ readonly extra_args=(
 )
 tests=("${1:-"${default_tests[@]}"}")
 
-echo "Running cluster up tests using tag $ORIGIN_COMMIT"
+echo "Pulling required operator images and re-tagging them"
+docker pull openshift/origin-cluster-kube-apiserver-operator:latest
+docker tag openshift/origin-cluster-kube-apiserver-operator:latest openshift/origin-cluster-kube-apiserver-operator:${ORIGIN_COMMIT}
 
+docker pull openshift/origin-cluster-kube-controller-manager-operator:latest
+docker tag openshift/origin-cluster-kube-controller-manager-operator:latest openshift/origin-cluster-kube-controller-manager-operator:${ORIGIN_COMMIT}
+
+echo "Running cluster up tests using tag $ORIGIN_COMMIT"
 # Ensure that KUBECONFIG is not set
 unset KUBECONFIG
 for test in "${tests[@]}"; do

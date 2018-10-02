@@ -3,8 +3,6 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/clusteradd"
-
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -42,7 +40,6 @@ func NewCmdCluster(name, fullName string, f kcmdutil.Factory, streams genericcli
 	}
 
 	cmds.AddCommand(clusterup.NewCmdUp(clusterup.CmdUpRecommendedName, fullName+" "+clusterup.CmdUpRecommendedName, f, streams))
-	cmds.AddCommand(clusteradd.NewCmdAdd(f, streams))
 	cmds.AddCommand(clusterup.NewCmdDown(clusterup.CmdDownRecommendedName, fullName+" "+clusterup.CmdDownRecommendedName))
 	return cmds
 }

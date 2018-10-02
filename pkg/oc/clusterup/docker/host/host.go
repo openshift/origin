@@ -3,9 +3,9 @@ package host
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
+	"github.com/openshift/origin/pkg/oc/clusterup/docker/util"
 )
 
 const (
@@ -19,16 +19,16 @@ grep -F %[1]s /rootfs/proc/1/mountinfo | grep shared || nsenter --mount=/rootfs/
 `
 )
 
-// HostHelper contains methods to help check settings on a Docker host machine
+// Host contains methods to help check settings on a Docker host machine
 // using a privileged container
 type HostHelper struct {
-	client    dockerhelper.Interface
+	client    util.Interface
 	runHelper *run.RunHelper
 	image     string
 }
 
-// NewHostHelper creates a new HostHelper
-func NewHostHelper(dockerHelper *dockerhelper.Helper, image string) *HostHelper {
+// NewHostHelper creates a new Host
+func NewHostHelper(dockerHelper *util.Helper, image string) *HostHelper {
 	return &HostHelper{
 		runHelper: run.NewRunHelper(dockerHelper),
 		client:    dockerHelper.Client(),

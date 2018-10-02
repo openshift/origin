@@ -1,7 +1,7 @@
 kind: Pod
 apiVersion: v1
 metadata:
-  name: master-etcd
+  name: etcd
   namespace: kube-system
   labels:
     openshift.io/control-plane: "true"
@@ -11,26 +11,32 @@ spec:
   hostNetwork: true
   containers:
   - name: etcd
-    image: IMAGE
-    imagePullPolicy: OPENSHIFT_PULL_POLICY
-    workingDir: /var/lib/etcd
-    command: ["/bin/bash", "-c"]
-    args:
-    - |
-      #!/bin/sh
-      set -o allexport
-      exec openshift start etcd --config=/etc/origin/master/master-config.yaml
+    image: {{ .Image }}
+    imagePullPolicy: {{ .ImagePullPolicy }}
     securityContext:
+      runAsNonRoot: false
       privileged: true
+    workingDir: /var/run/etcd/data
+    command: ["/usr/local/bin/etcd"]
+    args:
+    - --ca-file=/var/run/etcd/tls/root-ca.crt
+    - --trusted-ca-file=/var/run/etcd/tls/etcd-client-ca.crt
+    - --client-cert-auth
+    - --cert-file=/var/run/etcd/tls/etcd-server.crt
+    - --key-file=/var/run/etcd/tls/etcd-server.key
+    - --listen-client-urls=https://0.0.0.0:2379
+    - --advertise-client-urls=https://0.0.0.0:2379
+    - --data-dir=/var/run/etcd/data
     volumeMounts:
-     - mountPath: /etc/origin/master/
-       name: master-config
-       readOnly: true
-     - mountPath: /var/lib/etcd/
-       name: master-data
+    - mountPath: /var/run/etcd/tls
+      name: tls
+      readOnly: true
+    - mountPath: /var/run/etcd/data
+      name: data
   volumes:
-  - name: master-config
+  - name: tls
     hostPath:
-      path: /path/to/master/config-dir
-  - name: master-data
-    ETCD_VOLUME
+      path: {{ .TlsDir }}
+  - name: data
+    hostPath:
+      path: {{ .EtcdDataDir }}
