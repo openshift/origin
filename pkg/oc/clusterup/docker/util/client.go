@@ -15,8 +15,6 @@ import (
 	"github.com/docker/docker/cli/config"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/golang/glog"
-
 	dockererrors "github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
 )
 
@@ -302,28 +300,7 @@ func GetDockerClient() (Interface, error) {
 		dockerCertPath = config.Dir()
 		os.Setenv("DOCKER_CERT_PATH", dockerCertPath)
 	}
-
-	if glog.V(4) {
-		dockerHost := os.Getenv("DOCKER_HOST")
-		if len(dockerHost) == 0 && len(dockerTLSVerify) == 0 && len(dockerCertPath) == 0 {
-			glog.Infof("No Docker environment variables found. Will attempt default socket.")
-		}
-		if len(dockerHost) > 0 {
-			glog.Infof("Will try Docker connection with host (DOCKER_HOST) %q", dockerHost)
-		} else {
-			glog.Infof("No Docker host (DOCKER_HOST) configured. Will attempt default socket.")
-		}
-		if len(dockerTLSVerify) > 0 {
-			glog.Infof("DOCKER_TLS_VERIFY=%s", dockerTLSVerify)
-		}
-		if len(dockerCertPath) > 0 {
-			glog.Infof("DOCKER_CERT_PATH=%s", dockerCertPath)
-		}
-	}
-	dockerHost := os.Getenv("DOCKER_HOST")
-	if len(dockerHost) == 0 {
-		dockerHost = client.DefaultDockerHost
-	}
+	dockerHost := client.DefaultDockerHost
 	engineAPIClient, err := client.NewEnvClient()
 	if err != nil {
 		return nil, dockererrors.ErrNoDockerClient(err)

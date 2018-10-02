@@ -141,7 +141,9 @@ func NewCmdUp(name, fullName string, f genericclioptions.RESTClientGetter, strea
 
 func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&c.ImageTag, "tag", "", "Specify an explicit version for OpenShift images")
+	flags.BoolVar(&forcePull, "force-pull", false, "Force to pull all required images")
 	flags.MarkHidden("tag")
+	flags.MarkHidden("force-pull")
 	flags.StringVar(&c.ImageTemplate.Format, "image", c.ImageTemplate.Format, "Specify the images to use for OpenShift")
 	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&c.BaseDir, "base-dir", c.BaseDir, "Directory on Docker host for cluster up configuration")
