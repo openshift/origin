@@ -34,7 +34,7 @@ func NewTLSAssetsRenderer(hostname string) *TLSAssetsRenderOptions {
 	return &TLSAssetsRenderOptions{
 		AltNames: altNames,
 		config: tlsAssetsRenderConfig{
-			ServerURL:     "https://" + hostname + ":8443",
+			ServerURL:     "https://" + hostname + ":6443",
 			EtcdServerURL: "https://" + hostname + ":2379",
 		},
 	}

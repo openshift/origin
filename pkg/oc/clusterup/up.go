@@ -357,7 +357,7 @@ func (c *ClusterUpConfig) imageFormat() string {
 
 // serverInfo displays server information after a successful start
 func (c *ClusterUpConfig) serverInfo(out io.Writer) {
-	masterURL := fmt.Sprintf("https://%s:8443", c.GetPublicHostName())
+	masterURL := fmt.Sprintf("https://%s:6443", c.GetPublicHostName())
 
 	msg := fmt.Sprintf("OpenShift server started.\n\n"+
 		"The server is accessible via web console at:\n"+
