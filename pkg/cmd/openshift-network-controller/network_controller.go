@@ -2,6 +2,7 @@ package openshift_network_controller
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/golang/glog"
@@ -14,11 +15,14 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/controller"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
 	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/network"
+	sdnmaster "github.com/openshift/origin/pkg/network/master"
 
 	// for metrics
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
@@ -36,11 +40,11 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 			glog.Fatal(err)
 		}
 
-		controllerContext, err := origincontrollers.NewControllerContext(*config, clientConfig, nil)
+		controllerContext, err := newNetworkControllerContext(*config, clientConfig, nil)
 		if err != nil {
 			glog.Fatal(err)
 		}
-		enabled, err := origincontrollers.RunSDNController(controllerContext)
+		enabled, err := runSDNController(controllerContext)
 		if err != nil {
 			glog.Fatalf("Error starting OpenShift Network Controller: %v", err)
 		} else if !enabled {
@@ -85,4 +89,42 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 		})
 
 	return nil
+}
+
+func newNetworkControllerContext(
+	config openshiftcontrolplanev1.OpenShiftControllerManagerConfig,
+	inClientConfig *rest.Config,
+	stopCh <-chan struct{},
+) (*origincontrollers.ControllerContext, error) {
+	ctx, err := origincontrollers.NewControllerContext(config, inClientConfig, stopCh)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use our kubeconfig directly; we don't have to switch between different ServiceAccounts
+	// like openshift-controller-manager does.
+	ctx.ClientBuilder = origincontrollers.OpenshiftControllerClientBuilder{
+		ControllerClientBuilder: controller.SimpleControllerClientBuilder{
+			ClientConfig: inClientConfig,
+		},
+	}
+	return ctx, nil
+}
+
+func runSDNController(ctx *origincontrollers.ControllerContext) (bool, error) {
+	if !network.IsOpenShiftNetworkPlugin(ctx.OpenshiftControllerConfig.Network.NetworkPluginName) {
+		return false, nil
+	}
+
+	if err := sdnmaster.Start(
+		ctx.OpenshiftControllerConfig.Network,
+		ctx.ClientBuilder.OpenshiftNetworkClientOrDie(RecommendedStartNetworkControllerName),
+		ctx.ClientBuilder.ClientOrDie(RecommendedStartNetworkControllerName),
+		ctx.KubernetesInformers,
+		ctx.NetworkInformers,
+	); err != nil {
+		return false, fmt.Errorf("failed to start SDN plugin controller: %v", err)
+	}
+
+	return true, nil
 }
