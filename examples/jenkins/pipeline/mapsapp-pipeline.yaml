@@ -91,12 +91,30 @@ objects:
                   parallel (
                     "nationalparks": {
                       node {
-                        openshiftBuild buildConfig: "nationalparks-pipeline", namespace: project
+                        openshift.withCluster() {
+                          openshift.withProject("${project}") {
+                            def bld = openshift.startBuild("nationalparks-pipeline")
+                            echo "Waiting on the nationalparks-pipeline build to complete..."
+                            bld.untilEach {
+                              return it.object().status.phase == "Complete"
+                            }
+                            echo "The nationalparks-pipeline build has completed."
+                          }
+                        }
                       }
                     },
                     "mlbparks": {
                       node {
-                        openshiftBuild buildConfig: "mlbparks-pipeline", namespace: project
+                        openshift.withCluster() {
+                          openshift.withProject("${project}") {
+                            def bld = openshift.startBuild("mlbparks-pipeline")
+                            echo "Waiting on the mlbparks-pipeline build to complete..."
+                            bld.untilEach {
+                              return it.object().status.phase == "Complete"
+                            }
+                            echo "The mlbparks-pipeline build has completed."
+                          }
+                        }
                       }
                     }
                   )
@@ -104,7 +122,16 @@ objects:
         
                 node {
                   stage('Build Front-end') {
-                    openshiftBuild buildConfig: "parksmap-pipeline", namespace: project
+                    openshift.withCluster() {
+                      openshift.withProject("${project}") {
+                        def bld = openshift.startBuild("parksmap-pipeline")
+                        echo "Waiting on the parksmap-pipeline build to complete..."
+                        bld.untilEach {
+                          return it.object().status.phase == "Complete"
+                        }
+                        echo "The parksmap-pipeline build has completed."
+                      }
+                    }
                   }
                 }
              }

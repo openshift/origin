@@ -1,4 +1,4 @@
-# Using Jenkins Pipelines with OpenShift
+# Using Jenkins Pipelines with OKD
 
 This set of files will allow you to deploy a Jenkins server that is capable of executing Jenkins pipelines and
 utilize pods run on OpenShift as Jenkins slaves.
@@ -7,14 +7,18 @@ utilize pods run on OpenShift as Jenkins slaves.
 
 To walk through the example:
 
-0. If using `oc cluster up`, be sure to grab the [latest oc command](https://github.com/openshift/origin/releases/latest)
+1. Refer to the OKD [getting started guide](https://github.com/openshift/origin#getting-started) for standing up a cluster.
 
-1. Stand up an openshift cluster from origin master, installing the standard imagestreams to the openshift namespace:
+1. Login as a normal user (any user name is fine)
 
-        $ oc cluster up
+        $ oc login
 
-    If you do not use oc cluster up, ensure the imagestreams are registered in the openshift namespace, as well as the
-jenkins template represented by jenkinstemplate.json by running these commands as a cluster admin:
+1. Confirm that the example imagestreams and templates are present in the openshift namespace:
+
+        $ oc get is -n openshift
+        $ oc get templates -n openshift
+
+    If they are not present, you can create them  by running these commands as a cluster admin:
 
         $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/image-streams/image-streams-centos7.json -n openshift
         $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-ephemeral-template.json -n openshift
@@ -23,32 +27,22 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
         $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-persistent-template.json -n openshift
 
-2. Login as a normal user (any user name is fine)
-
-        $ oc login
-
-3. Create a project for your user named "pipelineproject"
+1. Create a project for your user named "pipelineproject"
 
         $ oc new-project pipelineproject
 
-4. Run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
-
-    If you used cluster up:
-
-        $ oc new-app jenkins-pipeline-example
-
-    Otherwise:
+1. Run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
 
         $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/samplepipeline.yaml
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined by the sample-pipeline template.
 
-5. View/Manage Jenkins (optional)
+1. View/Manage Jenkins (optional)
 
     You should not need to access the jenkins console for anything, but if you want to configure settings or watch the execution,
     here are the steps to do so:
 
-    If you have a router running (`oc cluster up` provides one), run:
+    If you have a router running, run:
 
         $ oc get route
 
@@ -63,7 +57,7 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
     Login with the user name used to create the "pipelineproject" and any non-empty password.
 
-6. Launch a new build
+1. Launch a new build
 
         $ oc start-build sample-pipeline
 
