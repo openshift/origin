@@ -31,6 +31,10 @@ func NewTLSAssetsRenderer(hostname string) *TLSAssetsRenderOptions {
 			altNames.IPs = append(altNames.IPs, ip)
 		}
 	}
+
+	altNames.DNSNames = append(altNames.DNSNames, "localhost")
+	altNames.IPs = append(altNames.IPs, net.ParseIP("127.0.0.1"), net.ParseIP("10.3.0.1"))
+
 	return &TLSAssetsRenderOptions{
 		AltNames: altNames,
 		config: tlsAssetsRenderConfig{

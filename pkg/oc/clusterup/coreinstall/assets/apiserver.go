@@ -38,7 +38,7 @@ func (r *TLSAssetsRenderOptions) newAPIKeyAndCert(caCert *x509.Certificate, caPr
 
 	config := tlsutil.CertConfig{
 		CommonName:   "kube-apiserver",
-		Organization: []string{"kube-master"},
+		Organization: []string{"system:masters", "kube-master"},
 		AltNames:     altNames,
 	}
 	cert, err := tlsutil.NewSignedCertificate(config, key, caCert, caPrivKey)
