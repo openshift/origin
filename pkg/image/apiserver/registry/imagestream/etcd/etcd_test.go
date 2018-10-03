@@ -8,12 +8,13 @@ import (
 	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
 	authorizationapi "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
-	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
+	//	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
 	"k8s.io/apiserver/pkg/registry/rest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -74,6 +75,9 @@ func validImageStream() *imageapi.ImageStream {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
+		Status: imageapi.ImageStreamStatus{
+			DockerImageRepository: "image-registry.openshift-image-registry.svc:5000/test/foo1",
+		},
 	}
 }
 
@@ -97,13 +101,38 @@ func TestCreate(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
+	/*
+		storage, _, _, server := newStorage(t)
+		defer server.Terminate(t)
+		defer storage.Store.DestroyFunc()
+		test := genericregistrytest.New(t, storage.Store)
+		test.TestList(
+			validImageStream(),
+		)
+	*/
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := genericregistrytest.New(t, storage.Store)
-	test.TestList(
-		validImageStream(),
-	)
+
+	image := create(t, storage, validImageStream())
+
+	obj, err := storage.List(apirequest.NewDefaultContext(), &metainternalversion.ListOptions{})
+	if err != nil {
+		t.Errorf("Unexpected error: %#v", err)
+	}
+	if obj == nil {
+		t.Fatalf("Unexpected nil stream")
+	}
+	list := obj.(*imageapi.ImageStreamList)
+	if len(list.Items) == 0 {
+		t.Fatalf("Unexpected empty stream list")
+	}
+	got := list.Items[0]
+	got.ResourceVersion = image.ResourceVersion
+	if !kapihelper.Semantic.DeepEqual(*image, got) {
+		t.Errorf("Expected:\n %#v\n got:\n %#v\n", *image, got)
+	}
+
 }
 
 func TestGetImageStreamError(t *testing.T) {

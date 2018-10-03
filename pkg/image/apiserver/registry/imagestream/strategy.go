@@ -139,7 +139,12 @@ func (Strategy) AllowUnconditionalUpdate() bool {
 func (s Strategy) dockerImageRepository(stream *imageapi.ImageStream, allowNamespaceDefaulting bool) string {
 	registry, ok := s.registryHostnameRetriever.InternalRegistryHostname()
 	if !ok {
-		return stream.Spec.DockerImageRepository
+		// worst case if the registry internal hostname was not explicitly configured yet,
+		// assume a value we know the registry operator is going to establish once it comes up.
+		// This prevents clients like imagechangecontroller from caching imagestreams that have
+		// an empty/incorrect Status.DockerImageRepository value, as that value is provided
+		// by a decorator fed by this function.
+		registry = "image-registry.openshift-image-registry.svc:5000"
 	}
 
 	if len(stream.Namespace) == 0 && allowNamespaceDefaulting {

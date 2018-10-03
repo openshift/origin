@@ -135,7 +135,7 @@ func TestDockerImageRepository(t *testing.T) {
 					DockerImageRepository: "a/b",
 				},
 			},
-			expected: "a/b",
+			expected: "image-registry.openshift-image-registry.svc:5000/default/somerepo",
 		},
 		"DockerImageRepository set on stream with default registry": {
 			stream: &imageapi.ImageStream{
@@ -177,7 +177,7 @@ func TestDockerImageRepository(t *testing.T) {
 				},
 			},
 			defaultRegistry: "",
-			expected:        "",
+			expected:        "image-registry.openshift-image-registry.svc:5000/somens/somerepo",
 		},
 	}
 
