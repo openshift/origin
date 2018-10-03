@@ -48,7 +48,7 @@ func SetRecommendedGenericAPIServerConfigDefaults(config *configv1.GenericAPISer
 }
 
 func SetRecommendedEtcdConnectionInfoDefaults(config *configv1.EtcdConnectionInfo) {
-	DefaultStringSlice(&config.URLs, []string{"https://etcd.kube-system.svc:4001"})
+	DefaultStringSlice(&config.URLs, []string{"https://etcd.kube-system.svc:2379"})
 	DefaultString(&config.CertInfo.KeyFile, "/var/run/secrets/etcd-client/tls.key")
 	DefaultString(&config.CertInfo.CertFile, "/var/run/secrets/etcd-client/tls.crt")
 	DefaultString(&config.CA, "/var/run/configmaps/etcd-serving-ca/ca-bundle.crt")

@@ -5,4 +5,4 @@ spec:
   - name: service-serving-cert-signer
     from:
       kind: DockerImage
-      name: quay.io/openshift/origin-service-serving-cert-signer
+      name: quay.io/openshift/origin-service-serving-cert-signer:latest

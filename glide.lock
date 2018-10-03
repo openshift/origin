@@ -1,5 +1,5 @@
 hash: ac6dbd6bab6de923e6faddb7966a8b9e7b56d07183369819b85ec31f37a4971c
-updated: 2018-09-26T13:44:05.206731514-04:00
+updated: 2018-10-03T16:29:15.670011885-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -817,7 +817,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: cc577cdc22a21a372000477f72df3d4409197ea8
+  version: c9d033a0b3c3dfca1c70722720c3aea184022496
   subpackages:
   - apps
   - apps/v1
@@ -983,8 +983,9 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 91ddbc425e02ec6b43b523dacae4a85b4f180e6b
+  version: 80f2f78af2af54fd257580a3680cba397b79cc49
   subpackages:
+  - pkg/assets
   - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/leaderelection
@@ -997,7 +998,7 @@ imports:
   - pkg/network/networkapihelpers
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: 66c4dd2b6085679a0f5d47a3fc6473f72da87d3d
+  version: 20988243298ac483d5c7898842cf23ba115e1b50
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
@@ -1272,8 +1273,6 @@ imports:
   - unix
   - windows
   - windows/svc
-- name: golang.org/x/sys/unix
-  version: 95c6576299259db960f6c5b9b69ea52422860fce
 - name: golang.org/x/text
   version: b19bf474d317b857955b12035d2c5acb57ce8b01
   subpackages:
@@ -1876,7 +1875,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 91e65b9c79c34a3be0850c5725127964e628a572
+  version: 852d32d3b3526363bad501101fc2e73b344b1d9a
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2701,7 +2700,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: aecab0e68ae3cf07cd1d3c57221937da7e559b93
+  version: d55e0f90463d5b0aa4db614bb18c30af4fac7748
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1

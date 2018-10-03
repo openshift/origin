@@ -31,6 +31,8 @@ func ApplyAPIService(client apiregistrationv1client.APIServicesGetter, required 
 		return existing, false, nil
 	}
 
-	actual, err := client.APIServices().Update(required)
+	existing.Spec = required.Spec
+
+	actual, err := client.APIServices().Update(existing)
 	return actual, true, err
 }
