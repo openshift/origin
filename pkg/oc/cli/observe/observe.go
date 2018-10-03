@@ -904,7 +904,8 @@ func (p VersionedPrinterList) PrintObj(obj runtime.Object, out io.Writer) ([]byt
 		if !runtime.IsNotRegisteredError(err) {
 			return nil, err
 		}
-		converted = obj
+
+		panic(fmt.Errorf("unable to decode obj: %#v\n%v", obj, err))
 	}
 
 	for _, printer := range p {
