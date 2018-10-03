@@ -66,7 +66,7 @@ func (h *Helper) StartSocatTunnel(bindIP string) error {
 	}
 	// The -s flag tells socat not to quit even when it gets errors on the other end.
 	// This may happen because the server is initially slow in responding.
-	cmd := exec.Command("socat", "-s", fmt.Sprintf("TCP-L:8443,reuseaddr,fork,backlog=20,bind=%s", bindIP), "SYSTEM:\"docker exec -i origin socat - TCP\\:localhost\\:8443\"")
+	cmd := exec.Command("socat", "-s", fmt.Sprintf("TCP-L:6443,reuseaddr,fork,backlog=20,bind=%s", bindIP), "SYSTEM:\"docker exec -i origin socat - TCP\\:localhost\\:6443\"")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	err = cmd.Start()
 	if err != nil {

@@ -87,7 +87,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
-	clientConfig.Host = c.ServerIP + ":8443"
+	clientConfig.Host = c.ServerIP + ":6443"
 
 	glog.Info("Waiting for bootkube phase-2 kubernetes control plane to be ready ...")
 	if err := waitForHealthyKubeAPIServer(clientConfig); err != nil {

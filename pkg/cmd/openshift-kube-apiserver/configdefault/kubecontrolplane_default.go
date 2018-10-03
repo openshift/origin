@@ -11,6 +11,7 @@ import (
 
 func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAPIServerConfig) {
 	configdefaults.DefaultString(&config.GenericAPIServerConfig.StorageConfig.StoragePrefix, "kubernetes.io")
+	configdefaults.DefaultString(&config.GenericAPIServerConfig.ServingInfo.BindAddress, "0.0.0.0:6443")
 
 	configdefaults.SetRecommendedGenericAPIServerConfigDefaults(&config.GenericAPIServerConfig)
 	SetRecommendedMasterAuthConfigDefaults(&config.AuthConfig)

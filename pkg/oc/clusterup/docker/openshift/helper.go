@@ -41,10 +41,10 @@ var (
 		BootkubeRenderContainerName,
 		BootkubeStartContainerName,
 	)
-	BasePorts    = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
+	BasePorts    = []int{4001, 7001, 6443, 10250, DefaultDNSPort}
 	RouterPorts  = []int{80, 443}
 	AllPorts     = append(RouterPorts, BasePorts...)
-	SocatPidFile = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-8443.pid")
+	SocatPidFile = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-6443.pid")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
@@ -83,7 +83,7 @@ func (h *Helper) TestPorts(ports []int) error {
 
 func testIPDial(ip string) error {
 	// Attempt to connect to test container
-	testHost := fmt.Sprintf("%s:8443", ip)
+	testHost := fmt.Sprintf("%s:6443", ip)
 	glog.V(4).Infof("Attempting to dial %s", testHost)
 	if err := cmdutil.WaitForSuccessfulDial(false, "tcp", testHost, 200*time.Millisecond, 1*time.Second, 10); err != nil {
 		glog.V(2).Infof("Dial error: %v", err)
@@ -100,7 +100,7 @@ func (h *Helper) TestIP(ip string) error {
 		Privileged().
 		HostNetwork().
 		Entrypoint("socat").
-		Command("TCP-LISTEN:8443,crlf,reuseaddr,fork", "SYSTEM:\"echo 'hello world'\"").Start()
+		Command("TCP-LISTEN:6443,crlf,reuseaddr,fork", "SYSTEM:\"echo 'hello world'\"").Start()
 	if err != nil {
 		return errors.NewError("cannot start simple server on Docker host").WithCause(err)
 	}
