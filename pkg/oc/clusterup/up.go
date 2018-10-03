@@ -59,6 +59,7 @@ var (
 type ClusterUpConfig struct {
 	ImageTemplate variable.ImageTemplate
 	ImageTag      string
+	ForcePull     bool
 
 	// BaseTempDir is the directory to use as the root for temp directories
 	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't
@@ -141,7 +142,9 @@ func NewCmdUp(name, fullName string, f genericclioptions.RESTClientGetter, strea
 
 func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&c.ImageTag, "tag", "", "Specify an explicit version for OpenShift images")
+	flags.BoolVar(&c.ForcePull, "force-pull", false, "Force to pull all required images")
 	flags.MarkHidden("tag")
+	flags.MarkHidden("force-pull")
 	flags.StringVar(&c.ImageTemplate.Format, "image", c.ImageTemplate.Format, "Specify the images to use for OpenShift")
 	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&c.BaseDir, "base-dir", c.BaseDir, "Directory on Docker host for cluster up configuration")
@@ -216,7 +219,7 @@ func (c *ClusterUpConfig) Complete(f genericclioptions.RESTClientGetter, cmd *co
 	c.dockerClient = client
 
 	c.printProgress(fmt.Sprintf("Pulling all required images"))
-	if err := OpenShiftImages.EnsurePulled(c.Docker(), c.ImageTemplate); err != nil {
+	if err := OpenShiftImages.EnsurePulled(c.Docker(), c.ImageTemplate, c.ForcePull); err != nil {
 		return err
 	}
 
