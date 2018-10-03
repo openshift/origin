@@ -5,7 +5,6 @@ import (
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
 	imagevalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
-	sdnvalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	projectvalidation "github.com/openshift/origin/pkg/project/apis/project/validation"
 	quotavalidation "github.com/openshift/origin/pkg/quota/apis/quota/validation"
@@ -18,7 +17,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -76,11 +74,6 @@ func registerAll() {
 	Validator.MustRegister(&projectapi.ProjectRequest{}, false, projectvalidation.ValidateProjectRequest, nil)
 
 	Validator.MustRegister(&routeapi.Route{}, true, routevalidation.ValidateRoute, routevalidation.ValidateRouteUpdate)
-
-	Validator.MustRegister(&networkapi.ClusterNetwork{}, false, sdnvalidation.ValidateClusterNetwork, sdnvalidation.ValidateClusterNetworkUpdate)
-	Validator.MustRegister(&networkapi.HostSubnet{}, false, sdnvalidation.ValidateHostSubnet, sdnvalidation.ValidateHostSubnetUpdate)
-	Validator.MustRegister(&networkapi.NetNamespace{}, false, sdnvalidation.ValidateNetNamespace, sdnvalidation.ValidateNetNamespaceUpdate)
-	Validator.MustRegister(&networkapi.EgressNetworkPolicy{}, true, sdnvalidation.ValidateEgressNetworkPolicy, sdnvalidation.ValidateEgressNetworkPolicyUpdate)
 
 	Validator.MustRegister(&templateapi.Template{}, true, templatevalidation.ValidateTemplate, templatevalidation.ValidateTemplateUpdate)
 	Validator.MustRegister(&templateapi.TemplateInstance{}, true, templatevalidation.ValidateTemplateInstance, templatevalidation.ValidateTemplateInstanceUpdate)

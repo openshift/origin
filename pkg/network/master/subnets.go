@@ -10,11 +10,13 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
 
 	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
 )
 
@@ -208,9 +210,20 @@ func (master *OsdnMaster) watchSubnets() {
 	master.hostSubnetInformer.Informer().AddEventHandler(funcs)
 }
 
-func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType watch.EventType) {
+func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, old interface{}, eventType watch.EventType) {
 	hs := obj.(*networkapi.HostSubnet)
 	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
+
+	var validErrs field.ErrorList
+	if old != nil {
+		validErrs = validation.ValidateHostSubnetUpdate(hs, old.(*networkapi.HostSubnet))
+	} else {
+		validErrs = validation.ValidateHostSubnet(hs)
+	}
+	if len(validErrs) > 0 {
+		utilruntime.HandleError(fmt.Errorf("Ignoring invalid HostSubnet %s: %v", common.HostSubnetToString(hs), validErrs.ToAggregate()))
+		return
+	}
 
 	if err := master.reconcileHostSubnet(hs); err != nil {
 		utilruntime.HandleError(err)

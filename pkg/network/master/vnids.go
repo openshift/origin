@@ -16,6 +16,7 @@ import (
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	"github.com/openshift/library-go/pkg/network/networkapihelpers"
 	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
 	pnetid "github.com/openshift/origin/pkg/network/master/netid"
 )
@@ -326,6 +327,11 @@ func (master *OsdnMaster) watchNetNamespaces() {
 func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
 	netns := obj.(*networkv1.NetNamespace)
 	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+
+	if errs := validation.ValidateNetNamespace(netns); len(errs) > 0 {
+		utilruntime.HandleError(fmt.Errorf("Ignoring invalid NetNamespace %s: %v", netns.Name, errs.ToAggregate()))
+		return
+	}
 
 	if err := master.vnids.updateVNID(master.networkClient, netns); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error updating netid: %v", err))

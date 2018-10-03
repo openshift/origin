@@ -11,12 +11,14 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 
 	networkapi "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
+	"github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
 )
 
@@ -201,6 +203,11 @@ func (vmap *nodeVNIDMap) watchNetNamespaces() {
 func (vmap *nodeVNIDMap) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
 	netns := obj.(*networkapi.NetNamespace)
 	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+
+	if errs := validation.ValidateNetNamespace(netns); len(errs) > 0 {
+		utilruntime.HandleError(fmt.Errorf("Ignoring invalid NetNamespace %s: %v", netns.Name, errs.ToAggregate()))
+		return
+	}
 
 	// Skip this event if nothing has changed
 	oldNetID, err := vmap.getVNID(netns.NetName)

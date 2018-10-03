@@ -13,11 +13,13 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 
 	networkapi "github.com/openshift/api/network/v1"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
+	"github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
 )
 
@@ -44,9 +46,20 @@ func (hsw *hostSubnetWatcher) Start(networkInformers networkinformers.SharedInfo
 	networkInformers.Network().V1().HostSubnets().Informer().AddEventHandler(funcs)
 }
 
-func (hsw *hostSubnetWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
+func (hsw *hostSubnetWatcher) handleAddOrUpdateHostSubnet(obj, old interface{}, eventType watch.EventType) {
 	hs := obj.(*networkapi.HostSubnet)
 	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
+
+	var validErrs field.ErrorList
+	if old != nil {
+		validErrs = validation.ValidateHostSubnetUpdate(hs, old.(*networkapi.HostSubnet))
+	} else {
+		validErrs = validation.ValidateHostSubnet(hs)
+	}
+	if len(validErrs) > 0 {
+		utilruntime.HandleError(fmt.Errorf("Ignoring invalid HostSubnet %s: %v", common.HostSubnetToString(hs), validErrs.ToAggregate()))
+		return
+	}
 
 	if err := hsw.updateHostSubnet(hs); err != nil {
 		utilruntime.HandleError(err)

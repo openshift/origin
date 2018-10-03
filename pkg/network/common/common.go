@@ -12,6 +12,7 @@ import (
 	networkapi "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
@@ -161,6 +162,9 @@ func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error)
 	cn, err := networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, v1.GetOptions{})
 	if err != nil {
 		return nil, err
+	}
+	if errs := validation.ValidateClusterNetwork(cn); len(errs) > 0 {
+		return nil, fmt.Errorf("ClusterNetwork is invalid (%v)", errs.ToAggregate())
 	}
 
 	return ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork, cn.VXLANPort)

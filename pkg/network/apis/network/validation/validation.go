@@ -9,9 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
+	networkapi "github.com/openshift/api/network/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/util/netutils"
+)
+
+const (
+	EgressNetworkPolicyMaxRules = 50
 )
 
 func validateCIDRv4(cidr string) (*net.IPNet, error) {
@@ -228,7 +232,7 @@ func ValidateEgressNetworkPolicy(policy *networkapi.EgressNetworkPolicy) field.E
 		}
 	}
 
-	if len(policy.Spec.Egress) > networkapi.EgressNetworkPolicyMaxRules {
+	if len(policy.Spec.Egress) > EgressNetworkPolicyMaxRules {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress"), "", ("too many egress rules (max 50)")))
 	}
 

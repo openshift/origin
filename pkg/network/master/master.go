@@ -23,6 +23,7 @@ import (
 	networkinternalinformers "github.com/openshift/client-go/network/informers/externalversions"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
 	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -223,6 +224,10 @@ func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
 }
 
 func clusterNetworkChanged(obj *networkapi.ClusterNetwork, old *networkapi.ClusterNetwork) (bool, error) {
+	if errs := validation.ValidateClusterNetwork(old); len(errs) > 0 {
+		utilruntime.HandleError(fmt.Errorf("Ignoring invalid existing default ClusterNetwork (%v)", errs.ToAggregate()))
+		return true, nil
+	}
 
 	if old.ServiceNetwork != obj.ServiceNetwork {
 		return true, fmt.Errorf("cannot change the serviceNetworkCIDR of an already-deployed cluster")
