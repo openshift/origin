@@ -23,7 +23,6 @@ var ControllerInitializers = map[string]InitFunc{
 	"openshift.io/templateinstance":          RunTemplateInstanceController,
 	"openshift.io/templateinstancefinalizer": RunTemplateInstanceFinalizerController,
 
-	"openshift.io/sdn":              RunSDNController,
 	"openshift.io/unidling":         RunUnidlingController,
 	"openshift.io/ingress-ip":       RunIngressIPController,
 	"openshift.io/ingress-to-route": RunIngressToRouteController,

@@ -2,6 +2,7 @@ package openshift_network_controller
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"k8s.io/klog"
@@ -18,7 +19,8 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
-	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
+	"github.com/openshift/origin/pkg/network"
+	sdnmaster "github.com/openshift/origin/pkg/network/master"
 
 	// for metrics
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
@@ -36,11 +38,11 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 			klog.Fatal(err)
 		}
 
-		controllerContext, err := origincontrollers.NewControllerContext(*config, clientConfig, nil)
+		controllerContext, err := NewControllerContext(*config, clientConfig, nil)
 		if err != nil {
 			klog.Fatal(err)
 		}
-		enabled, err := origincontrollers.RunSDNController(controllerContext)
+		enabled, err := runSDNController(controllerContext)
 		if err != nil {
 			klog.Fatalf("Error starting OpenShift Network Controller: %v", err)
 		} else if !enabled {
@@ -86,4 +88,22 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 		})
 
 	return nil
+}
+
+func runSDNController(ctx *ControllerContext) (bool, error) {
+	if !network.IsOpenShiftNetworkPlugin(ctx.OpenshiftControllerConfig.Network.NetworkPluginName) {
+		return false, nil
+	}
+
+	if err := sdnmaster.Start(
+		ctx.OpenshiftControllerConfig.Network,
+		ctx.NetworkClient,
+		ctx.KubernetesClient,
+		ctx.KubernetesInformers,
+		ctx.NetworkInformers,
+	); err != nil {
+		return false, fmt.Errorf("failed to start SDN plugin controller: %v", err)
+	}
+
+	return true, nil
 }
