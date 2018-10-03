@@ -44,7 +44,6 @@ items:
           sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       sourceStrategy:
-        forcePull: true
         from:
           kind: ImageStreamTag
           name: ruby:latest
@@ -71,8 +70,7 @@ items:
         - destinationDir: injected/dir
           sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
-      dockerStrategy:
-        forcePull: true
+      dockerStrategy: {}
 
 - apiVersion: v1
   kind: ImageStream
