@@ -2,9 +2,7 @@ package openshift_network_controller
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"strings"
 
 	"k8s.io/klog"
 
@@ -18,7 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
-	"github.com/openshift/library-go/pkg/network/networkutils"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	sdnmaster "github.com/openshift/origin/pkg/network/master"
@@ -43,11 +40,13 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 		if err != nil {
 			klog.Fatal(err)
 		}
-		enabled, err := runSDNController(controllerContext)
-		if err != nil {
+		if err := sdnmaster.Start(
+			controllerContext.NetworkClient,
+			controllerContext.KubernetesClient,
+			controllerContext.KubernetesInformers,
+			controllerContext.NetworkInformers,
+		); err != nil {
 			klog.Fatalf("Error starting OpenShift Network Controller: %v", err)
-		} else if !enabled {
-			klog.Fatalf("OpenShift Network Controller requested, but not running an OpenShift Network plugin")
 		}
 		klog.Infof("Started OpenShift Network Controller")
 		controllerContext.StartInformers(nil)
@@ -89,30 +88,4 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 		})
 
 	return nil
-}
-
-func runSDNController(ctx *ControllerContext) (bool, error) {
-	if !isOpenShiftNetworkPlugin(ctx.OpenshiftControllerConfig.Network.NetworkPluginName) {
-		return false, nil
-	}
-
-	if err := sdnmaster.Start(
-		ctx.OpenshiftControllerConfig.Network,
-		ctx.NetworkClient,
-		ctx.KubernetesClient,
-		ctx.KubernetesInformers,
-		ctx.NetworkInformers,
-	); err != nil {
-		return false, fmt.Errorf("failed to start SDN plugin controller: %v", err)
-	}
-
-	return true, nil
-}
-
-func isOpenShiftNetworkPlugin(pluginName string) bool {
-	switch strings.ToLower(pluginName) {
-	case networkutils.SingleTenantPluginName, networkutils.MultiTenantPluginName, networkutils.NetworkPolicyPluginName:
-		return true
-	}
-	return false
 }
