@@ -66,10 +66,9 @@ os::log::info "Running Kubernetes conformance suite for ${version}"
 oc adm policy add-scc-to-group privileged system:authenticated system:serviceaccounts
 oc adm policy remove-scc-from-group restricted system:authenticated
 oc adm policy remove-scc-from-group anyuid system:cluster-admins
-# Mark the masters and infra nodes as unschedulable so tests ignore them
+# Mark the master nodes as unschedulable so tests ignore them
 oc get nodes -o name -l 'node-role.kubernetes.io/master=true' | xargs -L1 oc adm cordon
-oc get nodes -o name -l 'node-role.kubernetes.io/infra=true' | xargs -L1 oc adm cordon
-unschedulable="$( ( oc get nodes -o name -l 'node-role.kubernetes.io/master=true'; oc get nodes -o name -l 'node-role.kubernetes.io/infra=true' ) | wc -l )"
+unschedulable="$( ( oc get nodes -o name -l 'node-role.kubernetes.io/master=true'; ) | wc -l )"
 # TODO: undo these operations
 
 # Execute Kubernetes prerequisites
