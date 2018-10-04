@@ -117,7 +117,8 @@ func (s *REST) Watch(ctx context.Context, options *metainternal.ListOptions) (wa
 		return nil, err
 	}
 
-	watcher := projectauth.NewUserProjectWatcher(userInfo, allowedNamespaces, s.projectCache, s.authCache, includeAllExistingProjects)
+	m := projectutil.MatchProject(apihelpers.InternalListOptionsToSelectors(options))
+	watcher := projectauth.NewUserProjectWatcher(userInfo, allowedNamespaces, s.projectCache, s.authCache, includeAllExistingProjects, m)
 	s.authCache.AddWatcher(watcher)
 
 	go watcher.Watch()

@@ -300,6 +300,76 @@ func TestProjectWatch(t *testing.T) {
 	}
 }
 
+func TestProjectWatchWithSelectionPredicate(t *testing.T) {
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_, bobConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "bob")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	bobProjectClient := projectclient.NewForConfigOrDie(bobConfig).Project()
+	w, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
+		FieldSelector: "metadata.name=ns-01",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, "ns-01", "bob"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// we should be seeing an "ADD" watch event being emitted, since we are specifically watching this project via a field selector
+	waitForAdd("ns-01", w, t)
+
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, "ns-03", "bob"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// we are only watching ns-01, we should not receive events for other projects
+	waitForNoEvent(w, t)
+
+	if err := bobProjectClient.Projects().Delete("ns-03", nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// we are only watching ns-01, we should not receive events for other projects
+	waitForNoEvent(w, t)
+
+	// test the "start from beginning watch"
+	beginningWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
+		ResourceVersion: "0",
+		FieldSelector:   "metadata.name=ns-01",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// we should be seeing an "ADD" watch event being emitted, since we are specifically watching this project via a field selector
+	waitForAdd("ns-01", beginningWatch, t)
+
+	fromNowWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
+		FieldSelector: "metadata.name=ns-01",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// since we are only watching for events from "ns-01", and no projects are being modified, we should not receive any events here
+	waitForNoEvent(fromNowWatch, t)
+}
+
+func waitForNoEvent(w watch.Interface, t *testing.T) {
+	select {
+	case event := <-w.ResultChan():
+		t.Fatalf("unexpected event %v with object %#v", event, event.Object)
+	case <-time.After(3 * time.Second):
+	}
+}
+
 func waitForDelete(projectName string, w watch.Interface, t *testing.T) {
 	for {
 		select {
