@@ -58,7 +58,7 @@ Currently Linux (including a Linux VM running on another platform) is the only s
      [registries.insecure]
      registries = ['172.30.0.0/16']
      ```
-     or edit the `/etc/docker/daemon.json` file and add the following:
+     and create/edit the `/etc/docker/daemon.json` file and add the following:
      ```json
      {
         "insecure-registries": [
