@@ -72,7 +72,6 @@ func NewControllerContext(
 	if err != nil {
 		return nil, err
 	}
-
 	buildClient, err := buildclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
@@ -81,7 +80,7 @@ func NewControllerContext(
 	if err != nil {
 		return nil, err
 	}
-	networkClient, err := networkclient.NewForConfig(clientConfig)
+	networkClient, err := networkclient.NewForConfig(nonProtobufConfig(clientConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +375,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftNetworkClient(name string) (n
 	if err != nil {
 		return nil, err
 	}
-	return networkclient.NewForConfig(clientConfig)
+	return networkclient.NewForConfig(nonProtobufConfig(clientConfig))
 }
 
 // OpenshiftNetworkClientOrDie provides a REST client for the network API.
@@ -404,4 +403,13 @@ func (b OpenshiftControllerClientBuilder) OpenshiftSecurityClientOrDie(name stri
 		glog.Fatal(err)
 	}
 	return client
+}
+
+// nonProtobufConfig returns a copy of inConfig that doesn't force the use of protobufs,
+// for working with CRD-based APIs.
+func nonProtobufConfig(inConfig *rest.Config) *rest.Config {
+	npConfig := rest.CopyConfig(inConfig)
+	npConfig.ContentConfig.AcceptContentTypes = "application/json"
+	npConfig.ContentConfig.ContentType = "application/json"
+	return npConfig
 }
