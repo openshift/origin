@@ -2,30 +2,30 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: openshift-service-cert-signer
-  name: service-serving-cert-signer
+  name: configmap-cabundle-injector
   labels:
-    app: openshift-service-serving-cert-signer
-    service-serving-cert-signer: "true"
+    app: openshift-configmap-cabundle-injector
+    configmap-cabundle-injector: "true"
 spec:
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: openshift-service-serving-cert-signer
-      service-serving-cert-signer: "true"
+      app: openshift-configmap-cabundle-injector
+      configmap-cabundle-injector: "true"
   template:
     metadata:
-      name: service-serving-cert-signer
+      name: configmap-cabundle-injector
       labels:
-        app: openshift-service-serving-cert-signer
-        service-serving-cert-signer: "true"
+        app: openshift-configmap-cabundle-injector
+        configmap-cabundle-injector: "true"
     spec:
-      serviceAccountName: service-serving-cert-signer-sa
+      serviceAccountName: configmap-cabundle-injector-sa
       containers:
-      - name: service-serving-cert-signer-controller
+      - name: configmap-cabundle-injector-controller
         image: ${IMAGE}
         imagePullPolicy: IfNotPresent
-        command: ["service-serving-cert-signer", "serving-cert-signer"]
+        command: ["service-serving-cert-signer", "configmap-cabundle-injector"]
         args:
         - "--config=/var/run/configmaps/config/controller-config.yaml"
         ports:
@@ -33,21 +33,21 @@ spec:
         volumeMounts:
         - mountPath: /var/run/configmaps/config
           name: config
-        - mountPath: /var/run/secrets/signing-key
-          name: signing-key
+        - mountPath: /var/run/configmaps/signing-cabundle
+          name: signing-cabundle
         - mountPath: /var/run/secrets/serving-cert
           name: serving-cert
       volumes:
       - name: serving-cert
         secret:
-          secretName: service-serving-cert-signer-serving-cert
+          secretName: configmap-cabundle-injector-serving-cert
           optional: true
-      - name: signing-key
-        secret:
-          secretName: service-serving-cert-signer-signing-key
+      - name: signing-cabundle
+        configMap:
+          name: signing-cabundle
       - name: config
         configMap:
-          name: service-serving-cert-signer-config
+          name: configmap-cabundle-injector-config
       nodeSelector:
         node-role.kubernetes.io/master: ""
       tolerations:

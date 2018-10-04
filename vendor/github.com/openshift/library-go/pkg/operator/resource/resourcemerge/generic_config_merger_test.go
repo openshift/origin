@@ -120,3 +120,92 @@ func TestMergeConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeProcessConfig(t *testing.T) {
+	tests := []struct {
+		name         string
+		curr         string
+		additional   string
+		specialCases map[string]MergeFunc
+
+		expected    string
+		expectedErr string
+	}{
+		{
+			name: "no conflict on missing typemeta",
+			curr: `
+apiVersion: foo
+kind: the-kind
+alpha: first
+`,
+			additional: `
+bravo: two
+`,
+			expected: `{"alpha":"first","apiVersion":"foo","bravo":"two","kind":"the-kind"}
+`,
+		},
+		{
+			curr: `
+apiVersion: foo
+kind: the-kind
+alpha: first
+`,
+			name: "no conflict on same typemeta",
+			additional: `
+apiVersion: foo
+kind: the-kind
+bravo: two
+`,
+			expected: `{"alpha":"first","apiVersion":"foo","bravo":"two","kind":"the-kind"}
+`,
+		},
+		{
+			name: "conflict on different typemeta 01",
+			curr: `
+apiVersion: foo
+kind: the-kind
+alpha: first
+`,
+			additional: `
+kind: the-other-kind
+bravo: two
+`,
+			expectedErr: `/the-other-kind does not equal foo/the-kind`,
+		},
+		{
+			name: "conflict on different typemeta 03",
+			curr: `
+apiVersion: foo
+kind: the-kind
+alpha: first
+`,
+			additional: `
+apiVersion: bar
+bravo: two
+`,
+			expectedErr: `bar/ does not equal foo/the-kind`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := MergeProcessConfig(test.specialCases, []byte(test.curr), []byte(test.additional))
+			switch {
+			case err == nil && len(test.expectedErr) == 0:
+			case err == nil && len(test.expectedErr) != 0:
+				t.Fatalf("missing %q", test.expectedErr)
+			case err != nil && len(test.expectedErr) == 0:
+				t.Fatal(err)
+			case err != nil && len(test.expectedErr) != 0 && !strings.Contains(err.Error(), test.expectedErr):
+				t.Fatalf("expected %q, got %q", test.expectedErr, err)
+			}
+			if err != nil {
+				return
+			}
+
+			if test.expected != string(actual) {
+				t.Error(diff.StringDiff(test.expected, string(actual)))
+			}
+		})
+	}
+}

@@ -9,6 +9,15 @@
 // bindata/v3.10.0/apiservice-cabundle-controller/sa.yaml
 // bindata/v3.10.0/apiservice-cabundle-controller/signing-cabundle.yaml
 // bindata/v3.10.0/apiservice-cabundle-controller/svc.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/clusterrole.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/clusterrolebinding.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/cm.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/defaultconfig.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/deployment.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/ns.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/sa.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/signing-cabundle.yaml
+// bindata/v3.10.0/configmap-cabundle-controller/svc.yaml
 // bindata/v3.10.0/service-serving-cert-signer-controller/clusterrole.yaml
 // bindata/v3.10.0/service-serving-cert-signer-controller/clusterrolebinding.yaml
 // bindata/v3.10.0/service-serving-cert-signer-controller/cm.yaml
@@ -215,9 +224,10 @@ spec:
       - name: config
         configMap:
           name: apiservice-cabundle-injector-config
-
-
-
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+      - operator: Exists
 `)
 
 func v3100ApiserviceCabundleControllerDeploymentYamlBytes() ([]byte, error) {
@@ -332,6 +342,281 @@ func v3100ApiserviceCabundleControllerSvcYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "v3.10.0/apiservice-cabundle-controller/svc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:openshift:controller:configmap-cabundle-injector
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+`)
+
+func v3100ConfigmapCabundleControllerClusterroleYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerClusterroleYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerClusterroleYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerClusterroleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/clusterrole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerClusterrolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:controller:configmap-cabundle-injector
+roleRef:
+  kind: ClusterRole
+  name: system:openshift:controller:configmap-cabundle-injector
+subjects:
+- kind: ServiceAccount
+  namespace: openshift-service-cert-signer
+  name: configmap-cabundle-injector-sa
+`)
+
+func v3100ConfigmapCabundleControllerClusterrolebindingYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerClusterrolebindingYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerClusterrolebindingYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerClusterrolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/clusterrolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerCmYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: openshift-service-cert-signer
+  name: configmap-cabundle-injector-config
+data:
+  controller-config.yaml:
+`)
+
+func v3100ConfigmapCabundleControllerCmYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerCmYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerCmYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerCmYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/cm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerDefaultconfigYaml = []byte(`apiVersion: servicecertsigner.config.openshift.io/v1alpha1
+kind: ConfigMapCABundleInjectorConfig
+caBundleFile: /var/run/configmaps/signing-cabundle/cabundle.crt
+`)
+
+func v3100ConfigmapCabundleControllerDefaultconfigYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerDefaultconfigYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerDefaultconfigYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerDefaultconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/defaultconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: openshift-service-cert-signer
+  name: configmap-cabundle-injector
+  labels:
+    app: openshift-configmap-cabundle-injector
+    configmap-cabundle-injector: "true"
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: openshift-configmap-cabundle-injector
+      configmap-cabundle-injector: "true"
+  template:
+    metadata:
+      name: configmap-cabundle-injector
+      labels:
+        app: openshift-configmap-cabundle-injector
+        configmap-cabundle-injector: "true"
+    spec:
+      serviceAccountName: configmap-cabundle-injector-sa
+      containers:
+      - name: configmap-cabundle-injector-controller
+        image: ${IMAGE}
+        imagePullPolicy: IfNotPresent
+        command: ["service-serving-cert-signer", "configmap-cabundle-injector"]
+        args:
+        - "--config=/var/run/configmaps/config/controller-config.yaml"
+        ports:
+        - containerPort: 8443
+        volumeMounts:
+        - mountPath: /var/run/configmaps/config
+          name: config
+        - mountPath: /var/run/configmaps/signing-cabundle
+          name: signing-cabundle
+        - mountPath: /var/run/secrets/serving-cert
+          name: serving-cert
+      volumes:
+      - name: serving-cert
+        secret:
+          secretName: configmap-cabundle-injector-serving-cert
+          optional: true
+      - name: signing-cabundle
+        configMap:
+          name: signing-cabundle
+      - name: config
+        configMap:
+          name: configmap-cabundle-injector-config
+
+
+
+`)
+
+func v3100ConfigmapCabundleControllerDeploymentYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerDeploymentYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerDeploymentYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerNsYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-service-cert-signer
+  labels:
+    openshift.io/run-level: "1"
+`)
+
+func v3100ConfigmapCabundleControllerNsYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerNsYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerNsYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerNsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/ns.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerSaYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: openshift-service-cert-signer
+  name: configmap-cabundle-injector-sa
+`)
+
+func v3100ConfigmapCabundleControllerSaYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerSaYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerSaYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerSaYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/sa.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerSigningCabundleYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: openshift-service-cert-signer
+  name: signing-cabundle
+data:
+  cabundle.crt:
+`)
+
+func v3100ConfigmapCabundleControllerSigningCabundleYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerSigningCabundleYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerSigningCabundleYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerSigningCabundleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/signing-cabundle.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3100ConfigmapCabundleControllerSvcYaml = []byte(`apiVersion: v1
+kind: Service
+metadata:
+  namespace: openshift-service-cert-signer
+  name: service-serving-cert-signer
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: service-serving-cert-signer-serving-cert
+    prometheus.io/scrape: "true"
+    prometheus.io/scheme: https
+spec:
+  selector:
+    service-serving-cert-signer: "true"
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8443
+`)
+
+func v3100ConfigmapCabundleControllerSvcYamlBytes() ([]byte, error) {
+	return _v3100ConfigmapCabundleControllerSvcYaml, nil
+}
+
+func v3100ConfigmapCabundleControllerSvcYaml() (*asset, error) {
+	bytes, err := v3100ConfigmapCabundleControllerSvcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.10.0/configmap-cabundle-controller/svc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -505,9 +790,10 @@ spec:
       - name: config
         configMap:
           name: service-serving-cert-signer-config
-
-
-
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+      - operator: Exists
 `)
 
 func v3100ServiceServingCertSignerControllerDeploymentYamlBytes() ([]byte, error) {
@@ -689,6 +975,15 @@ var _bindata = map[string]func() (*asset, error){
 	"v3.10.0/apiservice-cabundle-controller/sa.yaml": v3100ApiserviceCabundleControllerSaYaml,
 	"v3.10.0/apiservice-cabundle-controller/signing-cabundle.yaml": v3100ApiserviceCabundleControllerSigningCabundleYaml,
 	"v3.10.0/apiservice-cabundle-controller/svc.yaml": v3100ApiserviceCabundleControllerSvcYaml,
+	"v3.10.0/configmap-cabundle-controller/clusterrole.yaml": v3100ConfigmapCabundleControllerClusterroleYaml,
+	"v3.10.0/configmap-cabundle-controller/clusterrolebinding.yaml": v3100ConfigmapCabundleControllerClusterrolebindingYaml,
+	"v3.10.0/configmap-cabundle-controller/cm.yaml": v3100ConfigmapCabundleControllerCmYaml,
+	"v3.10.0/configmap-cabundle-controller/defaultconfig.yaml": v3100ConfigmapCabundleControllerDefaultconfigYaml,
+	"v3.10.0/configmap-cabundle-controller/deployment.yaml": v3100ConfigmapCabundleControllerDeploymentYaml,
+	"v3.10.0/configmap-cabundle-controller/ns.yaml": v3100ConfigmapCabundleControllerNsYaml,
+	"v3.10.0/configmap-cabundle-controller/sa.yaml": v3100ConfigmapCabundleControllerSaYaml,
+	"v3.10.0/configmap-cabundle-controller/signing-cabundle.yaml": v3100ConfigmapCabundleControllerSigningCabundleYaml,
+	"v3.10.0/configmap-cabundle-controller/svc.yaml": v3100ConfigmapCabundleControllerSvcYaml,
 	"v3.10.0/service-serving-cert-signer-controller/clusterrole.yaml": v3100ServiceServingCertSignerControllerClusterroleYaml,
 	"v3.10.0/service-serving-cert-signer-controller/clusterrolebinding.yaml": v3100ServiceServingCertSignerControllerClusterrolebindingYaml,
 	"v3.10.0/service-serving-cert-signer-controller/cm.yaml": v3100ServiceServingCertSignerControllerCmYaml,
@@ -751,6 +1046,17 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"sa.yaml": &bintree{v3100ApiserviceCabundleControllerSaYaml, map[string]*bintree{}},
 			"signing-cabundle.yaml": &bintree{v3100ApiserviceCabundleControllerSigningCabundleYaml, map[string]*bintree{}},
 			"svc.yaml": &bintree{v3100ApiserviceCabundleControllerSvcYaml, map[string]*bintree{}},
+		}},
+		"configmap-cabundle-controller": &bintree{nil, map[string]*bintree{
+			"clusterrole.yaml": &bintree{v3100ConfigmapCabundleControllerClusterroleYaml, map[string]*bintree{}},
+			"clusterrolebinding.yaml": &bintree{v3100ConfigmapCabundleControllerClusterrolebindingYaml, map[string]*bintree{}},
+			"cm.yaml": &bintree{v3100ConfigmapCabundleControllerCmYaml, map[string]*bintree{}},
+			"defaultconfig.yaml": &bintree{v3100ConfigmapCabundleControllerDefaultconfigYaml, map[string]*bintree{}},
+			"deployment.yaml": &bintree{v3100ConfigmapCabundleControllerDeploymentYaml, map[string]*bintree{}},
+			"ns.yaml": &bintree{v3100ConfigmapCabundleControllerNsYaml, map[string]*bintree{}},
+			"sa.yaml": &bintree{v3100ConfigmapCabundleControllerSaYaml, map[string]*bintree{}},
+			"signing-cabundle.yaml": &bintree{v3100ConfigmapCabundleControllerSigningCabundleYaml, map[string]*bintree{}},
+			"svc.yaml": &bintree{v3100ConfigmapCabundleControllerSvcYaml, map[string]*bintree{}},
 		}},
 		"service-serving-cert-signer-controller": &bintree{nil, map[string]*bintree{
 			"clusterrole.yaml": &bintree{v3100ServiceServingCertSignerControllerClusterroleYaml, map[string]*bintree{}},
