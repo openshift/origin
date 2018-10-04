@@ -14,6 +14,7 @@ import (
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 )
@@ -70,7 +71,7 @@ var (
 	watchChannelHWM kstorage.HighWaterMark
 )
 
-func NewUserProjectWatcher(user user.Info, visibleNamespaces sets.String, projectCache *projectcache.ProjectCache, authCache WatchableCache, includeAllExistingProjects bool) *userProjectWatcher {
+func NewUserProjectWatcher(user user.Info, visibleNamespaces sets.String, projectCache *projectcache.ProjectCache, authCache WatchableCache, includeAllExistingProjects bool, predicate kstorage.SelectionPredicate) *userProjectWatcher {
 	namespaces, _ := authCache.List(user)
 	knownProjects := map[string]string{}
 	for _, namespace := range namespaces.Items {
@@ -98,6 +99,14 @@ func NewUserProjectWatcher(user user.Info, visibleNamespaces sets.String, projec
 		knownProjects:   knownProjects,
 	}
 	w.emit = func(e watch.Event) {
+		// if dealing with project events, ensure that we only emit events for projects
+		// that match the field or label selector specified by a consumer
+		if project, ok := e.Object.(*projectapi.Project); ok {
+			if matches, err := predicate.Matches(project); err != nil || !matches {
+				return
+			}
+		}
+
 		select {
 		case w.outgoing <- e:
 		case <-w.userStop:

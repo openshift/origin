@@ -1,9 +1,17 @@
 package util
 
 import (
+	"fmt"
+
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	apistorage "k8s.io/apiserver/pkg/storage"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+
 	oapi "github.com/openshift/origin/pkg/api"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // ConvertNamespace transforms a Namespace into a Project
@@ -44,4 +52,31 @@ func ConvertNamespaceList(namespaceList *kapi.NamespaceList) *projectapi.Project
 		projects.Items = append(projects.Items, *ConvertNamespace(&n))
 	}
 	return projects
+}
+
+// getAttrs returns labels and fields of a given object for filtering purposes.
+func getAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+	projectObj, ok := obj.(*projectapi.Project)
+	if !ok {
+		return nil, nil, false, fmt.Errorf("not a project")
+	}
+	return labels.Set(projectObj.Labels), projectToSelectableFields(projectObj), projectObj.Initializers != nil, nil
+}
+
+// MatchProject returns a generic matcher for a given label and field selector.
+func MatchProject(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {
+	return apistorage.SelectionPredicate{
+		Label:    label,
+		Field:    field,
+		GetAttrs: getAttrs,
+	}
+}
+
+// projectToSelectableFields returns a field set that represents the object
+func projectToSelectableFields(projectObj *projectapi.Project) fields.Set {
+	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(&projectObj.ObjectMeta, false)
+	specificFieldsSet := fields.Set{
+		"status.phase": string(projectObj.Status.Phase),
+	}
+	return generic.MergeFieldsSets(objectMetaFieldsSet, specificFieldsSet)
 }
