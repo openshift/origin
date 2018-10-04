@@ -1,13 +1,10 @@
 package bootstrappolicy
 
 import (
-	"fmt"
-
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	kauthenticationapi "k8s.io/kubernetes/pkg/apis/authentication"
 	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
@@ -40,13 +37,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-)
-
-const (
-	// roleSystemOnly is an annotation key that determines if a role is system only
-	roleSystemOnly = "authorization.openshift.io/system-only"
-	// roleIsSystemOnly is an annotation value that denotes roleSystemOnly, and thus excludes the role from the UI
-	roleIsSystemOnly = "true"
 )
 
 var (
@@ -486,6 +476,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				Annotations: map[string]string{
 					oapi.OpenShiftDescription: "Grants the right to build, push and pull images from within a project.  Used primarily with service accounts for builds.",
 				},
+				// TODO after the 1.12 rebase, we don't need to separate aggregate to admin
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true", "rbac.authorization.k8s.io/aggregate-to-edit": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
 				// push and pull images
@@ -662,7 +654,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: RegistryAdminRoleName,
+				Name:   RegistryAdminRoleName,
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule(readWrite...).Groups(kapiGroup).Resources("serviceaccounts", "secrets").RuleOrDie(),
@@ -683,7 +676,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: RegistryEditorRoleName,
+				Name:   RegistryEditorRoleName,
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-edit": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule(readWrite...).Groups(kapiGroup).Resources("serviceaccounts", "secrets").RuleOrDie(),
@@ -697,7 +691,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: RegistryViewerRoleName,
+				Name:   RegistryViewerRoleName,
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule(read...).Groups(imageGroup, legacyImageGroup).Resources("imagestreamimages", "imagestreammappings", "imagestreams", "imagestreamtags").RuleOrDie(),
@@ -724,68 +719,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 }
 
 func GetBootstrapClusterRoles() []rbacv1.ClusterRole {
-	openshiftClusterRoles := GetOpenshiftBootstrapClusterRoles()
-	// dead cluster roles need to be checked for conflicts (in case something new comes up)
-	// so add them to this list.
-	openshiftClusterRoles = append(openshiftClusterRoles, GetDeadClusterRoles()...)
-	kubeClusterRoles := bootstrappolicy.ClusterRoles()
-	openshiftControllerRoles := ControllerRoles()
-
-	// Eventually openshift controllers and kube controllers have different prefixes
-	// so we will only need to check conflicts on the "normal" cluster roles
-	// for now, deconflict with all names
-	openshiftClusterRoleNames := sets.NewString()
-	kubeClusterRoleNames := sets.NewString()
-	for _, clusterRole := range openshiftClusterRoles {
-		openshiftClusterRoleNames.Insert(clusterRole.Name)
-	}
-	for _, clusterRole := range kubeClusterRoles {
-		kubeClusterRoleNames.Insert(clusterRole.Name)
-	}
-
-	conflictingNames := kubeClusterRoleNames.Intersection(openshiftClusterRoleNames)
-	if len(conflictingNames) > 0 {
-		panic(fmt.Sprintf("kube ClusterRoles conflict with openshift ClusterRoles: %v", conflictingNames.List()))
-	}
-
-	finalClusterRoles := []rbacv1.ClusterRole{}
-	finalClusterRoles = append(finalClusterRoles, openshiftClusterRoles...)
-	finalClusterRoles = append(finalClusterRoles, openshiftControllerRoles...)
-	finalClusterRoles = append(finalClusterRoles, kubeClusterRoles...)
-
-	// TODO we should not do this for kube cluster roles since we cannot control them once we run on top of kube
-	// conditionally add the web console annotations
-	for i := range finalClusterRoles {
-		role := &finalClusterRoles[i]
-		// adding annotation to any role not explicitly in the whitelist below
-		if !rolesToShow.Has(role.Name) {
-			if role.Annotations == nil {
-				role.Annotations = map[string]string{}
-			}
-			role.Annotations[roleSystemOnly] = roleIsSystemOnly
-		}
-
-		// add a couple selected descriptions
-		switch role.Name {
-		case "admin":
-			if role.Annotations == nil {
-				role.Annotations = map[string]string{}
-			}
-			role.Annotations[oapi.OpenShiftDescription] = "A user that has edit rights within the project and can change the project's membership."
-		case "edit":
-			if role.Annotations == nil {
-				role.Annotations = map[string]string{}
-			}
-			role.Annotations[oapi.OpenShiftDescription] = "A user that can create and edit most objects in a project, but can not update the project's membership."
-		case "view":
-			if role.Annotations == nil {
-				role.Annotations = map[string]string{}
-			}
-			role.Annotations[oapi.OpenShiftDescription] = "A user who can view but not edit any resources within the project. They can not view secrets or membership."
-		}
-	}
-
-	return finalClusterRoles
+	return append(GetOpenshiftBootstrapClusterRoles(), ControllerRoles()...)
 }
 
 func newOriginRoleBinding(bindingName, roleName, namespace string) *rbacv1helpers.RoleBindingBuilder {
@@ -884,48 +818,8 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 }
 
 func GetBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
-	openshiftClusterRoleBindings := GetOpenshiftBootstrapClusterRoleBindings()
-	// dead cluster roles need to be checked for conflicts (in case something new comes up)
-	// so add them to this list.
-	openshiftClusterRoleBindings = append(openshiftClusterRoleBindings, GetDeadClusterRoleBindings()...)
-
-	kubeClusterRoleBindings := bootstrappolicy.ClusterRoleBindings()
-	openshiftControllerClusterRoleBindings := ControllerRoleBindings()
-
-	// openshift controllers and kube controllers have different prefixes
-	// so we only need to check conflicts on the "normal" cluster rolebindings
-	openshiftClusterRoleBindingNames := sets.NewString()
-	kubeClusterRoleBindingNames := sets.NewString()
-	for _, clusterRoleBinding := range openshiftClusterRoleBindings {
-		openshiftClusterRoleBindingNames.Insert(clusterRoleBinding.Name)
-	}
-	for _, clusterRoleBinding := range kubeClusterRoleBindings {
-		kubeClusterRoleBindingNames.Insert(clusterRoleBinding.Name)
-	}
-
-	conflictingNames := kubeClusterRoleBindingNames.Intersection(openshiftClusterRoleBindingNames)
-	if len(conflictingNames) > 0 {
-		panic(fmt.Sprintf("kube ClusterRoleBindings conflict with openshift ClusterRoleBindings: %v", conflictingNames.List()))
-	}
-
-	finalClusterRoleBindings := []rbacv1.ClusterRoleBinding{}
-	finalClusterRoleBindings = append(finalClusterRoleBindings, openshiftClusterRoleBindings...)
-	finalClusterRoleBindings = append(finalClusterRoleBindings, openshiftControllerClusterRoleBindings...)
-
-	return finalClusterRoleBindings
+	return append(GetOpenshiftBootstrapClusterRoleBindings(), ControllerRoleBindings()...)
 }
-
-// The current list of roles considered useful for normal users (non-admin)
-var rolesToShow = sets.NewString(
-	"admin",
-	"basic-user",
-	"edit",
-	"system:deployer",
-	"system:image-builder",
-	"system:image-puller",
-	"system:image-pusher",
-	"view",
-)
 
 // TODO we need to remove the global mutable state from all roles / bindings so we know this function is safe to call
 func addDefaultMetadata(obj runtime.Object) {
@@ -945,33 +839,8 @@ func addDefaultMetadata(obj runtime.Object) {
 	metadata.SetAnnotations(annotations)
 }
 
-func GetBootstrapNamespaceRoles() map[string][]rbacv1.Role {
-	// openshift and kube are guaranteed never to conflict on these
-	// the openshift map is safe to mutate unlike the kube one
-	ret := NamespaceRoles()
-	// add the kube roles, do not mutate the kube map
-	for namespace, roles := range bootstrappolicy.NamespaceRoles() {
-		ret[namespace] = roles
-	}
-	return ret
-}
-
-func GetBootstrapNamespaceRoleBindings() map[string][]rbacv1.RoleBinding {
-	// openshift and kube are guaranteed never to conflict on these
-	// the openshift map is safe to mutate unlike the kube one
-	ret := NamespaceRoleBindings()
-	// add the kube role bindings, do not mutate the kube map
-	for namespace, roleBindings := range bootstrappolicy.NamespaceRoleBindings() {
-		ret[namespace] = roleBindings
-	}
-	return ret
-}
-
 func GetBootstrapClusterRolesToAggregate() map[string]string {
 	return map[string]string{
-		AdminRoleName:         AggregatedAdminRoleName,
-		EditRoleName:          AggregatedEditRoleName,
-		ViewRoleName:          AggregatedViewRoleName,
 		ClusterReaderRoleName: AggregatedClusterReaderRoleName,
 	}
 }
