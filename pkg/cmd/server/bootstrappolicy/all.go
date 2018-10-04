@@ -15,8 +15,8 @@ func Policy() *PolicyData {
 	return &PolicyData{
 		ClusterRoles:            GetBootstrapClusterRoles(),
 		ClusterRoleBindings:     GetBootstrapClusterRoleBindings(),
-		Roles:                   GetBootstrapNamespaceRoles(),
-		RoleBindings:            GetBootstrapNamespaceRoleBindings(),
+		Roles:                   NamespaceRoles(),
+		RoleBindings:            NamespaceRoleBindings(),
 		ClusterRolesToAggregate: GetBootstrapClusterRolesToAggregate(),
 	}
 }
