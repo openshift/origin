@@ -183,7 +183,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build) (*v1.Pod, er
 	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	setupInputConfigMaps(pod, &pod.Spec.Containers[0], build.Spec.Source.ConfigMaps)
 	setupContainersConfigs(pod, &pod.Spec.Containers[0])
-	setupContainersCertificates(pod, &pod.Spec.Containers[0])
+	//	setupContainersCertificates(pod, &pod.Spec.Containers[0])
 	setupContainersStorage(pod, &pod.Spec.Containers[0]) // for unprivileged builds
 	// setupContainersNodeStorage(pod, &pod.Spec.Containers[0]) // for privileged builds
 	return pod, nil

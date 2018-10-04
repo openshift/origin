@@ -111,20 +111,18 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	// inputsecret
 	// inputconfigmap
 	// build-system-configmap
-	// container certs.d
-	// docker certs.d
 	// container storage
-	if len(container.VolumeMounts) != 11 {
-		t.Fatalf("Expected 11 volumes in container, got %d %v", len(container.VolumeMounts), container.VolumeMounts)
+	if len(container.VolumeMounts) != 9 {
+		t.Fatalf("Expected 9 volumes in container, got %d %v", len(container.VolumeMounts), container.VolumeMounts)
 	}
-	for i, expected := range []string{buildutil.BuildWorkDirMount, "/var/run/docker.sock", "/var/run/crio/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath, filepath.Join(SecretBuildSourceBaseMountPath, "secret"), filepath.Join(ConfigMapBuildSourceBaseMountPath, "configmap"), ConfigMapBuildSystemConfigsMountPath, "/etc/containers/certs.d", "/etc/docker/certs.d", "/var/lib/containers/storage"} {
+	for i, expected := range []string{buildutil.BuildWorkDirMount, "/var/run/docker.sock", "/var/run/crio/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath, filepath.Join(SecretBuildSourceBaseMountPath, "secret"), filepath.Join(ConfigMapBuildSourceBaseMountPath, "configmap"), ConfigMapBuildSystemConfigsMountPath, "/var/lib/containers/storage"} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
 	// build pod has an extra volume: the git clone source secret
-	if len(actual.Spec.Volumes) != 12 {
-		t.Fatalf("Expected 12 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 10 {
+		t.Fatalf("Expected 10 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
