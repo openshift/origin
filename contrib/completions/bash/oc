@@ -5162,6 +5162,8 @@ _oc_adm_router()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--allow-missing-template-keys")
+    local_nonpersistent_flags+=("--allow-missing-template-keys")
     flags+=("--ciphers=")
     local_nonpersistent_flags+=("--ciphers=")
     flags+=("--create")
