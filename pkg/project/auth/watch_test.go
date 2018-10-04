@@ -5,11 +5,14 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -17,9 +20,10 @@ import (
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	projectutil "github.com/openshift/origin/pkg/project/util"
 )
 
-func newTestWatcher(username string, groups []string, namespaces ...*kapi.Namespace) (*userProjectWatcher, *fakeAuthCache, chan struct{}) {
+func newTestWatcher(username string, groups []string, predicate storage.SelectionPredicate, namespaces ...*kapi.Namespace) (*userProjectWatcher, *fakeAuthCache, chan struct{}) {
 	objects := []runtime.Object{}
 	for i := range namespaces {
 		objects = append(objects, namespaces[i])
@@ -37,7 +41,7 @@ func newTestWatcher(username string, groups []string, namespaces ...*kapi.Namesp
 	stopCh := make(chan struct{})
 	go projectCache.Run(stopCh)
 
-	return NewUserProjectWatcher(&user.DefaultInfo{Name: username, Groups: groups}, sets.NewString("*"), projectCache, fakeAuthCache, false), fakeAuthCache, stopCh
+	return NewUserProjectWatcher(&user.DefaultInfo{Name: username, Groups: groups}, sets.NewString("*"), projectCache, fakeAuthCache, false, predicate), fakeAuthCache, stopCh
 }
 
 type fakeAuthCache struct {
@@ -62,7 +66,7 @@ func (w *fakeAuthCache) List(userInfo user.Info) (*kapi.NamespaceList, error) {
 }
 
 func TestFullIncoming(t *testing.T) {
-	watcher, fakeAuthCache, stopCh := newTestWatcher("bob", nil, newNamespaces("ns-01")...)
+	watcher, fakeAuthCache, stopCh := newTestWatcher("bob", nil, matchAllPredicate(), newNamespaces("ns-01")...)
 	defer close(stopCh)
 	watcher.cacheIncoming = make(chan watch.Event)
 
@@ -111,7 +115,7 @@ func TestFullIncoming(t *testing.T) {
 }
 
 func TestAddModifyDeleteEventsByUser(t *testing.T) {
-	watcher, _, stopCh := newTestWatcher("bob", nil, newNamespaces("ns-01")...)
+	watcher, _, stopCh := newTestWatcher("bob", nil, matchAllPredicate(), newNamespaces("ns-01")...)
 	defer close(stopCh)
 	go watcher.Watch()
 
@@ -150,8 +154,73 @@ func TestAddModifyDeleteEventsByUser(t *testing.T) {
 	}
 }
 
+func TestProjectSelectionPredicate(t *testing.T) {
+	field := fields.ParseSelectorOrDie("metadata.name=ns-03")
+	m := projectutil.MatchProject(labels.Everything(), field)
+
+	watcher, _, stopCh := newTestWatcher("bob", nil, m, newNamespaces("ns-01", "ns-02", "ns-03")...)
+	defer close(stopCh)
+
+	if watcher.emit == nil {
+		t.Fatalf("unset emit function")
+	}
+
+	go watcher.Watch()
+
+	// a namespace we did not select changed, we shouldn't observe it
+	watcher.GroupMembershipChanged("ns-01", sets.NewString("bob"), sets.String{})
+	select {
+	case event := <-watcher.ResultChan():
+		t.Fatalf("unexpected event %v", event)
+	case <-time.After(3 * time.Second):
+	}
+
+	watcher.GroupMembershipChanged("ns-03", sets.NewString("bob"), sets.String{})
+	select {
+	case event := <-watcher.ResultChan():
+		if event.Type != watch.Added {
+			t.Errorf("expected added, got %v", event)
+		}
+		if event.Object.(*projectapi.Project).Name != "ns-03" {
+			t.Errorf("expected %v, got %#v", "ns-03", event.Object)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatalf("timeout")
+	}
+
+	// the object didn't change, we shouldn't observe it
+	watcher.GroupMembershipChanged("ns-03", sets.NewString("bob"), sets.String{})
+	select {
+	case event := <-watcher.ResultChan():
+		t.Fatalf("unexpected event %v", event)
+	case <-time.After(3 * time.Second):
+	}
+
+	// deletion occurred in a separate namespace, we should not observe it
+	watcher.GroupMembershipChanged("ns-01", sets.NewString("alice"), sets.String{})
+	select {
+	case event := <-watcher.ResultChan():
+		t.Fatalf("unexpected event %v", event)
+	case <-time.After(3 * time.Second):
+	}
+
+	// deletion occurred in selected namespace, we should observe it
+	watcher.GroupMembershipChanged("ns-03", sets.NewString("alice"), sets.String{})
+	select {
+	case event := <-watcher.ResultChan():
+		if event.Type != watch.Deleted {
+			t.Errorf("expected Deleted, got %v", event)
+		}
+		if event.Object.(*projectapi.Project).Name != "ns-03" {
+			t.Errorf("expected %v, got %#v", "ns-03", event.Object)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatalf("timeout")
+	}
+}
+
 func TestAddModifyDeleteEventsByGroup(t *testing.T) {
-	watcher, _, stopCh := newTestWatcher("bob", []string{"group-one"}, newNamespaces("ns-01")...)
+	watcher, _, stopCh := newTestWatcher("bob", []string{"group-one"}, matchAllPredicate(), newNamespaces("ns-01")...)
 	defer close(stopCh)
 	go watcher.Watch()
 
@@ -197,4 +266,8 @@ func newNamespaces(names ...string) []*kapi.Namespace {
 	}
 
 	return ret
+}
+
+func matchAllPredicate() storage.SelectionPredicate {
+	return projectutil.MatchProject(labels.Everything(), fields.Everything())
 }
