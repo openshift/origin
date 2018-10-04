@@ -72,6 +72,11 @@ cp "${MASTER_CONFIG_DIR}/admin.kubeconfig" "${HOME}/.kube/non-default-config"
 export KUBECONFIG="${HOME}/.kube/non-default-config"
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 
+# Store starting cluster RBAC to allow it to be restored during tests that mutate the global policy
+BASE_RBAC_DATA="$( mktemp "${BASETMPDIR}/base_rbac_data_XXXXX" )"
+export BASE_RBAC_DATA
+oc get clusterroles.rbac,clusterrolebindings.rbac -o yaml | grep -v resourceVersion > "${BASE_RBAC_DATA}"
+
 # NOTE: Do not add tests here, add them to test/cmd/*.
 # Tests should assume they run in an empty project, and should be reentrant if possible
 # to make it easy to run individual tests

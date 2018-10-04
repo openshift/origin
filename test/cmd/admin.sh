@@ -16,8 +16,7 @@ trap os::test::junit::reconcile_output EXIT
   oc delete users/orphaned-user
   oc delete identities/anypassword:orphaned-user
   oc delete identities/anypassword:cascaded-user
-  oc adm policy reconcile-cluster-roles --confirm --additive-only=false
-  oc adm policy reconcile-cluster-role-bindings --confirm --additive-only=false
+  oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"
 ) &>/dev/null
 
 project="$( oc project -q )"
@@ -199,85 +198,6 @@ os::cmd::expect_success_and_text 'oc adm prune auth groups/fake-group' 'security
 echo "admin-scc: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/admin/reconcile-cluster-roles"
-os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
-os::cmd::expect_failure 'oc get clusterrole/cluster-status'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-roles'
-os::cmd::expect_failure 'oc get clusterrole/cluster-status'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-roles --confirm --loglevel=8'
-os::cmd::expect_success 'oc get clusterrole/cluster-status'
-# check the reconcile again with a specific cluster role name
-os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
-os::cmd::expect_failure 'oc get clusterrole/cluster-status'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-roles cluster-admin --confirm'
-os::cmd::expect_failure 'oc get clusterrole/cluster-status'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-roles clusterrole/cluster-status --confirm'
-os::cmd::expect_success 'oc get clusterrole/cluster-status'
-
-# test reconciliation protection by replacing the basic-user role with one that has missing default permissions, and extra non-default permissions
-os::cmd::expect_success 'oc replace --force -f ./test/testdata/basic-user-with-groups-without-projectrequests.yaml'
-# 1. mark the role as protected, and ensure the role is skipped by reconciliation
-os::cmd::expect_success 'oc annotate clusterrole/basic-user openshift.io/reconcile-protect=true'
-os::cmd::expect_success_and_text     'oc adm policy reconcile-cluster-roles basic-user --additive-only=false --confirm' 'skipped: clusterrole/basic-user'
-# 2. unmark the role as protected, and ensure reconcile expects to remove extra permissions, and put back removed permissions
-os::cmd::expect_success 'oc annotate clusterrole/basic-user openshift.io/reconcile-protect=false --overwrite'
-os::cmd::expect_success_and_text     'oc get clusterrole/basic-user -o jsonpath="{.rules[*].resources}"' 'groups'
-os::cmd::expect_success_and_not_text 'oc get clusterrole/basic-user -o jsonpath="{.rules[*].resources}"' 'projectrequests'
-os::cmd::expect_success_and_not_text 'oc adm policy reconcile-cluster-roles basic-user -o jsonpath="{.items[*].rules[*].resources}" --additive-only=false' 'groups'
-os::cmd::expect_success_and_text     'oc adm policy reconcile-cluster-roles basic-user -o jsonpath="{.items[*].rules[*].resources}" --additive-only=false' 'projectrequests'
-# reconcile updates the role
-os::cmd::expect_success_and_text     'oc adm policy reconcile-cluster-roles basic-user --additive-only=false --confirm' 'clusterrole/basic-user'
-# a second reconcile doesn't need to update the role
-os::cmd::expect_success_and_not_text 'oc adm policy reconcile-cluster-roles basic-user --additive-only=false --confirm' 'clusterrole/basic-user'
-
-# test label/annotation reconciliation by replacing the basic-user role with one that has custom labels, annotations, and permissions
-os::cmd::expect_success 'oc replace --force -f ./test/testdata/basic-user-with-annotations-labels-groups-without-projectrequests.yaml'
-# display shows customized labels/annotations
-os::cmd::expect_success_and_text 'oc adm policy reconcile-cluster-roles' 'custom-label'
-os::cmd::expect_success_and_text 'oc adm policy reconcile-cluster-roles' 'custom-annotation'
-os::cmd::expect_success_and_text 'oc adm policy reconcile-cluster-roles --additive-only --confirm' 'clusterrole/basic-user'
-# reconcile preserves added rules, labels, and annotations
-os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'custom-label'
-os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'custom-annotation'
-os::cmd::expect_success_and_text 'oc get clusterroles/basic-user -o json' 'groups'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-roles --additive-only=false --confirm'
-os::cmd::expect_success_and_not_text 'oc get clusterroles/basic-user -o yaml' 'groups'
-echo "admin-reconcile-cluster-roles: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/reconcile-cluster-role-bindings"
-# Ensure a removed binding gets re-added
-os::cmd::expect_success 'oc delete clusterrolebinding/cluster-status-binding'
-os::cmd::expect_failure 'oc get clusterrolebinding/cluster-status-binding'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-role-bindings'
-os::cmd::expect_failure 'oc get clusterrolebinding/cluster-status-binding'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-role-bindings --confirm'
-os::cmd::expect_success 'oc get clusterrolebinding/cluster-status-binding'
-# Customize a binding
-os::cmd::expect_success 'oc replace --force -f ./test/testdata/basic-users-binding.json'
-# display shows customized labels/annotations
-os::cmd::expect_success_and_text 'oc adm policy reconcile-cluster-role-bindings' 'custom-label'
-os::cmd::expect_success_and_text 'oc adm policy reconcile-cluster-role-bindings' 'custom-annotation'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-role-bindings --confirm'
-# Ensure a customized binding's subjects, labels, annotations are retained by default
-os::cmd::expect_success_and_text 'oc get clusterrolebindings/basic-users -o json' 'custom-label'
-os::cmd::expect_success_and_text 'oc get clusterrolebindings/basic-users -o json' 'custom-annotation'
-os::cmd::expect_success_and_text 'oc get clusterrolebindings/basic-users -o json' 'custom-user'
-# Ensure a customized binding's roleref is corrected
-os::cmd::expect_success_and_not_text 'oc get clusterrolebindings/basic-users -o json' 'cluster-status'
-# Ensure --additive-only=false removes customized users from the binding
-os::cmd::expect_success 'oc adm policy reconcile-cluster-role-bindings --additive-only=false --confirm'
-os::cmd::expect_success_and_not_text 'oc get clusterrolebindings/basic-users -o json' 'custom-user'
-# check the reconcile again with a specific cluster role name
-os::cmd::expect_success 'oc delete clusterrolebinding/basic-users'
-os::cmd::expect_failure 'oc get clusterrolebinding/basic-users'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-role-bindings cluster-admin --confirm'
-os::cmd::expect_failure 'oc get clusterrolebinding/basic-users'
-os::cmd::expect_success 'oc adm policy reconcile-cluster-role-bindings basic-user --confirm'
-os::cmd::expect_success 'oc get clusterrolebinding/basic-users'
-echo "admin-reconcile-cluster-role-bindings: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/admin/role-reapers"
 os::cmd::expect_success "oc process -f test/extended/testdata/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
 os::cmd::expect_success "oc get rolebinding/basic-users"
@@ -294,8 +214,7 @@ os::cmd::expect_success "oc get rolebinding/edit"
 os::cmd::expect_success "oc adm prune auth clusterrole/edit"
 os::cmd::expect_failure "oc get rolebinding/edit"
 os::cmd::expect_success "oc delete clusterrole/edit"
-os::cmd::expect_success "oc adm policy reconcile-cluster-roles --confirm"
-os::cmd::expect_success "oc adm policy reconcile-cluster-role-bindings --confirm"
+os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
 
 os::cmd::expect_success "oc process -f test/extended/testdata/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
 os::cmd::expect_success "oc get rolebinding/basic-users"

@@ -3,11 +3,13 @@ package policy
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 
 	"github.com/spf13/cobra"
 
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -181,6 +183,26 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f kcmdutil.Fa
 	if o.Confirmed {
 		return o.ReplaceChangedSCCs(newSCCs, changedSCCs)
 	}
+	return nil
+}
+
+// TODO(juanvallejo): make this a wrapper at the PrintFlags level (.WithFilter(func))
+func printObjectList(objs []runtime.Object, printer printers.ResourcePrinter, outputFormat string, out io.Writer) error {
+	if len(outputFormat) == 0 || outputFormat != "name" {
+		list := &corev1.List{}
+		for _, obj := range objs {
+			item := runtime.RawExtension{Object: obj}
+			list.Items = append(list.Items, item)
+		}
+		return printer.PrintObj(list, out)
+	}
+
+	for _, obj := range objs {
+		if err := printer.PrintObj(obj, out); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
