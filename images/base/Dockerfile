@@ -8,7 +8,7 @@ FROM openshift/origin-source
 
 COPY *.repo /etc/yum.repos.d/
 RUN INSTALL_PKGS=" \
-      which tar wget hostname sysvinit-tools util-linux \
+      which tar rsync wget hostname sysvinit-tools util-linux \
       socat tree findutils lsof bind-utils \
       " && \
     yum install -y ${INSTALL_PKGS} && \
