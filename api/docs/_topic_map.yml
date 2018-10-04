@@ -282,17 +282,6 @@
     File: v1.ImageStreamMapping
   - Name: v1.ImageStreamTag
     File: v1.ImageStreamTag
-- Name: /apis/network.openshift.io/v1
-  Dir: apis-network.openshift.io
-  Topics:
-  - Name: v1.ClusterNetwork
-    File: v1.ClusterNetwork
-  - Name: v1.EgressNetworkPolicy
-    File: v1.EgressNetworkPolicy
-  - Name: v1.HostSubnet
-    File: v1.HostSubnet
-  - Name: v1.NetNamespace
-    File: v1.NetNamespace
 - Name: /apis/oauth.openshift.io/v1
   Dir: apis-oauth.openshift.io
   Topics:
@@ -365,8 +354,6 @@
     File: v1.Build
   - Name: v1.BuildConfig
     File: v1.BuildConfig
-  - Name: v1.ClusterNetwork
-    File: v1.ClusterNetwork
   - Name: v1.ClusterResourceQuota
     File: v1.ClusterResourceQuota
   - Name: v1.ClusterRole
@@ -375,12 +362,8 @@
     File: v1.ClusterRoleBinding
   - Name: v1.DeploymentConfig
     File: v1.DeploymentConfig
-  - Name: v1.EgressNetworkPolicy
-    File: v1.EgressNetworkPolicy
   - Name: v1.Group
     File: v1.Group
-  - Name: v1.HostSubnet
-    File: v1.HostSubnet
   - Name: v1.Identity
     File: v1.Identity
   - Name: v1.Image
@@ -401,8 +384,6 @@
     File: v1.LocalResourceAccessReview
   - Name: v1.LocalSubjectAccessReview
     File: v1.LocalSubjectAccessReview
-  - Name: v1.NetNamespace
-    File: v1.NetNamespace
   - Name: v1.OAuthAccessToken
     File: v1.OAuthAccessToken
   - Name: v1.OAuthAuthorizeToken
