@@ -330,6 +330,65 @@ var _ = Describe("[Area:Networking] NetworkPolicy", func() {
 			testCannotConnect(f, nsA, "client-a", service, 80)
 			testCanConnect(f, nsB, "client-b", service, 80)
 		})
+
+		It("should enforce policy based on NamespaceSelector and PodSelector [Feature:OSNetworkPolicy]", func() {
+			nsA := f.Namespace
+			nsBName := f.BaseName + "-b"
+			// The CreateNamespace helper uses the input name as a Name Generator, so the namespace itself
+			// will have a different name than what we are setting as the value of ns-name.
+			// This is fine as long as we don't try to match the label as nsB.Name in our policy.
+			nsB, err := f.CreateNamespace(nsBName, map[string]string{
+				"ns-name": nsBName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create Server with Service in NS-B
+			By("Creating a webserver tied to a service.")
+			serverPod, service := createServerPodAndService(f, nsA, "server", []int{80})
+			defer cleanupServerPodAndService(f, serverPod, service)
+			framework.Logf("Waiting for server to come up.")
+			err = framework.WaitForPodRunningInNamespace(f.ClientSet, serverPod)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create Policy for that service that allows traffic only from pods named client-b2 in namespace B
+			By("Creating a network policy for the server which allows traffic from pods named client-b2 in namespace-b.")
+			policy := &networking.NetworkPolicy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "allow-client-b2-from-ns-b-via-namespace-and-pod-selector",
+				},
+				Spec: networking.NetworkPolicySpec{
+					// Apply to server
+					PodSelector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"pod-name": serverPod.Name,
+						},
+					},
+					// Allow traffic only from pod client-b2 in NS-B
+					Ingress: []networking.NetworkPolicyIngressRule{{
+						From: []networking.NetworkPolicyPeer{{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"ns-name": nsBName,
+								},
+							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"pod-name": "client-b2",
+								},
+							},
+						}},
+					}},
+				},
+			}
+			policy, err = f.InternalClientset.Networking().NetworkPolicies(nsA.Name).Create(policy)
+			Expect(err).NotTo(HaveOccurred())
+			defer cleanupNetworkPolicy(f, policy)
+
+			testCannotConnect(f, nsA, "client-a", service, 80)
+			testCannotConnect(f, nsB, "client-b1", service, 80)
+			testCanConnect(f, nsB, "client-b2", service, 80)
+			testCannotConnect(f, nsA, "client-b2", service, 80)
+		})
 	})
 })
 
