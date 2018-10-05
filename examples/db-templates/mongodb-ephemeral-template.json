@@ -10,7 +10,7 @@
             "description": "MongoDB database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
             "iconClass": "icon-mongodb",
             "openshift.io/display-name": "MongoDB (Ephemeral)",
-            "openshift.io/documentation-url": "https://docs.openshift.org/latest/using_images/db_images/mongodb.html",
+            "openshift.io/documentation-url": "https://docs.okd.io/latest/using_images/db_images/mongodb.html",
             "openshift.io/long-description": "This template provides a standalone MongoDB server with a database created.  The database is not stored on persistent storage, so any restart of the service will result in all data being lost.  The database name, username, and password are chosen via parameters when provisioning this service.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -267,11 +267,11 @@
             "required": true
         },
         {
-            "description": "Version of MongoDB image to be used (2.4, 2.6, 3.2 or latest).",
+            "description": "Version of MongoDB image to be used (3.6 or latest).",
             "displayName": "Version of MongoDB Image",
             "name": "MONGODB_VERSION",
             "required": true,
-            "value": "3.2"
+            "value": "3.6"
         }
     ]
 }
