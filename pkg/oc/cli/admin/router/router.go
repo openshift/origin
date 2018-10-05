@@ -2,9 +2,7 @@ package router
 
 import (
 	"fmt"
-	"io"
 	"math/rand"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -17,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -24,11 +23,14 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/client-go/dynamic"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	"k8s.io/kubernetes/pkg/printers"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -38,7 +40,6 @@ import (
 	"github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	fileutil "github.com/openshift/origin/pkg/util/file"
@@ -97,10 +98,13 @@ var (
 	defaultCertificatePath = path.Join(defaultCertificateDir, "tls.crt")
 )
 
-// RouterConfig contains the configuration parameters necessary to
+// RouterOptions contains the configuration parameters necessary to
 // launch a router, including general parameters, type of router, and
 // type-specific parameters.
-type RouterConfig struct {
+type RouterOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+	Printer    printers.ResourcePrinter
+
 	Action bulk.BulkAction
 
 	// Name is the router name, set as an argument
@@ -264,6 +268,14 @@ type RouterConfig struct {
 	// MutualTLSAuthFilter contains the value to filter requests based on
 	// a client certificate subject field substring match.
 	MutualTLSAuthFilter string
+
+	CoreClient     corev1client.CoreV1Interface
+	SecurityClient securityv1typedclient.SecurityV1Interface
+
+	Namespace string
+	Output    bool
+
+	genericclioptions.IOStreams
 }
 
 const (
@@ -282,9 +294,10 @@ $ModLoad omstdout.so
 `
 )
 
-// NewCmdRouter implements the OpenShift CLI router command.
-func NewCmdRouter(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
-	cfg := &RouterConfig{
+func NewRouterOptions(streams genericclioptions.IOStreams) *RouterOptions {
+	return &RouterOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme),
+
 		Name:          "router",
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 
@@ -300,67 +313,72 @@ func NewCmdRouter(f kcmdutil.Factory, parentName, name string, streams genericcl
 		HostPorts:     true,
 
 		MutualTLSAuth: defaultMutualTLSAuth,
-	}
 
+		IOStreams: streams,
+	}
+}
+
+// NewCmdRouter implements the OpenShift CLI router command.
+func NewCmdRouter(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRouterOptions(streams)
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [NAME]", name),
 		Short:   "Install a router",
 		Long:    routerLong,
 		Example: fmt.Sprintf(routerExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunCmdRouter(f, cmd, streams.Out, streams.ErrOut, cfg, args)
-			if err != kcmdutil.ErrExit {
-				kcmdutil.CheckErr(err)
-			} else {
-				os.Exit(1)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().StringVar(&cfg.Type, "type", "haproxy-router", "The type of router to use - if you specify --images this flag may be ignored.")
-	cmd.Flags().StringVar(&cfg.Subdomain, "subdomain", "", "The template for the route subdomain exposed by this router, used for routes that are not externally specified. E.g. '${name}-${namespace}.apps.mycompany.com'")
-	cmd.Flags().StringVar(&cfg.ForceSubdomain, "force-subdomain", "", "A router path format to force on all routes used by this router (will ignore the route host value)")
-	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
-	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
-	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs that set the port in the router pod containerPort and hostPort. It also sets service port and targetPort to expose on the router pod. This does not modify the env variables. That can be done using oc set env or by editing the router's dc. This is used when host-network=false.")
-	cmd.Flags().StringVar(&cfg.RouterCanonicalHostname, "router-canonical-hostname", cfg.RouterCanonicalHostname, "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
-	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
-	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
-	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "If true, use environment variables for master secrets.")
+	cmd.Flags().StringVar(&o.Type, "type", "haproxy-router", "The type of router to use - if you specify --images this flag may be ignored.")
+	cmd.Flags().StringVar(&o.Subdomain, "subdomain", "", "The template for the route subdomain exposed by this router, used for routes that are not externally specified. E.g. '${name}-${namespace}.apps.mycompany.com'")
+	cmd.Flags().StringVar(&o.ForceSubdomain, "force-subdomain", "", "A router path format to force on all routes used by this router (will ignore the route host value)")
+	cmd.Flags().StringVar(&o.ImageTemplate.Format, "images", o.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
+	cmd.Flags().BoolVar(&o.ImageTemplate.Latest, "latest-images", o.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
+	cmd.Flags().StringVar(&o.Ports, "ports", o.Ports, "A comma delimited list of ports or port pairs that set the port in the router pod containerPort and hostPort. It also sets service port and targetPort to expose on the router pod. This does not modify the env variables. That can be done using oc set env or by editing the router's dc. This is used when host-network=false.")
+	cmd.Flags().StringVar(&o.RouterCanonicalHostname, "router-canonical-hostname", o.RouterCanonicalHostname, "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
+	cmd.Flags().Int32Var(&o.Replicas, "replicas", o.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
+	cmd.Flags().StringVar(&o.Labels, "labels", o.Labels, "A set of labels to uniquely identify the router and its components.")
+	cmd.Flags().BoolVar(&o.SecretsAsEnv, "secrets-as-env", o.SecretsAsEnv, "If true, use environment variables for master secrets.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
-	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate. Does not apply to external appliance based routers (e.g. F5)")
-	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
-	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the router pod.")
-	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", cfg.StatsPort, "If the underlying router implementation can provide statistics this is a hint to expose it on this port. Specify 0 if you want to turn off exposing the statistics.")
-	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated. Not available for external appliance based routers (e.g. F5)")
-	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth. Not available for external appliance based routers (e.g. F5)")
-	cmd.Flags().BoolVar(&cfg.ExtendedLogging, "extended-logging", cfg.ExtendedLogging, "If true, then configure the router with additional logging.")
-	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack. Not required for external appliance based routers (e.g. F5)")
-	cmd.Flags().BoolVar(&cfg.HostPorts, "host-ports", cfg.HostPorts, "If true (the default), when not using host networking host ports will be exposed. Not required for external appliance based routers (e.g. F5)")
-	cmd.Flags().StringVar(&cfg.ExternalHost, "external-host", cfg.ExternalHost, "If the underlying router implementation connects with an external host, this is the external host's hostname.")
-	cmd.Flags().StringVar(&cfg.ExternalHostUsername, "external-host-username", cfg.ExternalHostUsername, "If the underlying router implementation connects with an external host, this is the username for authenticating with the external host.")
-	cmd.Flags().StringVar(&cfg.ExternalHostPassword, "external-host-password", cfg.ExternalHostPassword, "If the underlying router implementation connects with an external host, this is the password for authenticating with the external host.")
-	cmd.Flags().StringVar(&cfg.ExternalHostHttpVserver, "external-host-http-vserver", cfg.ExternalHostHttpVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTP connections.")
-	cmd.Flags().StringVar(&cfg.ExternalHostHttpsVserver, "external-host-https-vserver", cfg.ExternalHostHttpsVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTPS connections.")
-	cmd.Flags().StringVar(&cfg.ExternalHostPrivateKey, "external-host-private-key", cfg.ExternalHostPrivateKey, "If the underlying router implementation requires an SSH private key, this is the path to the private key file.")
-	cmd.Flags().StringVar(&cfg.ExternalHostInternalIP, "external-host-internal-ip", cfg.ExternalHostInternalIP, "If the underlying router implementation requires the use of a specific network interface to connect to the pod network, this is the IP address of that internal interface.")
-	cmd.Flags().StringVar(&cfg.ExternalHostVxLANGateway, "external-host-vxlan-gw", cfg.ExternalHostVxLANGateway, "If the underlying router implementation requires VxLAN access to the pod network, this is the gateway address that should be used in cidr format.")
-	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
-	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
-	cmd.Flags().BoolVar(&cfg.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cfg.DisableNamespaceOwnershipCheck, "Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
-	cmd.Flags().StringVar(&cfg.MaxConnections, "max-connections", cfg.MaxConnections, "Specifies the maximum number of concurrent connections. Not supported for F5.")
-	cmd.Flags().StringVar(&cfg.Ciphers, "ciphers", cfg.Ciphers, "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list. Not supported for F5.")
-	cmd.Flags().BoolVar(&cfg.StrictSNI, "strict-sni", cfg.StrictSNI, "Use strict-sni bind processing (do not use default cert). Not supported for F5.")
-	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
-	cmd.Flags().Int32Var(&cfg.Threads, "threads", cfg.Threads, "Specifies the number of threads for the haproxy router.")
+	cmd.Flags().StringVar(&o.DefaultCertificate, "default-cert", o.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate. Does not apply to external appliance based routers (e.g. F5)")
+	cmd.Flags().StringVar(&o.Selector, "selector", o.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
+	cmd.Flags().StringVar(&o.ServiceAccount, "service-account", o.ServiceAccount, "Name of the service account to use to run the router pod.")
+	cmd.Flags().IntVar(&o.StatsPort, "stats-port", o.StatsPort, "If the underlying router implementation can provide statistics this is a hint to expose it on this port. Specify 0 if you want to turn off exposing the statistics.")
+	cmd.Flags().StringVar(&o.StatsPassword, "stats-password", o.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated. Not available for external appliance based routers (e.g. F5)")
+	cmd.Flags().StringVar(&o.StatsUsername, "stats-user", o.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth. Not available for external appliance based routers (e.g. F5)")
+	cmd.Flags().BoolVar(&o.ExtendedLogging, "extended-logging", o.ExtendedLogging, "If true, then configure the router with additional logging.")
+	cmd.Flags().BoolVar(&o.HostNetwork, "host-network", o.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack. Not required for external appliance based routers (e.g. F5)")
+	cmd.Flags().BoolVar(&o.HostPorts, "host-ports", o.HostPorts, "If true (the default), when not using host networking host ports will be exposed. Not required for external appliance based routers (e.g. F5)")
+	cmd.Flags().StringVar(&o.ExternalHost, "external-host", o.ExternalHost, "If the underlying router implementation connects with an external host, this is the external host's hostname.")
+	cmd.Flags().StringVar(&o.ExternalHostUsername, "external-host-username", o.ExternalHostUsername, "If the underlying router implementation connects with an external host, this is the username for authenticating with the external host.")
+	cmd.Flags().StringVar(&o.ExternalHostPassword, "external-host-password", o.ExternalHostPassword, "If the underlying router implementation connects with an external host, this is the password for authenticating with the external host.")
+	cmd.Flags().StringVar(&o.ExternalHostHttpVserver, "external-host-http-vserver", o.ExternalHostHttpVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTP connections.")
+	cmd.Flags().StringVar(&o.ExternalHostHttpsVserver, "external-host-https-vserver", o.ExternalHostHttpsVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTPS connections.")
+	cmd.Flags().StringVar(&o.ExternalHostPrivateKey, "external-host-private-key", o.ExternalHostPrivateKey, "If the underlying router implementation requires an SSH private key, this is the path to the private key file.")
+	cmd.Flags().StringVar(&o.ExternalHostInternalIP, "external-host-internal-ip", o.ExternalHostInternalIP, "If the underlying router implementation requires the use of a specific network interface to connect to the pod network, this is the IP address of that internal interface.")
+	cmd.Flags().StringVar(&o.ExternalHostVxLANGateway, "external-host-vxlan-gw", o.ExternalHostVxLANGateway, "If the underlying router implementation requires VxLAN access to the pod network, this is the gateway address that should be used in cidr format.")
+	cmd.Flags().BoolVar(&o.ExternalHostInsecure, "external-host-insecure", o.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
+	cmd.Flags().StringVar(&o.ExternalHostPartitionPath, "external-host-partition-path", o.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
+	cmd.Flags().BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", o.DisableNamespaceOwnershipCheck, "Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
+	cmd.Flags().StringVar(&o.MaxConnections, "max-connections", o.MaxConnections, "Specifies the maximum number of concurrent connections. Not supported for F5.")
+	cmd.Flags().StringVar(&o.Ciphers, "ciphers", o.Ciphers, "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list. Not supported for F5.")
+	cmd.Flags().BoolVar(&o.StrictSNI, "strict-sni", o.StrictSNI, "Use strict-sni bind processing (do not use default cert). Not supported for F5.")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, do not contact the apiserver")
+	cmd.Flags().Int32Var(&o.Threads, "threads", o.Threads, "Specifies the number of threads for the haproxy router.")
 
-	cmd.Flags().StringVar(&cfg.MutualTLSAuth, "mutual-tls-auth", cfg.MutualTLSAuth, "Controls access to the router using mutually agreed upon TLS configuration (example client certificates). You can choose one of 'required', 'optional', or 'none'. The default is none.")
-	cmd.Flags().StringVar(&cfg.MutualTLSAuthCA, "mutual-tls-auth-ca", cfg.MutualTLSAuthCA, "Optional path to a file containing one or more CA certificates used for mutual TLS authentication. The CA certificate[s] are used by the router to verify a client's certificate.")
-	cmd.Flags().StringVar(&cfg.MutualTLSAuthCRL, "mutual-tls-auth-crl", cfg.MutualTLSAuthCRL, "Optional path to a file containing the certificate revocation list used for mutual TLS authentication. The certificate revocation list is used by the router to verify a client's certificate.")
-	cmd.Flags().StringVar(&cfg.MutualTLSAuthFilter, "mutual-tls-auth-filter", cfg.MutualTLSAuthFilter, "Optional regular expression to filter the client certificates. If the client certificate subject field does _not_ match this regular expression, requests will be rejected by the router.")
+	cmd.Flags().StringVar(&o.MutualTLSAuth, "mutual-tls-auth", o.MutualTLSAuth, "Controls access to the router using mutually agreed upon TLS configuration (example client certificates). You can choose one of 'required', 'optional', or 'none'. The default is none.")
+	cmd.Flags().StringVar(&o.MutualTLSAuthCA, "mutual-tls-auth-ca", o.MutualTLSAuthCA, "Optional path to a file containing one or more CA certificates used for mutual TLS authentication. The CA certificate[s] are used by the router to verify a client's certificate.")
+	cmd.Flags().StringVar(&o.MutualTLSAuthCRL, "mutual-tls-auth-crl", o.MutualTLSAuthCRL, "Optional path to a file containing the certificate revocation list used for mutual TLS authentication. The certificate revocation list is used by the router to verify a client's certificate.")
+	cmd.Flags().StringVar(&o.MutualTLSAuthFilter, "mutual-tls-auth-filter", o.MutualTLSAuthFilter, "Optional regular expression to filter the client certificates. If the client certificate subject field does _not_ match this regular expression, requests will be rejected by the router.")
 
-	cfg.Action.BindForOutput(cmd.Flags())
+	o.Action.BindForOutput(cmd.Flags(), "output", "template")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
+
+	o.PrintFlags.AddFlags(cmd)
 
 	return cmd
 }
@@ -372,13 +390,13 @@ func generateMutualTLSSecretName(prefix string) string {
 
 // generateSecretsConfig generates any Secret and Volume objects, such
 // as SSH private keys, that are necessary for the router container.
-func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaultCert, mtlsAuthCA, mtlsAuthCRL []byte) ([]*corev1.Secret, []corev1.Volume, []corev1.VolumeMount, error) {
+func (o *RouterOptions) generateSecretsConfig(namespace, certName string, defaultCert, mtlsAuthCA, mtlsAuthCRL []byte) ([]*corev1.Secret, []corev1.Volume, []corev1.VolumeMount, error) {
 	var secrets []*corev1.Secret
 	var volumes []corev1.Volume
 	var mounts []corev1.VolumeMount
 
-	if len(cfg.ExternalHostPrivateKey) != 0 {
-		privkeyData, err := fileutil.LoadData(cfg.ExternalHostPrivateKey)
+	if len(o.ExternalHostPrivateKey) != 0 {
+		privkeyData, err := fileutil.LoadData(o.ExternalHostPrivateKey)
 		if err != nil {
 			return secrets, volumes, mounts, fmt.Errorf("error reading private key for external host: %v", err)
 		}
@@ -425,6 +443,8 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 		}
 		// The TLSCertKey contains the pem file passed in as the default cert
 		secret := &corev1.Secret{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta: metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "Secret"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: certName,
 			},
@@ -437,7 +457,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 		secrets = append(secrets, secret)
 	}
 
-	if cfg.Type == "haproxy-router" && cfg.StatsPort != 0 {
+	if o.Type == "haproxy-router" && o.StatsPort != 0 {
 		metricsCertName := "router-metrics-tls"
 		if len(defaultCert) == 0 {
 			// when we are generating a serving cert, we need to reuse the existing cert
@@ -488,7 +508,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 	}
 
 	if len(mtlsSecretData) > 0 {
-		secretName := generateMutualTLSSecretName(cfg.Name)
+		secretName := generateMutualTLSSecretName(o.Name)
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: secretName,
@@ -518,14 +538,14 @@ func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaul
 	return secrets, volumes, mounts, nil
 }
 
-func generateProbeConfigForRouter(path string, cfg *RouterConfig, ports []corev1.ContainerPort) *corev1.Probe {
+func (o *RouterOptions) generateProbeConfigForRouter(path string, ports []corev1.ContainerPort) *corev1.Probe {
 	var probe *corev1.Probe
 
-	if cfg.Type == "haproxy-router" {
+	if o.Type == "haproxy-router" {
 		probe = &corev1.Probe{}
 		probePort := defaultStatsPort
-		if cfg.StatsPort > 0 {
-			probePort = cfg.StatsPort
+		if o.StatsPort > 0 {
+			probePort = o.StatsPort
 		}
 
 		probe.Handler.HTTPGet = &corev1.HTTPGetAction{
@@ -539,7 +559,7 @@ func generateProbeConfigForRouter(path string, cfg *RouterConfig, ports []corev1
 		// Workaround for misconfigured environments where the Node's InternalIP is
 		// physically present on the Node.  In those environments the probes will
 		// fail unless a host firewall port is opened
-		if cfg.HostNetwork {
+		if o.HostNetwork {
 			probe.Handler.HTTPGet.Host = "localhost"
 		}
 	}
@@ -547,113 +567,40 @@ func generateProbeConfigForRouter(path string, cfg *RouterConfig, ports []corev1
 	return probe
 }
 
-func generateLivenessProbeConfig(cfg *RouterConfig, ports []corev1.ContainerPort) *corev1.Probe {
-	probe := generateProbeConfigForRouter("/healthz", cfg, ports)
+func (o *RouterOptions) generateLivenessProbeConfig(ports []corev1.ContainerPort) *corev1.Probe {
+	probe := o.generateProbeConfigForRouter("/healthz", ports)
 	if probe != nil {
 		probe.InitialDelaySeconds = 10
 	}
 	return probe
 }
 
-func generateReadinessProbeConfig(cfg *RouterConfig, ports []corev1.ContainerPort) *corev1.Probe {
-	probe := generateProbeConfigForRouter("healthz/ready", cfg, ports)
+func (o *RouterOptions) generateReadinessProbeConfig(ports []corev1.ContainerPort) *corev1.Probe {
+	probe := o.generateProbeConfigForRouter("healthz/ready", ports)
 	if probe != nil {
 		probe.InitialDelaySeconds = 10
 	}
 	return probe
 }
 
-// RunCmdRouter contains all the necessary functionality for the
-// OpenShift CLI router command.
-func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer, cfg *RouterConfig, args []string) error {
+func (o *RouterOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	case 0:
 		// uses default value
 	case 1:
-		cfg.Name = args[0]
+		o.Name = args[0]
 	default:
-		return kcmdutil.UsageErrorf(cmd, "You may pass zero or one arguments to provide a name for the router")
+		return fmt.Errorf("you may pass zero or one arguments to provide a name for the router")
 	}
-	if cfg.Local && !cfg.Action.DryRun {
-		return fmt.Errorf("--local cannot be specified without --dry-run")
-	}
-
-	name := cfg.Name
-
-	var defaultOutputErr error
-
-	if len(cfg.StatsUsername) > 0 {
-		if strings.Contains(cfg.StatsUsername, ":") {
-			return kcmdutil.UsageErrorf(cmd, "username %s must not contain ':'", cfg.StatsUsername)
-		}
-	}
-
-	if len(cfg.Subdomain) > 0 && len(cfg.ForceSubdomain) > 0 {
-		return kcmdutil.UsageErrorf(cmd, "only one of --subdomain, --force-subdomain can be specified")
-	}
-
-	ports, err := app.ContainerPortsFromString(cfg.Ports)
-	if err != nil {
-		return fmt.Errorf("unable to parse --ports: %v", err)
-	}
-
 	// HostNetwork overrides HostPorts
-	if cfg.HostNetwork {
-		cfg.HostPorts = false
+	if o.HostNetwork {
+		o.HostPorts = false
 	}
-
-	// For the host networking case, ensure the ports match.
-	if cfg.HostNetwork {
-		for i := 0; i < len(ports); i++ {
-			if ports[i].HostPort != 0 && ports[i].ContainerPort != ports[i].HostPort {
-				return fmt.Errorf("when using host networking mode, container port %d and host port %d must be equal", ports[i].ContainerPort, ports[i].HostPort)
-			}
-		}
-	}
-
-	if cfg.StatsPort > 0 {
-		port := corev1.ContainerPort{
-			Name:          "stats",
-			ContainerPort: int32(cfg.StatsPort),
-			Protocol:      corev1.ProtocolTCP,
-		}
-		if cfg.HostPorts {
-			port.HostPort = int32(cfg.StatsPort)
-		}
-		ports = append(ports, port)
-	}
-
-	label := map[string]string{"router": name}
-	if cfg.Labels != defaultLabel {
-		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Labels, ","))
-		if err != nil {
-			glog.Fatal(err)
-		}
-		if len(remove) > 0 {
-			return kcmdutil.UsageErrorf(cmd, "You may not pass negative labels in %q", cfg.Labels)
-		}
-		label = valid
-	}
-
-	nodeSelector := map[string]string{}
-	if len(cfg.Selector) > 0 {
-		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Selector, ","))
-		if err != nil {
-			glog.Fatal(err)
-		}
-		if len(remove) > 0 {
-			return kcmdutil.UsageErrorf(cmd, "You may not pass negative labels in selector %q", cfg.Selector)
-		}
-		nodeSelector = valid
-	}
-
-	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
-
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	var err error
+	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
-		return fmt.Errorf("error getting client: %v", err)
+		return err
 	}
-
 	restMapper, err := f.ToRESTMapper()
 	if err != nil {
 		return err
@@ -666,39 +613,124 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	if err != nil {
 		return err
 	}
-
-	cfg.Action.Bulk.Scheme = legacyscheme.Scheme
-	cfg.Action.Out, cfg.Action.ErrOut = out, errout
-	cfg.Action.Bulk.Op = bulk.Creator{
+	o.Action.Bulk.Scheme = legacyscheme.Scheme
+	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
+	o.Action.Bulk.Op = bulk.Creator{
 		Client:     dynamicClient,
 		RESTMapper: restMapper,
 	}.Create
 
+	o.CoreClient, err = corev1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	o.SecurityClient, err = securityv1typedclient.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	if !o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	output := kcmdutil.GetFlagString(cmd, "output")
+	o.Output = output != "" && output != "name" && output != "compact"
+
+	return nil
+}
+
+func (o *RouterOptions) Validate() error {
+	if o.Local && !o.Action.DryRun {
+		return fmt.Errorf("--local cannot be specified without --dry-run")
+	}
+	if len(o.StatsUsername) > 0 {
+		if strings.Contains(o.StatsUsername, ":") {
+			return fmt.Errorf("username %s must not contain ':'", o.StatsUsername)
+		}
+	}
+	if len(o.Subdomain) > 0 && len(o.ForceSubdomain) > 0 {
+		return fmt.Errorf("only one of --subdomain, --force-subdomain can be specified")
+	}
+
+	return nil
+}
+
+func (o *RouterOptions) Run() error {
+	var defaultOutputErr error
+
+	ports, err := app.ContainerPortsFromString(o.Ports)
+	if err != nil {
+		return fmt.Errorf("unable to parse --ports: %v", err)
+	}
+
+	// For the host networking case, ensure the ports match.
+	if o.HostNetwork {
+		for i := 0; i < len(ports); i++ {
+			if ports[i].HostPort != 0 && ports[i].ContainerPort != ports[i].HostPort {
+				return fmt.Errorf("when using host networking mode, container port %d and host port %d must be equal", ports[i].ContainerPort, ports[i].HostPort)
+			}
+		}
+	}
+
+	if o.StatsPort > 0 {
+		port := corev1.ContainerPort{
+			Name:          "stats",
+			ContainerPort: int32(o.StatsPort),
+			Protocol:      corev1.ProtocolTCP,
+		}
+		if o.HostPorts {
+			port.HostPort = int32(o.StatsPort)
+		}
+		ports = append(ports, port)
+	}
+
+	label := map[string]string{"router": o.Name}
+	if o.Labels != defaultLabel {
+		valid, remove, err := app.LabelsFromSpec(strings.Split(o.Labels, ","))
+		if err != nil {
+			glog.Fatal(err)
+		}
+		if len(remove) > 0 {
+			return fmt.Errorf("you may not pass negative labels in %q", o.Labels)
+		}
+		label = valid
+	}
+
+	nodeSelector := map[string]string{}
+	if len(o.Selector) > 0 {
+		valid, remove, err := app.LabelsFromSpec(strings.Split(o.Selector, ","))
+		if err != nil {
+			glog.Fatal(err)
+		}
+		if len(remove) > 0 {
+			return fmt.Errorf("you may not pass negative labels in selector %q", o.Selector)
+		}
+		nodeSelector = valid
+	}
+
+	image := o.ImageTemplate.ExpandOrDie(o.Type)
+
 	var clusterIP string
 
-	output := cfg.Action.ShouldPrint()
-	generate := output
-	if !cfg.Local {
-		kClient, err := f.ClientSet()
-		if err != nil {
-			return fmt.Errorf("error getting client: %v", err)
-		}
-
-		if len(cfg.MutualTLSAuthCA) > 0 || len(cfg.MutualTLSAuthCRL) > 0 {
-			secretName := generateMutualTLSSecretName(cfg.Name)
-			if _, err := kClient.Core().Secrets(namespace).Get(secretName, metav1.GetOptions{}); err == nil {
+	generate := o.Output
+	if !o.Local {
+		if len(o.MutualTLSAuthCA) > 0 || len(o.MutualTLSAuthCRL) > 0 {
+			secretName := generateMutualTLSSecretName(o.Name)
+			if _, err := o.CoreClient.Secrets(o.Namespace).Get(secretName, metav1.GetOptions{}); err == nil {
 				return fmt.Errorf("router could not be created: mutual tls secret %q already exists", secretName)
 			}
 		}
 
-		service, err := kClient.Core().Services(namespace).Get(name, metav1.GetOptions{})
+		service, err := o.CoreClient.Services(o.Namespace).Get(o.Name, metav1.GetOptions{})
 		if err != nil {
 			if !generate {
 				if !errors.IsNotFound(err) {
-					return fmt.Errorf("can't check for existing router %q: %v", name, err)
+					return fmt.Errorf("can't check for existing router %q: %v", o.Name, err)
 				}
-				if !output && cfg.Action.DryRun {
-					return fmt.Errorf("Router %q service does not exist", name)
+				if !o.Output && o.Action.DryRun {
+					return fmt.Errorf("router %q service does not exist", o.Name)
 				}
 				generate = true
 			}
@@ -708,29 +740,21 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	}
 
 	if !generate {
-		fmt.Fprintf(out, "Router %q service exists\n", name)
+		fmt.Fprintf(o.Out, "Router %q service exists\n", o.Name)
 		return nil
 	}
 
-	if len(cfg.ServiceAccount) == 0 {
+	if len(o.ServiceAccount) == 0 {
 		return fmt.Errorf("you must specify a service account for the router with --service-account")
 	}
 
-	if !cfg.Local {
-		clientConfig, err := f.ToRESTConfig()
-		if err != nil {
-			return err
-		}
-		securityClient, err := securityv1typedclient.NewForConfig(clientConfig)
-		if err != nil {
-			return err
-		}
-		if err := validateServiceAccount(securityClient, namespace, cfg.ServiceAccount, cfg.HostNetwork, cfg.HostPorts); err != nil {
+	if !o.Local {
+		if err := validateServiceAccount(o.SecurityClient, o.Namespace, o.ServiceAccount, o.HostNetwork, o.HostPorts); err != nil {
 			err = fmt.Errorf("router could not be created; %v", err)
-			if !cfg.Action.ShouldPrint() {
+			if !o.Output {
 				return err
 			}
-			fmt.Fprintf(errout, "error: %v\n", err)
+			fmt.Fprintf(o.ErrOut, "error: %v\n", err)
 			defaultOutputErr = kcmdutil.ErrExit
 		}
 	}
@@ -738,117 +762,119 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	// create new router
 	secretEnv := app.Environment{}
 
-	defaultCert, err := fileutil.LoadData(cfg.DefaultCertificate)
+	defaultCert, err := fileutil.LoadData(o.DefaultCertificate)
 	if err != nil {
 		return fmt.Errorf("router could not be created; error reading default certificate file: %v", err)
 	}
 
 	mtlsAuthOptions := []string{"required", "optional", "none"}
 	allowedMutualTLSAuthOptions := sets.NewString(mtlsAuthOptions...)
-	if !allowedMutualTLSAuthOptions.Has(cfg.MutualTLSAuth) {
-		return fmt.Errorf("invalid mutual tls auth option %v, expected one of %v", cfg.MutualTLSAuth, mtlsAuthOptions)
+	if !allowedMutualTLSAuthOptions.Has(o.MutualTLSAuth) {
+		return fmt.Errorf("invalid mutual tls auth option %v, expected one of %v", o.MutualTLSAuth, mtlsAuthOptions)
 	}
-	mtlsAuthCA, err := fileutil.LoadData(cfg.MutualTLSAuthCA)
+	mtlsAuthCA, err := fileutil.LoadData(o.MutualTLSAuthCA)
 	if err != nil {
 		return fmt.Errorf("reading ca certificates for mutual tls auth: %v", err)
 	}
-	mtlsAuthCRL, err := fileutil.LoadData(cfg.MutualTLSAuthCRL)
+	mtlsAuthCRL, err := fileutil.LoadData(o.MutualTLSAuthCRL)
 	if err != nil {
 		return fmt.Errorf("reading certificate revocation list for mutual tls auth: %v", err)
 	}
 
-	if len(cfg.StatsPassword) == 0 {
-		cfg.StatsPassword = generateStatsPassword()
-		if !cfg.Action.ShouldPrint() {
-			fmt.Fprintf(errout, "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
+	if len(o.StatsPassword) == 0 {
+		o.StatsPassword = generateStatsPassword()
+		if !o.Output {
+			fmt.Fprintf(o.ErrOut, "info: password for stats user %s has been set to %s\n", o.StatsUsername, o.StatsPassword)
 		}
 	}
 
 	env := app.Environment{
-		"ROUTER_SUBDOMAIN":                      cfg.Subdomain,
-		"ROUTER_SERVICE_NAME":                   name,
-		"ROUTER_SERVICE_NAMESPACE":              namespace,
+		"ROUTER_SUBDOMAIN":                      o.Subdomain,
+		"ROUTER_SERVICE_NAME":                   o.Name,
+		"ROUTER_SERVICE_NAMESPACE":              o.Namespace,
 		"ROUTER_SERVICE_HTTP_PORT":              "80",
 		"ROUTER_SERVICE_HTTPS_PORT":             "443",
-		"ROUTER_EXTERNAL_HOST_HOSTNAME":         cfg.ExternalHost,
-		"ROUTER_EXTERNAL_HOST_USERNAME":         cfg.ExternalHostUsername,
-		"ROUTER_EXTERNAL_HOST_PASSWORD":         cfg.ExternalHostPassword,
-		"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":     cfg.ExternalHostHttpVserver,
-		"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER":    cfg.ExternalHostHttpsVserver,
-		"ROUTER_EXTERNAL_HOST_INSECURE":         strconv.FormatBool(cfg.ExternalHostInsecure),
-		"ROUTER_EXTERNAL_HOST_PARTITION_PATH":   cfg.ExternalHostPartitionPath,
+		"ROUTER_EXTERNAL_HOST_HOSTNAME":         o.ExternalHost,
+		"ROUTER_EXTERNAL_HOST_USERNAME":         o.ExternalHostUsername,
+		"ROUTER_EXTERNAL_HOST_PASSWORD":         o.ExternalHostPassword,
+		"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":     o.ExternalHostHttpVserver,
+		"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER":    o.ExternalHostHttpsVserver,
+		"ROUTER_EXTERNAL_HOST_INSECURE":         strconv.FormatBool(o.ExternalHostInsecure),
+		"ROUTER_EXTERNAL_HOST_PARTITION_PATH":   o.ExternalHostPartitionPath,
 		"ROUTER_EXTERNAL_HOST_PRIVKEY":          privkeyPath,
-		"ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS": cfg.ExternalHostInternalIP,
-		"ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR":    cfg.ExternalHostVxLANGateway,
-		"ROUTER_CIPHERS":                        cfg.Ciphers,
-		"STATS_PORT":                            strconv.Itoa(cfg.StatsPort),
-		"STATS_USERNAME":                        cfg.StatsUsername,
-		"STATS_PASSWORD":                        cfg.StatsPassword,
-		"ROUTER_THREADS":                        strconv.Itoa(int(cfg.Threads)),
+		"ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS": o.ExternalHostInternalIP,
+		"ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR":    o.ExternalHostVxLANGateway,
+		"ROUTER_CIPHERS":                        o.Ciphers,
+		"STATS_PORT":                            strconv.Itoa(o.StatsPort),
+		"STATS_USERNAME":                        o.StatsUsername,
+		"STATS_PASSWORD":                        o.StatsPassword,
+		"ROUTER_THREADS":                        strconv.Itoa(int(o.Threads)),
 	}
 
-	if len(cfg.MaxConnections) > 0 {
-		env["ROUTER_MAX_CONNECTIONS"] = cfg.MaxConnections
+	if len(o.MaxConnections) > 0 {
+		env["ROUTER_MAX_CONNECTIONS"] = o.MaxConnections
 	}
-	if len(cfg.ForceSubdomain) > 0 {
-		env["ROUTER_SUBDOMAIN"] = cfg.ForceSubdomain
+	if len(o.ForceSubdomain) > 0 {
+		env["ROUTER_SUBDOMAIN"] = o.ForceSubdomain
 		env["ROUTER_OVERRIDE_HOSTNAME"] = "true"
 	}
-	if cfg.DisableNamespaceOwnershipCheck {
+	if o.DisableNamespaceOwnershipCheck {
 		env["ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK"] = "true"
 	}
-	if cfg.StrictSNI {
+	if o.StrictSNI {
 		env["ROUTER_STRICT_SNI"] = "true"
 	}
-	if len(cfg.RouterCanonicalHostname) > 0 {
-		if errs := validation.IsDNS1123Subdomain(cfg.RouterCanonicalHostname); len(errs) != 0 {
-			return fmt.Errorf("invalid canonical hostname (RFC 1123): %s", cfg.RouterCanonicalHostname)
+	if len(o.RouterCanonicalHostname) > 0 {
+		if errs := validation.IsDNS1123Subdomain(o.RouterCanonicalHostname); len(errs) != 0 {
+			return fmt.Errorf("invalid canonical hostname (RFC 1123): %s", o.RouterCanonicalHostname)
 		}
-		if errs := validation.IsValidIP(cfg.RouterCanonicalHostname); len(errs) == 0 {
-			return fmt.Errorf("canonical hostname must not be an IP address: %s", cfg.RouterCanonicalHostname)
+		if errs := validation.IsValidIP(o.RouterCanonicalHostname); len(errs) == 0 {
+			return fmt.Errorf("canonical hostname must not be an IP address: %s", o.RouterCanonicalHostname)
 		}
-		env["ROUTER_CANONICAL_HOSTNAME"] = cfg.RouterCanonicalHostname
+		env["ROUTER_CANONICAL_HOSTNAME"] = o.RouterCanonicalHostname
 	}
 	// automatically start the internal metrics agent if we are handling a known type
-	if cfg.Type == "haproxy-router" && cfg.StatsPort != 0 {
-		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", cfg.StatsPort)
+	if o.Type == "haproxy-router" && o.StatsPort != 0 {
+		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", o.StatsPort)
 		env["ROUTER_METRICS_TYPE"] = "haproxy"
 		env["ROUTER_METRICS_TLS_CERT_FILE"] = "/etc/pki/tls/metrics/tls.crt"
 		env["ROUTER_METRICS_TLS_KEY_FILE"] = "/etc/pki/tls/metrics/tls.key"
 	}
-	mtlsAuth := strings.TrimSpace(cfg.MutualTLSAuth)
+	mtlsAuth := strings.TrimSpace(o.MutualTLSAuth)
 	if len(mtlsAuth) > 0 && mtlsAuth != defaultMutualTLSAuth {
-		env["ROUTER_MUTUAL_TLS_AUTH"] = cfg.MutualTLSAuth
+		env["ROUTER_MUTUAL_TLS_AUTH"] = o.MutualTLSAuth
 		if len(mtlsAuthCA) > 0 {
 			env["ROUTER_MUTUAL_TLS_AUTH_CA"] = path.Join(clientCertConfigDir, clientCertConfigCA)
 		}
 		if len(mtlsAuthCRL) > 0 {
 			env["ROUTER_MUTUAL_TLS_AUTH_CRL"] = path.Join(clientCertConfigDir, clientCertConfigCRL)
 		}
-		if len(cfg.MutualTLSAuthFilter) > 0 {
-			env["ROUTER_MUTUAL_TLS_AUTH_FILTER"] = strings.Replace(cfg.MutualTLSAuthFilter, " ", "\\ ", -1)
+		if len(o.MutualTLSAuthFilter) > 0 {
+			env["ROUTER_MUTUAL_TLS_AUTH_FILTER"] = strings.Replace(o.MutualTLSAuthFilter, " ", "\\ ", -1)
 		}
 	}
 
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {
-		if cfg.SecretsAsEnv {
+		if o.SecretsAsEnv {
 			env.Add(app.Environment{"DEFAULT_CERTIFICATE": string(defaultCert)})
 		} else {
 			env.Add(app.Environment{"DEFAULT_CERTIFICATE_PATH": defaultCertificatePath})
 		}
 	}
 	env.Add(app.Environment{"DEFAULT_CERTIFICATE_DIR": defaultCertificateDir})
-	var certName = fmt.Sprintf("%s-certs", cfg.Name)
-	secrets, volumes, routerMounts, err := generateSecretsConfig(cfg, namespace, certName, defaultCert, mtlsAuthCA, mtlsAuthCRL)
+	var certName = fmt.Sprintf("%s-certs", o.Name)
+	secrets, volumes, routerMounts, err := o.generateSecretsConfig(o.Namespace, certName, defaultCert, mtlsAuthCA, mtlsAuthCRL)
 	if err != nil {
 		return fmt.Errorf("router could not be created: %v", err)
 	}
 
 	var configMaps []*corev1.ConfigMap
 
-	if cfg.Type == "haproxy-router" && cfg.ExtendedLogging {
+	if o.Type == "haproxy-router" && o.ExtendedLogging {
 		configMaps = append(configMaps, &corev1.ConfigMap{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta: metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "ConfigMap"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "rsyslog-config",
 			},
@@ -884,12 +910,12 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		env["ROUTER_SYSLOG_ADDRESS"] = "/var/lib/rsyslog/rsyslog.sock"
 	}
 
-	livenessProbe := generateLivenessProbeConfig(cfg, ports)
-	readinessProbe := generateReadinessProbeConfig(cfg, ports)
+	livenessProbe := o.generateLivenessProbeConfig(ports)
+	readinessProbe := o.generateReadinessProbeConfig(ports)
 
 	exposedPorts := make([]corev1.ContainerPort, len(ports))
 	copy(exposedPorts, ports)
-	if !cfg.HostPorts {
+	if !o.HostPorts {
 		for i := range exposedPorts {
 			exposedPorts[i].HostPort = 0
 		}
@@ -912,7 +938,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 			},
 		},
 	}
-	if cfg.Type == "haproxy-router" && cfg.ExtendedLogging {
+	if o.Type == "haproxy-router" && o.ExtendedLogging {
 		containers = append(containers, corev1.Container{
 			Name:  "syslog",
 			Image: image,
@@ -952,14 +978,20 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	}
 
 	objects = append(objects,
-		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: cfg.ServiceAccount}},
+		&corev1.ServiceAccount{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta:   metav1.TypeMeta{APIVersion: corev1.SchemeGroupVersion.String(), Kind: "ServiceAccount"},
+			ObjectMeta: metav1.ObjectMeta{Name: o.ServiceAccount},
+		},
 		&authv1.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta:   metav1.TypeMeta{APIVersion: authv1.SchemeGroupVersion.String(), Kind: "ClusterRoleBinding"},
+			ObjectMeta: metav1.ObjectMeta{Name: generateRoleBindingName(o.Name)},
 			Subjects: []corev1.ObjectReference{
 				{
 					Kind:      "ServiceAccount",
-					Name:      cfg.ServiceAccount,
-					Namespace: namespace,
+					Name:      o.ServiceAccount,
+					Namespace: o.Namespace,
 				},
 			},
 			RoleRef: corev1.ObjectReference{
@@ -970,8 +1002,10 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	)
 
 	objects = append(objects, &appsv1.DeploymentConfig{
+		TypeMeta: metav1.TypeMeta{APIVersion: appsv1.SchemeGroupVersion.String(), Kind: "DeploymentConfig"},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
+			// this is ok because we know exactly how we want to be serialized
+			Name:   o.Name,
 			Labels: label,
 		},
 		Spec: appsv1.DeploymentConfigSpec{
@@ -984,7 +1018,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 					},
 				},
 			},
-			Replicas: cfg.Replicas,
+			Replicas: o.Replicas,
 			Selector: label,
 			Triggers: []appsv1.DeploymentTriggerPolicy{
 				{Type: appsv1.DeploymentTriggerOnConfigChange},
@@ -993,8 +1027,8 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 				ObjectMeta: metav1.ObjectMeta{Labels: label},
 				Spec: corev1.PodSpec{
 					SecurityContext:    &corev1.PodSecurityContext{},
-					HostNetwork:        cfg.HostNetwork,
-					ServiceAccountName: cfg.ServiceAccount,
+					HostNetwork:        o.HostNetwork,
+					ServiceAccountName: o.ServiceAccount,
 					NodeSelector:       nodeSelector,
 					Containers:         containers,
 					Volumes:            volumes,
@@ -1011,8 +1045,8 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 			if t.Annotations == nil {
 				t.Annotations = make(map[string]string)
 			}
-			t.Annotations["prometheus.openshift.io/username"] = cfg.StatsUsername
-			t.Annotations["prometheus.openshift.io/password"] = cfg.StatsPassword
+			t.Annotations["prometheus.openshift.io/username"] = o.StatsUsername
+			t.Annotations["prometheus.openshift.io/password"] = o.StatsPassword
 			t.Spec.ClusterIP = clusterIP
 			for j, servicePort := range t.Spec.Ports {
 				for _, targetPort := range ports {
@@ -1026,7 +1060,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 				// The secret generated by the service annotaion contains a tls.crt and tls.key
 				// which ultimately need to be combined into a pem
 				t.Annotations["service.alpha.openshift.io/serving-cert-secret-name"] = certName
-			} else if cfg.Type == "haproxy-router" && cfg.StatsPort != 0 {
+			} else if o.Type == "haproxy-router" && o.StatsPort != 0 {
 				// Generate a serving cert for metrics only
 				t.Annotations["service.alpha.openshift.io/serving-cert-secret-name"] = "router-metrics-tls"
 			}
@@ -1035,27 +1069,40 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	// TODO: label all created objects with the same label - router=<name>
 	list := &kapi.List{Items: objects}
 
-	if cfg.Action.ShouldPrint() {
-		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, out)
-		if err := fn(list); err != nil {
-			return fmt.Errorf("unable to print object: %v", err)
+	if o.Output {
+		unstructuredList := &unstructured.UnstructuredList{
+			Object: map[string]interface{}{
+				"kind":       "List",
+				"apiVersion": "v1",
+				"metadata":   map[string]interface{}{},
+			},
+		}
+		for _, item := range objects {
+			unstructuredItem, err := runtime.DefaultUnstructuredConverter.ToUnstructured(item)
+			if err != nil {
+				return err
+			}
+			unstructuredList.Items = append(unstructuredList.Items, unstructured.Unstructured{Object: unstructuredItem})
+		}
+		if err := o.Printer.PrintObj(unstructuredList, o.Out); err != nil {
+			return err
 		}
 		return defaultOutputErr
 	}
 
 	levelPrefixFilter := func(e error) string {
 		// Avoid failing when service accounts or role bindings already exist.
-		if ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name)) {
+		if ignoreError(e, o.ServiceAccount, generateRoleBindingName(o.Name)) {
 			return "warning"
 		}
 		return "error"
 	}
 
-	cfg.Action.Bulk.IgnoreError = func(e error) bool {
+	o.Action.Bulk.IgnoreError = func(e error) bool {
 		return levelPrefixFilter(e) == "warning"
 	}
 
-	if errs := cfg.Action.WithMessageAndPrefix(fmt.Sprintf("Creating router %s", cfg.Name), "created", levelPrefixFilter).Run(list, namespace); len(errs) > 0 {
+	if errs := o.Action.WithMessageAndPrefix(fmt.Sprintf("Creating router %s", o.Name), "created", levelPrefixFilter).Run(list, o.Namespace); len(errs) > 0 {
 		return kcmdutil.ErrExit
 	}
 	return nil
