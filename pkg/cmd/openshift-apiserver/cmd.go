@@ -92,6 +92,7 @@ func (o *OpenShiftAPIServer) Validate() error {
 
 // StartAPIServer calls RunAPIServer and then waits forever
 func (o *OpenShiftAPIServer) StartAPIServer() error {
+	featureKeepRemovedNetworkingAPI = false
 	if err := o.RunAPIServer(); err != nil {
 		return err
 	}
