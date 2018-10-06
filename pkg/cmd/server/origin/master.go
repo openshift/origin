@@ -129,7 +129,7 @@ func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTa
 	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
 	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.ExtraConfig.SCCStorage)
 
-	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(delegateAPIServer)
+	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(delegateAPIServer, true)
 	if err != nil {
 		return nil, err
 	}

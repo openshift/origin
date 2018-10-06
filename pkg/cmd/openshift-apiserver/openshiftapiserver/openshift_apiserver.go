@@ -529,7 +529,7 @@ func addAPIServerOrDie(delegateAPIServer genericapiserver.DelegationTarget, lega
 	return delegateAPIServer, legacyStorageModifiers
 }
 
-func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftAPIServer, error) {
+func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget, keepRemovedNetworkingAPIs bool) (*OpenshiftAPIServer, error) {
 	delegateAPIServer := delegationTarget
 	legacyStorageModifier := legacyStorageMutators{}
 
@@ -537,7 +537,9 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withAuthorizationAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withBuildAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withImageAPIServer)
-	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withNetworkAPIServer)
+	if keepRemovedNetworkingAPIs {
+		delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withNetworkAPIServer)
+	}
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withOAuthAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withProjectAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withQuotaAPIServer)
