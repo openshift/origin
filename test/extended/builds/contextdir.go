@@ -72,7 +72,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				assertPageContent := func(content string) {
-					_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 2*time.Minute)
+					_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					result, err := imageeco.CheckPageContains(oc, "frontend", "", content)
