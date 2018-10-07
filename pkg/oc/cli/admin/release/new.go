@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/archive"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
@@ -89,14 +90,15 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
 	flags.StringVar(&o.Directory, "dir", o.Directory, "Directory to write release contents to, will default to a temporary directory.")
 
-	flags.BoolVar(&o.AllowMissingImages, "allow-missing-images", o.AllowMissingImages, "Ignore errors when an operator references a release image that is not included.")
-
 	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
 
-	flags.StringVar(&o.Mirror, "mirror", o.Mirror, "Mirror the contents of the release to this repository.")
+	// validation
+	flags.BoolVar(&o.AllowMissingImages, "allow-missing-images", o.AllowMissingImages, "Ignore errors when an operator references a release image that is not included.")
+	flags.BoolVar(&o.SkipManifestCheck, "skip-manifest-check", o.SkipManifestCheck, "Ignore errors when an operator includes a yaml/yml/json file that is not parseable.")
 
 	// destination
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Skips changes to external registries via mirroring or pushing images.")
+	flags.StringVar(&o.Mirror, "mirror", o.Mirror, "Mirror the contents of the release to this repository.")
 	flags.StringVar(&o.ToDir, "to-dir", o.ToDir, "Output the release manifests to a directory instead of creating an image.")
 	flags.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
 	flags.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
@@ -131,6 +133,7 @@ type NewOptions struct {
 	MaxPerRegistry int
 
 	AllowMissingImages bool
+	SkipManifestCheck  bool
 
 	Mappings []Mapping
 
@@ -519,14 +522,36 @@ func (o *NewOptions) Run() error {
 		}
 	}
 
+	var verifiers []PayloadVerifier
+	if !o.SkipManifestCheck {
+		verifiers = append(verifiers, func(filename string, data []byte) error {
+			for _, suffix := range []string{".json", ".yml", ".yaml"} {
+				if !strings.HasSuffix(filename, suffix) {
+					continue
+				}
+				var obj interface{}
+				if err := yaml.Unmarshal(data, &obj); err != nil {
+					// strip the slightly verbose prefix for the error message
+					msg := err.Error()
+					for _, s := range []string{"error converting YAML to JSON: ", "error unmarshaling JSON: ", "yaml: "} {
+						msg = strings.TrimPrefix(msg, s)
+					}
+					return fmt.Errorf("%s: invalid YAML/JSON: %s", filename, msg)
+				}
+				break
+			}
+			return nil
+		})
+	}
+
 	var operators []string
 	pr, pw := io.Pipe()
 	go func() {
 		var err error
 		if payload != nil {
-			err = copyPayload(pw, now, is, payload.Path())
+			err = copyPayload(pw, now, is, payload.Path(), verifiers)
 		} else {
-			operators, err = writePayload(pw, now, is, ordered, metadata, o.AllowMissingImages)
+			operators, err = writePayload(pw, now, is, ordered, metadata, o.AllowMissingImages, verifiers)
 		}
 		pw.CloseWithError(err)
 	}()
@@ -646,7 +671,7 @@ func (o *NewOptions) Run() error {
 	case len(operators) == 0:
 		fmt.Fprintf(o.ErrOut, "warning: No operator metadata was found, no operators will be part of the release.\n")
 	default:
-		fmt.Fprintf(o.Out, "Built update image content from %d operators in %d components: %s\n", len(operators), len(metadata), strings.Join(operators, ", "))
+		fmt.Fprintf(o.Out, "Built update image content from %d operators\n", len(operators))
 	}
 
 	return nil
@@ -683,7 +708,7 @@ func writeNestedTarHeader(tw *tar.Writer, parts []string, existing map[string]st
 	return nil
 }
 
-func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered []string, metadata map[string]imageData, allowMissingImages bool) ([]string, error) {
+func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered []string, metadata map[string]imageData, allowMissingImages bool, verifiers []PayloadVerifier) ([]string, error) {
 	var operators []string
 	directories := make(map[string]struct{})
 	files := make(map[string]int)
@@ -712,13 +737,13 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 
 	// we iterate over each input directory in order to ensure the output is stable
 	for _, name := range ordered {
-		data, ok := metadata[name]
+		image, ok := metadata[name]
 		if !ok {
 			return nil, fmt.Errorf("missing image data %s", name)
 		}
 
 		// process each manifest in the given directory
-		contents, err := ioutil.ReadDir(data.Directory)
+		contents, err := ioutil.ReadDir(image.Directory)
 		if err != nil {
 			return nil, err
 		}
@@ -729,7 +754,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 		transform := NopManifestMapper
 
 		if fi := takeFileByName(&contents, "image-references"); fi != nil {
-			path := filepath.Join(data.Directory, fi.Name())
+			path := filepath.Join(image.Directory, fi.Name())
 			glog.V(2).Infof("Perform image replacement based on inclusion of %s", path)
 			transform, err = NewImageMapperFromImageStreamFile(path, is, allowMissingImages)
 			if err != nil {
@@ -757,7 +782,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 			} else {
 				files[filename] = 1
 			}
-			src := filepath.Join(data.Directory, fi.Name())
+			src := filepath.Join(image.Directory, fi.Name())
 			dst := path.Join(append(append([]string{}, parts...), filename)...)
 			glog.V(4).Infof("Copying %s to %s", src, dst)
 
@@ -765,6 +790,13 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 			if err != nil {
 				return nil, err
 			}
+
+			for _, fn := range verifiers {
+				if err := fn(filepath.Join(filepath.Base(image.Directory), fi.Name()), data); err != nil {
+					return nil, err
+				}
+			}
+
 			modified, err := transform(data)
 			if err != nil {
 				return nil, err
@@ -789,7 +821,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 	return operators, nil
 }
 
-func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, directory string) error {
+func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, directory string, verifiers []PayloadVerifier) error {
 	directories := make(map[string]struct{})
 
 	gw := gzip.NewWriter(w)
@@ -836,6 +868,13 @@ func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, directory
 		if err != nil {
 			return err
 		}
+
+		for _, fn := range verifiers {
+			if err := fn(filename, data); err != nil {
+				return err
+			}
+		}
+
 		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: dst, Size: int64(len(data))}); err != nil {
 			return err
 		}
@@ -954,3 +993,5 @@ func takeFileByName(files *[]os.FileInfo, name string) os.FileInfo {
 	}
 	return nil
 }
+
+type PayloadVerifier func(filename string, data []byte) error
