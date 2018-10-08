@@ -157,7 +157,12 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	var pullErr error
 	func() { // A scope for defer
 		pw := imageprogress.NewPullWriter(logProgress)
-		defer pw.Close()
+		defer func() {
+			err := pw.Close()
+			if pullErr == nil {
+				pullErr = err
+			}
+		}()
 		outputStream := pw.(io.Writer)
 		if glog.V(5) {
 			outputStream = out
