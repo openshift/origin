@@ -30384,22 +30384,32 @@ objects:
                     routeHost = readFile('routehost').trim()
                   }
         
-                  stage("Build") {
-                    echo "building tag ${tag}"
-                    openshiftBuild buildConfig: appName, showBuildLogs: "true", verbose: verbose
-                  }
-        
-                  stage("Deploy Test") {
-                    openshiftTag srcStream: appName, srcTag: 'latest', destinationStream: appName, destinationTag: tag, verbose: verbose
-                    openshiftVerifyDeployment deploymentConfig: "${appName}-${tag}", verbose: verbose
-                  }
-        
-                  stage("Test") {
-                    input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
-                  }
-        
-                  stage("Go Live") {
-                    sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
+                  openshift.withCluster() {
+                    openshift.withProject() {
+                      stage("Build") {
+                        echo "building tag ${tag}"
+                        def bld = openshift.startBuild("${appName}")
+                        bld.untilEach {
+                          return it.object().status.phase == "Running"
+                        }
+                        bld.logs('-f')                        
+                      }
+            
+                      stage("Deploy Test") {
+                        openshift.tag("${appName}:latest", "${appName}:${tag}")
+                        def dc = openshift.selector('dc', "${appName}-${tag}")
+                        dc.rollout().status()
+                      }
+            
+                      stage("Test") {
+                        input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
+                      }
+            
+                      stage("Go Live") {
+                        sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
+                      }
+
+                    }
                   }
                 }
              }
@@ -30902,12 +30912,30 @@ objects:
                   parallel (
                     "nationalparks": {
                       node {
-                        openshiftBuild buildConfig: "nationalparks-pipeline", namespace: project
+                        openshift.withCluster() {
+                          openshift.withProject("${project}") {
+                            def bld = openshift.startBuild("nationalparks-pipeline")
+                            echo "Waiting on the nationalparks-pipeline build to complete..."
+                            bld.untilEach {
+                              return it.object().status.phase == "Complete"
+                            }
+                            echo "The nationalparks-pipeline build has completed."
+                          }
+                        }
                       }
                     },
                     "mlbparks": {
                       node {
-                        openshiftBuild buildConfig: "mlbparks-pipeline", namespace: project
+                        openshift.withCluster() {
+                          openshift.withProject("${project}") {
+                            def bld = openshift.startBuild("mlbparks-pipeline")
+                            echo "Waiting on the mlbparks-pipeline build to complete..."
+                            bld.untilEach {
+                              return it.object().status.phase == "Complete"
+                            }
+                            echo "The mlbparks-pipeline build has completed."
+                          }
+                        }
                       }
                     }
                   )
@@ -30915,7 +30943,16 @@ objects:
         
                 node {
                   stage('Build Front-end') {
-                    openshiftBuild buildConfig: "parksmap-pipeline", namespace: project
+                    openshift.withCluster() {
+                      openshift.withProject("${project}") {
+                        def bld = openshift.startBuild("parksmap-pipeline")
+                        echo "Waiting on the parksmap-pipeline build to complete..."
+                        bld.untilEach {
+                          return it.object().status.phase == "Complete"
+                        }
+                        echo "The parksmap-pipeline build has completed."
+                      }
+                    }
                   }
                 }
              }
@@ -31050,10 +31087,26 @@ objects:
                   stage("Build Image") {
                     unstash name:"war"
                     sh "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}"
-                    openshiftVerifyBuild bldCfg: "${appName}-docker", namespace: project, waitTime: '20', waitUnit: 'min'
+                    timeout(time: 20, unit: 'MINUTES') {
+                      openshift.withCluster() {
+                        openshift.withProject() {
+                          def bc = openshift.selector('bc', "${appName}-docker")
+                          echo "Found 1 ${bc.count()} buildconfig"
+                          def blds = bc.related('builds')
+                          blds.untilEach {
+                            return it.object().status.phase == "Complete"
+                          }
+                        }
+                      }  
+                    }
                   }
                   stage("Deploy") {
-                    openshiftDeploy deploymentConfig: appName, namespace: project
+                    openshift.withCluster() {
+                      openshift.withProject() {
+                        def dc = openshift.selector('dc', "${appName}")
+                        dc.rollout().status()
+                      }
+                    }
                   }
                 }
              }
@@ -31495,10 +31548,23 @@ objects:
              timeout(time: 20, unit: 'MINUTES') {
                 node('nodejs') {
                     stage('build') {
-                      openshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')
+                      openshift.withCluster() {
+                         openshift.withProject() {
+                            def bld = openshift.startBuild('${NAME}')
+                            bld.untilEach {
+                              return it.object().status.phase == "Running"
+                            }
+                            bld.logs('-f')
+                         }  
+                      }
                     }
                     stage('deploy') {
-                      openshiftDeploy(deploymentConfig: '${NAME}')
+                      openshift.withCluster() {
+                        openshift.withProject() {
+                          def dc = openshift.selector('dc', '${NAME}')
+                          dc.rollout().latest()
+                        }
+                      }
                     }
                   }
              }

@@ -110,10 +110,23 @@ objects:
              timeout(time: 20, unit: 'MINUTES') {
                 node('nodejs') {
                     stage('build') {
-                      openshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')
+                      openshift.withCluster() {
+                         openshift.withProject() {
+                            def bld = openshift.startBuild('${NAME}')
+                            bld.untilEach {
+                              return it.object().status.phase == "Running"
+                            }
+                            bld.logs('-f')
+                         }  
+                      }
                     }
                     stage('deploy') {
-                      openshiftDeploy(deploymentConfig: '${NAME}')
+                      openshift.withCluster() {
+                        openshift.withProject() {
+                          def dc = openshift.selector('dc', '${NAME}')
+                          dc.rollout().latest()
+                        }
+                      }
                     }
                   }
              }

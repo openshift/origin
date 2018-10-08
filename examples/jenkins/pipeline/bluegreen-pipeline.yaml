@@ -47,22 +47,32 @@ objects:
                     routeHost = readFile('routehost').trim()
                   }
         
-                  stage("Build") {
-                    echo "building tag ${tag}"
-                    openshiftBuild buildConfig: appName, showBuildLogs: "true", verbose: verbose
-                  }
-        
-                  stage("Deploy Test") {
-                    openshiftTag srcStream: appName, srcTag: 'latest', destinationStream: appName, destinationTag: tag, verbose: verbose
-                    openshiftVerifyDeployment deploymentConfig: "${appName}-${tag}", verbose: verbose
-                  }
-        
-                  stage("Test") {
-                    input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
-                  }
-        
-                  stage("Go Live") {
-                    sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
+                  openshift.withCluster() {
+                    openshift.withProject() {
+                      stage("Build") {
+                        echo "building tag ${tag}"
+                        def bld = openshift.startBuild("${appName}")
+                        bld.untilEach {
+                          return it.object().status.phase == "Running"
+                        }
+                        bld.logs('-f')                        
+                      }
+            
+                      stage("Deploy Test") {
+                        openshift.tag("${appName}:latest", "${appName}:${tag}")
+                        def dc = openshift.selector('dc', "${appName}-${tag}")
+                        dc.rollout().status()
+                      }
+            
+                      stage("Test") {
+                        input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
+                      }
+            
+                      stage("Go Live") {
+                        sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
+                      }
+
+                    }
                   }
                 }
              }
