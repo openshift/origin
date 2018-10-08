@@ -186,27 +186,9 @@ func skipTestNamespaceCustomization() bool {
 	return (isPackage("/kubernetes/test/e2e/namespace.go") && (testNameContains("should always delete fast") || testNameContains("should delete fast enough")))
 }
 
-// Holds custom namespace creation functions so we can customize per-test
-var customCreateTestingNSFuncs = map[string]e2e.CreateTestingNSFn{}
-
-// Registers a namespace creation function for the given basename
-// Fails if a create function is already registered
-func setCreateTestingNSFunc(baseName string, fn e2e.CreateTestingNSFn) {
-	if _, exists := customCreateTestingNSFuncs[baseName]; exists {
-		FatalErr("Double registered custom namespace creation function for " + baseName)
-	}
-	customCreateTestingNSFuncs[baseName] = fn
-}
-
 // createTestingNS delegates to custom namespace creation functions if registered.
 // otherwise, it ensures that kubernetes e2e tests have their service accounts in the privileged and anyuid SCCs
 func createTestingNS(baseName string, c kclientset.Interface, labels map[string]string) (*kapiv1.Namespace, error) {
-	// If a custom function exists, call it
-	if fn, exists := customCreateTestingNSFuncs[baseName]; exists {
-		return fn(baseName, c, labels)
-	}
-
-	// Otherwise use the upstream default
 	ns, err := e2e.CreateTestingNS(baseName, c, labels)
 	if err != nil {
 		return ns, err
