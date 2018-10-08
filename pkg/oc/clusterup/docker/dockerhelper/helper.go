@@ -148,18 +148,18 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	logProgress := func(s string) {
 		fmt.Fprintf(out, "%s\n", s)
 	}
-	pw := imageprogress.NewPullWriter(logProgress)
-	defer pw.Close()
-	outputStream := pw.(io.Writer)
-	if glog.V(5) {
-		outputStream = out
-	}
 
 	normalized, err := reference.ParseNormalizedNamed(image)
 	if err != nil {
 		return err
 	}
 
+	pw := imageprogress.NewPullWriter(logProgress)
+	defer pw.Close()
+	outputStream := pw.(io.Writer)
+	if glog.V(5) {
+		outputStream = out
+	}
 	err = h.client.ImagePull(normalized.String(), types.ImagePullOptions{}, outputStream)
 	if err != nil {
 		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
