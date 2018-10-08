@@ -68,7 +68,7 @@ type DockerClient interface {
 	TagImage(name string, opts docker.TagImageOptions) error
 }
 
-func RetryImageAction(client DockerClient, opts interface{}, authConfig docker.AuthConfiguration) error {
+func retryImageAction(opts interface{}, action func() error) error {
 	var err error
 	var retriableError = false
 	var actionName string
@@ -79,10 +79,10 @@ func RetryImageAction(client DockerClient, opts interface{}, authConfig docker.A
 	for retries := 0; retries <= DefaultPushOrPullRetryCount; retries++ {
 		if reflect.TypeOf(opts) == reflect.TypeOf(pullOpt) {
 			actionName = "Pull"
-			err = client.PullImage(opts.(docker.PullImageOptions), authConfig)
+			err = action()
 		} else if reflect.TypeOf(opts) == reflect.TypeOf(pushOpt) {
 			actionName = "Push"
-			err = client.PushImage(opts.(docker.PushImageOptions), authConfig)
+			err = action()
 		} else {
 			return errors.New("not match Pull or Push action")
 		}
@@ -141,7 +141,9 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		opts.OutputStream = os.Stderr
 		opts.RawJSONStream = false
 	}
-	return RetryImageAction(client, opts, authConfig)
+	return retryImageAction(opts, func() error {
+		return client.PullImage(opts, authConfig)
+	})
 }
 
 // pushImage pushes a docker image to the registry specified in its tag.
@@ -173,7 +175,9 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		RawJSONStream: true,
 	}
 
-	if err := RetryImageAction(client, opts, authConfig); err != nil {
+	if err := retryImageAction(opts, func() error {
+		return client.PushImage(opts, authConfig)
+	}); err != nil {
 		return "", err
 	}
 	return digestWriter.Digest, nil
