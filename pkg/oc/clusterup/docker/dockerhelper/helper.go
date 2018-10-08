@@ -154,15 +154,18 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 		return err
 	}
 
-	pw := imageprogress.NewPullWriter(logProgress)
-	defer pw.Close()
-	outputStream := pw.(io.Writer)
-	if glog.V(5) {
-		outputStream = out
-	}
-	err = h.client.ImagePull(normalized.String(), types.ImagePullOptions{}, outputStream)
-	if err != nil {
-		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
+	var pullErr error
+	func() { // A scope for defer
+		pw := imageprogress.NewPullWriter(logProgress)
+		defer pw.Close()
+		outputStream := pw.(io.Writer)
+		if glog.V(5) {
+			outputStream = out
+		}
+		pullErr = h.client.ImagePull(normalized.String(), types.ImagePullOptions{}, outputStream)
+	}()
+	if pullErr != nil {
+		return starterrors.NewError("error pulling Docker image %s", image).WithCause(pullErr)
 	}
 
 	// This is to work around issue https://github.com/docker/engine-api/issues/138
