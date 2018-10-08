@@ -89,7 +89,7 @@ const (
 	MaxNodesForEndpointsTests = 3
 
 	// ServiceTestTimeout is used for most polling/waiting activities
-	ServiceTestTimeout = 60 * time.Second
+	ServiceTestTimeout = 120 * time.Second
 
 	// GCPMaxInstancesInInstanceGroup is the maximum number of instances supported in
 	// one instance group on GCP.
@@ -1469,6 +1469,8 @@ func (at *affinityTracker) recordHost(host string) {
 // Check that we got a constant count requests going to the same host.
 func (at *affinityTracker) checkHostTrace(count int) (fulfilled, affinityHolds bool) {
 	fulfilled = (len(at.hostTrace) >= count)
+	Logf("----count----: %d", count)
+	Logf("---length of hostTrace---: %d", len(at.hostTrace))
 	if len(at.hostTrace) == 0 {
 		return fulfilled, true
 	}
@@ -1482,6 +1484,7 @@ func (at *affinityTracker) checkHostTrace(count int) (fulfilled, affinityHolds b
 			return fulfilled, false
 		}
 	}
+	Logf("----fulfilled----: %s", fulfilled)
 	return fulfilled, true
 }
 
