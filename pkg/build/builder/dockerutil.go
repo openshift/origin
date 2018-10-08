@@ -117,17 +117,17 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 	ref.ID = ""
 
 	glog.V(4).Infof("pulling image %q with ref %#v as repository: %s and tag: %s", name, ref, ref.Exact(), tag)
-	opts := docker.PullImageOptions{
-		Repository:    ref.Exact(),
-		Tag:           tag,
-		OutputStream:  imageprogress.NewPullWriter(logProgress),
-		RawJSONStream: true,
-	}
-	if glog.Is(5) {
-		opts.OutputStream = os.Stderr
-		opts.RawJSONStream = false
-	}
 	return retryImageAction("Pull", func() error {
+		opts := docker.PullImageOptions{
+			Repository:    ref.Exact(),
+			Tag:           tag,
+			OutputStream:  imageprogress.NewPullWriter(logProgress),
+			RawJSONStream: true,
+		}
+		if glog.Is(5) {
+			opts.OutputStream = os.Stderr
+			opts.RawJSONStream = false
+		}
 		return client.PullImage(opts, authConfig)
 	})
 }
@@ -143,25 +143,26 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) (string, error) {
 	repository, tag := docker.ParseRepositoryTag(name)
 
-	var progressWriter io.Writer
-	if glog.Is(5) {
-		progressWriter = newSimpleWriter(os.Stderr)
-	} else {
-		logProgress := func(s string) {
-			glog.V(0).Infof("%s", s)
-		}
-		progressWriter = imageprogress.NewPushWriter(logProgress)
-	}
-	digestWriter := newDigestWriter()
-
-	opts := docker.PushImageOptions{
-		Name:          repository,
-		Tag:           tag,
-		OutputStream:  io.MultiWriter(progressWriter, digestWriter),
-		RawJSONStream: true,
-	}
-
+	var digestWriter *digestWriter
 	if err := retryImageAction("Push", func() error {
+		var progressWriter io.Writer
+		if glog.Is(5) {
+			progressWriter = newSimpleWriter(os.Stderr)
+		} else {
+			logProgress := func(s string) {
+				glog.V(0).Infof("%s", s)
+			}
+			progressWriter = imageprogress.NewPushWriter(logProgress)
+		}
+		digestWriter = newDigestWriter()
+
+		opts := docker.PushImageOptions{
+			Name:          repository,
+			Tag:           tag,
+			OutputStream:  io.MultiWriter(progressWriter, digestWriter),
+			RawJSONStream: true,
+		}
+
 		return client.PushImage(opts, authConfig)
 	}); err != nil {
 		return "", err
