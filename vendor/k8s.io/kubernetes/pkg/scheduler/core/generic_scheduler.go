@@ -604,7 +604,7 @@ func PrioritizeNodes(
 			results[i][index], err = priorityConfigs[i].Map(pod, meta, nodeInfo)
 			if err != nil {
 				appendError(err)
-				return
+				results[i][index].Host = nodes[index].Name
 			}
 		}
 	}
