@@ -186,10 +186,12 @@ kind: KubeControllerManagerConfig
 		AssetInputDir:   filepath.Join(configs.assetsDir, "tls"),
 		AssetsOutputDir: configs.assetsDir,
 		ConfigOutputDir: configDir,
-		LockDir:         filepath.Join(configs.kubernetesDir, "lock"),
 		ConfigFileName:  "kube-apiserver-config.yaml",
 		ConfigOverrides: apiserverConfigOverride,
-		AdditionalFlags: []string{fmt.Sprintf("--manifest-etcd-server-urls=https://127.0.0.1:2379")},
+		AdditionalFlags: []string{
+			fmt.Sprintf("--manifest-etcd-server-urls=https://127.0.0.1:2379"),
+			fmt.Sprintf("--manifest-lock-host-path=%s", filepath.Join(configs.kubernetesDir, "lock")),
+		},
 	}
 	if _, err := apiserverConfig.RunRender("kube-apiserver", OpenShiftImages.Get("hypershift").ToPullSpec(c.ImageTemplate).String(), c.DockerClient(), hostIP); err != nil {
 		return nil, err
@@ -203,7 +205,6 @@ kind: KubeControllerManagerConfig
 		AssetInputDir:   filepath.Join(configs.assetsDir, "tls"),
 		AssetsOutputDir: configs.assetsDir,
 		ConfigOutputDir: configDir,
-		LockDir:         filepath.Join(configs.kubernetesDir, "lock"),
 		ConfigFileName:  "kube-controller-manager-config.yaml",
 		ConfigOverrides: controllerManagerConfigOverride,
 	}

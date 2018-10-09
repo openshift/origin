@@ -20,9 +20,6 @@ type RenderConfig struct {
 	// AssetsOutputDir is the location where the operator will generate the static pod manifests, ready to be used with bootkube start.
 	AssetsOutputDir string
 
-	// LockDir specifies a directory mounted into container that hold the locks.
-	LockDir string
-
 	// ConfigOutputDir is the location where the operator will create the component config file.
 	ConfigOutputDir string
 	// ConfigFileName is the component config file name inside ConfigOutputDir.
@@ -54,7 +51,6 @@ func (opt *RenderConfig) RunRender(component string, image string, dockerClient 
 		fmt.Sprintf("--manifest-config-host-path=%s", opt.ConfigOutputDir),
 		fmt.Sprintf("--manifest-config-file-name=%s", opt.ConfigFileName),
 		fmt.Sprintf("--manifest-secrets-host-path=%s", opt.AssetInputDir),
-		fmt.Sprintf("--manifest-lock-host-path=%s", opt.LockDir),
 	}, opt.AdditionalFlags...)
 
 	binds := opt.ContainerBinds
