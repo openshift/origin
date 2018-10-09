@@ -2,6 +2,15 @@ language: go
 
 go:
   - 1.7
+  - 1.8
+  - 1.9
+  - 1.10
+  - 1.11
+  - tip
+
+# Don't wait for tip tests to finish. Mark the test run green if the
+# tests pass on the stable versions of Go.
+fast_finish: true
 
 install:
   - export PATH=$GOPATH/bin:./_output/tools/etcd/bin:$PATH
