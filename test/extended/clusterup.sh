@@ -250,12 +250,11 @@ readonly extra_args=(
 )
 tests=("${1:-"${default_tests[@]}"}")
 
-echo "Pulling required operator images and re-tagging them"
-docker pull openshift/origin-cluster-kube-apiserver-operator:latest
-docker tag openshift/origin-cluster-kube-apiserver-operator:latest openshift/origin-cluster-kube-apiserver-operator:${ORIGIN_COMMIT}
-
-docker pull openshift/origin-cluster-kube-controller-manager-operator:latest
-docker tag openshift/origin-cluster-kube-controller-manager-operator:latest openshift/origin-cluster-kube-controller-manager-operator:${ORIGIN_COMMIT}
+echo "Pulling required operator images and re-tagging them with $ORIGIN_COMMIT"
+for comp in kube-apiserver kube-controller-manager kube-scheduler; do
+    docker pull openshift/origin-cluster-${comp}-operator:latest
+    docker tag openshift/origin-cluster-${comp}-operator:latest openshift/origin-cluster-${comp}-operator:${ORIGIN_COMMIT}
+done
 
 echo "Running cluster up tests using tag $ORIGIN_COMMIT"
 # Ensure that KUBECONFIG is not set
