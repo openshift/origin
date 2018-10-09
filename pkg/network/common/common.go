@@ -162,6 +162,9 @@ func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error)
 	if err != nil {
 		return nil, err
 	}
+	if err = ValidateClusterNetwork(cn); err != nil {
+		return nil, fmt.Errorf("ClusterNetwork is invalid (%v)", err)
+	}
 
 	return ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork, cn.VXLANPort)
 }
