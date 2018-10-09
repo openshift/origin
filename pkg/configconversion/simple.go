@@ -26,6 +26,9 @@ func ToKubeClientConfig(in *legacyconfigv1.MasterClients) (out configv1.KubeClie
 }
 
 func ToAuditConfig(in *legacyconfigv1.AuditConfig) (out configv1.AuditConfig, err error) {
+	// FIXME: drop this once we drop openshift start, this prevents unnecessary conversions
+	// of the embeded CreationTimestamp in audit object
+	in.PolicyConfiguration.Object = nil
 	err = Convert_legacyconfigv1_AuditConfig_to_configv1_AuditConfig(in, &out, nil)
 	if err != nil {
 		return configv1.AuditConfig{}, err
