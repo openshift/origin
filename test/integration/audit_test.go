@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apiserver/pkg/apis/audit"
+	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -47,9 +47,9 @@ func TestBasicFunctionalityWithAudit(t *testing.T) {
 func TestAuditConfigEmbeded(t *testing.T) {
 	auditConfig := configapi.AuditConfig{
 		Enabled: true,
-		PolicyConfiguration: &audit.Policy{
-			Rules: []audit.PolicyRule{
-				{Level: audit.LevelMetadata},
+		PolicyConfiguration: &auditv1beta1.Policy{
+			Rules: []auditv1beta1.PolicyRule{
+				{Level: auditv1beta1.LevelMetadata},
 			},
 		},
 	}
