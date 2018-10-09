@@ -107,14 +107,6 @@ image_config = {
         },
         "files": {}
     },
-    "docker-builder": {
-        "tag": "latest",
-        "directory": "builder/docker/docker-builder",
-        "binaries": {
-            "oc": "/usr/bin/oc"
-        },
-        "files": {}
-    },
     "f5-router": {
         "tag": "latest",
         "directory": "router/f5",

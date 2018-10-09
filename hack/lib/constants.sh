@@ -64,11 +64,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
 )
 readonly OC_BINARY_SYMLINKS=(
   openshift-deploy
-  openshift-sti-build
-  openshift-docker-build
-  openshift-git-clone
-  openshift-manage-dockerfile
-  openshift-extract-image-content
   openshift-router
   openshift-recycle
 )
@@ -405,7 +400,6 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-tests"          images/tests ) &
   ( os::build::image "${tag_prefix}-control-plane"  images/origin ) &
   ( os::build::image "${tag_prefix}-deployer"       images/deployer ) &
-  ( os::build::image "${tag_prefix}-docker-builder" images/builder/docker/docker-builder ) &
   ( os::build::image "${tag_prefix}-haproxy-router" images/router/haproxy ) &
   ( os::build::image "${tag_prefix}-recycler"       images/recycler ) &
   ( os::build::image "${tag_prefix}-f5-router"      images/router/f5 ) &
