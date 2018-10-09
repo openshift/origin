@@ -87,9 +87,8 @@ COPY --from=test /usr/bin/curl /test/
 			s, err := result.Logs()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(s).ToNot(o.ContainSubstring("--> FROM scratch"))
-			o.Expect(s).To(o.ContainSubstring("--> COPY --from"))
+			o.Expect(s).To(o.ContainSubstring("COPY --from"))
 			o.Expect(s).To(o.ContainSubstring(fmt.Sprintf("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace())))
-			o.Expect(s).To(o.ContainSubstring("--> Committing changes to "))
 			e2e.Logf("Build logs:\n%s", result)
 
 			c := oc.KubeFramework().PodClient()

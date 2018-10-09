@@ -118,7 +118,7 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 		})
 
 		g.It("ForcePull test case execution s2i", func() {
-
+			g.Skip("TODO: force pull is moot until/unless we go back to sharing the image filesystem")
 			g.By("when s2i force pull is true")
 			// run twice to ensure the builder image gets pulled even if it already exists on the node
 			scrapeLogs(buildPrefixTS, oc)
@@ -127,6 +127,7 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 		})
 
 		g.It("ForcePull test case execution docker", func() {
+			g.Skip("TODO: force pull is moot until/unless we go back to sharing the image filesystem")
 			g.By("docker when force pull is true")
 			// run twice to ensure the builder image gets pulled even if it already exists on the node
 			scrapeLogs(buildPrefixTD, oc)
@@ -134,6 +135,7 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 		})
 
 		g.It("ForcePull test case execution custom", func() {
+			g.Skip("TODO: force pull is moot until/unless we go back to sharing the image filesystem")
 			g.By("when custom force pull is true")
 			checkPodFlag(buildPrefixTC, oc)
 		})
