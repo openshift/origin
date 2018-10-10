@@ -95,13 +95,13 @@ var _ = g.Describe("[Feature:Builds][Conformance][valueFrom] process valueFrom i
 			br.AssertSuccess()
 
 			logs, _ := br.Logs()
-			o.Expect(logs).To(o.ContainSubstring("\"FIELDREF_ENV\" \"mydockertest-1\""))
-			o.Expect(logs).To(o.ContainSubstring("\"CONFIGMAPKEYREF_ENV\" \"myvalue\""))
-			o.Expect(logs).To(o.ContainSubstring("\"SECRETKEYREF_ENV\" \"developer\""))
-			o.Expect(logs).To(o.ContainSubstring("\"FIELDREF_CLONE_ENV\" \"mydockertest-1\""))
-			o.Expect(logs).To(o.ContainSubstring("\"FIELDREF_CLONE_CLONE_ENV\" \"mydockertest-1\""))
-			o.Expect(logs).To(o.ContainSubstring("\"UNAVAILABLE_ENV\" \"$(SOME_OTHER_ENV)\""))
-			o.Expect(logs).To(o.ContainSubstring("\"ESCAPED_ENV\" \"$(MY_ESCAPED_VALUE)\""))
+			o.Expect(logs).To(o.ContainSubstring("\"FIELDREF_ENV\"=\"mydockertest-1\""))
+			o.Expect(logs).To(o.ContainSubstring("\"CONFIGMAPKEYREF_ENV\"=\"myvalue\""))
+			o.Expect(logs).To(o.ContainSubstring("\"SECRETKEYREF_ENV\"=\"developer\""))
+			o.Expect(logs).To(o.ContainSubstring("\"FIELDREF_CLONE_ENV\"=\"mydockertest-1\""))
+			o.Expect(logs).To(o.ContainSubstring("\"FIELDREF_CLONE_CLONE_ENV\"=\"mydockertest-1\""))
+			o.Expect(logs).To(o.ContainSubstring("\"UNAVAILABLE_ENV\"=\"$(SOME_OTHER_ENV)\""))
+			o.Expect(logs).To(o.ContainSubstring("\"ESCAPED_ENV\"=\"$(MY_ESCAPED_VALUE)\""))
 
 		})
 

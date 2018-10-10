@@ -346,6 +346,8 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(buildLog).To(o.ContainSubstring("bar"))
 				})
 				g.It("Should complete with a warning on non-existent build-arg", func() {
+					// https://github.com/containers/buildah/issues/1080
+					g.Skip("TODO: re-enable once buildah supports this properly")
 					g.By("starting the build with --build-arg flag")
 					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=bar=foo")
 					br.AssertSuccess()

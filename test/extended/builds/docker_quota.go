@@ -60,6 +60,7 @@ var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", fu
 		g.Describe("Building from a template", func() {
 			for _, test := range fixtures {
 				g.It(fmt.Sprintf("should create a %s with a quota and run it", test.name), func() {
+					g.Skip("TODO: renable after https://github.com/containers/buildah/issues/1081 is fixed")
 
 					g.By(fmt.Sprintf("calling oc create -f %q", test.path))
 					err := oc.Run("create").Args("-f", test.path).Execute()
