@@ -1,6 +1,10 @@
 package builds
 
 import (
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -10,8 +14,10 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-postcommit.json")
-		oc           = exutil.NewCLI("cli-test-hooks", exutil.KubeConfigPath())
+		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "build-postcommit", "docker.yaml")
+		s2iBuildFixture    = exutil.FixturePath("testdata", "builds", "build-postcommit", "sti.yaml")
+		imagestreamFixture = exutil.FixturePath("testdata", "builds", "build-postcommit", "imagestreams.yaml")
+		oc                 = exutil.NewCLI("cli-test-hooks", exutil.KubeConfigPath())
 	)
 
 	g.Context("", func() {
@@ -28,10 +34,6 @@ var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", f
 			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			oc.Run("create").Args("-f", buildFixture).Execute()
-
-			g.By("waiting for istag to initialize")
-			exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "busybox", "1")
 		})
 
 		g.AfterEach(func() {
@@ -40,62 +42,164 @@ var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", f
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})
+
 		g.Describe("testing postCommit hook", func() {
-			g.It("successful postCommit script with args", func() {
+
+			g.It("should run s2i postCommit hooks", func() {
 				// https://github.com/containers/buildah/pull/1033
 				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
-				err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"script":"echo hello $1","args":["world"],"command":null}}}`).Execute()
+
+				oc.Run("create").Args("-f", imagestreamFixture).Execute()
+				oc.Run("create").Args("-f", s2iBuildFixture).Execute()
+
+				g.By("successfully running a script with args")
+				err := oc.Run("patch").Args("bc/mys2itest", "-p", `{"spec":{"postCommit":{"script":"echo hello $1","args":["world"],"command":null}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				br, _ := exutil.StartBuildAndWait(oc, "busybox")
+				br, _ := exutil.StartBuildAndWait(oc, "mys2itest")
 				br.AssertSuccess()
 				o.Expect(br.Logs()).To(o.ContainSubstring("hello world"))
-			})
 
-			g.It("successful postCommit explicit command", func() {
-				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
-				err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo explicit command"],"script":""}}}`).Execute()
+				g.By("successfuly running an explicit command")
+				err = oc.Run("patch").Args("bc/mys2itest", "-p", `{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo explicit command"],"script":""}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				br, _ := exutil.StartBuildAndWait(oc, "busybox")
+				br, _ = exutil.StartBuildAndWait(oc, "mys2itest")
 				br.AssertSuccess()
 				o.Expect(br.Logs()).To(o.ContainSubstring("explicit command"))
-			})
 
-			g.It("successful postCommit default entrypoint", func() {
-				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
-				err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"args":["echo","default entrypoint"],"command":null,"script":""}}}`).Execute()
+				g.By("successfuly modifying the default entrypoint")
+				err = oc.Run("patch").Args("bc/mys2itest", "-p", `{"spec":{"postCommit":{"args":["echo","default entrypoint"],"command":null,"script":""}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				br, _ := exutil.StartBuildAndWait(oc, "busybox")
+				br, _ = exutil.StartBuildAndWait(oc, "mys2itest")
 				br.AssertSuccess()
 				o.Expect(br.Logs()).To(o.ContainSubstring("default entrypoint"))
-			})
 
-			g.It("failing postCommit script", func() {
-				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
-				err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"script":"echo about to fail && false","command":null}}}`).Execute()
+				g.By("running a failing script")
+				err = oc.Run("patch").Args("bc/mys2itest", "-p", `{"spec":{"postCommit":{"script":"echo about to fail && false","args":null,"command":null}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				br, _ := exutil.StartBuildAndWait(oc, "busybox")
+				br, _ = exutil.StartBuildAndWait(oc, "mys2itest")
 				br.AssertFailure()
 				o.Expect(br.Logs()).To(o.ContainSubstring("about to fail"))
-			})
 
-			g.It("failing postCommit explicit command", func() {
-				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
-				err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo about to fail && false"],"script":""}}}`).Execute()
+				g.By("running a failing explicit command")
+				err = oc.Run("patch").Args("bc/mys2itest", "-p", `{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo about to fail && false"],"script":""}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				br, _ := exutil.StartBuildAndWait(oc, "busybox")
+				br, _ = exutil.StartBuildAndWait(oc, "mys2itest")
 				br.AssertFailure()
 				o.Expect(br.Logs()).To(o.ContainSubstring("about to fail"))
-			})
 
-			g.It("failing postCommit default entrypoint", func() {
-				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
-				err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"args":["sh","-c","echo about to fail && false"],"command":null,"script":""}}}`).Execute()
+				g.By("failing default entrypoint")
+				err = oc.Run("patch").Args("bc/mys2itest", "-p", `{"spec":{"postCommit":{"args":["sh","-c","echo about to fail && false"],"command":null,"script":""}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				br, _ := exutil.StartBuildAndWait(oc, "busybox")
+				br, _ = exutil.StartBuildAndWait(oc, "mys2itest")
 				br.AssertFailure()
 				o.Expect(br.Logs()).To(o.ContainSubstring("about to fail"))
+
+				g.By("not modifying the final image")
+				g.By("patching the build config")
+				err = oc.Run("patch").Args("bc/mys2itest", "-p", `{"spec":{"postCommit":{"script":"","args":["/tmp/postCommit"],"command":["touch"]}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("patch").Args("bc/mys2itest", "-p", `{"spec":{"output":{"to":{"kind":"ImageStreamTag","name":"mys2itest:latest"}}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("starting a build")
+				br, _ = exutil.StartBuildAndWait(oc, "mys2itest")
+				br.AssertSuccess()
+
+				g.By("expecting the pod to deploy successfully")
+				deploymentConfigLabel := exutil.ParseLabelsOrDie("app=mys2itest")
+				pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), deploymentConfigLabel, exutil.CheckPodIsRunning, 1, 2*time.Minute)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(len(pods)).To(o.Equal(1))
+
+				g.By("getting the pod information")
+				pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("verifying the postCommit hook did not modify the final image")
+				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "/tmp/postCommit").Output()
+				o.Expect(err).To(o.HaveOccurred())
+				o.Expect(out).To(o.ContainSubstring("No such file or directory"))
+
 			})
 
+			g.It("should run docker postCommit hooks", func() {
+				// https://github.com/containers/buildah/pull/1033
+				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
+
+				oc.Run("create").Args("-f", imagestreamFixture).Execute()
+				oc.Run("create").Args("-f", dockerBuildFixture).Execute()
+
+				g.By("successfully running a script with args")
+				err := oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"postCommit":{"script":"echo hello $1","args":["world"],"command":null}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, _ := exutil.StartBuildAndWait(oc, "mydockertest")
+				br.AssertSuccess()
+				o.Expect(br.Logs()).To(o.ContainSubstring("hello world"))
+
+				g.By("successfuly running an explicit command")
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo explicit command"],"script":""}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, _ = exutil.StartBuildAndWait(oc, "mydockertest")
+				br.AssertSuccess()
+				o.Expect(br.Logs()).To(o.ContainSubstring("explicit command"))
+
+				g.By("successfuly modifying the default entrypoint")
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"postCommit":{"args":["echo","default entrypoint"],"command":null,"script":""}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, _ = exutil.StartBuildAndWait(oc, "mydockertest")
+				br.AssertSuccess()
+				o.Expect(br.Logs()).To(o.ContainSubstring("default entrypoint"))
+
+				g.By("running a failing script")
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"postCommit":{"script":"echo about to fail && false","args":null,"command":null}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, _ = exutil.StartBuildAndWait(oc, "mydockertest")
+				br.AssertFailure()
+				o.Expect(br.Logs()).To(o.ContainSubstring("about to fail"))
+
+				g.By("running a failing explicit command")
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo about to fail && false"],"script":""}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, _ = exutil.StartBuildAndWait(oc, "mydockertest")
+				br.AssertFailure()
+				o.Expect(br.Logs()).To(o.ContainSubstring("about to fail"))
+
+				g.By("failing default entrypoint")
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"postCommit":{"args":["sh","-c","echo about to fail && false"],"command":null,"script":""}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, _ = exutil.StartBuildAndWait(oc, "mydockertest")
+				br.AssertFailure()
+				o.Expect(br.Logs()).To(o.ContainSubstring("about to fail"))
+
+				g.By("not modifying the final image")
+				g.By("patching the build config")
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"postCommit":{"script":"","args":["/tmp/postCommit"],"command":["touch"]}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"output":{"to":{"kind":"ImageStreamTag","name":"mydockertest:latest"}}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"source":{"dockerfile":"FROM busybox:latest \n ENTRYPOINT /bin/sleep 600 \n"}}}`).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("starting a build")
+				br, _ = exutil.StartBuildAndWait(oc, "mydockertest")
+				br.AssertSuccess()
+
+				g.By("expecting the pod to deploy successfully")
+				deploymentConfigLabel := exutil.ParseLabelsOrDie("app=mydockertest")
+				pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), deploymentConfigLabel, exutil.CheckPodIsRunning, 1, 2*time.Minute)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(len(pods)).To(o.Equal(1))
+
+				g.By("getting the pod information")
+				pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("verifying the postCommit hook did not modify the final image")
+				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "/tmp/postCommit").Output()
+				o.Expect(err).To(o.HaveOccurred())
+				o.Expect(out).To(o.ContainSubstring("No such file or directory"))
+
+			})
 		})
 	})
 })

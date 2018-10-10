@@ -7,6 +7,9 @@
 // test/extended/testdata/aggregator/sample-apiserver-rc.yaml
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
+// test/extended/testdata/builds/build-postcommit/docker.yaml
+// test/extended/testdata/builds/build-postcommit/imagestreams.yaml
+// test/extended/testdata/builds/build-postcommit/sti.yaml
 // test/extended/testdata/builds/build-pruning/default-group-build-config.yaml
 // test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml
 // test/extended/testdata/builds/build-pruning/errored-build-config.yaml
@@ -58,7 +61,6 @@
 // test/extended/testdata/builds/test-build-app/Gemfile
 // test/extended/testdata/builds/test-build-app/config.ru
 // test/extended/testdata/builds/test-build-podsvc.json
-// test/extended/testdata/builds/test-build-postcommit.json
 // test/extended/testdata/builds/test-build-proxy.yaml
 // test/extended/testdata/builds/test-build-revision.json
 // test/extended/testdata/builds/test-build.yaml
@@ -520,6 +522,213 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/aggregator/sample-apiserver-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsBuildPostcommitDockerYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: mydockertest
+    labels:
+      name: test
+  spec:
+    triggers: []
+    runPolicy: Serial
+    source:
+      dockerfile: |
+        FROM busybox:latest
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+          - name: BUILD_LOGLEVEL
+            value: "5"
+    resources: {}
+    postCommit:
+      command: ["touch"]
+      args: ["/tmp/postCommit"]
+    nodeSelector: null
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: mydockertest
+  spec:
+    replicas: 1
+    selector:
+      app: mydockertest
+      deploymentconfig: mydockertest
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: mydockertest
+          deploymentconfig: mydockertest
+      spec:
+        containers:
+        - image:
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              port: 8080
+          name: mydockertest
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8888
+            protocol: TCP
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - mydockertest
+        from:
+          kind: ImageStreamTag
+          name: mydockertest:latest
+      type: ImageChange
+    - type: ConfigChange
+`)
+
+func testExtendedTestdataBuildsBuildPostcommitDockerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPostcommitDockerYaml, nil
+}
+
+func testExtendedTestdataBuildsBuildPostcommitDockerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPostcommitDockerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-postcommit/docker.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: mydockertest
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: mys2itest
+`)
+
+func testExtendedTestdataBuildsBuildPostcommitImagestreamsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml, nil
+}
+
+func testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPostcommitImagestreamsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-postcommit/imagestreams.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsBuildPostcommitStiYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: mys2itest
+    labels:
+      name: test
+  spec:
+    triggers: []
+    runPolicy: Serial
+    source:
+      type: Git
+      git:
+        uri: 'https://github.com/sclorg/s2i-php-container'
+      contextDir: 7.0/test/test-app
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/php-70-centos7
+    resources: {}
+    postCommit: {}
+    nodeSelector: null
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: mys2itest
+  spec:
+    replicas: 1
+    selector:
+      app: mys2itest
+      deploymentconfig: mys2itest
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: mys2itest
+          deploymentconfig: mys2itest
+      spec:
+        containers:
+        - image:
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              port: 8080
+          name: mys2itest
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8888
+            protocol: TCP
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - mys2itest
+        from:
+          kind: ImageStreamTag
+          name: mys2itest:latest
+      type: ImageChange
+    - type: ConfigChange
+`)
+
+func testExtendedTestdataBuildsBuildPostcommitStiYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPostcommitStiYaml, nil
+}
+
+func testExtendedTestdataBuildsBuildPostcommitStiYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPostcommitStiYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-postcommit/sti.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -2388,84 +2597,6 @@ func testExtendedTestdataBuildsTestBuildPodsvcJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-podsvc.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsTestBuildPostcommitJson = []byte(`{
-    "kind": "List",
-    "apiVersion": "v1",
-    "metadata": {},
-    "items": [
-        {
-            "kind": "ImageStream",
-            "apiVersion": "v1",
-            "metadata": {
-                "name": "busybox",
-                "creationTimestamp": null,
-                "labels": {
-                    "build": "busybox"
-                }
-            },
-            "spec": {
-                "tags": [
-                    {
-                        "name": "1",
-                        "annotations": {
-                            "openshift.io/imported-from": "busybox:1"
-                        },
-                        "from": {
-                            "kind": "DockerImage",
-                            "name": "busybox:1"
-                        },
-                        "importPolicy": {}
-                    }
-                ]
-            }
-        },
-        {
-            "kind": "BuildConfig",
-            "apiVersion": "v1",
-            "metadata": {
-                "name": "busybox",
-                "creationTimestamp": null,
-                "labels": {
-                    "build": "busybox"
-                }
-            },
-            "spec": {
-                "source": {
-                    "type": "Dockerfile",
-                    "dockerfile": "FROM busybox:1"
-                },
-                "strategy": {
-                    "type": "Docker",
-                    "dockerStrategy": {
-                        "from": {
-                            "kind": "ImageStreamTag",
-                            "name": "busybox:1"
-                        }
-                    }
-                }, 
-                "resources": {},
-                "postCommit": {}
-            }
-        }
-    ]
-}
-`)
-
-func testExtendedTestdataBuildsTestBuildPostcommitJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsTestBuildPostcommitJson, nil
-}
-
-func testExtendedTestdataBuildsTestBuildPostcommitJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsTestBuildPostcommitJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-postcommit.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32494,6 +32625,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml": testExtendedTestdataAggregatorSampleApiserverRcYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml": testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml": testExtendedTestdataAggregatorSampleApiserverServiceYaml,
+	"test/extended/testdata/builds/build-postcommit/docker.yaml": testExtendedTestdataBuildsBuildPostcommitDockerYaml,
+	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml": testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
+	"test/extended/testdata/builds/build-postcommit/sti.yaml": testExtendedTestdataBuildsBuildPostcommitStiYaml,
 	"test/extended/testdata/builds/build-pruning/default-group-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml,
 	"test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml,
 	"test/extended/testdata/builds/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml,
@@ -32545,7 +32679,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-build-app/Gemfile": testExtendedTestdataBuildsTestBuildAppGemfile,
 	"test/extended/testdata/builds/test-build-app/config.ru": testExtendedTestdataBuildsTestBuildAppConfigRu,
 	"test/extended/testdata/builds/test-build-podsvc.json": testExtendedTestdataBuildsTestBuildPodsvcJson,
-	"test/extended/testdata/builds/test-build-postcommit.json": testExtendedTestdataBuildsTestBuildPostcommitJson,
 	"test/extended/testdata/builds/test-build-proxy.yaml": testExtendedTestdataBuildsTestBuildProxyYaml,
 	"test/extended/testdata/builds/test-build-revision.json": testExtendedTestdataBuildsTestBuildRevisionJson,
 	"test/extended/testdata/builds/test-build.yaml": testExtendedTestdataBuildsTestBuildYaml,
@@ -32881,6 +33014,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"sample-apiserver-service.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
 				}},
 				"builds": &bintree{nil, map[string]*bintree{
+					"build-postcommit": &bintree{nil, map[string]*bintree{
+						"docker.yaml": &bintree{testExtendedTestdataBuildsBuildPostcommitDockerYaml, map[string]*bintree{}},
+						"imagestreams.yaml": &bintree{testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml, map[string]*bintree{}},
+						"sti.yaml": &bintree{testExtendedTestdataBuildsBuildPostcommitStiYaml, map[string]*bintree{}},
+					}},
 					"build-pruning": &bintree{nil, map[string]*bintree{
 						"default-group-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
 						"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
@@ -32968,7 +33106,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"config.ru": &bintree{testExtendedTestdataBuildsTestBuildAppConfigRu, map[string]*bintree{}},
 					}},
 					"test-build-podsvc.json": &bintree{testExtendedTestdataBuildsTestBuildPodsvcJson, map[string]*bintree{}},
-					"test-build-postcommit.json": &bintree{testExtendedTestdataBuildsTestBuildPostcommitJson, map[string]*bintree{}},
 					"test-build-proxy.yaml": &bintree{testExtendedTestdataBuildsTestBuildProxyYaml, map[string]*bintree{}},
 					"test-build-revision.json": &bintree{testExtendedTestdataBuildsTestBuildRevisionJson, map[string]*bintree{}},
 					"test-build.yaml": &bintree{testExtendedTestdataBuildsTestBuildYaml, map[string]*bintree{}},
