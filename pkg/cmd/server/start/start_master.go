@@ -10,8 +10,6 @@ import (
 	"path"
 	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -20,7 +18,9 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/openshift/origin/pkg/cmd/server/origin/legacyadmission"
 	"github.com/openshift/origin/pkg/cmd/server/origin/legacyconfigprocessing"
 	"github.com/openshift/origin/pkg/cmd/server/start/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -470,6 +471,9 @@ func (m *Master) Start() error {
 		if m.config.EtcdConfig != nil {
 			etcdserver.RunEtcd(m.config.EtcdConfig)
 		}
+
+		// enable admission plugin checks
+		admission.PluginEnabledFn = legacyadmission.IsAdmissionPluginActivated
 
 		if err := legacyconfigprocessing.ConvertNetworkConfigToAdmissionConfig(m.config); err != nil {
 			return err

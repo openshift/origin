@@ -132,10 +132,6 @@ var (
 	)
 )
 
-func init() {
-	admission.PluginEnabledFn = IsAdmissionPluginActivated
-}
-
 func IsAdmissionPluginActivated(name string, config io.Reader) bool {
 	// only intercept if we have an explicit enable or disable.  If the check fails in any way,
 	// assume that the config was a different type and let the actual admission plugin check it
