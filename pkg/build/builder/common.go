@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/openshift/imagebuilder"
@@ -62,6 +63,10 @@ var (
 	// InputContentPath is the path at which the build inputs will be available
 	// to all the build containers.
 	InputContentPath = filepath.Join(buildWorkDirMount, "inputs")
+
+	// postCommitAlias is a unique key to use for an alias in
+	// buildPostCommit so that we don't duplicate anyone's alias
+	postCommitAlias = "appimage" + strings.Replace(string(uuid.NewUUID()), "-", "", -1)
 )
 
 // KeyValue can be used to build ordered lists of key-value pairs.
@@ -245,6 +250,35 @@ func execPostCommitHook(ctx context.Context, client DockerClient, postCommitSpec
 	return err
 }
 
+// buildPostCommit transforms the supplied BuildPostCommitSpec into dockerfile commands.
+func buildPostCommit(postCommitSpec buildapiv1.BuildPostCommitSpec) string {
+	command := postCommitSpec.Command
+	args := postCommitSpec.Args
+	script := postCommitSpec.Script
+
+	if script == "" && len(command) == 0 && len(args) == 0 {
+		// Post commit hook is not set, return early.
+		return ""
+	}
+
+	glog.V(4).Infof("Post commit hook spec: %+v", postCommitSpec)
+
+	if script != "" {
+		// The `-i` flag is needed to support CentOS and RHEL images
+		// that use Software Collections (SCL), in order to have the
+		// appropriate collections enabled in the shell. E.g., in the
+		// Ruby image, this is necessary to make `ruby`, `bundle` and
+		// other binaries available in the PATH.
+		command = []string{"/bin/sh", "-ic"}
+		args = append([]string{script}, args...)
+
+		return strings.TrimSpace(fmt.Sprintf("%s '%s'", strings.Join(command, " "), strings.Join(args, " ")))
+
+	}
+
+	return strings.TrimSpace(fmt.Sprintf("%s %s", strings.Join(command, " "), strings.Join(args, " ")))
+}
+
 // GetSourceRevision returns a SourceRevision object either from the build (if it already had one)
 // or by creating one from the sourceInfo object passed in.
 func GetSourceRevision(build *buildapiv1.Build, sourceInfo *git.SourceInfo) *buildapiv1.SourceRevision {
@@ -426,7 +460,7 @@ func addBuildParameters(dir string, build *buildapiv1.Build, sourceInfo *git.Sou
 		if ref, err := imagereference.Parse(name); err == nil {
 			name = ref.DaemonMinimal().Exact()
 		}
-		err := replaceLastFrom(node, name)
+		err := replaceLastFrom(node, name, "")
 		if err != nil {
 			return err
 		}
@@ -439,6 +473,11 @@ func addBuildParameters(dir string, build *buildapiv1.Build, sourceInfo *git.Sou
 
 	// Append build labels.
 	if err := appendLabel(node, buildLabels(build, sourceInfo)); err != nil {
+		return err
+	}
+
+	// Append post commit
+	if err := appendPostCommit(node, buildPostCommit(build.Spec.PostCommit)); err != nil {
 		return err
 	}
 
@@ -512,7 +551,9 @@ func findReferencedImages(dockerfilePath string) ([]string, bool, error) {
 			case child.Value == dockercmd.From && child.Next != nil:
 				image := child.Next.Value
 				names[stage.Name] = image
-				images.Insert(image)
+				if _, ok := names[image]; !ok {
+					images.Insert(image)
+				}
 			case child.Value == dockercmd.Copy:
 				if ref, ok := nodeHasFromRef(child); ok {
 					if len(ref) > 0 {

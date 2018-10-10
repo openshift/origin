@@ -122,6 +122,66 @@ func TestContainerName(t *testing.T) {
 	}
 }
 
+func TestBuildPostCommit(t *testing.T) {
+	tests := []struct {
+		postCommit buildapiv1.BuildPostCommitSpec
+		want       string
+	}{
+		{
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo", "hello"},
+			},
+			want: "echo hello",
+		},
+		{
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"ls"},
+				Args:    []string{"-l", "/tmp/hello"}},
+			want: "ls -l /tmp/hello",
+		},
+		{
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo hello $1 world",
+			},
+			want: "/bin/sh -ic 'echo hello $1 world'",
+		},
+		{
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo",
+				Args:   []string{"hello", "$1", "world"},
+			},
+			want: "/bin/sh -ic 'echo hello $1 world'",
+		},
+		{
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo", "hello", "$1", "world"},
+			},
+			want: "echo hello $1 world",
+		},
+		{
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Command: []string{"echo"},
+				Args:    []string{"hello", "$1", "world"},
+			},
+			want: "echo hello $1 world",
+		},
+		{
+			postCommit: buildapiv1.BuildPostCommitSpec{
+				Script: "echo hello $1 world",
+			},
+			want: "/bin/sh -ic 'echo hello $1 world'",
+		},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			got := buildPostCommit(test.postCommit)
+			if got != test.want {
+				t.Errorf("unexpected results for \"%#v\"\n wanted: \"%s\", got: \"%s\"", test.postCommit, test.want, got)
+			}
+		})
+	}
+}
+
 func Test_addBuildParameters(t *testing.T) {
 	type want struct {
 		Err bool
