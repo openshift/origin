@@ -23,7 +23,9 @@ func verifyStages(stages []buildv1.StageInfo, expectedStages map[string][]string
 		}
 		expectedMaxDuration, _ := time.ParseDuration(expectedDurations[1])
 		o.ExpectWithOffset(1, stage.DurationMilliseconds > expectedMaxDuration.Nanoseconds()/int64(time.Millisecond)).To(o.BeFalse(), "Stage %v ran for %v, expected less than %v", stage.Name, stage.DurationMilliseconds, expectedMaxDuration)
+		delete(expectedStages, string(stage.Name))
 	}
+	o.ExpectWithOffset(1, expectedStages).To(o.BeEmpty())
 }
 
 var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations", func() {
@@ -59,12 +61,10 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 		})
 
 		g.It("should record build stages and durations for s2i", func() {
-			g.Skip("TODO: revisit expected stages for dockerfile based s2i builds")
+			g.Skip("TODO: re-enable once we're on dockerless builds")
 			expectedBuildStages := make(map[string][]string)
-			expectedBuildStages["FetchInputs"] = []string{"", "1000s"}
-			expectedBuildStages["CommitContainer"] = []string{"10ms", "1000s"}
-			expectedBuildStages["Assemble"] = []string{"10ms", "1000s"}
-			expectedBuildStages["PostCommit"] = []string{"", "1000s"}
+			expectedBuildStages["PullImages"] = []string{"", "1000s"}
+			expectedBuildStages["Build"] = []string{"10ms", "1000s"}
 			expectedBuildStages["PushImage"] = []string{"100ms", "1000s"}
 
 			g.By("creating test image stream")
@@ -83,13 +83,10 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 		})
 
 		g.It("should record build stages and durations for docker", func() {
-
+			g.Skip("TODO: re-enable once we're on dockerless builds")
 			expectedBuildStages := make(map[string][]string)
-			expectedBuildStages["FetchInputs"] = []string{"", "1000s"}
-			expectedBuildStages["CommitContainer"] = []string{"", "1000s"}
 			expectedBuildStages["PullImages"] = []string{"", "1000s"}
 			expectedBuildStages["Build"] = []string{"10ms", "1000s"}
-			expectedBuildStages["PostCommit"] = []string{"", "1000s"}
 			expectedBuildStages["PushImage"] = []string{"100ms", "1000s"}
 
 			g.By("creating test image stream")
