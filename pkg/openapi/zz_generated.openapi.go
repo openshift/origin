@@ -322,7 +322,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1alpha1.OperatorCondition":                                      schema_openshift_api_operator_v1alpha1_OperatorCondition(ref),
 		"github.com/openshift/api/operator/v1alpha1.OperatorSpec":                                           schema_openshift_api_operator_v1alpha1_OperatorSpec(ref),
 		"github.com/openshift/api/operator/v1alpha1.OperatorStatus":                                         schema_openshift_api_operator_v1alpha1_OperatorStatus(ref),
-		"github.com/openshift/api/operator/v1alpha1.VersionAvailablity":                                     schema_openshift_api_operator_v1alpha1_VersionAvailablity(ref),
+		"github.com/openshift/api/operator/v1alpha1.VersionAvailability":                                    schema_openshift_api_operator_v1alpha1_VersionAvailability(ref),
 		"github.com/openshift/api/osin/v1.AllowAllPasswordIdentityProvider":                                 schema_openshift_api_osin_v1_AllowAllPasswordIdentityProvider(ref),
 		"github.com/openshift/api/osin/v1.BasicAuthPasswordIdentityProvider":                                schema_openshift_api_osin_v1_BasicAuthPasswordIdentityProvider(ref),
 		"github.com/openshift/api/osin/v1.DenyAllPasswordIdentityProvider":                                  schema_openshift_api_osin_v1_DenyAllPasswordIdentityProvider(ref),
@@ -411,6 +411,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/user/v1.GroupList":                                                        schema_openshift_api_user_v1_GroupList(ref),
 		"github.com/openshift/api/user/v1.Identity":                                                         schema_openshift_api_user_v1_Identity(ref),
 		"github.com/openshift/api/user/v1.IdentityList":                                                     schema_openshift_api_user_v1_IdentityList(ref),
+		"github.com/openshift/api/user/v1.IdentityMetadata":                                                 schema_openshift_api_user_v1_IdentityMetadata(ref),
+		"github.com/openshift/api/user/v1.IdentityMetadataList":                                             schema_openshift_api_user_v1_IdentityMetadataList(ref),
 		"github.com/openshift/api/user/v1.User":                                                             schema_openshift_api_user_v1_User(ref),
 		"github.com/openshift/api/user/v1.UserIdentityMapping":                                              schema_openshift_api_user_v1_UserIdentityMapping(ref),
 		"github.com/openshift/api/user/v1.UserList":                                                         schema_openshift_api_user_v1_UserList(ref),
@@ -14697,7 +14699,29 @@ func schema_openshift_api_oauth_v1_OAuthAccessToken(ref common.ReferenceCallback
 							Format:      "int32",
 						},
 					},
+					"providerName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ProviderName is the source of identity information.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"providerGroups": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ProviderGroups is the groups asserted by the provider for this token.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
+				Required: []string{"providerName", "providerGroups"},
 			},
 		},
 		Dependencies: []string{
@@ -14849,7 +14873,29 @@ func schema_openshift_api_oauth_v1_OAuthAuthorizeToken(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"providerName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ProviderName is the source of identity information.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"providerGroups": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ProviderGroups is the groups asserted by the provider for this token.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
+				Required: []string{"providerName", "providerGroups"},
 			},
 		},
 		Dependencies: []string{
@@ -16599,28 +16645,28 @@ func schema_openshift_api_operator_v1alpha1_OperatorStatus(ref common.ReferenceC
 					"currentVersionAvailability": {
 						SchemaProps: spec.SchemaProps{
 							Description: "currentVersionAvailability is availability information for the current version.  If it is unmanged or removed, this doesn't exist.",
-							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailablity"),
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailability"),
 						},
 					},
 					"targetVersionAvailability": {
 						SchemaProps: spec.SchemaProps{
 							Description: "targetVersionAvailability is availability information for the target version if we are migrating",
-							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailablity"),
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailability"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1alpha1.OperatorCondition", "github.com/openshift/api/operator/v1alpha1.VersionAvailablity"},
+			"github.com/openshift/api/operator/v1alpha1.OperatorCondition", "github.com/openshift/api/operator/v1alpha1.VersionAvailability"},
 	}
 }
 
-func schema_openshift_api_operator_v1alpha1_VersionAvailablity(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_operator_v1alpha1_VersionAvailability(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "VersionAvailablity gives information about the synchronization and operational status of a particular version of the component",
+				Description: "VersionAvailability gives information about the synchronization and operational status of a particular version of the component",
 				Properties: map[string]spec.Schema{
 					"version": {
 						SchemaProps: spec.SchemaProps{
@@ -17088,8 +17134,15 @@ func schema_openshift_api_osin_v1_IdentityProvider(ref common.ReferenceCallback)
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
+					"unqualifiedGroups": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unqualifiedGroups determines if groups asserted by this provider should be prepended. If false, all valid groups asserted by this provider are prepended with openshift:idp:groups:<idp_name>: If true, all valid groups are used as-is without any modification. A group name is considered invalid if it: 1. Is empty 2. Equals . or .. or ~ 3. Contains / or % or :",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"name", "challenge", "login", "mappingMethod", "provider"},
+				Required: []string{"name", "challenge", "login", "mappingMethod", "provider", "unqualifiedGroups"},
 			},
 		},
 		Dependencies: []string{
@@ -17490,8 +17543,22 @@ func schema_openshift_api_osin_v1_OpenIDClaims(ref common.ReferenceCallback) com
 							},
 						},
 					},
+					"groups": {
+						SchemaProps: spec.SchemaProps{
+							Description: "groups is the list of claims whose values should be used as the user's groups. Optional. If unspecified, no groups are consumed from the claims. Claim values must either be a string or an array of strings.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
-				Required: []string{"id", "preferredUsername", "name", "email"},
+				Required: []string{"id", "preferredUsername", "name", "email", "groups"},
 			},
 		},
 		Dependencies: []string{},
@@ -17733,8 +17800,22 @@ func schema_openshift_api_osin_v1_RequestHeaderIdentityProvider(ref common.Refer
 							},
 						},
 					},
+					"groupsHeaders": {
+						SchemaProps: spec.SchemaProps{
+							Description: "groupsHeaders is the set of headers to check for groups.  All non-empty values from all headers are aggregated.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
-				Required: []string{"loginURL", "challengeURL", "clientCA", "clientCommonNames", "headers", "preferredUsernameHeaders", "nameHeaders", "emailHeaders"},
+				Required: []string{"loginURL", "challengeURL", "clientCA", "clientCommonNames", "headers", "preferredUsernameHeaders", "nameHeaders", "emailHeaders", "groupsHeaders"},
 			},
 		},
 		Dependencies: []string{},
@@ -20009,20 +20090,20 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorCo
 					"currentVersionAvailability": {
 						SchemaProps: spec.SchemaProps{
 							Description: "currentVersionAvailability is availability information for the current version.  If it is unmanged or removed, this doesn't exist.",
-							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailablity"),
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailability"),
 						},
 					},
 					"targetVersionAvailability": {
 						SchemaProps: spec.SchemaProps{
 							Description: "targetVersionAvailability is availability information for the target version if we are migrating",
-							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailablity"),
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailability"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1alpha1.OperatorCondition", "github.com/openshift/api/operator/v1alpha1.VersionAvailablity"},
+			"github.com/openshift/api/operator/v1alpha1.OperatorCondition", "github.com/openshift/api/operator/v1alpha1.VersionAvailability"},
 	}
 }
 
@@ -20912,6 +20993,117 @@ func schema_openshift_api_user_v1_IdentityList(ref common.ReferenceCallback) com
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/user/v1.Identity", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_user_v1_IdentityMetadata(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "IdentityMetadata represents an instance of identity metadata associated with a single OAuth flow.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"providerName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ProviderName is the source of identity information.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"providerGroups": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ProviderGroups is the groups asserted by the provider for this OAuth flow.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"expiresIn": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ExpiresIn is the seconds from CreationTime before this identityMetadata expires.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+				Required: []string{"providerName", "providerGroups"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_user_v1_IdentityMetadataList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "IdentityMetadataList is a collection of IdentityMetadatas",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items is the list of identityMetadatas",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/user/v1.IdentityMetadata"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/user/v1.IdentityMetadata", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 

@@ -352,6 +352,8 @@
     File: v1.Group
   - Name: v1.Identity
     File: v1.Identity
+  - Name: v1.IdentityMetadata
+    File: v1.IdentityMetadata
   - Name: v1.User
     File: v1.User
   - Name: v1.UserIdentityMapping

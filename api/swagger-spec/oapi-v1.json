@@ -28729,6 +28729,10 @@
    "v1.OAuthAccessToken": {
     "id": "v1.OAuthAccessToken",
     "description": "OAuthAccessToken describes an OAuth access token",
+    "required": [
+     "providerName",
+     "providerGroups"
+    ],
     "properties": {
      "kind": {
       "type": "string",
@@ -28782,6 +28786,17 @@
       "type": "integer",
       "format": "int32",
       "description": "InactivityTimeoutSeconds is the value in seconds, from the CreationTimestamp, after which this token can no longer be used. The value is automatically incremented when the token is used."
+     },
+     "providerName": {
+      "type": "string",
+      "description": "ProviderName is the source of identity information."
+     },
+     "providerGroups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "ProviderGroups is the groups asserted by the provider for this token."
      }
     }
    },
@@ -28816,6 +28831,10 @@
    "v1.OAuthAuthorizeToken": {
     "id": "v1.OAuthAuthorizeToken",
     "description": "OAuthAuthorizeToken describes an OAuth authorization token",
+    "required": [
+     "providerName",
+     "providerGroups"
+    ],
     "properties": {
      "kind": {
       "type": "string",
@@ -28868,6 +28887,17 @@
      "codeChallengeMethod": {
       "type": "string",
       "description": "CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636"
+     },
+     "providerName": {
+      "type": "string",
+      "description": "ProviderName is the source of identity information."
+     },
+     "providerGroups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "ProviderGroups is the groups asserted by the provider for this token."
      }
     }
    },
