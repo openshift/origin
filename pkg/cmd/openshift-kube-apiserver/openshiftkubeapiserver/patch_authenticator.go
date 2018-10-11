@@ -82,7 +82,7 @@ func NewAuthenticator(
 	)
 }
 
-func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper oauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupCache *usercache.GroupCache) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
@@ -117,7 +117,8 @@ func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *osinv1
 				return nil
 			}
 		}
-		oauthTokenAuthenticator := oauth.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
+		groupsMapper := oauth.NewGroupsMapper(groupCache, oauthConfig.IdentityProviders)
+		oauthTokenAuthenticator := oauth.NewTokenAuthenticator(accessTokenGetter, userGetter, groupsMapper, validators...)
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have an OAuth bearer token, you're a human (usually)
 			group.NewTokenGroupAdder(oauthTokenAuthenticator, []string{bootstrappolicy.AuthenticatedOAuthGroup}))

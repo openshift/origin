@@ -211,6 +211,8 @@ func ValidateIdentityProvider(identityProvider configapi.IdentityProvider, fldPa
 		}
 	}
 
+	// TODO maybe validate unqualifiedGroups
+
 	return validationResults
 }
 

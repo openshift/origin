@@ -18,6 +18,13 @@ const (
 	IdentityPreferredUsernameKey = "preferred_username"
 )
 
+var (
+	_ UserIdentityInfo = &DefaultUserIdentityInfo{}
+
+	_ user.Info            = &DefaultUserIdentityMetadata{}
+	_ UserIdentityMetadata = &DefaultUserIdentityMetadata{}
+)
+
 // UserIdentityInfo contains information about an identity.  Identities are distinct from users.  An authentication server of
 // some kind (like oauth for example) describes an identity.  Our system controls the users mapped to this identity.
 type UserIdentityInfo interface {
@@ -27,6 +34,9 @@ type UserIdentityInfo interface {
 	GetProviderName() string
 	// GetProviderUserName uniquely identifies this particular identity for this provider.  It is NOT guaranteed to be unique across providers
 	GetProviderUserName() string
+	// GetProviderGroups returns the groups associated with the user for this provider.
+	// It is NOT guaranteed to be stable across different authentication requests for the same provider.
+	GetProviderGroups() []string
 	// GetExtra is a map to allow providers to add additional fields that they understand
 	GetExtra() map[string]string
 }
@@ -36,6 +46,13 @@ type UserIdentityMapper interface {
 	// UserFor takes an identity, ignores the passed identity.Provider, forces the provider value to some other value and then creates the mapping.
 	// It returns the corresponding user.Info
 	UserFor(identityInfo UserIdentityInfo) (user.Info, error)
+}
+
+// UserIdentityMetadata is an extension to user.Info that contains group membership
+// information from a specific provider for a specific authentication flow.
+type UserIdentityMetadata interface {
+	GetIdentityProviderName() string
+	GetIdentityProviderGroups() []string
 }
 
 type Client interface {
@@ -55,6 +72,7 @@ type Grant struct {
 type DefaultUserIdentityInfo struct {
 	ProviderName     string
 	ProviderUserName string
+	ProviderGroups   []string
 	Extra            map[string]string
 }
 
@@ -79,6 +97,10 @@ func (i *DefaultUserIdentityInfo) GetProviderUserName() string {
 	return i.ProviderUserName
 }
 
+func (i *DefaultUserIdentityInfo) GetProviderGroups() []string {
+	return i.ProviderGroups
+}
+
 func (i *DefaultUserIdentityInfo) GetExtra() map[string]string {
 	return i.Extra
 }
@@ -96,4 +118,26 @@ type ProviderInfo struct {
 // on particular clients.   This interface will make its easier to write a future cache on it
 type OAuthClientGetter interface {
 	Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error)
+}
+
+type DefaultUserIdentityMetadata struct {
+	user.Info
+	IdentityProviderName   string
+	IdentityProviderGroups []string
+}
+
+func (i *DefaultUserIdentityMetadata) GetIdentityProviderName() string {
+	return i.IdentityProviderName
+}
+
+func (i *DefaultUserIdentityMetadata) GetIdentityProviderGroups() []string {
+	return i.IdentityProviderGroups
+}
+
+func NewDefaultUserIdentityMetadata(u user.Info, identityProviderName string, identityProviderGroups []string) *DefaultUserIdentityMetadata {
+	return &DefaultUserIdentityMetadata{
+		Info:                   u,
+		IdentityProviderName:   identityProviderName,
+		IdentityProviderGroups: identityProviderGroups,
+	}
 }

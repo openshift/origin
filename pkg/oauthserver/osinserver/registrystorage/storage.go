@@ -200,14 +200,14 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*oauthapi.O
 		State:               data.State,
 	}
 	var err error
-	if token.UserName, token.UserUID, err = convertFromUser(data.UserData); err != nil {
+	if token.UserName, token.UserUID, token.ProviderName, token.ProviderGroups, err = convertFromUser(data.UserData); err != nil {
 		return nil, err
 	}
 	return token, nil
 }
 
 func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeToken) (*osin.AuthorizeData, error) {
-	user, err := convertFromToken(authorize.UserName, authorize.UserUID)
+	user, err := convertFromToken(authorize.UserName, authorize.UserUID, authorize.ProviderName, authorize.ProviderGroups)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*oauthapi.OAuthAc
 		token.AuthorizeToken = data.AuthorizeData.Code
 	}
 	var err error
-	if token.UserName, token.UserUID, err = convertFromUser(data.UserData); err != nil {
+	if token.UserName, token.UserUID, token.ProviderName, token.ProviderGroups, err = convertFromUser(data.UserData); err != nil {
 		return nil, err
 	}
 
@@ -266,7 +266,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*oauthapi.OAuthAc
 }
 
 func (s *storage) convertFromAccessToken(access *oauthapi.OAuthAccessToken) (*osin.AccessData, error) {
-	user, err := convertFromToken(access.UserName, access.UserUID)
+	user, err := convertFromToken(access.UserName, access.UserUID, access.ProviderName, access.ProviderGroups)
 	if err != nil {
 		return nil, err
 	}
@@ -290,28 +290,48 @@ func (s *storage) convertFromAccessToken(access *oauthapi.OAuthAccessToken) (*os
 	}, nil
 }
 
-func convertFromUser(user interface{}) (name, uid string, err error) {
+func convertFromUser(user interface{}) (name, uid, idpName string, idpGroups []string, err error) {
 	info, ok := user.(kuser.Info)
 	if !ok {
-		return "", "", fmt.Errorf("did not receive user.Info: %#v", user) // should be impossible
+		return "", "", "", nil, fmt.Errorf("did not receive user.Info: %#v", user) // should be impossible
 	}
 
 	name = info.GetName()
 	uid = info.GetUID()
 	if len(name) == 0 || len(uid) == 0 {
-		return "", "", fmt.Errorf("user.Info has no user name or UID: %#v", info) // should be impossible
+		return "", "", "", nil, fmt.Errorf("user.Info has no user name or UID: %#v", info) // should be impossible
 	}
 
-	return name, uid, nil
+	if userIdentityMetadata, ok := user.(api.UserIdentityMetadata); ok {
+		idpName = userIdentityMetadata.GetIdentityProviderName()
+		idpGroups = userIdentityMetadata.GetIdentityProviderGroups()
+		if len(idpName) == 0 || len(idpGroups) == 0 {
+			return "", "", "", nil, fmt.Errorf("api.UserIdentityMetadata is incomplete: %#v", userIdentityMetadata) // should be impossible
+		}
+	}
+
+	return name, uid, idpName, idpGroups, nil
 }
 
-func convertFromToken(name, uid string) (kuser.Info, error) {
+func convertFromToken(name, uid, idpName string, idpGroups []string) (kuser.Info, error) {
 	if len(name) == 0 || len(uid) == 0 {
-		return nil, fmt.Errorf("token has no user name or UID stored: name=%s uid=%s", name, uid) // should be impossible
+		return nil, fmt.Errorf("token has no user name or UID stored: name=%s uid=%s idpName=%s idpGroups=%v",
+			name, uid, idpName, idpGroups) // should be impossible
 	}
 
-	return &kuser.DefaultInfo{
+	if (len(idpName) == 0) != (len(idpGroups) == 0) {
+		return nil, fmt.Errorf("idpName and idpGroups must be specified together: name=%s uid=%s idpName=%s idpGroups=%v",
+			name, uid, idpName, idpGroups) // should be impossible
+	}
+
+	u := &kuser.DefaultInfo{
 		Name: name,
 		UID:  uid,
-	}, nil
+	}
+
+	if len(idpGroups) == 0 {
+		return u, nil
+	}
+
+	return api.NewDefaultUserIdentityMetadata(u, idpName, idpGroups), nil
 }

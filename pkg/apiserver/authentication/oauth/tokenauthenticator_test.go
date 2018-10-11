@@ -30,7 +30,7 @@ func TestAuthenticateTokenInvalidUID(t *testing.T) {
 	)
 	fakeUserClient := userfake.NewSimpleClientset(&userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar2"}})
 
-	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, NewUIDValidator())
+	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), noopGroupsMapper{}, NewUIDValidator())
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -47,7 +47,7 @@ func TestAuthenticateTokenInvalidUID(t *testing.T) {
 func TestAuthenticateTokenNotFoundSuppressed(t *testing.T) {
 	fakeOAuthClient := oauthfake.NewSimpleClientset()
 	fakeUserClient := userfake.NewSimpleClientset()
-	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{})
+	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), noopGroupsMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -67,7 +67,7 @@ func TestAuthenticateTokenOtherGetErrorSuppressed(t *testing.T) {
 		return true, nil, errors.New("get error")
 	})
 	fakeUserClient := userfake.NewSimpleClientset()
-	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{})
+	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), noopGroupsMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -170,7 +170,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 	// add some padding to all sleep invocations to make sure we are not failing on any boundary values
 	buffer := time.Nanosecond
 
-	tokenAuthenticator := NewTokenAuthenticator(accessTokenGetter, fakeUserClient.UserV1().Users(), NoopGroupMapper{}, timeouts)
+	tokenAuthenticator := NewTokenAuthenticator(accessTokenGetter, fakeUserClient.UserV1().Users(), noopGroupsMapper{}, timeouts)
 
 	go timeouts.Run(stopCh)
 

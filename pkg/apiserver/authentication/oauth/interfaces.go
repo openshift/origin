@@ -30,12 +30,6 @@ func (v OAuthTokenValidators) Validate(token *oauthv1.OAuthAccessToken, user *us
 	return nil
 }
 
-type UserToGroupMapper interface {
-	GroupsFor(username string) ([]*userapi.Group, error)
-}
-
-type NoopGroupMapper struct{}
-
-func (n NoopGroupMapper) GroupsFor(username string) ([]*userapi.Group, error) {
-	return []*userapi.Group{}, nil
+type GroupsMapper interface {
+	GroupsFor(token *oauthv1.OAuthAccessToken, user *userapi.User) (groups []string, err error)
 }

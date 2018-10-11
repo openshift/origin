@@ -35,20 +35,25 @@ func NewIdentityUserMapper(identities userclient.IdentityInterface, users usercl
 	// called when adding the first Identity to a User (during create or update of a User)
 	initUser := NewDefaultUserInitStrategy()
 
+	var mapper authapi.UserIdentityMapper
+
 	switch method {
 	case MappingMethodLookup:
-		return &lookupIdentityMapper{userIdentityMapping, users}, nil
+		mapper = &lookupIdentityMapper{userIdentityMapping, users}
 
 	case MappingMethodClaim:
-		return &provisioningIdentityMapper{identities, users, NewStrategyClaim(users, initUser)}, nil
+		mapper = &provisioningIdentityMapper{identities, users, NewStrategyClaim(users, initUser)}
 
 	case MappingMethodAdd:
-		return &provisioningIdentityMapper{identities, users, NewStrategyAdd(users, initUser)}, nil
+		mapper = &provisioningIdentityMapper{identities, users, NewStrategyAdd(users, initUser)}
 
 	case MappingMethodGenerate:
-		return &provisioningIdentityMapper{identities, users, NewStrategyGenerate(users, initUser)}, nil
+		mapper = &provisioningIdentityMapper{identities, users, NewStrategyGenerate(users, initUser)}
+	}
 
-	default:
+	if mapper == nil {
 		return nil, fmt.Errorf("unsupported mapping method %q", method)
 	}
+
+	return &groupsMapper{delegate: mapper}, nil
 }

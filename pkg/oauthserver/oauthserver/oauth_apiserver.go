@@ -64,21 +64,22 @@ func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest
 	genericConfig := genericapiserver.NewRecommendedConfig(codecs)
 	genericConfig.LoopbackClientConfig = userClientConfig
 
+	userClient, err := userclient.NewForConfig(userClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	var sessionAuth *session.Authenticator
 	if oauthConfig.SessionConfig != nil {
 		// TODO we really need to enforce HTTPS always
 		secure := isHTTPS(oauthConfig.MasterPublicURL)
-		auth, err := buildSessionAuth(secure, oauthConfig.SessionConfig)
+		auth, err := buildSessionAuth(secure, oauthConfig.SessionConfig, userClient.IdentityMetadatas())
 		if err != nil {
 			return nil, err
 		}
 		sessionAuth = auth
 	}
 
-	userClient, err := userclient.NewForConfig(userClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	oauthClient, err := oauthclient.NewForConfig(userClientConfig)
 	if err != nil {
 		return nil, err
@@ -108,13 +109,13 @@ func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest
 	return ret, nil
 }
 
-func buildSessionAuth(secure bool, config *osinv1.SessionConfig) (*session.Authenticator, error) {
+func buildSessionAuth(secure bool, config *osinv1.SessionConfig, identityMetadata userclient.IdentityMetadataInterface) (*session.Authenticator, error) {
 	secrets, err := getSessionSecrets(config.SessionSecretsFile)
 	if err != nil {
 		return nil, err
 	}
 	sessionStore := session.NewStore(config.SessionName, secure, secrets...)
-	return session.NewAuthenticator(sessionStore, time.Duration(config.SessionMaxAgeSeconds)*time.Second), nil
+	return session.NewAuthenticator(sessionStore, time.Duration(config.SessionMaxAgeSeconds)*time.Second, identityMetadata), nil
 }
 
 func getSessionSecrets(filename string) ([][]byte, error) {
