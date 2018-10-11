@@ -353,6 +353,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 	errs := ValidateAuthorizeToken(&oapi.OAuthAuthorizeToken{
 		ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 		ClientName: "myclient",
+		ExpiresIn:  86400,
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
 		Scopes:     []string{`user:info`},
@@ -369,6 +370,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		"zero-length name": {
 			Token: oapi.OAuthAuthorizeToken{
 				ClientName: "myclient",
+				ExpiresIn:  86400,
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
@@ -379,6 +381,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				UserName:   "myusername",
+				ExpiresIn:  86400,
 				UserUID:    "myuseruid",
 			},
 			T: field.ErrorTypeRequired,
@@ -388,6 +391,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
+				ExpiresIn:  86400,
 				UserUID:    "myuseruid",
 			},
 			T: field.ErrorTypeRequired,
@@ -397,6 +401,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
+				ExpiresIn:  86400,
 				UserName:   "myusername",
 			},
 			T: field.ErrorTypeRequired,
@@ -406,6 +411,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength", Namespace: "foo"},
 				ClientName: "myclient",
+				ExpiresIn:  86400,
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
@@ -416,6 +422,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
+				ExpiresIn:  86400,
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 				Scopes:     []string{"invalid"},
@@ -427,6 +434,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
+				ExpiresIn:  86400,
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 				Scopes:     []string{"user:dne"},
@@ -438,12 +446,34 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
+				ExpiresIn:  86400,
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 				Scopes:     []string{`role:asdf":foo`},
 			},
 			T: field.ErrorTypeInvalid,
 			F: "scopes[0]",
+		},
+		"zero expiresIn": {
+			Token: oapi.OAuthAuthorizeToken{
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+			},
+			T: field.ErrorTypeInvalid,
+			F: "expiresIn",
+		},
+		"negative expiresIn": {
+			Token: oapi.OAuthAuthorizeToken{
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ClientName: "myclient",
+				ExpiresIn:  -1,
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+			},
+			T: field.ErrorTypeInvalid,
+			F: "expiresIn",
 		},
 	}
 	for k, v := range errorCases {

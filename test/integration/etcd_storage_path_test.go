@@ -215,7 +215,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		},
 	},
 	gvr("", "v1", "oauthauthorizetokens"): {
-		stub:             `{"clientName": "client0", "metadata": {"name": "tokenneedstobelongenoughelseitwontwork"}, "userName": "user", "userUID": "cannot be empty"}`,
+		stub:             `{"clientName": "client0", "metadata": {"name": "tokenneedstobelongenoughelseitwontwork"}, "userName": "user", "userUID": "cannot be empty", "expiresIn": 86400}`,
 		expectedEtcdPath: "openshift.io/oauth/authorizetokens/tokenneedstobelongenoughelseitwontwork",
 		prerequisites: []prerequisite{
 			{
@@ -226,7 +226,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		expectedGVK: gvkP("oauth.openshift.io", "v1", "OAuthAuthorizeToken"),
 	},
 	gvr("oauth.openshift.io", "v1", "oauthauthorizetokens"): {
-		stub:             `{"clientName": "client0g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "userUID": "cannot be empty"}`,
+		stub:             `{"clientName": "client0g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "userUID": "cannot be empty", "expiresIn": 86400}`,
 		expectedEtcdPath: "openshift.io/oauth/authorizetokens/tokenneedstobelongenoughelseitwontworkg",
 		prerequisites: []prerequisite{
 			{
