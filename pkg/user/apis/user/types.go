@@ -92,3 +92,32 @@ type GroupList struct {
 	metav1.ListMeta
 	Items []Group
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// IdentityMetadata represents an instance of identity metadata associated with a single OAuth flow.
+type IdentityMetadata struct {
+	metav1.TypeMeta
+	// Standard object's metadata.
+	metav1.ObjectMeta
+
+	// ProviderName is the source of identity information.
+	ProviderName string
+
+	// ProviderGroups is the groups asserted by the provider for this OAuth flow.
+	ProviderGroups []string
+
+	// ExpiresIn is the seconds from CreationTime before this identityMetadata expires.
+	ExpiresIn int64
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// IdentityMetadataList is a collection of IdentityMetadatas
+type IdentityMetadataList struct {
+	metav1.TypeMeta
+	// Standard object's metadata.
+	metav1.ListMeta
+	// Items is the list of identityMetadatas
+	Items []IdentityMetadata
+}

@@ -39,6 +39,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&UserIdentityMapping{},
 		&Group{},
 		&GroupList{},
+		&IdentityMetadata{},
+		&IdentityMetadataList{},
 	)
 	return nil
 }

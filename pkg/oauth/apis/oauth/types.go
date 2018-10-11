@@ -40,6 +40,12 @@ type OAuthAccessToken struct {
 	// CreationTimestamp, after which this token can no longer be used.
 	// The value is automatically incremented when the token is used.
 	InactivityTimeoutSeconds int32
+
+	// ProviderName is the source of identity information.
+	ProviderName string
+
+	// ProviderGroups is the groups asserted by the provider for this token.
+	ProviderGroups []string
 }
 
 // +genclient
@@ -77,6 +83,12 @@ type OAuthAuthorizeToken struct {
 
 	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
 	CodeChallengeMethod string
+
+	// ProviderName is the source of identity information.
+	ProviderName string
+
+	// ProviderGroups is the groups asserted by the provider for this token.
+	ProviderGroups []string
 }
 
 // +genclient
