@@ -76,7 +76,7 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 		GenericAPIServerConfig: configv1.GenericAPIServerConfig{
 			CORSAllowedOrigins: input.CORSAllowedOrigins,
 			StorageConfig: configv1.EtcdStorageConfig{
-				StoragePrefix: input.EtcdStorageConfig.OpenShiftStoragePrefix,
+				StoragePrefix: input.EtcdStorageConfig.KubernetesStoragePrefix,
 			},
 		},
 
