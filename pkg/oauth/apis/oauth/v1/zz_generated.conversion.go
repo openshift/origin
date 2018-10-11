@@ -83,6 +83,8 @@ func autoConvert_v1_OAuthAccessToken_To_oauth_OAuthAccessToken(in *v1.OAuthAcces
 	out.AuthorizeToken = in.AuthorizeToken
 	out.RefreshToken = in.RefreshToken
 	out.InactivityTimeoutSeconds = in.InactivityTimeoutSeconds
+	out.ProviderName = in.ProviderName
+	out.ProviderGroups = *(*[]string)(unsafe.Pointer(&in.ProviderGroups))
 	return nil
 }
 
@@ -102,6 +104,8 @@ func autoConvert_oauth_OAuthAccessToken_To_v1_OAuthAccessToken(in *oauth.OAuthAc
 	out.AuthorizeToken = in.AuthorizeToken
 	out.RefreshToken = in.RefreshToken
 	out.InactivityTimeoutSeconds = in.InactivityTimeoutSeconds
+	out.ProviderName = in.ProviderName
+	out.ProviderGroups = *(*[]string)(unsafe.Pointer(&in.ProviderGroups))
 	return nil
 }
 
@@ -143,6 +147,8 @@ func autoConvert_v1_OAuthAuthorizeToken_To_oauth_OAuthAuthorizeToken(in *v1.OAut
 	out.UserUID = in.UserUID
 	out.CodeChallenge = in.CodeChallenge
 	out.CodeChallengeMethod = in.CodeChallengeMethod
+	out.ProviderName = in.ProviderName
+	out.ProviderGroups = *(*[]string)(unsafe.Pointer(&in.ProviderGroups))
 	return nil
 }
 
@@ -162,6 +168,8 @@ func autoConvert_oauth_OAuthAuthorizeToken_To_v1_OAuthAuthorizeToken(in *oauth.O
 	out.UserUID = in.UserUID
 	out.CodeChallenge = in.CodeChallenge
 	out.CodeChallengeMethod = in.CodeChallengeMethod
+	out.ProviderName = in.ProviderName
+	out.ProviderGroups = *(*[]string)(unsafe.Pointer(&in.ProviderGroups))
 	return nil
 }
 
