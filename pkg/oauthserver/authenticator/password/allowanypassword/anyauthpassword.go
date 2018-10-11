@@ -1,8 +1,10 @@
 package allowanypassword
 
 import (
+	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
@@ -33,5 +35,20 @@ func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(username, passwo
 
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 
+	// TODO remove this
+	// add three random groups in a confined range
+	// allows us to play around with the semantics of identity metadata (dedupe, sort, filter, map, etc)
+	identity.ProviderGroups = []string{randomGroup(), randomGroup(), randomGroup()}
+
 	return identitymapper.UserFor(a.identityMapper, identity)
+}
+
+func randomGroup() string {
+	// choose a separator based on a coin flip
+	sep := "-" // one that is OK
+	if rand.Intn(2) == 0 {
+		sep = ":" // and one that is filtered out
+	}
+	// randomly pick one of five possible groups with the given separator
+	return fmt.Sprintf("group%s%d", sep, rand.Intn(5))
 }
