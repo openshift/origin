@@ -56,11 +56,11 @@ func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAP
 	}
 
 	if config.OAuthConfig != nil {
-		for _, curr := range config.OAuthConfig.IdentityProviders {
+		for i := range config.OAuthConfig.IdentityProviders {
 			// By default, only let one identity provider authenticate a particular user
 			// If multiple identity providers collide, the second one in will fail to auth
 			// The admin can set this to "add" if they want to allow new identities to join existing users
-			configdefaults.DefaultString(&curr.MappingMethod, "claim")
+			configdefaults.DefaultString(&config.OAuthConfig.IdentityProviders[i].MappingMethod, "claim")
 		}
 	}
 }
