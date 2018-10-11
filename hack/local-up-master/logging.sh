@@ -26,16 +26,6 @@ kube::log::errexit() {
   kube::log::error_exit "Error in ${BASH_SOURCE[1]}:${BASH_LINENO[0]}. '${BASH_COMMAND}' exited with status $err" "${1:-1}" 1
 }
 
-kube::log::install_errexit() {
-  # trap ERR to provide an error handler whenever a command exits nonzero  this
-  # is a more verbose version of set -o errexit
-  trap 'kube::log::errexit' ERR
-
-  # setting errtrace allows our ERR trap handler to be propagated to functions,
-  # expansions and subshells
-  set -o errtrace
-}
-
 # Print out the stack trace
 #
 # Args:

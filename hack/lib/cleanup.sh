@@ -72,6 +72,9 @@ readonly -f os::cleanup::dump_etcd
 #  - API_SCHEME
 #  - API_HOST
 #  - ETCD_PORT
+#  - ETCD_CLIENT_CERT
+#  - ETCD_CLIENT_KEY
+#  - ETCD_CA_BUNDLE
 # Arguments:
 #  None
 # Returns:
@@ -79,14 +82,10 @@ readonly -f os::cleanup::dump_etcd
 function os::cleanup::internal::dump_etcd_v3() {
 	local full_url="${API_SCHEME}://${API_HOST}:${ETCD_PORT}"
 
-	local etcd_client_cert="${MASTER_CONFIG_DIR}/master.etcd-client.crt"
-	local etcd_client_key="${MASTER_CONFIG_DIR}/master.etcd-client.key"
-	local ca_bundle="${MASTER_CONFIG_DIR}/ca-bundle.crt"
-
 	os::util::ensure::built_binary_exists 'etcdhelper' >&2
 
-	etcdhelper --cert "${etcd_client_cert}" --key "${etcd_client_key}" \
-	           --cacert "${ca_bundle}" --endpoint "${full_url}" dump
+	etcdhelper --cert "${ETCD_CLIENT_CERT}" --key "${ETCD_CLIENT_KEY}" \
+	           --cacert "${ETCD_CA_BUNDLE}" --endpoint "${full_url}" dump
 }
 readonly -f os::cleanup::internal::dump_etcd_v3
 

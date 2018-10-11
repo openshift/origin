@@ -23,6 +23,7 @@ os::test::junit::declare_suite_start "cmd/login"
 # are set, as well as /var/run/secrets/kubernetes.io/serviceaccount/token exists. we
 # therefore can be sure that we are picking up no client configuration if we unset these variables
 login_kubeconfig="${ARTIFACT_DIR}/login.kubeconfig"
+CA_CERT=${MASTER_CONFIG_DIR}/server-ca.crt
 cp "${KUBECONFIG}" "${login_kubeconfig}"
 unset KUBECONFIG
 unset KUBERNETES_MASTER
@@ -45,10 +46,10 @@ fi
 
 # remove self-provisioner role from user and test login prompt before creating any projects
 os::cmd::expect_success "oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
-os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u no-project-test-user -p anything" "You don't have any projects. Contact your system administrator to request a project"
+os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u no-project-test-user -p anything" "You don't have any projects. Contact your system administrator to request a project"
 # make sure standard login prompt is printed once self-provisioner status is restored
 os::cmd::expect_success "oc adm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
-os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u no-project-test-user -p anything" "You don't have any projects. You can try to create a new project, by running"
+os::cmd::try_until_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u no-project-test-user -p anything" "You don't have any projects. You can try to create a new project, by running" $(( 30 * second )) 0.25
 # make sure `oc login` fails with unauthorized error
 os::cmd::expect_failure_and_text 'oc login <<< \n' 'Login failed \(401 Unauthorized\)'
 os::cmd::expect_success 'oc logout'
@@ -56,13 +57,13 @@ echo "login and status messages: ok"
 
 # login and logout tests
 # bad token should error
-os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' --token=badvalue" 'The token provided is invalid or expired'
+os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' --token=badvalue" 'The token provided is invalid or expired'
 # --token and --username are mutually exclusive
 os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify" 'mutually exclusive'
 # must only accept one arg (server)
 os::cmd::expect_failure_and_text "oc login https://server1 https://server2.com" 'Only the server URL may be specified'
 # logs in with a valid certificate authority
-os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
 os::cmd::expect_success_and_text "cat ${HOME}/.kube/config" "v1"
 os::cmd::expect_success 'oc logout'
 # logs in skipping certificate check
@@ -74,12 +75,12 @@ os::cmd::expect_success 'oc logout'
 # properly parse server port
 os::cmd::expect_failure_and_text 'oc login https://server1:844333' 'Not a valid port'
 # properly handle trailing slash
-os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
 # create a new project
 os::cmd::expect_success "oc new-project project-foo --display-name='my project' --description='boring project description'"
 os::cmd::expect_success_and_text "oc project" 'Using project "project-foo"'
 # new user should get default context
-os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u new-and-unknown-user -p anything"
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u new-and-unknown-user -p anything"
 os::cmd::expect_success_and_text 'oc config view' "current-context.+/${API_HOST}:${API_PORT}/new-and-unknown-user"
 # denies access after logging out
 os::cmd::expect_success 'oc logout'
@@ -91,7 +92,7 @@ os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list p
 echo "login warnings: ok"
 
 # login and create serviceaccount and test login and logout with a service account token
-os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
 os::cmd::expect_success_and_text "oc create sa testserviceaccount" "serviceaccount/testserviceaccount created"
 os::cmd::try_until_success "oc sa get-token testserviceaccount"
 os::cmd::expect_success_and_text "oc login --token=$(oc sa get-token testserviceaccount)" "system:serviceaccount:project-foo:testserviceaccount"
@@ -101,7 +102,7 @@ os::cmd::expect_success_and_text "oc logout" "Logged \"system:serviceaccount:pro
 os::cmd::expect_failure_and_text "oc whoami" "User \"system:anonymous\" cannot get users"
 
 # log in and set project to use from now on
-os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
 os::cmd::expect_success 'oc get projects'
 os::cmd::expect_success 'oc project project-foo'
 os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"

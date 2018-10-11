@@ -56,19 +56,6 @@ items:
 - apiVersion: apiregistration.k8s.io/v1
   kind: APIService
   metadata:
-    name: v1.network.openshift.io
-  spec:
-    group: network.openshift.io
-    version: v1
-    service:
-      namespace: default
-      name: openshift
-    insecureSkipTLSVerify: true
-    groupPriorityMinimum: 20000
-    versionPriority: 15
-- apiVersion: apiregistration.k8s.io/v1
-  kind: APIService
-  metadata:
     name: v1.oauth.openshift.io
   spec:
     group: oauth.openshift.io

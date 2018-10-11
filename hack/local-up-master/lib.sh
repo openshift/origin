@@ -18,25 +18,21 @@ LOG_SPEC=${LOG_SPEC:-""}
 WAIT_FOR_URL_API_SERVER=${WAIT_FOR_URL_API_SERVER:-60}
 MAX_TIME_FOR_URL_API_SERVER=${MAX_TIME_FOR_URL_API_SERVER:-1}
 
-#source "$(dirname "${BASH_SOURCE}")/../lib/init.sh"
 KUBE_ROOT=OS_ROOT
-source "${OS_ROOT}/hack/local-up-master/logging.sh"
-source "${OS_ROOT}/hack/local-up-master/util.sh"
-source "${OS_ROOT}/hack/local-up-master/etcd.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/util.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/etcd.sh"
 
+set -e
 
-CONFIG=$(pwd)/openshift.local.masterup
-mkdir -p ${CONFIG}/logs
-ETCD_DIR=$(pwd)/openshift.local.masterup/etcd
-CERT_DIR=${CONFIG}/kube-apiserver
-LOG_DIR=${CONFIG}/logs
-ROOT_CA_FILE=${CERT_DIR}/server-ca.crt
-
-
-clusterup::cleanup() {
+function clusterup::cleanup() {
   echo "Cleaning up..."
 
   set +e
+
+  # cleanup temp dirs
+  kube::util::cleanup-temp-dir
+
   # Check if the API server is still running
   [[ -n "${KUBE_APISERVER_PID-}" ]] && KUBE_APISERVER_PIDS=$(pgrep -P ${KUBE_APISERVER_PID} ; ps -o pid= -p ${KUBE_APISERVER_PID})
   [[ -n "${KUBE_APISERVER_PIDS-}" ]] && sudo kill ${KUBE_APISERVER_PIDS} 2>/dev/null
@@ -64,9 +60,13 @@ clusterup::cleanup() {
   ${USE_SUDO:+sudo} fuser -k 2379/tcp
 }
 
+function clusterup::cleanup_config() {
+    rm -rf ${LOCALUP_CONFIG}
+}
+
 # Check if all processes are still running. Prints a warning once each time
 # a process dies unexpectedly.
-function localup::healthcheck {
+function localup::healthcheck() {
   if [[ -n "${KUBE_APISERVER_PID-}" ]] && ! sudo kill -0 ${KUBE_APISERVER_PID} 2>/dev/null; then
     localup::warning_log "API server terminated unexpectedly, see ${KUBE_APISERVER_LOG}"
     KUBE_APISERVER_PID=
@@ -94,12 +94,12 @@ function localup::healthcheck {
   fi
 }
 
-function localup::warning_log {
+function localup::warning_log() {
   os::log::info/warning/error/fatal "$1" "W$(date "+%m%d %H:%M:%S")]" 1
 }
 
 
-function localup::generate_etcd_certs {
+function localup::generate_etcd_certs() {
     # Create CA signers
     kube::util::create_signing_certkey "${CONTROLPLANE_SUDO}" "${ETCD_DIR}" server '"client auth","server auth"'
     cp "${ETCD_DIR}/server-ca.key" "${ETCD_DIR}/client-ca.key"
@@ -113,7 +113,7 @@ function localup::generate_etcd_certs {
     kube::util::create_serving_certkey "${CONTROLPLANE_SUDO}" "${ETCD_DIR}" "server-ca" etcd-server "localhost" "127.0.0.1" ${API_HOST_IP}
 }
 
-function localup::generate_kubeapiserver_certs {
+function localup::generate_kubeapiserver_certs() {
     openssl genrsa -out "${CERT_DIR}/service-account" 2048 2>/dev/null
 
     # Create CA signers
@@ -147,46 +147,46 @@ function localup::generate_kubeapiserver_certs {
     cp ${ETCD_DIR}/client-etcd-client.key ${CERT_DIR}/client-etcd-client.key
 }
 
-function localup::generate_kubecontrollermanager_certs {
-    cp ${CONFIG}/kube-apiserver/service-account ${CONFIG}/kube-controller-manager/etcd-serving-ca.crt
-    cp ${CONFIG}/kube-apiserver/client-controller.crt ${CONFIG}/kube-controller-manager/client-controller.crt
-    cp ${CONFIG}/kube-apiserver/client-controller.key ${CONFIG}/kube-controller-manager/client-controller.key
-    kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${CONFIG}/kube-controller-manager" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" controller
+function localup::generate_kubecontrollermanager_certs() {
+    cp ${LOCALUP_CONFIG}/kube-apiserver/service-account ${LOCALUP_CONFIG}/kube-controller-manager/etcd-serving-ca.crt
+    cp ${LOCALUP_CONFIG}/kube-apiserver/client-controller.crt ${LOCALUP_CONFIG}/kube-controller-manager/client-controller.crt
+    cp ${LOCALUP_CONFIG}/kube-apiserver/client-controller.key ${LOCALUP_CONFIG}/kube-controller-manager/client-controller.key
+    kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${LOCALUP_CONFIG}/kube-controller-manager" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" controller
 }
 
 
-function localup::generate_openshiftapiserver_certs {
+function localup::generate_openshiftapiserver_certs() {
     # Create CA signers
-    kube::util::create_signing_certkey "${CONTROLPLANE_SUDO}" "${CONFIG}/openshift-apiserver" server '"client auth","server auth"'
+    kube::util::create_signing_certkey "${CONTROLPLANE_SUDO}" "${LOCALUP_CONFIG}/openshift-apiserver" server '"client auth","server auth"'
 
     # serving cert for kube-apiserver
-    kube::util::create_serving_certkey "${CONTROLPLANE_SUDO}" "${CONFIG}/openshift-apiserver" "server-ca" openshift-apiserver openshift.default openshift.default.svc "localhost" ${API_HOST_IP} ${API_HOST} ${FIRST_SERVICE_CLUSTER_IP}
+    kube::util::create_serving_certkey "${CONTROLPLANE_SUDO}" "${LOCALUP_CONFIG}/openshift-apiserver" "server-ca" openshift-apiserver openshift.default openshift.default.svc "localhost" ${API_HOST_IP} ${API_HOST} ${FIRST_SERVICE_CLUSTER_IP}
 
-    cp ${CONFIG}/kube-apiserver/client-openshift-apiserver.crt ${CONFIG}/openshift-apiserver/client-openshift-apiserver.crt
-    cp ${CONFIG}/kube-apiserver/client-openshift-apiserver.key ${CONFIG}/openshift-apiserver/client-openshift-apiserver.key
-    kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${CONFIG}/openshift-apiserver" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" openshift-apiserver
+    cp ${LOCALUP_CONFIG}/kube-apiserver/client-openshift-apiserver.crt ${LOCALUP_CONFIG}/openshift-apiserver/client-openshift-apiserver.crt
+    cp ${LOCALUP_CONFIG}/kube-apiserver/client-openshift-apiserver.key ${LOCALUP_CONFIG}/openshift-apiserver/client-openshift-apiserver.key
+    kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${LOCALUP_CONFIG}/openshift-apiserver" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" openshift-apiserver
 
-    cp ${ETCD_DIR}/server-ca.crt ${CONFIG}/openshift-apiserver/etcd-serving-ca.crt
-    cp ${ETCD_DIR}/client-etcd-client.crt ${CONFIG}/openshift-apiserver/client-etcd-client.crt
-    cp ${ETCD_DIR}/client-etcd-client.key ${CONFIG}/openshift-apiserver/client-etcd-client.key
+    cp ${ETCD_DIR}/server-ca.crt ${LOCALUP_CONFIG}/openshift-apiserver/etcd-serving-ca.crt
+    cp ${ETCD_DIR}/client-etcd-client.crt ${LOCALUP_CONFIG}/openshift-apiserver/client-etcd-client.crt
+    cp ${ETCD_DIR}/client-etcd-client.key ${LOCALUP_CONFIG}/openshift-apiserver/client-etcd-client.key
 }
 
-function localup::generate_openshiftcontrollermanager_certs {
+function localup::generate_openshiftcontrollermanager_certs() {
     # Create CA signers
-    kube::util::create_signing_certkey "${CONTROLPLANE_SUDO}" "${CONFIG}/openshift-controller-manager" server '"client auth","server auth"'
+    kube::util::create_signing_certkey "${CONTROLPLANE_SUDO}" "${LOCALUP_CONFIG}/openshift-controller-manager" server '"client auth","server auth"'
 
     # serving cert for kube-apiserver
-    kube::util::create_serving_certkey "${CONTROLPLANE_SUDO}" "${CONFIG}/openshift-controller-manager" "server-ca" openshift-controller-manager openshift.default openshift.default.svc "localhost" ${API_HOST_IP} ${API_HOST} ${FIRST_SERVICE_CLUSTER_IP}
+    kube::util::create_serving_certkey "${CONTROLPLANE_SUDO}" "${LOCALUP_CONFIG}/openshift-controller-manager" "server-ca" openshift-controller-manager openshift.default openshift.default.svc "localhost" ${API_HOST_IP} ${API_HOST} ${FIRST_SERVICE_CLUSTER_IP}
 
-    cp ${CONFIG}/kube-apiserver/client-ca.crt ${CONFIG}/openshift-controller-manager/client-ca.crt
-    cp ${CONFIG}/kube-apiserver/client-openshift-controller-manager.crt ${CONFIG}/openshift-controller-manager/client-openshift-controller-manager.crt
-    cp ${CONFIG}/kube-apiserver/client-openshift-controller-manager.key ${CONFIG}/openshift-controller-manager/client-openshift-controller-manager.key
-    kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${CONFIG}/openshift-controller-manager" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" openshift-controller-manager
+    cp ${LOCALUP_CONFIG}/kube-apiserver/client-ca.crt ${LOCALUP_CONFIG}/openshift-controller-manager/client-ca.crt
+    cp ${LOCALUP_CONFIG}/kube-apiserver/client-openshift-controller-manager.crt ${LOCALUP_CONFIG}/openshift-controller-manager/client-openshift-controller-manager.crt
+    cp ${LOCALUP_CONFIG}/kube-apiserver/client-openshift-controller-manager.key ${LOCALUP_CONFIG}/openshift-controller-manager/client-openshift-controller-manager.key
+    kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${LOCALUP_CONFIG}/openshift-controller-manager" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" openshift-controller-manager
 }
 
-function localup::start_etcd {
-    if [ ! -d "${CONFIG}/etcd" ]; then
-        mkdir -p ${CONFIG}/etcd
+function localup::start_etcd() {
+    if [ ! -d "${LOCALUP_CONFIG}/etcd" ]; then
+        mkdir -p ${LOCALUP_CONFIG}/etcd
         localup::generate_etcd_certs
     fi
     echo "Starting etcd"
@@ -194,10 +194,10 @@ function localup::start_etcd {
     kube::etcd::start
 }
 
-function localup::start_kubeapiserver {
-    if [ ! -d "${CONFIG}/kube-apiserver" ]; then
-        mkdir -p ${CONFIG}/kube-apiserver
-        cp ${OS_ROOT}/hack/local-up-master/kube-apiserver.yaml ${CONFIG}/kube-apiserver
+function localup::start_kubeapiserver() {
+    if [ ! -d "${LOCALUP_CONFIG}/kube-apiserver" ]; then
+        mkdir -p ${LOCALUP_CONFIG}/kube-apiserver
+        cp ${OS_ROOT}/hack/local-up-master/kube-apiserver.yaml ${LOCALUP_CONFIG}/kube-apiserver
         localup::generate_kubeapiserver_certs
     fi
 
@@ -205,7 +205,7 @@ function localup::start_kubeapiserver {
     hypershift openshift-kube-apiserver \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
-      --config=${CONFIG}/kube-apiserver/kube-apiserver.yaml >"${KUBE_APISERVER_LOG}" 2>&1 &
+      --config=${LOCALUP_CONFIG}/kube-apiserver/kube-apiserver.yaml >"${KUBE_APISERVER_LOG}" 2>&1 &
     KUBE_APISERVER_PID=$!
 
     # Wait for kube-apiserver to come up before launching the rest of the components.
@@ -218,9 +218,9 @@ function localup::start_kubeapiserver {
     chown "${USER:-$(id -u)}" "${CERT_DIR}/client-admin.key" # make readable for kubectl
 }
 
-function localup::start_kubecontrollermanager {
-    if [ ! -d "${CONFIG}/kube-controller-manager" ]; then
-        mkdir -p ${CONFIG}/kube-controller-manager
+function localup::start_kubecontrollermanager() {
+    if [ ! -d "${LOCALUP_CONFIG}/kube-controller-manager" ]; then
+        mkdir -p ${LOCALUP_CONFIG}/kube-controller-manager
         localup::generate_kubecontrollermanager_certs
     fi
 
@@ -228,9 +228,9 @@ function localup::start_kubecontrollermanager {
     hyperkube controller-manager \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
-      --service-account-private-key-file="${CONFIG}/kube-controller-manager/etcd-serving-ca.crt" \
+      --service-account-private-key-file="${LOCALUP_CONFIG}/kube-controller-manager/etcd-serving-ca.crt" \
       --root-ca-file="${ROOT_CA_FILE}" \
-      --kubeconfig  ${CONFIG}/kube-controller-manager/controller.kubeconfig \
+      --kubeconfig  ${LOCALUP_CONFIG}/kube-controller-manager/controller.kubeconfig \
       --use-service-account-credentials \
       --leader-elect=false >"${KUBE_CONTROLLER_MANAGER_LOG}" 2>&1 &
     KUBE_CONTROLLER_MANAGER_PID=$!
@@ -240,10 +240,10 @@ function localup::start_kubecontrollermanager {
         || { echo "check kube-controller-manager logs: ${KUBE_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
 }
 
-function localup::start_openshiftapiserver {
-    if [ ! -d "${CONFIG}/openshift-apiserver" ]; then
-        mkdir -p ${CONFIG}/openshift-apiserver
-        cp ${OS_ROOT}/hack/local-up-master/openshift-apiserver.yaml ${CONFIG}/openshift-apiserver
+function localup::start_openshiftapiserver() {
+    if [ ! -d "${LOCALUP_CONFIG}/openshift-apiserver" ]; then
+        mkdir -p ${LOCALUP_CONFIG}/openshift-apiserver
+        cp ${OS_ROOT}/hack/local-up-master/openshift-apiserver.yaml ${LOCALUP_CONFIG}/openshift-apiserver
         localup::generate_openshiftapiserver_certs
     fi
 
@@ -251,7 +251,7 @@ function localup::start_openshiftapiserver {
     hypershift openshift-apiserver \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
-      --config=${CONFIG}/openshift-apiserver/openshift-apiserver.yaml >"${OPENSHIFT_APISERVER_LOG}" 2>&1 &
+      --config=${LOCALUP_CONFIG}/openshift-apiserver/openshift-apiserver.yaml >"${OPENSHIFT_APISERVER_LOG}" 2>&1 &
     OPENSHIFT_APISERVER_PID=$!
 
     # Wait for openshift-apiserver to come up before launching the rest of the components.
@@ -259,22 +259,22 @@ function localup::start_openshiftapiserver {
     kube::util::wait_for_url "https://${API_HOST_IP}:8444/healthz" "openshift-apiserver: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
         || { echo "check kube-apiserver logs: ${OPENSHIFT_APISERVER_LOG}" ; exit 1 ; }
 
-    NON_LOOPBACK_IPV4=$(ip -o -4 addr show up primary scope global dynamic | awk '{print $4}' | cut -f1 -d'/' | head -n1)
+    NON_LOOPBACK_IPV4=$(ip -o -4 addr show up primary scope global | awk '{print $4}' | cut -f1 -d'/' | head -n1)
     for filename in ${OS_ROOT}/hack/local-up-master/openshift-apiserver-manifests/*.yaml; do
-        sed "s/NON_LOOPBACK_HOST/${NON_LOOPBACK_IPV4}/g" ${filename} | oc --config=${CONFIG}/openshift-apiserver/openshift-apiserver.kubeconfig apply -f -
+        sed "s/NON_LOOPBACK_HOST/${NON_LOOPBACK_IPV4}/g" ${filename} | oc --config=${LOCALUP_CONFIG}/openshift-apiserver/openshift-apiserver.kubeconfig apply -f -
     done
 }
 
-function localup::start_openshiftcontrollermanager {
-    mkdir -p ${CONFIG}/openshift-controller-manager
-    cp ${OS_ROOT}/hack/local-up-master/openshift-controller-manager.yaml ${CONFIG}/openshift-controller-manager
+function localup::start_openshiftcontrollermanager() {
+    mkdir -p ${LOCALUP_CONFIG}/openshift-controller-manager
+    cp ${OS_ROOT}/hack/local-up-master/openshift-controller-manager.yaml ${LOCALUP_CONFIG}/openshift-controller-manager
     localup::generate_openshiftcontrollermanager_certs
 
     OPENSHIFT_CONTROLLER_MANAGER_LOG=${LOG_DIR}/openshift-controller-manager.log
     hypershift openshift-controller-manager \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
-      --config=${CONFIG}/openshift-controller-manager/openshift-controller-manager.yaml >"${OPENSHIFT_CONTROLLER_MANAGER_LOG}" 2>&1 &
+      --config=${LOCALUP_CONFIG}/openshift-controller-manager/openshift-controller-manager.yaml >"${OPENSHIFT_CONTROLLER_MANAGER_LOG}" 2>&1 &
     OPENSHIFT_CONTROLLER_MANAGER_PID=$!
 
     echo "Waiting for openshift-controller-manager to come up"
@@ -282,8 +282,14 @@ function localup::start_openshiftcontrollermanager {
         || { echo "check openshift-controller-manager logs: ${OPENSHIFT_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
 }
 
-function localup::init_master {
-    CONFIG=$(pwd)/openshift.local.masterup
+function localup::init_master() {
+    export LOCALUP_ROOT=${LOCALUP_ROOT:-$(pwd)}
+    export LOCALUP_CONFIG=${LOCALUP_ROOT}/openshift.local.masterup
+    mkdir -p ${LOCALUP_CONFIG}/logs
+    ETCD_DIR=${LOCALUP_CONFIG}/etcd
+    CERT_DIR=${LOCALUP_CONFIG}/kube-apiserver
+    LOG_DIR=${LOCALUP_CONFIG}/logs
+    ROOT_CA_FILE=${CERT_DIR}/server-ca.crt
 
     kube::util::test_openssl_installed
     kube::util::ensure-cfssl
@@ -294,9 +300,11 @@ function localup::init_master {
     localup::start_openshiftapiserver
     localup::start_openshiftcontrollermanager
 
-    cp ${CONFIG}/kube-apiserver/admin.kubeconfig ${CONFIG}/admin.kubeconfig
+    cp ${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig ${LOCALUP_CONFIG}/admin.kubeconfig
 
     # fix up owner after creating initial config
-    ${USE_SUDO:+sudo} chown -R "$( id -u )" "${CONFIG}"
-    ${USE_SUDO:+sudo} chmod a+rw ${CONFIG}/admin.kubeconfig
+    ${USE_SUDO:+sudo} chown -R "$( id -u )" "${LOCALUP_CONFIG}"
+    ${USE_SUDO:+sudo} chmod a+rw ${LOCALUP_CONFIG}/admin.kubeconfig
+
+    echo "Created config directory in ${LOCALUP_CONFIG}"
 }

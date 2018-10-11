@@ -253,6 +253,13 @@ function os::util::environment::setup_server_vars() {
     NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
     export NODE_CONFIG_DIR
 
+    ETCD_CLIENT_CERT="${MASTER_CONFIG_DIR}/master.etcd-client.crt"
+    export ETCD_CLIENT_CERT
+    ETCD_CLIENT_KEY="${MASTER_CONFIG_DIR}/master.etcd-client.key"
+    export ETCD_CLIENT_KEY
+    ETCD_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca-bundle.crt"
+    export ETCD_CA_BUNDLE
+
     mkdir -p "${SERVER_CONFIG_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}"
 }
 readonly -f os::util::environment::setup_server_vars
