@@ -72,17 +72,21 @@ func TestRequestHeader(t *testing.T) {
 				PreferredUsernameHeaders: []string{"x-preferred-username", "x-preferred-username2"},
 				EmailHeaders:             []string{"x-email", "x-email2"},
 				NameHeaders:              []string{"x-name", "x-name2"},
+				GroupsHeaders:            []string{"x-group", "x-group2"},
 			},
 			RequestHeaders: http.Header{
 				"X-Id2":                 {"12345"},
 				"X-Preferred-Username2": {"bob"},
 				"X-Email2":              {"bob@example.com"},
 				"X-Name2":               {"Bob"},
+				"X-Group":               {"group1", "group2"},
+				"X-Group2":              {"group3"},
 			},
 			ExpectedUsername: "bob",
 			ExpectedIdentity: &api.DefaultUserIdentityInfo{
 				ProviderName:     "testprovider",
 				ProviderUserName: "12345",
+				ProviderGroups:   []string{"group1", "group2", "group3"},
 				Extra: map[string]string{
 					api.IdentityDisplayNameKey:       "Bob",
 					api.IdentityEmailKey:             "bob@example.com",
@@ -119,11 +123,8 @@ func TestRequestHeader(t *testing.T) {
 			}
 		}
 		if testcase.ExpectedIdentity != nil {
-			if !reflect.DeepEqual(testcase.ExpectedIdentity.GetExtra(), mapper.Identity.GetExtra()) {
-				t.Errorf("%s: Expected %#v, got %#v", k, testcase.ExpectedIdentity.GetExtra(), mapper.Identity.GetExtra())
-			}
-			if !reflect.DeepEqual(testcase.ExpectedIdentity.GetProviderUserName(), mapper.Identity.GetProviderUserName()) {
-				t.Errorf("%s: Expected %#v, got %#v", k, testcase.ExpectedIdentity.GetProviderUserName(), mapper.Identity.GetProviderUserName())
+			if !reflect.DeepEqual(testcase.ExpectedIdentity, mapper.Identity) {
+				t.Errorf("%s: Expected %#v, got %#v", k, testcase.ExpectedIdentity, mapper.Identity)
 			}
 		}
 	}

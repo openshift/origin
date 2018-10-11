@@ -19,6 +19,8 @@ type Config struct {
 	PreferredUsernameHeaders []string
 	// EmailHeaders lists the headers to check (in order, case-insensitively) for an email address. The first header with a value wins.
 	EmailHeaders []string
+	// GroupsHeaders is the set of headers to check for groups.  All non-empty values from all headers are aggregated.
+	GroupsHeaders []string
 }
 
 type Authenticator struct {
@@ -28,31 +30,33 @@ type Authenticator struct {
 }
 
 func NewAuthenticator(providerName string, config *Config, mapper authapi.UserIdentityMapper) *Authenticator {
-	return &Authenticator{providerName, config, mapper}
+	return &Authenticator{providerName: providerName, config: config, mapper: mapper}
 }
 
 func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
-	id := headerValue(req.Header, a.config.IDHeaders)
-	if len(id) == 0 {
+	id, ok := headerValue(req.Header, a.config.IDHeaders)
+	if !ok {
 		return nil, false, nil
 	}
 
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, id)
 
-	if email := headerValue(req.Header, a.config.EmailHeaders); len(email) > 0 {
+	if email, ok := headerValue(req.Header, a.config.EmailHeaders); ok {
 		identity.Extra[authapi.IdentityEmailKey] = email
 	}
-	if name := headerValue(req.Header, a.config.NameHeaders); len(name) > 0 {
+	if name, ok := headerValue(req.Header, a.config.NameHeaders); ok {
 		identity.Extra[authapi.IdentityDisplayNameKey] = name
 	}
-	if preferredUsername := headerValue(req.Header, a.config.PreferredUsernameHeaders); len(preferredUsername) > 0 {
+	if preferredUsername, ok := headerValue(req.Header, a.config.PreferredUsernameHeaders); ok {
 		identity.Extra[authapi.IdentityPreferredUsernameKey] = preferredUsername
 	}
+
+	identity.ProviderGroups = headerValues(req.Header, a.config.GroupsHeaders)
 
 	return identitymapper.UserFor(a.mapper, identity)
 }
 
-func headerValue(h http.Header, headerNames []string) string {
+func headerValue(h http.Header, headerNames []string) (string, bool) {
 	for _, headerName := range headerNames {
 		headerName = strings.TrimSpace(headerName)
 		if len(headerName) == 0 {
@@ -60,8 +64,24 @@ func headerValue(h http.Header, headerNames []string) string {
 		}
 		headerValue := h.Get(headerName)
 		if len(headerValue) > 0 {
-			return headerValue
+			return headerValue, true
 		}
 	}
-	return ""
+	return "", false
+}
+
+func headerValues(h http.Header, headerNames []string) []string {
+	var values []string
+	for _, headerName := range headerNames {
+		headerName = strings.TrimSpace(headerName)
+		if len(headerName) == 0 {
+			continue
+		}
+		for _, headerValue := range h[http.CanonicalHeaderKey(headerName)] {
+			if len(headerValue) > 0 {
+				values = append(values, headerValue)
+			}
+		}
+	}
+	return values
 }
