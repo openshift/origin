@@ -45,7 +45,7 @@ func TestAuthenticateRequestValid(t *testing.T) {
 
 func TestAuthenticateRequestInvalid(t *testing.T) {
 	const (
-		ExpectedError = "No valid base64 data in basic auth scheme found"
+		ExpectedError = "no valid base64 data in basic auth scheme found"
 	)
 	passwordAuthenticator := &mockPasswordAuthenticator{isAuthenticated: true}
 	authRequestHandler := NewBasicAuthAuthentication("example", passwordAuthenticator, true)
@@ -124,7 +124,7 @@ func TestGetBasicAuthInfoNotBasicHeader(t *testing.T) {
 }
 func TestGetBasicAuthInfoNotBase64Encoded(t *testing.T) {
 	const (
-		ExpectedError = "No valid base64 data in basic auth scheme found"
+		ExpectedError = "no valid base64 data in basic auth scheme found"
 	)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.Header.Add("Authorization", "Basic invalid:string")
@@ -148,7 +148,7 @@ func TestGetBasicAuthInfoNotBase64Encoded(t *testing.T) {
 }
 func TestGetBasicAuthInfoNotCredentials(t *testing.T) {
 	const (
-		ExpectedError = "Invalid Authorization header"
+		ExpectedError = "invalid Authorization header"
 	)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.Header.Add("Authorization", "Basic "+ValidBase64String)
