@@ -93,23 +93,26 @@ func (c *WebConsoleOperatorComponentOptions) Install(dockerClient dockerhelper.I
 	if err != nil {
 		return err
 	}
-	operatorConfig, err := operatorClient.WebconsoleV1alpha1().OpenShiftWebConsoleConfigs().Get("instance", metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
 
-	masterPublicHostPort, err := getMasterPublicHostPort(c.InstallContext.BaseDir())
-	if err != nil {
-		return err
-	}
-	operatorConfig.Spec.WebConsoleConfig.ClusterInfo.ConsolePublicURL = "https://" + masterPublicHostPort + "/console/"
-	operatorConfig.Spec.WebConsoleConfig.ClusterInfo.MasterPublicURL, err = getMasterPublicURL(c.InstallContext.BaseDir())
-	if err != nil {
-		return err
-	}
 	// we can race a controller.  It's not a big deal if we're a little late, so retry on conflict. It's easier than a patch.
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err := operatorClient.WebconsoleV1alpha1().OpenShiftWebConsoleConfigs().Update(operatorConfig)
+	backoff := retry.DefaultBackoff
+	backoff.Steps = 6
+	err = retry.RetryOnConflict(backoff, func() error {
+		operatorConfig, err := operatorClient.WebconsoleV1alpha1().OpenShiftWebConsoleConfigs().Get("instance", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		masterPublicHostPort, err := getMasterPublicHostPort(c.InstallContext.BaseDir())
+		if err != nil {
+			return err
+		}
+		operatorConfig.Spec.WebConsoleConfig.ClusterInfo.ConsolePublicURL = "https://" + masterPublicHostPort + "/console/"
+		operatorConfig.Spec.WebConsoleConfig.ClusterInfo.MasterPublicURL, err = getMasterPublicURL(c.InstallContext.BaseDir())
+		if err != nil {
+			return err
+		}
+		_, err = operatorClient.WebconsoleV1alpha1().OpenShiftWebConsoleConfigs().Update(operatorConfig)
 		return err
 	})
 	if err != nil {
