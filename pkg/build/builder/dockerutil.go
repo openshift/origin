@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -68,25 +67,12 @@ type DockerClient interface {
 	TagImage(name string, opts docker.TagImageOptions) error
 }
 
-func RetryImageAction(client DockerClient, opts interface{}, authConfig docker.AuthConfiguration) error {
+func retryImageAction(actionName string, action func() error) error {
 	var err error
 	var retriableError = false
-	var actionName string
-
-	pullOpt := docker.PullImageOptions{}
-	pushOpt := docker.PushImageOptions{}
 
 	for retries := 0; retries <= DefaultPushOrPullRetryCount; retries++ {
-		if reflect.TypeOf(opts) == reflect.TypeOf(pullOpt) {
-			actionName = "Pull"
-			err = client.PullImage(opts.(docker.PullImageOptions), authConfig)
-		} else if reflect.TypeOf(opts) == reflect.TypeOf(pushOpt) {
-			actionName = "Push"
-			err = client.PushImage(opts.(docker.PushImageOptions), authConfig)
-		} else {
-			return errors.New("not match Pull or Push action")
-		}
-
+		err = action()
 		if err == nil {
 			return nil
 		}
@@ -131,17 +117,26 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 	ref.ID = ""
 
 	glog.V(4).Infof("pulling image %q with ref %#v as repository: %s and tag: %s", name, ref, ref.Exact(), tag)
-	opts := docker.PullImageOptions{
-		Repository:    ref.Exact(),
-		Tag:           tag,
-		OutputStream:  imageprogress.NewPullWriter(logProgress),
-		RawJSONStream: true,
-	}
-	if glog.Is(5) {
-		opts.OutputStream = os.Stderr
-		opts.RawJSONStream = false
-	}
-	return RetryImageAction(client, opts, authConfig)
+	return retryImageAction("Pull", func() (pullErr error) {
+		progressWriter := imageprogress.NewPullWriter(logProgress)
+		defer func() {
+			err := progressWriter.Close()
+			if pullErr == nil {
+				pullErr = err
+			}
+		}()
+		opts := docker.PullImageOptions{
+			Repository:    ref.Exact(),
+			Tag:           tag,
+			OutputStream:  progressWriter,
+			RawJSONStream: true,
+		}
+		if glog.Is(5) {
+			opts.OutputStream = os.Stderr
+			opts.RawJSONStream = false
+		}
+		return client.PullImage(opts, authConfig)
+	})
 }
 
 // pushImage pushes a docker image to the registry specified in its tag.
@@ -155,25 +150,35 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) (string, error) {
 	repository, tag := docker.ParseRepositoryTag(name)
 
-	var progressWriter io.Writer
-	if glog.Is(5) {
-		progressWriter = newSimpleWriter(os.Stderr)
-	} else {
-		logProgress := func(s string) {
-			glog.V(0).Infof("%s", s)
+	var digestWriter *digestWriter
+	if err := retryImageAction("Push", func() (pushErr error) {
+		var progressWriter io.Writer
+		if glog.Is(5) {
+			progressWriter = newSimpleWriter(os.Stderr)
+		} else {
+			logProgress := func(s string) {
+				glog.V(0).Infof("%s", s)
+			}
+			pw := imageprogress.NewPushWriter(logProgress)
+			defer func() {
+				err := pw.Close()
+				if pushErr == nil {
+					pushErr = err
+				}
+			}()
+			progressWriter = pw
 		}
-		progressWriter = imageprogress.NewPushWriter(logProgress)
-	}
-	digestWriter := newDigestWriter()
+		digestWriter = newDigestWriter()
 
-	opts := docker.PushImageOptions{
-		Name:          repository,
-		Tag:           tag,
-		OutputStream:  io.MultiWriter(progressWriter, digestWriter),
-		RawJSONStream: true,
-	}
+		opts := docker.PushImageOptions{
+			Name:          repository,
+			Tag:           tag,
+			OutputStream:  io.MultiWriter(progressWriter, digestWriter),
+			RawJSONStream: true,
+		}
 
-	if err := RetryImageAction(client, opts, authConfig); err != nil {
+		return client.PushImage(opts, authConfig)
+	}); err != nil {
 		return "", err
 	}
 	return digestWriter.Digest, nil
