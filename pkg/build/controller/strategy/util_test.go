@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/origin/pkg/build/util"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
@@ -237,4 +238,55 @@ func TestMountConfigsAndSecrets(t *testing.T) {
 			t.Errorf("volumemount %s was not seen", vol)
 		}
 	}
+}
+
+func TestSetupBuildCAs(t *testing.T) {
+	build := mockDockerBuild()
+	podSpec := &corev1.Pod{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "first",
+					Image: "busybox",
+				},
+				{
+					Name:  "second",
+					Image: "busybox",
+				},
+			},
+		},
+	}
+	setupBuildCAs(build, podSpec)
+	if len(podSpec.Spec.Volumes) != 1 {
+		t.Fatalf("expected pod to have 1 volume, got %d", len(podSpec.Spec.Volumes))
+	}
+	volume := podSpec.Spec.Volumes[0]
+	if volume.Name != "build-ca-bundles" {
+		t.Errorf("build volume should have name %s, got %s", "build-ca-bundles", volume.Name)
+	}
+	if volume.ConfigMap == nil {
+		t.Fatal("expected volume to use a ConfigMap volume source")
+	}
+	if len(volume.ConfigMap.Items) != 1 {
+		t.Errorf("expected volume to mount 1 ConfigMap value, got %d", len(volume.ConfigMap.Items))
+	}
+	for _, item := range volume.ConfigMap.Items {
+		if item.Key != util.BuildServiceCAKey {
+			t.Errorf("unexpected ConfigMap key mounted: %s", item.Key)
+		}
+	}
+
+	for _, c := range podSpec.Spec.Containers {
+		foundCA := false
+		for _, v := range c.VolumeMounts {
+			if v.Name == "build-ca-bundles" {
+				foundCA = true
+				break
+			}
+		}
+		if !foundCA {
+			t.Errorf("build CA bundle was not mounted into container %s", c.Name)
+		}
+	}
+
 }

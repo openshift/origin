@@ -41,6 +41,11 @@ func GetPodName(base, suffix string) string {
 	return GetName(base, suffix, kvalidation.DNS1123SubdomainMaxLength)
 }
 
+// GetConfigMapName calls GetName with the length restriction for ConfigMaps
+func GetConfigMapName(base, suffix string) string {
+	return GetName(base, suffix, kvalidation.DNS1123SubdomainMaxLength)
+}
+
 // max returns the greater of its 2 inputs
 func max(a, b int) int {
 	if b > a {

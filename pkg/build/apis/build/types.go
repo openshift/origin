@@ -91,6 +91,11 @@ const (
 	// WebHookSecretKey is the key used to identify the value containing the webhook invocation
 	// secret within a secret referenced by a webhook trigger.
 	WebHookSecretKey = "WebHookSecretKey"
+
+	// BuildTrustedCAKey is the ConfigMap key used to contain the trusted certificate authorities used by the build.
+	BuildTrustedCAKey = "build-trust-ca.crt"
+	// BuildServiceCAKey is the ConfigMap key used to contain the service signer certificate authority used by the build.
+	BuildServiceCAKey = "service-ca.crt"
 )
 
 var (
