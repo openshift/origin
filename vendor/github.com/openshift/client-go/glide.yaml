@@ -13,7 +13,8 @@ import:
 - package: k8s.io/client-go
   version: kubernetes-1.11.1
 - package: github.com/openshift/api
-  version: master
+  repo:    https://github.com/enj/api.git
+  version: enj/f/idp_groups
 - package: github.com/golang/glog
 - package: github.com/spf13/pflag
 # for gengo

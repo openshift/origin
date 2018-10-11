@@ -1,6 +1,7 @@
 package v1alpha1helpers
 
 import (
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -8,7 +9,7 @@ import (
 	operatorsv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 )
 
-func SetErrors(versionAvailability *operatorsv1alpha1.VersionAvailablity, errors ...error) {
+func SetErrors(versionAvailability *operatorsv1alpha1.VersionAvailability, errors ...error) {
 	versionAvailability.Errors = []string{}
 	for _, err := range errors {
 		versionAvailability.Errors = append(versionAvailability.Errors, err.Error())
@@ -74,4 +75,41 @@ func IsOperatorConditionPresentAndEqual(conditions []operatorsv1alpha1.OperatorC
 		}
 	}
 	return false
+}
+
+func SetStatusFromAvailability(status *operatorsv1alpha1.OperatorStatus, specGeneration int64, versionAvailability *operatorsv1alpha1.VersionAvailability) {
+	// given the VersionAvailability and the status.Version, we can compute availability
+	availableCondition := operatorsv1alpha1.OperatorCondition{
+		Type:   operatorsv1alpha1.OperatorStatusTypeAvailable,
+		Status: operatorsv1alpha1.ConditionUnknown,
+	}
+	if versionAvailability != nil && versionAvailability.ReadyReplicas > 0 {
+		availableCondition.Status = operatorsv1alpha1.ConditionTrue
+	} else {
+		availableCondition.Status = operatorsv1alpha1.ConditionFalse
+	}
+	SetOperatorCondition(&status.Conditions, availableCondition)
+
+	syncSuccessfulCondition := operatorsv1alpha1.OperatorCondition{
+		Type:   operatorsv1alpha1.OperatorStatusTypeSyncSuccessful,
+		Status: operatorsv1alpha1.ConditionTrue,
+	}
+	if versionAvailability != nil && len(versionAvailability.Errors) > 0 {
+		syncSuccessfulCondition.Status = operatorsv1alpha1.ConditionFalse
+		syncSuccessfulCondition.Message = strings.Join(versionAvailability.Errors, "\n")
+	}
+	if status.TargetAvailability != nil && len(status.TargetAvailability.Errors) > 0 {
+		syncSuccessfulCondition.Status = operatorsv1alpha1.ConditionFalse
+		if len(syncSuccessfulCondition.Message) == 0 {
+			syncSuccessfulCondition.Message = strings.Join(status.TargetAvailability.Errors, "\n")
+		} else {
+			syncSuccessfulCondition.Message = availableCondition.Message + "\n" + strings.Join(status.TargetAvailability.Errors, "\n")
+		}
+	}
+	SetOperatorCondition(&status.Conditions, syncSuccessfulCondition)
+	if syncSuccessfulCondition.Status == operatorsv1alpha1.ConditionTrue {
+		status.ObservedGeneration = specGeneration
+	}
+
+	status.CurrentAvailability = versionAvailability
 }

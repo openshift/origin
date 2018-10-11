@@ -38,6 +38,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&UserIdentityMapping{},
 		&Group{},
 		&GroupList{},
+		&IdentityMetadata{},
+		&IdentityMetadataList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

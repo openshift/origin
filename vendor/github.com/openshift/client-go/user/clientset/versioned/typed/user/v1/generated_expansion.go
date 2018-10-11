@@ -6,6 +6,8 @@ type GroupExpansion interface{}
 
 type IdentityExpansion interface{}
 
+type IdentityMetadataExpansion interface{}
+
 type UserExpansion interface{}
 
 type UserIdentityMappingExpansion interface{}

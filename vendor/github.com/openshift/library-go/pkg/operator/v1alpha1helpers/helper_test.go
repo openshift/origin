@@ -17,35 +17,35 @@ import (
 func TestSetErrors(t *testing.T) {
 	tests := []struct {
 		name     string
-		starting *operatorsv1alpha1.VersionAvailablity
+		starting *operatorsv1alpha1.VersionAvailability
 		errors   []error
-		expected *operatorsv1alpha1.VersionAvailablity
+		expected *operatorsv1alpha1.VersionAvailability
 	}{
 		{
 			name:     "simple add",
-			starting: &operatorsv1alpha1.VersionAvailablity{},
+			starting: &operatorsv1alpha1.VersionAvailability{},
 			errors:   []error{fmt.Errorf("foo"), fmt.Errorf("bar")},
-			expected: &operatorsv1alpha1.VersionAvailablity{
+			expected: &operatorsv1alpha1.VersionAvailability{
 				Errors: []string{"foo", "bar"},
 			},
 		},
 		{
 			name: "replace",
-			starting: &operatorsv1alpha1.VersionAvailablity{
+			starting: &operatorsv1alpha1.VersionAvailability{
 				Errors: []string{"bar"},
 			},
 			errors: []error{fmt.Errorf("foo")},
-			expected: &operatorsv1alpha1.VersionAvailablity{
+			expected: &operatorsv1alpha1.VersionAvailability{
 				Errors: []string{"foo"},
 			},
 		},
 		{
 			name: "clear",
-			starting: &operatorsv1alpha1.VersionAvailablity{
+			starting: &operatorsv1alpha1.VersionAvailability{
 				Errors: []string{"bar"},
 			},
 			errors:   []error{},
-			expected: &operatorsv1alpha1.VersionAvailablity{},
+			expected: &operatorsv1alpha1.VersionAvailability{},
 		},
 	}
 

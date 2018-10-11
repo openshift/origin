@@ -54,6 +54,28 @@ func (IdentityList) SwaggerDoc() map[string]string {
 	return map_IdentityList
 }
 
+var map_IdentityMetadata = map[string]string{
+	"":               "IdentityMetadata represents an instance of identity metadata associated with a single OAuth flow.",
+	"metadata":       "Standard object's metadata.",
+	"providerName":   "ProviderName is the source of identity information.",
+	"providerGroups": "ProviderGroups is the groups asserted by the provider for this OAuth flow.",
+	"expiresIn":      "ExpiresIn is the seconds from CreationTime before this identityMetadata expires.",
+}
+
+func (IdentityMetadata) SwaggerDoc() map[string]string {
+	return map_IdentityMetadata
+}
+
+var map_IdentityMetadataList = map[string]string{
+	"":         "IdentityMetadataList is a collection of IdentityMetadatas",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items is the list of identityMetadatas",
+}
+
+func (IdentityMetadataList) SwaggerDoc() map[string]string {
+	return map_IdentityMetadataList
+}
+
 var map_User = map[string]string{
 	"":           "Upon log in, every user of the system receives a User and Identity resource. Administrators may directly manipulate the attributes of the users for their own tracking, or set groups via the API. The user name is unique and is chosen based on the value provided by the identity provider - if a user already exists with the incoming name, the user name may have a number appended to it depending on the configuration of the system.",
 	"metadata":   "Standard object's metadata.",

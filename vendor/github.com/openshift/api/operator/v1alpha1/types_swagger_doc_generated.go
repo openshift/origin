@@ -98,8 +98,8 @@ func (OperatorStatus) SwaggerDoc() map[string]string {
 	return map_OperatorStatus
 }
 
-var map_VersionAvailablity = map[string]string{
-	"":                "VersionAvailablity gives information about the synchronization and operational status of a particular version of the component",
+var map_VersionAvailability = map[string]string{
+	"":                "VersionAvailability gives information about the synchronization and operational status of a particular version of the component",
 	"version":         "version is the level this availability applies to",
 	"updatedReplicas": "updatedReplicas indicates how many replicas are at the desired state",
 	"readyReplicas":   "readyReplicas indicates how many replicas are ready and at the desired state",
@@ -107,8 +107,8 @@ var map_VersionAvailablity = map[string]string{
 	"generations":     "generations allows an operator to track what the generation of \"important\" resources was the last time we updated them",
 }
 
-func (VersionAvailablity) SwaggerDoc() map[string]string {
-	return map_VersionAvailablity
+func (VersionAvailability) SwaggerDoc() map[string]string {
+	return map_VersionAvailability
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

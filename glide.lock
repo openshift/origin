@@ -1,5 +1,5 @@
-hash: ac6dbd6bab6de923e6faddb7966a8b9e7b56d07183369819b85ec31f37a4971c
-updated: 2018-10-03T16:29:15.670011885-04:00
+hash: 7f682c4abf51b8f4d6f8b8fefe658445b22272b6c5935664013a5508de44537f
+updated: 2018-10-09T16:51:14.504512405-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -817,7 +817,8 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: c9d033a0b3c3dfca1c70722720c3aea184022496
+  version: c305850cf2badd8bf4f8ac72ead6676355f5a067
+  repo: https://github.com/enj/api.git
   subpackages:
   - apps
   - apps/v1
@@ -862,7 +863,8 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 431ec9a26e5021f35fa41ee9a89842db9bfdb370
+  version: 4b37d2775c32aed53de1f551107134edf1b1058a
+  repo: https://github.com/enj/client-go.git
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -983,7 +985,7 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 80f2f78af2af54fd257580a3680cba397b79cc49
+  version: a045d08096d2578cde35812ad53cae0f4918c0ef
   subpackages:
   - pkg/assets
   - pkg/config/configdefaults
@@ -1875,7 +1877,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 852d32d3b3526363bad501101fc2e73b344b1d9a
+  version: 10e908aab32fc64c28d5a7f687527b1ea0d432cc
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2700,7 +2702,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: d55e0f90463d5b0aa4db614bb18c30af4fac7748
+  version: f863e39bf90b39dd8974f2e0c0910a465d0095ff
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1

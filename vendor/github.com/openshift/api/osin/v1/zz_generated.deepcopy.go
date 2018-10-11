@@ -419,6 +419,11 @@ func (in *OpenIDClaims) DeepCopyInto(out *OpenIDClaims) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -514,6 +519,11 @@ func (in *RequestHeaderIdentityProvider) DeepCopyInto(out *RequestHeaderIdentity
 	}
 	if in.EmailHeaders != nil {
 		in, out := &in.EmailHeaders, &out.EmailHeaders
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.GroupsHeaders != nil {
+		in, out := &in.GroupsHeaders, &out.GroupsHeaders
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

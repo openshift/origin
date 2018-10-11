@@ -133,3 +133,34 @@ type GroupList struct {
 	// Items is the list of groups
 	Items []Group `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// IdentityMetadata represents an instance of identity metadata associated with a single OAuth flow.
+type IdentityMetadata struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// ProviderName is the source of identity information.
+	ProviderName string `json:"providerName" protobuf:"bytes,2,opt,name=providerName"`
+
+	// ProviderGroups is the groups asserted by the provider for this OAuth flow.
+	ProviderGroups []string `json:"providerGroups" protobuf:"bytes,3,opt,name=providerGroups"`
+
+	// ExpiresIn is the seconds from CreationTime before this identityMetadata expires.
+	ExpiresIn int64 `json:"expiresIn,omitempty" protobuf:"varint,4,opt,name=expiresIn"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// IdentityMetadataList is a collection of IdentityMetadatas
+type IdentityMetadataList struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// Items is the list of identityMetadatas
+	Items []IdentityMetadata `json:"items" protobuf:"bytes,2,rep,name=items"`
+}

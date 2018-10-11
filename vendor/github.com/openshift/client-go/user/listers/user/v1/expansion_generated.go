@@ -10,6 +10,10 @@ type GroupListerExpansion interface{}
 // IdentityLister.
 type IdentityListerExpansion interface{}
 
+// IdentityMetadataListerExpansion allows custom methods to be added to
+// IdentityMetadataLister.
+type IdentityMetadataListerExpansion interface{}
+
 // UserListerExpansion allows custom methods to be added to
 // UserLister.
 type UserListerExpansion interface{}

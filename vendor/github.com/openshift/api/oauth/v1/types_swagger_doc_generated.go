@@ -34,6 +34,8 @@ var map_OAuthAccessToken = map[string]string{
 	"authorizeToken":           "AuthorizeToken contains the token that authorized this token",
 	"refreshToken":             "RefreshToken is the value by which this token can be renewed. Can be blank.",
 	"inactivityTimeoutSeconds": "InactivityTimeoutSeconds is the value in seconds, from the CreationTimestamp, after which this token can no longer be used. The value is automatically incremented when the token is used.",
+	"providerName":             "ProviderName is the source of identity information.",
+	"providerGroups":           "ProviderGroups is the groups asserted by the provider for this token.",
 }
 
 func (OAuthAccessToken) SwaggerDoc() map[string]string {
@@ -62,6 +64,8 @@ var map_OAuthAuthorizeToken = map[string]string{
 	"userUID":             "UserUID is the unique UID associated with this token. UserUID and UserName must both match for this token to be valid.",
 	"codeChallenge":       "CodeChallenge is the optional code_challenge associated with this authorization code, as described in rfc7636",
 	"codeChallengeMethod": "CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636",
+	"providerName":        "ProviderName is the source of identity information.",
+	"providerGroups":      "ProviderGroups is the groups asserted by the provider for this token.",
 }
 
 func (OAuthAuthorizeToken) SwaggerDoc() map[string]string {

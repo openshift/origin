@@ -20,6 +20,10 @@ func (c *FakeUserV1) Identities() v1.IdentityInterface {
 	return &FakeIdentities{c}
 }
 
+func (c *FakeUserV1) IdentityMetadatas() v1.IdentityMetadataInterface {
+	return &FakeIdentityMetadatas{c}
+}
+
 func (c *FakeUserV1) Users() v1.UserInterface {
 	return &FakeUsers{c}
 }

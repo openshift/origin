@@ -63,8 +63,8 @@ type OperatorCondition struct {
 	Message            string          `json:"message,omitempty"`
 }
 
-// VersionAvailablity gives information about the synchronization and operational status of a particular version of the component
-type VersionAvailablity struct {
+// VersionAvailability gives information about the synchronization and operational status of a particular version of the component
+type VersionAvailability struct {
 	// version is the level this availability applies to
 	Version string `json:"version"`
 	// updatedReplicas indicates how many replicas are at the desired state
@@ -107,9 +107,9 @@ type OperatorStatus struct {
 	TaskSummary string `json:"taskSummary,omitempty"`
 
 	// currentVersionAvailability is availability information for the current version.  If it is unmanged or removed, this doesn't exist.
-	CurrentAvailability *VersionAvailablity `json:"currentVersionAvailability,omitempty"`
+	CurrentAvailability *VersionAvailability `json:"currentVersionAvailability,omitempty"`
 	// targetVersionAvailability is availability information for the target version if we are migrating
-	TargetAvailability *VersionAvailablity `json:"targetVersionAvailability,omitempty"`
+	TargetAvailability *VersionAvailability `json:"targetVersionAvailability,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

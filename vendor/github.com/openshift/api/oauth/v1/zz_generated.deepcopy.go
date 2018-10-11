@@ -44,6 +44,11 @@ func (in *OAuthAccessToken) DeepCopyInto(out *OAuthAccessToken) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.ProviderGroups != nil {
+		in, out := &in.ProviderGroups, &out.ProviderGroups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -105,6 +110,11 @@ func (in *OAuthAuthorizeToken) DeepCopyInto(out *OAuthAuthorizeToken) {
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	if in.Scopes != nil {
 		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ProviderGroups != nil {
+		in, out := &in.ProviderGroups, &out.ProviderGroups
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

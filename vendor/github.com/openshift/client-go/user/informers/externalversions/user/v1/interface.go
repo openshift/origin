@@ -12,6 +12,8 @@ type Interface interface {
 	Groups() GroupInformer
 	// Identities returns a IdentityInformer.
 	Identities() IdentityInformer
+	// IdentityMetadatas returns a IdentityMetadataInformer.
+	IdentityMetadatas() IdentityMetadataInformer
 	// Users returns a UserInformer.
 	Users() UserInformer
 }
@@ -35,6 +37,11 @@ func (v *version) Groups() GroupInformer {
 // Identities returns a IdentityInformer.
 func (v *version) Identities() IdentityInformer {
 	return &identityInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// IdentityMetadatas returns a IdentityMetadataInformer.
+func (v *version) IdentityMetadatas() IdentityMetadataInformer {
+	return &identityMetadataInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Users returns a UserInformer.

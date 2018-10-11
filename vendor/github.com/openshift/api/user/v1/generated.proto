@@ -63,6 +63,30 @@ message IdentityList {
   repeated Identity items = 2;
 }
 
+// IdentityMetadata represents an instance of identity metadata associated with a single OAuth flow.
+message IdentityMetadata {
+  // Standard object's metadata.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+
+  // ProviderName is the source of identity information.
+  optional string providerName = 2;
+
+  // ProviderGroups is the groups asserted by the provider for this OAuth flow.
+  repeated string providerGroups = 3;
+
+  // ExpiresIn is the seconds from CreationTime before this identityMetadata expires.
+  optional int64 expiresIn = 4;
+}
+
+// IdentityMetadataList is a collection of IdentityMetadatas
+message IdentityMetadataList {
+  // Standard object's metadata.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
+
+  // Items is the list of identityMetadatas
+  repeated IdentityMetadata items = 2;
+}
+
 // OptionalNames is an array that may also be left nil to distinguish between set and unset.
 // +protobuf.nullable=true
 // +protobuf.options.(gogoproto.goproto_stringer)=false

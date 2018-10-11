@@ -13,6 +13,7 @@ type UserV1Interface interface {
 	RESTClient() rest.Interface
 	GroupsGetter
 	IdentitiesGetter
+	IdentityMetadatasGetter
 	UsersGetter
 	UserIdentityMappingsGetter
 }
@@ -28,6 +29,10 @@ func (c *UserV1Client) Groups() GroupInterface {
 
 func (c *UserV1Client) Identities() IdentityInterface {
 	return newIdentities(c)
+}
+
+func (c *UserV1Client) IdentityMetadatas() IdentityMetadataInterface {
+	return newIdentityMetadatas(c)
 }
 
 func (c *UserV1Client) Users() UserInterface {
