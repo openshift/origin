@@ -38,9 +38,11 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: master
+  repo:    https://github.com/enj/api.git
+  version: enj/f/idp_groups
 - package: github.com/openshift/client-go
-  version: master
+  repo:    https://github.com/enj/client-go.git
+  version: enj/f/idp_groups
 - package: github.com/openshift/imagebuilder
   version: master
 - package: github.com/openshift/library-go
