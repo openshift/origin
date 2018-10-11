@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
@@ -71,6 +72,10 @@ func ValidateIdentityProviderName(name string) []string {
 func ValidateIdentityProviderUserName(name string) []string {
 	// Any provider user name must be a valid user name
 	return ValidateUserName(name, false)
+}
+
+func ValidateIdentityMetadataName(name string, _ bool) []string {
+	return path.ValidatePathSegmentName(name, false)
 }
 
 func ValidateGroup(group *userapi.Group) field.ErrorList {
@@ -197,4 +202,32 @@ func ValidateUserIdentityMappingUpdate(mapping *userapi.UserIdentityMapping, old
 	allErrs := kvalidation.ValidateObjectMetaUpdate(&mapping.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateUserIdentityMapping(mapping)...)
 	return allErrs
+}
+
+func ValidateIdentityMetadata(metadata *userapi.IdentityMetadata) field.ErrorList {
+	allErrs := kvalidation.ValidateObjectMeta(&metadata.ObjectMeta, false, ValidateIdentityMetadataName, field.NewPath("metadata"))
+
+	providerNamePath := field.NewPath("providerName")
+	if len(metadata.ProviderName) == 0 {
+		allErrs = append(allErrs, field.Required(providerNamePath, ""))
+	} else if reasons := ValidateIdentityProviderName(metadata.ProviderName); len(reasons) != 0 {
+		allErrs = append(allErrs, field.Invalid(providerNamePath, metadata.ProviderName, strings.Join(reasons, ", ")))
+	}
+
+	if len(metadata.ProviderGroups) == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("providerGroups"), ""))
+	}
+
+	if metadata.ExpiresIn <= 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("expiresIn"), metadata.ExpiresIn, "must be greater than zero"))
+	}
+
+	return allErrs
+}
+
+func ValidateIdentityMetadataUpdate(obj *userapi.IdentityMetadata, old *userapi.IdentityMetadata) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	copied := *old
+	copied.ObjectMeta = obj.ObjectMeta // other than valid object meta updates, this object is immutable
+	return append(allErrs, validation.ValidateImmutableField(obj, &copied, field.NewPath(""))...)
 }

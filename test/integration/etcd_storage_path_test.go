@@ -384,6 +384,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		stub:             `{"metadata": {"name": "github:user2g"}, "providerName": "github", "providerUserName": "user2g"}`,
 		expectedEtcdPath: "openshift.io/useridentities/github:user2g",
 	},
+	gvr("user.openshift.io", "v1", "identitymetadatas"): {
+		stub:             `{"metadata": {"name": "idmd1"}, "providerName": "pandalabs", "providerGroups": ["forest"], "expiresIn": 86400}`,
+		expectedEtcdPath: "openshift.io/identitymetadatas/idmd1",
+	},
 	// --
 
 	// k8s.io/api/core/v1

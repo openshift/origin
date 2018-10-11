@@ -13,6 +13,7 @@ import (
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	groupetcd "github.com/openshift/origin/pkg/user/apiserver/registry/group/etcd"
 	identityetcd "github.com/openshift/origin/pkg/user/apiserver/registry/identity/etcd"
+	identitymetadataetcd "github.com/openshift/origin/pkg/user/apiserver/registry/identitymetadata/etcd"
 	useretcd "github.com/openshift/origin/pkg/user/apiserver/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/apiserver/registry/useridentitymapping"
 )
@@ -102,6 +103,10 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
+	identityMetadataStorage, err := identitymetadataetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
+	if err != nil {
+		return nil, err
+	}
 	userIdentityMappingStorage := useridentitymapping.NewREST(userClient.User().Users(), userClient.User().Identities())
 	groupStorage, err := groupetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
@@ -112,6 +117,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["users"] = userStorage
 	v1Storage["groups"] = groupStorage
 	v1Storage["identities"] = identityStorage
+	v1Storage["identityMetadatas"] = identityMetadataStorage
 	v1Storage["userIdentityMappings"] = userIdentityMappingStorage
 	return v1Storage, nil
 }

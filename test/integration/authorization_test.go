@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/api/build"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
+	"github.com/openshift/api/user"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
@@ -141,6 +142,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 		oauth.Resource("oauthauthorizetokens"):  true,
 		oauth.Resource("oauthaccesstokens"):     true,
 		oauth.Resource("oauthclients"):          true,
+		user.Resource("identitymetadatas"):      true,
 		image.Resource("imagestreams/secrets"):  true,
 		kapi.Resource("secrets"):                true,
 		kapi.Resource("pods/exec"):              true,

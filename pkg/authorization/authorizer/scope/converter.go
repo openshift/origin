@@ -18,6 +18,7 @@ import (
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
+	"github.com/openshift/api/user"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -272,6 +273,8 @@ var escalatingScopeResources = []schema.GroupResource{
 
 	{Group: oauthapi.GroupName, Resource: "oauthaccesstokens"},
 	{Group: legacy.GroupName, Resource: "oauthaccesstokens"},
+
+	{Group: user.GroupName, Resource: "identitymetadatas"},
 
 	{Group: authorizationapi.GroupName, Resource: "roles"},
 	{Group: legacy.GroupName, Resource: "roles"},
