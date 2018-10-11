@@ -60,6 +60,7 @@ import (
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	aggregatorscheme "k8s.io/kube-aggregator/pkg/apiserver/scheme"
@@ -456,6 +457,18 @@ func BuildGenericConfig(
 	}
 	if lastErr = s.Etcd.ApplyWithStorageFactoryTo(storageFactory, genericConfig); lastErr != nil {
 		return
+	}
+
+	if _, ok := os.LookupEnv("MOHERE"); ok {
+		data, err := ioutil.ReadFile("/tmp/h10/openshift.local.config/master/openshift-master.kubeconfig")
+		if err != nil {
+			panic(err)
+		}
+		overrideConfig, err := clientcmd.RESTConfigFromKubeConfig(data)
+		if err != nil {
+			panic(err)
+		}
+		genericConfig.LoopbackClientConfig = overrideConfig
 	}
 
 	// Use protobufs for self-communication.

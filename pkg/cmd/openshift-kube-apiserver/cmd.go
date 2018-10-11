@@ -133,6 +133,9 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer() error {
 				return err
 			}
 			config.OAuthConfig.IdentityProviders[i].Provider.Object = idpObject
+
+			glog.Error(string(idp.Provider.Raw))
+			glog.Errorf("%#v", config.OAuthConfig.IdentityProviders[i].Provider.Object)
 		}
 
 		return RunOpenShiftKubeAPIServerServer(config)
