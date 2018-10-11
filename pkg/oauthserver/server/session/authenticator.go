@@ -2,10 +2,7 @@ package session
 
 import (
 	"net/http"
-	"strconv"
 	"time"
-
-	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 )
@@ -16,9 +13,6 @@ const (
 
 	// expKey is stored as an int64 unix time
 	expKey = "exp"
-	// expiresKey is the string representation of expKey
-	// TODO drop in a release when mixed masters are no longer an issue
-	expiresKey = "expires"
 )
 
 type Authenticator struct {
@@ -37,22 +31,8 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	values := a.store.Get(req)
 
 	expires, ok := values.GetInt64(expKey)
-
-	// TODO drop this logic in a release when mixed masters are no longer an issue
 	if !ok {
-		// TODO replace with (in a release when mixed masters are no longer an issue):
-		// return nil, false, nil
-
-		expiresString, ok := values.GetString(expiresKey)
-		if !ok {
-			return nil, false, nil
-		}
-		expiresParse, err := strconv.ParseInt(expiresString, 10, 64)
-		if err != nil {
-			glog.Errorf("error parsing expires timestamp: %v", err)
-			return nil, false, nil
-		}
-		expires = expiresParse
+		return nil, false, nil
 	}
 
 	if expires < time.Now().Unix() {
@@ -91,13 +71,6 @@ func (a *Authenticator) put(w http.ResponseWriter, name, uid string, expires int
 	values[userUIDKey] = uid
 
 	values[expKey] = expires
-
-	// TODO drop this logic in a release when mixed masters are no longer an issue
-	if expires == 0 {
-		values[expiresKey] = ""
-	} else {
-		values[expiresKey] = strconv.FormatInt(expires, 10)
-	}
 
 	return a.store.Put(w, values)
 }
