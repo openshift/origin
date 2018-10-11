@@ -38,6 +38,9 @@ const (
 	// The user's full name
 	// Used as the FullName field of the user object (stored in Identity.Extra, see IdentityDisplayNameKey)
 	gitlabDisplayNameClaim = "name"
+	// Names of the groups the user is a member of
+	// Stored in the OAuth tokens' ProviderGroups field on a per-authentication basis (see UserIdentityMetadata)
+	gitlabGroupsClaim = "groups"
 )
 
 func NewOIDCProvider(providerName, URL, clientID, clientSecret string, transport http.RoundTripper) (external.Provider, error) {
@@ -61,6 +64,7 @@ func NewOIDCProvider(providerName, URL, clientID, clientSecret string, transport
 		PreferredUsernameClaims: []string{gitlabPreferredUsernameClaim},
 		EmailClaims:             []string{gitlabEmailClaim},
 		NameClaims:              []string{gitlabDisplayNameClaim},
+		GroupsClaims:            []string{gitlabGroupsClaim},
 
 		// make sure that gitlabIDClaim is a valid uint64, see above comment about GitLab 11.1.0
 		IDTokenValidator: func(idTokenClaims map[string]interface{}) error {
