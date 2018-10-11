@@ -2,7 +2,7 @@
 
 # A set of helpers for starting/running etcd for tests
 
-ETCD_VERSION=${ETCD_VERSION:-3.2.24}
+ETCD_VERSION=${ETCD_VERSION:-3.2.16}
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-2379}
 export KUBE_INTEGRATION_ETCD_URL="https://${ETCD_HOST}:${ETCD_PORT}"
@@ -64,9 +64,8 @@ kube::etcd::start() {
   etcd --advertise-client-urls ${KUBE_INTEGRATION_ETCD_URL} --cert-file=${ETCD_DIR}/serving-etcd-server.crt --key-file=${ETCD_DIR}/serving-etcd-server.key --data-dir ${ETCD_DIR}/data --listen-client-urls ${KUBE_INTEGRATION_ETCD_URL} --debug 2> "${ETCD_LOGFILE}" >/dev/null &
   ETCD_PID=$!
 
-#  echo "Waiting for etcd to come up."
-#  kube::util::wait_for_url "${KUBE_INTEGRATION_ETCD_URL}/v2/machines" "etcd: " 0.25 80
-#  curl -fs -X PUT "${KUBE_INTEGRATION_ETCD_URL}/v2/keys/_test"
+  echo "Waiting for etcd to come up."
+  kube::util::wait_for_url "${KUBE_INTEGRATION_ETCD_URL}/version" "etcdserver" 0.25 80
 }
 
 kube::etcd::stop() {
