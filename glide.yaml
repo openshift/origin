@@ -42,7 +42,7 @@ import:
 - package: github.com/openshift/client-go
   version: release-3.10
 - package: github.com/openshift/imagebuilder
-  version: bfc0aea02ce95dcfc1a83d452270dbc66933709b
+  version: master
 - package: github.com/openshift/library-go
   version: release-3.10
 # master already branched for 3.11
