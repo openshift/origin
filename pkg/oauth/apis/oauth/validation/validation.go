@@ -73,6 +73,7 @@ func ValidateAccessToken(accessToken *oauthapi.OAuthAccessToken) field.ErrorList
 	allErrs = append(allErrs, ValidateClientNameField(accessToken.ClientName, field.NewPath("clientName"))...)
 	allErrs = append(allErrs, ValidateUserNameField(accessToken.UserName, field.NewPath("userName"))...)
 	allErrs = append(allErrs, ValidateScopes(accessToken.Scopes, field.NewPath("scopes"))...)
+	allErrs = append(allErrs, ValidateProviderNameAndGroups(accessToken.ProviderName, accessToken.ProviderGroups, field.NewPath(""))...)
 
 	if len(accessToken.UserUID) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("userUID"), ""))
@@ -88,6 +89,22 @@ func ValidateAccessToken(accessToken *oauthapi.OAuthAccessToken) field.ErrorList
 
 	if accessToken.ExpiresIn < 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("expiresIn"), accessToken.ExpiresIn, "cannot be a negative value"))
+	}
+
+	return allErrs
+}
+
+func ValidateProviderNameAndGroups(providerName string, providerGroups []string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(providerName) > 0 {
+		if reasons := uservalidation.ValidateIdentityProviderName(providerName); len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("providerName"), providerName, strings.Join(reasons, ", ")))
+		}
+	}
+
+	if (len(providerName) == 0) != (len(providerGroups) == 0) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("providerGroups"), providerGroups, "providerName and providerGroups must be specified together"))
 	}
 
 	return allErrs
@@ -128,6 +145,7 @@ func ValidateAuthorizeToken(authorizeToken *oauthapi.OAuthAuthorizeToken) field.
 	allErrs = append(allErrs, ValidateClientNameField(authorizeToken.ClientName, field.NewPath("clientName"))...)
 	allErrs = append(allErrs, ValidateUserNameField(authorizeToken.UserName, field.NewPath("userName"))...)
 	allErrs = append(allErrs, ValidateScopes(authorizeToken.Scopes, field.NewPath("scopes"))...)
+	allErrs = append(allErrs, ValidateProviderNameAndGroups(authorizeToken.ProviderName, authorizeToken.ProviderGroups, field.NewPath(""))...)
 
 	if len(authorizeToken.UserUID) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("userUID"), ""))
