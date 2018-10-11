@@ -24,6 +24,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -96,6 +97,8 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.BoolVar(&o.AllowMissingImages, "allow-missing-images", o.AllowMissingImages, "Ignore errors when an operator references a release image that is not included.")
 	flags.BoolVar(&o.SkipManifestCheck, "skip-manifest-check", o.SkipManifestCheck, "Ignore errors when an operator includes a yaml/yml/json file that is not parseable.")
 
+	flags.StringSliceVar(&o.Exclude, "exclude", o.Exclude, "A list of image names or tags to exclude. It is applied after all inputs. Comma separated or individual arguments.")
+
 	// destination
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Skips changes to external registries via mirroring or pushing images.")
 	flags.StringVar(&o.Mirror, "mirror", o.Mirror, "Mirror the contents of the release to this repository.")
@@ -120,6 +123,8 @@ type NewOptions struct {
 
 	FromImageStream string
 	Namespace       string
+
+	Exclude []string
 
 	DryRun bool
 
@@ -217,6 +222,11 @@ func (o *NewOptions) Run() error {
 		}
 	}
 
+	exclude := sets.NewString()
+	for _, s := range o.Exclude {
+		exclude.Insert(s)
+	}
+
 	metadata := make(map[string]imageData)
 	var ordered []string
 	var payload *Payload
@@ -304,6 +314,10 @@ func (o *NewOptions) Run() error {
 		switch {
 		case len(inputIS.Status.PublicDockerImageRepository) > 0:
 			for _, tag := range inputIS.Status.Tags {
+				if exclude.Has(tag.Tag) {
+					glog.V(2).Infof("Excluded status tag %s", tag.Tag)
+					continue
+				}
 				if len(tag.Items) == 0 {
 					continue
 				}
@@ -336,6 +350,10 @@ func (o *NewOptions) Run() error {
 		for _, f := range files {
 			if f.IsDir() {
 				name := f.Name()
+				if exclude.Has(name) {
+					glog.V(2).Infof("Excluded directory %#v", f)
+					continue
+				}
 				metadata[name] = imageData{Directory: filepath.Join(o.FromDirectory, f.Name())}
 				ordered = append(ordered, name)
 			}
@@ -359,6 +377,10 @@ func (o *NewOptions) Run() error {
 
 	default:
 		for _, m := range o.Mappings {
+			if exclude.Has(m.Source) {
+				glog.V(2).Infof("Excluded mapping %s", m.Source)
+				continue
+			}
 			ordered = append(ordered, m.Source)
 		}
 	}
@@ -384,6 +406,10 @@ func (o *NewOptions) Run() error {
 
 	// update any custom mappings and then sort the spec tags
 	for _, m := range o.Mappings {
+		if exclude.Has(m.Source) {
+			glog.V(2).Infof("Excluded mapping %s", m.Source)
+			continue
+		}
 		tag := hasTag(is.Spec.Tags, m.Source)
 		if tag == nil {
 			is.Spec.Tags = append(is.Spec.Tags, imageapi.TagReference{
