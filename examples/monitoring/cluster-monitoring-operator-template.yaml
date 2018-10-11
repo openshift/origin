@@ -1,0 +1,244 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: openshift-cluster-monitoring-operator
+  annotations:
+    openshift.io/display-name: OpenShift Cluster Monitoring Operator
+    description: The OpenShift Cluster Monitoring Operator manages the deployment of the OpenShift monitoring platform.
+    iconClass: icon-openshift
+    tags: openshift,infra,monitoring
+    openshift.io/documentation-url: https://github.com/openshift/cluster-monitoring-operator
+    openshift.io/support-url: https://access.redhat.com
+openshift.io/provider-display-name: Red Hat, Inc.
+parameters:
+- name: NAMESPACE
+  required: true
+  value: openshift-monitoring
+- name: CLUSTER_MONITORING_OPERATOR_IMAGE
+  required: true
+  value: quay.io/coreos/cluster-monitoring-operator:v0.1.1
+- name: PROMETHEUS_OPERATOR_IMAGE
+  required: true
+  value: quay.io/coreos/prometheus-operator
+- name: PROMETHEUS_IMAGE
+  required: true
+  value: openshift/prometheus
+- name: ALERTMANAGER_IMAGE
+  required: true
+  value: openshift/prometheus-alertmanager
+- name: NODE_EXPORTER_IMAGE
+  required: true
+  value: openshift/prometheus-node-exporter
+- name: PROMETHEUS_CONFIG_RELOADER_IMAGE
+  required: true
+  value: quay.io/coreos/prometheus-config-reloader
+- name: CONFIGMAP_RELOADER_IMAGE
+  required: true
+  value: quay.io/coreos/configmap-reload
+- name: GRAFANA_IMAGE
+  required: true
+  value: grafana/grafana
+- name: KUBE_STATE_METRICS_IMAGE
+  required: true
+  value: quay.io/coreos/kube-state-metrics
+- name: KUBE_RBAC_PROXY_IMAGE
+  required: true
+  value: quay.io/coreos/kube-rbac-proxy
+- name: OAUTH_PROXY_IMAGE
+  required: true
+  value: quay.io/coreos/configmap-reload
+#- name: ALERTMANAGER_CONFIG
+#  required: true
+#  description: A complete (base64-encoded) Alertmanager configuration YAML file.
+
+objects:
+# Cluster role with necessary permissions to monitor the cluster
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata: {name: cluster-monitoring-operator}
+  rules:
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterrolebindings, clusterroles, rolebindings, roles]
+    verbs: [create, delete, get, list, update, watch]
+  - apiGroups: ['']
+    resources: [configmaps, serviceaccounts]
+    verbs: [create, delete, get, list, update, watch]
+  - apiGroups: [apps]
+    resources: [daemonsets, deployments]
+    verbs: [create, delete, get, list, update, watch]
+  - apiGroups: [route.openshift.io]
+    resources: [routes]
+    verbs: [create, delete, get, list, update, watch]
+  - apiGroups: [security.openshift.io]
+    resources: [securitycontextconstraints]
+    verbs: [create, delete, get, list, update, watch]
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+  - apiGroups: [authorization.k8s.io]
+    resources: [subjectaccessreviews]
+    verbs: [create]
+  - apiGroups: [apps]
+    resources: [daemonsets, deployments, replicasets, statefulsets]
+    verbs: [list, watch]
+  - apiGroups: [extensions]
+    resources: [daemonsets, deployments, replicasets]
+    verbs: [list, watch]
+  - apiGroups: [autoscaling]
+    resources: [horizontalpodautoscalers]
+    verbs: [list, watch]
+  - apiGroups: [batch]
+    resources: [cronjobs, jobs]
+    verbs: [list, watch]
+  - apiGroups: ['']
+    resources: [configmaps, endpoints, limitranges, namespaces, nodes, persistentvolumeclaims,
+      persistentvolumes, pods, replicationcontrollers, resourcequotas, secrets, services]
+    verbs: [list, watch]
+  - apiGroups: ['']
+    resources: [pods]
+    verbs: [get]
+  - apiGroups: [apps]
+    resourceNames: [kube-state-metrics]
+    resources: [deployments]
+    verbs: [get, update]
+  - apiGroups: [extensions]
+    resourceNames: [kube-state-metrics]
+    resources: [deployments]
+    verbs: [get, update]
+  - apiGroups: ['']
+    resources: [namespaces]
+    verbs: [get]
+  - apiGroups: ['']
+    resources: [nodes/metrics]
+    verbs: [get]
+  - nonResourceURLs: [/metrics]
+    verbs: [get]
+  - apiGroups: ['']
+    resources: [configmaps]
+    verbs: [get]
+  - apiGroups: ['']
+    resources: [endpoints, nodes, pods, services]
+    verbs: [get, list, watch]
+  - apiGroups: ['']
+    resources: [namespaces]
+    verbs: [list, watch]
+  - apiGroups: ['']
+    resources: [nodes]
+    verbs: [list, watch]
+  - apiGroups: [monitoring.coreos.com]
+    resources: [alertmanagers, alertmanagers/finalizers, prometheuses, prometheuses/finalizers,
+      prometheusrules, servicemonitors]
+    verbs: ['*']
+  - apiGroups: ['']
+    resources: [configmaps, secrets]
+    verbs: ['*']
+  - apiGroups: [apps]
+    resources: [statefulsets]
+    verbs: ['*']
+  - apiGroups: ['']
+    resources: [endpoints, services]
+    verbs: [create, get, update]
+  - apiGroups: ['']
+    resources: [pods]
+    verbs: [delete, list]
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: ['*']
+# Service account to be used for running the cluster monitoring operator
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: cluster-monitoring-operator
+    namespace: ${NAMESPACE}
+# Binding between the service account and the cluster role
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: cluster-monitoring-operator
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-monitoring-operator
+  subjects:
+  - kind: ServiceAccount
+    name: cluster-monitoring-operator
+    namespace: ${NAMESPACE}
+
+# Configures Alertmanager.
+#- apiVersion: v1
+#  kind: Secret
+#  metadata:
+#    name: alertmanager-main
+#    namespace: ${NAMESPACE}
+#    labels:
+#      k8s-app: alertmanager
+#  data:
+#    alertmanager.yaml: "${ALERTMANAGER_CONFIG}"
+
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    name: cluster-monitoring-operator
+    namespace: ${NAMESPACE}
+    labels:
+      app: cluster-monitoring-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: cluster-monitoring-operator
+    template:
+      metadata:
+        labels:
+          app: cluster-monitoring-operator
+      spec:
+        serviceAccountName: cluster-monitoring-operator
+        containers:
+        - image: "${CLUSTER_MONITORING_OPERATOR_IMAGE}"
+          name: cluster-monitoring-operator
+          args:
+          - "-namespace=${NAMESPACE}"
+          - "-configmap=cluster-monitoring-config"
+          - "-logtostderr=true"
+          - "-v=4"
+          ports:
+          - containerPort: 8080
+            name: http
+          resources:
+            limits:
+              cpu: 20m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+  memory: 50Mi
+
+# ConfigMap containing cluster monitoring operator config
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: cluster-monitoring-config
+    namespace: ${NAMESPACE}
+  data:
+    config.yaml: |+
+      prometheusOperator:
+        baseImage: ${PROMETHEUS_OPERATOR_IMAGE}
+        prometheusConfigReloaderBaseImage: ${PROMETHEUS_CONFIG_RELOADER_IMAGE}
+        configReloaderBaseImage: ${CONFIGMAP_RELOADER_IMAGE}
+      prometheusK8s:
+        baseImage: ${PROMETHEUS_IMAGE}
+        externalLabels:
+          cluster: {{ openshift_cluster_monitoring_operator_cluster_id }}
+      alertmanagerMain:
+        baseImage: ${ALERTMANAGER_IMAGE}
+      nodeExporter:
+        baseImage: ${NODE_EXPORTER_IMAGE}
+      grafana:
+        baseImage: ${GRAFANA_IMAGE}
+      kubeStateMetrics:
+        baseImage: ${KUBE_STATE_METRICS_IMAGE}
+      kubeRbacProxy:
+        baseImage: ${KUBE_RBAC_PROXY_IMAGE}
+      auth:
+        baseImage: ${OAUTH_PROXY_IMAGE}
+...

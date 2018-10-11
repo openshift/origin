@@ -1,61 +1,22 @@
-# Prometheus for OpenShift
+# Monitoring for OpenShift
 
-This directory contains example components for running either an operational Prometheus setup for your OpenShift cluster, or deploying a standalone secured Prometheus instance for configurating yourself.
+This directory contains example config for running the openshift monitoring stack.  This includes cluster-monitoring-operator, grafana, prometheus-operator, prometheus, and alertmanager.
 
-## Prometheus for Operations
+## Prerequisites
 
-The `prometheus.yaml` template creates a Prometheus instance preconfigured to gather OpenShift and Kubernetes platform and node metrics and report them to admins. It is protected by an OAuth proxy that only allows access for users who have view access to the `kube-system` namespace.
+To run the example, you'll need to have admin access to a running openshift cluster.
+If you don't have a cluster available, you can use use `oc cluster up`.  When using a local cluster started with `oc cluster up`, the public-hostname must be set to a valid external ip address instead of the loopback address. For example,`oc cluster up --public-hostname=192.168.1.11`.  This is due to an issue in the oauth proxy container: https://github.com/openshift/oauth-proxy/issues/76 
 
-To deploy, run:
+## Running the example
 
-```
-$ oc new-app -f prometheus.yaml
-```
-
-You may customize where the images (built from `openshift/prometheus` and `openshift/oauth-proxy`) are pulled from via template parameters.
-
-The optional `node-exporter` component may be installed as a daemon set to gather host level metrics. It requires additional
-privileges to view the host and should only be run in administrator controlled namespaces.
-
-To deploy, run:
+The following commands can be used to deploy the example monitoring stack.
 
 ```
-$ oc create -f node-exporter.yaml -n kube-system
-$ oc adm policy add-scc-to-user -z prometheus-node-exporter -n kube-system hostaccess
-$ oc annotate ns kube-system openshift.io/node-selector= --overwrite
+$ oc adm new-project openshift-monitoring
+$ oc new-app -f cluster-monitoring-operator-template.yaml
 ```
 
-## Standalone Prometheus
-
-The `prometheus-standalone.yaml` template creates a Prometheus instance without any configuration, intended for use when you have your own configuration. It expects two secrets to be created ahead of time:
-
-* `prom` which should contain:
-  * `prometheus.yml`: The Prometheus configuration
-  * `*.rules`: Will be treated as recording or alerting rules
-  * Any additional files referenced by `prometheus.yml`
-* `prom-alerts` which should contain:
-  * `alertmanager.yml`: The Alert Manager configuration
-  * Any additional files referenced by `alertmanager.yml`
-
-The example uses secrets instead of config maps in case either config file needs to reference a secret.
-
-Example creation steps:
-
-```
-# Create the prom secret
-$ oc create secret generic prom --from-file=../prometheus.yml
-
-# Create the prom-alerts secret
-$ oc create secret generic prom-alerts --from-file=../alertmanager.yml
-
-# Create the prometheus instance
-$ oc process -f prometheus-standalone.yaml | oc apply -f -
-```
-
-You can find the Prometheus route by invoking `oc get routes` and then browsing in your web console. Users who are granted `view` access on the namespace will have access to login to Prometheus.
-
-
-## Useful metrics queries
+## Useful Prometheus metrics queries
 
 ### Related to how much data is being gathered by Prometheus
 
