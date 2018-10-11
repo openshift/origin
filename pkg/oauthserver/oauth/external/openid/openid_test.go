@@ -82,7 +82,7 @@ func TestDecodeJWT(t *testing.T) {
 		},
 	}
 	for i, tc := range testcases {
-		data, err := decodeJWT(tc.JWT)
+		data, err := (&provider{}).decodeJWT(tc.JWT, false)
 		if tc.ExpectErr != (err != nil) {
 			t.Errorf("%d: expected error %v, got %v", i, tc.ExpectErr, err)
 			continue

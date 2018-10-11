@@ -22,6 +22,10 @@ import (
 const (
 	// Standard claims (http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims)
 	subjectClaim = "sub"
+
+	// The claim containing a map of endpoint references per claim.
+	// OIDC Connect Core 1.0, section 5.6.2.
+	claimNamesKey = "_claim_names"
 )
 
 type TokenValidator func(map[string]interface{}) error
@@ -50,6 +54,7 @@ type Config struct {
 type provider struct {
 	providerName string
 	transport    http.RoundTripper
+	allClaims    sets.String
 	Config
 }
 
@@ -103,11 +108,22 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 		return nil, errors.New("IDClaims must specify at least one claim")
 	}
 
-	return provider{providerName: providerName, transport: transport, Config: config}, nil
+	// we purposefully do not store IDClaims here because that could lead to a different
+	// identity object name based on a distributed claim that was previously ignored.
+	// thus we cannot support fields that use distributed claims as IDClaims.
+	// this is fine because only the sub claim should be used as an ID claim.
+	// the sub claim is both required and must be stable per the OIDC spec.
+	allClaims := sets.NewString()
+	allClaims.Insert(config.PreferredUsernameClaims...)
+	allClaims.Insert(config.EmailClaims...)
+	allClaims.Insert(config.NameClaims...)
+	allClaims.Insert(config.GroupsClaims...)
+
+	return &provider{providerName: providerName, transport: transport, allClaims: allClaims, Config: config}, nil
 }
 
 // NewConfig implements external/interfaces/Provider.NewConfig
-func (p provider) NewConfig() (*osincli.ClientConfig, error) {
+func (p *provider) NewConfig() (*osincli.ClientConfig, error) {
 	config := &osincli.ClientConfig{
 		ClientId:                 p.ClientID,
 		ClientSecret:             p.ClientSecret,
@@ -120,19 +136,19 @@ func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	return config, nil
 }
 
-func (p provider) GetTransport() (http.RoundTripper, error) {
+func (p *provider) GetTransport() (http.RoundTripper, error) {
 	return p.transport, nil
 }
 
 // AddCustomParameters implements external/interfaces/Provider.AddCustomParameters
-func (p provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
+func (p *provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
 	for k, v := range p.ExtraAuthorizeParameters {
 		req.CustomParameters[k] = v
 	}
 }
 
 // GetUserIdentity implements external/interfaces/Provider.GetUserIdentity
-func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
+func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
 	// Token response MUST include id_token
 	// http://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	idToken, ok := getClaimValue(data.ResponseData, "id_token")
@@ -141,7 +157,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	}
 
 	// id_token MUST be a valid JWT
-	idTokenClaims, err := decodeJWT(idToken)
+	idTokenClaims, err := p.decodeJWT(idToken, false)
 	if err != nil {
 		return nil, false, err
 	}
@@ -167,7 +183,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 
 	// If we have a userinfo URL, use it to get more detailed claims
 	if len(p.UserInfoURL) != 0 {
-		userInfoClaims, err := fetchUserInfo(p.UserInfoURL, data.AccessToken, p.transport)
+		userInfoClaims, err := p.fetchUserInfo(p.UserInfoURL, data.AccessToken)
 		if err != nil {
 			return nil, false, err
 		}
@@ -260,14 +276,27 @@ func appendIfNonEmpty(in []string, s string) []string {
 }
 
 // fetch and decode JSON from the given UserInfo URL
-func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[string]interface{}, error) {
+func (p *provider) fetchUserInfo(url, accessToken string) (map[string]interface{}, error) {
+	// The UserInfo Claims MUST be returned as the members of a JSON object
+	// http://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
+	data, err := p.fetchURL(url, accessToken)
+	if err != nil {
+		return nil, err
+	}
+	return p.getClaims(data, false)
+}
+
+func (p *provider) fetchURL(url, accessToken string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
-	client := &http.Client{Transport: transport}
+	if len(accessToken) != 0 {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	}
+
+	client := &http.Client{Transport: p.transport}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -275,21 +304,15 @@ func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[st
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("non-200 response from UserInfo: %d, WWW-Authenticate=%s", resp.StatusCode, resp.Header.Get("WWW-Authenticate"))
+		return nil, fmt.Errorf("non-200 response from %s: %d, WWW-Authenticate=%s", url, resp.StatusCode, resp.Header.Get("WWW-Authenticate"))
 	}
 
-	// The UserInfo Claims MUST be returned as the members of a JSON object
-	// http://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return getJSON(data)
+	return ioutil.ReadAll(resp.Body)
 }
 
 // Decode JWT
 // https://tools.ietf.org/html/rfc7519
-func decodeJWT(jwt string) (map[string]interface{}, error) {
+func (p *provider) decodeJWT(jwt string, isEndpointJWT bool) (map[string]interface{}, error) {
 	jwtParts := strings.Split(jwt, ".")
 	if len(jwtParts) != 3 {
 		return nil, fmt.Errorf("invalid JSON Web Token: expected 3 parts, got %d", len(jwtParts))
@@ -308,13 +331,97 @@ func decodeJWT(jwt string) (map[string]interface{}, error) {
 	}
 
 	// Parse JSON
-	return getJSON(decodedPayload)
+	return p.getClaims(decodedPayload, isEndpointJWT)
 }
 
-func getJSON(in []byte) (map[string]interface{}, error) {
-	var data map[string]interface{}
-	if err := json.Unmarshal(in, &data); err != nil {
-		return nil, fmt.Errorf("error parsing token: %v", err)
+func (p *provider) getClaims(data []byte, isEndpointJWT bool) (map[string]interface{}, error) {
+	// data can contain secret information such as access tokens so make sure not to log it or include it in errors
+
+	var claims map[string]interface{}
+	if err := json.Unmarshal(data, &claims); err != nil {
+		return nil, fmt.Errorf("error parsing standard claims: %v", err)
 	}
-	return data, nil
+
+	if _, ok := claims[claimNamesKey]; !ok || isEndpointJWT {
+		// no distributed claims or recursive call from fetchEndpoint
+		return claims, nil
+	}
+
+	// fetching distributed claims is not allowed to fail
+	// enforce that behavior by wrapping the logic in a func that does not return anything
+	// this is required so that we can work with broken OIDC implementations like Azure
+	p.fetchDistributedClaims(data,
+		func(srcClaims map[string]interface{}) {
+			// merge new distributed claims
+			for k, v := range srcClaims {
+				claims[k] = v
+			}
+		})
+
+	return claims, nil
+}
+
+func (p *provider) fetchDistributedClaims(data []byte, merge func(map[string]interface{})) {
+	// decoding the same data twice is a bit wasteful, but distributed claims are rare and JWTs are small
+	var distClaims distributedClaims
+	if err := json.Unmarshal(data, &distClaims); err != nil {
+		// fetching distributed claims is not allowed to fail
+		// this should never happen since data should have already passed the initial json.Unmarshal
+		glog.V(5).Infof("error parsing distributed claims: %v", err)
+		return
+	}
+
+	completedSources := sets.NewString()
+	for name, src := range distClaims.Names {
+		// only make network calls for distributed claims we may care about
+		// and only fetch each source once
+		if p.allClaims.Has(name) && !completedSources.Has(src) {
+			ep, ok := distClaims.Sources[src]
+			if !ok {
+				// malformed distributed claim
+				glog.V(4).Infof("_claim_names %q contained a source %q not in _claims_sources", name, src)
+				continue
+			}
+			if len(ep.URL) == 0 {
+				// ignore possibly aggregated claim
+				continue
+			}
+			srcClaims, err := p.fetchEndpoint(ep)
+			if err != nil {
+				glog.V(4).Infof("failed to fetch endpoint for claim %q with source %q: %v", name, src, err)
+				continue
+			}
+			// merge new distributed claims
+			merge(srcClaims)
+			completedSources.Insert(src)
+		}
+	}
+}
+
+func (p *provider) fetchEndpoint(ep endpoint) (map[string]interface{}, error) {
+	jwtBytes, err := p.fetchURL(ep.URL, ep.AccessToken)
+	if err != nil {
+		return nil, err
+	}
+	// passing true for isEndpointJWT means just get the claims out of the JWT
+	// i.e. do not attempt to fetch any distributed claims or otherwise make network calls
+	// this prevents infinite recursion via decodeJWT -> getClaims -> fetchEndpoint -> decodeJWT
+	return p.decodeJWT(string(jwtBytes), true)
+}
+
+type distributedClaims struct {
+	Names   map[string]string   `json:"_claim_names,omitempty"`
+	Sources map[string]endpoint `json:"_claim_sources,omitempty"`
+}
+
+// endpoint represents an OIDC distributed claims endpoint.
+type endpoint struct {
+	// URL to use to request the distributed claim.  This URL is expected to be
+	// prefixed by one of the known issuer URLs.
+	URL string `json:"endpoint,omitempty"`
+	// AccessToken is the bearer token to use for access.  If empty, it is
+	// not used.  Access token is optional per the OIDC distributed claims
+	// specification.
+	// See: http://openid.net/specs/openid-connect-core-1_0.html#DistributedExample
+	AccessToken string `json:"access_token,omitempty"`
 }
