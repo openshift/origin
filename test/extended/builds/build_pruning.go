@@ -60,6 +60,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

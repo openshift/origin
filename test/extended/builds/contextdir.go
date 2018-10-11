@@ -38,6 +38,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

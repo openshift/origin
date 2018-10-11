@@ -43,6 +43,7 @@ var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

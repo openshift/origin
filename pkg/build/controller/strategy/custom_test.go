@@ -62,12 +62,26 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	// expected volumes:
 	// docker socket
 	// push secret
-	// gitclone secret
-	// input secret
+	// source secret
+	// additional secrets
 	// build-system-configmap
+	// certificate authorities
 	// container storage
-	if len(container.VolumeMounts) != 6 {
-		t.Fatalf("Expected 6 volumes in container, got %d: %v", len(container.VolumeMounts), container.VolumeMounts)
+	if len(container.VolumeMounts) != 7 {
+		t.Fatalf("Expected 7 volumes in container, got %d", len(container.VolumeMounts))
+	}
+	expectedMounts := []string{"/var/run/docker.sock",
+		DockerPushSecretMountPath,
+		sourceSecretMountPath,
+		"secret",
+		ConfigMapBuildSystemConfigsMountPath,
+		ConfigMapCertsMountPath,
+		"/var/lib/containers/storage",
+	}
+	for i, expected := range expectedMounts {
+		if container.VolumeMounts[i].MountPath != expected {
+			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
+		}
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
@@ -80,8 +94,8 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
-	if len(actual.Spec.Volumes) != 6 {
-		t.Fatalf("Expected 6 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 7 {
+		t.Fatalf("Expected 7 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	buildJSON, _ := runtime.Encode(customBuildEncodingCodecFactory.LegacyCodec(buildv1.GroupVersion), build)
 	errorCases := map[int][]string{

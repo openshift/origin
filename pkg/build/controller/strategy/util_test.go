@@ -238,3 +238,52 @@ func TestMountConfigsAndSecrets(t *testing.T) {
 		}
 	}
 }
+
+func TestSetupBuildCAs(t *testing.T) {
+	build := mockDockerBuild()
+	podSpec := &corev1.Pod{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "first",
+					Image: "busybox",
+				},
+				{
+					Name:  "second",
+					Image: "busybox",
+				},
+			},
+		},
+	}
+	setupBuildCAs(build, podSpec)
+	if len(podSpec.Spec.Volumes) != 1 {
+		t.Fatalf("expected pod to have 1 volume, got %d", len(podSpec.Spec.Volumes))
+	}
+	volume := podSpec.Spec.Volumes[0]
+	if volume.Name != "build-ca-bundles" {
+		t.Errorf("build volume should have name %s, got %s", "build-ca-bundles", volume.Name)
+	}
+	if volume.ConfigMap == nil {
+		t.Fatal("expected volume to use a ConfigMap volume source")
+	}
+
+	for _, c := range podSpec.Spec.Containers {
+		foundCA := false
+		for _, v := range c.VolumeMounts {
+			if v.Name == "build-ca-bundles" {
+				foundCA = true
+				if v.MountPath != ConfigMapCertsMountPath {
+					t.Errorf("ca bundle %s was not mounted to %s", v.Name, ConfigMapCertsMountPath)
+				}
+				if v.ReadOnly {
+					t.Errorf("ca bundle volume %s should be writeable, but was mounted read-only.", v.Name)
+				}
+				break
+			}
+		}
+		if !foundCA {
+			t.Errorf("build CA bundle was not mounted into container %s", c.Name)
+		}
+	}
+
+}

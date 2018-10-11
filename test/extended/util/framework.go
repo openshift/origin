@@ -208,6 +208,7 @@ func DumpApplicationPodLogs(dcName string, oc *CLI) {
 	DumpPodLogs(pods.Items, oc)
 }
 
+// DumpPodStates dumps the state of all pods in the CLI's current namespace.
 func DumpPodStates(oc *CLI) {
 	e2e.Logf("Dumping pod state for namespace %s", oc.Namespace())
 	out, err := oc.AsAdmin().Run("get").Args("pods", "-o", "yaml").Output()
@@ -296,6 +297,17 @@ func DumpPodsCommand(c kubernetes.Interface, ns string, selector labels.Selector
 		stdout = strings.TrimSuffix(stdout, "\n")
 		e2e.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
 	}
+}
+
+// DumpConfigMapStates dumps the state of all ConfigMaps in the CLI's current namespace.
+func DumpConfigMapStates(oc *CLI) {
+	e2e.Logf("Dumping configMap state for namespace %s", oc.Namespace())
+	out, err := oc.AsAdmin().Run("get").Args("configmaps", "-o", "yaml").Output()
+	if err != nil {
+		e2e.Logf("Error dumping configMap states: %v", err)
+		return
+	}
+	e2e.Logf(out)
 }
 
 // GetMasterThreadDump will get a golang thread stack dump

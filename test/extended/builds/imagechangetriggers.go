@@ -38,6 +38,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] imagechangetriggers", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

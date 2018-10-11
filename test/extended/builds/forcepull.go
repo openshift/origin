@@ -104,6 +104,7 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

@@ -34,6 +34,7 @@ var _ = g.Describe("[Feature:Builds][Slow] Capabilities should be dropped for s2
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

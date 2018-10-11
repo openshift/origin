@@ -56,6 +56,7 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

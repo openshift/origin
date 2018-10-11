@@ -6,12 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
@@ -29,6 +32,7 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
+
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
@@ -118,18 +122,20 @@ func TestHandleBuild(t *testing.T) {
 		name string
 
 		// Conditions
-		build              *buildv1.Build
-		pod                *corev1.Pod
-		runPolicy          *fakeRunPolicy
-		errorOnPodDelete   bool
-		errorOnPodCreate   bool
-		errorOnBuildUpdate bool
+		build                  *buildv1.Build
+		pod                    *corev1.Pod
+		runPolicy              *fakeRunPolicy
+		errorOnPodDelete       bool
+		errorOnPodCreate       bool
+		errorOnBuildUpdate     bool
+		errorOnConfigMapCreate bool
 
 		// Expected Result
-		expectUpdate     *buildUpdate
-		expectPodCreated bool
-		expectPodDeleted bool
-		expectError      bool
+		expectUpdate           *buildUpdate
+		expectPodCreated       bool
+		expectPodDeleted       bool
+		expectError            bool
+		expectConfigMapCreated bool
 	}{
 		{
 			name:  "cancel running build",
@@ -164,7 +170,8 @@ func TestHandleBuild(t *testing.T) {
 				message("").
 				podNameAnnotation(pod(corev1.PodPending).Name).
 				update,
-			expectPodCreated: true,
+			expectPodCreated:       true,
+			expectConfigMapCreated: true,
 		},
 		{
 			name:  "new with existing related pod",
@@ -198,12 +205,13 @@ func TestHandleBuild(t *testing.T) {
 			expectUpdate: nil,
 		},
 		{
-			name:               "new -> pending with update error",
-			build:              build(buildv1.BuildPhaseNew),
-			errorOnBuildUpdate: true,
-			expectUpdate:       nil,
-			expectPodCreated:   true,
-			expectError:        true,
+			name:                   "new -> pending with update error",
+			build:                  build(buildv1.BuildPhaseNew),
+			errorOnBuildUpdate:     true,
+			expectUpdate:           nil,
+			expectPodCreated:       true,
+			expectConfigMapCreated: true,
+			expectError:            true,
 		},
 		{
 			name:  "pending -> running",
@@ -322,6 +330,7 @@ func TestHandleBuild(t *testing.T) {
 				kubeClient = fakeKubeExternalClientSet()
 			}
 			podCreated := false
+			var newPod *corev1.Pod
 			kubeClient.(*fake.Clientset).PrependReactor("delete", "pods",
 				func(action clientgotesting.Action) (bool, runtime.Object, error) {
 					if tc.errorOnPodDelete {
@@ -335,9 +344,17 @@ func TestHandleBuild(t *testing.T) {
 						return true, nil, fmt.Errorf("error")
 					}
 					podCreated = true
-					return true, nil, nil
+					newPod = mockBuildPod(tc.build)
+					newPod.UID = types.UID(uuid.New().String())
+					return true, newPod, nil
 				})
-
+			configMapCreated := false
+			kubeClient.(*fake.Clientset).PrependReactor("create", "configmaps",
+				func(action clientgotesting.Action) (bool, runtime.Object, error) {
+					configMapCreated = true
+					newConfigMap := mockBuildCAConfigMap(tc.build, newPod)
+					return true, newConfigMap, nil
+				})
 			bc := newFakeBuildController(buildClient, nil, kubeClient, nil)
 			defer bc.stop()
 
@@ -361,6 +378,9 @@ func TestHandleBuild(t *testing.T) {
 			}
 			if tc.expectPodCreated != podCreated {
 				t.Errorf("%s: pod created. expected: %v, actual: %v", tc.name, tc.expectPodCreated, podCreated)
+			}
+			if tc.expectConfigMapCreated != configMapCreated {
+				t.Errorf("%s: configMap created. expected: %v, actual:%v", tc.name, tc.expectConfigMapCreated, configMapCreated)
 			}
 			if tc.expectUpdate != nil {
 				if patchedBuild == nil {
@@ -439,9 +459,43 @@ func TestCreateBuildPod(t *testing.T) {
 	expected.setMessage("")
 	validateUpdate(t, "create build pod", expected, update)
 	// Make sure that a pod was created
-	_, err = kubeClient.Core().Pods("namespace").Get(podName, metav1.GetOptions{})
+	pod, err := kubeClient.Core().Pods("namespace").Get(podName, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+	}
+	// Make sure that a configMap was created, with an ownerRef
+	configMapName := buildapihelpers.GetBuildCAConfigMapName(build)
+	configMap, err := kubeClient.Core().ConfigMaps("namespace").Get(configMapName, metav1.GetOptions{})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if configMap == nil {
+		// ConfigMap was not found
+		return
+	}
+	if len(configMap.ObjectMeta.OwnerReferences) == 0 {
+		t.Errorf("expected configMap %s to have an owner reference", configMapName)
+	}
+	foundOwner := false
+	for _, o := range configMap.OwnerReferences {
+		if o.Name == pod.Name {
+			foundOwner = true
+			break
+		}
+	}
+	if !foundOwner {
+		t.Errorf("expected configMap %s to reference owner %s", configMapName, podName)
+	}
+	// Make sure that the pod references the configMap
+	foundVolume := false
+	for _, v := range pod.Spec.Volumes {
+		if v.ConfigMap != nil && v.ConfigMap.Name == configMapName {
+			foundVolume = true
+			break
+		}
+	}
+	if !foundVolume {
+		t.Errorf("configMap %s should exist exist as a volume in the build pod, but was not found.", configMapName)
 	}
 }
 
@@ -569,6 +623,7 @@ func TestCreateBuildPodWithExistingRelatedPod(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildapihelpers.GetBuildPodName(build),
 			Namespace: build.Namespace,
+			UID:       types.UID(uuid.New().String()),
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: buildv1.SchemeGroupVersion.String(),
@@ -601,6 +656,112 @@ func TestCreateBuildPodWithExistingRelatedPod(t *testing.T) {
 	expected.setMessage("")
 	expected.setPodNameAnnotation(buildapihelpers.GetBuildPodName(build))
 	validateUpdate(t, "create build pod with existing related pod error", expected, update)
+}
+
+func TestCreateBuildPodWithExistingRelatedPodMissingCA(t *testing.T) {
+	tru := true
+	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
+
+	existingPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildapihelpers.GetBuildPodName(build),
+			Namespace: build.Namespace,
+			UID:       types.UID(uuid.New().String()),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: buildv1.SchemeGroupVersion.String(),
+					Kind:       "Build",
+					Name:       build.Name,
+					Controller: &tru,
+				},
+			},
+		},
+	}
+	caMapName := buildapihelpers.GetBuildCAConfigMapName(build)
+	kubeClient := fakeKubeExternalClientSet(existingPod)
+	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
+	}
+	notFoundReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, caMapName)
+	}
+	kubeClient.(*fake.Clientset).PrependReactor("create", "pods", errorReaction)
+	kubeClient.(*fake.Clientset).PrependReactor("get", "configmaps", notFoundReaction)
+
+	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc.start()
+	defer bc.stop()
+
+	update, err := bc.createBuildPod(build)
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	expected := &buildUpdate{}
+	expected.setPhase(buildv1.BuildPhasePending)
+	expected.setReason("")
+	expected.setMessage("")
+	expected.setPodNameAnnotation(buildapihelpers.GetBuildPodName(build))
+	validateUpdate(t, "create build pod with existing related pod and missing CA configMap error", expected, update)
+}
+
+func TestCreateBuildPodWithExistingRelatedPodBadCA(t *testing.T) {
+	tru := true
+	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
+
+	existingPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildapihelpers.GetBuildPodName(build),
+			Namespace: build.Namespace,
+			UID:       types.UID(uuid.New().String()),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: buildv1.SchemeGroupVersion.String(),
+					Kind:       "Build",
+					Name:       build.Name,
+					Controller: &tru,
+				},
+			},
+		},
+	}
+	badPod := mockBuildPod(build)
+	existingCA := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildapihelpers.GetBuildCAConfigMapName(build),
+			Namespace: build.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "v1",
+					Kind:       "Pod",
+					Name:       badPod.Name,
+					UID:        badPod.UID,
+				},
+			},
+		},
+	}
+	kubeClient := fakeKubeExternalClientSet(existingPod)
+	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
+	}
+	getCAReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, existingCA, nil
+	}
+	kubeClient.(*fake.Clientset).PrependReactor("create", "pods", errorReaction)
+	kubeClient.(*fake.Clientset).PrependReactor("get", "configmaps", getCAReaction)
+
+	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc.start()
+	defer bc.stop()
+
+	update, err := bc.createBuildPod(build)
+
+	if err == nil {
+		t.Error("expected error")
+	}
+
+	expected := &buildUpdate{}
+	validateUpdate(t, "create build pod with existing related pod and bad CA configMap error", expected, update)
 }
 
 func TestCreateBuildPodWithExistingUnrelatedPod(t *testing.T) {
@@ -654,6 +815,28 @@ func TestCreateBuildPodWithPodCreationError(t *testing.T) {
 	expected.setReason(buildv1.StatusReasonCannotCreateBuildPod)
 	expected.setMessage(buildutil.StatusMessageCannotCreateBuildPod)
 	validateUpdate(t, "create build pod with pod creation error", expected, update)
+}
+
+func TestCreateBuildPodWithCACreationError(t *testing.T) {
+	kubeClient := fakeKubeExternalClientSet()
+	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("error")
+	}
+	kubeClient.(*fake.Clientset).PrependReactor("create", "configmaps", errorReaction)
+	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	defer bc.stop()
+	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
+
+	update, err := bc.createBuildPod(build)
+
+	if err == nil {
+		t.Errorf("expected error")
+	}
+
+	expected := &buildUpdate{}
+	expected.setReason("CannotCreateCAConfigMap")
+	expected.setMessage(buildutil.StatusMessageCannotCreateCAConfigMap)
+	validateUpdate(t, "create build pod with CA ConfigMap creation error", expected, update)
 }
 
 func TestCancelBuild(t *testing.T) {
@@ -951,6 +1134,28 @@ func TestSetBuildCompletionTimestampAndDuration(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestCreateBuildCAConfigMap(t *testing.T) {
+	bc := newFakeBuildController(nil, nil, nil, nil)
+	defer bc.stop()
+	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
+	pod := mockBuildPod(build)
+	caMap := bc.createBuildCAConfigMapSpec(build, pod)
+	if caMap == nil {
+		t.Error("certificate authority configMap was not created")
+	}
+	if !hasBuildCAOwnerRef(pod, caMap) {
+		t.Error("build CA configMap is missing owner ref to the build pod")
+	}
+	injectAnnotation := "service.alpha.openshift.io/inject-cabundle"
+	val, exists := caMap.Annotations[injectAnnotation]
+	if !exists {
+		t.Errorf("expected CA configMap to have annotation %s", injectAnnotation)
+	}
+	if val != "true" {
+		t.Errorf("expected annotation %s to be %s; got %s", injectAnnotation, "true", val)
 	}
 }
 
@@ -1306,4 +1511,21 @@ func mockBuildPod(build *buildv1.Build) *corev1.Pod {
 	pod.Annotations = map[string]string{}
 	pod.Annotations[buildutil.BuildAnnotation] = build.Name
 	return pod
+}
+
+func mockBuildCAConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{}
+	cm.Name = buildapihelpers.GetBuildCAConfigMapName(build)
+	cm.Namespace = build.Namespace
+	if pod != nil {
+		pod.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: "v1",
+				Kind:       "Pod",
+				Name:       pod.Name,
+				UID:        pod.UID,
+			},
+		}
+	}
+	return cm
 }

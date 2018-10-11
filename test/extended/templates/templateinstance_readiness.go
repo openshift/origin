@@ -118,6 +118,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(cli)
+				exutil.DumpConfigMapStates(cli)
 				exutil.DumpPodLogsStartingWith("", cli)
 			}
 		})

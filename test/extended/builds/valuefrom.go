@@ -31,6 +31,7 @@ var _ = g.Describe("[Feature:Builds][Conformance][valueFrom] process valueFrom i
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

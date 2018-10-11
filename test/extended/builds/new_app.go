@@ -43,6 +43,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 			deployutil.DeploymentConfigFailureTrap(oc, a58, g.CurrentGinkgoTestDescription().Failed)
