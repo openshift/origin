@@ -1,6 +1,7 @@
 package oauthserver
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"net/http"
@@ -20,8 +21,6 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
-
-	"bytes"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -43,24 +42,25 @@ var (
 )
 
 // TODO we need to switch the oauth server to an external type, but that can be done after we get our externally facing flag values fixed
-func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
-	legacyConfig := &legacyconfigv1.MasterConfig{}
-	legacyConfig.OAuthConfig = &legacyconfigv1.OAuthConfig{}
-	if err := configconversion.Convert_osinv1_OAuthConfig_to_legacyconfigv1_OAuthConfig(&oauthConfig, legacyConfig.OAuthConfig, nil); err != nil {
-		return nil, err
-	}
+// TODO remaining bits involve the session file, LDAP util code, validation, ...
+func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
 	buf := &bytes.Buffer{}
-	if err := latest.Codec.Encode(legacyConfig, buf); err != nil {
+	internalConfig := &configapi.MasterConfig{OAuthConfig: &oauthConfig}
+	if err := latest.Codec.Encode(internalConfig, buf); err != nil {
 		return nil, err
 	}
-	internalConfig := &configapi.MasterConfig{}
-	if _, _, err := latest.Codec.Decode(buf.Bytes(), nil, internalConfig); err != nil {
+	legacyConfig := &legacyconfigv1.MasterConfig{}
+	if _, _, err := latest.Codec.Decode(buf.Bytes(), nil, legacyConfig); err != nil {
 		return nil, err
 	}
-	return NewOAuthServerConfigFromInternal(*internalConfig.OAuthConfig, userClientConfig)
+	osinConfig := &osinv1.OAuthConfig{}
+	if err := configconversion.Convert_legacyconfigv1_OAuthConfig_to_osinv1_OAuthConfig(legacyConfig.OAuthConfig, osinConfig, nil); err != nil {
+		return nil, err
+	}
+	return NewOAuthServerConfig(*osinConfig, userClientConfig)
 }
 
-func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
+func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
 	genericConfig := genericapiserver.NewRecommendedConfig(codecs)
 	genericConfig.LoopbackClientConfig = userClientConfig
 
@@ -108,7 +108,7 @@ func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userCli
 	return ret, nil
 }
 
-func buildSessionAuth(secure bool, config *configapi.SessionConfig) (*session.Authenticator, error) {
+func buildSessionAuth(secure bool, config *osinv1.SessionConfig) (*session.Authenticator, error) {
 	secrets, err := getSessionSecrets(config.SessionSecretsFile)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func isHTTPS(u string) bool {
 }
 
 type ExtraOAuthConfig struct {
-	Options configapi.OAuthConfig
+	Options osinv1.OAuthConfig
 
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
@@ -253,7 +253,8 @@ func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handl
 func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiserver.PostStartHookContext) error {
 	// the TODO above still applies, but this makes it possible for this poststarthook to do its job with a split kubeapiserver and not run forever
 	go func() {
-		wait.PollUntil(1*time.Second, func() (done bool, err error) {
+		// error is guaranteed to be nil
+		_ = wait.PollUntil(1*time.Second, func() (done bool, err error) {
 			webConsoleClient := oauthv1.OAuthClient{
 				ObjectMeta:            metav1.ObjectMeta{Name: openShiftWebConsoleClientID},
 				Secret:                "",

@@ -108,6 +108,7 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer() error {
 	}
 	scheme := runtime.NewScheme()
 	utilruntime.Must(kubecontrolplanev1.Install(scheme))
+	utilruntime.Must(osinv1.Install(scheme))
 	codecs := serializer.NewCodecFactory(scheme)
 	obj, err := runtime.Decode(codecs.UniversalDecoder(kubecontrolplanev1.GroupVersion, configv1.GroupVersion, osinv1.GroupVersion), configContent)
 	if err == nil {
@@ -123,6 +124,16 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer() error {
 			return err
 		}
 		configdefault.SetRecommendedKubeAPIServerConfigDefaults(config)
+
+		// TODO: there is probably some better way to do this
+		decoder := codecs.UniversalDecoder(osinv1.GroupVersion)
+		for i, idp := range config.OAuthConfig.IdentityProviders {
+			idpObject, err := runtime.Decode(decoder, idp.Provider.Raw)
+			if err != nil {
+				return err
+			}
+			config.OAuthConfig.IdentityProviders[i].Provider.Object = idpObject
+		}
 
 		return RunOpenShiftKubeAPIServerServer(config)
 	}

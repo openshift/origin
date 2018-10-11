@@ -3,12 +3,12 @@ package legacyconfigprocessing
 import (
 	"net/http"
 
-	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 )
 
 // TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that

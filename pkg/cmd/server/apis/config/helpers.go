@@ -373,20 +373,6 @@ func IsIdentityProviderType(provider runtime.Object) bool {
 	return false
 }
 
-func IsOAuthIdentityProvider(provider IdentityProvider) bool {
-	switch provider.Provider.(type) {
-	case
-		(*OpenIDIdentityProvider),
-		(*GitHubIdentityProvider),
-		(*GitLabIdentityProvider),
-		(*GoogleIdentityProvider):
-
-		return true
-	}
-
-	return false
-}
-
 const kubeAPIEnablementFlag = "runtime-config"
 
 // GetKubeAPIServerFlagAPIEnablement parses the available flag at the groupVersion level

@@ -8,7 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	osinv1 "github.com/openshift/api/osin/v1"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 )
 
@@ -48,7 +48,7 @@ func (f *DefaultLDAPUserIdentityFactory) IdentityFor(user *ldap.Entry) (identity
 	return
 }
 
-func NewLDAPUserAttributeDefiner(attributeMapping serverapi.LDAPAttributeMapping) LDAPUserAttributeDefiner {
+func NewLDAPUserAttributeDefiner(attributeMapping osinv1.LDAPAttributeMapping) LDAPUserAttributeDefiner {
 	return LDAPUserAttributeDefiner{
 		attributeMapping: attributeMapping,
 	}
@@ -58,7 +58,7 @@ func NewLDAPUserAttributeDefiner(attributeMapping serverapi.LDAPAttributeMapping
 // by using a deterministic mapping of LDAP entry attributes to OpenShift Identity fields
 type LDAPUserAttributeDefiner struct {
 	// attributeMapping holds the attributes mapped to email, name, preferred username and ID
-	attributeMapping serverapi.LDAPAttributeMapping
+	attributeMapping osinv1.LDAPAttributeMapping
 }
 
 // AllAttributes gets all attributes listed in the LDAPUserAttributeDefiner
