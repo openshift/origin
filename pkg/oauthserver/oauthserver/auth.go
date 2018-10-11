@@ -375,7 +375,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux oauthserver.Mux, errorH
 					return nil, err
 				}
 
-				login := login.NewLogin(identityProvider.Name, c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
+				login := login.NewLogin(identityProvider.Name, c.getCSRF(), &callbackPasswordAuthenticator{Password: passwordAuth, AuthenticationSuccessHandler: passwordSuccessHandler}, loginFormRenderer)
 				login.Install(mux, loginPath)
 			}
 			if identityProvider.UseAsChallenger {

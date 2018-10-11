@@ -23,8 +23,7 @@ type Server struct {
 }
 
 // Logger captures additional osin server errors
-type Logger struct {
-}
+type Logger struct{}
 
 func (l Logger) Printf(format string, v ...interface{}) {
 	if glog.V(2) {
@@ -57,18 +56,6 @@ func (s *Server) Install(mux oauthserver.Mux, paths ...string) {
 		mux.HandleFunc(path.Join(prefix, urls.TokenPath), s.handleToken)
 		mux.HandleFunc(path.Join(prefix, urls.InfoPath), s.handleInfo)
 	}
-}
-
-// AuthorizationHandler returns an http.Handler capable of authorizing.
-// Used for implicit authorization special flows.
-func (s *Server) AuthorizationHandler() http.Handler {
-	return http.HandlerFunc(s.handleAuthorize)
-}
-
-// TokenHandler returns an http.Handler capable of granting tokens. Used for
-// implicit token granting special flows.
-func (s *Server) TokenHandler() http.Handler {
-	return http.HandlerFunc(s.handleToken)
 }
 
 func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {

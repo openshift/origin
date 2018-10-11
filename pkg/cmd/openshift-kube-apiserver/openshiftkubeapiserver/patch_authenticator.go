@@ -119,8 +119,7 @@ func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *osinv1
 		}
 		oauthTokenAuthenticator := oauth.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
 		tokenAuthenticators = append(tokenAuthenticators,
-			// if you have a bearer token, you're a human (usually)
-			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
+			// if you have an OAuth bearer token, you're a human (usually)
 			group.NewTokenGroupAdder(oauthTokenAuthenticator, []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 

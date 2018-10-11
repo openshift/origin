@@ -21,7 +21,7 @@ type basicAuthRequestHandler struct {
 }
 
 func NewBasicAuthAuthentication(provider string, passwordAuthenticator authenticator.Password, removeHeader bool) authenticator.Request {
-	return &basicAuthRequestHandler{provider, passwordAuthenticator, removeHeader}
+	return &basicAuthRequestHandler{provider: provider, passwordAuthenticator: passwordAuthenticator, removeHeader: removeHeader}
 }
 
 func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -33,7 +33,7 @@ func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Reques
 		return nil, false, nil
 	}
 
-	var result string = metrics.SuccessResult
+	result := metrics.SuccessResult
 	defer func() {
 		metrics.RecordBasicPasswordAuth(result)
 	}()

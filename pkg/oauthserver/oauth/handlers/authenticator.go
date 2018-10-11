@@ -11,18 +11,19 @@ import (
 
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	openshiftauthenticator "github.com/openshift/origin/pkg/oauthserver/authenticator"
+	"github.com/openshift/origin/pkg/oauthserver/osinserver"
 )
 
-// AuthorizeAuthenticator implements osinserver.AuthorizeHandler to ensure requests are authenticated
-type AuthorizeAuthenticator struct {
+// authorizeAuthenticator implements osinserver.AuthorizeHandler to ensure requests are authenticated
+type authorizeAuthenticator struct {
 	request      authenticator.Request
 	handler      AuthenticationHandler
 	errorHandler AuthenticationErrorHandler
 }
 
 // NewAuthorizeAuthenticator returns a new Authenticator
-func NewAuthorizeAuthenticator(request authenticator.Request, handler AuthenticationHandler, errorHandler AuthenticationErrorHandler) *AuthorizeAuthenticator {
-	return &AuthorizeAuthenticator{request, handler, errorHandler}
+func NewAuthorizeAuthenticator(request authenticator.Request, handler AuthenticationHandler, errorHandler AuthenticationErrorHandler) osinserver.AuthorizeHandler {
+	return &authorizeAuthenticator{request: request, handler: handler, errorHandler: errorHandler}
 }
 
 type TokenMaxAgeSeconds interface {
@@ -42,7 +43,7 @@ type TokenTimeoutSeconds interface {
 // HandleAuthorize implements osinserver.AuthorizeHandler to ensure the AuthorizeRequest is authenticated.
 // If the request is authenticated, UserData and Authorized are set and false is returned.
 // If the request is not authenticated, the auth handler is called and the request is not authorized
-func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
+func (h *authorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 	info, ok, err := h.request.AuthenticateRequest(ar.HttpRequest)
 	if err != nil {
 		glog.V(4).Infof("OAuth authentication error: %v", err)
@@ -67,20 +68,15 @@ func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, resp
 	return false, nil
 }
 
-// AccessAuthenticator implements osinserver.AccessHandler to ensure non-token requests are authenticated
-type AccessAuthenticator struct {
+// accessAuthenticator implements osinserver.AccessHandler to ensure non-token requests are authenticated
+type accessAuthenticator struct {
 	password  authenticator.Password
 	assertion openshiftauthenticator.Assertion
 	client    openshiftauthenticator.Client
 }
 
-// NewAccessAuthenticator returns a new AccessAuthenticator
-func NewAccessAuthenticator(password authenticator.Password, assertion openshiftauthenticator.Assertion, client openshiftauthenticator.Client) *AccessAuthenticator {
-	return &AccessAuthenticator{password, assertion, client}
-}
-
 // HandleAccess implements osinserver.AccessHandler
-func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter) error {
+func (h *accessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter) error {
 	var (
 		info user.Info
 		ok   bool
@@ -125,32 +121,27 @@ func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 }
 
 // NewDenyAccessAuthenticator returns an AccessAuthenticator which rejects all non-token access requests
-func NewDenyAccessAuthenticator() *AccessAuthenticator {
-	return &AccessAuthenticator{Deny, Deny, Deny}
+func NewDenyAccessAuthenticator() osinserver.AccessHandler {
+	return &accessAuthenticator{password: deny, assertion: deny, client: deny}
 }
 
 // Deny implements Password, Assertion, and Client authentication to deny all requests
-var Deny = &fixedAuthenticator{false}
+var deny = &denyAuthenticator{}
 
-// Allow implements Password, Assertion, and Client authentication to allow all requests
-var Allow = &fixedAuthenticator{true}
-
-// fixedAuthenticator implements Password, Assertion, and Client authentication to return a fixed response
-type fixedAuthenticator struct {
-	allow bool
-}
+// denyAuthenticator implements Password, Assertion, and Client authentication to return a fixed unauthorized response
+type denyAuthenticator struct{}
 
 // AuthenticatePassword implements authenticator.Password
-func (f *fixedAuthenticator) AuthenticatePassword(user, password string) (user.Info, bool, error) {
-	return nil, f.allow, nil
+func (*denyAuthenticator) AuthenticatePassword(user, password string) (user.Info, bool, error) {
+	return nil, false, nil
 }
 
 // AuthenticateAssertion implements authenticator.Assertion
-func (f *fixedAuthenticator) AuthenticateAssertion(assertionType, data string) (user.Info, bool, error) {
-	return nil, f.allow, nil
+func (*denyAuthenticator) AuthenticateAssertion(assertionType, data string) (user.Info, bool, error) {
+	return nil, false, nil
 }
 
 // AuthenticateClient implements authenticator.Client
-func (f *fixedAuthenticator) AuthenticateClient(client api.Client) (user.Info, bool, error) {
-	return nil, f.allow, nil
+func (*denyAuthenticator) AuthenticateClient(client api.Client) (user.Info, bool, error) {
+	return nil, false, nil
 }
