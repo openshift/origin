@@ -3,6 +3,8 @@ package basicauthpassword
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -11,22 +13,25 @@ func TestUnmarshal(t *testing.T) {
 	expectedName := "My Name"
 	expectedEmail := "mylogin@example.com"
 	expectedPreferredUsername := "myusername"
+	expectedGroups := []string{"group1", "group2", "group3"}
 
 	// These keys are the published interface for the basicauthpassword IDP
-	// The keys for this test should not be changed unless all corresponding docs are also updated
+	// The keys for this test should not be changed as that indicates a breaking API change
 	data := fmt.Sprintf(`
 	{
 		"sub":"%s",
 		"name": "%s",
 		"email": "%s",
 		"preferred_username": "%s",
+		"groups": %s,
 		"additional_field": "should be ignored"
-	}`, expectedSubject, expectedName, expectedEmail, expectedPreferredUsername)
+	}`, expectedSubject, expectedName, expectedEmail, expectedPreferredUsername,
+		strings.Replace(fmt.Sprintf("%q", expectedGroups), " ", ",", -1))
 
 	user := &RemoteUserData{}
 	err := json.Unmarshal([]byte(data), user)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatal(err)
 	}
 
 	if user.Subject != expectedSubject {
@@ -41,5 +46,7 @@ func TestUnmarshal(t *testing.T) {
 	if user.PreferredUsername != expectedPreferredUsername {
 		t.Errorf("Expected %s, got %s", expectedPreferredUsername, user.PreferredUsername)
 	}
-
+	if !reflect.DeepEqual(user.Groups, expectedGroups) {
+		t.Errorf("Expected %s, got %v", expectedGroups, user.Groups)
+	}
 }

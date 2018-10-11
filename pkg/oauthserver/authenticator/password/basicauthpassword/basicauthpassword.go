@@ -20,10 +20,10 @@ import (
 // A non-200 status or the presence of an "error" key with a non-empty
 //   value indicates an error:
 //   {"error":"Error message"}
-// A 200 status with an "id" key indicates success:
-//   {"id":"userid"}
-// A successful response may also include name and/or email:
-//   {"id":"userid", "name": "User Name", "email":"user@example.com"}
+// A 200 status with an "sub" key indicates success:
+//   {"sub":"userid"}
+// A successful response may also include name, email, preferred username, and groups:
+//   {"sub":"userid", "name": "User Name", "email":"user@example.com", "preferred_username": "myuser", groups: ["group1","group2"]}
 type Authenticator struct {
 	providerName string
 	url          string
@@ -45,6 +45,8 @@ type RemoteUserData struct {
 	PreferredUsername string `json:"preferred_username"`
 	// Email is the end-User's preferred e-mail address. Optional.
 	Email string `json:"email"`
+	// Groups is the end-User's groups. Optional.
+	Groups []string `json:"groups"`
 }
 
 // RemoteError holds error data returned from a remote authentication request
@@ -52,7 +54,7 @@ type RemoteError struct {
 	Error string
 }
 
-var RedirectAttemptedError = errors.New("Redirect attempted")
+var redirectAttemptedError = errors.New("redirect attempted")
 
 // New returns an authenticator which will make a basic auth call to the given url.
 // A custom transport can be provided (typically to customize TLS options like trusted roots or present a client certificate).
@@ -66,7 +68,7 @@ func New(providerName string, url string, transport http.RoundTripper, mapper au
 	// We don't support redirects in the basic auth provider because it could be a malicious attempt to send credentials to
 	// another site.
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return RedirectAttemptedError
+		return redirectAttemptedError
 	}
 
 	return &Authenticator{providerName, url, client, mapper}
@@ -109,7 +111,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, false, fmt.Errorf("An error occurred while authenticating (%d)", resp.StatusCode)
+		return nil, false, fmt.Errorf("an error occurred while authenticating (%d)", resp.StatusCode)
 	}
 
 	remoteUserData := RemoteUserData{}
@@ -119,9 +121,11 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	}
 
 	if len(remoteUserData.Subject) == 0 {
-		return nil, false, errors.New("Could not retrieve user data")
+		return nil, false, errors.New("could not retrieve user data")
 	}
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, remoteUserData.Subject)
+
+	identity.ProviderGroups = remoteUserData.Groups
 
 	if len(remoteUserData.Name) > 0 {
 		identity.Extra[authapi.IdentityDisplayNameKey] = remoteUserData.Name
