@@ -148,6 +148,9 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
 
+		// until buildah builds properly set status.output.to, this test must be disabled.
+		g.Skip("TODO: find the digest from the pushImage call and ensure it is set: https://github.com/containers/image/issues/518")
+
 		dockerfile := `
 FROM a
 RUN mkdir -p /var/lib && echo "a" > /var/lib/file
