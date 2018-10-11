@@ -29,17 +29,6 @@ objects:
     verbs:
     - get
 
-- kind: RoleBinding
-  apiVersion: v1
-  metadata:
-    name: tiller
-  roleRef:
-    name: tiller
-    namespace: ${TILLER_NAMESPACE}
-  subjects:
-  - kind: ServiceAccount
-    name: tiller
-
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
