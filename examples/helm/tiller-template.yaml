@@ -15,6 +15,7 @@ objects:
     - ""
     resources:
     - configmaps
+    - pods
     verbs:
     - create
     - get
@@ -39,6 +40,20 @@ objects:
   - kind: ServiceAccount
     name: tiller
 
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: edit-79929
+    namespace: ${TILLER_NAMESPACE}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: edit
+  subjects:
+    - kind: ServiceAccount
+      name: tiller
+      namespace: helm-test-project
+
 - apiVersion: extensions/v1beta1
   kind: Deployment
   metadata:
@@ -58,6 +73,8 @@ objects:
         containers:
         - name: tiller
           image: gcr.io/kubernetes-helm/tiller:${HELM_VERSION}
+          securityContext:
+            runAsUser: 1001
           env:
           - name: TILLER_NAMESPACE
             valueFrom:
@@ -78,7 +95,7 @@ objects:
 
 parameters:
 - name: HELM_VERSION
-  value: v2.6.1
+  value: v2.11
   required: true
 - name: TILLER_NAMESPACE
   required: true
