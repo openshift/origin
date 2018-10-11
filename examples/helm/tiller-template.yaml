@@ -52,7 +52,7 @@ objects:
   subjects:
     - kind: ServiceAccount
       name: tiller
-      namespace: helm-test-project
+      namespace:  ${TILLER_NAMESPACE}
 
 - apiVersion: extensions/v1beta1
   kind: Deployment
