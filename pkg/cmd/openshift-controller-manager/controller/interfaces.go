@@ -72,16 +72,11 @@ func NewControllerContext(
 	if err != nil {
 		return nil, err
 	}
-
 	buildClient, err := buildclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
 	imageClient, err := imageclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	networkClient, err := networkclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +89,15 @@ func NewControllerContext(
 		return nil, err
 	}
 	templateClient, err := templateclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// clientConfig may force the use of protobufs, but that's not supported for CRDs
+	networkClientConfig := rest.CopyConfig(clientConfig)
+	networkClientConfig.ContentConfig.AcceptContentTypes = ""
+	networkClientConfig.ContentConfig.ContentType = ""
+	networkClient, err := networkclient.NewForConfig(networkClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +380,11 @@ func (b OpenshiftControllerClientBuilder) OpenshiftNetworkClient(name string) (n
 	if err != nil {
 		return nil, err
 	}
-	return networkclient.NewForConfig(clientConfig)
+	// clientConfig may force the use of protobufs, but that's not supported for CRDs
+	networkClientConfig := rest.CopyConfig(clientConfig)
+	networkClientConfig.ContentConfig.AcceptContentTypes = ""
+	networkClientConfig.ContentConfig.ContentType = ""
+	return networkclient.NewForConfig(networkClientConfig)
 }
 
 // OpenshiftNetworkClientOrDie provides a REST client for the network API.
