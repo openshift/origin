@@ -6,33 +6,9 @@ objects:
   metadata:
     name: tiller
 
-- kind: Role
-  apiVersion: v1
-  metadata:
-    name: tiller
-  rules:
-  - apiGroups:
-    - ""
-    resources:
-    - configmaps
-    - pods
-    verbs:
-    - create
-    - get
-    - list
-    - update
-    - delete
-  - apiGroups:
-    - ""
-    resources:
-    - namespaces
-    verbs:
-    - get
-
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
-    name: edit-79929
     namespace: ${TILLER_NAMESPACE}
   roleRef:
     apiGroup: rbac.authorization.k8s.io
@@ -62,8 +38,6 @@ objects:
         containers:
         - name: tiller
           image: gcr.io/kubernetes-helm/tiller:${HELM_VERSION}
-          securityContext:
-            runAsUser: 1001
           env:
           - name: TILLER_NAMESPACE
             valueFrom:
