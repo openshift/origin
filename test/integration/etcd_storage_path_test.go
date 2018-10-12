@@ -497,6 +497,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("apiregistration.k8s.io", "v1beta1", "apiservices"): {
 		stub:             `{"metadata": {"name": "as1.foo.com"}, "spec": {"group": "foo.com", "version": "as1", "groupPriorityMinimum":100, "versionPriority":10}}`,
 		expectedEtcdPath: "kubernetes.io/apiservices/as1.foo.com",
+		expectedGVK:      gvkP("apiregistration.k8s.io", "v1", "APIService"),
 	},
 	// --
 
@@ -505,7 +506,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("apiregistration.k8s.io", "v1", "apiservices"): {
 		stub:             `{"metadata": {"name": "as2.foo.com"}, "spec": {"group": "foo.com", "version": "as2", "groupPriorityMinimum":100, "versionPriority":10}}`,
 		expectedEtcdPath: "kubernetes.io/apiservices/as2.foo.com",
-		expectedGVK:      gvkP("apiregistration.k8s.io", "v1beta1", "APIService"),
 	},
 	// --
 
@@ -639,6 +639,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("extensions", "v1beta1", "podsecuritypolicies"): {
 		stub:             `{"metadata": {"name": "psp1"}, "spec": {"fsGroup": {"rule": "RunAsAny"}, "privileged": true, "runAsUser": {"rule": "RunAsAny"}, "seLinux": {"rule": "MustRunAs"}, "supplementalGroups": {"rule": "RunAsAny"}}}`,
 		expectedEtcdPath: "kubernetes.io/podsecuritypolicy/psp1",
+		expectedGVK:      gvkP("policy", "v1beta1", "PodSecurityPolicy"),
 	},
 	gvr("extensions", "v1beta1", "ingresses"): {
 		stub:             `{"metadata": {"name": "ingress1"}, "spec": {"backend": {"serviceName": "service", "servicePort": 5000}}}`,
@@ -676,7 +677,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("policy", "v1beta1", "podsecuritypolicies"): {
 		stub:             `{"metadata": {"name": "psp2"}, "spec": {"fsGroup": {"rule": "RunAsAny"}, "privileged": true, "runAsUser": {"rule": "RunAsAny"}, "seLinux": {"rule": "MustRunAs"}, "supplementalGroups": {"rule": "RunAsAny"}}}`,
 		expectedEtcdPath: "kubernetes.io/podsecuritypolicy/psp2",
-		expectedGVK:      gvkP("extensions", "v1beta1", "PodSecurityPolicy"),
 	},
 	// --
 
