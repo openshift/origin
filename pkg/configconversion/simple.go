@@ -6,6 +6,7 @@ import (
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
+	"github.com/openshift/origin/pkg/apiserver/admission"
 )
 
 func ToHTTPServingInfo(in *legacyconfigv1.HTTPServingInfo) (out configv1.HTTPServingInfo, err error) {
@@ -55,6 +56,9 @@ func ToAdmissionPluginConfigMap(in map[string]*legacyconfigv1.AdmissionPluginCon
 
 	out = map[string]configv1.AdmissionPluginConfig{}
 	for k, v := range in {
+		if !isKnownKubeAdmissionPlugin(k) {
+			continue
+		}
 		outV, err := ToAdmissionPluginConfig(v)
 		if err != nil {
 			return nil, err
@@ -64,6 +68,16 @@ func ToAdmissionPluginConfigMap(in map[string]*legacyconfigv1.AdmissionPluginCon
 	}
 
 	return out, nil
+}
+
+func isKnownKubeAdmissionPlugin(pluginName string) bool {
+	for _, plugin := range admission.KubeAdmissionPlugins {
+		if pluginName == plugin {
+			return true
+		}
+	}
+
+	return false
 }
 
 func ToMasterAuthConfig(in *legacyconfigv1.MasterAuthConfig) (out kubecontrolplanev1.MasterAuthConfig, err error) {
