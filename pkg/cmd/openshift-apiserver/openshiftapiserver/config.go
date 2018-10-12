@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	swagger "github.com/emicklei/go-restful-swagger12"
+	"github.com/emicklei/go-restful-swagger12"
 	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/admission"
@@ -27,7 +27,6 @@ import (
 	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -175,10 +174,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	}
 	imageLimitVerifier := ImageLimitVerifier(informers.internalKubernetesInformers.Core().InternalVersion().LimitRanges())
 
-	// sccStorage must use the upstream RESTOptionsGetter to be in the correct location
-	// this probably creates a duplicate cache, but there are not very many SCCs, so live with it to avoid further linkage
-	sccStorage := sccstorage.NewREST(genericConfig.RESTOptionsGetter)
-
 	var caData []byte
 	if len(config.ImagePolicyConfig.AdditionalTrustedCA) != 0 {
 		glog.V(2).Infof("Image import using additional CA path: %s", config.ImagePolicyConfig.AdditionalTrustedCA)
@@ -226,7 +221,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 			ProjectRequestMessage:              config.ProjectConfig.ProjectRequestMessage,
 			ClusterQuotaMappingController:      clusterQuotaMappingController,
 			RESTMapper:                         restMapper,
-			SCCStorage:                         sccStorage,
 			ServiceAccountMethod:               string(config.ServiceAccountOAuthGrantMethod),
 		},
 	}
