@@ -91,35 +91,6 @@ To run this example:
 On the first pipeline run, there will be a delay as Jenkins is instantiated for the project. 
 When the pipeline completes, the openshift-jee-sample application should be deployed and running.
 
-## Orchestration Pipeline Example
-
-The `mapsapp-pipeline.yaml` template contains a pipeline that instantiates other pipelines and runs them.
-It shows how more than one pipeline can be launched in parallel and how a single Jenkins pipeline
-can work with multiple source code repositories.
-
-To run this example:
-
-1. Ensure that you have a running OpenShift environment as described in the basic example
-2. Create a new project for your pipeline on the OpenShift web console:
-   1. Login 
-   2. Click on *New Project*
-   3. Enter a project name
-   4. Click *Create*
-3. In the *Add to Project* page, click on *Import YAML/JSON*
-4. In a separate browser tab, navigate to [mapsapp-pipeline.yaml](https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/mapsapp-pipeline.yaml) and copy its content.
-5. Paste the YAML text in the text box of the *Import YAML/JSON* tab.
-6. Click on *Create*
-7. Leave *Process the template* checked and click on *Continue*
-8. Modify the URLs and References of the sample repositories if you have created your own forks.
-9. Click on *Create*
-10. Navigate to *Builds* -> *Pipelines*
-11. Click on *Start Pipeline* next to *mapsapp-pipeline*
-
-On the first pipeline run, there will be a delay as Jenkins is instantiated for the project. The pipeline will instantiate 
-other pipelines and those will in turn instantiate OpenShift objects. Once the pipeline has completed, a maps frontend 
-should be running with 2 backends: nationalparks and mlbparks.
-
-
 ## Blue Green Deployment Example
 
 The `bluegreen-pipeline.yaml` template contains a pipeline that demonstrates alternating blue/green 
