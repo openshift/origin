@@ -143,7 +143,7 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 		Use:     "extract",
 		Short:   "Copy files from an image to the filesystem",
 		Long:    desc,
-		Example: fmt.Sprintf(example, name),
+		Example: fmt.Sprintf(example, name+" extract"),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(c, args))
 			kcmdutil.CheckErr(o.Run())
