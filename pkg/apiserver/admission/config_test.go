@@ -117,8 +117,8 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 				},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
-				isKube := reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins)
-				isOrigin := reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins)
+				isKube := reflect.DeepEqual(pluginNames, KubeAdmissionPlugins)
+				isOrigin := reflect.DeepEqual(pluginNames, openshiftAdmissionControlPlugins)
 				if !isKube && !isOrigin {
 					t.Errorf("%s: expected either %v or %v, got %v", "specified conflicting plugin configs 01", KubeAdmissionPlugins, openshiftAdmissionControlPlugins, pluginNames)
 				}

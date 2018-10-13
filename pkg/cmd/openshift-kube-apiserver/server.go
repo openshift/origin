@@ -43,6 +43,7 @@ func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.Kub
 	kubeDefaultOffAdmission := options.DefaultOffAdmissionPlugins
 	options.DefaultOffAdmissionPlugins = func() sets.String {
 		kubeOff := kubeDefaultOffAdmission()
+		kubeOff.Insert(originadmission.DefaultOffPlugins.List()...)
 		kubeOff.Delete(originadmission.DefaultOnPlugins.List()...)
 		return kubeOff
 	}

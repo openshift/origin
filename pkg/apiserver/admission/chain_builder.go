@@ -208,7 +208,7 @@ func NewAdmissionChains(
 		admissionPluginConfigFilename = tempFile.Name()
 	}
 
-	admissionPluginNames := CombinedAdmissionControlPlugins
+	admissionPluginNames := openshiftAdmissionControlPlugins
 	admissionPluginNames = fixupAdmissionPlugins(admissionPluginNames)
 
 	admissionChain, err := newAdmissionChainFunc(admissionPluginNames, admissionPluginConfigFilename, admissionInitializer, admissionDecorator)
