@@ -122,13 +122,6 @@
     "checkedPackageRoots": [
       "github.com/openshift/origin/pkg"
     ],
-    "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/build/builder",
-      "github.com/openshift/origin/pkg/cmd/infra/builder"
-    ],
-    "forbiddenImportPackageRoots": [
-      "github.com/openshift/origin/pkg/build/builder"
-    ],
     "allowedImportPackageRoots": [
       "vendor",
       ""
@@ -560,7 +553,6 @@
       "github.com/openshift/origin/pkg/bulk",
       "github.com/openshift/origin/pkg/client/config",
       "github.com/openshift/origin/pkg/cmd/flagtypes",
-      "github.com/openshift/origin/pkg/cmd/infra/builder",
       "github.com/openshift/origin/pkg/cmd/infra/deployer",
       "github.com/openshift/origin/pkg/cmd/infra/router",
       "github.com/openshift/origin/pkg/cmd/recycle",
