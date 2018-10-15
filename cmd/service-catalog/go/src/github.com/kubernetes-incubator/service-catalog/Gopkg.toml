@@ -71,7 +71,7 @@ required = [
 
 [[constraint]]
   name = "github.com/pmorie/go-open-service-broker-client"
-  version = "0.0.4"
+  version = "0.0.4-connection-close"
 
 [prune]
   non-go = true

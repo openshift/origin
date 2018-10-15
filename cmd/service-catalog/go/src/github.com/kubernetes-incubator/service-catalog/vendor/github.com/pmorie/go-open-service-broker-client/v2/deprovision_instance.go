@@ -25,6 +25,11 @@ func (c *client) DeprovisionInstance(r *DeprovisionRequest) (*DeprovisionRespons
 		return nil, err
 	}
 
+	defer func() {
+		drainReader(response.Body)
+		response.Body.Close()
+	}()
+
 	switch response.StatusCode {
 	case http.StatusOK, http.StatusGone:
 		return &DeprovisionResponse{}, nil
