@@ -58,7 +58,6 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 			})
 
 			g.It("should contain secrets during the source strategy build", func() {
-				g.Skip("TODO: expect secret files to be missing, not truncated")
 				g.By("creating test build config")
 				err := oc.Run("create").Args("-f", sourceBuildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

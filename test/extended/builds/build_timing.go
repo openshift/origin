@@ -61,7 +61,6 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 		})
 
 		g.It("should record build stages and durations for s2i", func() {
-			g.Skip("TODO: re-enable once we're on dockerless builds")
 			expectedBuildStages := make(map[string][]string)
 			expectedBuildStages["PullImages"] = []string{"", "1000s"}
 			expectedBuildStages["Build"] = []string{"10ms", "1000s"}
@@ -83,7 +82,6 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 		})
 
 		g.It("should record build stages and durations for docker", func() {
-			g.Skip("TODO: re-enable once we're on dockerless builds")
 			expectedBuildStages := make(map[string][]string)
 			expectedBuildStages["PullImages"] = []string{"", "1000s"}
 			expectedBuildStages["Build"] = []string{"10ms", "1000s"}

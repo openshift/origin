@@ -8,13 +8,8 @@ configMaps=(foo this red)
 function checkSecret() {
     dir=$1
     file=$2
-    if [[ -a "${dir}/${file}" ]]; then
-        if [[ -s "${dir}/${file}" ]]; then
-            echo "Found secret file which should have been truncated: ${dir}/${file}"
-            exit 1
-        fi
-    else
-        echo "Secret file ${file} is missing from ${dir}."
+    if [[ -e "${dir}/${file}" ]]; then
+        echo "Found secret file which should have been deleted: ${dir}/${file}"
         exit 1
     fi
 }
