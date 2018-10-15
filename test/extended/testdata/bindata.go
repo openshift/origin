@@ -33657,12 +33657,10 @@ objects:
         volumes:
         - name: serving-cert
           secret:
-            defaultMode: 400
             secretName: openshift-web-console-operator-serving-cert
             optional: true
         - name: config
           configMap:
-            defaultMode: 440
             name: openshift-web-console-operator-config
 
 - apiVersion: v1
