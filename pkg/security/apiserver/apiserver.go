@@ -25,12 +25,9 @@ import (
 
 type ExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
-	// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
-	// so we have to have it special cased here to point to the right spot.
-	SCCStorage            *sccstorage.REST
-	SecurityInformers     securityinformer.SharedInformerFactory
-	KubeInternalInformers kinternalinformers.SharedInformerFactory
-	Authorizer            authorizer.Authorizer
+	SecurityInformers         securityinformer.SharedInformerFactory
+	KubeInternalInformers     kinternalinformers.SharedInformerFactory
+	Authorizer                authorizer.Authorizer
 
 	// TODO these should all become local eventually
 	Scheme *runtime.Scheme
@@ -109,11 +106,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, err
 	}
 
-	sccStorage := c.ExtraConfig.SCCStorage
-	// TODO allow this when we're sure that its storing correctly and we want to allow starting up without embedding kube
-	if false && sccStorage == nil {
-		sccStorage = sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
-	}
+	sccStorage := sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
 	sccMatcher := oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister(), c.ExtraConfig.Authorizer)
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
 		sccMatcher,

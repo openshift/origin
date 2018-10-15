@@ -50,7 +50,6 @@ import (
 	routeapiserver "github.com/openshift/origin/pkg/route/apiserver"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
-	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
@@ -111,10 +110,6 @@ type OpenshiftAPIExtraConfig struct {
 	ServiceAccountMethod string
 
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
-
-	// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
-	// so we have to have it special cased here to point to the right spot.
-	SCCStorage *sccstorage.REST
 }
 
 // Validate helps ensure that we build this config correctly, because there are lots of bits to remember for now
@@ -448,14 +443,11 @@ func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserv
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: securityapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
-			// so we have to have it special cased here to point to the right spot.
-			SCCStorage:            c.ExtraConfig.SCCStorage,
-			SecurityInformers:     c.ExtraConfig.SecurityInformers,
-			KubeInternalInformers: c.ExtraConfig.KubeInternalInformers,
-			Authorizer:            c.GenericConfig.Authorization.Authorizer,
-			Codecs:                legacyscheme.Codecs,
-			Scheme:                legacyscheme.Scheme,
+			SecurityInformers:         c.ExtraConfig.SecurityInformers,
+			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
+			Authorizer:                c.GenericConfig.Authorization.Authorizer,
+			Codecs:                    legacyscheme.Codecs,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()

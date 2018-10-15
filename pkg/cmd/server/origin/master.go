@@ -13,7 +13,6 @@ import (
 	apiserver "k8s.io/apiserver/pkg/server"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
-	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
@@ -21,15 +20,10 @@ import (
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin/legacyconfigprocessing"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )
 
 func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*openshiftapiserver.OpenshiftAPIConfig, error) {
-	// sccStorage must use the upstream RESTOptionsGetter to be in the correct location
-	// this probably creates a duplicate cache, but there are not very many SCCs, so live with it to avoid further linkage
-	sccStorage := sccstorage.NewREST(kubeAPIServerConfig.RESTOptionsGetter)
-
 	// make a shallow copy to let us twiddle a few things
 	// most of the config actually remains the same.  We only need to mess with a couple items
 	genericConfig := kubeAPIServerConfig
@@ -87,7 +81,6 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 			ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
 			ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
 			RESTMapper:                         c.RESTMapper,
-			SCCStorage:                         sccStorage,
 		},
 	}
 	if c.Options.OAuthConfig != nil {
@@ -126,8 +119,6 @@ func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTa
 	if err != nil {
 		return nil, err
 	}
-	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
-	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.ExtraConfig.SCCStorage)
 
 	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(delegateAPIServer, true)
 	if err != nil {

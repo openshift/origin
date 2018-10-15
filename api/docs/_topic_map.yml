@@ -35,8 +35,6 @@
     File: v1.ResourceQuota
   - Name: v1.Secret
     File: v1.Secret
-  - Name: v1.SecurityContextConstraints
-    File: v1.SecurityContextConstraints
   - Name: v1.Service
     File: v1.Service
   - Name: v1.ServiceAccount

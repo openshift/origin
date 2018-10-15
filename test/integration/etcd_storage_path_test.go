@@ -327,7 +327,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	// github.com/openshift/origin/pkg/security/apis/security/v1
 	gvr("security.openshift.io", "v1", "securitycontextconstraints"): {
 		stub:             `{"allowPrivilegedContainer": true, "fsGroup": {"type": "RunAsAny"}, "metadata": {"name": "scc2"}, "runAsUser": {"type": "RunAsAny"}, "seLinuxContext": {"type": "MustRunAs"}, "supplementalGroups": {"type": "RunAsAny"}}`,
-		expectedEtcdPath: "kubernetes.io/securitycontextconstraints/scc2",
+		expectedEtcdPath: "openshift.io/securitycontextconstraints/scc2",
 	},
 	gvr("security.openshift.io", "v1", "rangeallocations"): {
 		stub:             `{"metadata": {"name": "scc2"}}`,
@@ -418,11 +418,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "namespaces"): {
 		stub:             `{"metadata": {"name": "namespace1"}, "spec": {"finalizers": ["kubernetes"]}}`,
 		expectedEtcdPath: "kubernetes.io/namespaces/namespace1",
-	},
-	gvr("", "v1", "securitycontextconstraints"): {
-		stub:             `{"allowPrivilegedContainer": true, "fsGroup": {"type": "RunAsAny"}, "metadata": {"name": "scc1"}, "runAsUser": {"type": "RunAsAny"}, "seLinuxContext": {"type": "MustRunAs"}, "supplementalGroups": {"type": "RunAsAny"}}`,
-		expectedEtcdPath: "kubernetes.io/securitycontextconstraints/scc1",
-		expectedGVK:      gvkP("security.openshift.io", "v1", "SecurityContextConstraints"),
 	},
 	gvr("", "v1", "nodes"): {
 		stub:             `{"metadata": {"name": "node1"}, "spec": {"unschedulable": true}}`,
