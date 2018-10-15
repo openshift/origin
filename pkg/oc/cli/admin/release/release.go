@@ -17,6 +17,9 @@ func NewCmd(f kcmdutil.Factory, parentName string, streams genericclioptions.IOS
 
 			Experimental: This command is under active development and may change without notice.
 			`),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
 	}
 	cmd.AddCommand(NewRelease(f, parentName+" release", streams))
 	cmd.AddCommand(NewExtract(f, parentName+" release", streams))
