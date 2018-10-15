@@ -46,9 +46,6 @@ var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", f
 		g.Describe("testing postCommit hook", func() {
 
 			g.It("should run s2i postCommit hooks", func() {
-				// https://github.com/containers/buildah/pull/1033
-				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
-
 				oc.Run("create").Args("-f", imagestreamFixture).Execute()
 				oc.Run("create").Args("-f", s2iBuildFixture).Execute()
 
@@ -123,9 +120,6 @@ var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", f
 			})
 
 			g.It("should run docker postCommit hooks", func() {
-				// https://github.com/containers/buildah/pull/1033
-				g.Skip("TODO: re-enable postcommit hook tests once buildah supports them properly")
-
 				oc.Run("create").Args("-f", imagestreamFixture).Execute()
 				oc.Run("create").Args("-f", dockerBuildFixture).Execute()
 
