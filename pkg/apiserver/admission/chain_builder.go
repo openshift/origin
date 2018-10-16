@@ -50,6 +50,7 @@ var (
 
 	// openshiftAdmissionControlPlugins gives the in-order default admission chain for openshift resources.
 	openshiftAdmissionControlPlugins = []string{
+		lifecycle.PluginName,
 		"ProjectRequestLimit",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
