@@ -131,6 +131,8 @@ var (
 		`failed to push image: denied`,
 		// docker daemon output >= 1.10
 		`^denied$`,
+		// buildah
+		`Error uploading manifest.*to.*: denied`,
 	}
 	// reExpectedDeniedError matches the output from `docker push` command when the push is denied. The output
 	// differs based on Docker version.
