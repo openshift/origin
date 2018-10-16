@@ -51,7 +51,6 @@ var (
 	// openshiftAdmissionControlPlugins gives the in-order default admission chain for openshift resources.
 	openshiftAdmissionControlPlugins = []string{
 		"ProjectRequestLimit",
-		"openshift.io/RestrictSubjectBindings",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
@@ -71,6 +70,7 @@ var (
 		"NamespaceExists",
 		lifecycle.PluginName,
 		"EventRateLimit",
+		"openshift.io/RestrictSubjectBindings",
 		"RunOnceDuration",
 		"PodNodeConstraints",
 		"OriginPodNodeEnvironment",
