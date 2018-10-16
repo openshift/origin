@@ -363,17 +363,30 @@ else
   # Docker-in-docker is not compatible with selinux
   disable-selinux
 
-  # Skip subnet and networkpolicy tests during a minimal test run
-  if [[ -z "${NETWORKING_E2E_MINIMAL}" ]]; then
-    # Ignore deployment errors for a given plugin to allow other plugins
-    # to be tested.
-    test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" || true
-    if kernel-supports-networkpolicy; then
+  # Override allowing the networkpolicy tests to be run on a specific network plugin
+  if [[ -n "${OPENSHIFT_NETWORK_PLUGIN}" ]]; then
+    if [[ "${OPENSHIFT_NETWORK_PLUGIN}" = "subnet" ]]; then
+      test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" || true
+    elif [[ "${OPENSHIFT_NETWORK_PLUGIN}" = "networkpolicy" ]]; then
       test-osdn-plugin "networkpolicy" "redhat/openshift-ovs-networkpolicy" || true
+    elif [[ "${OPENSHIFT_NETWORK_PLUGIN}" = "multitenant" ]]; then
+      test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" || true
     else
-      os::log::warning "Skipping networkpolicy tests due to kernel version"
+      echo "Unrecognized network plugin"
     fi
-  fi
+  else
+    # Skip subnet and networkpolicy tests during a minimal test run
+    if [[ -z "${NETWORKING_E2E_MINIMAL}" ]]; then
+      # Ignore deployment errors for a given plugin to allow other plugins
+      # to be tested.
+      test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" || true
+      if kernel-supports-networkpolicy; then
+        test-osdn-plugin "networkpolicy" "redhat/openshift-ovs-networkpolicy" || true
+      else
+        os::log::warning "Skipping networkpolicy tests due to kernel version"
+      fi
+    fi
 
-  test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" || true
+    test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" || true
+  fi
 fi
