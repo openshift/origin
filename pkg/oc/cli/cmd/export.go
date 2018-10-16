@@ -58,7 +58,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 		Short:      "Export resources so they can be used elsewhere",
 		Long:       exportLong,
 		Example:    fmt.Sprintf(exportExample, fullName),
-		Deprecated: "use the oc get --export",
+		Deprecated: "use the oc get --export -o yaml",
 		Hidden:     true,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunExport(f, exporter, in, out, cmd, args, filenames)
