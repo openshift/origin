@@ -123,6 +123,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 
 	// destination
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Skips changes to external registries via mirroring or pushing images.")
+	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP.")
 	flags.StringVar(&o.Mirror, "mirror", o.Mirror, "Mirror the contents of the release to this repository.")
 	flags.StringVar(&o.ToDir, "to-dir", o.ToDir, "Output the release manifests to a directory instead of creating an image.")
 	flags.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
@@ -164,7 +165,8 @@ type NewOptions struct {
 	ReleaseMetadata  string
 	PreviousVersions []string
 
-	DryRun bool
+	DryRun   bool
+	Insecure bool
 
 	ToFile         string
 	ToDir          string
@@ -352,6 +354,7 @@ func (o *NewOptions) Run() error {
 		buf := &bytes.Buffer{}
 		extractOpts := extract.NewOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
 		extractOpts.RegistryConfig = o.RegistryConfig
+		extractOpts.Insecure = o.Insecure
 		extractOpts.OnlyFiles = true
 		extractOpts.Mappings = []extract.Mapping{
 			{
@@ -759,6 +762,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 	var lock sync.Mutex
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.RegistryConfig = o.RegistryConfig
+	opts.Insecure = o.Insecure
 	opts.OnlyFiles = true
 	opts.MaxPerRegistry = o.MaxPerRegistry
 	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
@@ -771,6 +775,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 			Digest:    dgst,
 		}
 	}
+	opts.Insecure = o.Insecure
 
 	for i := range is.Spec.Tags {
 		tag := &is.Spec.Tags[i]
@@ -855,6 +860,7 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) er
 	copied := is.DeepCopy()
 	opts := NewMirrorOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.DryRun = o.DryRun
+	opts.Insecure = o.Insecure
 	opts.ImageStream = copied
 	opts.To = o.Mirror
 	opts.SkipRelease = true
@@ -978,7 +984,8 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 		options.RegistryConfig = o.RegistryConfig
 		options.DryRun = o.DryRun
-		options.From = toImageBase
+		options.Insecure = o.Insecure
+		options.From = o.ToImageBase
 		options.ConfigurationCallback = func(dgst digest.Digest, config *docker10.DockerImageConfig) error {
 			// reset any base image info
 			if len(config.OS) == 0 {

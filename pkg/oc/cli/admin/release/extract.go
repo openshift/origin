@@ -59,6 +59,7 @@ func NewExtract(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags := cmd.Flags()
 	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flags.StringVar(&o.GitExtractDir, "git", o.GitExtractDir, "Check out the sources that created this release into the provided dir. Repos will be created at <dir>/<host>/<path>. Requires 'git' on your path.")
+	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow pull operations from registries to be made over HTTP.")
 	flags.StringVar(&o.From, "from", o.From, "Image containing the release payload.")
 	flags.StringVar(&o.File, "file", o.File, "Extract a single file from the payload to standard output.")
 	flags.StringVar(&o.Directory, "to", o.Directory, "Directory to write release contents to, defaults to the current directory.")
@@ -77,6 +78,7 @@ type ExtractOptions struct {
 	File      string
 
 	RegistryConfig string
+	Insecure       bool
 
 	ImageMetadataCallback func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig)
 }
@@ -141,6 +143,7 @@ func (o *ExtractOptions) Run() error {
 	}
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.RegistryConfig = o.RegistryConfig
+	opts.Insecure = o.Insecure
 
 	switch {
 	case len(o.File) > 0:

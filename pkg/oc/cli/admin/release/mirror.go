@@ -68,6 +68,7 @@ func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.
 	flags.StringVar(&o.From, "from", o.From, "Image containing the release payload.")
 	flags.StringVar(&o.To, "to", o.To, "An image repository to push to.")
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Display information about the mirror without actually executing it.")
+	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP.")
 
 	flags.BoolVar(&o.SkipRelease, "skip-release-image", o.SkipRelease, "Do not push the release image.")
 	flags.StringVar(&o.ToRelease, "to-release-image", o.ToRelease, "Specify an alternate locations for the release image instead as tag 'release' in --to")
@@ -85,6 +86,7 @@ type MirrorOptions struct {
 
 	RegistryConfig string
 	DryRun         bool
+	Insecure       bool
 
 	ImageStream *imageapi.ImageStream
 	TargetFn    func(component string) imagereference.DockerImageReference
@@ -161,6 +163,7 @@ func (o *MirrorOptions) Run() error {
 		extractOpts := NewExtractOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
 		extractOpts.RegistryConfig = o.RegistryConfig
 		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {}
+		extractOpts.Insecure = o.Insecure
 		extractOpts.From = o.From
 		extractOpts.File = "image-references"
 		if err := extractOpts.Run(); err != nil {
@@ -237,6 +240,7 @@ func (o *MirrorOptions) Run() error {
 	opts.RegistryConfig = o.RegistryConfig
 	opts.Mappings = mappings
 	opts.DryRun = o.DryRun
+	opts.Insecure = o.Insecure
 	opts.ManifestUpdateCallback = func(registry string, manifests map[digest.Digest]digest.Digest) error {
 		lock.Lock()
 		defer lock.Unlock()
