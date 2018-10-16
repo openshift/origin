@@ -113,10 +113,13 @@ const (
 	// Same as `PodStartTimeout` to wait for the pod to be started, but shorter.
 	// Use it case by case when we are sure pod start will not be delayed
 	// minutes by slow docker pulls or something else.
-	PodStartShortTimeout = 1 * time.Minute
+	PodStartShortTimeout = 2 * time.Minute
 
 	// How long to wait for a pod to be deleted
 	PodDeleteTimeout = 5 * time.Minute
+
+	// PodEventTimeout is how much we wait for a pod event to occur.
+	PodEventTimeout = 2 * time.Minute
 
 	// If there are any orphaned namespaces to clean up, this test is running
 	// on a long lived cluster. A long wait here is preferably to spurious test
@@ -1434,6 +1437,29 @@ func podRunning(c clientset.Interface, podName, namespace string) wait.Condition
 			return false, conditions.ErrPodCompleted
 		}
 		return false, nil
+	}
+}
+
+// WaitTimeoutForPodEvent waits for an event to occur for a pod
+func WaitTimeoutForPodEvent(c clientset.Interface, podName, namespace, eventSelector, msg string, timeout time.Duration) error {
+	return wait.PollImmediate(Poll, timeout, eventOccured(c, podName, namespace, eventSelector, msg))
+}
+
+func eventOccured(c clientset.Interface, podName, namespace, eventSelector, msg string) wait.ConditionFunc {
+	options := metav1.ListOptions{FieldSelector: eventSelector}
+	return func() (bool, error) {
+		events, err := c.CoreV1().Events(namespace).List(options)
+		if err != nil {
+			return false, fmt.Errorf("got error while getting pod events: %s", err)
+		}
+		if len(events.Items) == 0 {
+			return false, fmt.Errorf("no events found")
+		}
+		if strings.Contains(events.Items[0].Message, msg) {
+			return false, fmt.Errorf("%q error not found", msg)
+		} else {
+			return true, nil
+		}
 	}
 }
 
