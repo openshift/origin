@@ -269,7 +269,7 @@ func (o *NewOptions) Run() error {
 		if err != nil {
 			return fmt.Errorf("unable to load payload from release contents: %v", err)
 		}
-		is = inputIS
+		is = inputIS.DeepCopy()
 		if is.Annotations == nil {
 			is.Annotations = map[string]string{}
 		}
@@ -538,13 +538,22 @@ func (o *NewOptions) Run() error {
 			if err != nil {
 				return err
 			}
-			if err := payload.Rewrite(targetFn); err != nil {
+			if err := payload.Rewrite(false, targetFn); err != nil {
 				return fmt.Errorf("failed to update contents after mirroring: %v", err)
 			}
 			is, err = payload.References()
 			if err != nil {
 				return fmt.Errorf("unable to recalculate image references: %v", err)
 			}
+		}
+	} else if payload != nil && len(o.Mappings) > 0 {
+		glog.V(4).Infof("Rewriting payload for the input mappings")
+		targetFn, err := ComponentReferencesForImageStream(is)
+		if err != nil {
+			return err
+		}
+		if err := payload.Rewrite(true, targetFn); err != nil {
+			return fmt.Errorf("failed to update contents for input mappings: %v", err)
 		}
 	}
 
