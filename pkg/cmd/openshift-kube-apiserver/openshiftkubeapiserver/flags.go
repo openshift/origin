@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -152,8 +153,7 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	setIfUnset(args, "tls-cipher-suites", kubeAPIServerConfig.ServingInfo.CipherSuites...)
 	setIfUnset(args, "tls-min-version", kubeAPIServerConfig.ServingInfo.MinTLSVersion)
 	setIfUnset(args, "tls-private-key-file", kubeAPIServerConfig.ServingInfo.KeyFile)
-	// TODO re-enable SNI for cluster up
-	// tls-sni-cert-key
+	setIfUnset(args, "tls-sni-cert-key", sniCertKeys(kubeAPIServerConfig.ServingInfo.NamedCertificates)...)
 	setIfUnset(args, "secure-port", portString)
 
 	var keys []string
@@ -277,4 +277,12 @@ func admissionFlags(admissionPluginConfig map[string]configv1.AdmissionPluginCon
 	setIfUnset(args, "enable-admission-plugins", forceOn...)
 
 	return args, nil
+}
+
+func sniCertKeys(namedCertificates []configv1.NamedCertificate) []string {
+	args := []string{}
+	for _, nc := range namedCertificates {
+		args = append(args, fmt.Sprintf("%s,%s:%s", nc.CertFile, nc.KeyFile, strings.Join(nc.Names, ",")))
+	}
+	return args
 }
