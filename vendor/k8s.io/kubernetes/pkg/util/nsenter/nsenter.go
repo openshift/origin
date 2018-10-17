@@ -122,3 +122,33 @@ func (ne *Nsenter) SupportsSystemd() (string, bool) {
 	systemdRunPath, hasSystemd := ne.paths["systemd-run"]
 	return systemdRunPath, hasSystemd
 }
+
+// EvalSymlinks returns the path name on the host after evaluating symlinks on the
+// host.
+// mustExist makes EvalSymlinks to return error when the path does not
+// exist. When it's false, it evaluates symlinks of the existing part and
+// blindly adds the non-existing part:
+// pathname: /mnt/volume/non/existing/directory
+//     /mnt/volume exists
+//                non/existing/directory does not exist
+// -> It resolves symlinks in /mnt/volume to say /mnt/foo and returns
+//    /mnt/foo/non/existing/directory.
+//
+// BEWARE! EvalSymlinks is not able to detect symlink looks with mustExist=false!
+// If /tmp/link is symlink to /tmp/link, EvalSymlinks(/tmp/link/foo) returns /tmp/link/foo.
+func (ne *Nsenter) EvalSymlinks(pathname string, mustExist bool) (string, error) {
+	var args []string
+	if mustExist {
+		// "realpath -e: all components of the path must exist"
+		args = []string{"-e", pathname}
+	} else {
+		// "realpath -m: no path components need exist or be a directory"
+		args = []string{"-m", pathname}
+	}
+	outBytes, err := ne.Exec("realpath", args).CombinedOutput()
+	if err != nil {
+		glog.Infof("failed to resolve symbolic links on %s: %v", pathname, err)
+		return "", err
+	}
+	return strings.TrimSpace(string(outBytes)), nil
+}
