@@ -112,7 +112,7 @@ func NewCmdAppendImage(name string, streams genericclioptions.IOStreams) *cobra.
 		Use:     "append",
 		Short:   "Add layers to images and push them to a registry",
 		Long:    desc,
-		Example: fmt.Sprintf(example, name),
+		Example: fmt.Sprintf(example, name+" append"),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(c, args))
 			kcmdutil.CheckErr(o.Run())
