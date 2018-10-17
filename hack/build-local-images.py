@@ -46,12 +46,16 @@ Examples:
   # build with a different image prefix
   OS_IMAGE_PREFIX=openshift3/ose build-local-images.sh
 
+  # build with a different tag
+  OS_IMAGE_TAG=v3.x.y build-local-images.sh
+
 Options:
   -h,--h, -help,--help: show this help-text
 """)
     exit(2)
 
 os_image_prefix = getenv("OS_IMAGE_PREFIX", "openshift/origin")
+os_image_tag = getenv("OS_IMAGE_TAG", "latest")
 image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 
 # "enable_default: True" can be added to skip the image build
@@ -252,7 +256,7 @@ for image in image_config:
     # re-pull the original image before building it so we're not accumulating layers each time we
     # rebuild the image.
     call(["docker", "pull", full_name(image) + ":" + image_config[image]["tag"]])
-    call(["docker", "build", "-t", full_name(image), "."], cwd=context_dir)
+    call(["docker", "build", "-t", full_name(image) + ":" + os_image_tag, "."], cwd=context_dir)
 
     remove(join(context_dir, "Dockerfile"))
     rmtree(join(context_dir, "src", image))
