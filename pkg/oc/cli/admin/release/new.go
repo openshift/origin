@@ -47,12 +47,12 @@ func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
 func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewNewOptions(streams)
 	cmd := &cobra.Command{
-		Use:   "new",
+		Use:   "new [SRC=DST ...]",
 		Short: "Create a new OpenShift release",
 		Long: templates.LongDesc(`
 			OpenShift uses long-running active management processes called "operators" to
-			keep the cluster running and manage component lifecycle. This command assists
-			composing a set of images and operator definitions into a single update payload
+			keep the cluster running and manage component lifecycle. This command
+			composes a set of images and operator definitions into a single update payload
 			that can be used to update a cluster.
 
 			Operators are expected to host the config they need to be installed to a cluster
@@ -65,6 +65,14 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 			prepend '0000_' to their filename, which instructs the release builder to not
 			assign a component prefix. Only images with the label
 			'release.openshift.io/operator=true' are considered to be included.
+
+			Mappings specified via SRC=DST positional arguments allows overriding particular
+			operators with a specific image.  For example:
+
+			cluster-version-operator=registry.example.com/openshift/cluster-version-operator:test-123
+
+			will override the default cluster-version-operator image with one pulled from
+			registry.example.com.
 
 			Experimental: This command is under active development and may change without notice.
 		`),
