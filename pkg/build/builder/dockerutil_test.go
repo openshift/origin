@@ -51,6 +51,9 @@ func fakePushImageFunc(opts docker.PushImageOptions, auth docker.AuthConfigurati
 		return errors.New(RetriableErrors[0])
 	case "tag_test_err_no_exist_foo_bar":
 		return errors.New("no_exist_err_foo_bar")
+	case "tag_test_err_no_exist_progress_only":
+		_, _ = opts.OutputStream.Write([]byte(`{"error":"no_exist_progress_only"}`)) // Ignore error even if returned from the progressWriter, test that progressWriter.Close is used.
+		return nil                                                                   // Don't fail the PushImage either, we want to ensure the progres parser detects this
 	}
 	return nil
 }
@@ -64,6 +67,9 @@ func fakePullImageFunc(opts docker.PullImageOptions, auth docker.AuthConfigurati
 		return errors.New(RetriableErrors[0])
 	case "repo_test_err_no_exist_foo_bar":
 		return errors.New("no_exist_err_foo_bar")
+	case "repo_test_err_no_exist_progress_only":
+		_, _ = opts.OutputStream.Write([]byte(`{"error":"no_exist_progress_only"}`)) // Ignore error even if returned from the progressWriter, test that progressWriter.Close is used.
+		return nil                                                                   // Don't fail the PullImage either, we want to ensure the progres parser detects this
 	}
 	return nil
 }
@@ -202,6 +208,12 @@ func TestPushImage(t *testing.T) {
 		t.Errorf("Unexpect push image : %v, want error", err)
 	}
 	defer func() { fooBarRunTimes = 0 }()
+
+	//expect fail
+	testImageName = "repo_foo_bar:tag_test_err_no_exist_progress_only"
+	if _, err := pushImage(fakeDocker, testImageName, testAuth); err == nil {
+		t.Errorf("Unexpect push image : %v, want error", err)
+	}
 }
 
 func TestPullImage(t *testing.T) {
@@ -248,6 +260,12 @@ func TestPullImage(t *testing.T) {
 		t.Errorf("Unexpect pull image : %v, want error", err)
 	}
 	defer func() { fooBarRunTimes = 0 }()
+
+	//expect fail
+	testImageName = "repo_test_err_no_exist_progress_only"
+	if err := pullImage(fakeDocker, testImageName, testAuth); err == nil {
+		t.Errorf("Unexpect pull image : %v, want error", err)
+	}
 }
 
 func TestGetContainerNameOrID(t *testing.T) {

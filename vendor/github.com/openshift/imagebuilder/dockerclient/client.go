@@ -578,24 +578,33 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	}
 	for _, config := range auth {
 		// TODO: handle IDs?
-		pullWriter := imageprogress.NewPullWriter(outputProgress)
-		defer pullWriter.Close()
+		var pullErr error
+		func() { // A scope for defer
+			pullWriter := imageprogress.NewPullWriter(outputProgress)
+			defer func() {
+				err := pullWriter.Close()
+				if pullErr == nil {
+					pullErr = err
+				}
+			}()
 
-		pullImageOptions := docker.PullImageOptions{
-			Repository:    repository,
-			Tag:           tag,
-			OutputStream:  pullWriter,
-			RawJSONStream: true,
-		}
-		if glog.V(5) {
-			pullImageOptions.OutputStream = os.Stderr
-			pullImageOptions.RawJSONStream = false
-		}
-		authConfig := docker.AuthConfiguration{Username: config.Username, ServerAddress: config.ServerAddress, Password: config.Password}
-		if err = e.Client.PullImage(pullImageOptions, authConfig); err == nil {
+			pullImageOptions := docker.PullImageOptions{
+				Repository:    repository,
+				Tag:           tag,
+				OutputStream:  pullWriter,
+				RawJSONStream: true,
+			}
+			if glog.V(5) {
+				pullImageOptions.OutputStream = os.Stderr
+				pullImageOptions.RawJSONStream = false
+			}
+			authConfig := docker.AuthConfiguration{Username: config.Username, ServerAddress: config.ServerAddress, Password: config.Password}
+			pullErr = e.Client.PullImage(pullImageOptions, authConfig)
+		}()
+		if pullErr == nil {
 			break
 		}
-		lastErr = err
+		lastErr = pullErr
 		continue
 	}
 	if lastErr != nil {
