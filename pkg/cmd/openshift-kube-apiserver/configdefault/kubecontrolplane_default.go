@@ -79,5 +79,4 @@ func SetRecommendedKubeletConnectionInfoDefaults(config *kubecontrolplanev1.Kube
 	}
 	configdefaults.DefaultString(&config.CertInfo.KeyFile, "/var/run/secrets/kubelet-client/tls.key")
 	configdefaults.DefaultString(&config.CertInfo.CertFile, "/var/run/secrets/kubelet-client/tls.crt")
-	configdefaults.DefaultString(&config.CA, "/var/run/configmaps/kubelet-serving-ca/ca-bundle.crt")
 }
