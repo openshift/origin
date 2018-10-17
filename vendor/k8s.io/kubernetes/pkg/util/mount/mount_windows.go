@@ -263,6 +263,11 @@ func (mounter *Mounter) ExistsPath(pathname string) bool {
 	return true
 }
 
+// EvalHostSymlinks returns the path name after evaluating symlinks
+func (mounter *Mounter) EvalHostSymlinks(pathname string) (string, error) {
+	return filepath.EvalSymlinks(pathname)
+}
+
 // check whether hostPath is within volume path
 // this func will lock all intermediate subpath directories, need to close handle outside of this func after container started
 func lockAndCheckSubPath(volumePath, hostPath string) ([]uintptr, error) {

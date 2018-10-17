@@ -110,6 +110,10 @@ func (mounter *Mounter) ExistsPath(pathname string) bool {
 	return true
 }
 
+func (mounter *Mounter) EvalHostSymlinks(pathname string) (string, error) {
+	return "", errors.New("not implemented")
+}
+
 func (mounter *Mounter) PrepareSafeSubpath(subPath Subpath) (newHostPath string, cleanupAction func(), err error) {
 	return subPath.Path, nil, nil
 }

@@ -87,6 +87,10 @@ func (*NsenterMounter) ExistsPath(pathname string) bool {
 	return true
 }
 
+func (*NsenterMounter) EvalHostSymlinks(pathname string) (string, error) {
+	return "", errors.New("not implemented")
+}
+
 func (*NsenterMounter) SafeMakeDir(pathname string, base string, perm os.FileMode) error {
 	return nil
 }
