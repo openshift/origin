@@ -73,6 +73,8 @@ const (
 	BuildCancelledEventReason = "BuildCancelled"
 	// BuildCancelledEventMessage is the message associated with the event registered when build is cancelled.
 	BuildCancelledEventMessage = "Build %s/%s has been cancelled"
+	// BuildServiceCAKey is the ConfigMap key used to contain the service signer certificate authority used by the build.
+	BuildServiceCAKey = "service-ca.crt"
 )
 
 const (
@@ -88,6 +90,7 @@ const (
 const (
 	StatusMessageCannotCreateBuildPodSpec        = "Failed to create pod spec."
 	StatusMessageCannotCreateBuildPod            = "Failed creating build pod."
+	StatusMessageCannotCreateCAConfigMap         = "Failed creating build certificate authority configMap."
 	StatusMessageInvalidOutputRef                = "Output image could not be resolved."
 	StatusMessageInvalidImageRef                 = "Referenced image could not be resolved."
 	StatusMessageBuildPodDeleted                 = "The pod for this build was deleted before the build completed."
