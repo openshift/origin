@@ -80,7 +80,6 @@ kube::util::cleanup-temp-dir() {
 kube::util::ensure-temp-dir() {
   if [[ -z ${KUBE_TEMP-} ]]; then
     KUBE_TEMP=$(mktemp -d 2>/dev/null || mktemp -d -t kubernetes.XXXXXX)
-    kube::util::trap_add kube::util::cleanup-temp-dir EXIT
   fi
 }
 
@@ -625,20 +624,20 @@ kind: Config
 clusters:
   - cluster:
       certificate-authority: ${ca_file}
-      server: https://${api_host}:${api_port}/
-    name: local-up-cluster
+      server: https://${api_host}:${api_port}
+    name: localhost:8443
 users:
   - user:
       token: ${token}
       client-certificate: ${dest_dir}/client-${client_id}.crt
       client-key: ${dest_dir}/client-${client_id}.key
-    name: local-up-cluster
+    name: system:admin/localhost:8443
 contexts:
   - context:
-      cluster: local-up-cluster
-      user: local-up-cluster
-    name: local-up-cluster
-current-context: local-up-cluster
+      cluster: localhost:8443
+      user: system:admin/localhost:8443
+    name: /localhost:8443/system:admin
+current-context: /localhost:8443/system:admin
 EOF
 
     # flatten the kubeconfig files to make them self contained

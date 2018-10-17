@@ -14,8 +14,8 @@ trap os::test::junit::reconcile_output EXIT
   oc delete groups/orphaned-group
   oc delete users/cascaded-user
   oc delete users/orphaned-user
-  oc delete identities/anypassword:orphaned-user
-  oc delete identities/anypassword:cascaded-user
+  oc delete identities/alwaysallow:orphaned-user
+  oc delete identities/alwaysallow:cascaded-user
   oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"
 ) &>/dev/null
 
@@ -24,19 +24,11 @@ project="$( oc project -q )"
 defaultimage="openshift/origin-\${component}:latest"
 USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
-export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
-
 os::test::junit::declare_suite_start "cmd/admin"
 # This test validates admin level commands including system policy
 
 os::test::junit::declare_suite_start "cmd/admin/start"
 # Check failure modes of various system commands
-os::cmd::expect_failure_and_text 'openshift-sdn' 'you must specify a configuration file with --config'
-os::cmd::expect_failure_and_text 'openshift-sdn --config=${NODECONFIG} --enable=kubelet' 'the following components are not recognized: kubelet'
-os::cmd::expect_failure_and_text 'openshift-sdn --config=${NODECONFIG} --enable=kubelet,other' 'the following components are not recognized: kubelet, other'
-os::cmd::expect_failure_and_text 'openshift-sdn --config=${NODECONFIG} --disable=other' 'the following components are not recognized: other'
-os::cmd::expect_failure_and_text 'openshift-sdn --config=${NODECONFIG} --disable=dns,proxy,plugins' 'at least one node component must be enabled \(dns, plugins, proxy\)'
-os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/manage-node"
 # Test admin manage-node operations
@@ -416,8 +408,8 @@ os::cmd::expect_success 'oc adm prune auth user/cascaded-user'
 os::cmd::expect_success 'oc delete user  cascaded-user'
 os::cmd::expect_success 'oc delete user  orphaned-user  --cascade=false'
 # Verify all identities remain
-os::cmd::expect_success 'oc get identities/anypassword:cascaded-user'
-os::cmd::expect_success 'oc get identities/anypassword:orphaned-user'
+os::cmd::expect_success 'oc get identities/alwaysallow:cascaded-user'
+os::cmd::expect_success 'oc get identities/alwaysallow:orphaned-user'
 # Verify orphaned user references are left
 os::cmd::expect_success_and_text     "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'orphaned-user'
 os::cmd::expect_success_and_text     "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'orphaned-user'
@@ -484,7 +476,7 @@ os::cmd::expect_success "oc delete is/busybox -n default"
 
 # log in as an image-pruner and test that oc adm prune images works against the atomic binary
 os::cmd::expect_success "oc adm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
-os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u pruner -p anything"
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u pruner -p anything"
 os::cmd::expect_success_and_text "oc adm prune images" "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 
 echo "images: ok"

@@ -158,7 +158,7 @@ function os::test::junit::generate_report() {
     if [[ -z "${JUNIT_REPORT_OUTPUT:-}" ||
           -n "${JUNIT_REPORT_OUTPUT:-}" && ! -s "${JUNIT_REPORT_OUTPUT:-}" ]]; then
         # we can't generate a report
-        return
+        return 0
     fi
 
     if grep -q "=== END TEST CASE ===" "${JUNIT_REPORT_OUTPUT}"; then
