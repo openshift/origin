@@ -32,7 +32,7 @@ func (p *Payload) Path() string {
 // If a new ID appears in the returned reference, it will be used instead of the existing digest.
 // All references in manifest files will be updated and then the image stream will be written to
 // the correct location with any updated metadata.
-func (p *Payload) Rewrite(fn func(component string) imagereference.DockerImageReference) error {
+func (p *Payload) Rewrite(allowTags bool, fn func(component string) imagereference.DockerImageReference) error {
 	is, err := p.References()
 	if err != nil {
 		return err
@@ -50,12 +50,16 @@ func (p *Payload) Rewrite(fn func(component string) imagereference.DockerImageRe
 			return fmt.Errorf("unable to parse image reference for tag %q from payload: %v", tag.Name, err)
 		}
 		if len(oldRef.Tag) > 0 || len(oldRef.ID) == 0 {
-			return fmt.Errorf("image reference tag %q in payload does not point to an image digest - unable to rewrite payload", tag.Name)
+			if !allowTags {
+				return fmt.Errorf("image reference tag %q in payload does not point to an image digest - unable to rewrite payload", tag.Name)
+			}
 		}
 		ref := fn(tag.Name)
-		if len(ref.ID) == 0 {
-			ref.Tag = ""
-			ref.ID = oldRef.ID
+		if !allowTags {
+			if len(ref.ID) == 0 {
+				ref.Tag = ""
+				ref.ID = oldRef.ID
+			}
 		}
 		newImage := ref.Exact()
 		replacements[oldImage] = newImage
