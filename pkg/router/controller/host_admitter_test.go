@@ -1131,3 +1131,121 @@ func TestHandleNamespaceProcessing(t *testing.T) {
 		}
 	}
 }
+
+func TestNonWildcardRoutesForDisabledNamespaceCheck(t *testing.T) {
+	p := &fakePlugin{}
+	recorder := rejectionRecorder{rejections: make(map[string]string)}
+	admitter := NewHostAdmitter(p, wildcardAdmitter, true, true, recorder)
+
+	oldest := metav1.Time{Time: time.Now()}
+
+	makeTime := func(d time.Duration) metav1.Time {
+		return metav1.Time{Time: oldest.Add(d)}
+	}
+
+	routes := []struct {
+		Name     string
+		Route    *routev1.Route
+		Wildcard bool
+		Rejected bool
+	}{
+		{
+			Name:     "r1-wildcard",
+			Route:    makeRoute("disns1", "r1", "wildcard.disable.ns.test", "", true, makeTime(0*time.Second)),
+			Wildcard: true,
+			Rejected: false,
+		},
+		{
+			Name:     "r2-plain",
+			Route:    makeRoute("disns2", "r2", "plain.disable.ns.test", "", false, makeTime(1*time.Second)),
+			Wildcard: false,
+			Rejected: false,
+		},
+		{
+			Name:     "r3-other",
+			Route:    makeRoute("disns3", "r3", "other.disable.ns.test", "", false, makeTime(2*time.Second)),
+			Wildcard: false,
+			Rejected: false,
+		},
+		{
+			Name:     "r4-another",
+			Route:    makeRoute("disns4", "r4", "another.disable.ns.test", "", false, makeTime(3*time.Second)),
+			Wildcard: false,
+			Rejected: false,
+		},
+		{
+			Name:     "r5-wildcard",
+			Route:    makeRoute("disns5", "r5", "wild2.disable.ns.test", "", true, makeTime(4*time.Second)),
+			Wildcard: true,
+			Rejected: true,
+		},
+		{
+			Name:     "r6-wildcard-duplicate",
+			Route:    makeRoute("disns6", "r6", "wildcard.disable.ns.test", "", true, makeTime(10*time.Second)),
+			Wildcard: true,
+			Rejected: true,
+		},
+		{
+			Name:     "r7-plain-duplicate",
+			Route:    makeRoute("disns7", "r7", "plain.disable.ns.test", "", false, makeTime(11*time.Second)),
+			Wildcard: false,
+			Rejected: true,
+		},
+		{
+			Name:     "r8-other-duplicate",
+			Route:    makeRoute("disns8", "r8", "other.disable.ns.test", "", false, makeTime(12*time.Second)),
+			Wildcard: false,
+			Rejected: true,
+		},
+		{
+			Name:     "r9-another-duplicate",
+			Route:    makeRoute("disns9", "r9", "another.disable.ns.test", "", false, makeTime(13*time.Second)),
+			Wildcard: false,
+			Rejected: true,
+		},
+		{
+			Name:     "r10-other-duplicate-same-ns",
+			Route:    makeRoute("disns3", "r10", "other.disable.ns.test", "", false, makeTime(14*time.Second)),
+			Wildcard: false,
+			Rejected: true,
+		},
+		{
+			Name:     "r11-another-duplicate-same-ns",
+			Route:    makeRoute("disns4", "r11", "another.disable.ns.test", "", false, makeTime(15*time.Second)),
+			Wildcard: false,
+			Rejected: true,
+		},
+	}
+
+	for _, tc := range routes {
+		err := admitter.HandleRoute(watch.Added, tc.Route)
+		if tc.Rejected {
+			if err == nil {
+				t.Fatalf("expected error adding route %s, got none", tc.Name)
+			}
+		} else if err != nil {
+			t.Fatalf("unexpected error adding route %s: %v", tc.Name, err)
+		}
+	}
+
+	for i := 0; i < 5; i++ {
+		for _, tc := range routes {
+			err := admitter.HandleRoute(watch.Modified, tc.Route)
+			if tc.Rejected {
+				if err == nil {
+					t.Fatalf("expected error adding route %s, got none", tc.Name)
+				}
+			} else {
+				if !tc.Wildcard {
+					k := recorder.rejectionKey(tc.Route)
+					if rejection, ok := recorder.rejections[k]; ok {
+						t.Fatalf("unexpected rejection adding route %s: %v", tc.Name, rejection)
+					}
+				}
+				if err != nil {
+					t.Fatalf("unexpected error adding route %s: %v", tc.Name, err)
+				}
+			}
+		}
+	}
+}
