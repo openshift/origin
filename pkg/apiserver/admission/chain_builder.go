@@ -62,6 +62,7 @@ var (
 		"MutatingAdmissionWebhook",
 		"ValidatingAdmissionWebhook",
 		"ResourceQuota",
+		"openshift.io/ClusterResourceQuota",
 	}
 
 	// KubeAdmissionPlugins gives the in-order default admission chain for kube resources.
