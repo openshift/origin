@@ -75,7 +75,7 @@ func formatString(out *tabwriter.Writer, label string, v interface{}) {
 
 	fmt.Fprintf(out, fmt.Sprintf("%s:", label))
 	for _, lval := range labelVals {
-		fmt.Fprintf(out, fmt.Sprintf("\t%s\n", lval))
+		fmt.Fprintln(out, fmt.Sprintf("\t%s", lval))
 	}
 }
 
