@@ -121,6 +121,7 @@ go_test(
         "@io_bazel_rules_go//go/platform:linux": [
             "exec_mount_test.go",
             "mount_linux_test.go",
+            "mount_test.go",
             "nsenter_mount_test.go",
         ],
         "@io_bazel_rules_go//go/platform:windows": [
