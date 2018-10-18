@@ -32,6 +32,7 @@ import (
 )
 
 func TestFrontProxy(t *testing.T) {
+	t.Skip("skipping until auth team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=1640351")
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
