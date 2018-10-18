@@ -32,6 +32,7 @@ import (
 // TestWebhookTokenAuthn checks Tokens directly against an external
 // authenticator
 func TestWebhookTokenAuthn(t *testing.T) {
+	t.Skip("skipping until auth team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=1640351")
 	authServerWasCalled := false
 	authToken := "Anything-goes!"
 	authTestUser := "testuser"
