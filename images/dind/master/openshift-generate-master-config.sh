@@ -55,6 +55,9 @@ function ensure-master-config() {
      ${image_format_str} \
      --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
      ${OPENSHIFT_ADDITIONAL_ARGS}
+
+   mv "${config_file}" "${config_file}.bak"
+   oc patch --config="${master_path}/admin.kubeconfig" --local --type=json -o yaml -f "${config_file}.bak" --patch='[{"op": "add", "path": "/controllerConfig/controllers/0", "value": "-openshift.io/sdn"}]' > "${config_file}"
   ) 200>"${config_path}"/.openshift-ca.lock
 
   # ensure the configuration can be used outside of the container

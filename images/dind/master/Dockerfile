@@ -6,6 +6,9 @@
 
 FROM openshift/dind-node
 
+RUN ln -sf /data/openshift /usr/local/bin/ && \
+    ln -sf /data/hypershift /usr/local/bin/
+
 # Disable iptables on the master since it will prevent access to the
 # openshift api from outside the master.
 RUN systemctl disable iptables.service
@@ -31,6 +34,9 @@ COPY master-node.conf /etc/systemd/system/openshift-node.service.d/
 COPY openshift-sdn-master-setup.service /etc/systemd/system/
 COPY openshift-sdn-master-setup.sh /usr/local/bin/
 RUN systemctl enable openshift-sdn-master-setup.service
+
+COPY openshift-sdn-master.service /etc/systemd/system/
+RUN systemctl enable openshift-sdn-master.service
 
 COPY ovn-kubernetes-master-setup.service /etc/systemd/system/
 COPY ovn-kubernetes-master-setup.sh /usr/local/bin/

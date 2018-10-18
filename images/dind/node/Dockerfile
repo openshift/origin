@@ -66,8 +66,7 @@ RUN mkdir -p /opt/cni/bin
 # Symlink from the data path intended to be mounted as a volume to
 # make reloading easy.  Revisit if/when dind becomes useful for more
 # than dev/test.
-RUN ln -sf /data/openshift /usr/local/bin/ && \
-    ln -sf /data/oc        /usr/local/bin/ && \
+RUN ln -sf /data/oc        /usr/local/bin/ && \
     ln -sf /data/hyperkube /usr/local/bin/ && \
     ln -sf /data/openshift-node-config /usr/local/bin/ && \
     ln -sf /data/openshift-sdn-node /usr/local/bin/openshift-sdn-node && \
