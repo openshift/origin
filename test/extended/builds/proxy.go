@@ -67,21 +67,20 @@ var _ = g.Describe("[Feature:Builds][Slow] the s2i build should support proxies"
 
 		g.Describe("start build with broken proxy and a no_proxy override", func() {
 			g.It("should start an s2i build and wait for the build to succeed", func() {
-				g.Skip("TODO: find a way to get buildah to not dump the entire process environment")
 				g.By("starting the build")
 				br, _ := exutil.StartBuildAndWait(oc, "sample-s2i-build-noproxy", "--build-loglevel=5")
 				br.AssertSuccess()
 				buildLog, err := br.Logs()
 				o.Expect(err).NotTo(o.HaveOccurred())
+				// envuser:password will appear in the log because the full/unstripped env HTTP_PROXY variable is injected
+				// into the dockerfile and displayed by docker build.
 				o.Expect(buildLog).NotTo(o.ContainSubstring("gituser:password"), "build log should not include proxy credentials")
-				o.Expect(buildLog).NotTo(o.ContainSubstring("envuser:password"), "build log should not include proxy credentials")
 				o.Expect(buildLog).To(o.ContainSubstring("proxy1"), "build log should include proxy host")
 				o.Expect(buildLog).To(o.ContainSubstring("proxy2"), "build log should include proxy host")
 				o.Expect(buildLog).To(o.ContainSubstring("proxy3"), "build log should include proxy host")
 				o.Expect(buildLog).To(o.ContainSubstring("proxy4"), "build log should include proxy host")
 			})
 			g.It("should start a docker build and wait for the build to succeed", func() {
-				g.Skip("TODO: find a way to get buildah to not dump the entire process environment")
 				g.By("starting the build")
 				br, _ := exutil.StartBuildAndWait(oc, "sample-docker-build-noproxy", "--build-loglevel=5")
 				br.AssertSuccess()
