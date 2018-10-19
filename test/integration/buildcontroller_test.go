@@ -56,6 +56,7 @@ func TestBuildDeleteController(t *testing.T) {
 }
 
 func TestBuildRunningPodDeleteController(t *testing.T) {
+	t.Skip("skipping until devex team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=1641186")
 	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
 	defer fn()
 	build.RunBuildRunningPodDeleteTest(t, buildClient, kClient)
