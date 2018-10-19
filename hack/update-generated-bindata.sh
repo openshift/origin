@@ -23,15 +23,12 @@ pushd "${OS_ROOT}" > /dev/null
     -ignore ".*\.go$" \
     -ignore "\.DS_Store" \
     -ignore application-template.json \
-    -ignore "prometheus-standalone.yaml" \
-    -ignore "node-exporter.yaml" \
     examples/image-streams/... \
     examples/db-templates/... \
     examples/jenkins \
     examples/jenkins/pipeline \
     examples/quickstarts/... \
     examples/heapster/... \
-    examples/prometheus/... \
     examples/service-catalog/... \
     install/... \
     pkg/image/apiserver/admission/apis/imagepolicy/v1/...
@@ -45,15 +42,12 @@ pushd "${OS_ROOT}" > /dev/null
     -ignore "OWNERS" \
     -ignore "\.DS_Store" \
     -ignore ".*\.(go|md)$" \
-    -ignore "prometheus-standalone.yaml" \
-    -ignore "node-exporter.yaml" \
     test/extended/testdata/... \
     test/integration/testdata \
     examples/db-templates \
     examples/image-streams \
     examples/sample-app \
     examples/quickstarts/... \
-    examples/prometheus/... \
     examples/hello-openshift \
     examples/jenkins/... \
     examples/quickstarts/cakephp-mysql.json \
