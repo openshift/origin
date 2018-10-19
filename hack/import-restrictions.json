@@ -79,7 +79,6 @@
     "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/apiserver/admission",
       "github.com/openshift/origin/pkg/image/generated",
-      "github.com/openshift/origin/pkg/network/generated",
       "github.com/openshift/origin/pkg/oauth/generated",
       "github.com/openshift/origin/pkg/project/generated",
       "github.com/openshift/origin/pkg/quota/generated",
@@ -104,7 +103,6 @@
     ],
     "forbiddenImportPackageRoots": [
       "github.com/openshift/origin/pkg/apps/generated",
-      "github.com/openshift/origin/pkg/network/generated",
       "github.com/openshift/origin/pkg/oauth/generated",
       "github.com/openshift/origin/pkg/project/generated",
       "github.com/openshift/origin/pkg/route/generated",
@@ -515,7 +513,6 @@
       "github.com/openshift/origin/pkg/image/apis/image/v1",
       "github.com/openshift/origin/pkg/image/generated",
       "github.com/openshift/origin/pkg/image/util",
-      "github.com/openshift/origin/pkg/network/generated",
       "github.com/openshift/origin/pkg/oauth/generated",
       "github.com/openshift/origin/pkg/pod/envresolve",
       "github.com/openshift/origin/pkg/project/generated",

@@ -5,10 +5,9 @@ import (
 	"regexp"
 	"time"
 
-	networkv1 "github.com/openshift/api/network/v1"
+	networkapi "github.com/openshift/api/network/v1"
+	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
@@ -60,7 +59,7 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 	expectNoError(err)
 	var netns *networkapi.NetNamespace
 	err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-		netns, err = networkClient.Network().NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+		netns, err = networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
@@ -73,8 +72,8 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string, 1)
 	}
-	netns.Annotations[networkv1.MulticastEnabledAnnotation] = "true"
-	_, err = networkClient.Network().NetNamespaces().Update(netns)
+	netns.Annotations[networkapi.MulticastEnabledAnnotation] = "true"
+	_, err = networkClient.NetNamespaces().Update(netns)
 	expectNoError(err)
 }
 

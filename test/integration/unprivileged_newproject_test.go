@@ -36,7 +36,6 @@ import (
 	_ "github.com/openshift/client-go/user/clientset/versioned"
 	_ "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/quota/generated/internalclientset"

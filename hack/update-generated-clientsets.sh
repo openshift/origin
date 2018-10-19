@@ -13,7 +13,6 @@ packages=(
   github.com/openshift/origin/pkg/project/apis/project
   github.com/openshift/origin/pkg/quota/apis/quota
   github.com/openshift/origin/pkg/route/apis/route
-  github.com/openshift/origin/pkg/network/apis/network
   github.com/openshift/origin/pkg/security/apis/security
   github.com/openshift/origin/pkg/template/apis/template
   github.com/openshift/origin/pkg/user/apis/user

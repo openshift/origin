@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/api/user"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	onetworktypedclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -53,7 +54,6 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
@@ -82,7 +82,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	if err != nil {
 		glog.V(1).Info(err)
 	}
-	onetworkClient, err := onetworkclient.NewForConfig(clientConfig)
+	onetworkClient, err := onetworktypedclient.NewForConfig(clientConfig)
 	if err != nil {
 		glog.V(1).Info(err)
 	}
@@ -1734,7 +1734,7 @@ func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings
 }
 
 type ClusterNetworkDescriber struct {
-	c onetworkclient.NetworkInterface
+	c onetworktypedclient.NetworkV1Interface
 }
 
 // Describe returns the description of a ClusterNetwork
@@ -1758,7 +1758,7 @@ func (d *ClusterNetworkDescriber) Describe(namespace, name string, settings kpri
 }
 
 type HostSubnetDescriber struct {
-	c onetworkclient.NetworkInterface
+	c onetworktypedclient.NetworkV1Interface
 }
 
 // Describe returns the description of a HostSubnet
@@ -1779,7 +1779,7 @@ func (d *HostSubnetDescriber) Describe(namespace, name string, settings kprinter
 }
 
 type NetNamespaceDescriber struct {
-	c onetworkclient.NetworkInterface
+	c onetworktypedclient.NetworkV1Interface
 }
 
 // Describe returns the description of a NetNamespace
@@ -1798,7 +1798,7 @@ func (d *NetNamespaceDescriber) Describe(namespace, name string, settings kprint
 }
 
 type EgressNetworkPolicyDescriber struct {
-	c onetworkclient.NetworkInterface
+	c onetworktypedclient.NetworkV1Interface
 }
 
 // Describe returns the description of an EgressNetworkPolicy
