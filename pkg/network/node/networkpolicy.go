@@ -263,8 +263,44 @@ func (np *networkPolicyPlugin) SyncVNIDRules() {
 	}
 }
 
-func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []uint32 {
-	vnids := []uint32{}
+func (np *networkPolicyPlugin) selectPodsFromNamespaces(nsLabelSel, podLabelSel *metav1.LabelSelector) []string {
+	namespaces := make(map[string]uint32)
+	var peerFlows []string
+
+	nsSel, err := metav1.LabelSelectorAsSelector(nsLabelSel)
+	if err != nil {
+		// Shouldn't happen
+		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid NamespaceSelector: %v", err))
+		return nil
+	}
+
+	podSel, err := metav1.LabelSelectorAsSelector(podLabelSel)
+	if err != nil {
+		// Shouldn't happen
+		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid PodSelector: %v", err))
+		return nil
+	}
+
+	for vnid, ns := range np.namespaces {
+		if kns, exists := np.kNamespaces[ns.name]; exists {
+			if nsSel.Matches(labels.Set(kns.Labels)) {
+				namespaces[ns.name] = vnid
+			}
+		}
+	}
+	for _, pod := range np.pods {
+		vnid, exists := namespaces[pod.Namespace]
+		if exists && podSel.Matches(labels.Set(pod.Labels)) {
+			peerFlows = append(peerFlows, fmt.Sprintf("reg0=%d, ip, nw_src=%s, ", vnid, pod.Status.PodIP))
+		}
+
+	}
+
+	return peerFlows
+}
+
+func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []string {
+	var vnids []string
 	sel, err := metav1.LabelSelectorAsSelector(lsel)
 	if err != nil {
 		// Shouldn't happen
@@ -274,7 +310,7 @@ func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []ui
 	for vnid, ns := range np.namespaces {
 		if kns, exists := np.kNamespaces[ns.name]; exists {
 			if sel.Matches(labels.Set(kns.Labels)) {
-				vnids = append(vnids, vnid)
+				vnids = append(vnids, fmt.Sprintf("reg0=%d, ", vnid))
 			}
 		}
 	}
@@ -378,13 +414,14 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 					peerFlows = append(peerFlows, "")
 				} else {
 					npp.watchesNamespaces = true
-					for _, otherVNID := range np.selectNamespaces(peer.NamespaceSelector) {
-						peerFlows = append(peerFlows, fmt.Sprintf("reg0=%d, ", otherVNID))
-					}
+					peerFlows = append(peerFlows, np.selectNamespaces(peer.NamespaceSelector)...)
 				}
+			} else {
+				npp.watchesNamespaces = true
+				npp.watchesPods = true
+				peerFlows = append(peerFlows, np.selectPodsFromNamespaces(peer.NamespaceSelector, peer.PodSelector)...)
 			}
 		}
-
 		for _, destFlow := range destFlows {
 			for _, peerFlow := range peerFlows {
 				for _, portFlow := range portFlows {
