@@ -41,6 +41,12 @@ func (c *client) UpdateInstance(r *UpdateInstanceRequest) (*UpdateInstanceRespon
 	if err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		drainReader(response.Body)
+		response.Body.Close()
+	}()
+
 	switch response.StatusCode {
 	case http.StatusOK:
 		if err := c.unmarshalResponse(response, &struct{}{}); err != nil {

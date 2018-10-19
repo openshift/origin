@@ -52,6 +52,11 @@ func (c *client) ProvisionInstance(r *ProvisionRequest) (*ProvisionResponse, err
 		return nil, err
 	}
 
+	defer func() {
+		drainReader(response.Body)
+		response.Body.Close()
+	}()
+
 	switch response.StatusCode {
 	case http.StatusCreated, http.StatusOK:
 		userResponse := &ProvisionResponse{}

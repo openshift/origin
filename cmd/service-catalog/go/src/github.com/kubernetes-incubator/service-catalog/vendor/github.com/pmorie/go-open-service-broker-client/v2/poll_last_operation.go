@@ -30,6 +30,11 @@ func (c *client) PollLastOperation(r *LastOperationRequest) (*LastOperationRespo
 		return nil, err
 	}
 
+	defer func() {
+		drainReader(response.Body)
+		response.Body.Close()
+	}()
+
 	switch response.StatusCode {
 	case http.StatusOK:
 		userResponse := &LastOperationResponse{}

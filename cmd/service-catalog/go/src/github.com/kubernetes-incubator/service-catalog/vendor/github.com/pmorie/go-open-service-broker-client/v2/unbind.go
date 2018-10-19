@@ -37,6 +37,11 @@ func (c *client) Unbind(r *UnbindRequest) (*UnbindResponse, error) {
 		return nil, err
 	}
 
+	defer func() {
+		drainReader(response.Body)
+		response.Body.Close()
+	}()
+
 	switch response.StatusCode {
 	case http.StatusOK, http.StatusGone:
 		userResponse := &UnbindResponse{}
