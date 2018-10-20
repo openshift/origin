@@ -8,8 +8,6 @@ os::util::ensure::built_binary_exists 'lister-gen' 'vendor/k8s.io/kubernetes/sta
 # list of package to generate listers for
 packages=(
   github.com/openshift/origin/pkg/authorization/apis/authorization
-  github.com/openshift/origin/pkg/build/apis/build
-  github.com/openshift/origin/pkg/apps/apis/apps
   github.com/openshift/origin/pkg/image/apis/image
   github.com/openshift/origin/pkg/oauth/apis/oauth
   github.com/openshift/origin/pkg/project/apis/project
