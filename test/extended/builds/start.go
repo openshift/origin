@@ -459,7 +459,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 			g.Describe("s2i build maintaining symlinks", func() {
 				g.It(fmt.Sprintf("should s2i build image and maintain symlinks"), func() {
-					g.Skip("skip")
+					g.By("initializing local repo")
 					repo, err := exutil.NewGitRepo("symlinks")
 					o.Expect(err).NotTo(o.HaveOccurred())
 					defer repo.Remove()
