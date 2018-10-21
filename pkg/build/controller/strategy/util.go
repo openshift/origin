@@ -102,29 +102,6 @@ func setupDockerSocket(pod *corev1.Pod) {
 	}
 }
 
-// setupCrioSocket configures the pod to support the host's Crio socket
-func setupCrioSocket(pod *corev1.Pod) {
-	crioSocketVolume := corev1.Volume{
-		Name: "crio-socket",
-		VolumeSource: corev1.VolumeSource{
-			HostPath: &corev1.HostPathVolumeSource{
-				Path: "/var/run/crio/crio.sock",
-			},
-		},
-	}
-
-	crioSocketVolumeMount := corev1.VolumeMount{
-		Name:      "crio-socket",
-		MountPath: "/var/run/crio/crio.sock",
-	}
-
-	pod.Spec.Volumes = append(pod.Spec.Volumes,
-		crioSocketVolume)
-	pod.Spec.Containers[0].VolumeMounts =
-		append(pod.Spec.Containers[0].VolumeMounts,
-			crioSocketVolumeMount)
-}
-
 // mountConfigMapVolume is a helper method responsible for actual mounting configMap
 // volumes into a pod.
 func mountConfigMapVolume(pod *corev1.Pod, container *corev1.Container, configMapName, mountPath, volumeSuffix string) {
