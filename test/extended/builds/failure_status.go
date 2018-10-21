@@ -10,8 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
-
 	buildv1 "github.com/openshift/api/build/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -21,9 +19,6 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		// convert the s2i failure cases to our own StatusReason
-		reasonAssembleFailed                   = buildv1.StatusReason(s2istatus.ReasonAssembleFailed)
-		messageAssembleFailed                  = string(s2istatus.ReasonMessageAssembleFailed)
 		postCommitHookFixture                  = exutil.FixturePath("testdata", "builds", "statusfail-postcommithook.yaml")
 		fetchDockerSrc                         = exutil.FixturePath("testdata", "builds", "statusfail-fetchsourcedocker.yaml")
 		fetchS2ISrc                            = exutil.FixturePath("testdata", "builds", "statusfail-fetchsources2i.yaml")
@@ -222,7 +217,6 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 
 		g.Describe("Build status failed assemble container", func() {
 			g.It("should contain the failure reason related to an assemble script failing in s2i", func() {
-				g.Skip("TODO: should expect a generic failure message if we can't do better")
 				err := oc.Run("create").Args("-f", failedAssembleFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -233,8 +227,8 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 
 				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(reasonAssembleFailed))
-				o.Expect(build.Status.Message).To(o.Equal(messageAssembleFailed))
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonGenericBuildFailed))
+				o.Expect(build.Status.Message).To(o.Equal(StatusMessageGenericBuildFailed))
 
 				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})
