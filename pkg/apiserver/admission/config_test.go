@@ -22,7 +22,7 @@ import (
 // the order of default origin must follow the order of default combined
 // the order of default kube must follow the order of default combined
 func TestAdmissionPluginChains(t *testing.T) {
-	individualSet := sets.NewString(openshiftAdmissionControlPlugins...)
+	individualSet := sets.NewString(OpenShiftAdmissionPlugins...)
 	individualSet.Insert(KubeAdmissionPlugins...)
 	combinedSet := sets.NewString(CombinedAdmissionControlPlugins...)
 
@@ -31,7 +31,7 @@ func TestAdmissionPluginChains(t *testing.T) {
 	}
 
 	lastCurrIndex := -1
-	for _, plugin := range openshiftAdmissionControlPlugins {
+	for _, plugin := range OpenShiftAdmissionPlugins {
 		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(CombinedAdmissionControlPlugins); lastCurrIndex++ {
 			if CombinedAdmissionControlPlugins[lastCurrIndex] == plugin {
 				break
@@ -118,9 +118,9 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
 				isKube := reflect.DeepEqual(pluginNames, KubeAdmissionPlugins)
-				isOrigin := reflect.DeepEqual(pluginNames, openshiftAdmissionControlPlugins)
+				isOrigin := reflect.DeepEqual(pluginNames, OpenShiftAdmissionPlugins)
 				if !isKube && !isOrigin {
-					t.Errorf("%s: expected either %v or %v, got %v", "specified conflicting plugin configs 01", KubeAdmissionPlugins, openshiftAdmissionControlPlugins, pluginNames)
+					t.Errorf("%s: expected either %v or %v, got %v", "specified conflicting plugin configs 01", KubeAdmissionPlugins, OpenShiftAdmissionPlugins, pluginNames)
 				}
 				return nil, nil
 			},

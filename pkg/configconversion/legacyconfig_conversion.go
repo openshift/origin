@@ -1,13 +1,12 @@
 package configconversion
 
 import (
+	"fmt"
 	"net"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
-	"fmt"
 
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
@@ -131,7 +130,7 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 	if err != nil {
 		return nil, err
 	}
-	ret.AdmissionPluginConfig, err = ToAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
+	ret.AdmissionPluginConfig, err = ToKubeAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +193,7 @@ func ConvertMasterConfigToOpenShiftAPIServerConfig(input *legacyconfigv1.MasterC
 	if err != nil {
 		return nil, err
 	}
-	ret.AdmissionPluginConfig, err = ToAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
+	ret.AdmissionPluginConfig, err = ToOpenShiftAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
 	if err != nil {
 		return nil, err
 	}
