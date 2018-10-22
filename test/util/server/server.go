@@ -580,7 +580,7 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		}
 	}
 
-	err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
+	err = wait.Poll(time.Second, 3*time.Minute, func() (bool, error) {
 		discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
 		if err != nil {
 			return false, err
