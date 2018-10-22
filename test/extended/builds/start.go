@@ -463,7 +463,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					repo, err := exutil.NewGitRepo("symlinks")
 					o.Expect(err).NotTo(o.HaveOccurred())
 					defer repo.Remove()
-					err = repo.AddAndCommit("package.json", "{}")
+					err = repo.AddAndCommit("package.json", "{\"scripts\" : {} }")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					err = os.Symlink(repo.RepoPath+"/package.json", repo.RepoPath+"/link")
