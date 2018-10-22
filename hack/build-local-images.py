@@ -111,6 +111,7 @@ image_config = {
         "tag": "latest",
         "directory": "builder/docker/docker-builder",
         "binaries": {
+            "openshift-docker-build": "/usr/bin/openshift-docker-build",
             "oc": "/usr/bin/oc"
         },
         "files": {}
