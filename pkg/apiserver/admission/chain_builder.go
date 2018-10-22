@@ -48,8 +48,8 @@ var (
 		"SCCExecRestrictions",
 	)
 
-	// openshiftAdmissionControlPlugins gives the in-order default admission chain for openshift resources.
-	openshiftAdmissionControlPlugins = []string{
+	// OpenShiftAdmissionPlugins gives the in-order default admission chain for openshift resources.
+	OpenShiftAdmissionPlugins = []string{
 		lifecycle.PluginName,
 		"ProjectRequestLimit",
 		"openshift.io/JenkinsBootstrapper",
@@ -210,7 +210,7 @@ func NewAdmissionChains(
 		admissionPluginConfigFilename = tempFile.Name()
 	}
 
-	admissionPluginNames := openshiftAdmissionControlPlugins
+	admissionPluginNames := OpenShiftAdmissionPlugins
 	admissionPluginNames = fixupAdmissionPlugins(admissionPluginNames)
 
 	admissionChain, err := newAdmissionChainFunc(admissionPluginNames, admissionPluginConfigFilename, admissionInitializer, admissionDecorator)
