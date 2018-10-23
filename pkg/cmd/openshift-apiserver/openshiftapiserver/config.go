@@ -163,7 +163,11 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 		admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 	}
-	genericConfig.AdmissionControl, err = originadmission.NewAdmissionChains([]string{}, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
+	expliticOn := []string{}
+	for plugin, _ := range config.AdmissionPluginConfig {
+		expliticOn = append(expliticOn, plugin)
+	}
+	genericConfig.AdmissionControl, err = originadmission.NewAdmissionChains([]string{}, expliticOn, []string{}, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}

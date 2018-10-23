@@ -117,10 +117,12 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 				},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
-				isKube := reflect.DeepEqual(pluginNames, KubeAdmissionPlugins)
-				isOrigin := reflect.DeepEqual(pluginNames, OpenShiftAdmissionPlugins)
+				kubePlugins := difference(KubeAdmissionPlugins, DefaultOffPlugins)
+				originPlugins := difference(OpenShiftAdmissionPlugins, DefaultOffPlugins)
+				isKube := reflect.DeepEqual(pluginNames, kubePlugins)
+				isOrigin := reflect.DeepEqual(pluginNames, originPlugins)
 				if !isKube && !isOrigin {
-					t.Errorf("%s: expected either %v or %v, got %v", "specified conflicting plugin configs 01", KubeAdmissionPlugins, OpenShiftAdmissionPlugins, pluginNames)
+					t.Errorf("%s: expected either %v or %v, got %v", "specified conflicting plugin configs 01", kubePlugins, originPlugins, pluginNames)
 				}
 				return nil, nil
 			},
@@ -147,10 +149,19 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 
 	for _, tc := range testCases {
 		newAdmissionChainFunc = tc.admissionChainBuilder
-		_, _ = NewAdmissionChains(tc.options.APIServerArguments["admission-control-config-file"], tc.options.AdmissionPluginConfig, nil, nil)
+		_, _ = NewAdmissionChains(tc.options.APIServerArguments["admission-control-config-file"], []string{}, []string{}, tc.options.AdmissionPluginConfig, nil, nil)
 	}
 }
 
+func difference(listA []string, setB sets.String) []string {
+	result := []string{}
+	for _, a := range listA {
+		if !setB.Has(a) {
+			result = append(result, a)
+		}
+	}
+	return result
+}
 func TestQuotaAdmissionPluginsAreLast(t *testing.T) {
 	kubeLen := len(KubeAdmissionPlugins)
 	if kubeLen < 2 {
