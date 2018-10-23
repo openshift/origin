@@ -113,62 +113,6 @@ var (
 		"ResourceQuota",
 		"openshift.io/ClusterResourceQuota",
 	}
-
-	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
-	// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
-	// the order specified in the openshift and kube chains must match the order here.
-	CombinedAdmissionControlPlugins = []string{
-		"AlwaysAdmit",
-		"NamespaceAutoProvision",
-		"NamespaceExists",
-		lifecycle.PluginName,
-		"EventRateLimit",
-		"ProjectRequestLimit",
-		"openshift.io/RestrictSubjectBindings",
-		"openshift.io/JenkinsBootstrapper",
-		"openshift.io/BuildConfigSecretInjector",
-		"BuildByStrategy",
-		imageadmission.PluginName,
-		"RunOnceDuration",
-		"PodNodeConstraints",
-		"OriginPodNodeEnvironment",
-		"PodNodeSelector",
-		overrideapi.PluginName,
-		externalipranger.ExternalIPPluginName,
-		restrictedendpoints.RestrictedEndpointsPluginName,
-		imagepolicy.PluginName,
-		"ImagePolicyWebhook",
-		"PodPreset",
-		"LimitRanger",
-		"ServiceAccount",
-		noderestriction.PluginName,
-		"SecurityContextDeny",
-		sccadmission.PluginName,
-		"PodSecurityPolicy",
-		"DenyEscalatingExec",
-		"DenyExecOnPrivileged",
-		storageclassdefaultadmission.PluginName,
-		expandpvcadmission.PluginName,
-		"AlwaysPullImages",
-		"LimitPodHardAntiAffinityTopology",
-		"SCCExecRestrictions",
-		"PersistentVolumeLabel",
-		"OwnerReferencesPermissionEnforcement",
-		ingressadmission.IngressAdmission,
-		"Priority",
-		"ExtendedResourceToleration",
-		"DefaultTolerationSeconds",
-		"StorageObjectInUseProtection",
-		"Initializers",
-		mutatingwebhook.PluginName,
-		validatingwebhook.PluginName,
-		"PodTolerationRestriction",
-		"AlwaysDeny",
-		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
-		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
-		"ResourceQuota",
-		"openshift.io/ClusterResourceQuota",
-	}
 )
 
 // fixupAdmissionPlugins fixes the input plugins to handle deprecation and duplicates.

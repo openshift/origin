@@ -34,11 +34,11 @@ func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.Kub
 	bootstrappolicy.ClusterRoles = bootstrappolicy.OpenshiftClusterRoles
 	bootstrappolicy.ClusterRoleBindings = bootstrappolicy.OpenshiftClusterRoleBindings
 
-	options.AllOrderedPlugins = originadmission.CombinedAdmissionControlPlugins
+	options.AllOrderedPlugins = originadmission.KubeAdmissionPlugins
 	kubeRegisterAdmission := options.RegisterAllAdmissionPlugins
 	options.RegisterAllAdmissionPlugins = func(plugins *admission.Plugins) {
 		kubeRegisterAdmission(plugins)
-		originadmission.RegisterOpenshiftAdmissionPlugins(plugins)
+		originadmission.RegisterOpenshiftKubeAdmissionPlugins(plugins)
 	}
 	kubeDefaultOffAdmission := options.DefaultOffAdmissionPlugins
 	options.DefaultOffAdmissionPlugins = func() sets.String {
