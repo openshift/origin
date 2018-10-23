@@ -66,6 +66,21 @@ func RegisterOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
 }
 
+func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
+	authorizationrestrictusers.Register(plugins)
+	imagepolicy.Register(plugins)
+	ingressadmission.Register(plugins)
+	projectnodeenv.Register(plugins)
+	quotaclusterresourceoverride.Register(plugins)
+	quotaclusterresourcequota.Register(plugins)
+	quotarunonceduration.Register(plugins)
+	schedulerpodnodeconstraints.Register(plugins)
+	securityadmission.Register(plugins)
+	securityadmission.RegisterSCCExecRestrictions(plugins)
+	externalipranger.RegisterExternalIP(plugins)
+	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
+}
+
 var (
 	DefaultOnPlugins = sets.NewString(
 		"openshift.io/JenkinsBootstrapper",

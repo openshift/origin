@@ -7,14 +7,80 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
+	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
+	validatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/validating"
+	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
+	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
+	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
+	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
+	ingressadmission "github.com/openshift/origin/pkg/network/apiserver/admission"
 	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 	"github.com/openshift/origin/pkg/service/admission/externalipranger"
+	"github.com/openshift/origin/pkg/service/admission/restrictedendpoints"
 )
+
+// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
+// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
+// the order specified in the openshift and kube chains must match the order here.
+var combinedAdmissionControlPlugins = []string{
+	"AlwaysAdmit",
+	"NamespaceAutoProvision",
+	"NamespaceExists",
+	lifecycle.PluginName,
+	"EventRateLimit",
+	"ProjectRequestLimit",
+	"openshift.io/RestrictSubjectBindings",
+	"openshift.io/JenkinsBootstrapper",
+	"openshift.io/BuildConfigSecretInjector",
+	"BuildByStrategy",
+	imageadmission.PluginName,
+	"RunOnceDuration",
+	"PodNodeConstraints",
+	"OriginPodNodeEnvironment",
+	"PodNodeSelector",
+	overrideapi.PluginName,
+	externalipranger.ExternalIPPluginName,
+	restrictedendpoints.RestrictedEndpointsPluginName,
+	imagepolicy.PluginName,
+	"ImagePolicyWebhook",
+	"PodPreset",
+	"LimitRanger",
+	"ServiceAccount",
+	noderestriction.PluginName,
+	"SecurityContextDeny",
+	sccadmission.PluginName,
+	"PodSecurityPolicy",
+	"DenyEscalatingExec",
+	"DenyExecOnPrivileged",
+	storageclassdefaultadmission.PluginName,
+	expandpvcadmission.PluginName,
+	"AlwaysPullImages",
+	"LimitPodHardAntiAffinityTopology",
+	"SCCExecRestrictions",
+	"PersistentVolumeLabel",
+	"OwnerReferencesPermissionEnforcement",
+	ingressadmission.IngressAdmission,
+	"Priority",
+	"ExtendedResourceToleration",
+	"DefaultTolerationSeconds",
+	"StorageObjectInUseProtection",
+	"Initializers",
+	mutatingwebhook.PluginName,
+	validatingwebhook.PluginName,
+	"PodTolerationRestriction",
+	"AlwaysDeny",
+	// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
+	// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
+	"ResourceQuota",
+	"openshift.io/ClusterResourceQuota",
+}
 
 // TestAdmissionPluginChains makes sure that the admission plugin lists are coherent.
 // we have to maintain three different lists of plugins: default origin, default kube, default combined
@@ -24,7 +90,7 @@ import (
 func TestAdmissionPluginChains(t *testing.T) {
 	individualSet := sets.NewString(OpenShiftAdmissionPlugins...)
 	individualSet.Insert(KubeAdmissionPlugins...)
-	combinedSet := sets.NewString(CombinedAdmissionControlPlugins...)
+	combinedSet := sets.NewString(combinedAdmissionControlPlugins...)
 
 	if !individualSet.Equal(combinedSet) {
 		t.Fatalf("individualSets are missing: %v combinedSet is missing: %v", combinedSet.Difference(individualSet), individualSet.Difference(combinedSet))
@@ -32,26 +98,26 @@ func TestAdmissionPluginChains(t *testing.T) {
 
 	lastCurrIndex := -1
 	for _, plugin := range OpenShiftAdmissionPlugins {
-		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(CombinedAdmissionControlPlugins); lastCurrIndex++ {
-			if CombinedAdmissionControlPlugins[lastCurrIndex] == plugin {
+		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(combinedAdmissionControlPlugins); lastCurrIndex++ {
+			if combinedAdmissionControlPlugins[lastCurrIndex] == plugin {
 				break
 			}
 		}
 
-		if lastCurrIndex >= len(CombinedAdmissionControlPlugins) {
+		if lastCurrIndex >= len(combinedAdmissionControlPlugins) {
 			t.Errorf("openshift admission plugins are out of order compared to the combined list.  Failed at %v", plugin)
 		}
 	}
 
 	lastCurrIndex = -1
 	for _, plugin := range KubeAdmissionPlugins {
-		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(CombinedAdmissionControlPlugins); lastCurrIndex++ {
-			if CombinedAdmissionControlPlugins[lastCurrIndex] == plugin {
+		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(combinedAdmissionControlPlugins); lastCurrIndex++ {
+			if combinedAdmissionControlPlugins[lastCurrIndex] == plugin {
 				break
 			}
 		}
 
-		if lastCurrIndex >= len(CombinedAdmissionControlPlugins) {
+		if lastCurrIndex >= len(combinedAdmissionControlPlugins) {
 			t.Errorf("kube admission plugins are out of order compared to the combined list.  Failed at %v", plugin)
 		}
 	}
@@ -86,7 +152,7 @@ func TestAdmissionPluginNames(t *testing.T) {
 
 func TestUnusuedKubeAdmissionPlugins(t *testing.T) {
 	allAdmissionPlugins := sets.NewString(OriginAdmissionPlugins.Registered()...)
-	knownAdmissionPlugins := sets.NewString(CombinedAdmissionControlPlugins...)
+	knownAdmissionPlugins := sets.NewString(combinedAdmissionControlPlugins...)
 
 	if unorderedPlugins := allAdmissionPlugins.Difference(knownAdmissionPlugins); len(unorderedPlugins) != 0 {
 		t.Errorf("%v need to be ordered and enabled/disabled", unorderedPlugins.List())
@@ -103,8 +169,8 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 			name:    "stock everything",
 			options: openshiftcontrolplanev1.OpenShiftAPIServerConfig{},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
-				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
-					t.Errorf("%s: expected %v, got %v", "stock everything", CombinedAdmissionControlPlugins, pluginNames)
+				if !reflect.DeepEqual(pluginNames, combinedAdmissionControlPlugins) {
+					t.Errorf("%s: expected %v, got %v", "stock everything", combinedAdmissionControlPlugins, pluginNames)
 				}
 				return nil, nil
 			},
@@ -139,8 +205,8 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 				},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
-				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
-					t.Errorf("%s: expected %v, got %v", "specified, non-conflicting plugin configs 01", CombinedAdmissionControlPlugins, pluginNames)
+				if !reflect.DeepEqual(pluginNames, combinedAdmissionControlPlugins) {
+					t.Errorf("%s: expected %v, got %v", "specified, non-conflicting plugin configs 01", combinedAdmissionControlPlugins, pluginNames)
 				}
 				return nil, nil
 			},
@@ -176,12 +242,12 @@ func TestQuotaAdmissionPluginsAreLast(t *testing.T) {
 		t.Errorf("kubeAdmissionPlugins must have ClusterResourceQuota as the last plugin")
 	}
 
-	combinedLen := len(CombinedAdmissionControlPlugins)
-	if CombinedAdmissionControlPlugins[combinedLen-2] != "ResourceQuota" {
+	combinedLen := len(combinedAdmissionControlPlugins)
+	if combinedAdmissionControlPlugins[combinedLen-2] != "ResourceQuota" {
 		t.Errorf("combinedAdmissionControlPlugins must have %s as the next to last plugin", "ResourceQuota")
 	}
 
-	if CombinedAdmissionControlPlugins[combinedLen-1] != "openshift.io/ClusterResourceQuota" {
+	if combinedAdmissionControlPlugins[combinedLen-1] != "openshift.io/ClusterResourceQuota" {
 		t.Errorf("combinedAdmissionControlPlugins must have ClusterResourceQuota as the last plugin")
 	}
 }
