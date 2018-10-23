@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -124,6 +125,7 @@ type BuildController struct {
 	buildConfigGetter buildv1lister.BuildConfigLister
 	buildDeleter      buildmanualclient.BuildDeleter
 	podClient         ktypedclient.PodsGetter
+	configMapClient   ktypedclient.ConfigMapsGetter
 	kubeClient        kubernetes.Interface
 
 	buildQueue       workqueue.RateLimitingInterface
@@ -183,6 +185,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		buildDeleter:      buildClient,
 		secretStore:       params.SecretInformer.Lister(),
 		podClient:         params.KubeClient.CoreV1(),
+		configMapClient:   params.KubeClient.CoreV1(),
 		kubeClient:        params.KubeClient,
 		podInformer:       params.PodInformer.Informer(),
 		podStore:          params.PodInformer.Lister(),
@@ -902,10 +905,10 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 	}
 
 	glog.V(4).Infof("Pod %s/%s for build %s is about to be created", build.Namespace, buildPod.Name, buildDesc(build))
-	_, err = bc.podClient.Pods(build.Namespace).Create(buildPod)
+	pod, err := bc.podClient.Pods(build.Namespace).Create(buildPod)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		// Log an event if the pod is not created (most likely due to quota denial).
-		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build pod: %v", err)
 		update.setReason(buildv1.StatusReasonCannotCreateBuildPod)
 		update.setMessage(buildutil.StatusMessageCannotCreateBuildPod)
 		return update, fmt.Errorf("failed to create build pod: %v", err)
@@ -926,10 +929,28 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 			return update, nil
 		}
 		glog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
+		// Check if the existing pod has the CA ConfigMap properly attached
+		hasCAMap, err := bc.findBuildCAConfigMap(build, existingPod)
+		if err != nil {
+			return update, fmt.Errorf("could not find certificate authority for build: %v", err)
+		}
+		if !hasCAMap {
+			// Create the CA ConfigMap to mount certificate authorities to the existing build pod
+			update, err = bc.createBuildCAConfigMap(build, existingPod, update)
+			if err != nil {
+				return update, err
+			}
+		}
 
 	} else {
 		glog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
+		// Create the CA ConfigMap to mount certificate authorities to the build pod
+		update, err = bc.createBuildCAConfigMap(build, pod, update)
+		if err != nil {
+			return update, err
+		}
 	}
+
 	update = transitionToPhase(buildv1.BuildPhasePending, "", "")
 
 	if pushSecret != nil {
@@ -940,6 +961,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 	if build.Spec.Output.To != nil {
 		update.setOutputRef(build.Spec.Output.To.Name)
 	}
+
 	return update, nil
 }
 
@@ -1367,6 +1389,55 @@ func (bc *BuildController) handleBuildConfigError(err error, key interface{}) {
 	bc.buildConfigQueue.Forget(key)
 }
 
+// createBuildCAConfigMap creates a ConfigMap containing certificate authorities used by the build pod.
+func (bc *BuildController) createBuildCAConfigMap(build *buildv1.Build, buildPod *corev1.Pod, update *buildUpdate) (*buildUpdate, error) {
+	configMapSpec := bc.createBuildCAConfigMapSpec(build, buildPod)
+	configMap, err := bc.configMapClient.ConfigMaps(buildPod.Namespace).Create(configMapSpec)
+	if err != nil {
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build certificate authority: %v", err)
+		update.setReason("CannotCreateCAConfigMap")
+		update.setMessage(buildutil.StatusMessageCannotCreateCAConfigMap)
+		return update, fmt.Errorf("failed to create build certificate authority: %v", err)
+	}
+	glog.V(4).Infof("Created certificate authority configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
+	return update, nil
+}
+
+// createBuildCAConfigMapSpec creates a ConfigMap template to hold certificate authorities
+// used by the build pod.
+// The returned ConfigMap has an owner reference to the provided pod, ensuring proper
+// garbage collection.
+func (bc *BuildController) createBuildCAConfigMapSpec(build *buildv1.Build, buildPod *corev1.Pod) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: buildapihelpers.GetBuildCAConfigMapName(build),
+			Annotations: map[string]string{
+				"service.alpha.openshift.io/inject-cabundle": "true",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				makeBuildCAOwnerRef(buildPod),
+			},
+		},
+	}
+	return cm
+}
+
+// findBuildCAConfigMap finds the ConfigMap containing the certificate authorities for the build.
+// The ConfigMap must exist and contain an owner reference to the build pod to be valid.
+func (bc *BuildController) findBuildCAConfigMap(build *buildv1.Build, buildPod *corev1.Pod) (bool, error) {
+	name := buildapihelpers.GetBuildCAConfigMapName(build)
+	cm, err := bc.configMapClient.ConfigMaps(build.Namespace).Get(name, metav1.GetOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	if hasRef := hasBuildCAOwnerRef(buildPod, cm); !hasRef {
+		return true, fmt.Errorf("build CA configMap %s is not owned by build pod %s", cm.Name, buildPod.Name)
+	}
+	return true, nil
+}
+
 // isBuildPod returns true if the given pod is a build pod
 func isBuildPod(pod *corev1.Pod) bool {
 	return len(getBuildName(pod)) > 0
@@ -1486,4 +1557,23 @@ func getBuildName(pod metav1.Object) string {
 		return ""
 	}
 	return pod.GetAnnotations()[buildutil.BuildAnnotation]
+}
+
+func makeBuildCAOwnerRef(buildPod *corev1.Pod) metav1.OwnerReference {
+	return metav1.OwnerReference{
+		APIVersion: "v1",
+		Kind:       "Pod",
+		Name:       buildPod.Name,
+		UID:        buildPod.UID,
+	}
+}
+
+func hasBuildCAOwnerRef(buildPod *corev1.Pod, caMap *corev1.ConfigMap) bool {
+	ref := makeBuildCAOwnerRef(buildPod)
+	for _, owner := range caMap.OwnerReferences {
+		if reflect.DeepEqual(ref, owner) {
+			return true
+		}
+	}
+	return false
 }

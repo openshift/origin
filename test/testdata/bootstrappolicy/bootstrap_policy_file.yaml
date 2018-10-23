@@ -2244,6 +2244,7 @@ items:
     resources:
     - configmaps
     verbs:
+    - create
     - get
     - list
   - apiGroups:

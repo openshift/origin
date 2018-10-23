@@ -51,6 +51,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

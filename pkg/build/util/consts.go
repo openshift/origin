@@ -88,6 +88,7 @@ const (
 const (
 	StatusMessageCannotCreateBuildPodSpec        = "Failed to create pod spec."
 	StatusMessageCannotCreateBuildPod            = "Failed creating build pod."
+	StatusMessageCannotCreateCAConfigMap         = "Failed creating build certificate authority configMap."
 	StatusMessageInvalidOutputRef                = "Output image could not be resolved."
 	StatusMessageInvalidImageRef                 = "Referenced image could not be resolved."
 	StatusMessageBuildPodDeleted                 = "The pod for this build was deleted before the build completed."

@@ -30,6 +30,7 @@ const (
 	DockerPullSecretMountPath            = "/var/run/secrets/openshift.io/pull"
 	ConfigMapBuildSourceBaseMountPath    = "/var/run/configs/openshift.io/build"
 	ConfigMapBuildSystemConfigsMountPath = "/var/run/configs/openshift.io/build-system"
+	ConfigMapCertsMountPath              = "/var/run/configs/openshift.io/certs"
 	SecretBuildSourceBaseMountPath       = "/var/run/secrets/openshift.io/build"
 	SourceImagePullSecretMountPath       = "/var/run/secrets/openshift.io/source-image"
 
@@ -446,56 +447,39 @@ func setupContainersNodeStorage(pod *corev1.Pod, container *corev1.Container) {
 	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_ISOLATION", Value: "chroot"})
 }
 
-// setupContainersCertificates borrows the appropriate directories from the node so that
-// we can share any certificates that we might need for contacting registries.
-func setupContainersCertificates(pod *corev1.Pod, container *corev1.Container) {
-	containersExists := false
+// setupBuildCAs mounts certificate authorities for the build from a predetermined ConfigMap.
+func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod) {
+	casExist := false
 	for _, v := range pod.Spec.Volumes {
-		if v.Name == "node-containers-certificates" {
-			containersExists = true
-			break
-		}
-	}
-	dockerExists := false
-	for _, v := range pod.Spec.Volumes {
-		if v.Name == "node-docker-certificates" {
-			dockerExists = true
+		if v.Name == "build-ca-bundles" {
+			casExist = true
 			break
 		}
 	}
 
-	if !containersExists {
+	if !casExist {
 		pod.Spec.Volumes = append(pod.Spec.Volumes,
 			corev1.Volume{
-				Name: "node-containers-certificates",
+				Name: "build-ca-bundles",
 				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Path: "/etc/containers/certs.d",
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: buildapihelpers.GetBuildCAConfigMapName(build),
+						},
 					},
 				},
 			},
 		)
-	}
-	if !dockerExists {
-		pod.Spec.Volumes = append(pod.Spec.Volumes,
-			corev1.Volume{
-				Name: "node-docker-certificates",
-				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Path: "/etc/docker/certs.d",
-					},
+		containers := make([]corev1.Container, len(pod.Spec.Containers))
+		for i, c := range pod.Spec.Containers {
+			c.VolumeMounts = append(c.VolumeMounts,
+				corev1.VolumeMount{
+					Name:      "build-ca-bundles",
+					MountPath: ConfigMapCertsMountPath,
 				},
-			},
-		)
+			)
+			containers[i] = c
+		}
+		pod.Spec.Containers = containers
 	}
-	container.VolumeMounts = append(container.VolumeMounts,
-		corev1.VolumeMount{
-			Name:      "node-containers-certificates",
-			MountPath: "/etc/containers/certs.d",
-		},
-		corev1.VolumeMount{
-			Name:      "node-docker-certificates",
-			MountPath: "/etc/docker/certs.d",
-		},
-	)
 }

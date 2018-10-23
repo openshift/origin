@@ -45,6 +45,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})

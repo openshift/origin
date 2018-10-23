@@ -69,21 +69,31 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	// inputsecret
 	// inputconfigmap
 	// build-system-config
+	// certificate authorities
 	// container storage
-	if len(container.VolumeMounts) != 7 {
-		t.Fatalf("Expected 7 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.VolumeMounts) != 8 {
+		t.Fatalf("Expected 8 volumes in container, got %d", len(container.VolumeMounts))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
-	for i, expected := range []string{buildutil.BuildWorkDirMount, DockerPushSecretMountPath, DockerPullSecretMountPath, filepath.Join(SecretBuildSourceBaseMountPath, "super-secret"), filepath.Join(ConfigMapBuildSourceBaseMountPath, "build-config"), ConfigMapBuildSystemConfigsMountPath, "/var/lib/containers/storage"} {
+	expectedMounts := []string{buildutil.BuildWorkDirMount,
+		DockerPushSecretMountPath,
+		DockerPullSecretMountPath,
+		filepath.Join(SecretBuildSourceBaseMountPath, "super-secret"),
+		filepath.Join(ConfigMapBuildSourceBaseMountPath, "build-config"),
+		ConfigMapBuildSystemConfigsMountPath,
+		ConfigMapCertsMountPath,
+		"/var/lib/containers/storage",
+	}
+	for i, expected := range expectedMounts {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
 	// build pod has an extra volume: the git clone source secret
-	if len(actual.Spec.Volumes) != 8 {
-		t.Fatalf("Expected 8 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 9 {
+		t.Fatalf("Expected 9 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)

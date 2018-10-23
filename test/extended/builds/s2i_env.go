@@ -43,6 +43,7 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
+				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})
