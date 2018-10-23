@@ -16,6 +16,7 @@ import (
 	"time"
 
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -446,6 +447,8 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	}
 	// we need to set enable-aggregator-routing so that APIServices are resolved from Endpoints
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
+	out, _ := yaml.Marshal(kubeAPIServerConfig)
+	glog.Infof("### Kubernetes API config:\n%s", string(out))
 	go func() {
 		if err := openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig); err != nil {
 			glog.Fatal(err)
@@ -487,6 +490,8 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		return fmt.Errorf("couldn't find free address for OpenShift API: %v", err)
 	}
 	openshiftAPIServerConfig.ServingInfo.BindAddress = openshiftAddrStr
+	out, _ := yaml.Marshal(openshiftAPIServerConfig)
+	glog.Infof("### OpenShift API config:\n%s", string(out))
 	go func() {
 		if err := openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig); err != nil {
 			glog.Fatal(err)

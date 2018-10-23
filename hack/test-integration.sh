@@ -13,6 +13,8 @@ sub_tests="${1:-}"
 # Filter to run sub tests and turn up verbosity to show which tests will be run
 if [[ -n "${sub_tests}" ]]; then
 	gotest_flags+=" -run TestIntegration/${sub_tests} -v"
+  COVERAGE_SPEC=" " DETECT_RACES=false TMPDIR="${BASETMPDIR}" TIMEOUT=45m GOTEST_FLAGS="${gotest_flags}" "${OS_ROOT}/hack/test-go.sh" "test/integration/runner"
+else
+  COVERAGE_SPEC=" " DETECT_RACES=false TMPDIR="${BASETMPDIR}" TIMEOUT=25m GOTEST_FLAGS="${gotest_flags}"" -run TestIntegration/Test[A-N] -v" "${OS_ROOT}/hack/test-go.sh" "test/integration/runner"
+  COVERAGE_SPEC=" " DETECT_RACES=false TMPDIR="${BASETMPDIR}" TIMEOUT=25m GOTEST_FLAGS="${gotest_flags}"" -run TestIntegration/Test[O-Z] -v" "${OS_ROOT}/hack/test-go.sh" "test/integration/runner"
 fi
-
-COVERAGE_SPEC=" " DETECT_RACES=false TMPDIR="${BASETMPDIR}" TIMEOUT=45m GOTEST_FLAGS="${gotest_flags}" "${OS_ROOT}/hack/test-go.sh" "test/integration/runner"
