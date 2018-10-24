@@ -48,7 +48,7 @@ import:
 - package: github.com/openshift/service-serving-cert-signer
   version: release-3.11
 - package: github.com/openshift/source-to-image
-  version: master
+  version: release-3.11
 
 # forks third
 # master
