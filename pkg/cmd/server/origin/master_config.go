@@ -155,7 +155,7 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	admissionInitializer, err := originadmission.NewPluginInitializer(options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname, cloudConfigFile, options.JenkinsPipelineConfig, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
+	admissionInitializer, err := originadmission.NewPluginInitializer(options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname, cloudConfigFile, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}

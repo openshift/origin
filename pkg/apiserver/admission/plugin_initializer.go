@@ -3,7 +3,6 @@ package admission
 import (
 	"fmt"
 	"io/ioutil"
-	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,22 +22,16 @@ import (
 	"k8s.io/kubernetes/pkg/quota/generic"
 	"k8s.io/kubernetes/pkg/quota/install"
 
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
-	"github.com/openshift/origin/pkg/build/apiserver/admission/jenkinsbootstrapper"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/quota/image"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	"k8s.io/apimachinery/pkg/conversion"
 )
 
 type InformerAccess interface {
@@ -54,7 +47,6 @@ func NewPluginInitializer(
 	externalImageRegistryHostname string,
 	internalImageRegistryHostname string,
 	cloudConfigFile string,
-	jenkinsConfig openshiftcontrolplanev1.JenkinsPipelineConfig,
 	privilegedLoopbackConfig *rest.Config,
 	informers InformerAccess,
 	authorizer authorizer.Authorizer,
@@ -145,33 +137,5 @@ func NewPluginInitializer(
 		UserInformers:                informers.GetOpenshiftUserInformers(),
 	}
 
-	internalJenkinsConfig, err := toInternalLegacyConfigJenkinsPipelineConfig(jenkinsConfig)
-	if err != nil {
-		return nil, err
-	}
-	jenkinsPipelineConfigInitializer := &jenkinsbootstrapper.PluginInitializer{
-		JenkinsPipelineConfig: internalJenkinsConfig,
-	}
-
-	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer, jenkinsPipelineConfigInitializer}, nil
-}
-
-func convert_openshiftcontrolplanev1_JenkinsPipelineConfig_to_legacyconfigv1_JenkinsPipelineConfig(in *openshiftcontrolplanev1.JenkinsPipelineConfig, out *legacyconfigv1.JenkinsPipelineConfig, s conversion.Scope) error {
-	converter := conversion.NewConverter(conversion.DefaultNameFunc)
-	_, meta := converter.DefaultMeta(reflect.TypeOf(in))
-	return converter.DefaultConvert(in, out, conversion.AllowDifferentFieldTypeNames, meta)
-}
-
-func toInternalLegacyConfigJenkinsPipelineConfig(in openshiftcontrolplanev1.JenkinsPipelineConfig) (configapi.JenkinsPipelineConfig, error) {
-	external := legacyconfigv1.JenkinsPipelineConfig{}
-	if err := convert_openshiftcontrolplanev1_JenkinsPipelineConfig_to_legacyconfigv1_JenkinsPipelineConfig(&in, &external, nil); err != nil {
-		return configapi.JenkinsPipelineConfig{}, err
-	}
-
-	out := configapi.JenkinsPipelineConfig{}
-	if err := configv1.Convert_v1_JenkinsPipelineConfig_To_config_JenkinsPipelineConfig(&external, &out, nil); err != nil {
-		return configapi.JenkinsPipelineConfig{}, err
-	}
-
-	return out, nil
+	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
 }

@@ -52,7 +52,6 @@ var (
 	OpenShiftAdmissionPlugins = []string{
 		lifecycle.PluginName,
 		"ProjectRequestLimit",
-		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
 		imageadmission.PluginName,

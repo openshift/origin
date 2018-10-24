@@ -37,7 +37,6 @@ var combinedAdmissionControlPlugins = []string{
 	"EventRateLimit",
 	"ProjectRequestLimit",
 	"openshift.io/RestrictSubjectBindings",
-	"openshift.io/JenkinsBootstrapper",
 	"openshift.io/BuildConfigSecretInjector",
 	"BuildByStrategy",
 	imageadmission.PluginName,

@@ -51,7 +51,6 @@ var (
 	openshiftAdmissionControlPlugins = []string{
 		"ProjectRequestLimit",
 		"openshift.io/RestrictSubjectBindings",
-		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
 		imageadmission.PluginName,
@@ -122,7 +121,6 @@ var (
 		"EventRateLimit",
 		"ProjectRequestLimit",
 		"openshift.io/RestrictSubjectBindings",
-		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
 		imageadmission.PluginName,
