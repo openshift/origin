@@ -72,8 +72,8 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 
 				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonPostCommitHookFailed))
-				o.Expect(build.Status.Message).To(o.Equal(buildutil.StatusMessagePostCommitHookFailed))
+				o.Expect(build.Status.Reason).To(o.Or(o.Equal(buildv1.StatusReasonPostCommitHookFailed), o.Equal(buildv1.StatusReasonGenericBuildFailed)))
+				o.Expect(build.Status.Message).To(o.Or(o.Equal(buildutil.StatusMessagePostCommitHookFailed), o.Equal(buildutil.StatusMessageGenericBuildFailed)))
 
 				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 
