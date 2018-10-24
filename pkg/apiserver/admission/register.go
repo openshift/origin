@@ -1,10 +1,6 @@
 package admission
 
 import (
-	"io"
-
-	"github.com/golang/glog"
-
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
@@ -20,7 +16,6 @@ import (
 	buildjenkinsbootstrapper "github.com/openshift/origin/pkg/build/apiserver/admission/jenkinsbootstrapper"
 	buildsecretinjector "github.com/openshift/origin/pkg/build/apiserver/admission/secretinjector"
 	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/apiserver/admission/strategyrestrictions"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
@@ -131,21 +126,3 @@ var (
 		"SecurityContextDeny",
 	)
 )
-
-func IsAdmissionPluginActivated(name string, config io.Reader) bool {
-	// only intercept if we have an explicit enable or disable.  If the check fails in any way,
-	// assume that the config was a different type and let the actual admission plugin check it
-	if DefaultOnPlugins.Has(name) {
-		if enabled, err := configlatest.IsAdmissionPluginActivated(config, true); err == nil && !enabled {
-			glog.V(2).Infof("Admission plugin %v is disabled.  It will not be started.", name)
-			return false
-		}
-	} else if DefaultOffPlugins.Has(name) {
-		if enabled, err := configlatest.IsAdmissionPluginActivated(config, false); err == nil && !enabled {
-			glog.V(2).Infof("Admission plugin %v is not enabled.  It will not be started.", name)
-			return false
-		}
-	}
-
-	return true
-}
