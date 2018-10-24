@@ -70,7 +70,9 @@ kube::util::trap_add() {
 
 # Opposite of kube::util::ensure-temp-dir()
 kube::util::cleanup-temp-dir() {
-  rm -rf "${KUBE_TEMP}"
+  if [[ -n "${KUBE_TEMP-}" ]]; then
+    rm -rf "${KUBE_TEMP}"
+  fi
 }
 
 # Create a temp dir that'll be deleted at the end of this bash session.
