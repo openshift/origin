@@ -56,7 +56,7 @@ USER 1001
 				err := oc.Run("new-build").Args("-D", "-", "--to", "busybox:custom").InputString(testDockerfile).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("starting a test build")
+				g.By("checking the buildconfig content")
 				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("busybox", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
@@ -82,7 +82,7 @@ USER 1001
 				err := oc.Run("new-build").Args("-D", "-").InputString(testDockerfile2).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("starting a test build")
+				g.By("checking the buildconfig content")
 				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("centos", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
@@ -114,7 +114,7 @@ USER 1001
 				err := oc.Run("new-build").Args("-D", "-").InputString(testDockerfile3).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("starting a test build")
+				g.By("checking the buildconfig content")
 				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("scratch", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile3))
