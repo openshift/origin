@@ -48,7 +48,7 @@ type serviceLocation struct {
 
 var serviceLocations = []serviceLocation{
 	{namespace: "default", name: "docker-registry"},
-	{namespace: "openshift-image-registry", name: "registry"},
+	{namespace: "openshift-image-registry", name: "image-registry"},
 }
 
 // NewDockerRegistryServiceController returns a new *DockerRegistryServiceController.
