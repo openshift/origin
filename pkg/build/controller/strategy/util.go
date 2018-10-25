@@ -448,7 +448,7 @@ func setupContainersNodeStorage(pod *corev1.Pod, container *corev1.Container) {
 }
 
 // setupBuildCAs mounts certificate authorities for the build from a predetermined ConfigMap.
-func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod) {
+func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, includeAdditionalCA bool) {
 	casExist := false
 	for _, v := range pod.Spec.Volumes {
 		if v.Name == "build-ca-bundles" {
@@ -458,15 +458,22 @@ func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod) {
 	}
 
 	if !casExist {
+		cmSource := &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: buildapihelpers.GetBuildCAConfigMapName(build),
+			},
+		}
+		if includeAdditionalCA {
+			cmSource.Items = append(cmSource.Items, corev1.KeyToPath{
+				Key:  buildutil.AdditionalTrustedCAKey,
+				Path: buildutil.AdditionalTrustedCAKey,
+			})
+		}
 		pod.Spec.Volumes = append(pod.Spec.Volumes,
 			corev1.Volume{
 				Name: "build-ca-bundles",
 				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: buildapihelpers.GetBuildCAConfigMapName(build),
-						},
-					},
+					ConfigMap: cmSource,
 				},
 			},
 		)

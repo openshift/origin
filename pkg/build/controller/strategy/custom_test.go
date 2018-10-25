@@ -28,12 +28,12 @@ func TestCustomCreateBuildPod(t *testing.T) {
 		Kind: "DockerImage",
 		Name: "",
 	}
-	if _, err := strategy.CreateBuildPod(expectedBad); err == nil {
+	if _, err := strategy.CreateBuildPod(expectedBad, true); err == nil {
 		t.Errorf("Expected error when Image is empty, got nothing")
 	}
 
 	build := mockCustomBuild(false, false)
-	actual, err := strategy.CreateBuildPod(build)
+	actual, err := strategy.CreateBuildPod(build, true)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 	strategy := CustomBuildStrategy{}
 
 	expected := mockCustomBuild(true, false)
-	actual, fperr := strategy.CreateBuildPod(expected)
+	actual, fperr := strategy.CreateBuildPod(expected, true)
 	if fperr != nil {
 		t.Fatalf("Unexpected error: %v", fperr)
 	}
@@ -140,7 +140,7 @@ func TestEmptySource(t *testing.T) {
 	strategy := CustomBuildStrategy{}
 
 	expected := mockCustomBuild(false, true)
-	_, fperr := strategy.CreateBuildPod(expected)
+	_, fperr := strategy.CreateBuildPod(expected, true)
 	if fperr != nil {
 		t.Fatalf("Unexpected error: %v", fperr)
 	}
@@ -154,7 +154,7 @@ func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 		build := mockCustomBuild(false, false)
 		build.Spec.Strategy.CustomStrategy.BuildAPIVersion = fmt.Sprintf("%s/%s", version.Group, version.Version)
 
-		pod, err := strategy.CreateBuildPod(build)
+		pod, err := strategy.CreateBuildPod(build, true)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -178,7 +178,7 @@ func TestCustomBuildLongName(t *testing.T) {
 	strategy := CustomBuildStrategy{}
 	build := mockCustomBuild(false, false)
 	build.Name = strings.Repeat("a", validation.DNS1123LabelMaxLength*2)
-	pod, err := strategy.CreateBuildPod(build)
+	pod, err := strategy.CreateBuildPod(build, true)
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}

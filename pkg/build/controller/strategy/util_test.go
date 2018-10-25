@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
@@ -255,7 +256,8 @@ func TestSetupBuildCAs(t *testing.T) {
 			},
 		},
 	}
-	setupBuildCAs(build, podSpec)
+	bundles := []string{buildutil.AdditionalTrustedCAKey}
+	setupBuildCAs(build, podSpec, true)
 	if len(podSpec.Spec.Volumes) != 1 {
 		t.Fatalf("expected pod to have 1 volume, got %d", len(podSpec.Spec.Volumes))
 	}
@@ -265,6 +267,25 @@ func TestSetupBuildCAs(t *testing.T) {
 	}
 	if volume.ConfigMap == nil {
 		t.Fatal("expected volume to use a ConfigMap volume source")
+	}
+	if len(volume.ConfigMap.Items) != len(bundles) {
+		t.Errorf("expected volume to have %d items, got %d", len(bundles), len(volume.ConfigMap.Items))
+	}
+	for _, expected := range bundles {
+		var foundItem *corev1.KeyToPath
+		for _, item := range volume.ConfigMap.Items {
+			if item.Key == expected {
+				foundItem = &item
+				break
+			}
+		}
+		if foundItem == nil {
+			t.Errorf("could not find %s as a referenced key in volume source", expected)
+		}
+		if len(foundItem.Path) == 0 {
+			t.Errorf("%s did not have a mount path specified", expected)
+		}
+
 	}
 
 	for _, c := range podSpec.Spec.Containers {

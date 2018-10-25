@@ -41,9 +41,10 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 			Image:          imageTemplate.ExpandOrDie("docker-builder"),
 			SecurityClient: securityClient.SecurityV1(),
 		},
-		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{},
-		BuildDefaults:       builddefaults.BuildDefaults{Config: ctx.OpenshiftControllerConfig.Build.BuildDefaults},
-		BuildOverrides:      buildoverrides.BuildOverrides{Config: ctx.OpenshiftControllerConfig.Build.BuildOverrides},
+		CustomBuildStrategy:     &buildstrategy.CustomBuildStrategy{},
+		BuildDefaults:           builddefaults.BuildDefaults{Config: ctx.OpenshiftControllerConfig.Build.BuildDefaults},
+		BuildOverrides:          buildoverrides.BuildOverrides{Config: ctx.OpenshiftControllerConfig.Build.BuildOverrides},
+		AdditionalTrustedCAPath: ctx.OpenshiftControllerConfig.Build.AdditionalTrustedCA,
 	}
 
 	go buildcontroller.NewBuildController(buildControllerParams).Run(5, ctx.Stop)
