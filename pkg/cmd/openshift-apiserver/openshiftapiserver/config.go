@@ -166,8 +166,8 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 		admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 	}
-	expliticOn := []string{}
-	expliticOff := []string{}
+	explicitOn := []string{}
+	explicitOff := []string{}
 	for plugin, config := range config.AdmissionPluginConfig {
 		enabled, err := isAdmissionPluginActivated(config)
 		if err != nil {
@@ -175,13 +175,13 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 		}
 		if enabled {
 			glog.V(2).Infof("Enabling %s", plugin)
-			expliticOn = append(expliticOn, plugin)
+			explicitOn = append(explicitOn, plugin)
 		} else {
 			glog.V(2).Infof("Disabling %s", plugin)
-			expliticOff = append(expliticOff, plugin)
+			explicitOff = append(explicitOff, plugin)
 		}
 	}
-	genericConfig.AdmissionControl, err = originadmission.NewAdmissionChains([]string{}, expliticOn, expliticOff, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
+	genericConfig.AdmissionControl, err = originadmission.NewAdmissionChains([]string{}, explicitOn, explicitOff, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}
