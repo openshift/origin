@@ -267,6 +267,13 @@ func IsNotMountPoint(mounter Interface, file string) (bool, error) {
 	if notMnt == false {
 		return notMnt, nil
 	}
+
+	// Resolve any symlinks in file, kernel would do the same and use the resolved path in /proc/mounts
+	resolvedFile, err := mounter.EvalHostSymlinks(file)
+	if err != nil {
+		return true, err
+	}
+
 	// check all mountpoints since IsLikelyNotMountPoint
 	// is not reliable for some mountpoint types
 	mountPoints, mountPointsErr := mounter.List()
@@ -274,7 +281,7 @@ func IsNotMountPoint(mounter Interface, file string) (bool, error) {
 		return notMnt, mountPointsErr
 	}
 	for _, mp := range mountPoints {
-		if mounter.IsMountPointMatch(mp, file) {
+		if mounter.IsMountPointMatch(mp, resolvedFile) {
 			notMnt = false
 			break
 		}
