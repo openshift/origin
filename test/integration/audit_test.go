@@ -25,7 +25,7 @@ func setupAudit(t *testing.T, auditConfig configapi.AuditConfig) (kclientset.Int
 		t.Fatalf("error starting server: %v", err)
 	}
 	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
-	if err != nil {
+	if err == nil {
 		t.Fatalf("error getting client: %v", err)
 	}
 	return kubeClient, func() {
