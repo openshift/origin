@@ -233,7 +233,8 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 	// See if any existing routes block our host, or if we displace their host
 	for i, route := range p.claimedHosts[newRoute.Spec.Host] {
 		if p.disableNamespaceCheck || route.Namespace == newRoute.Namespace {
-			if !p.disableNamespaceCheck && route.Name == newRoute.Name {
+			if route.Namespace == newRoute.Namespace && route.Name == newRoute.Name {
+				// Ignore ourself.
 				continue
 			}
 
