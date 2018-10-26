@@ -12,7 +12,7 @@ This requires setting the following flags:
 
 * `-key` - points to `master.etcd-client.key`
 * `-cert` - points to `master.etcd-client.crt`
-* `-cacert` - points to `ca.crt`
+* `-cacert` - points to `master.ectd-ca.crt`
 
 Once these are set properly, one can invoke the following actions:
 
