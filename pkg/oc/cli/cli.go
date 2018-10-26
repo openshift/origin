@@ -346,12 +346,44 @@ func CommandFor(basename string) *cobra.Command {
 	default:
 		shimKubectlForOc()
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)
+
+		// treat oc as a kubectl plugin
+		if strings.HasPrefix(basename, "kubectl-") {
+			args := strings.Split(strings.TrimPrefix(basename, "kubectl-"), "-")
+
+			// the plugin mechanism interprets "_" as dashes. Convert any "_" our basename
+			// might have in order to find the appropriate command in the `oc` tree.
+			for i := range args {
+				args[i] = strings.Replace(args[i], "_", "-", -1)
+			}
+
+			if targetCmd, _, err := cmd.Find(args); targetCmd != nil && err == nil {
+				// since cobra refuses to execute a child command, executing its root
+				// any time Execute() is called, we must create a completely new command
+				// and "deep copy" the targetCmd information to it.
+				newParent := &cobra.Command{
+					Use:     targetCmd.Use,
+					Short:   targetCmd.Short,
+					Long:    targetCmd.Long,
+					Example: targetCmd.Example,
+					Run:     targetCmd.Run,
+				}
+
+				// copy flags
+				newParent.Flags().AddFlagSet(cmd.Flags())
+				newParent.Flags().AddFlagSet(targetCmd.Flags())
+				newParent.PersistentFlags().AddFlagSet(targetCmd.PersistentFlags())
+
+				// copy subcommands
+				newParent.AddCommand(targetCmd.Commands()...)
+				cmd = newParent
+			}
+		}
 	}
 
 	if cmd.UsageFunc() == nil {
 		templates.ActsAsRootCommand(cmd, []string{"options"})
 	}
 	flagtypes.GLog(cmd.PersistentFlags())
-
 	return cmd
 }
