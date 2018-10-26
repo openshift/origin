@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
@@ -95,11 +96,9 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 
 	// properties of the release
 	flags.StringVar(&o.Name, "name", o.Name, "The name of the release. Will default to the current time.")
-
-	flags.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
-	flags.StringVar(&o.Directory, "dir", o.Directory, "Directory to write release contents to, will default to a temporary directory.")
-
-	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
+	flags.StringSliceVar(&o.PreviousVersions, "previous", o.PreviousVersions, "A list of semantic versions that should preceed this version in the release manifest.")
+	flags.StringVar(&o.ReleaseMetadata, "metadata", o.ReleaseMetadata, "A JSON object to attach as the metadata for the release manifest.")
+	flags.BoolVar(&o.ForceManifest, "release-manifest", o.ForceManifest, "If true, a release manifest will be created using --name as the semantic version.")
 
 	// validation
 	flags.BoolVar(&o.AllowMissingImages, "allow-missing-images", o.AllowMissingImages, "Ignore errors when an operator references a release image that is not included.")
@@ -114,6 +113,11 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
 	flags.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
 	flags.StringVar(&o.ToImageBase, "to-image-base", o.ToImageBase, "If specified, the image to add the release layer on top of.")
+
+	// misc
+	flags.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
+	flags.StringVar(&o.Directory, "dir", o.Directory, "Directory to write release contents to, will default to a temporary directory.")
+	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
 
 	return cmd
 }
@@ -134,6 +138,10 @@ type NewOptions struct {
 
 	Exclude []string
 
+	ForceManifest    bool
+	ReleaseMetadata  string
+	PreviousVersions []string
+
 	DryRun bool
 
 	ToFile      string
@@ -151,6 +159,8 @@ type NewOptions struct {
 	Mappings []Mapping
 
 	ImageClient imageclient.Interface
+
+	cleanupFns []func()
 }
 
 func (o *NewOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -220,7 +230,25 @@ func findSpecTag(tags []imageapi.TagReference, name string) *imageapi.TagReferen
 	return nil
 }
 
+type cincinnatiMetadata struct {
+	Kind string `json:"kind"`
+
+	Version  string   `json:"version"`
+	Previous []string `json:"previous"`
+
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
+func (o *NewOptions) cleanup() {
+	for _, fn := range o.cleanupFns {
+		fn()
+	}
+	o.cleanupFns = nil
+}
+
 func (o *NewOptions) Run() error {
+	defer o.cleanup()
+
 	if len(o.FromImageStream) > 0 && len(o.FromDirectory) > 0 {
 		return fmt.Errorf("only one of --from-image-stream and --from-dir may be specified")
 	}
@@ -229,6 +257,44 @@ func (o *NewOptions) Run() error {
 			return fmt.Errorf("must specify image mappings")
 		}
 	}
+
+	now := time.Now().UTC()
+	name := o.Name
+	if len(name) == 0 {
+		name = "0.0.1-" + now.Format("2006-01-02T150405Z")
+	}
+
+	var cm *cincinnatiMetadata
+	if len(o.PreviousVersions) > 0 || len(o.ReleaseMetadata) > 0 || o.ForceManifest {
+		cm = &cincinnatiMetadata{Kind: "cincinnati-metadata-v0"}
+		semverName, err := semver.Parse(name)
+		if err != nil {
+			return fmt.Errorf("when release metadata is added, the --name must be a semantic version")
+		}
+		cm.Version = semverName.String()
+	}
+	if len(o.ReleaseMetadata) > 0 {
+		if err := json.Unmarshal([]byte(o.ReleaseMetadata), &cm.Metadata); err != nil {
+			return fmt.Errorf("invalid --metadata: %v", err)
+		}
+	}
+	if cm != nil {
+		for _, previous := range o.PreviousVersions {
+			if len(previous) == 0 {
+				continue
+			}
+			v, err := semver.Parse(previous)
+			if err != nil {
+				return fmt.Errorf("%q is not a valid semantic version: %v", previous, err)
+			}
+			cm.Previous = append(cm.Previous, v.String())
+		}
+		sort.Strings(cm.Previous)
+		if cm.Previous == nil {
+			cm.Previous = []string{}
+		}
+	}
+	glog.V(4).Infof("Release metadata:\n%s", toJSONString(cm))
 
 	exclude := sets.NewString()
 	for _, s := range o.Exclude {
@@ -400,12 +466,6 @@ func (o *NewOptions) Run() error {
 	}
 
 	is.TypeMeta = metav1.TypeMeta{APIVersion: "image.openshift.io/v1", Kind: "ImageStream"}
-
-	now := time.Now().UTC()
-	name := o.Name
-	if len(name) == 0 {
-		name = now.Format("2006-01-02T150405Z")
-	}
 	is.CreationTimestamp = metav1.Time{Time: now}
 	is.Name = name
 	if is.Annotations == nil {
@@ -444,81 +504,10 @@ func (o *NewOptions) Run() error {
 	}
 
 	if len(o.FromDirectory) == 0 && payload == nil {
-		if len(is.Spec.Tags) == 0 {
-			return fmt.Errorf("no component images defined, unable to build a release payload")
-		}
-
-		glog.V(4).Infof("Extracting manifests for release from input images")
-
-		dir := o.Directory
-		if len(dir) == 0 {
-			var err error
-			dir, err = ioutil.TempDir("", fmt.Sprintf("release-image-%s", name))
-			if err != nil {
-				return err
-			}
-			defer func() { os.RemoveAll(dir) }()
-			fmt.Fprintf(o.ErrOut, "info: Manifests will be extracted to %s\n", dir)
-		}
-
-		if len(is.Spec.Tags) > 0 {
-			if err := os.MkdirAll(dir, 0770); err != nil {
-				return err
-			}
-			data, err := json.MarshalIndent(is, "", "  ")
-			if err != nil {
-				return err
-			}
-			if err := ioutil.WriteFile(filepath.Join(dir, "image-references"), data, 0640); err != nil {
-				return err
-			}
-		}
-
-		opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-		opts.OnlyFiles = true
-		opts.MaxPerRegistry = o.MaxPerRegistry
-		opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
-			metadata[m.Name] = imageData{
-				Directory: m.To,
-				Ref:       m.ImageRef,
-				Config:    config,
-				Digest:    dgst,
-			}
-		}
-
-		for i := range is.Spec.Tags {
-			tag := is.Spec.Tags[i]
-			dstDir := filepath.Join(dir, tag.Name)
-			src := tag.From.Name
-			ref, err := imagereference.Parse(src)
-			if err != nil {
-				return err
-			}
-			opts.Mappings = append(opts.Mappings, extract.Mapping{
-				Name:     tag.Name,
-				ImageRef: ref,
-
-				From: "manifests/",
-				To:   dstDir,
-
-				LayerFilter: extract.NewPositionLayerFilter(-1),
-
-				ConditionFn: func(m *extract.Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error) {
-					if imageConfig.Config == nil || len(imageConfig.Config.Labels["io.openshift.release.operator"]) == 0 {
-						glog.V(2).Infof("Image %s has no io.openshift.release.operator label, skipping", m.ImageRef)
-						return false, nil
-					}
-					if err := os.MkdirAll(dstDir, 0770); err != nil {
-						return false, err
-					}
-					fmt.Fprintf(o.Out, "Loading manifests from %s: %s ...\n", tag.Name, src)
-					return true, nil
-				},
-			})
-		}
-		if err := opts.Run(); err != nil {
+		if err := o.extractManifests(is, name, metadata); err != nil {
 			return err
 		}
+
 		var filteredNames []string
 		for _, s := range ordered {
 			if _, ok := metadata[s]; ok {
@@ -529,31 +518,10 @@ func (o *NewOptions) Run() error {
 	}
 
 	if len(o.Mirror) > 0 {
-		glog.V(4).Infof("Mirroring release contents to %s", o.Mirror)
-		copied := is.DeepCopy()
-		opts := NewMirrorOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-		opts.DryRun = o.DryRun
-		opts.ImageStream = copied
-		opts.To = o.Mirror
-		opts.SkipRelease = true
-		if err := opts.Run(); err != nil {
+		if err := o.mirrorImages(is, payload); err != nil {
 			return err
 		}
 
-		if payload != nil {
-			glog.V(4).Infof("Rewriting payload to point to mirror")
-			targetFn, err := ComponentReferencesForImageStream(copied)
-			if err != nil {
-				return err
-			}
-			if err := payload.Rewrite(false, targetFn); err != nil {
-				return fmt.Errorf("failed to update contents after mirroring: %v", err)
-			}
-			is, err = payload.References()
-			if err != nil {
-				return fmt.Errorf("unable to recalculate image references: %v", err)
-			}
-		}
 	} else if payload != nil && len(o.Mappings) > 0 {
 		glog.V(4).Infof("Rewriting payload for the input mappings")
 		targetFn, err := ComponentReferencesForImageStream(is)
@@ -592,20 +560,151 @@ func (o *NewOptions) Run() error {
 	go func() {
 		var err error
 		if payload != nil {
-			err = copyPayload(pw, now, is, payload.Path(), verifiers)
+			err = copyPayload(pw, now, is, cm, payload.Path(), verifiers)
 		} else {
-			operators, err = writePayload(pw, now, is, ordered, metadata, o.AllowMissingImages, verifiers)
+			operators, err = writePayload(pw, now, is, cm, ordered, metadata, o.AllowMissingImages, verifiers)
 		}
 		pw.CloseWithError(err)
 	}()
 
+	br := bufio.NewReaderSize(pr, 500*1024)
+	_, err := br.Peek(br.Size())
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("unable to create a release: %v", err)
+	}
+
+	if err := o.write(br, is, now); err != nil {
+		return err
+	}
+
+	sort.Strings(operators)
+	switch {
+	case operators == nil:
+	case len(operators) == 0:
+		fmt.Fprintf(o.ErrOut, "warning: No operator metadata was found, no operators will be part of the release.\n")
+	default:
+		fmt.Fprintf(o.Out, "Built update image content from %d operators\n", len(operators))
+	}
+
+	return nil
+}
+
+func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, metadata map[string]imageData) error {
+	if len(is.Spec.Tags) == 0 {
+		return fmt.Errorf("no component images defined, unable to build a release payload")
+	}
+
+	glog.V(4).Infof("Extracting manifests for release from input images")
+
+	dir := o.Directory
+	if len(dir) == 0 {
+		var err error
+		dir, err = ioutil.TempDir("", fmt.Sprintf("release-image-%s", name))
+		if err != nil {
+			return err
+		}
+		o.cleanupFns = append(o.cleanupFns, func() { os.RemoveAll(dir) })
+		fmt.Fprintf(o.ErrOut, "info: Manifests will be extracted to %s\n", dir)
+	}
+
+	if len(is.Spec.Tags) > 0 {
+		if err := os.MkdirAll(dir, 0770); err != nil {
+			return err
+		}
+		data, err := json.MarshalIndent(is, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(filepath.Join(dir, "image-references"), data, 0640); err != nil {
+			return err
+		}
+	}
+
+	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+	opts.OnlyFiles = true
+	opts.MaxPerRegistry = o.MaxPerRegistry
+	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+		metadata[m.Name] = imageData{
+			Directory: m.To,
+			Ref:       m.ImageRef,
+			Config:    config,
+			Digest:    dgst,
+		}
+	}
+
+	for i := range is.Spec.Tags {
+		tag := is.Spec.Tags[i]
+		dstDir := filepath.Join(dir, tag.Name)
+		src := tag.From.Name
+		ref, err := imagereference.Parse(src)
+		if err != nil {
+			return err
+		}
+		opts.Mappings = append(opts.Mappings, extract.Mapping{
+			Name:     tag.Name,
+			ImageRef: ref,
+
+			From: "manifests/",
+			To:   dstDir,
+
+			LayerFilter: extract.NewPositionLayerFilter(-1),
+
+			ConditionFn: func(m *extract.Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error) {
+				if imageConfig.Config == nil || len(imageConfig.Config.Labels["io.openshift.release.operator"]) == 0 {
+					glog.V(2).Infof("Image %s has no io.openshift.release.operator label, skipping", m.ImageRef)
+					return false, nil
+				}
+				if err := os.MkdirAll(dstDir, 0770); err != nil {
+					return false, err
+				}
+				fmt.Fprintf(o.Out, "Loading manifests from %s: %s ...\n", tag.Name, src)
+				return true, nil
+			},
+		})
+	}
+	return opts.Run()
+}
+
+func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) error {
+	glog.V(4).Infof("Mirroring release contents to %s", o.Mirror)
+	copied := is.DeepCopy()
+	opts := NewMirrorOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+	opts.DryRun = o.DryRun
+	opts.ImageStream = copied
+	opts.To = o.Mirror
+	opts.SkipRelease = true
+
+	if err := opts.Run(); err != nil {
+		return err
+	}
+
+	if payload == nil {
+		return nil
+	}
+
+	glog.V(4).Infof("Rewriting payload to point to mirror")
+	targetFn, err := ComponentReferencesForImageStream(copied)
+	if err != nil {
+		return err
+	}
+	if err := payload.Rewrite(false, targetFn); err != nil {
+		return fmt.Errorf("failed to update contents after mirroring: %v", err)
+	}
+	is, err = payload.References()
+	if err != nil {
+		return fmt.Errorf("unable to recalculate image references: %v", err)
+	}
+	return nil
+}
+
+func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time) error {
 	switch {
 	case len(o.ToDir) > 0:
 		glog.V(4).Infof("Writing release contents to directory %s", o.ToDir)
 		if err := os.MkdirAll(o.ToDir, 0755); err != nil {
 			return err
 		}
-		r, err := archive.DecompressStream(pr)
+		r, err := archive.DecompressStream(r)
 		if err != nil {
 			return err
 		}
@@ -649,7 +748,7 @@ func (o *NewOptions) Run() error {
 			}
 			w = f
 		}
-		if _, err := io.Copy(w, pr); err != nil {
+		if _, err := io.Copy(w, r); err != nil {
 			w.Close()
 			return err
 		}
@@ -696,27 +795,17 @@ func (o *NewOptions) Run() error {
 			return nil
 		}
 
-		options.LayerStream = pr
+		options.LayerStream = r
 		options.To = toRef.Exact()
 		if err := options.Run(); err != nil {
 			return err
 		}
 	default:
 		fmt.Fprintf(o.ErrOut, "info: Extracting operator contents to disk without building a release artifact\n")
-		if _, err := io.Copy(ioutil.Discard, pr); err != nil {
+		if _, err := io.Copy(ioutil.Discard, r); err != nil {
 			return err
 		}
 	}
-
-	sort.Strings(operators)
-	switch {
-	case operators == nil:
-	case len(operators) == 0:
-		fmt.Fprintf(o.ErrOut, "warning: No operator metadata was found, no operators will be part of the release.\n")
-	default:
-		fmt.Fprintf(o.Out, "Built update image content from %d operators\n", len(operators))
-	}
-
 	return nil
 }
 
@@ -751,7 +840,7 @@ func writeNestedTarHeader(tw *tar.Writer, parts []string, existing map[string]st
 	return nil
 }
 
-func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered []string, metadata map[string]imageData, allowMissingImages bool, verifiers []PayloadVerifier) ([]string, error) {
+func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *cincinnatiMetadata, ordered []string, metadata map[string]imageData, allowMissingImages bool, verifiers []PayloadVerifier) ([]string, error) {
 	var operators []string
 	directories := make(map[string]struct{})
 	files := make(map[string]int)
@@ -776,6 +865,20 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 	}
 	if _, err := tw.Write(data); err != nil {
 		return nil, err
+	}
+
+	// write cincinnati metadata to release-manifests/cincinnati
+	if cm != nil {
+		data, err := json.MarshalIndent(cm, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "cincinnati")...), Size: int64(len(data))}); err != nil {
+			return nil, err
+		}
+		if _, err := tw.Write(data); err != nil {
+			return nil, err
+		}
 	}
 
 	// we iterate over each input directory in order to ensure the output is stable
@@ -864,7 +967,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, ordered 
 	return operators, nil
 }
 
-func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, directory string, verifiers []PayloadVerifier) error {
+func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *cincinnatiMetadata, directory string, verifiers []PayloadVerifier) error {
 	directories := make(map[string]struct{})
 
 	gw := gzip.NewWriter(w)
@@ -877,7 +980,14 @@ func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, directory
 		return err
 	}
 
+	// copy each manifest in the given directory
+	contents, err := ioutil.ReadDir(directory)
+	if err != nil {
+		return err
+	}
+
 	// write image metadata to release-manifests/image-references
+	takeFileByName(&contents, "image-references")
 	data, err := json.MarshalIndent(is, "", "  ")
 	if err != nil {
 		return err
@@ -889,14 +999,20 @@ func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, directory
 		return err
 	}
 
-	// copy each manifest in the given directory
-	contents, err := ioutil.ReadDir(directory)
-	if err != nil {
-		return err
+	// write cincinnati if passed to us
+	takeFileByName(&contents, "cincinnati")
+	if cm != nil {
+		data, err := json.MarshalIndent(cm, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "cincinnati")...), Size: int64(len(data))}); err != nil {
+			return err
+		}
+		if _, err := tw.Write(data); err != nil {
+			return err
+		}
 	}
-
-	// remove image-references because we already wrote it
-	takeFileByName(&contents, "image-references")
 
 	for _, fi := range contents {
 		if fi.IsDir() {

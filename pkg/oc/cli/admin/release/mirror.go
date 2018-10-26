@@ -37,15 +37,6 @@ func NewMirrorOptions(streams genericclioptions.IOStreams) *MirrorOptions {
 //     --from=registry.svc.ci.openshift.org/openshift/v4.0 \
 //     --to=mycompany.com/myrepository/repo
 //
-// Example command to mirror and promote a release (tooling focused)
-//
-// $ oc adm release mirror \
-//     --from=registry.svc.ci.openshift.org/openshift/v4.0-20180926095350 \
-//     '--to=quay.io/openshift-test-dev/origin-v4.0:v4.1.2-${component}' \
-//     --to-release-image=quay.io/openshift-test-dev/origin-release:v4.1.2 \
-//     --to-image-base=registry.svc.ci.openshift.org/openshift/v4.0-20180926095350:cluster-version-operator \
-//     --rewrite
-//
 func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewMirrorOptions(streams)
 	cmd := &cobra.Command{

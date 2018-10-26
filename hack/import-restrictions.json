@@ -473,6 +473,7 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/github.com/aws/aws-sdk-go",
+      "vendor/github.com/blang/semver",
       "vendor/github.com/containers/image",
       "vendor/github.com/docker/distribution",
       "vendor/github.com/docker/docker",
