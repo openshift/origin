@@ -783,7 +783,7 @@ func (o *VolumeOptions) addVolumeToSpec(spec *corev1.PodSpec, info *resource.Inf
 	// if --overwrite was passed, but volume did not previously
 	// exist, log a warning that no volumes were overwritten
 	if !vNameFound && opts.Overwrite && (o.PrintFlags.OutputFormat == nil || len(*o.PrintFlags.OutputFormat) == 0) {
-		fmt.Fprintf(o.ErrOut, "warning: volume %q did not previously exist and was not overriden. A new volume with this name has been created instead.", o.Name)
+		fmt.Fprintf(o.ErrOut, "warning: volume %q did not previously exist and was not overwritten. A new volume with this name has been created instead.", o.Name)
 	}
 
 	if setSource {
