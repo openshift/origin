@@ -201,7 +201,7 @@ func (o *ImageLookupOptions) Run() error {
 	case len(o.Args) == 0 && len(o.Filenames) == 0:
 		b = b.
 			LabelSelectorParam(o.Selector).
-			SelectAllParam(true).
+			SelectAllParam(o.All).
 			ResourceTypes("imagestreams")
 	case o.List:
 		b = b.
