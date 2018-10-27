@@ -354,6 +354,8 @@ func (o *Options) Run() error {
 				}
 				if o.RemovePermissions {
 					alter = append(alter, removePermissions{})
+				} else if !preserveOwnership {
+					alter = append(alter, writableDirectories{})
 				}
 
 				var byEntry TarEntryFunc = o.TarEntryCallback
@@ -508,6 +510,16 @@ func (_ removePermissions) Alter(hdr *tar.Header) (bool, error) {
 		hdr.Mode = int64(os.FileMode(0640))
 	default:
 		hdr.Mode = int64(os.FileMode(0755))
+	}
+	return true, nil
+}
+
+type writableDirectories struct{}
+
+func (_ writableDirectories) Alter(hdr *tar.Header) (bool, error) {
+	switch hdr.Typeflag {
+	case tar.TypeDir:
+		hdr.Mode = int64(os.FileMode(0600) | os.FileMode(hdr.Mode))
 	}
 	return true, nil
 }
