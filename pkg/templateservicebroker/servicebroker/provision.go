@@ -22,7 +22,7 @@ import (
 
 // ensureSecret ensures the existence of a Secret object containing the template
 // configuration parameters.
-func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInstance *templateapiv1.BrokerTemplateInstance, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapiv1.Secret, *api.Response) {
+func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInstance *templateapiv1.BrokerTemplateInstance, instanceID string, preq *api.ProvisionRequest, template *templateapiv1.Template, didWork *bool) (*kapiv1.Secret, *api.Response) {
 	glog.V(4).Infof("Template service broker: ensureSecret")
 
 	blockOwnerDeletion := true
@@ -42,8 +42,14 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInsta
 		Data: map[string][]byte{},
 	}
 
+	// allow empty string values for non-generated parameters.
+	// empty string values will be ignored for generated parameter/
 	for k, v := range preq.Parameters {
-		secret.Data[k] = []byte(v)
+		for _, param := range template.Parameters {
+			if param.Name == k && ((v == "" && param.Generate == "") || v != "") {
+				secret.Data[k] = []byte(v)
+			}
+		}
 	}
 
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
@@ -374,7 +380,7 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 	// TODO remove this when https://github.com/kubernetes/kubernetes/issues/54940 is fixed
 	time.Sleep(b.gcCreateDelay)
 
-	secret, resp := b.ensureSecret(u, namespace, brokerTemplateInstance, instanceID, preq, &didWork)
+	secret, resp := b.ensureSecret(u, namespace, brokerTemplateInstance, instanceID, preq, template, &didWork)
 	if resp != nil {
 		return resp
 	}
