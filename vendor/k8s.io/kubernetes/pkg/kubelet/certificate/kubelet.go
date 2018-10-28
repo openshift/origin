@@ -17,14 +17,17 @@ limitations under the License.
 package certificate
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
 	"net"
+	"sort"
 
 	"github.com/prometheus/client_golang/prometheus"
 
 	certificates "k8s.io/api/certificates/v1beta1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clientset "k8s.io/client-go/kubernetes"
 	clientcertificates "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
@@ -60,7 +63,9 @@ func NewKubeletServerCertificateManager(kubeClient clientset.Interface, kubeCfg 
 	prometheus.MustRegister(certificateExpiration)
 
 	m, err := certificate.NewManager(&certificate.Config{
-		CertificateSigningRequestClient: certSigningRequestClient,
+		ClientFn: func(current *tls.Certificate) (clientcertificates.CertificateSigningRequestInterface, error) {
+			return certSigningRequestClient, nil
+		},
 		Template: &x509.CertificateRequest{
 			Subject: pkix.Name{
 				CommonName:   fmt.Sprintf("system:node:%s", nodeName),
@@ -92,11 +97,48 @@ func NewKubeletServerCertificateManager(kubeClient clientset.Interface, kubeCfg 
 	return m, nil
 }
 
+func addressesToHostnamesAndIPs(addresses []v1.NodeAddress) (dnsNames []string, ips []net.IP) {
+	seenDNSNames := map[string]bool{}
+	seenIPs := map[string]bool{}
+	for _, address := range addresses {
+		if len(address.Address) == 0 {
+			continue
+		}
+
+		switch address.Type {
+		case v1.NodeHostName:
+			if ip := net.ParseIP(address.Address); ip != nil {
+				seenIPs[address.Address] = true
+			} else {
+				seenDNSNames[address.Address] = true
+			}
+		case v1.NodeExternalIP, v1.NodeInternalIP:
+			if ip := net.ParseIP(address.Address); ip != nil {
+				seenIPs[address.Address] = true
+			}
+		case v1.NodeExternalDNS, v1.NodeInternalDNS:
+			seenDNSNames[address.Address] = true
+		}
+	}
+
+	for dnsName := range seenDNSNames {
+		dnsNames = append(dnsNames, dnsName)
+	}
+	for ip := range seenIPs {
+		ips = append(ips, net.ParseIP(ip))
+	}
+
+	// return in stable order
+	sort.Strings(dnsNames)
+	sort.Slice(ips, func(i, j int) bool { return ips[i].String() < ips[j].String() })
+
+	return dnsNames, ips
+}
+
 // NewKubeletClientCertificateManager sets up a certificate manager without a
-// client that can be used to sign new certificates (or rotate). It answers with
-// whatever certificate it is initialized with. If a CSR client is set later, it
-// may begin rotating/renewing the client cert
-func NewKubeletClientCertificateManager(certDirectory string, nodeName types.NodeName, certData []byte, keyData []byte, certFile string, keyFile string) (certificate.Manager, error) {
+// client that can be used to sign new certificates (or rotate). If a CSR
+// client is set later, it may begin rotating/renewing the client cert.
+func NewKubeletClientCertificateManager(certDirectory string, nodeName types.NodeName, certFile string, keyFile string, clientFn certificate.CSRClientFunc) (certificate.Manager, error) {
 	certificateStore, err := certificate.NewFileStore(
 		"kubelet-client",
 		certDirectory,
@@ -117,6 +159,7 @@ func NewKubeletClientCertificateManager(certDirectory string, nodeName types.Nod
 	prometheus.MustRegister(certificateExpiration)
 
 	m, err := certificate.NewManager(&certificate.Config{
+		ClientFn: clientFn,
 		Template: &x509.CertificateRequest{
 			Subject: pkix.Name{
 				CommonName:   fmt.Sprintf("system:node:%s", nodeName),
@@ -138,10 +181,8 @@ func NewKubeletClientCertificateManager(certDirectory string, nodeName types.Nod
 			// authenticate itself to the TLS server.
 			certificates.UsageClientAuth,
 		},
-		CertificateStore:        certificateStore,
-		BootstrapCertificatePEM: certData,
-		BootstrapKeyPEM:         keyData,
-		CertificateExpiration:   certificateExpiration,
+		CertificateStore:      certificateStore,
+		CertificateExpiration: certificateExpiration,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize client certificate manager: %v", err)
