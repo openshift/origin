@@ -223,6 +223,10 @@ func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
 }
 
 func clusterNetworkChanged(obj *networkapi.ClusterNetwork, old *networkapi.ClusterNetwork) (bool, error) {
+	if err := common.ValidateClusterNetwork(old); err != nil {
+		utilruntime.HandleError(fmt.Errorf("Ignoring invalid existing default ClusterNetwork (%v)", err))
+		return true, nil
+	}
 
 	if old.ServiceNetwork != obj.ServiceNetwork {
 		return true, fmt.Errorf("cannot change the serviceNetworkCIDR of an already-deployed cluster")

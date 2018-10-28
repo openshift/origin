@@ -87,7 +87,11 @@ func (master *OsdnMaster) addNode(nodeName string, nodeUID string, nodeIP string
 	// Check if subnet needs to be created or updated
 	sub, err := master.networkClient.Network().HostSubnets().Get(nodeName, metav1.GetOptions{})
 	if err == nil {
-		if sub.HostIP == nodeIP {
+		if err = common.ValidateHostSubnet(sub); err != nil {
+			utilruntime.HandleError(fmt.Errorf("Deleting invalid HostSubnet %q: %v", nodeName, err))
+			_ = master.networkClient.Network().HostSubnets().Delete(nodeName, &metav1.DeleteOptions{})
+			// fall through to create new subnet below
+		} else if sub.HostIP == nodeIP {
 			return nodeIP, nil
 		} else {
 			// Node IP changed, update old subnet
@@ -211,6 +215,11 @@ func (master *OsdnMaster) watchSubnets() {
 func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType watch.EventType) {
 	hs := obj.(*networkapi.HostSubnet)
 	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
+
+	if err := common.ValidateHostSubnet(hs); err != nil {
+		utilruntime.HandleError(fmt.Errorf("Ignoring invalid HostSubnet %s: %v", common.HostSubnetToString(hs), err))
+		return
+	}
 
 	if err := master.reconcileHostSubnet(hs); err != nil {
 		utilruntime.HandleError(err)
