@@ -95,6 +95,10 @@ func (mounter *fakeMounter) GetSELinuxSupport(pathname string) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
+func (mounter *fakeMounter) EvalHostSymlinks(pathname string) (string, error) {
+	return "", errors.New("not implemented")
+}
+
 func (mounter *fakeMounter) IsLikelyNotMountPoint(file string) (bool, error) {
 	name := path.Base(file)
 	if strings.HasPrefix(name, "mount") {

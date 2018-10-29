@@ -168,3 +168,7 @@ func (fm *fakeMounter) SafeMakeDir(pathname string, base string, perm os.FileMod
 func (fm *fakeMounter) GetSELinuxSupport(pathname string) (bool, error) {
 	return false, errors.New("not implemented")
 }
+
+func (fm *fakeMounter) EvalHostSymlinks(pathname string) (string, error) {
+	return "", errors.New("not implemented")
+}
