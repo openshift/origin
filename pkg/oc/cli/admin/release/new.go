@@ -103,6 +103,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	// validation
 	flags.BoolVar(&o.AllowMissingImages, "allow-missing-images", o.AllowMissingImages, "Ignore errors when an operator references a release image that is not included.")
 	flags.BoolVar(&o.SkipManifestCheck, "skip-manifest-check", o.SkipManifestCheck, "Ignore errors when an operator includes a yaml/yml/json file that is not parseable.")
+	flags.BoolVar(&o.AllowNonDigestImages, "allow-non-digest-images", o.AllowNonDigestImages, "Allow non-digest image-references.")
 
 	flags.StringSliceVar(&o.Exclude, "exclude", o.Exclude, "A list of image names or tags to exclude. It is applied after all inputs. Comma separated or individual arguments.")
 
@@ -153,8 +154,9 @@ type NewOptions struct {
 
 	MaxPerRegistry int
 
-	AllowMissingImages bool
-	SkipManifestCheck  bool
+	AllowNonDigestImages bool
+	AllowMissingImages   bool
+	SkipManifestCheck    bool
 
 	Mappings []Mapping
 
@@ -673,6 +675,7 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) er
 	opts.ImageStream = copied
 	opts.To = o.Mirror
 	opts.SkipRelease = true
+	opts.AllowNonDigestImages = o.AllowNonDigestImages
 
 	if err := opts.Run(); err != nil {
 		return err

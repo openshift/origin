@@ -3,6 +3,7 @@ package release
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -75,9 +76,10 @@ type MirrorOptions struct {
 
 	From string
 
-	To          string
-	ToRelease   string
-	SkipRelease bool
+	To                   string
+	ToRelease            string
+	SkipRelease          bool
+	AllowNonDigestImages bool
 
 	DryRun bool
 
@@ -205,7 +207,11 @@ func (o *MirrorOptions) Run() error {
 			return fmt.Errorf("release tag %q is not valid: %v", tag.Name, err)
 		}
 		if len(from.Tag) > 0 || len(from.ID) == 0 {
-			return fmt.Errorf("image-references should only contain pointers to images by digest: %s", tag.From.Name)
+			msg := fmt.Sprintf("image-references should only contain pointers to images by digest: %s", tag.From.Name)
+			if !o.AllowNonDigestImages {
+				return errors.New(msg)
+			}
+			fmt.Fprintf(o.ErrOut, fmt.Sprintf("warning: %s\n", msg))
 		}
 
 		mappings = append(mappings, mirror.Mapping{

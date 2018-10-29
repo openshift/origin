@@ -5187,6 +5187,8 @@ _oc_adm_release_new()
 
     flags+=("--allow-missing-images")
     local_nonpersistent_flags+=("--allow-missing-images")
+    flags+=("--allow-non-digest-images")
+    local_nonpersistent_flags+=("--allow-non-digest-images")
     flags+=("--dir=")
     local_nonpersistent_flags+=("--dir=")
     flags+=("--dry-run")
