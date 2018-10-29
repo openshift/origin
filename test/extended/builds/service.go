@@ -49,6 +49,9 @@ RUN curl -vvv hello-openshift:8080
 				err := oc.Run("new-app").Args("docker.io/openshift/hello-openshift").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "hello-openshift", 1, true, oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "hello-openshift")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
