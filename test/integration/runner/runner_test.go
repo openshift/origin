@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-var timeout = flag.Duration("sub.timeout", 5*time.Minute, "Specify the timeout for each sub test")
+var timeout = flag.Duration("sub.timeout", 6*time.Minute, "Specify the timeout for each sub test")
 var oauthtimeout = flag.Duration("oauth.timeout", 15*time.Minute, "Timeout for the OAuth tests")
 var timeoutException = map[string]*time.Duration{
 	"TestOAuthTimeout":           oauthtimeout,

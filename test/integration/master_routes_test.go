@@ -10,23 +10,17 @@ import (
 	"net/http"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	webconsoleconfigv1 "github.com/openshift/api/webconsole/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -76,8 +70,6 @@ var expectedIndex = []string{
 	"/apis/extensions/v1beta1",
 	"/apis/image.openshift.io",
 	"/apis/image.openshift.io/v1",
-	"/apis/network.openshift.io",
-	"/apis/network.openshift.io/v1",
 	"/apis/networking.k8s.io",
 	"/apis/networking.k8s.io/v1",
 	"/apis/oauth.openshift.io",
@@ -112,38 +104,30 @@ var expectedIndex = []string{
 	"/healthz/poststarthook/apiservice-openapi-controller",
 	"/healthz/poststarthook/apiservice-registration-controller",
 	"/healthz/poststarthook/apiservice-status-available-controller",
-	"/healthz/poststarthook/authorization.openshift.io-bootstrapclusterroles",
-	"/healthz/poststarthook/authorization.openshift.io-ensureopenshift-infra",
 	"/healthz/poststarthook/bootstrap-controller",
 	"/healthz/poststarthook/ca-registration",
 	"/healthz/poststarthook/generic-apiserver-start-informers",
-	"/healthz/poststarthook/image.openshift.io-apiserver-caches",
 	"/healthz/poststarthook/kube-apiserver-autoregistration",
 	"/healthz/poststarthook/oauth.openshift.io-startoauthclientsbootstrapping",
-	"/healthz/poststarthook/openshift.io-restmapperupdater",
-	"/healthz/poststarthook/openshift.io-startinformers",
-	"/healthz/poststarthook/openshift.io-webconsolepublicurl",
-	"/healthz/poststarthook/project.openshift.io-projectauthorizationcache",
-	"/healthz/poststarthook/project.openshift.io-projectcache",
+	"/healthz/poststarthook/openshift.io-startkubeinformers",
 	"/healthz/poststarthook/quota.openshift.io-clusterquotamapping",
 	"/healthz/poststarthook/rbac/bootstrap-roles",
 	"/healthz/poststarthook/scheduling/bootstrap-system-priority-classes",
-	"/healthz/poststarthook/security.openshift.io-bootstrapscc",
 	"/healthz/poststarthook/start-apiextensions-controllers",
 	"/healthz/poststarthook/start-apiextensions-informers",
 	"/healthz/poststarthook/start-kube-aggregator-informers",
-	"/healthz/ready",
+	"/healthz/poststarthook/start-kube-apiserver-admission-initializer",
+	"/healthz/poststarthook/start-kube-apiserver-informers",
 	"/metrics",
 	"/oapi",
-	"/oapi/v1",
 	"/openapi/v2",
 	"/swagger-2.0.0.json",
 	"/swagger-2.0.0.pb-v1",
 	"/swagger-2.0.0.pb-v1.gz",
+	"/swagger-ui/",
 	"/swagger.json",
 	"/swaggerapi",
 	"/version",
-	"/version/openshift",
 }
 
 func TestRootRedirect(t *testing.T) {
@@ -195,84 +179,6 @@ func TestRootRedirect(t *testing.T) {
 
 		t.Fatalf("Unexpected index: \ngot=%v,\n\n expected=%v,\n\ndiff=%v", got.Paths, expectedIndex, diff.ObjectDiff(expectedIndex, got.Paths))
 	}
-
-	// Create fake config map to test console redirect
-	webconsoleConfigScheme := runtime.NewScheme()
-	webconsoleConfigCodecs := serializer.NewCodecFactory(webconsoleConfigScheme)
-	webConsoleURL := "https://127.0.0.42/console"
-
-	if err := webconsoleconfigv1.AddToScheme(webconsoleConfigScheme); err != nil {
-		t.Fatalf("Unextecpted error: %v", err)
-	}
-
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("Unextecpted error: %v", err)
-	}
-
-	ns := kapi.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "openshift-web-console",
-		},
-	}
-	if _, err = clusterAdminKubeClientset.Core().Namespaces().Create(&ns); err != nil {
-		t.Fatalf("Unextecpted error: %v", err)
-	}
-
-	consoleConfig := webconsoleconfigv1.WebConsoleConfiguration{
-		ClusterInfo: webconsoleconfigv1.ClusterInfo{
-			ConsolePublicURL: webConsoleURL,
-		},
-	}
-	data, err := runtime.Encode(webconsoleConfigCodecs.LegacyCodec(webconsoleconfigv1.SchemeGroupVersion), &consoleConfig)
-	if err != nil {
-		t.Fatalf("Unextecpted error: %v", err)
-	}
-	configMap := kapi.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "openshift-web-console",
-			Name:      "webconsole-config",
-		},
-		Data: map[string]string{
-			"webconsole-config.yaml": string(data),
-		},
-	}
-	if _, err = clusterAdminKubeClientset.Core().ConfigMaps("openshift-web-console").Create(&configMap); err != nil {
-		t.Fatalf("Unextecpted error: %v", err)
-	}
-
-	// try three times then give up
-	for i := 0; i < 3; i++ {
-		req, err = http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL, nil)
-		req.Header.Set("Accept", "text/html")
-		resp, err = transport.RoundTrip(req)
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-			break
-		}
-		if resp.StatusCode != http.StatusServiceUnavailable {
-			break
-		}
-		var retryAfter int
-		if h := resp.Header.Get("Retry-After"); len(h) > 0 {
-			retryAfter, _ = strconv.Atoi(h)
-		}
-		// wait at least 1 second
-		if retryAfter < 1 {
-			retryAfter = 1
-		}
-		t.Errorf("%v: Retry in %d seconds", time.Now(), retryAfter)
-		time.Sleep(time.Duration(retryAfter) * time.Second)
-	}
-	if resp.StatusCode != http.StatusFound {
-		t.Errorf("Expected %d, got %d", http.StatusFound, resp.StatusCode)
-	}
-	if resp.Header.Get("Location") != webConsoleURL {
-		t.Errorf("Expected %s, got %s", webConsoleURL, resp.Header.Get("Location"))
-	}
-
-	// TODO add a test for when asset config is nil, the redirect should not occur in this case even when
-	// accept header contains text/html
 }
 
 func TestWellKnownOAuth(t *testing.T) {
@@ -360,7 +266,6 @@ var preferredVersions = map[string]string{
 	"authorization.openshift.io": "v1",
 	"build.openshift.io":         "v1",
 	"image.openshift.io":         "v1",
-	"network.openshift.io":       "v1",
 	"oauth.openshift.io":         "v1",
 	"project.openshift.io":       "v1",
 	"quota.openshift.io":         "v1",

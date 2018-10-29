@@ -34,7 +34,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/template/servicebroker/apis/config
     github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1
     github.com/openshift/origin/pkg/util/testing
-    github.com/openshift/origin/test/integration/testing
     github.com/openshift/origin/pkg/apps/apis/apps
     github.com/openshift/origin/pkg/authorization/apis/authorization
     github.com/openshift/origin/pkg/build/apis/build

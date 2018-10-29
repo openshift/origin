@@ -25,7 +25,7 @@ import (
 
 // TestOAuthOIDC checks CLI password login against an OIDC provider
 func TestOAuthOIDC(t *testing.T) {
-
+	t.Skip("skipping until auth team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=1640351")
 	expectedTokenPost := url.Values{
 		"grant_type":    []string{"password"},
 		"client_id":     []string{"myclient"},

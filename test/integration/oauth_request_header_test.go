@@ -29,6 +29,7 @@ import (
 //  * unauthenticated requests are redirected to an auth proxy
 //  * login command succeeds against a request-header identity provider via redirection to an auth proxy
 func TestOAuthRequestHeader(t *testing.T) {
+	t.Skip("skipping until auth team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=1640351")
 	// Test data used by auth proxy
 	users := map[string]string{
 		"myusername": "mypassword",

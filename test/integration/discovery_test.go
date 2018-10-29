@@ -48,6 +48,10 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 		}
 	}
 	for group, versions := range configapi.OriginAPIGroupsToAllowedVersions {
+		// skip networking, it's part of separate API server
+		if group == configapi.OriginAPIGroupNetwork {
+			continue
+		}
 		for _, version := range versions {
 			expectedGroupVersions.Insert(schema.GroupVersion{Group: group, Version: version}.String())
 		}
