@@ -13,14 +13,14 @@ import (
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotav1 "github.com/openshift/api/quota/v1"
+	quotav1lister "github.com/openshift/client-go/quota/listers/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotatypedclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
-	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
 type clusterQuotaAccessor struct {
-	clusterQuotaLister quotalister.ClusterResourceQuotaLister
+	clusterQuotaLister quotav1lister.ClusterResourceQuotaLister
 	namespaceLister    kcorelisters.NamespaceLister
 	clusterQuotaClient quotatypedclient.ClusterResourceQuotasGetter
 
@@ -34,7 +34,7 @@ type clusterQuotaAccessor struct {
 
 // newQuotaAccessor creates an object that conforms to the QuotaAccessor interface to be used to retrieve quota objects.
 func newQuotaAccessor(
-	clusterQuotaLister quotalister.ClusterResourceQuotaLister,
+	clusterQuotaLister quotav1lister.ClusterResourceQuotaLister,
 	namespaceLister kcorelisters.NamespaceLister,
 	clusterQuotaClient quotatypedclient.ClusterResourceQuotasGetter,
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper,
@@ -96,12 +96,12 @@ var etcdVersioner = etcd.APIObjectVersioner{}
 // checkCache compares the passed quota against the value in the look-aside cache and returns the newer
 // if the cache is out of date, it deletes the stale entry.  This only works because of etcd resourceVersions
 // being monotonically increasing integers
-func (e *clusterQuotaAccessor) checkCache(clusterQuota *quotaapi.ClusterResourceQuota) *quotaapi.ClusterResourceQuota {
+func (e *clusterQuotaAccessor) checkCache(clusterQuota *quotav1.ClusterResourceQuota) *quotav1.ClusterResourceQuota {
 	uncastCachedQuota, ok := e.updatedClusterQuotas.Get(clusterQuota.Name)
 	if !ok {
 		return clusterQuota
 	}
-	cachedQuota := uncastCachedQuota.(*quotaapi.ClusterResourceQuota)
+	cachedQuota := uncastCachedQuota.(*quotav1.ClusterResourceQuota)
 
 	if etcdVersioner.CompareResourceVersion(clusterQuota, cachedQuota) >= 0 {
 		e.updatedClusterQuotas.Remove(clusterQuota.Name)

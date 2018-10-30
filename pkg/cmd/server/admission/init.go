@@ -5,11 +5,11 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/quota"
 
+	quotav1informer "github.com/openshift/client-go/quota/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
@@ -17,7 +17,7 @@ type PluginInitializer struct {
 	ProjectCache                 *cache.ProjectCache
 	OriginQuotaRegistry          quota.Registry
 	RESTClientConfig             restclient.Config
-	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
+	ClusterResourceQuotaInformer quotav1informer.SharedInformerFactory
 	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
 	RegistryHostnameRetriever    registryhostname.RegistryHostnameRetriever
 	SecurityInformers            securityinformer.SharedInformerFactory

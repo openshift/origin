@@ -24,12 +24,12 @@ import (
 
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
+	quotav1informer "github.com/openshift/client-go/quota/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/quota/image"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
@@ -38,7 +38,7 @@ type InformerAccess interface {
 	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 	GetKubernetesInformers() kexternalinformers.SharedInformerFactory
 	GetOpenshiftImageInformers() imagev1informer.SharedInformerFactory
-	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
+	GetOpenshiftQuotaInformers() quotav1informer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
 	GetOpenshiftUserInformers() userv1informer.SharedInformerFactory
 }
@@ -130,7 +130,7 @@ func NewPluginInitializer(
 		ProjectCache:                 projectCache,
 		OriginQuotaRegistry:          quotaRegistry,
 		RESTClientConfig:             *privilegedLoopbackConfig,
-		ClusterResourceQuotaInformer: informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterResourceQuotaInformer: informers.GetOpenshiftQuotaInformers(),
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 		RegistryHostnameRetriever:    registryHostnameRetriever,
 		SecurityInformers:            informers.GetInternalOpenshiftSecurityInformers(),

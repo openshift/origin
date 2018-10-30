@@ -21,11 +21,11 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	resourcequotaapi "k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota"
 
+	quotav1informer "github.com/openshift/client-go/quota/informers/externalversions"
+	quotav1lister "github.com/openshift/client-go/quota/listers/quota/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	quotatypedclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
-	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 	"k8s.io/client-go/rest"
 )
 
@@ -41,7 +41,7 @@ type clusterQuotaAdmission struct {
 	*admission.Handler
 
 	// these are used to create the accessor
-	clusterQuotaLister quotalister.ClusterResourceQuotaLister
+	clusterQuotaLister quotav1lister.ClusterResourceQuotaLister
 	namespaceLister    kcorelisters.NamespaceLister
 	clusterQuotaSynced func() bool
 	namespaceSynced    func() bool
@@ -153,10 +153,10 @@ func (q *clusterQuotaAdmission) SetRESTClientConfig(restClientConfig rest.Config
 	}
 }
 
-func (q *clusterQuotaAdmission) SetClusterQuota(clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper, informers quotainformer.ClusterResourceQuotaInformer) {
+func (q *clusterQuotaAdmission) SetClusterQuota(clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper, informers quotav1informer.SharedInformerFactory) {
 	q.clusterQuotaMapper = clusterQuotaMapper
-	q.clusterQuotaLister = informers.Lister()
-	q.clusterQuotaSynced = informers.Informer().HasSynced
+	q.clusterQuotaLister = informers.Quota().V1().ClusterResourceQuotas().Lister()
+	q.clusterQuotaSynced = informers.Quota().V1().ClusterResourceQuotas().Informer().HasSynced
 }
 
 func (q *clusterQuotaAdmission) ValidateInitialization() error {

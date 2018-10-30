@@ -12,14 +12,14 @@ import (
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthv1informer "github.com/openshift/client-go/oauth/informers/externalversions"
+	quotav1client "github.com/openshift/client-go/quota/clientset/versioned"
+	quotav1informer "github.com/openshift/client-go/quota/informers/externalversions"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned"
 	routev1informer "github.com/openshift/client-go/route/informers/externalversions"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
@@ -35,7 +35,7 @@ type InformerHolder struct {
 	authorizationInformers authorizationinformer.SharedInformerFactory
 	imageInformers         imagev1informer.SharedInformerFactory
 	oauthInformers         oauthv1informer.SharedInformerFactory
-	quotaInformers         quotainformer.SharedInformerFactory
+	quotaInformers         quotav1informer.SharedInformerFactory
 	routeInformers         routev1informer.SharedInformerFactory
 	securityInformers      securityinformer.SharedInformerFactory
 	userInformers          userv1informer.SharedInformerFactory
@@ -60,7 +60,7 @@ func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeCl
 	if err != nil {
 		return nil, err
 	}
-	quotaClient, err := quotaclient.NewForConfig(loopbackClientConfig)
+	quotaClient, err := quotav1client.NewForConfig(loopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeCl
 		authorizationInformers:      authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
 		imageInformers:              imagev1informer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
 		oauthInformers:              oauthv1informer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
-		quotaInformers:              quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
+		quotaInformers:              quotav1informer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		routeInformers:              routev1informer.NewSharedInformerFactory(routerClient, defaultInformerResyncPeriod),
 		securityInformers:           securityinformer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
 		userInformers:               userv1informer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
@@ -109,7 +109,7 @@ func (i *InformerHolder) GetOpenshiftImageInformers() imagev1informer.SharedInfo
 func (i *InformerHolder) GetOpenshiftOauthInformers() oauthv1informer.SharedInformerFactory {
 	return i.oauthInformers
 }
-func (i *InformerHolder) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
+func (i *InformerHolder) GetOpenshiftQuotaInformers() quotav1informer.SharedInformerFactory {
 	return i.quotaInformers
 }
 func (i *InformerHolder) GetOpenshiftRouteInformers() routev1informer.SharedInformerFactory {

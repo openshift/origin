@@ -5,10 +5,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/quota"
 
+	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
@@ -34,7 +34,7 @@ type WantsRESTClientConfig interface {
 // WantsClusterQuota should be implemented by admission plugins that need to know how to map between
 // cluster quota and namespaces and get access to the informer.
 type WantsClusterQuota interface {
-	SetClusterQuota(clusterquotamapping.ClusterQuotaMapper, quotainformer.ClusterResourceQuotaInformer)
+	SetClusterQuota(clusterquotamapping.ClusterQuotaMapper, quotainformer.SharedInformerFactory)
 	admission.InitializationValidator
 }
 
