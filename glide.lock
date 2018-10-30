@@ -968,7 +968,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: cfe7e9f503d38ceca35cc7f04fef5fdd822e8c5a
+  version: f63c4561cc1f031661afb8ba444622f7abd50055
   subpackages:
   - pkg/api
   - pkg/api/describe
