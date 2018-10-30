@@ -145,7 +145,7 @@
           }
         },
         "postCommit": {
-          "args": ["bundle", "exec", "rake", "test"]
+          "script": "bundle exec rake test"
         },
         "resources": {}
       },
