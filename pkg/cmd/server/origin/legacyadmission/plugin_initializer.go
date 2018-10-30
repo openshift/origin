@@ -25,9 +25,7 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
-	"github.com/openshift/origin/pkg/build/apiserver/admission/jenkinsbootstrapper"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
@@ -49,7 +47,6 @@ func NewPluginInitializer(
 	externalImageRegistryHostname string,
 	internalImageRegistryHostname string,
 	cloudConfigFile string,
-	jenkinsConfig configapi.JenkinsPipelineConfig,
 	privilegedLoopbackConfig *rest.Config,
 	informers InformerAccess,
 	authorizer authorizer.Authorizer,
@@ -139,9 +136,6 @@ func NewPluginInitializer(
 		SecurityInformers:            informers.GetInternalOpenshiftSecurityInformers(),
 		UserInformers:                informers.GetOpenshiftUserInformers(),
 	}
-	jenkinsPipelineConfigInitializer := &jenkinsbootstrapper.PluginInitializer{
-		JenkinsPipelineConfig: jenkinsConfig,
-	}
 
-	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer, jenkinsPipelineConfigInitializer}, nil
+	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
 }
