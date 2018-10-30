@@ -24,6 +24,7 @@ import (
 
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
@@ -31,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/quota/image"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
 type InformerAccess interface {
@@ -39,7 +39,7 @@ type InformerAccess interface {
 	GetKubernetesInformers() kexternalinformers.SharedInformerFactory
 	GetOpenshiftImageInformers() imagev1informer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
-	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
+	GetOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory
 	GetOpenshiftUserInformers() userv1informer.SharedInformerFactory
 }
 
@@ -133,7 +133,7 @@ func NewPluginInitializer(
 		ClusterResourceQuotaInformer: informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 		RegistryHostnameRetriever:    registryHostnameRetriever,
-		SecurityInformers:            informers.GetInternalOpenshiftSecurityInformers(),
+		SecurityInformers:            informers.GetOpenshiftSecurityInformers(),
 		UserInformers:                informers.GetOpenshiftUserInformers(),
 	}
 

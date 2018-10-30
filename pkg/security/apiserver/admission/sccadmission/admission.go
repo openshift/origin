@@ -17,11 +17,11 @@ import (
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
+	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	allocator "github.com/openshift/origin/pkg/security"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -40,7 +40,7 @@ func Register(plugins *admission.Plugins) {
 type constraint struct {
 	*admission.Handler
 	client     kclientset.Interface
-	sccLister  securitylisters.SecurityContextConstraintsLister
+	sccLister  securityv1listers.SecurityContextConstraintsLister
 	authorizer authorizer.Authorizer
 }
 
@@ -242,8 +242,8 @@ func shouldIgnore(a admission.Attributes) (bool, error) {
 }
 
 // SetSecurityInformers implements WantsSecurityInformer interface for constraint.
-func (c *constraint) SetSecurityInformers(informers securityinformer.SharedInformerFactory) {
-	c.sccLister = informers.Security().InternalVersion().SecurityContextConstraints().Lister()
+func (c *constraint) SetSecurityInformers(informers securityv1informer.SharedInformerFactory) {
+	c.sccLister = informers.Security().V1().SecurityContextConstraints().Lister()
 }
 
 func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {

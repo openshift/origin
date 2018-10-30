@@ -1,12 +1,14 @@
-package securitycontextconstraints
+package sort
 
 import (
+	securityv1 "github.com/openshift/api/security/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
-// ByRestrictions is a helper to sort SCCs based on priority.  If priorities are equal
+// ByPriority is a helper to sort SCCs based on priority.  If priorities are equal
 // a string compare of the name is used.
-type ByPriority []*securityapi.SecurityContextConstraints
+type ByPriority []*securityv1.SecurityContextConstraints
 
 func (s ByPriority) Len() int {
 	return len(s)
@@ -46,9 +48,20 @@ func (s ByPriority) Less(i, j int) bool {
 	return iSCC.Name < jSCC.Name
 }
 
-func getPriority(scc *securityapi.SecurityContextConstraints) int {
+func getPriority(scc *securityv1.SecurityContextConstraints) int {
 	if scc.Priority == nil {
 		return 0
 	}
 	return int(*scc.Priority)
+}
+
+func ByPriorityConvert(toConvert []*securityapi.SecurityContextConstraints) (ByPriority, error) {
+	converted := []*securityv1.SecurityContextConstraints{}
+	for _, internal := range toConvert {
+		external := &securityv1.SecurityContextConstraints{}
+		if err := securityapiv1.Convert_security_SecurityContextConstraints_To_v1_SecurityContextConstraints(internal, external, nil); err != nil {
+			return nil, err
+		}
+	}
+	return converted, nil
 }

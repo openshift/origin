@@ -4,8 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	securityv1 "github.com/openshift/api/security/v1"
 	allocator "github.com/openshift/origin/pkg/security"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 // CreateSAForTest Build and Initializes a ServiceAccount for tests
@@ -33,30 +33,30 @@ func CreateNamespaceForTest() *kapi.Namespace {
 }
 
 // UserScc creates a SCC for a given user name
-func UserScc(user string) *securityapi.SecurityContextConstraints {
+func UserScc(user string) *securityv1.SecurityContextConstraints {
 	var uid int64 = 9999
 	fsGroup := int64(1)
-	return &securityapi.SecurityContextConstraints{
+	return &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			SelfLink: "/api/version/securitycontextconstraints/" + user,
 			Name:     user,
 		},
 		Users: []string{user},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyRunAsAny,
+		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+			Type: securityv1.SELinuxStrategyRunAsAny,
 		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAs,
+		RunAsUser: securityv1.RunAsUserStrategyOptions{
+			Type: securityv1.RunAsUserStrategyMustRunAs,
 			UID:  &uid,
 		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
+		FSGroup: securityv1.FSGroupStrategyOptions{
+			Type: securityv1.FSGroupStrategyMustRunAs,
+			Ranges: []securityv1.IDRange{
 				{Min: fsGroup, Max: fsGroup},
 			},
 		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+			Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 		},
 	}
 }

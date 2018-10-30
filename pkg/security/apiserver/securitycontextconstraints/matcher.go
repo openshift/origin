@@ -16,9 +16,12 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/api/security"
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	allocator "github.com/openshift/origin/pkg/security"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
+	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
+	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
@@ -27,11 +30,11 @@ type SCCMatcher interface {
 }
 
 type defaultSCCMatcher struct {
-	cache      securitylisters.SecurityContextConstraintsLister
+	cache      securityv1listers.SecurityContextConstraintsLister
 	authorizer authorizer.Authorizer
 }
 
-func NewDefaultSCCMatcher(c securitylisters.SecurityContextConstraintsLister, authorizer authorizer.Authorizer) SCCMatcher {
+func NewDefaultSCCMatcher(c securityv1listers.SecurityContextConstraintsLister, authorizer authorizer.Authorizer) SCCMatcher {
 	return &defaultSCCMatcher{cache: c, authorizer: authorizer}
 }
 
@@ -39,7 +42,7 @@ func NewDefaultSCCMatcher(c securitylisters.SecurityContextConstraintsLister, au
 // It finds all SCCs that the subjects in the `users` argument may use.
 // The returned SCCs are sorted by priority.
 func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.Info) ([]*securityapi.SecurityContextConstraints, error) {
-	var matchedConstraints []*securityapi.SecurityContextConstraints
+	var matchedConstraints []*securityv1.SecurityContextConstraints
 	constraints, err := d.cache.List(labels.Everything())
 	if err != nil {
 		return nil, err
@@ -58,8 +61,19 @@ func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.I
 			}
 		}
 	}
-	sort.Sort(ByPriority(matchedConstraints))
-	return matchedConstraints, nil
+
+	sort.Sort(sccsort.ByPriority(matchedConstraints))
+
+	internalMatchedConstraints := []*securityapi.SecurityContextConstraints{}
+	for _, externalConstraint := range matchedConstraints {
+		internalConstraint := &securityapi.SecurityContextConstraints{}
+		if err := securityapiv1.Convert_v1_SecurityContextConstraints_To_security_SecurityContextConstraints(externalConstraint, internalConstraint, nil); err != nil {
+			return nil, err
+		}
+		internalMatchedConstraints = append(internalMatchedConstraints, internalConstraint)
+	}
+
+	return internalMatchedConstraints, nil
 }
 
 // authorizedForSCC returns true if info is authorized to perform the "use" verb on the SCC resource.

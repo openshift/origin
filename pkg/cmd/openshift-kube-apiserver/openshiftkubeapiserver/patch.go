@@ -23,6 +23,8 @@ import (
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
@@ -35,8 +37,6 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
@@ -106,7 +106,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 			ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 			RegistryHostnameRetriever:    registryHostnameRetriever,
-			SecurityInformers:            kubeAPIServerInformers.GetInternalOpenshiftSecurityInformers(),
+			SecurityInformers:            kubeAPIServerInformers.GetOpenshiftSecurityInformers(),
 			UserInformers:                kubeAPIServerInformers.GetOpenshiftUserInformers(),
 		}
 		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
@@ -185,7 +185,7 @@ func NewInformers(internalInformers internalinformers.SharedInformerFactory, ver
 	if err != nil {
 		return nil, err
 	}
-	securityClient, err := securityclient.NewForConfig(loopbackClientConfig)
+	securityClient, err := securityv1client.NewForConfig(loopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -199,13 +199,13 @@ func NewInformers(internalInformers internalinformers.SharedInformerFactory, ver
 	const defaultInformerResyncPeriod = 10 * time.Minute
 
 	ret := &KubeAPIServerInformers{
-		InternalKubernetesInformers:        internalInformers,
-		KubernetesInformers:                versionedInformers,
-		InternalOpenshiftImageInformers:    imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
-		OpenshiftOAuthInformers:            oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
-		InternalOpenshiftQuotaInformers:    quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
-		InternalOpenshiftSecurityInformers: securityinformer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
-		OpenshiftUserInformers:             userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
+		InternalKubernetesInformers:     internalInformers,
+		KubernetesInformers:             versionedInformers,
+		InternalOpenshiftImageInformers: imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
+		OpenshiftOAuthInformers:         oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
+		InternalOpenshiftQuotaInformers: quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
+		OpenshiftSecurityInformers:      securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
+		OpenshiftUserInformers:          userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 	}
 	if err := ret.OpenshiftUserInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
 		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
@@ -217,13 +217,13 @@ func NewInformers(internalInformers internalinformers.SharedInformerFactory, ver
 }
 
 type KubeAPIServerInformers struct {
-	InternalKubernetesInformers        kinternalinformers.SharedInformerFactory
-	KubernetesInformers                kexternalinformers.SharedInformerFactory
-	OpenshiftOAuthInformers            oauthinformer.SharedInformerFactory
-	InternalOpenshiftImageInformers    imageinformer.SharedInformerFactory
-	InternalOpenshiftQuotaInformers    quotainformer.SharedInformerFactory
-	InternalOpenshiftSecurityInformers securityinformer.SharedInformerFactory
-	OpenshiftUserInformers             userinformer.SharedInformerFactory
+	InternalKubernetesInformers     kinternalinformers.SharedInformerFactory
+	KubernetesInformers             kexternalinformers.SharedInformerFactory
+	OpenshiftOAuthInformers         oauthinformer.SharedInformerFactory
+	InternalOpenshiftImageInformers imageinformer.SharedInformerFactory
+	InternalOpenshiftQuotaInformers quotainformer.SharedInformerFactory
+	OpenshiftSecurityInformers      securityv1informer.SharedInformerFactory
+	OpenshiftUserInformers          userinformer.SharedInformerFactory
 }
 
 func (i *KubeAPIServerInformers) GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory {
@@ -238,8 +238,8 @@ func (i *KubeAPIServerInformers) GetInternalOpenshiftImageInformers() imageinfor
 func (i *KubeAPIServerInformers) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.InternalOpenshiftQuotaInformers
 }
-func (i *KubeAPIServerInformers) GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory {
-	return i.InternalOpenshiftSecurityInformers
+func (i *KubeAPIServerInformers) GetOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory {
+	return i.OpenshiftSecurityInformers
 }
 func (i *KubeAPIServerInformers) GetOpenshiftUserInformers() userinformer.SharedInformerFactory {
 	return i.OpenshiftUserInformers
@@ -251,6 +251,6 @@ func (i *KubeAPIServerInformers) Start(stopCh <-chan struct{}) {
 	i.OpenshiftOAuthInformers.Start(stopCh)
 	i.InternalOpenshiftImageInformers.Start(stopCh)
 	i.InternalOpenshiftQuotaInformers.Start(stopCh)
-	i.InternalOpenshiftSecurityInformers.Start(stopCh)
+	i.OpenshiftSecurityInformers.Start(stopCh)
 	i.OpenshiftUserInformers.Start(stopCh)
 }
