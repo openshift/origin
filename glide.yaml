@@ -413,7 +413,7 @@ import:
 - package: github.com/opencontainers/selinux
   version: 4a2974bf1ee960774ffd517717f1f45325af0206
 - package: github.com/openshift/source-to-image
-  version: 78a27e06ad8295a842ff756b6b16a3ace06a8e14
+  version: release-3.9
 - package: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - package: github.com/pelletier/go-buffruneio
