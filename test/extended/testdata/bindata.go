@@ -19159,7 +19159,7 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
           }
         },
         "postCommit": {
-          "args": ["bundle", "exec", "rake", "test"]
+          "script": "bundle exec rake test"
         },
         "resources": {}
       },
@@ -19666,7 +19666,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
           }
         },
         "postCommit": {
-          "args": ["bundle", "exec", "rake", "test"]
+          "script": "bundle exec rake test"
         },
         "resources": {}
       },
@@ -20113,7 +20113,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
           }
         },
         "postCommit": {
-          "args": ["bundle", "exec", "rake", "test"]
+          "script": "bundle exec rake test"
         },
         "resources": {}
       },
@@ -20620,7 +20620,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
           }
         },
         "postCommit": {
-          "args": ["bundle", "exec", "rake", "test"]
+          "script": "bundle exec rake test"
         },
         "resources": {}
       },
