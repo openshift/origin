@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-etcd"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-network-controller"
+	osincmd "github.com/openshift/origin/pkg/oauthserver/cmd"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -71,6 +72,11 @@ func NewHyperShiftCommand() *cobra.Command {
 
 	startOpenShiftNetworkController := openshift_network_controller.NewOpenShiftNetworkControllerCommand(openshift_network_controller.RecommendedStartNetworkControllerName, "hypershift", os.Stdout, os.Stderr)
 	cmd.AddCommand(startOpenShiftNetworkController)
+
+	startOsin := osincmd.NewOpenShiftOsinServer(os.Stdout, os.Stderr)
+	startOsin.Deprecated = "will be removed in 4.0"
+	startOsin.Hidden = true
+	cmd.AddCommand(startOsin)
 
 	return cmd
 }
