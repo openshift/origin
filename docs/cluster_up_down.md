@@ -51,7 +51,7 @@ Currently Linux (including a Linux VM running on another platform) is the only s
 | The default Firewalld configuration on Fedora blocks access to ports needed by containers running on an OpenShift cluster. Make sure you grant access to these ports. See step 3 below. |
 | Check that `sysctl net.ipv4.ip_forward` is set to 1. |
 
-1. Install Docker with your platform's package manager. Consult the [compatibility table](#prerequisites) to select a supported version of Docker.
+1. Install Docker with your platform's package manager. Consult the [compatibility table](#prerequisites) to select a supported version of Docker.  [Fedora](https://docs.docker.com/install/linux/docker-ce/fedora/ "Docker CE for Fedora") and [CentOS](https://docs.docker.com/install/linux/docker-ce/centos/ "Docker CE for CentOS") administrators will need to use the Docker CE packages for their distribution. 
 2. Configure the Docker daemon with an insecure registry parameter of `172.30.0.0/16`
    - In RHEL and Fedora, edit the `/etc/containers/registries.conf` file and add the following lines:
      ```
