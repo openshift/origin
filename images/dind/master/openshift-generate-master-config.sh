@@ -11,6 +11,7 @@ function ensure-master-config() {
   local config_path="/data/openshift.local.config"
   local master_path="${config_path}/master"
   local config_file="${master_path}/master-config.yaml"
+  local sdn_config_file="${master_path}/sdn-config.yaml"
 
   if [[ -f "${config_file}" ]]; then
     # Config has already been generated
@@ -53,11 +54,25 @@ function ensure-master-config() {
    /usr/local/bin/openshift start master --write-config="${master_path}" \
      --master="https://${serving_ip_addr}:8443" \
      ${image_format_str} \
-     --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
      ${OPENSHIFT_ADDITIONAL_ARGS}
 
    mv "${config_file}" "${config_file}.bak"
    oc patch --config="${master_path}/admin.kubeconfig" --local --type=json -o yaml -f "${config_file}.bak" --patch='[{"op": "add", "path": "/controllerConfig/controllers/0", "value": "-openshift.io/sdn"}]' > "${config_file}"
+
+   cat > "${sdn_config_file}" <<EOF
+kind: OpenShiftControllerManagerConfig
+apiVersion: openshiftcontrolplane.config.openshift.io/v1
+kubeClientConfig:
+  kubeConfig: ${master_path}/admin.kubeconfig
+network:
+  networkPluginName: ${OPENSHIFT_NETWORK_PLUGIN}
+  clusterNetworks:
+  - cidr: 10.128.0.0/14
+    hostSubnetLength: 9
+  serviceNetworkCIDR: 172.30.0.0/16
+  vxLANPort: 4789
+  vxlanPort: 4789
+EOF
   ) 200>"${config_path}"/.openshift-ca.lock
 
   # ensure the configuration can be used outside of the container
