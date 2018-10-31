@@ -13,6 +13,7 @@ const (
 
 	// new plugin names
 	OpenShiftSDNOpenPluginName     = "openshift-sdn-open"
+	OpenShiftSDNIsolatedPluginName = "openshift-sdn-isolated"
 
 	DefaultInformerResyncPeriod = 30 * time.Minute
 )
@@ -21,7 +22,7 @@ func IsOpenShiftNetworkPlugin(pluginName string) bool {
 	switch strings.ToLower(pluginName) {
 	case SingleTenantPluginName, MultiTenantPluginName, NetworkPolicyPluginName:
 		return true
-	case OpenShiftSDNOpenPluginName:
+	case OpenShiftSDNOpenPluginName, OpenShiftSDNIsolatedPluginName:
 		return true
 	}
 	return false

@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kapi "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -29,6 +30,7 @@ type masterVNIDMap struct {
 	adminNamespaces    sets.String
 	allowRenumbering   bool
 	requireUniqueVNIDs bool
+	createPolicies     bool
 }
 
 func newMasterVNIDMap(pluginName string) *masterVNIDMap {
@@ -42,6 +44,7 @@ func newMasterVNIDMap(pluginName string) *masterVNIDMap {
 		adminNamespaces:  sets.NewString(metav1.NamespaceDefault),
 		ids:              make(map[string]uint32),
 		allowRenumbering: pluginName == network.MultiTenantPluginName,
+		createPolicies:   pluginName == network.OpenShiftSDNIsolatedPluginName,
 
 		// For historical compatibility, the original ovs-networkpolicy plugin
 		// does not force VNID uniqueness (even though it may not work correctly
@@ -208,7 +211,7 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action networkapihelpers.P
 }
 
 // assignVNID, revokeVNID and updateVNID methods updates in-memory structs and persists etcd objects
-func (vmap *masterVNIDMap) assignVNID(networkClient networkclient.Interface, nsName string) error {
+func (vmap *masterVNIDMap) assignVNID(master *OsdnMaster, nsName string) error {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -225,13 +228,36 @@ func (vmap *masterVNIDMap) assignVNID(networkClient networkclient.Interface, nsN
 			NetName:    nsName,
 			NetID:      netid,
 		}
-		if _, err := networkClient.Network().NetNamespaces().Create(netns); err != nil {
+		if _, err := master.networkClient.Network().NetNamespaces().Create(netns); err != nil {
 			if er := vmap.releaseNetID(nsName); er != nil {
 				utilruntime.HandleError(er)
 			}
 			return err
 		}
 	}
+
+	if !exists && vmap.createPolicies && !common.IsSystemNamespace(nsName) {
+		policy := &networkingv1.NetworkPolicy{
+			TypeMeta:   metav1.TypeMeta{Kind: "NetworkPolicy"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-from-same-namespace",
+				Namespace: nsName,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				Ingress:     []networkingv1.NetworkPolicyIngressRule{{
+					From: []networkingv1.NetworkPolicyPeer{{
+						PodSelector: &metav1.LabelSelector{},
+					}},
+				}},
+			},
+		}
+		if _, err := master.kClient.Networking().NetworkPolicies(nsName).Create(policy); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -325,7 +351,7 @@ func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventTy
 	ns := obj.(*kapi.Namespace)
 	glog.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
 
-	if err := master.vnids.assignVNID(master.networkClient, ns.Name); err != nil {
+	if err := master.vnids.assignVNID(master, ns.Name); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error assigning netid: %v", err))
 	}
 }

@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -167,4 +168,25 @@ func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error)
 	}
 
 	return ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork, cn.VXLANPort)
+}
+
+// These are the names/prefixes that pkg/project/apiserver/registry/projectrequest/delegated
+// forbids creating a new project with. Plus "default".
+var (
+        systemNamespaceNames    = []string{"openshift", "kubernetes", "kube", "default"}
+        systemNamespacePrefixes = []string{"openshift-", "kubernetes-", "kube-"}
+)
+
+func IsSystemNamespace(name string) bool {
+	for _, s := range systemNamespaceNames {
+		if name == s {
+			return true
+		}
+	}
+	for _, s := range systemNamespacePrefixes {
+		if strings.HasPrefix(name, s) {
+			return true
+		}
+	}
+	return false
 }

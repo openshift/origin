@@ -139,8 +139,12 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		policy = NewMultiTenantPlugin()
 		pluginId = 1
 	case network.NetworkPolicyPluginName, network.OpenShiftSDNOpenPluginName:
-		policy = NewNetworkPolicyPlugin()
+		policy = NewNetworkPolicyPlugin(false)
 		pluginId = 2
+		useConnTrack = true
+	case network.OpenShiftSDNIsolatedPluginName:
+		policy = NewNetworkPolicyPlugin(true)
+		pluginId = 3
 		useConnTrack = true
 	default:
 		// Not an OpenShift plugin

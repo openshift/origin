@@ -31,8 +31,9 @@ import (
 )
 
 type networkPolicyPlugin struct {
-	node  *OsdnNode
-	vnids *nodeVNIDMap
+	node     *OsdnNode
+	vnids    *nodeVNIDMap
+	isolated bool
 
 	lock        sync.Mutex
 	namespaces  map[uint32]*npNamespace
@@ -44,10 +45,11 @@ type networkPolicyPlugin struct {
 
 // npNamespace tracks NetworkPolicy-related data for a Namespace
 type npNamespace struct {
-	name  string
-	vnid  uint32
-	inUse bool
-	dirty bool
+	name     string
+	vnid     uint32
+	isolated bool
+	inUse    bool
+	dirty    bool
 
 	policies map[ktypes.UID]*npPolicy
 }
@@ -69,8 +71,9 @@ const (
 	refreshForNamespaces refreshForType = "namespaces"
 )
 
-func NewNetworkPolicyPlugin() osdnPolicy {
+func NewNetworkPolicyPlugin(isolated bool) osdnPolicy {
 	return &networkPolicyPlugin{
+		isolated:    isolated,
 		namespaces:  make(map[uint32]*npNamespace),
 		kNamespaces: make(map[string]kapi.Namespace),
 		pods:        make(map[ktypes.UID]kapi.Pod),
@@ -141,6 +144,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 			np.namespaces[vnid] = &npNamespace{
 				name:     ns.Name,
 				vnid:     vnid,
+				isolated: np.isolated && !common.IsSystemNamespace(ns.Name),
 				inUse:    inUseNamespaces.Has(ns.Name),
 				policies: make(map[ktypes.UID]*npPolicy),
 			}
@@ -178,6 +182,7 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *networkapi.NetNamespace) {
 	np.namespaces[netns.NetID] = &npNamespace{
 		name:     netns.NetName,
 		vnid:     netns.NetID,
+		isolated: np.isolated && !common.IsSystemNamespace(netns.Name),
 		inUse:    false,
 		policies: make(map[ktypes.UID]*npPolicy),
 	}
@@ -242,7 +247,7 @@ func (np *networkPolicyPlugin) syncNamespaceFlows(npns *npNamespace) {
 	otx := np.node.oc.NewTransaction()
 	otx.DeleteFlows("table=80, reg1=%d", npns.vnid)
 	if npns.inUse {
-		allPodsSelected := false
+		fullyIsolated := npns.isolated
 
 		// Add "allow" rules for all traffic allowed by a NetworkPolicy
 		for _, npp := range npns.policies {
@@ -250,30 +255,26 @@ func (np *networkPolicyPlugin) syncNamespaceFlows(npns *npNamespace) {
 				otx.AddFlow("table=80, priority=150, reg1=%d, %s actions=output:NXM_NX_REG2[]", npns.vnid, flow)
 			}
 			if npp.selectedIPs == nil {
-				allPodsSelected = true
+				fullyIsolated = true
 			}
 		}
 
-		if allPodsSelected {
-			// Some policy selects all pods, so all pods are "isolated" and no
-			// traffic is allowed beyond what we explicitly allowed above. (And
-			// the "priority=0, actions=drop" rule will filter out all remaining
+		if fullyIsolated {
+			// The "priority=0, actions=drop" rule will filter out all remaining
 			// traffic in this Namespace).
 		} else {
-			// No policy selects all pods, so we need an "else accept" rule to
-			// allow traffic to pod IPs that aren't selected by a policy. But
-			// before that we need rules to drop any remaining traffic for any pod
-			// IP that *is* selected by a policy.
-			selectedIPs := sets.NewString()
+			// Drop any remaining traffic for isolated pods
+			isolatedIPs := sets.NewString()
 			for _, npp := range npns.policies {
 				for _, ip := range npp.selectedIPs {
-					if !selectedIPs.Has(ip) {
-						selectedIPs.Insert(ip)
+					if !isolatedIPs.Has(ip) {
+						isolatedIPs.Insert(ip)
 						otx.AddFlow("table=80, priority=100, reg1=%d, ip, nw_dst=%s, actions=drop", npns.vnid, ip)
 					}
 				}
 			}
 
+			// And accept traffic to all other pods in the namespace
 			otx.AddFlow("table=80, priority=50, reg1=%d, actions=output:NXM_NX_REG2[]", npns.vnid)
 		}
 	}

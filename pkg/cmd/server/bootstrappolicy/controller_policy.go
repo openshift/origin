@@ -273,6 +273,7 @@ func init() {
 			rbacv1helpers.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
 			rbacv1helpers.NewRule("update").Groups(kapiGroup).Resources("nodes/status").RuleOrDie(),
+			rbacv1helpers.NewRule("create").Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 
 			eventsRule(),
 		},
