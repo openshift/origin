@@ -126,12 +126,9 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// END ADMISSION
 
 		// HANDLER CHAIN (with oauth server and web console)
-		genericConfig.BuildHandlerChainFunc, postStartHooks, err = BuildHandlerChain(genericConfig, kubeAPIServerConfig.OAuthConfig, kubeAPIServerConfig.UserAgentMatchingConfig, kubeAPIServerConfig.ConsolePublicURL)
+		genericConfig.BuildHandlerChainFunc, err = BuildHandlerChain(kubeAPIServerConfig.UserAgentMatchingConfig, kubeAPIServerConfig.ConsolePublicURL)
 		if err != nil {
 			return nil, err
-		}
-		for key, fn := range postStartHooks {
-			patchContext.postStartHooks[key] = fn
 		}
 		// END HANDLER CHAIN
 
