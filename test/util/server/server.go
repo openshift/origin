@@ -30,6 +30,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	apiregistrationv1client "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
+	kube_controller_manager "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -42,6 +43,7 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -356,17 +358,11 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig) (str
 		return "", err
 	}
 
-	/********** controllers the old way **********/
-
-	// controllers need new address they can bind debug and healthz to
-	controllersAddrStr, err := FindAvailableBindAddress(10000, 29999)
-	if err != nil {
-		return "", fmt.Errorf("Couldn't find free address for controllers: %v", err)
+	if err := startKubernetesControllers(masterConfig, adminKubeConfigFile); err != nil {
+		return "", err
 	}
-	masterConfig.ServingInfo.BindAddress = controllersAddrStr
-	if err := start.NewMaster(masterConfig,
-		true, /* always needed for cluster role aggregation */
-		false /* api is set up above */).Start(); err != nil {
+
+	if err := startOpenShiftControllers(masterConfig); err != nil {
 		return "", err
 	}
 
@@ -446,11 +442,7 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	}
 	// we need to set enable-aggregator-routing so that APIServices are resolved from Endpoints
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
-	go func() {
-		if err := openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig); err != nil {
-			glog.Fatal(err)
-		}
-	}()
+	go openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig)
 
 	url, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
 	if err := waitForServerHealthy(url); err != nil {
@@ -487,11 +479,7 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		return fmt.Errorf("couldn't find free address for OpenShift API: %v", err)
 	}
 	openshiftAPIServerConfig.ServingInfo.BindAddress = openshiftAddrStr
-	go func() {
-		if err := openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig); err != nil {
-			glog.Fatal(err)
-		}
-	}()
+	go openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig)
 
 	openshiftAddr, err := url.Parse(fmt.Sprintf("https://%s", openshiftAddrStr))
 	if err != nil {
@@ -606,8 +594,102 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 	return nil
 }
 
+func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeConfigFile string) error {
+	// copied from pkg/cmd/server/start/start_kube_controller_manager.go
+	cmdLineArgs := map[string][]string{}
+	cmdLineArgs["controllers"] = []string{
+		"*", // start everything but the exceptions
+		// not used in openshift
+		"-ttl",
+		"-bootstrapsigner",
+		"-tokencleaner",
+	}
+	cmdLineArgs["service-account-private-key-file"] = []string{masterConfig.ServiceAccountConfig.PrivateKeyFile}
+	cmdLineArgs["root-ca-file"] = []string{masterConfig.ServiceAccountConfig.MasterCA}
+	cmdLineArgs["kubeconfig"] = []string{masterConfig.MasterClients.OpenShiftLoopbackKubeConfig}
+
+	cmdLineArgs["use-service-account-credentials"] = []string{"true"}
+	cmdLineArgs["cluster-signing-cert-file"] = []string{""}
+	cmdLineArgs["cluster-signing-key-file"] = []string{""}
+	cmdLineArgs["leader-elect"] = []string{"false"}
+
+	kubeAddrStr, err := FindAvailableBindAddress(10000, 29999)
+	if err != nil {
+		return fmt.Errorf("couldn't find free address for Kubernetes controller-mananger: %v", err)
+	}
+	kubeAddr, err := url.Parse(fmt.Sprintf("http://%s", kubeAddrStr))
+	if err != nil {
+		return err
+	}
+	cmdLineArgs["bind-address"] = []string{kubeAddr.Hostname()}
+	cmdLineArgs["port"] = []string{kubeAddr.Port()}
+
+	args := []string{}
+	for key, value := range cmdLineArgs {
+		for _, token := range value {
+			args = append(args, fmt.Sprintf("--%s=%v", key, token))
+		}
+	}
+
+	go func() {
+		cmd := kube_controller_manager.NewControllerManagerCommand()
+		if err := cmd.ParseFlags(args); err != nil {
+			return
+		}
+		cmd.Run(cmd, nil)
+	}()
+
+	if err := waitForServerHealthy(kubeAddr); err != nil {
+		return fmt.Errorf("Waiting for Kubernetes controller-manager /healthz failed with: %v", err)
+	}
+
+	return nil
+}
+
+func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
+	privilegedLoopbackConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	if err != nil {
+		return err
+	}
+
+	// TODO: replace this with a default which produces the new configs
+	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
+	if err != nil {
+		return err
+	}
+	legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
+	externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
+	if err != nil {
+		return err
+	}
+	externalMasterConfig := &legacyconfigv1.MasterConfig{}
+	gvk := legacyconfigv1.LegacySchemeGroupVersion.WithKind("MasterConfig")
+	_, _, err = legacyConfigCodec.Decode(externalBytes, &gvk, externalMasterConfig)
+	if err != nil {
+		return err
+	}
+
+	openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig)
+	openshiftAddrStr, err := FindAvailableBindAddress(10000, 29999)
+	if err != nil {
+		return fmt.Errorf("couldn't find free address for OpenShift controller-manager: %v", err)
+	}
+	openshiftControllerConfig.ServingInfo.BindAddress = openshiftAddrStr
+	go openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig)
+
+	openshiftAddr, err := url.Parse(fmt.Sprintf("https://%s", openshiftAddrStr))
+	if err != nil {
+		return err
+	}
+	if err := waitForServerHealthy(openshiftAddr); err != nil {
+		return fmt.Errorf("Waiting for OpenShift controller-manager /healthz failed with: %v", err)
+	}
+
+	return nil
+}
+
 func waitForServerHealthy(url *url.URL) error {
-	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", url.Host, 100*time.Millisecond, 1*time.Second, 60); err != nil {
+	if err := cmdutil.WaitForSuccessfulDial(url.Scheme == "https", "tcp", url.Host, 100*time.Millisecond, 1*time.Second, 60); err != nil {
 		return err
 	}
 	var healthzResponse string

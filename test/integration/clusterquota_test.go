@@ -135,6 +135,7 @@ func TestClusterQuota(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if _, err := clusterAdminImageClient.ImageStreams("second").Create(imagestream); !kapierrors.IsForbidden(err) {
 		list, err := clusterAdminQuotaClient.Quota().AppliedClusterResourceQuotas("second").List(metav1.ListOptions{})
 		if err == nil {
@@ -179,7 +180,7 @@ func labelNamespace(clusterAdminKubeClient kcoreclient.NamespacesGetter, namespa
 }
 
 func waitForQuotaStatus(clusterAdminClient quotaclient.Interface, name string, conditionFn func(*quotaapi.ClusterResourceQuota) bool) error {
-	return utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
+	err := utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
 		quota, err := clusterAdminClient.Quota().ClusterResourceQuotas().Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
@@ -189,5 +190,10 @@ func waitForQuotaStatus(clusterAdminClient quotaclient.Interface, name string, c
 		}
 		return false, nil
 	})
-
+	if err == nil {
+		// since now we run each process separately we need to wait for the informers
+		// to catch up on the update and only then continue
+		time.Sleep(3 * time.Second)
+	}
+	return err
 }
