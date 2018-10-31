@@ -12,29 +12,6 @@ popd > /dev/null
 os::util::ensure::gopath_binary_exists 'go-bindata'
 
 pushd "${OS_ROOT}" > /dev/null
-"$(os::util::find::gopath_binary go-bindata)" \
-    -nocompress \
-    -nometadata \
-    -prefix "manifests" \
-    -pkg "manifests" \
-    -o "${OUTPUT_PARENT}/pkg/oc/clusterup/manifests/bindata.go" \
-    -ignore "OWNERS" \
-    -ignore "README.md" \
-    -ignore ".*\.go$" \
-    -ignore "\.DS_Store" \
-    -ignore application-template.json \
-    -ignore "prometheus-standalone.yaml" \
-    -ignore "node-exporter.yaml" \
-    examples/image-streams/... \
-    examples/db-templates/... \
-    examples/jenkins \
-    examples/jenkins/pipeline \
-    examples/quickstarts/... \
-    examples/heapster/... \
-    examples/prometheus/... \
-    examples/service-catalog/... \
-    install/... \
-    pkg/image/apiserver/admission/apis/imagepolicy/v1/...
 
 "$(os::util::find::gopath_binary go-bindata)" \
     -nocompress \
