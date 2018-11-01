@@ -6,6 +6,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -349,7 +350,11 @@ func TestBuildDefaultsNodeSelector(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		defaults := BuildDefaults{Config: &openshiftcontrolplanev1.BuildDefaultsConfig{NodeSelector: test.defaults}}
+		defaults := BuildDefaults{Config: &openshiftcontrolplanev1.BuildDefaultsConfig{
+			NodeSelector: &metav1.LabelSelector{
+				MatchLabels: test.defaults},
+		},
+		}
 		pod := testutil.Pod().WithBuild(t, test.build)
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.

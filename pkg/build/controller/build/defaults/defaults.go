@@ -79,11 +79,11 @@ func setPodLogLevelFromBuild(pod *corev1.Pod, build *buildv1.Build) error {
 }
 
 func (b BuildDefaults) applyPodDefaults(pod *corev1.Pod, isCustomBuild bool) {
-	if len(b.Config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
+	if b.Config.NodeSelector != nil && pod.Spec.NodeSelector == nil {
 		// only apply nodeselector defaults if the pod has no nodeselector labels
 		// already.
 		pod.Spec.NodeSelector = map[string]string{}
-		for k, v := range b.Config.NodeSelector {
+		for k, v := range b.Config.NodeSelector.MatchLabels {
 			addDefaultNodeSelector(k, v, pod.Spec.NodeSelector)
 		}
 	}
