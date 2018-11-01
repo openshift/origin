@@ -27,7 +27,6 @@ import (
 	exipfailover "github.com/openshift/origin/pkg/oc/cli/admin/ipfailover"
 	"github.com/openshift/origin/pkg/oc/cli/buildlogs"
 	"github.com/openshift/origin/pkg/oc/cli/cancelbuild"
-	"github.com/openshift/origin/pkg/oc/cli/cluster"
 	"github.com/openshift/origin/pkg/oc/cli/debug"
 	configcmd "github.com/openshift/origin/pkg/oc/cli/experimental/config"
 	"github.com/openshift/origin/pkg/oc/cli/experimental/dockergc"
@@ -138,7 +137,6 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				project.NewCmdProject(fullName, f, ioStreams),
 				projects.NewCmdProjects(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdExplain(fullName, f, ioStreams),
-				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, ioStreams),
 			},
 		},
 		{
