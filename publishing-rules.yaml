@@ -1,7 +1,3 @@
-# This file is not authoritative.
-#    $ oc project
-#    Using project "origin-publisher-bot" on server "https://api.ci.openshift.org:443".
-#    $ oc get cm/openshift-origin-bot-rules -o yaml -n origin-publisher-bot
 skip-godeps: true
 rules:
 - destination: kubernetes
