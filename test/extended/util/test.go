@@ -321,6 +321,7 @@ var (
 			`Services should be able to up and down services`,                // we don't have wget installed on nodes
 			`Network should set TCP CLOSE_WAIT timeout`,                      // possibly some difference between ubuntu and fedora
 			`should allow ingress access on one named port`,                  // broken even with network policy on
+			`should answer endpoint and wildcard queries for the cluster`,    // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
 
 			`\[NodeFeature:Sysctls\]`, // needs SCC support
 
