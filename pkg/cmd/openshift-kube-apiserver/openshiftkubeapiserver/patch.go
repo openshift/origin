@@ -33,8 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	usercache "github.com/openshift/origin/pkg/user/cache"
@@ -173,10 +171,6 @@ func (c *KubeAPIServerServerPatchContext) PatchServer(server *master.Master) err
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
 func NewInformers(internalInformers internalinformers.SharedInformerFactory, versionedInformers clientgoinformers.SharedInformerFactory, loopbackClientConfig *rest.Config) (*KubeAPIServerInformers, error) {
-	imageClient, err := imageclient.NewForConfig(loopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	oauthClient, err := oauthclient.NewForConfig(loopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -201,7 +195,6 @@ func NewInformers(internalInformers internalinformers.SharedInformerFactory, ver
 	ret := &KubeAPIServerInformers{
 		InternalKubernetesInformers:     internalInformers,
 		KubernetesInformers:             versionedInformers,
-		InternalOpenshiftImageInformers: imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
 		OpenshiftOAuthInformers:         oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
 		InternalOpenshiftQuotaInformers: quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		OpenshiftSecurityInformers:      securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
@@ -220,7 +213,6 @@ type KubeAPIServerInformers struct {
 	InternalKubernetesInformers     kinternalinformers.SharedInformerFactory
 	KubernetesInformers             kexternalinformers.SharedInformerFactory
 	OpenshiftOAuthInformers         oauthinformer.SharedInformerFactory
-	InternalOpenshiftImageInformers imageinformer.SharedInformerFactory
 	InternalOpenshiftQuotaInformers quotainformer.SharedInformerFactory
 	OpenshiftSecurityInformers      securityv1informer.SharedInformerFactory
 	OpenshiftUserInformers          userinformer.SharedInformerFactory
@@ -231,9 +223,6 @@ func (i *KubeAPIServerInformers) GetInternalKubernetesInformers() kinternalinfor
 }
 func (i *KubeAPIServerInformers) GetKubernetesInformers() kexternalinformers.SharedInformerFactory {
 	return i.KubernetesInformers
-}
-func (i *KubeAPIServerInformers) GetInternalOpenshiftImageInformers() imageinformer.SharedInformerFactory {
-	return i.InternalOpenshiftImageInformers
 }
 func (i *KubeAPIServerInformers) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.InternalOpenshiftQuotaInformers
@@ -249,7 +238,6 @@ func (i *KubeAPIServerInformers) Start(stopCh <-chan struct{}) {
 	i.InternalKubernetesInformers.Start(stopCh)
 	i.KubernetesInformers.Start(stopCh)
 	i.OpenshiftOAuthInformers.Start(stopCh)
-	i.InternalOpenshiftImageInformers.Start(stopCh)
 	i.InternalOpenshiftQuotaInformers.Start(stopCh)
 	i.OpenshiftSecurityInformers.Start(stopCh)
 	i.OpenshiftUserInformers.Start(stopCh)
