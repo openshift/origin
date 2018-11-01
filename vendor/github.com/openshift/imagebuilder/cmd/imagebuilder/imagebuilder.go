@@ -127,7 +127,10 @@ func build(dockerfile string, additionalDockerfiles []string, arguments map[stri
 	}
 
 	b := imagebuilder.NewBuilder(arguments)
-	stages := imagebuilder.NewStages(node, b)
+	stages, err := imagebuilder.NewStages(node, b)
+	if err != nil {
+		return err
+	}
 	stages, ok := stages.ByTarget(target)
 	if !ok {
 		return fmt.Errorf("error: The target %q was not found in the provided Dockerfile", target)

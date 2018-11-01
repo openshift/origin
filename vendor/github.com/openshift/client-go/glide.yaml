@@ -1,10 +1,10 @@
 package: github.com/openshift/client-go
 import:
 - package: k8s.io/gengo
-  repo:    git@github.com:openshift/kubernetes-gengo
+  repo:    https://github.com/openshift/kubernetes-gengo.git
   version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/code-generator
-  repo:    git@github.com:openshift/kubernetes-code-generator
+  repo:    https://github.com/openshift/kubernetes-code-generator.git
   version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/apimachinery
   version: kubernetes-1.11.1

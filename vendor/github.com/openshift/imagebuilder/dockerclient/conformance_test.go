@@ -143,7 +143,10 @@ func TestCopyFrom(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			stages := imagebuilder.NewStages(node, b)
+			stages, err := imagebuilder.NewStages(node, b)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if _, err := e.Stages(b, stages, ""); err != nil {
 				t.Log(out.String())
 				t.Fatal(err)
@@ -213,7 +216,10 @@ func TestMultiStageBase(t *testing.T) {
 	}
 
 	b := imagebuilder.NewBuilder(nil)
-	stages := imagebuilder.NewStages(node, b)
+	stages, err := imagebuilder.NewStages(node, b)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := e.Stages(b, stages, ""); err != nil {
 		t.Fatal(err)
 	}

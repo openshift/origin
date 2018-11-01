@@ -32,4 +32,4 @@ import:
   - pkg/term/windows
 - package: github.com/fsouza/go-dockerclient
   repo: https://github.com/openshift/go-dockerclient.git
-  version: openshift-3.9
+  version: openshift-4.0

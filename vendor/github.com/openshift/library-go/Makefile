@@ -1,18 +1,7 @@
 all: build
 .PHONY: all
 
-build:
-	go build github.com/openshift/library-go/pkg/...
-.PHONY: build
+include alpha-build-machinery/make/golang.mk
+include alpha-build-machinery/make/targets/openshift/deps.mk
 
-test:
-	go test github.com/openshift/library-go/pkg/...
-.PHONY: test
-
-verify:
-	hack/verify-golint.sh
-.PHONY: verify
-
-update-deps:
-	hack/update-deps.sh
-.PHONY: update-deps
+GO_BUILD_PACKAGES :=./pkg/...

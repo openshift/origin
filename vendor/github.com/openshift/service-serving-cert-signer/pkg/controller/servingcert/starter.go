@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	configv1 "github.com/openshift/api/config/v1"
 	servicecertsignerv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
 	"github.com/openshift/library-go/pkg/crypto"
-	"k8s.io/client-go/informers"
 )
 
 type ServingCertOptions struct {
-	Config *servicecertsignerv1alpha1.ServiceServingCertSignerConfig
+	Config         *servicecertsignerv1alpha1.ServiceServingCertSignerConfig
+	LeaderElection configv1.LeaderElection
 }
 
 func (o *ServingCertOptions) RunServingCert(clientConfig *rest.Config, stopCh <-chan struct{}) error {

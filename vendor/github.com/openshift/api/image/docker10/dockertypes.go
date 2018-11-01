@@ -6,7 +6,7 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DockerImage is the type representing a docker image and its various properties when
+// DockerImage is the type representing a container image and its various properties when
 // retrieved from the Docker client API.
 type DockerImage struct {
 	metav1.TypeMeta `json:",inline"`

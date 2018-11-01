@@ -13,15 +13,15 @@ import (
 	operatorsv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	scsv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/service-serving-cert-signer/pkg/operator/v310_00_assets"
 )
 
 // syncConfigMapCABundleController_v311_00_to_latest takes care of synchronizing (not upgrading) the thing we're managing.
 // most of the time the sync method will be good for a large span of minor versions
-func syncConfigMapCABundleController_v311_00_to_latest(c ServiceCertSignerOperator, operatorConfig *scsv1alpha1.ServiceCertSignerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailablity) (operatorsv1alpha1.VersionAvailablity, []error) {
-	versionAvailability := operatorsv1alpha1.VersionAvailablity{
+func syncConfigMapCABundleController_v311_00_to_latest(c ServiceCertSignerOperator, operatorConfig *scsv1alpha1.ServiceCertSignerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailability) (operatorsv1alpha1.VersionAvailability, []error) {
+	versionAvailability := operatorsv1alpha1.VersionAvailability{
 		Version: operatorConfig.Spec.Version,
 	}
 
@@ -83,7 +83,7 @@ func syncConfigMapCABundleController_v311_00_to_latest(c ServiceCertSignerOperat
 		errors = append(errors, fmt.Errorf("%q: %v", "deployment", err))
 	}
 
-	return resourcemerge.ApplyGenerationAvailability(versionAvailability, actualDeployment, errors...), errors
+	return resourcemerge.ApplyDeploymentGenerationAvailability(versionAvailability, actualDeployment, errors...), errors
 }
 
 func manageConfigMapCABundleConfigMap_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, operatorConfig *scsv1alpha1.ServiceCertSignerOperatorConfig) (*corev1.ConfigMap, bool, error) {
@@ -96,7 +96,7 @@ func manageConfigMapCABundleConfigMap_v311_00_to_latest(client coreclientv1.Conf
 	return resourceapply.ApplyConfigMap(client, requiredConfigMap)
 }
 
-func manageConfigMapCABundleDeployment_v311_00_to_latest(client appsclientv1.DeploymentsGetter, options *scsv1alpha1.ServiceCertSignerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailablity, forceDeployment bool) (*appsv1.Deployment, bool, error) {
+func manageConfigMapCABundleDeployment_v311_00_to_latest(client appsclientv1.DeploymentsGetter, options *scsv1alpha1.ServiceCertSignerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailability, forceDeployment bool) (*appsv1.Deployment, bool, error) {
 	required := resourceread.ReadDeploymentV1OrDie(v310_00_assets.MustAsset("v3.10.0/configmap-cabundle-controller/deployment.yaml"))
 	required.Spec.Template.Spec.Containers[0].Image = options.Spec.ImagePullSpec
 	required.Spec.Template.Spec.Containers[0].Args = append(required.Spec.Template.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", options.Spec.Logging.Level))

@@ -71,8 +71,59 @@ func TestMultiStageParse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stages := NewStages(n, NewBuilder(nil))
+	stages, err := NewStages(n, NewBuilder(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stages) != 3 {
+		t.Fatalf("expected 3 stages, got %d", len(stages))
+	}
 	t.Logf("stages: %#v", stages)
+}
+
+func TestMultiStageParseHeadingArg(t *testing.T) {
+	n, err := ParseFile("dockerclient/testdata/multistage/Dockerfile.heading-arg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stages, err := NewStages(n, NewBuilder(map[string]string{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stages) != 3 {
+		t.Fatalf("expected 3 stages, got %d", len(stages))
+	}
+	t.Logf("stages: %#v", stages)
+}
+
+func TestHeadingArg(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		args         map[string]string
+		expectedFrom string
+	}{
+		{name: "default", args: map[string]string{}, expectedFrom: "busybox:latest"},
+		{name: "override", args: map[string]string{"FOO": "bar"}, expectedFrom: "busybox:bar"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			n, err := ParseDockerfile(strings.NewReader(`ARG FOO=latest
+ARG BAR=baz
+FROM busybox:$FOO
+ARG BAZ=banana
+RUN echo $FOO $BAR`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			b := NewBuilder(tc.args)
+			from, err := b.From(n)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if from != tc.expectedFrom {
+				t.Fatalf("expected %s, got %s", tc.expectedFrom, from)
+			}
+		})
+	}
 }
 
 func TestRun(t *testing.T) {
@@ -258,10 +309,11 @@ func TestBuilder(t *testing.T) {
 				Image: "debian",
 				Cmd:   []string{"/bin/sh", "-c", "/app/main.sh"},
 				Healthcheck: &docker.HealthConfig{
-					Interval: 5 * time.Second,
-					Timeout:  3 * time.Second,
-					Retries:  3,
-					Test:     []string{"CMD-SHELL", "/app/check.sh --quiet"},
+					StartPeriod: 8 * time.Second,
+					Interval:    5 * time.Second,
+					Timeout:     3 * time.Second,
+					Retries:     3,
+					Test:        []string{"CMD-SHELL", "/app/check.sh --quiet"},
 				},
 			},
 		},

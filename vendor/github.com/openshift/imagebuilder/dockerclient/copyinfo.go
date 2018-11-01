@@ -145,13 +145,6 @@ func trimLeadingPath(origPath string) string {
 	return origPath
 }
 
-func ensureTrailingSlash(origPath string) string {
-	if !strings.HasSuffix(origPath, "/") {
-		origPath += "/"
-	}
-	return origPath
-}
-
 func trimTrailingSlash(origPath string) string {
 	if origPath == "/" {
 		return origPath

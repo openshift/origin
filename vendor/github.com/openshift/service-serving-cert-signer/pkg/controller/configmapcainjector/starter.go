@@ -1,28 +1,29 @@
 package configmapcainjector
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"time"
 
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"crypto/x509"
-	"encoding/pem"
-	"io/ioutil"
-
 	"github.com/golang/glog"
+	configv1 "github.com/openshift/api/config/v1"
 	servicecertsignerv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
-	"k8s.io/client-go/informers"
 )
 
 type ConfigMapCABundleInjectorOptions struct {
-	Config *servicecertsignerv1alpha1.ConfigMapCABundleInjectorConfig
+	Config         *servicecertsignerv1alpha1.ConfigMapCABundleInjectorConfig
+	LeaderElection configv1.LeaderElection
 }
 
 // These might need adjustment
 const (
-	InformerResyncInterval = 2 * time.Minute
+	InformerResyncInterval   = 2 * time.Minute
 	ControllerResyncInterval = 20 * time.Minute
 )
 

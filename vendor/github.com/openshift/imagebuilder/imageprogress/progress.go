@@ -267,12 +267,7 @@ func (w *imageProgressWriter) isStableLayerCount() bool {
 	// Only proceed after we've received status for the same number
 	// of layers at least stableThreshhold times. If not, they're still increasing
 	w.stableLines++
-	if w.stableLines < w.stableThreshhold {
-		// We're not stable enough yet
-		return false
-	}
-
-	return true
+	return w.stableLines >= w.stableThreshhold
 }
 
 var layerIDRegexp = regexp.MustCompile("^[a-f0-9]*$")

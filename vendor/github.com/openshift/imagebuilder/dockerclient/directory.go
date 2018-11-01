@@ -69,6 +69,7 @@ func isContainerPathDirectory(client *docker.Client, containerID, path string) (
 		if err == io.EOF {
 			err = nil
 		}
+		cancel()
 		return false, err
 	}
 

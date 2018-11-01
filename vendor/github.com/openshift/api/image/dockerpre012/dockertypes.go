@@ -9,7 +9,7 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DockerImage is for earlier versions of the Docker API (pre-012 to be specific). It is also the
-// version of metadata that the Docker registry uses to persist metadata.
+// version of metadata that the container image registry uses to persist metadata.
 type DockerImage struct {
 	metav1.TypeMeta `json:",inline"`
 

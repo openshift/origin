@@ -210,9 +210,7 @@ func newProgressGenerator(w io.Writer) *progressGenerator {
 func (p *progressGenerator) status(id, status string) {
 	(*json.Encoder)(p).Encode(&progressLine{ID: id, Status: status})
 }
-func (p *progressGenerator) detail(id, status string, current, total int64) {
-	(*json.Encoder)(p).Encode(&progressLine{ID: id, Status: status, Detail: &progressDetail{Current: current, Total: total}})
-}
+
 func (p *progressGenerator) err(msg string) {
 	(*json.Encoder)(p).Encode(&progressLine{Error: msg})
 }

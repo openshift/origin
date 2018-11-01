@@ -513,6 +513,11 @@ func (builder *STI) Save(config *api.Config) (err error) {
 		extractErr := builder.tar.ExtractTarStream(artifactTmpDir, outReader)
 		io.Copy(ioutil.Discard, outReader) // must ensure reader from container is drained
 		builder.result.BuildInfo.Stages = api.RecordStageAndStepInfo(builder.result.BuildInfo.Stages, api.StageRetrieve, api.StepRetrievePreviousArtifacts, startTime, time.Now())
+
+		if extractErr != nil {
+			builder.fs.RemoveDirectory(artifactTmpDir)
+		}
+
 		return extractErr
 	}
 

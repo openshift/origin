@@ -309,31 +309,6 @@ func TestDrain(t *testing.T) {
 		},
 	}
 
-	ds_terminated_pod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "bar",
-			Namespace:         "default",
-			CreationTimestamp: metav1.Time{Time: time.Now()},
-			Labels:            labels,
-			SelfLink:          testapi.Default.SelfLink("pods", "bar"),
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         "extensions/v1beta1",
-					Kind:               "DaemonSet",
-					Name:               "ds",
-					BlockOwnerDeletion: boolptr(true),
-					Controller:         boolptr(true),
-				},
-			},
-		},
-		Spec: corev1.PodSpec{
-			NodeName: "node",
-		},
-		Status: corev1.PodStatus{
-			Phase: corev1.PodSucceeded,
-		},
-	}
-
 	ds_pod_with_emptyDir := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "bar",
@@ -404,46 +379,6 @@ func TestDrain(t *testing.T) {
 				},
 			},
 		},
-		Spec: corev1.PodSpec{
-			NodeName: "node",
-			Volumes: []corev1.Volume{
-				{
-					Name:         "scratch",
-					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""}},
-				},
-			},
-		},
-	}
-
-	terminated_job_pod_with_local_storage := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "bar",
-			Namespace:         "default",
-			CreationTimestamp: metav1.Time{Time: time.Now()},
-			Labels:            labels,
-			SelfLink:          testapi.Default.SelfLink("pods", "bar"),
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         "v1",
-					Kind:               "Job",
-					Name:               "job",
-					BlockOwnerDeletion: boolptr(true),
-					Controller:         boolptr(true),
-				},
-			},
-		},
-		Spec: corev1.PodSpec{
-			NodeName: "node",
-			Volumes: []corev1.Volume{
-				{
-					Name:         "scratch",
-					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""}},
-				},
-			},
-		},
-		Status: corev1.PodStatus{
-			Phase: corev1.PodSucceeded,
-		},
 	}
 
 	rs := extensions.ReplicaSet{
@@ -510,26 +445,6 @@ func TestDrain(t *testing.T) {
 			},
 		},
 	}
-	emptydir_terminated_pod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "bar",
-			Namespace:         "default",
-			CreationTimestamp: metav1.Time{Time: time.Now()},
-			Labels:            labels,
-		},
-		Spec: corev1.PodSpec{
-			NodeName: "node",
-			Volumes: []corev1.Volume{
-				{
-					Name:         "scratch",
-					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""}},
-				},
-			},
-		},
-		Status: corev1.PodStatus{
-			Phase: corev1.PodFailed,
-		},
-	}
 
 	tests := []struct {
 		description   string
@@ -562,16 +477,6 @@ func TestDrain(t *testing.T) {
 			args:         []string{"node"},
 			expectFatal:  true,
 			expectDelete: false,
-		},
-		{
-			description:  "DS-managed terminated pod",
-			node:         node,
-			expected:     cordoned_node,
-			pods:         []corev1.Pod{ds_terminated_pod},
-			rcs:          []api.ReplicationController{rc},
-			args:         []string{"node"},
-			expectFatal:  false,
-			expectDelete: true,
 		},
 		{
 			description:  "orphaned DS-managed pod",
@@ -615,20 +520,10 @@ func TestDrain(t *testing.T) {
 			expectDelete:  false,
 		},
 		{
-			description:  "Job-managed pod with local storage",
+			description:  "Job-managed pod",
 			node:         node,
 			expected:     cordoned_node,
 			pods:         []corev1.Pod{job_pod},
-			rcs:          []api.ReplicationController{rc},
-			args:         []string{"node", "--force", "--delete-local-data=true"},
-			expectFatal:  false,
-			expectDelete: true,
-		},
-		{
-			description:  "Job-managed terminated pod",
-			node:         node,
-			expected:     cordoned_node,
-			pods:         []corev1.Pod{terminated_job_pod_with_local_storage},
 			rcs:          []api.ReplicationController{rc},
 			args:         []string{"node"},
 			expectFatal:  false,
@@ -674,16 +569,6 @@ func TestDrain(t *testing.T) {
 			expectDelete: false,
 		},
 		{
-			description:  "terminated pod with emptyDir",
-			node:         node,
-			expected:     cordoned_node,
-			pods:         []corev1.Pod{emptydir_terminated_pod},
-			rcs:          []api.ReplicationController{rc},
-			args:         []string{"node"},
-			expectFatal:  false,
-			expectDelete: true,
-		},
-		{
 			description:  "pod with EmptyDir and --delete-local-data",
 			node:         node,
 			expected:     cordoned_node,
@@ -721,8 +606,8 @@ func TestDrain(t *testing.T) {
 				tf := cmdtesting.NewTestFactory()
 				defer tf.Cleanup()
 
-				codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
-				ns := scheme.Codecs
+				codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+				ns := legacyscheme.Codecs
 
 				tf.Client = &fake.RESTClient{
 					GroupVersion:         schema.GroupVersion{Group: "", Version: "v1"},
