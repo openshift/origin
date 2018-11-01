@@ -127,7 +127,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	g.Describe("[image_ecosystem][ruby] test ruby images with rails-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "rails-postgresql",
-			templateURL:            "https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json",
+			templateURL:            "https://raw.githubusercontent.com/openshift/origin/release-3.10/examples/quickstarts/rails-postgresql.json",
 			buildConfigName:        "rails-postgresql-example",
 			serviceName:            "rails-postgresql-example",
 			deploymentConfigName:   "rails-postgresql-example",
@@ -141,7 +141,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	g.Describe("[image_ecosystem][python] test python images with django-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "django-psql",
-			templateURL:            "https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django-postgresql.json",
+			templateURL:            "https://raw.githubusercontent.com/openshift/origin/release-3.10/examples/quickstarts/django-postgresql.json",
 			buildConfigName:        "django-psql-example",
 			serviceName:            "django-psql-example",
 			deploymentConfigName:   "django-psql-example",
@@ -155,7 +155,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	g.Describe("[image_ecosystem][nodejs] test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "nodejs-mongodb",
-			templateURL:            "https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs-mongodb.json",
+			templateURL:            "https://raw.githubusercontent.com/openshift/origin/release-3.10/examples/quickstarts/nodejs-mongodb.json",
 			buildConfigName:        "nodejs-mongodb-example",
 			serviceName:            "nodejs-mongodb-example",
 			deploymentConfigName:   "nodejs-mongodb-example",
@@ -169,7 +169,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	var _ = g.Describe("[image_ecosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "cakephp-mysql",
-			templateURL:            "https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.json",
+			templateURL:            "https://raw.githubusercontent.com/openshift/origin/release-3.10/examples/quickstarts/cakephp-mysql.json",
 			buildConfigName:        "cakephp-mysql-example",
 			serviceName:            "cakephp-mysql-example",
 			deploymentConfigName:   "cakephp-mysql-example",
@@ -183,7 +183,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "dancer-mysql",
-			templateURL:            "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json",
+			templateURL:            "https://raw.githubusercontent.com/openshift/origin/release-3.10/examples/quickstarts/dancer-mysql.json",
 			buildConfigName:        "dancer-mysql-example",
 			serviceName:            "dancer-mysql-example",
 			deploymentConfigName:   "dancer-mysql-example",
@@ -198,7 +198,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	g.Describe("[image_ecosystem][python] test python images with django-ex repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "django",
-			templateURL:            "https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django.json",
+			templateURL:            "https://raw.githubusercontent.com/sclorg/django-ex/34e538fc21f70cdff7557859f8da19956f721004/openshift/templates/django.json",
 			buildConfigName:        "django-example",
 			serviceName:            "django-example",
 			deploymentConfigName:   "django-example",
@@ -212,7 +212,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	g.Describe("[image_ecosystem][nodejs] images with nodejs-ex repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "nodejs",
-			templateURL:            "https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs.json",
+			templateURL:            "https://raw.githubusercontent.com/sclorg/nodejs-ex/9b0e5f153998860fd0eb010940c6cd9c9b41bd1c/openshift/templates/nodejs.json",
 			buildConfigName:        "nodejs-example",
 			serviceName:            "nodejs-example",
 			deploymentConfigName:   "nodejs-example",
@@ -226,7 +226,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	var _ = g.Describe("[image_ecosystem][php] test php images with cakephp-ex repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "cakephp",
-			templateURL:            "https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp.json",
+			templateURL:            "https://raw.githubusercontent.com/sclorg/cakephp-ex/fae565979a2ce1839b28674a47716a08dc08e397/openshift/templates/cakephp.json",
 			buildConfigName:        "cakephp-example",
 			serviceName:            "cakephp-example",
 			deploymentConfigName:   "cakephp-example",
@@ -239,8 +239,9 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 
 	var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex repo", NewSampleRepoTest(
 		sampleRepoConfig{
-			repoName:               "dancer",
-			templateURL:            "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer.json",
+			repoName: "dancer",
+			// newer versions of the template reference imagestreamtags that are not available in a v3.10 cluster.
+			templateURL:            "https://raw.githubusercontent.com/sclorg/dancer-ex/243d7b217e90d89c9c814cc608aa42931ef4c725/openshift/templates/dancer.json",
 			buildConfigName:        "dancer-example",
 			serviceName:            "dancer-example",
 			deploymentConfigName:   "dancer-example",

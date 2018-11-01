@@ -19,7 +19,7 @@ import (
 var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby image", func() {
 	defer g.GinkgoRecover()
 	var (
-		railsTemplate = "https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json"
+		railsTemplate = "https://raw.githubusercontent.com/openshift/origin/release-3.10/examples/quickstarts/rails-postgresql.json"
 		oc            = exutil.NewCLI("s2i-ruby", exutil.KubeConfigPath())
 		modifyCommand = []string{"sed", "-ie", `s%render :file => 'public/index.html'%%`, "app/controllers/welcome_controller.rb"}
 		removeCommand = []string{"rm", "-f", "public/index.html"}

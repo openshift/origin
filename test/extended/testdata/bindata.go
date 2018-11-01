@@ -30422,6 +30422,7 @@ spec:
     type: Git
     git:
       uri: https://github.com/openshift/jenkins-client-plugin.git
+      ref: release-3.10
   strategy:
     type: JenkinsPipeline
     jenkinsPipelineStrategy:
