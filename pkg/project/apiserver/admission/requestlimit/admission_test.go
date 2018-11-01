@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/api/project"
 	userapi "github.com/openshift/api/user/v1"
@@ -341,14 +341,14 @@ func configEquals(a, b *requestlimitapi.ProjectRequestLimitConfig) bool {
 	return true
 }
 
-func fakeNs(name string, terminating bool) *kapi.Namespace {
-	ns := &kapi.Namespace{}
+func fakeNs(name string, terminating bool) *corev1.Namespace {
+	ns := &corev1.Namespace{}
 	ns.Name = names.SimpleNameGenerator.GenerateName("testns")
 	ns.Annotations = map[string]string{
 		"openshift.io/requester": name,
 	}
 	if terminating {
-		ns.Status.Phase = kapi.NamespaceTerminating
+		ns.Status.Phase = corev1.NamespaceTerminating
 	}
 	return ns
 }
@@ -367,7 +367,7 @@ type projectCount struct {
 
 func fakeProjectCache(requesters map[string]projectCount) *projectcache.ProjectCache {
 	kclientset := &fake.Clientset{}
-	pCache := projectcache.NewFake(kclientset.Core().Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
+	pCache := projectcache.NewFake(kclientset.CoreV1().Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
 	for requester, count := range requesters {
 		for i := 0; i < count.active; i++ {
 			pCache.Store.Add(fakeNs(requester, false))

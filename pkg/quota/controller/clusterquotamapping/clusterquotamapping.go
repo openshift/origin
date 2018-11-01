@@ -13,13 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kcoreinformers "k8s.io/client-go/informers/core/v1"
-	kcorelisters "k8s.io/client-go/listers/core/v1"
+	corev1informers "k8s.io/client-go/informers/core/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
-	kcoreinternallisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -53,17 +51,9 @@ import (
 // test where I caught the problem.
 
 // NewClusterQuotaMappingController builds a mapping between namespaces and clusterresourcequotas
-func NewClusterQuotaMappingController(namespaceInformer kcoreinformers.NamespaceInformer, quotaInformer quotainformer.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
+func NewClusterQuotaMappingController(namespaceInformer corev1informers.NamespaceInformer, quotaInformer quotainformer.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
 	c := newClusterQuotaMappingController(namespaceInformer.Informer(), quotaInformer)
 	c.namespaceLister = v1NamespaceLister{lister: namespaceInformer.Lister()}
-	return c
-}
-
-// NewClusterQuotaMappingControllerInternal provides an adapter for listing internal resources. This
-// method may be removed in the future.
-func NewClusterQuotaMappingControllerInternal(namespaceInformer kcoreinternalinformers.NamespaceInformer, quotaInformer quotainformer.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
-	c := newClusterQuotaMappingController(namespaceInformer.Informer(), quotaInformer)
-	c.namespaceLister = internalNamespaceLister{lister: namespaceInformer.Lister()}
 	return c
 }
 
@@ -73,7 +63,7 @@ type namespaceLister interface {
 }
 
 type v1NamespaceLister struct {
-	lister kcorelisters.NamespaceLister
+	lister corev1listers.NamespaceLister
 }
 
 func (l v1NamespaceLister) Each(label labels.Selector, fn func(metav1.Object) bool) error {
@@ -89,26 +79,6 @@ func (l v1NamespaceLister) Each(label labels.Selector, fn func(metav1.Object) bo
 	return nil
 }
 func (l v1NamespaceLister) Get(name string) (metav1.Object, error) {
-	return l.lister.Get(name)
-}
-
-type internalNamespaceLister struct {
-	lister kcoreinternallisters.NamespaceLister
-}
-
-func (l internalNamespaceLister) Each(label labels.Selector, fn func(metav1.Object) bool) error {
-	results, err := l.lister.List(label)
-	if err != nil {
-		return err
-	}
-	for i := range results {
-		if !fn(results[i]) {
-			return nil
-		}
-	}
-	return nil
-}
-func (l internalNamespaceLister) Get(name string) (metav1.Object, error) {
 	return l.lister.Get(name)
 }
 

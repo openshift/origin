@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
+	kexternalinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	internalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
@@ -52,23 +52,24 @@ func runFuzzer(t *testing.T) {
 	defer close(stopCh)
 
 	startingNamespaces := CreateStartingNamespaces()
-	internalKubeClient := internalfake.NewSimpleClientset(startingNamespaces...)
+	kubeClient := fake.NewSimpleClientset(startingNamespaces...)
 	nsWatch := watch.NewFake()
-	internalKubeClient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
+	kubeClient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
 
-	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(internalKubeClient, 10*time.Minute)
+	kubeInformerFactory := kexternalinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
 
 	startingQuotas := CreateStartingQuotas()
 	quotaWatch := watch.NewFake()
 	quotaClient := quotaclient.NewSimpleClientset(startingQuotas...)
 	quotaClient.PrependWatchReactor("clusterresourcequotas", clientgotesting.DefaultWatchReactor(quotaWatch, nil))
 	quotaFactory := quotainformer.NewSharedInformerFactory(quotaClient, 0)
-	controller := NewClusterQuotaMappingControllerInternal(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaFactory.Quota().InternalVersion().ClusterResourceQuotas())
+
+	controller := NewClusterQuotaMappingController(kubeInformerFactory.Core().V1().Namespaces(), quotaFactory.Quota().InternalVersion().ClusterResourceQuotas())
 	go controller.Run(5, stopCh)
 	quotaFactory.Start(stopCh)
-	internalKubeInformerFactory.Start(stopCh)
+	kubeInformerFactory.Start(stopCh)
 
-	finalNamespaces := map[string]*kapi.Namespace{}
+	finalNamespaces := map[string]*corev1.Namespace{}
 	finalQuotas := map[string]*quotaapi.ClusterResourceQuota{}
 	quotaActions := map[string][]string{}
 	namespaceActions := map[string][]string{}
@@ -81,9 +82,9 @@ func runFuzzer(t *testing.T) {
 		finalQuotas[name] = quota.(*quotaapi.ClusterResourceQuota)
 	}
 	for _, namespace := range startingNamespaces {
-		name := namespace.(*kapi.Namespace).Name
-		namespaceActions[name] = append(namespaceActions[name], fmt.Sprintf("inserting %v to %v", name, namespace.(*kapi.Namespace).Labels))
-		finalNamespaces[name] = namespace.(*kapi.Namespace)
+		name := namespace.(*corev1.Namespace).Name
+		namespaceActions[name] = append(namespaceActions[name], fmt.Sprintf("inserting %v to %v", name, namespace.(*corev1.Namespace).Labels))
+		finalNamespaces[name] = namespace.(*corev1.Namespace)
 	}
 
 	go func() {
@@ -178,7 +179,7 @@ func runFuzzer(t *testing.T) {
 	}
 }
 
-func checkState(controller *ClusterQuotaMappingController, finalNamespaces map[string]*kapi.Namespace, finalQuotas map[string]*quotaapi.ClusterResourceQuota, t *testing.T, quotaActions, namespaceActions map[string][]string) []string {
+func checkState(controller *ClusterQuotaMappingController, finalNamespaces map[string]*corev1.Namespace, finalQuotas map[string]*quotaapi.ClusterResourceQuota, t *testing.T, quotaActions, namespaceActions map[string][]string) []string {
 	failures := []string{}
 
 	quotaToNamespaces := map[string]sets.String{}
@@ -289,8 +290,8 @@ func NewQuota(name string) *quotaapi.ClusterResourceQuota {
 	return ret
 }
 
-func NewNamespace(name string) *kapi.Namespace {
-	ret := &kapi.Namespace{}
+func NewNamespace(name string) *corev1.Namespace {
+	ret := &corev1.Namespace{}
 	ret.Name = name
 
 	numLabels := rand.Intn(maxLabels) + 1

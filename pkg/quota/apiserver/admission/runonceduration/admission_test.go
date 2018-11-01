@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -18,8 +19,8 @@ import (
 
 func testCache(projectAnnotations map[string]string) *projectcache.ProjectCache {
 	kclient := &fake.Clientset{}
-	pCache := projectcache.NewFake(kclient.Core().Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
-	ns := &kapi.Namespace{}
+	pCache := projectcache.NewFake(kclient.CoreV1().Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
+	ns := &corev1.Namespace{}
 	ns.Name = "default"
 	ns.Annotations = projectAnnotations
 	pCache.Store.Add(ns)

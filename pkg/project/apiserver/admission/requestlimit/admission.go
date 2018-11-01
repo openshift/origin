@@ -6,13 +6,13 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/project"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
@@ -156,11 +156,11 @@ func (o *projectRequestLimit) projectCountByRequester(userName string) (int, err
 
 	terminatingCount := 0
 	for _, obj := range namespaces {
-		ns, ok := obj.(*kapi.Namespace)
+		ns, ok := obj.(*corev1.Namespace)
 		if !ok {
 			return 0, fmt.Errorf("object in cache is not a namespace: %#v", obj)
 		}
-		if ns.Status.Phase == kapi.NamespaceTerminating {
+		if ns.Status.Phase == corev1.NamespaceTerminating {
 			terminatingCount++
 		}
 	}

@@ -4,8 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
+	fakev1 "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -16,7 +18,7 @@ import (
 
 // TestPodAdmission verifies various scenarios involving pod/project/global node label selectors
 func TestPodAdmission(t *testing.T) {
-	project := &kapi.Namespace{
+	project := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testProject",
 			Namespace: "",
@@ -25,6 +27,7 @@ func TestPodAdmission(t *testing.T) {
 	projectStore := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	projectStore.Add(project)
 
+	externalMockClientset := fakev1.NewSimpleClientset()
 	mockClientset := fake.NewSimpleClientset()
 	handler := &podNodeEnvironment{client: mockClientset}
 	pod := &kapi.Pod{
@@ -106,7 +109,7 @@ func TestPodAdmission(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		cache := projectcache.NewFake(mockClientset.Core().Namespaces(), projectStore, test.defaultNodeSelector)
+		cache := projectcache.NewFake(externalMockClientset.CoreV1().Namespaces(), projectStore, test.defaultNodeSelector)
 		handler.SetProjectCache(cache)
 		if !test.ignoreProjectNodeSelector {
 			project.ObjectMeta.Annotations = map[string]string{"openshift.io/node-selector": test.projectNodeSelector}

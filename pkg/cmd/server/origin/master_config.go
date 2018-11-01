@@ -144,11 +144,11 @@ func BuildMasterConfig(
 		return nil, err
 	}
 	authorizer := openshiftkubeapiserver.NewAuthorizer(informers.GetInternalKubernetesInformers(), informers.GetKubernetesInformers())
-	projectCache, err := openshiftapiserver.NewProjectCache(informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(), privilegedLoopbackConfig, options.ProjectConfig.DefaultNodeSelector)
+	projectCache, err := openshiftapiserver.NewProjectCache(informers.GetKubernetesInformers().Core().V1().Namespaces(), privilegedLoopbackConfig, options.ProjectConfig.DefaultNodeSelector)
 	if err != nil {
 		return nil, err
 	}
-	clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces(), informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
+	clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(informers.GetKubernetesInformers().Core().V1().Namespaces(), informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
 	discoveryClient := cacheddiscovery.NewMemCacheClient(privilegedLoopbackKubeClientsetExternal.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
 	cloudConfigFile, err := configprocessing.GetCloudProviderConfigFile(options.KubernetesMasterConfig.APIServerArguments)

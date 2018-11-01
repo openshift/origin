@@ -8,17 +8,18 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apiserver/pkg/admission"
+	fakev1 "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiextensions "k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/api/image"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -49,9 +50,9 @@ func (fn resolveFunc) ResolveObjectReference(ref *kapi.ObjectReference, defaultN
 }
 
 func setDefaultCache(p *imagePolicyPlugin) kcache.Indexer {
-	kclient := fake.NewSimpleClientset()
+	kclient := fakev1.NewSimpleClientset()
 	store := cache.NewCacheStore(kcache.MetaNamespaceKeyFunc)
-	p.SetProjectCache(cache.NewFake(kclient.Core().Namespaces(), store, ""))
+	p.SetProjectCache(cache.NewFake(kclient.CoreV1().Namespaces(), store, ""))
 	return store
 }
 
@@ -359,7 +360,7 @@ func TestDefaultPolicy(t *testing.T) {
 	}
 
 	// setting a namespace annotation should allow the rule to be skipped immediately
-	store.Add(&kapi.Namespace{
+	store.Add(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "",
 			Name:      "default",

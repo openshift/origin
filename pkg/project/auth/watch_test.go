@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,9 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/storage"
+	informersv1 "k8s.io/client-go/informers"
+	fakev1 "k8s.io/client-go/kubernetes/fake"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -23,17 +24,17 @@ import (
 	projectutil "github.com/openshift/origin/pkg/project/util"
 )
 
-func newTestWatcher(username string, groups []string, predicate storage.SelectionPredicate, namespaces ...*kapi.Namespace) (*userProjectWatcher, *fakeAuthCache, chan struct{}) {
+func newTestWatcher(username string, groups []string, predicate storage.SelectionPredicate, namespaces ...*corev1.Namespace) (*userProjectWatcher, *fakeAuthCache, chan struct{}) {
 	objects := []runtime.Object{}
 	for i := range namespaces {
 		objects = append(objects, namespaces[i])
 	}
-	mockClient := fake.NewSimpleClientset(objects...)
+	mockClient := fakev1.NewSimpleClientset(objects...)
 
-	informers := informers.NewSharedInformerFactory(mockClient, controller.NoResyncPeriodFunc())
+	informers := informersv1.NewSharedInformerFactory(mockClient, controller.NoResyncPeriodFunc())
 	projectCache := projectcache.NewProjectCache(
-		informers.Core().InternalVersion().Namespaces().Informer(),
-		mockClient.Core().Namespaces(),
+		informers.Core().V1().Namespaces().Informer(),
+		mockClient.CoreV1().Namespaces(),
 		"",
 	)
 	fakeAuthCache := &fakeAuthCache{}
@@ -259,10 +260,10 @@ func TestAddModifyDeleteEventsByGroup(t *testing.T) {
 	}
 }
 
-func newNamespaces(names ...string) []*kapi.Namespace {
-	ret := []*kapi.Namespace{}
+func newNamespaces(names ...string) []*corev1.Namespace {
+	ret := []*corev1.Namespace{}
 	for _, name := range names {
-		ret = append(ret, &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		ret = append(ret, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
 	}
 
 	return ret
