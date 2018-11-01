@@ -20,11 +20,11 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
+	authorizationv1informer "github.com/openshift/client-go/authorization/informers/externalversions"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	oauthv1informer "github.com/openshift/client-go/oauth/informers/externalversions"
 	routev1informer "github.com/openshift/client-go/route/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
-	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
@@ -74,7 +74,7 @@ type MasterConfig struct {
 	// TODO inspect uses to eliminate them
 	InternalKubeInformers  kinternalinformers.SharedInformerFactory
 	ClientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
-	AuthorizationInformers authorizationinformer.SharedInformerFactory
+	AuthorizationInformers authorizationv1informer.SharedInformerFactory
 	RouteInformers         routev1informer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	SecurityInformers      securityinformer.SharedInformerFactory
@@ -89,7 +89,7 @@ type InformerAccess interface {
 	GetOpenshiftRouteInformers() routev1informer.SharedInformerFactory
 	GetOpenshiftUserInformers() userv1informer.SharedInformerFactory
 
-	GetInternalOpenshiftAuthorizationInformers() authorizationinformer.SharedInformerFactory
+	GetOpenshiftAuthorizationInformers() authorizationv1informer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
 
@@ -211,7 +211,7 @@ func BuildMasterConfig(
 
 		InternalKubeInformers:  informers.GetInternalKubernetesInformers(),
 		ClientGoKubeInformers:  informers.GetKubernetesInformers(),
-		AuthorizationInformers: informers.GetInternalOpenshiftAuthorizationInformers(),
+		AuthorizationInformers: informers.GetOpenshiftAuthorizationInformers(),
 		QuotaInformers:         informers.GetInternalOpenshiftQuotaInformers(),
 		SecurityInformers:      informers.GetInternalOpenshiftSecurityInformers(),
 		RouteInformers:         informers.GetOpenshiftRouteInformers(),
