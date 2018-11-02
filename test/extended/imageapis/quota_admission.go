@@ -4,33 +4,32 @@ import (
 	"fmt"
 	"time"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	imageapiv1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
 
 const (
-	imageSize = 100
-
-	quotaName = "isquota"
-
+	quotaName   = "isquota"
 	waitTimeout = time.Second * 600
 )
 
-var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/registry/serial][local] Image resource quota", func() {
+var _ = g.Describe("[Feature:ImageQuota][registry] Image resource quota", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("resourcequota-admission", exutil.KubeConfigPath())
 
-	g.JustBeforeEach(func() {
+	g.BeforeEach(func() {
 		g.By("waiting for default service account")
 		err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -39,49 +38,37 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	// needs to be run at the of of each It; cannot be run in AfterEach which is run after the project
-	// is destroyed
-	tearDown := func(oc *exutil.CLI) {
-		g.By(fmt.Sprintf("Deleting quota %s", quotaName))
-		oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Delete(quotaName, nil)
-
-		deleteTestImagesAndStreams(oc)
-	}
-
 	g.It(fmt.Sprintf("should deny a push of built image exceeding %s quota", imageapi.ResourceImageStreams), func() {
-
-		defer tearDown(oc)
-		dClient, err := testutil.NewDockerClient()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		outSink := g.GinkgoWriter
-
 		quota := kapi.ResourceList{
 			imageapi.ResourceImageStreams: resource.MustParse("0"),
 		}
-		_, err = createResourceQuota(oc, quota)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "refused", imageSize, 1, outSink, false, true)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		quota, err = bumpQuota(oc, imageapi.ResourceImageStreams, 1)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag1", imageSize, 1, outSink, true, true)
+		_, err := createResourceQuota(oc, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err := waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(assertQuotasEqual(used, quota)).NotTo(o.HaveOccurred())
 
+		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
+		err = createImageStreamMapping(oc, oc.Namespace(), "first", "refused")
+		assertQuotaExceeded(err)
+
+		quota, err = bumpQuota(oc, imageapi.ResourceImageStreams, 1)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
+		err = createImageStreamMapping(oc, oc.Namespace(), "first", "tag1")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		used, err = waitForResourceQuotaSync(oc, quotaName, quota)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(assertQuotasEqual(used, quota)).NotTo(o.HaveOccurred())
+
 		g.By(fmt.Sprintf("trying to push image to existing image stream %v", quota))
-		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag2", imageSize, 1, outSink, true, true)
+		err = createImageStreamMapping(oc, oc.Namespace(), "first", "tag2")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "refused", imageSize, 1, outSink, false, true)
+		err = createImageStreamMapping(oc, oc.Namespace(), "second", "refused")
+		assertQuotaExceeded(err)
 
 		quota, err = bumpQuota(oc, imageapi.ResourceImageStreams, 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -89,15 +76,15 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "tag1", imageSize, 1, outSink, true, true)
+		err = createImageStreamMapping(oc, oc.Namespace(), "second", "tag1")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(assertQuotasEqual(used, quota)).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "refused", imageSize, 1, outSink, false, true)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		err = createImageStreamMapping(oc, oc.Namespace(), "third", "refused")
+		assertQuotaExceeded(err)
 
 		g.By("deleting first image stream")
 		err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Delete("first", nil)
@@ -113,7 +100,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(assertQuotasEqual(used, kapi.ResourceList{imageapi.ResourceImageStreams: resource.MustParse("1")})).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "tag", imageSize, 1, outSink, true, true)
+		err = createImageStreamMapping(oc, oc.Namespace(), "third", "tag")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -213,42 +200,38 @@ func waitForLimitSync(oc *exutil.CLI, hardLimit kapi.ResourceList) error {
 		waitTimeout)
 }
 
-// deleteTestImagesAndStreams deletes test images built in current and shared
-// namespaces. It also deletes shared projects.
-func deleteTestImagesAndStreams(oc *exutil.CLI) {
-	for _, projectName := range []string{
-		oc.Namespace() + "-s2",
-		oc.Namespace() + "-s1",
-		oc.Namespace() + "-shared",
-		oc.Namespace(),
-	} {
-		g.By(fmt.Sprintf("Deleting images and image streams in project %q", projectName))
-		iss, err := oc.AdminInternalImageClient().Image().ImageStreams(projectName).List(metav1.ListOptions{})
+func createImageStreamMapping(oc *exutil.CLI, namespace, name, tag string) error {
+	e2e.Logf("Creating image stream mapping for %s/%s:%s...", namespace, name, tag)
+	_, err := oc.AdminImageClient().Image().ImageStreams(namespace).Get(name, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		_, err = oc.AdminImageClient().Image().ImageStreams(namespace).Create(&imageapiv1.ImageStream{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+		})
 		if err != nil {
-			continue
+			return err
 		}
-		for _, is := range iss.Items {
-			for _, history := range is.Status.Tags {
-				for i := range history.Items {
-					oc.AdminInternalImageClient().Image().Images().Delete(history.Items[i].Image, nil)
-				}
-			}
-			for _, tagRef := range is.Spec.Tags {
-				switch tagRef.From.Kind {
-				case "ImageStreamImage":
-					_, id, err := imageapi.ParseImageStreamImageName(tagRef.From.Name)
-					if err != nil {
-						continue
-					}
-					oc.AdminInternalImageClient().Image().Images().Delete(id, nil)
-				}
-			}
-		}
-
-		// let the extended framework take care of the current namespace
-		if projectName != oc.Namespace() {
-			g.By(fmt.Sprintf("Deleting project %q", projectName))
-			oc.AdminProjectClient().Project().Projects().Delete(projectName, nil)
-		}
+	} else if err != nil {
+		return err
 	}
+	_, err = oc.AdminImageClient().Image().ImageStreamMappings(namespace).Create(&imageapiv1.ImageStreamMapping{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Image: imageapiv1.Image{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			},
+		},
+		Tag: tag,
+	})
+	return err
+}
+
+func assertQuotaExceeded(err error) {
+	o.Expect(kerrors.ReasonForError(err)).To(o.Equal(metav1.StatusReasonForbidden))
+	o.Expect(err.Error()).To(o.ContainSubstring("exceeded quota"))
 }

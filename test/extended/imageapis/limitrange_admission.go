@@ -16,16 +16,19 @@ import (
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
-const limitRangeName = "limits"
+const (
+	limitRangeName = "limits"
+	imageSize      = 100
+)
 
-var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/registry/serial][local] Image limit range", func() {
+var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/registry/serial] Image limit range", func() {
 	defer g.GinkgoRecover()
+
 	var oc = exutil.NewCLI("limitrange-admission", exutil.KubeConfigPath())
 
-	g.JustBeforeEach(func() {
+	g.BeforeEach(func() {
 		g.By("waiting for default service account")
 		err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -34,49 +37,30 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	// needs to be run at the of of each It; cannot be run in AfterEach which is run after the project
-	// is destroyed
-	tearDown := func(oc *exutil.CLI) {
-		g.By(fmt.Sprintf("Deleting limit range %s", limitRangeName))
-		oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Delete(limitRangeName, nil)
-
-		deleteTestImagesAndStreams(oc)
-	}
-
-	g.It(fmt.Sprintf("[Skipped] should deny a push of built image exceeding %s limit", imageapi.LimitTypeImage), func() {
-		g.Skip("FIXME: fill image metadata for schema1 in the registry")
-
-		defer tearDown(oc)
-
-		dClient, err := testutil.NewDockerClient()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		_, err = createLimitRangeOfType(oc, imageapi.LimitTypeImage, kapi.ResourceList{
+	g.It(fmt.Sprintf("should deny a push of built image exceeding %s limit", imageapi.LimitTypeImage), func() {
+		_, err := createLimitRangeOfType(oc, imageapi.LimitTypeImage, kapi.ResourceList{
 			kapi.ResourceStorage: resource.MustParse("10Ki"),
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push an image exceeding size limit with just 1 layer"))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "middle", 16000, 1, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "middle", 16000, 1, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push an image exceeding size limit in total"))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "middle", 16000, 5, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "middle", 16000, 5, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push an image with one big layer below size limit"))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "small", 8000, 1, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "small", 8000, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push an image below size limit"))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "small", 8000, 2, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "small", 8000, 2, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.It(fmt.Sprintf("should deny a push of built image exceeding limit on %s resource", imageapi.ResourceImageStreamImages), func() {
-
-		defer tearDown(oc)
-
 		limits := kapi.ResourceList{
 			imageapi.ResourceImageStreamTags:   resource.MustParse("0"),
 			imageapi.ResourceImageStreamImages: resource.MustParse("0"),
@@ -84,37 +68,34 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		_, err := createLimitRangeOfType(oc, imageapi.LimitTypeImageStream, limits)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		dClient, err := testutil.NewDockerClient()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		g.By(fmt.Sprintf("trying to push image exceeding limits %v", limits))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "refused", imageSize, 1, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "refused", imageSize, 1, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		limits, err = bumpLimit(oc, imageapi.ResourceImageStreamImages, "1")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "first", imageSize, 2, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "first", imageSize, 2, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding limits %v", limits))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "second", imageSize, 2, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "second", imageSize, 2, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v to another image stream", limits))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "second", imageSize, 1, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "another", "second", imageSize, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		limits, err = bumpLimit(oc, imageapi.ResourceImageStreamImages, "2")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "third", imageSize, 1, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "another", "third", imageSize, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding limits %v", limits))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "fourth", imageSize, 1, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "another", "fourth", imageSize, 1, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(`removing tag "second" from "another" image stream`)
@@ -122,14 +103,11 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
-		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "replenish", imageSize, 1, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "another", "replenish", imageSize, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.It(fmt.Sprintf("should deny a docker image reference exceeding limit on %s resource", imageapi.ResourceImageStreamTags), func() {
-
-		defer tearDown(oc)
-
 		tag2Image, err := buildAndPushTestImagesTo(oc, "src", "tag", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -187,14 +165,11 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 	})
 
 	g.It(fmt.Sprintf("should deny an import of a repository exceeding limit on %s resource", imageapi.ResourceImageStreamTags), func() {
-
 		maxBulkImport, err := getMaxImagesBulkImportedPerRepository()
 		if err != nil {
 			g.Skip(err.Error())
 			return
 		}
-
-		defer tearDown(oc)
 
 		s1tag2Image, err := buildAndPushTestImagesTo(oc, "src1st", "tag", maxBulkImport+1)
 		s2tag2Image, err := buildAndPushTestImagesTo(oc, "src2nd", "t", 2)
@@ -234,24 +209,17 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 // buildAndPushTestImagesTo builds a given number of test images. The images are pushed to a new image stream
 // of given name under <tagPrefix><X> where X is a number of image starting from 1.
 func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, numberOfImages int) (tag2Image map[string]imageapi.Image, err error) {
-	dClient, err := testutil.NewDockerClient()
-	if err != nil {
-		return
-	}
 	tag2Image = make(map[string]imageapi.Image)
 
 	for i := 1; i <= numberOfImages; i++ {
 		tag := fmt.Sprintf("%s%d", tagPrefix, i)
-		dgst, _, err := imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, tag, imageSize, 2, g.GinkgoWriter, true, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), isName, tag, imageSize, 2, true)
 		if err != nil {
 			return nil, err
 		}
 		ist, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get(isName+":"+tag, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
-		}
-		if dgst != ist.Image.Name {
-			return nil, fmt.Errorf("digest of built image does not match stored: %s != %s", dgst, ist.Image.Name)
 		}
 		tag2Image[tag] = ist.Image
 	}
@@ -316,7 +284,7 @@ func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (ka
 func getMaxImagesBulkImportedPerRepository() (int, error) {
 	max := os.Getenv("MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY")
 	if len(max) == 0 {
-		return 0, fmt.Errorf("MAX_IMAGES_BULK_IMAGES_IMPORTED_PER_REPOSITORY is not set")
+		return 0, fmt.Errorf("MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY is not set")
 	}
 	return strconv.Atoi(max)
 }

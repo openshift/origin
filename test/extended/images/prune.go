@@ -14,10 +14,11 @@ import (
 	godigest "github.com/opencontainers/go-digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/dockerlayer"
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
 const (
@@ -33,6 +34,10 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 
 	var originalAcceptSchema2 *bool
 
+	var startTime time.Time
+	g.JustBeforeEach(func() {
+		startTime = time.Now()
+	})
 	g.JustBeforeEach(func() {
 		if originalAcceptSchema2 == nil {
 			accepts, err := DoesRegistryAcceptSchema2(oc)
@@ -68,6 +73,9 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		})
 
 		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				dumpRegistryLogs(oc, startTime)
+			}
 			if *originalAcceptSchema2 {
 				_, err := EnsureRegistryAcceptsSchema2(oc, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -93,6 +101,9 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		})
 
 		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				dumpRegistryLogs(oc, startTime)
+			}
 			if !*originalAcceptSchema2 {
 				_, err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -118,6 +129,9 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		})
 
 		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				dumpRegistryLogs(oc, startTime)
+			}
 			if !*originalAcceptSchema2 {
 				_, err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -143,6 +157,9 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		})
 
 		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				dumpRegistryLogs(oc, startTime)
+			}
 			if !*originalAcceptSchema2 {
 				_, err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -168,6 +185,9 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		})
 
 		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				dumpRegistryLogs(oc, startTime)
+			}
 			if !*originalAcceptSchema2 {
 				_, err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -177,6 +197,14 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		g.It("should prune only internally managed images", func() { testPruneAllImages(oc, false, 2) })
 	})
 })
+
+func getImageName(oc *exutil.CLI, namespace, name, tag string) (string, error) {
+	istag, err := oc.AdminImageClient().Image().ImageStreamTags(namespace).Get(fmt.Sprintf("%s:%s", name, tag), metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return istag.Image.Name, nil
+}
 
 func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	var mediaType string
@@ -192,22 +220,21 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	isName := "prune"
 	repoName := oc.Namespace() + "/" + isName
 
-	outSink := g.GinkgoWriter
-
 	cleanUp := NewCleanUpContainer(oc)
 	defer cleanUp.Run()
 
-	dClient, err := testutil.NewDockerClient()
+	g.By(fmt.Sprintf("build two images and push them as schema %d", schemaVersion))
+	err := BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), isName, "latest", testImageSize, 2, true)
 	o.Expect(err).NotTo(o.HaveOccurred())
-
-	g.By(fmt.Sprintf("build two images using Docker and push them as schema %d", schemaVersion))
-	imgPruneName, _, err := BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, "latest", testImageSize, 2, outSink, true, true)
+	imgPruneName, err := getImageName(oc, oc.Namespace(), isName, "latest")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	cleanUp.AddImage(imgPruneName, "", "")
 	cleanUp.AddImageStream(isName)
 	pruneSize, err := GetRegistryStorageSize(oc)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	imgKeepName, _, err := BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, "latest", testImageSize, 2, outSink, true, true)
+	err = BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), isName, "latest", testImageSize, 2, true)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	imgKeepName, err := getImageName(oc, oc.Namespace(), isName, "latest")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	cleanUp.AddImage(imgKeepName, "", "")
 	keepSize, err := GetRegistryStorageSize(oc)
@@ -224,6 +251,8 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 
 	g.By("prune the first image uploaded (dry-run)")
 	output, err := oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	e2e.Logf("Prune Images Output:\n%s", output)
 
 	g.By("verify images, layers and configs about to be pruned")
 	o.Expect(output).To(o.ContainSubstring(imgPruneName))
@@ -233,17 +262,17 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 		o.Expect(output).To(o.ContainSubstring(imgPrune.DockerImageMetadata.ID))
 	}
 	for _, layer := range imgPrune.DockerImageLayers {
-		if !strings.Contains(output, layer.Name) {
-			o.Expect(output).To(o.ContainSubstring(layer.Name))
+		if layer.Name == dockerlayer.GzippedEmptyLayerDigest {
+			// Schema 1 manifests are known to have the widespread layer.
+			continue
 		}
+		o.Expect(output).To(o.ContainSubstring(layer.Name))
 	}
 
 	o.Expect(output).NotTo(o.ContainSubstring(imgKeepName))
 	o.Expect(output).NotTo(o.ContainSubstring(imgKeep.DockerImageMetadata.ID))
 	for _, layer := range imgKeep.DockerImageLayers {
-		if !strings.Contains(output, layer.Name) {
-			o.Expect(output).NotTo(o.ContainSubstring(layer.Name))
-		}
+		o.Expect(output).NotTo(o.ContainSubstring(layer.Name))
 	}
 
 	noConfirmSize, err := GetRegistryStorageSize(oc)
@@ -252,6 +281,8 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 
 	g.By("prune the first image uploaded (confirm)")
 	output, err = oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--confirm").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	e2e.Logf("Prune Images Output:\n%s", output)
 
 	g.By("verify images, layers and configs about to be pruned")
 	o.Expect(output).To(o.ContainSubstring(imgPruneName))
@@ -261,9 +292,13 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 		o.Expect(output).To(o.ContainSubstring(imgPrune.DockerImageMetadata.ID))
 	}
 	for _, layer := range imgPrune.DockerImageLayers {
-		if !strings.Contains(output, layer.Name) {
-			o.Expect(output).To(o.ContainSubstring(layer.Name))
+		if layer.Name == dockerlayer.GzippedEmptyLayerDigest {
+			// Schema 1 manifests are known to have the widespread layer.
+			continue
 		}
+
+		o.Expect(output).To(o.ContainSubstring(layer.Name))
+
 		globally, inRepository, err := IsBlobStoredInRegistry(oc, godigest.Digest(layer.Name), repoName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(globally).To(o.BeFalse())
@@ -273,9 +308,8 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(output).NotTo(o.ContainSubstring(imgKeepName))
 	o.Expect(output).NotTo(o.ContainSubstring(imgKeep.DockerImageMetadata.ID))
 	for _, layer := range imgKeep.DockerImageLayers {
-		if !strings.Contains(output, layer.Name) {
-			o.Expect(output).NotTo(o.ContainSubstring(layer.Name))
-		}
+		o.Expect(output).NotTo(o.ContainSubstring(layer.Name))
+
 		globally, inRepository, err := IsBlobStoredInRegistry(oc, godigest.Digest(layer.Name), repoName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(globally).To(o.BeTrue())
@@ -294,16 +328,13 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 func testSoftPruneImages(oc *exutil.CLI) {
 	isName := "prune"
 
-	outSink := g.GinkgoWriter
-
 	cleanUp := NewCleanUpContainer(oc)
 	defer cleanUp.Run()
 
-	dClient, err := testutil.NewDockerClient()
+	g.By("build two images and push them")
+	err := BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), isName, "latest", testImageSize, 2, true)
 	o.Expect(err).NotTo(o.HaveOccurred())
-
-	g.By("build two images using Docker and push them")
-	imgPruneName, _, err := BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, "latest", testImageSize, 2, outSink, true, true)
+	imgPruneName, err := getImageName(oc, oc.Namespace(), isName, "latest")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	cleanUp.AddImage(imgPruneName, "", "")
 	cleanUp.AddImageStream(isName)
@@ -328,16 +359,13 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 	isName := fmt.Sprintf("prune-schema%d-all-images-%t", schemaVersion, setAllImagesToFalse)
 	repository := oc.Namespace() + "/" + isName
 
-	outSink := g.GinkgoWriter
-
 	cleanUp := NewCleanUpContainer(oc)
 	defer cleanUp.Run()
 
-	dClient, err := testutil.NewDockerClient()
+	g.By("build one image and push it")
+	err := BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), isName, "latest", testImageSize, 2, true)
 	o.Expect(err).NotTo(o.HaveOccurred())
-
-	g.By("build one image using Docker and push it")
-	managedImageName, _, err := BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, "latest", testImageSize, 2, outSink, true, true)
+	managedImageName, err := getImageName(oc, oc.Namespace(), isName, "latest")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	cleanUp.AddImage(managedImageName, "", "")
 	cleanUp.AddImageStream(isName)
@@ -463,4 +491,15 @@ func importImageAndMirrorItsSmallestBlob(oc *exutil.CLI, imageReference, destIST
 	}
 
 	return &istag.Image, godigest.Digest(tmpLayers[0].Name), nil
+}
+
+func dumpRegistryLogs(oc *exutil.CLI, since time.Time) {
+	oadm := oc.AsAdmin()
+	oadm.SetNamespace("default")
+	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since-time="+since.Format(time.RFC3339)).Output()
+	if err != nil {
+		e2e.Logf("Error during retrieval of registry logs: %v", err)
+	} else {
+		e2e.Logf("Registry Logs (since %s)\n%s:", since, out)
+	}
 }
