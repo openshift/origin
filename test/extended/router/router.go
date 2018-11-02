@@ -1,11 +1,10 @@
 package router
 
 import (
-	"net/http"
-	"time"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"net/http"
+	"time"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,12 +29,19 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	// hook
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodLogsStartingWithInNamespace("router", "default", oc.AsAdmin())
-			selector, err := labels.Parse("router=router")
-			if err != nil {
-				panic(err)
+			currlabel := "router=router"
+			for _, ns := range []string{"default", "openshift-ingress", "tectonic-ingress"} {
+				//Search the router by label
+				if ns == "openshift-ingress" {
+					currlabel = "router=router-default"
+				}
+				exutil.DumpPodLogsStartingWithInNamespace("router", ns, oc.AsAdmin())
+				selector, err := labels.Parse(currlabel)
+				if err != nil {
+					panic(err)
+				}
+				exutil.DumpPodsCommand(oc.AdminKubeClient(), ns, selector, "cat /var/lib/haproxy/router/routes.json /var/lib//var/lib/haproxy/conf/haproxy.config")
 			}
-			exutil.DumpPodsCommand(oc.AdminKubeClient(), "default", selector, "cat /var/lib/haproxy/router/routes.json /var/lib//var/lib/haproxy/conf/haproxy.config")
 		}
 	})
 
@@ -97,21 +103,23 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 })
 
 func waitForFirstRouterEndpointIP(oc *exutil.CLI) (string, error) {
-	_, ns, err := exutil.GetRouterPodTemplate(oc)
-	if err != nil {
-		return "", err
-	}
-
 	// wait for at least one router endpoint to be up router endpoints to show up
 	var host string
-	err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
-		epts, err := oc.AdminKubeClient().CoreV1().Endpoints(ns).Get("router", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if len(epts.Subsets) == 0 || len(epts.Subsets[0].Addresses) == 0 {
-			return false, nil
+	err := wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
+		currlabel := "router=router"
+		for _, ns := range []string{"default", "openshift-ingress", "tectonic-ingress"} {
+			//Search the router by label
+			if ns == "openshift-ingress" {
+				currlabel = "router=router-default"
+			}
+			podList, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(metav1.ListOptions{LabelSelector: currlabel})
+			if podList.Items != nil && len(podList.Items) > 0 {
+				host = podList.Items[0].Status.PodIP
+				return true, nil
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 		}
-		host = epts.Subsets[0].Addresses[0].IP
-		return true, nil
+		return false, nil
 	})
 	return host, err
 }
