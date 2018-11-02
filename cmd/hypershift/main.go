@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-osinserver"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -71,6 +73,11 @@ func NewHyperShiftCommand() *cobra.Command {
 
 	startOpenShiftNetworkController := openshift_network_controller.NewOpenShiftNetworkControllerCommand(openshift_network_controller.RecommendedStartNetworkControllerName, "hypershift", os.Stdout, os.Stderr)
 	cmd.AddCommand(startOpenShiftNetworkController)
+
+	startOsin := openshift_osinserver.NewOpenShiftOsinServer(os.Stdout, os.Stderr)
+	startOsin.Deprecated = "will be removed in 4.0"
+	startOsin.Hidden = true
+	cmd.AddCommand(startOsin)
 
 	return cmd
 }

@@ -155,6 +155,7 @@
       "github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate",
       "github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate",
       "github.com/openshift/origin/pkg/oc/cli/admin/groups/sync",
+      "github.com/openshift/origin/pkg/cmd/openshift-osinserver",
       "github.com/openshift/origin/pkg/oc/lib/groupsync",
       "github.com/openshift/origin/pkg/oc/lib/groupsync/ad",
       "github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector",
