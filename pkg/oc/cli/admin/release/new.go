@@ -484,6 +484,9 @@ func (o *NewOptions) Run() error {
 				Name: m.Source,
 			})
 			tag = &is.Spec.Tags[len(is.Spec.Tags)-1]
+		} else {
+			// when we override the spec, we have to reset any annotations
+			tag.Annotations = nil
 		}
 		tag.From = &corev1.ObjectReference{
 			Name: m.Destination,
@@ -633,7 +636,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 	}
 
 	for i := range is.Spec.Tags {
-		tag := is.Spec.Tags[i]
+		tag := &is.Spec.Tags[i]
 		dstDir := filepath.Join(dir, tag.Name)
 		src := tag.From.Name
 		ref, err := imagereference.Parse(src)
@@ -650,7 +653,21 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 			LayerFilter: extract.NewPositionLayerFilter(-1),
 
 			ConditionFn: func(m *extract.Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error) {
-				if imageConfig.Config == nil || len(imageConfig.Config.Labels["io.openshift.release.operator"]) == 0 {
+				var labels map[string]string
+				if imageConfig.Config != nil {
+					labels = imageConfig.Config.Labels
+				}
+
+				if len(labels["vcs-ref"]) > 0 {
+					if tag.Annotations == nil {
+						tag.Annotations = make(map[string]string)
+					}
+					tag.Annotations["io.openshift.build.commit.id"] = labels["vcs-ref"]
+					tag.Annotations["io.openshift.build.commit.ref"] = labels["io.openshift.build.commit.ref"]
+					tag.Annotations["io.openshift.build.source-location"] = labels["vcs-url"]
+				}
+
+				if len(labels["io.openshift.release.operator"]) == 0 {
 					glog.V(2).Infof("Image %s has no io.openshift.release.operator label, skipping", m.ImageRef)
 					return false, nil
 				}
