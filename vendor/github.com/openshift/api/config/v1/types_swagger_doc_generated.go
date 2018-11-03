@@ -39,56 +39,6 @@ func (AuditConfig) SwaggerDoc() map[string]string {
 	return map_AuditConfig
 }
 
-var map_Build = map[string]string{
-	"":     "Build holds cluster-wide information on how to handle builds. The canonical name is `cluster`",
-	"spec": "Spec holds user-settable values for the build controller configuration",
-}
-
-func (Build) SwaggerDoc() map[string]string {
-	return map_Build
-}
-
-var map_BuildDefaults = map[string]string{
-	"gitHTTPProxy":  "GitHTTPProxy is the location of the HTTPProxy for Git source",
-	"gitHTTPSProxy": "GitHTTPSProxy is the location of the HTTPSProxy for Git source",
-	"gitNoProxy":    "GitNoProxy is the list of domains for which the proxy should not be used",
-	"env":           "Env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
-	"imageLabels":   "ImageLabels is a list of docker labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
-	"resources":     "Resources defines resource requirements to execute the build.",
-}
-
-func (BuildDefaults) SwaggerDoc() map[string]string {
-	return map_BuildDefaults
-}
-
-var map_BuildList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (BuildList) SwaggerDoc() map[string]string {
-	return map_BuildList
-}
-
-var map_BuildOverrides = map[string]string{
-	"imageLabels":  "ImageLabels is a list of docker labels that are applied to the resulting image. If user provided a label in their Build/BuildConfig with the same name as one in this list, the user's label will be overwritten.",
-	"nodeSelector": "NodeSelector is a selector which must be true for the build pod to fit on a node",
-	"tolerations":  "Tolerations is a list of Tolerations that will override any existing tolerations set on a build pod.",
-}
-
-func (BuildOverrides) SwaggerDoc() map[string]string {
-	return map_BuildOverrides
-}
-
-var map_BuildSpec = map[string]string{
-	"additionalTrustedCA": "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted for image pushes and pulls during builds.",
-	"buildDefaults":       "BuildDefaults controls the default information for Builds",
-	"buildOverrides":      "BuildOverrides controls override settings for builds",
-}
-
-func (BuildSpec) SwaggerDoc() map[string]string {
-	return map_BuildSpec
-}
-
 var map_CertInfo = map[string]string{
 	"":         "CertInfo relates a certificate with a private key",
 	"certFile": "CertFile is a file containing a PEM-encoded certificate",
@@ -159,52 +109,6 @@ func (HTTPServingInfo) SwaggerDoc() map[string]string {
 	return map_HTTPServingInfo
 }
 
-var map_Image = map[string]string{
-	"":         "Image holds cluster-wide information about how to handle images.  The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
-}
-
-func (Image) SwaggerDoc() map[string]string {
-	return map_Image
-}
-
-var map_ImageLabel = map[string]string{
-	"name":  "Name defines the name of the label. It must have non-zero length.",
-	"value": "Value defines the literal value of the label.",
-}
-
-func (ImageLabel) SwaggerDoc() map[string]string {
-	return map_ImageLabel
-}
-
-var map_ImageList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (ImageList) SwaggerDoc() map[string]string {
-	return map_ImageList
-}
-
-var map_ImageSpec = map[string]string{
-	"allowedRegistriesForImport": "AllowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
-	"externalRegistryHostname":   "ExternalRegistryHostname sets the hostname for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
-	"additionalTrustedCA":        "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import.",
-}
-
-func (ImageSpec) SwaggerDoc() map[string]string {
-	return map_ImageSpec
-}
-
-var map_ImageStatus = map[string]string{
-	"internalRegistryHostname": "this value is set by the image registry operator which controls the internal registry hostname InternalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format. For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY environment variable but this setting overrides the environment variable.",
-}
-
-func (ImageStatus) SwaggerDoc() map[string]string {
-	return map_ImageStatus
-}
-
 var map_KubeClientConfig = map[string]string{
 	"kubeConfig":          "kubeConfig is a .kubeconfig filename for going to the owning kube-apiserver.  Empty uses an in-cluster-config",
 	"connectionOverrides": "connectionOverrides specifies client overrides for system components to loop back to this master.",
@@ -235,16 +139,6 @@ var map_NamedCertificate = map[string]string{
 
 func (NamedCertificate) SwaggerDoc() map[string]string {
 	return map_NamedCertificate
-}
-
-var map_RegistryLocation = map[string]string{
-	"":           "RegistryLocation contains a location of the registry specified by the registry domain name. The domain name might include wildcards, like '*' or '??'.",
-	"domainName": "DomainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
-	"insecure":   "Insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
-}
-
-func (RegistryLocation) SwaggerDoc() map[string]string {
-	return map_RegistryLocation
 }
 
 var map_RemoteConnectionInfo = map[string]string{
