@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 873b7f944a01277b0e4249a8f2e724bea59ae035
+%global commit ddb634a029775065b7dc8f022e5e206392a30f66
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.48 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=48 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=72e64db3f7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.49 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=49 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=c43db10f09 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.49
+Version:        3.9.50
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,10 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sat Nov 03 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.9.50-1
+- bump(*) (bparees@redhat.com)
+- UPSTREAM: 68626: Fix mount options for netdev (hekumar@redhat.com)
+
 * Sat Oct 27 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.9.49-1
 - Fix check to ignore the current route from the set of displaced routes. fixes
   bugz #1624078 (smitram@gmail.com)
