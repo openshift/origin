@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	v1kapi "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kadmission "k8s.io/apiserver/pkg/admission"
@@ -17,14 +17,16 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	allocator "github.com/openshift/origin/pkg/security"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	admissiontesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
 	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
-	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
+	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
 )
 
-func newTestAdmission(lister securitylisters.SecurityContextConstraintsLister, kclient clientset.Interface, authorizer authorizer.Authorizer) kadmission.Interface {
+func newTestAdmission(lister securityv1listers.SecurityContextConstraintsLister, kclient clientset.Interface, authorizer authorizer.Authorizer) kadmission.Interface {
 	return &constraint{
 		Handler:    kadmission.NewHandler(kadmission.Create),
 		client:     kclient,
@@ -35,7 +37,7 @@ func newTestAdmission(lister securitylisters.SecurityContextConstraintsLister, k
 
 func TestFailClosedOnInvalidPod(t *testing.T) {
 	plugin := newTestAdmission(nil, nil, nil)
-	pod := &v1kapi.Pod{}
+	pod := &corev1.Pod{}
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.(kadmission.MutationInterface).Admit(attrs)
 
@@ -58,23 +60,23 @@ func TestAdmitCaps(t *testing.T) {
 
 	allowsFooInAllowed := restrictiveSCC()
 	allowsFooInAllowed.Name = "allowCapInAllowed"
-	allowsFooInAllowed.AllowedCapabilities = []kapi.Capability{"foo"}
+	allowsFooInAllowed.AllowedCapabilities = []corev1.Capability{"foo"}
 
 	allowsFooInRequired := restrictiveSCC()
 	allowsFooInRequired.Name = "allowCapInRequired"
-	allowsFooInRequired.DefaultAddCapabilities = []kapi.Capability{"foo"}
+	allowsFooInRequired.DefaultAddCapabilities = []corev1.Capability{"foo"}
 
 	requiresFooToBeDropped := restrictiveSCC()
 	requiresFooToBeDropped.Name = "requireDrop"
-	requiresFooToBeDropped.RequiredDropCapabilities = []kapi.Capability{"foo"}
+	requiresFooToBeDropped.RequiredDropCapabilities = []corev1.Capability{"foo"}
 
 	allowAllInAllowed := restrictiveSCC()
 	allowAllInAllowed.Name = "allowAllCapsInAllowed"
-	allowAllInAllowed.AllowedCapabilities = []kapi.Capability{securityapi.AllowAllCapabilities}
+	allowAllInAllowed.AllowedCapabilities = []corev1.Capability{securityv1.AllowAllCapabilities}
 
 	tc := map[string]struct {
 		pod                  *kapi.Pod
-		sccs                 []*securityapi.SecurityContextConstraints
+		sccs                 []*securityv1.SecurityContextConstraints
 		shouldPass           bool
 		expectedCapabilities *kapi.Capabilities
 	}{
@@ -82,41 +84,41 @@ func TestAdmitCaps(t *testing.T) {
 		// should be rejected.
 		"should reject cap add when not allowed or required": {
 			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted},
+			sccs:       []*securityv1.SecurityContextConstraints{restricted},
 			shouldPass: false,
 		},
 		// UC 2: if an SCC allows a cap in the allowed field it should accept the pod request
 		// to add the cap.
 		"should accept cap add when in allowed": {
 			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, allowsFooInAllowed},
+			sccs:       []*securityv1.SecurityContextConstraints{restricted, allowsFooInAllowed},
 			shouldPass: true,
 		},
 		// UC 3: if an SCC requires a cap then it should accept the pod request
 		// to add the cap.
 		"should accept cap add when in required": {
 			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, allowsFooInRequired},
+			sccs:       []*securityv1.SecurityContextConstraints{restricted, allowsFooInRequired},
 			shouldPass: true,
 		},
 		// UC 4: if an SCC requires a cap to be dropped then it should fail both
 		// in the verification of adds and verification of drops
 		"should reject cap add when requested cap is required to be dropped": {
 			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, requiresFooToBeDropped},
+			sccs:       []*securityv1.SecurityContextConstraints{restricted, requiresFooToBeDropped},
 			shouldPass: false,
 		},
 		// UC 5: if an SCC requires a cap to be dropped it should accept
 		// a manual request to drop the cap.
 		"should accept cap drop when cap is required to be dropped": {
 			pod:        createPodWithCaps(&kapi.Capabilities{Drop: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, requiresFooToBeDropped},
+			sccs:       []*securityv1.SecurityContextConstraints{restricted, requiresFooToBeDropped},
 			shouldPass: true,
 		},
 		// UC 6: required add is defaulted
 		"required add is defaulted": {
 			pod:        goodPod(),
-			sccs:       []*securityapi.SecurityContextConstraints{allowsFooInRequired},
+			sccs:       []*securityv1.SecurityContextConstraints{allowsFooInRequired},
 			shouldPass: true,
 			expectedCapabilities: &kapi.Capabilities{
 				Add: []kapi.Capability{"foo"},
@@ -125,7 +127,7 @@ func TestAdmitCaps(t *testing.T) {
 		// UC 7: required drop is defaulted
 		"required drop is defaulted": {
 			pod:        goodPod(),
-			sccs:       []*securityapi.SecurityContextConstraints{requiresFooToBeDropped},
+			sccs:       []*securityv1.SecurityContextConstraints{requiresFooToBeDropped},
 			shouldPass: true,
 			expectedCapabilities: &kapi.Capabilities{
 				Drop: []kapi.Capability{"foo"},
@@ -134,7 +136,7 @@ func TestAdmitCaps(t *testing.T) {
 		// UC 8: using '*' in allowed caps
 		"should accept cap add when all caps are allowed": {
 			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, allowAllInAllowed},
+			sccs:       []*securityv1.SecurityContextConstraints{restricted, allowAllInAllowed},
 			shouldPass: true,
 		},
 	}
@@ -159,7 +161,7 @@ func TestAdmitCaps(t *testing.T) {
 	}
 }
 
-func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
+func testSCCAdmit(testCaseName string, sccs []*securityv1.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
 	t.Helper()
 	tc := setupClientSet()
 	lister := createSCCLister(t, sccs)
@@ -205,7 +207,7 @@ func TestAdmitSuccess(t *testing.T) {
 	// validate the requests so we should try scc-sa.
 	saExactSCC := saExactSCC()
 
-	lister := createSCCLister(t, []*securityapi.SecurityContextConstraints{
+	lister := createSCCLister(t, []*securityv1.SecurityContextConstraints{
 		saExactSCC,
 		saSCC,
 	})
@@ -314,7 +316,7 @@ func TestAdmitFailure(t *testing.T) {
 	// validate the requests so we should try scc-sa.
 	saExactSCC := saExactSCC()
 
-	lister, indexer := createSCCListerAndIndexer(t, []*securityapi.SecurityContextConstraints{
+	lister, indexer := createSCCListerAndIndexer(t, []*securityv1.SecurityContextConstraints{
 		saExactSCC,
 		saSCC,
 	})
@@ -678,7 +680,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 }
 
 func TestMatchingSecurityContextConstraints(t *testing.T) {
-	sccs := []*securityapi.SecurityContextConstraints{
+	sccs := []*securityv1.SecurityContextConstraints{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "match group",
@@ -784,11 +786,11 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	testAuthorizer := &sccTestAuthorizer{t: t}
 	namespace := "does-not-matter"
 	sccMatcher := oscc.NewDefaultSCCMatcher(lister, testAuthorizer)
-	sccs, err := sccMatcher.FindApplicableSCCs(namespace, userInfo)
+	sccs2, err := sccMatcher.FindApplicableSCCs(namespace, userInfo)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)
 	}
-	if len(sccs) != 2 {
+	if len(sccs2) != 2 {
 		t.Errorf("matching many sccs expected to match 2 sccs but found %d: %#v", len(sccs), sccs)
 	}
 }
@@ -803,8 +805,8 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	uidFive := int64(5)
 	matchingPrioritySCCOne := laxSCC()
 	matchingPrioritySCCOne.Name = "matchingPrioritySCCOne"
-	matchingPrioritySCCOne.RunAsUser = securityapi.RunAsUserStrategyOptions{
-		Type: securityapi.RunAsUserStrategyMustRunAs,
+	matchingPrioritySCCOne.RunAsUser = securityv1.RunAsUserStrategyOptions{
+		Type: securityv1.RunAsUserStrategyMustRunAs,
 		UID:  &uidFive,
 	}
 	matchingPriority := int32(5)
@@ -812,8 +814,8 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 
 	matchingPrioritySCCTwo := laxSCC()
 	matchingPrioritySCCTwo.Name = "matchingPrioritySCCTwo"
-	matchingPrioritySCCTwo.RunAsUser = securityapi.RunAsUserStrategyOptions{
-		Type:        securityapi.RunAsUserStrategyMustRunAsRange,
+	matchingPrioritySCCTwo.RunAsUser = securityv1.RunAsUserStrategyOptions{
+		Type:        securityv1.RunAsUserStrategyMustRunAsRange,
 		UIDRangeMin: &uidFive,
 		UIDRangeMax: &uidFive,
 	}
@@ -823,8 +825,8 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	uidSix := int64(6)
 	matchingPriorityAndScoreSCCOne := laxSCC()
 	matchingPriorityAndScoreSCCOne.Name = "matchingPriorityAndScoreSCCOne"
-	matchingPriorityAndScoreSCCOne.RunAsUser = securityapi.RunAsUserStrategyOptions{
-		Type: securityapi.RunAsUserStrategyMustRunAs,
+	matchingPriorityAndScoreSCCOne.RunAsUser = securityv1.RunAsUserStrategyOptions{
+		Type: securityv1.RunAsUserStrategyMustRunAs,
 		UID:  &uidSix,
 	}
 	matchingPriorityAndScorePriority := int32(1)
@@ -832,8 +834,8 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 
 	matchingPriorityAndScoreSCCTwo := laxSCC()
 	matchingPriorityAndScoreSCCTwo.Name = "matchingPriorityAndScoreSCCTwo"
-	matchingPriorityAndScoreSCCTwo.RunAsUser = securityapi.RunAsUserStrategyOptions{
-		Type: securityapi.RunAsUserStrategyMustRunAs,
+	matchingPriorityAndScoreSCCTwo.RunAsUser = securityv1.RunAsUserStrategyOptions{
+		Type: securityv1.RunAsUserStrategyMustRunAs,
 		UID:  &uidSix,
 	}
 	matchingPriorityAndScoreSCCTwo.Priority = &matchingPriorityAndScorePriority
@@ -841,9 +843,10 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	// we will expect these to sort as:
 	expectedSort := []string{"restrictive", "matchingPrioritySCCOne", "matchingPrioritySCCTwo",
 		"matchingPriorityAndScoreSCCOne", "matchingPriorityAndScoreSCCTwo"}
-	sccsToSort := []*securityapi.SecurityContextConstraints{matchingPriorityAndScoreSCCTwo, matchingPriorityAndScoreSCCOne,
+	sccsToSort := []*securityv1.SecurityContextConstraints{matchingPriorityAndScoreSCCTwo, matchingPriorityAndScoreSCCOne,
 		matchingPrioritySCCTwo, matchingPrioritySCCOne, restricted}
-	sort.Sort(oscc.ByPriority(sccsToSort))
+
+	sort.Sort(sccsort.ByPriority(sccsToSort))
 
 	for i, scc := range sccsToSort {
 		if scc.Name != expectedSort[i] {
@@ -901,57 +904,57 @@ func TestAdmitSeccomp(t *testing.T) {
 
 	tests := map[string]struct {
 		pod                   *kapi.Pod
-		sccs                  []*securityapi.SecurityContextConstraints
+		sccs                  []*securityv1.SecurityContextConstraints
 		shouldPass            bool
 		expectedPodAnnotation string
 		expectedSCC           string
 	}{
 		"no seccomp, no requests": {
 			pod:         goodPod(),
-			sccs:        []*securityapi.SecurityContextConstraints{noSeccompSCC},
+			sccs:        []*securityv1.SecurityContextConstraints{noSeccompSCC},
 			shouldPass:  true,
 			expectedSCC: noSeccompSCC.Name,
 		},
 		"no seccomp, bad container requests": {
 			pod:        createPodWithSeccomp("foo", "bar"),
-			sccs:       []*securityapi.SecurityContextConstraints{noSeccompSCC},
+			sccs:       []*securityv1.SecurityContextConstraints{noSeccompSCC},
 			shouldPass: false,
 		},
 		"seccomp, no requests": {
 			pod:                   goodPod(),
-			sccs:                  []*securityapi.SecurityContextConstraints{seccompSCC},
+			sccs:                  []*securityv1.SecurityContextConstraints{seccompSCC},
 			shouldPass:            true,
 			expectedPodAnnotation: "foo",
 			expectedSCC:           seccompSCC.Name,
 		},
 		"seccomp, valid pod annotation, no container annotation": {
 			pod:                   createPodWithSeccomp("foo", ""),
-			sccs:                  []*securityapi.SecurityContextConstraints{seccompSCC},
+			sccs:                  []*securityv1.SecurityContextConstraints{seccompSCC},
 			shouldPass:            true,
 			expectedPodAnnotation: "foo",
 			expectedSCC:           seccompSCC.Name,
 		},
 		"seccomp, no pod annotation, valid container annotation": {
 			pod:                   createPodWithSeccomp("", "foo"),
-			sccs:                  []*securityapi.SecurityContextConstraints{seccompSCC},
+			sccs:                  []*securityv1.SecurityContextConstraints{seccompSCC},
 			shouldPass:            true,
 			expectedPodAnnotation: "foo",
 			expectedSCC:           seccompSCC.Name,
 		},
 		"seccomp, valid pod annotation, invalid container annotation": {
 			pod:        createPodWithSeccomp("foo", "bar"),
-			sccs:       []*securityapi.SecurityContextConstraints{seccompSCC},
+			sccs:       []*securityv1.SecurityContextConstraints{seccompSCC},
 			shouldPass: false,
 		},
 		"wild card, no requests": {
 			pod:         goodPod(),
-			sccs:        []*securityapi.SecurityContextConstraints{wildcardSCC},
+			sccs:        []*securityv1.SecurityContextConstraints{wildcardSCC},
 			shouldPass:  true,
 			expectedSCC: wildcardSCC.Name,
 		},
 		"wild card, requests": {
 			pod:                   createPodWithSeccomp("foo", "bar"),
-			sccs:                  []*securityapi.SecurityContextConstraints{wildcardSCC},
+			sccs:                  []*securityv1.SecurityContextConstraints{wildcardSCC},
 			shouldPass:            true,
 			expectedPodAnnotation: "foo",
 			expectedSCC:           wildcardSCC.Name,
@@ -1004,14 +1007,14 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 		oldPod      *kapi.Pod
 		newPod      *kapi.Pod
 		operation   kadmission.Operation
-		sccs        []*securityapi.SecurityContextConstraints
+		sccs        []*securityv1.SecurityContextConstraints
 		shouldPass  bool
 		expectedSCC string
 	}{
 		"creation: the first SCC (even if it mutates) should be used": {
 			newPod:      simplePod.DeepCopy(),
 			operation:   kadmission.Create,
-			sccs:        []*securityapi.SecurityContextConstraints{mutatingSCC, nonMutatingSCC},
+			sccs:        []*securityv1.SecurityContextConstraints{mutatingSCC, nonMutatingSCC},
 			shouldPass:  true,
 			expectedSCC: mutatingSCC.Name,
 		},
@@ -1019,7 +1022,7 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 			oldPod:      simplePod.DeepCopy(),
 			newPod:      modifiedPod.DeepCopy(),
 			operation:   kadmission.Update,
-			sccs:        []*securityapi.SecurityContextConstraints{mutatingSCC, nonMutatingSCC},
+			sccs:        []*securityv1.SecurityContextConstraints{mutatingSCC, nonMutatingSCC},
 			shouldPass:  true,
 			expectedSCC: nonMutatingSCC.Name,
 		},
@@ -1027,7 +1030,7 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 			oldPod:     simplePod.DeepCopy(),
 			newPod:     modifiedPod.DeepCopy(),
 			operation:  kadmission.Update,
-			sccs:       []*securityapi.SecurityContextConstraints{mutatingSCC},
+			sccs:       []*securityv1.SecurityContextConstraints{mutatingSCC},
 			shouldPass: false,
 		},
 	}
@@ -1088,8 +1091,8 @@ func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC, t
 	return false
 }
 
-func laxSCC() *securityapi.SecurityContextConstraints {
-	return &securityapi.SecurityContextConstraints{
+func laxSCC() *securityv1.SecurityContextConstraints {
+	return &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "lax",
 		},
@@ -1098,47 +1101,47 @@ func laxSCC() *securityapi.SecurityContextConstraints {
 		AllowHostPorts:           true,
 		AllowHostPID:             true,
 		AllowHostIPC:             true,
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyRunAsAny,
+		RunAsUser: securityv1.RunAsUserStrategyOptions{
+			Type: securityv1.RunAsUserStrategyRunAsAny,
 		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyRunAsAny,
+		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+			Type: securityv1.SELinuxStrategyRunAsAny,
 		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyRunAsAny,
+		FSGroup: securityv1.FSGroupStrategyOptions{
+			Type: securityv1.FSGroupStrategyRunAsAny,
 		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+			Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
 }
 
-func restrictiveSCC() *securityapi.SecurityContextConstraints {
+func restrictiveSCC() *securityv1.SecurityContextConstraints {
 	var exactUID int64 = 999
-	return &securityapi.SecurityContextConstraints{
+	return &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "restrictive",
 		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAs,
+		RunAsUser: securityv1.RunAsUserStrategyOptions{
+			Type: securityv1.RunAsUserStrategyMustRunAs,
 			UID:  &exactUID,
 		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyMustRunAs,
-			SELinuxOptions: &kapi.SELinuxOptions{
+		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+			Type: securityv1.SELinuxStrategyMustRunAs,
+			SELinuxOptions: &corev1.SELinuxOptions{
 				Level: "s9:z0,z1",
 			},
 		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
+		FSGroup: securityv1.FSGroupStrategyOptions{
+			Type: securityv1.FSGroupStrategyMustRunAs,
+			Ranges: []securityv1.IDRange{
 				{Min: 999, Max: 999},
 			},
 		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
+		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+			Type: securityv1.SupplementalGroupsStrategyMustRunAs,
+			Ranges: []securityv1.IDRange{
 				{Min: 999, Max: 999},
 			},
 		},
@@ -1146,52 +1149,52 @@ func restrictiveSCC() *securityapi.SecurityContextConstraints {
 	}
 }
 
-func saSCC() *securityapi.SecurityContextConstraints {
-	return &securityapi.SecurityContextConstraints{
+func saSCC() *securityv1.SecurityContextConstraints {
+	return &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "scc-sa",
 		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAsRange,
+		RunAsUser: securityv1.RunAsUserStrategyOptions{
+			Type: securityv1.RunAsUserStrategyMustRunAsRange,
 		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyMustRunAs,
+		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+			Type: securityv1.SELinuxStrategyMustRunAs,
 		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
+		FSGroup: securityv1.FSGroupStrategyOptions{
+			Type: securityv1.FSGroupStrategyMustRunAs,
 		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+			Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
 }
 
-func saExactSCC() *securityapi.SecurityContextConstraints {
+func saExactSCC() *securityv1.SecurityContextConstraints {
 	var exactUID int64 = 999
-	return &securityapi.SecurityContextConstraints{
+	return &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "scc-sa-exact",
 		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAs,
+		RunAsUser: securityv1.RunAsUserStrategyOptions{
+			Type: securityv1.RunAsUserStrategyMustRunAs,
 			UID:  &exactUID,
 		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyMustRunAs,
-			SELinuxOptions: &kapi.SELinuxOptions{
+		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+			Type: securityv1.SELinuxStrategyMustRunAs,
+			SELinuxOptions: &corev1.SELinuxOptions{
 				Level: "s9:z0,z1",
 			},
 		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
+		FSGroup: securityv1.FSGroupStrategyOptions{
+			Type: securityv1.FSGroupStrategyMustRunAs,
+			Ranges: []securityv1.IDRange{
 				{Min: 999, Max: 999},
 			},
 		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
+		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+			Type: securityv1.SupplementalGroupsStrategyMustRunAs,
+			Ranges: []securityv1.IDRange{
 				{Min: 999, Max: 999},
 			},
 		},
@@ -1250,10 +1253,10 @@ func setupClientSet() *clientsetfake.Clientset {
 	return clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 }
 
-func createSCCListerAndIndexer(t *testing.T, sccs []*securityapi.SecurityContextConstraints) (securitylisters.SecurityContextConstraintsLister, cache.Indexer) {
+func createSCCListerAndIndexer(t *testing.T, sccs []*securityv1.SecurityContextConstraints) (securityv1listers.SecurityContextConstraintsLister, cache.Indexer) {
 	t.Helper()
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	lister := securitylisters.NewSecurityContextConstraintsLister(indexer)
+	lister := securityv1listers.NewSecurityContextConstraintsLister(indexer)
 	for _, scc := range sccs {
 		if err := indexer.Add(scc); err != nil {
 			t.Fatalf("error adding SCC to store: %v", err)
@@ -1262,7 +1265,7 @@ func createSCCListerAndIndexer(t *testing.T, sccs []*securityapi.SecurityContext
 	return lister, indexer
 }
 
-func createSCCLister(t *testing.T, sccs []*securityapi.SecurityContextConstraints) securitylisters.SecurityContextConstraintsLister {
+func createSCCLister(t *testing.T, sccs []*securityv1.SecurityContextConstraints) securityv1listers.SecurityContextConstraintsLister {
 	t.Helper()
 	lister, _ := createSCCListerAndIndexer(t, sccs)
 	return lister

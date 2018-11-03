@@ -1,34 +1,35 @@
-package securitycontextconstraints
+package sort
 
 import (
 	"testing"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
+
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 func TestPointValue(t *testing.T) {
-	newSCC := func(priv bool, seLinuxStrategy securityapi.SELinuxContextStrategyType, userStrategy securityapi.RunAsUserStrategyType) *securityapi.SecurityContextConstraints {
-		return &securityapi.SecurityContextConstraints{
+	newSCC := func(priv bool, seLinuxStrategy securityv1.SELinuxContextStrategyType, userStrategy securityv1.RunAsUserStrategyType) *securityv1.SecurityContextConstraints {
+		return &securityv1.SecurityContextConstraints{
 			AllowPrivilegedContainer: priv,
-			SELinuxContext: securityapi.SELinuxContextStrategyOptions{
+			SELinuxContext: securityv1.SELinuxContextStrategyOptions{
 				Type: seLinuxStrategy,
 			},
-			RunAsUser: securityapi.RunAsUserStrategyOptions{
+			RunAsUser: securityv1.RunAsUserStrategyOptions{
 				Type: userStrategy,
 			},
 		}
 	}
 
-	seLinuxStrategies := map[securityapi.SELinuxContextStrategyType]points{
-		securityapi.SELinuxStrategyRunAsAny:  runAsAnyUserPoints,
-		securityapi.SELinuxStrategyMustRunAs: runAsUserPoints,
+	seLinuxStrategies := map[securityv1.SELinuxContextStrategyType]points{
+		securityv1.SELinuxStrategyRunAsAny:  runAsAnyUserPoints,
+		securityv1.SELinuxStrategyMustRunAs: runAsUserPoints,
 	}
-	userStrategies := map[securityapi.RunAsUserStrategyType]points{
-		securityapi.RunAsUserStrategyRunAsAny:         runAsAnyUserPoints,
-		securityapi.RunAsUserStrategyMustRunAsNonRoot: runAsNonRootPoints,
-		securityapi.RunAsUserStrategyMustRunAsRange:   runAsRangePoints,
-		securityapi.RunAsUserStrategyMustRunAs:        runAsUserPoints,
+	userStrategies := map[securityv1.RunAsUserStrategyType]points{
+		securityv1.RunAsUserStrategyRunAsAny:         runAsAnyUserPoints,
+		securityv1.RunAsUserStrategyMustRunAsNonRoot: runAsNonRootPoints,
+		securityv1.RunAsUserStrategyMustRunAsRange:   runAsRangePoints,
+		securityv1.RunAsUserStrategyMustRunAs:        runAsUserPoints,
 	}
 
 	// run through all combos of user strategy + seLinux strategy + priv
@@ -54,8 +55,8 @@ func TestPointValue(t *testing.T) {
 
 	// sanity check to ensure volume and capabilities scores are added (specific volumes
 	// and capabilities scores are tested below)
-	scc := newSCC(false, securityapi.SELinuxStrategyMustRunAs, securityapi.RunAsUserStrategyMustRunAs)
-	scc.Volumes = []securityapi.FSType{securityapi.FSTypeHostPath}
+	scc := newSCC(false, securityv1.SELinuxStrategyMustRunAs, securityv1.RunAsUserStrategyMustRunAs)
+	scc.Volumes = []securityv1.FSType{securityv1.FSTypeHostPath}
 	actualPoints := pointValue(scc)
 	// SELinux + User + host path volume + default capabilities
 	expectedPoints := runAsUserPoints + runAsUserPoints + hostVolumePoints + capDefaultPoints
@@ -65,29 +66,29 @@ func TestPointValue(t *testing.T) {
 }
 
 func TestVolumePointValue(t *testing.T) {
-	newSCC := func(host, nonTrivial, trivial bool) *securityapi.SecurityContextConstraints {
-		volumes := []securityapi.FSType{}
+	newSCC := func(host, nonTrivial, trivial bool) *securityv1.SecurityContextConstraints {
+		volumes := []securityv1.FSType{}
 		if host {
-			volumes = append(volumes, securityapi.FSTypeHostPath)
+			volumes = append(volumes, securityv1.FSTypeHostPath)
 		}
 		if nonTrivial {
-			volumes = append(volumes, securityapi.FSTypeAWSElasticBlockStore)
+			volumes = append(volumes, securityv1.FSTypeAWSElasticBlockStore)
 		}
 		if trivial {
-			volumes = append(volumes, securityapi.FSTypeSecret)
+			volumes = append(volumes, securityv1.FSTypeSecret)
 		}
-		return &securityapi.SecurityContextConstraints{
+		return &securityv1.SecurityContextConstraints{
 			Volumes: volumes,
 		}
 	}
 
-	allowAllSCC := &securityapi.SecurityContextConstraints{
-		Volumes: []securityapi.FSType{securityapi.FSTypeAll},
+	allowAllSCC := &securityv1.SecurityContextConstraints{
+		Volumes: []securityv1.FSType{securityv1.FSTypeAll},
 	}
-	nilVolumeSCC := &securityapi.SecurityContextConstraints{}
+	nilVolumeSCC := &securityv1.SecurityContextConstraints{}
 
 	tests := map[string]struct {
-		scc            *securityapi.SecurityContextConstraints
+		scc            *securityv1.SecurityContextConstraints
 		expectedPoints points
 	}{
 		"all volumes": {
@@ -119,38 +120,38 @@ func TestVolumePointValue(t *testing.T) {
 			expectedPoints: noPoints,
 		},
 		"trivial - secret": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSTypeSecret},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSTypeSecret},
 			},
 			expectedPoints: noPoints,
 		},
 		"trivial - configMap": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSTypeConfigMap},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSTypeConfigMap},
 			},
 			expectedPoints: noPoints,
 		},
 		"trivial - emptyDir": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSTypeEmptyDir},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSTypeEmptyDir},
 			},
 			expectedPoints: noPoints,
 		},
 		"trivial - downwardAPI": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSTypeDownwardAPI},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSTypeDownwardAPI},
 			},
 			expectedPoints: noPoints,
 		},
 		"trivial - projected": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSProjected},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSProjected},
 			},
 			expectedPoints: noPoints,
 		},
 		"trivial - none": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSTypeNone},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSTypeNone},
 			},
 			expectedPoints: noPoints,
 		},
@@ -172,8 +173,8 @@ func TestVolumePointValue(t *testing.T) {
 }
 
 func TestCapabilitiesPointValue(t *testing.T) {
-	newSCC := func(def []kapi.Capability, allow []kapi.Capability, drop []kapi.Capability) *securityapi.SecurityContextConstraints {
-		return &securityapi.SecurityContextConstraints{
+	newSCC := func(def []corev1.Capability, allow []corev1.Capability, drop []corev1.Capability) *securityv1.SecurityContextConstraints {
+		return &securityv1.SecurityContextConstraints{
 			DefaultAddCapabilities:   def,
 			AllowedCapabilities:      allow,
 			RequiredDropCapabilities: drop,
@@ -181,9 +182,9 @@ func TestCapabilitiesPointValue(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		defaultAdd     []kapi.Capability
-		allowed        []kapi.Capability
-		requiredDrop   []kapi.Capability
+		defaultAdd     []corev1.Capability
+		allowed        []corev1.Capability
+		requiredDrop   []corev1.Capability
 		expectedPoints points
 	}{
 		"nothing specified": {
@@ -193,63 +194,63 @@ func TestCapabilitiesPointValue(t *testing.T) {
 			expectedPoints: capDefaultPoints,
 		},
 		"default": {
-			defaultAdd:     []kapi.Capability{"KILL", "MKNOD"},
+			defaultAdd:     []corev1.Capability{"KILL", "MKNOD"},
 			allowed:        nil,
 			requiredDrop:   nil,
 			expectedPoints: capDefaultPoints + 2*capAddOnePoints,
 		},
 		"allow": {
 			defaultAdd:     nil,
-			allowed:        []kapi.Capability{"KILL", "MKNOD"},
+			allowed:        []corev1.Capability{"KILL", "MKNOD"},
 			requiredDrop:   nil,
 			expectedPoints: capDefaultPoints + 2*capAllowOnePoints,
 		},
 		"allow star": {
 			defaultAdd:     nil,
-			allowed:        []kapi.Capability{"*"},
+			allowed:        []corev1.Capability{"*"},
 			requiredDrop:   nil,
 			expectedPoints: capDefaultPoints + capAllowAllPoints,
 		},
 		"allow all": {
 			defaultAdd:     nil,
-			allowed:        []kapi.Capability{"ALL"},
+			allowed:        []corev1.Capability{"ALL"},
 			requiredDrop:   nil,
 			expectedPoints: capDefaultPoints + capAllowAllPoints,
 		},
 		"allow all case": {
 			defaultAdd:     nil,
-			allowed:        []kapi.Capability{"All"},
+			allowed:        []corev1.Capability{"All"},
 			requiredDrop:   nil,
 			expectedPoints: capDefaultPoints + capAllowAllPoints,
 		},
 		"drop": {
 			defaultAdd:     nil,
 			allowed:        nil,
-			requiredDrop:   []kapi.Capability{"KILL", "MKNOD"},
+			requiredDrop:   []corev1.Capability{"KILL", "MKNOD"},
 			expectedPoints: capDefaultPoints + 2*capDropOnePoints,
 		},
 		"drop all": {
 			defaultAdd:     nil,
 			allowed:        nil,
-			requiredDrop:   []kapi.Capability{"ALL"},
+			requiredDrop:   []corev1.Capability{"ALL"},
 			expectedPoints: capDefaultPoints + capDropAllPoints,
 		},
 		"drop all case": {
 			defaultAdd:     nil,
 			allowed:        nil,
-			requiredDrop:   []kapi.Capability{"all"},
+			requiredDrop:   []corev1.Capability{"all"},
 			expectedPoints: capDefaultPoints + capDropAllPoints,
 		},
 		"drop star": {
 			defaultAdd:     nil,
 			allowed:        nil,
-			requiredDrop:   []kapi.Capability{"*"},
+			requiredDrop:   []corev1.Capability{"*"},
 			expectedPoints: capDefaultPoints + capDropOnePoints,
 		},
 		"mixture": {
-			defaultAdd:     []kapi.Capability{"SETUID", "SETGID"},
-			allowed:        []kapi.Capability{"*"},
-			requiredDrop:   []kapi.Capability{"SYS_CHROOT"},
+			defaultAdd:     []corev1.Capability{"SETUID", "SETGID"},
+			allowed:        []corev1.Capability{"*"},
+			requiredDrop:   []corev1.Capability{"SYS_CHROOT"},
 			expectedPoints: capDefaultPoints + 2*capAddOnePoints + capAllowAllPoints + capDropOnePoints,
 		},
 	}

@@ -1,16 +1,17 @@
-package securitycontextconstraints
+package sort
 
 import (
 	"strings"
 
 	"github.com/golang/glog"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
+
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 // ByRestrictions is a helper to sort SCCs in order of most restrictive to least restrictive.
-type ByRestrictions []*securityapi.SecurityContextConstraints
+type ByRestrictions []*securityv1.SecurityContextConstraints
 
 func (s ByRestrictions) Len() int {
 	return len(s)
@@ -55,7 +56,7 @@ const (
 
 // pointValue places a value on the SCC based on the settings of the SCC that can be used
 // to determine how restrictive it is.  The lower the number, the more restrictive it is.
-func pointValue(constraint *securityapi.SecurityContextConstraints) points {
+func pointValue(constraint *securityv1.SecurityContextConstraints) points {
 	totalPoints := noPoints
 
 	if constraint.AllowPrivilegedContainer {
@@ -78,10 +79,10 @@ func pointValue(constraint *securityapi.SecurityContextConstraints) points {
 	// the map contains points for both RunAsUser and SELinuxContext
 	// strategies by taking advantage that they have identical strategy names
 	strategiesPoints := map[string]points{
-		string(securityapi.RunAsUserStrategyRunAsAny):         runAsAnyUserPoints,
-		string(securityapi.RunAsUserStrategyMustRunAsNonRoot): runAsNonRootPoints,
-		string(securityapi.RunAsUserStrategyMustRunAsRange):   runAsRangePoints,
-		string(securityapi.RunAsUserStrategyMustRunAs):        runAsUserPoints,
+		string(securityv1.RunAsUserStrategyRunAsAny):         runAsAnyUserPoints,
+		string(securityv1.RunAsUserStrategyMustRunAsNonRoot): runAsNonRootPoints,
+		string(securityv1.RunAsUserStrategyMustRunAsRange):   runAsRangePoints,
+		string(securityv1.RunAsUserStrategyMustRunAs):        runAsUserPoints,
 	}
 
 	strategyType := string(constraint.SELinuxContext.Type)
@@ -108,20 +109,20 @@ func pointValue(constraint *securityapi.SecurityContextConstraints) points {
 // than Secret, ConfigMap, EmptyDir, DownwardAPI, Projected, and None will result in
 // a score of 50000.  If the SCC only allows these trivial types, it will have a
 // score of 0.
-func volumePointValue(scc *securityapi.SecurityContextConstraints) points {
+func volumePointValue(scc *securityv1.SecurityContextConstraints) points {
 	hasHostVolume := false
 	hasNonTrivialVolume := false
 	for _, v := range scc.Volumes {
 		switch v {
-		case securityapi.FSTypeHostPath, securityapi.FSTypeAll:
+		case securityv1.FSTypeHostPath, securityv1.FSTypeAll:
 			hasHostVolume = true
 			// nothing more to do, this is the max point value
 			break
 		// it is easier to specifically list the trivial volumes and allow the
 		// default case to be non-trivial so we don't have to worry about adding
 		// volumes in the future unless they're trivial.
-		case securityapi.FSTypeSecret, securityapi.FSTypeConfigMap, securityapi.FSTypeEmptyDir,
-			securityapi.FSTypeDownwardAPI, securityapi.FSProjected, securityapi.FSTypeNone:
+		case securityv1.FSTypeSecret, securityv1.FSTypeConfigMap, securityv1.FSTypeEmptyDir,
+			securityv1.FSTypeDownwardAPI, securityv1.FSProjected, securityv1.FSTypeNone:
 			// do nothing
 		default:
 			hasNonTrivialVolume = true
@@ -138,7 +139,7 @@ func volumePointValue(scc *securityapi.SecurityContextConstraints) points {
 }
 
 // hasCap checks for needle in haystack.
-func hasCap(needle string, haystack []kapi.Capability) bool {
+func hasCap(needle string, haystack []corev1.Capability) bool {
 	for _, c := range haystack {
 		if needle == strings.ToUpper(string(c)) {
 			return true
@@ -150,10 +151,10 @@ func hasCap(needle string, haystack []kapi.Capability) bool {
 // capabilitiesPointValue returns a score based on the capabilities allowed,
 // added, or removed by the SCC. This allow us to prefer the more restrictive
 // SCC.
-func capabilitiesPointValue(scc *securityapi.SecurityContextConstraints) points {
+func capabilitiesPointValue(scc *securityv1.SecurityContextConstraints) points {
 	capsPoints := capDefaultPoints
 	capsPoints += capAddOnePoints * points(len(scc.DefaultAddCapabilities))
-	if hasCap(string(securityapi.AllowAllCapabilities), scc.AllowedCapabilities) {
+	if hasCap(string(securityv1.AllowAllCapabilities), scc.AllowedCapabilities) {
 		capsPoints += capAllowAllPoints
 	} else if hasCap("ALL", scc.AllowedCapabilities) {
 		capsPoints += capAllowAllPoints

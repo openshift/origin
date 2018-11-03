@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -13,10 +14,11 @@ import (
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	admissionttesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
-	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -25,7 +27,7 @@ func TestNoErrors(t *testing.T) {
 	var uid int64 = 999
 	testcases := map[string]struct {
 		request    *securityapi.PodSecurityPolicyReview
-		sccs       []*securityapi.SecurityContextConstraints
+		sccs       []*securityv1.SecurityContextConstraints
 		allowedSAs []string
 	}{
 		"default in pod": {
@@ -50,23 +52,23 @@ func TestNoErrors(t *testing.T) {
 					},
 				},
 			},
-			sccs: []*securityapi.SecurityContextConstraints{
+			sccs: []*securityv1.SecurityContextConstraints{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						SelfLink: "/api/version/securitycontextconstraints/scc-sa",
 						Name:     "scc-sa",
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyMustRunAsRange,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyMustRunAsRange,
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyMustRunAs,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyMustRunAs,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyMustRunAs,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyMustRunAs,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
 					Groups: []string{"system:serviceaccounts"},
 				},
@@ -100,31 +102,31 @@ func TestNoErrors(t *testing.T) {
 					},
 				},
 			},
-			sccs: []*securityapi.SecurityContextConstraints{
+			sccs: []*securityv1.SecurityContextConstraints{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						SelfLink: "/api/version/securitycontextconstraints/restrictive",
 						Name:     "restrictive",
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyMustRunAs,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyMustRunAs,
 						UID:  &uid,
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyMustRunAs,
-						SELinuxOptions: &kapi.SELinuxOptions{
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyMustRunAs,
+						SELinuxOptions: &corev1.SELinuxOptions{
 							Level: "s9:z0,z1",
 						},
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyMustRunAs,
-						Ranges: []securityapi.IDRange{
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyMustRunAs,
+						Ranges: []securityv1.IDRange{
 							{Min: 999, Max: 999},
 						},
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-						Ranges: []securityapi.IDRange{
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
+						Ranges: []securityv1.IDRange{
 							{Min: 999, Max: 999},
 						},
 					},
@@ -137,7 +139,7 @@ func TestNoErrors(t *testing.T) {
 
 	for testName, testcase := range testcases {
 		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		sccCache := securitylisters.NewSecurityContextConstraintsLister(sccIndexer)
+		sccCache := securityv1listers.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
 			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
@@ -175,7 +177,7 @@ func TestNoErrors(t *testing.T) {
 func TestErrors(t *testing.T) {
 	testcases := map[string]struct {
 		request        *securityapi.PodSecurityPolicyReview
-		sccs           []*securityapi.SecurityContextConstraints
+		sccs           []*securityv1.SecurityContextConstraints
 		serviceAccount *kapi.ServiceAccount
 		errorMessage   string
 	}{
@@ -231,7 +233,7 @@ func TestErrors(t *testing.T) {
 	}
 	for testName, testcase := range testcases {
 		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		sccCache := securitylisters.NewSecurityContextConstraintsLister(sccIndexer)
+		sccCache := securityv1listers.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
 			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
@@ -263,7 +265,7 @@ func TestErrors(t *testing.T) {
 func TestSpecificSAs(t *testing.T) {
 	testcases := map[string]struct {
 		request         *securityapi.PodSecurityPolicyReview
-		sccs            []*securityapi.SecurityContextConstraints
+		sccs            []*securityv1.SecurityContextConstraints
 		errorMessage    string
 		serviceAccounts []*kapi.ServiceAccount
 	}{
@@ -290,23 +292,23 @@ func TestSpecificSAs(t *testing.T) {
 					ServiceAccountNames: []string{"my-sa", "yours-sa"},
 				},
 			},
-			sccs: []*securityapi.SecurityContextConstraints{
+			sccs: []*securityv1.SecurityContextConstraints{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						SelfLink: "/api/version/securitycontextconstraints/myscc",
 						Name:     "myscc",
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyMustRunAsRange,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyMustRunAsRange,
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyMustRunAs,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyMustRunAs,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyMustRunAs,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyMustRunAs,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
 					Groups: []string{"system:serviceaccounts"},
 				},
@@ -356,23 +358,23 @@ func TestSpecificSAs(t *testing.T) {
 					ServiceAccountNames: []string{"bad-sa"},
 				},
 			},
-			sccs: []*securityapi.SecurityContextConstraints{
+			sccs: []*securityv1.SecurityContextConstraints{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						SelfLink: "/api/version/securitycontextconstraints/myscc",
 						Name:     "myscc",
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyMustRunAsRange,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyMustRunAsRange,
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyMustRunAs,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyMustRunAs,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyMustRunAs,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyMustRunAs,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
 					Groups: []string{"system:serviceaccounts"},
 				},
@@ -391,7 +393,7 @@ func TestSpecificSAs(t *testing.T) {
 
 	for testName, testcase := range testcases {
 		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		sccCache := securitylisters.NewSecurityContextConstraintsLister(sccIndexer)
+		sccCache := securityv1listers.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
 			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)

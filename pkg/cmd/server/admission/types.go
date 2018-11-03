@@ -5,11 +5,11 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/quota"
 
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
 // WantsProjectCache should be implemented by admission plugins that need a
@@ -39,7 +39,7 @@ type WantsClusterQuota interface {
 }
 
 type WantsSecurityInformer interface {
-	SetSecurityInformers(securityinformer.SharedInformerFactory)
+	SetSecurityInformers(securityv1informer.SharedInformerFactory)
 	admission.InitializationValidator
 }
 

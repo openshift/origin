@@ -252,7 +252,7 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 		}
 	}
 
-	if len(pod.Spec.Volumes) > 0 && len(s.scc.AllowedFlexVolumes) > 0 && sccutil.SCCAllowsFSType(s.scc, securityapi.FSTypeFlexVolume) {
+	if len(pod.Spec.Volumes) > 0 && len(s.scc.AllowedFlexVolumes) > 0 && sccutil.SCCAllowsFSTypeInternal(s.scc, securityapi.FSTypeFlexVolume) {
 		for i, v := range pod.Spec.Volumes {
 			if v.FlexVolume == nil {
 				continue

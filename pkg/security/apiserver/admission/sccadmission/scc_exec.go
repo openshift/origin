@@ -12,8 +12,8 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
+	securityv1informers "github.com/openshift/client-go/security/informers/externalversions"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
 func RegisterSCCExecRestrictions(plugins *admission.Plugins) {
@@ -80,7 +80,7 @@ func (d *sccExecRestrictions) SetInternalKubeClientSet(c kclientset.Interface) {
 	d.constraintAdmission.SetInternalKubeClientSet(c)
 }
 
-func (d *sccExecRestrictions) SetSecurityInformers(informers securityinformer.SharedInformerFactory) {
+func (d *sccExecRestrictions) SetSecurityInformers(informers securityv1informers.SharedInformerFactory) {
 	d.constraintAdmission.SetSecurityInformers(informers)
 }
 

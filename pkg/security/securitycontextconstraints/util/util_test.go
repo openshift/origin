@@ -76,7 +76,7 @@ func TestSCCAllowsVolumeType(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		allows := SCCAllowsFSType(v.scc, v.fsType)
+		allows := SCCAllowsFSTypeInternal(v.scc, v.fsType)
 		if v.allows != allows {
 			t.Errorf("%s expected SCCAllowsFSType to return %t but got %t", k, v.allows, allows)
 		}

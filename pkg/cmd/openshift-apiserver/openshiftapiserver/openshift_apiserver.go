@@ -32,6 +32,7 @@ import (
 
 	oappsapiv1 "github.com/openshift/api/apps/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
@@ -50,7 +51,6 @@ import (
 	routeapiserver "github.com/openshift/origin/pkg/route/apiserver"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
 	userapiserver "github.com/openshift/origin/pkg/user/apiserver"
@@ -83,7 +83,7 @@ type OpenshiftAPIExtraConfig struct {
 	KubeInformers             kubeinformers.SharedInformerFactory
 
 	QuotaInformers    quotainformer.SharedInformerFactory
-	SecurityInformers securityinformer.SharedInformerFactory
+	SecurityInformers securityv1informer.SharedInformerFactory
 
 	// these are all required to build our storage
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver

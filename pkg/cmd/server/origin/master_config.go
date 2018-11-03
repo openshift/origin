@@ -36,11 +36,11 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/cmd/server/origin/legacyconfigprocessing"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
 // MasterConfig defines the required parameters for starting the OpenShift master
@@ -77,7 +77,7 @@ type MasterConfig struct {
 	AuthorizationInformers authorizationv1informer.SharedInformerFactory
 	RouteInformers         routev1informer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
-	SecurityInformers      securityinformer.SharedInformerFactory
+	SecurityInformers      securityv1informer.SharedInformerFactory
 }
 
 type InformerAccess interface {
@@ -91,7 +91,7 @@ type InformerAccess interface {
 
 	GetOpenshiftAuthorizationInformers() authorizationv1informer.SharedInformerFactory
 	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
-	GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory
+	GetOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory
 
 	Start(stopCh <-chan struct{})
 }
@@ -213,7 +213,7 @@ func BuildMasterConfig(
 		ClientGoKubeInformers:  informers.GetKubernetesInformers(),
 		AuthorizationInformers: informers.GetOpenshiftAuthorizationInformers(),
 		QuotaInformers:         informers.GetInternalOpenshiftQuotaInformers(),
-		SecurityInformers:      informers.GetInternalOpenshiftSecurityInformers(),
+		SecurityInformers:      informers.GetOpenshiftSecurityInformers(),
 		RouteInformers:         informers.GetOpenshiftRouteInformers(),
 	}
 

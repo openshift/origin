@@ -14,18 +14,18 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicyreview"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicyselfsubjectreview"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/rangeallocations"
 	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
 type ExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
-	SecurityInformers         securityinformer.SharedInformerFactory
+	SecurityInformers         securityv1informer.SharedInformerFactory
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	Authorizer                authorizer.Authorizer
 
@@ -107,7 +107,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	}
 
 	sccStorage := sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
-	sccMatcher := oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister(), c.ExtraConfig.Authorizer)
+	sccMatcher := oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().V1().SecurityContextConstraints().Lister(), c.ExtraConfig.Authorizer)
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
 		sccMatcher,
 		c.ExtraConfig.KubeInternalInformers.Core().InternalVersion().ServiceAccounts().Lister(),

@@ -16,12 +16,12 @@ import (
 	oauthv1informer "github.com/openshift/client-go/oauth/informers/externalversions"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned"
 	routev1informer "github.com/openshift/client-go/route/informers/externalversions"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 
 // informerHolder is a convenient way for us to keep track of the informers, but
@@ -37,7 +37,7 @@ type InformerHolder struct {
 	oauthInformers         oauthv1informer.SharedInformerFactory
 	quotaInformers         quotainformer.SharedInformerFactory
 	routeInformers         routev1informer.SharedInformerFactory
-	securityInformers      securityinformer.SharedInformerFactory
+	securityInformers      securityv1informer.SharedInformerFactory
 	userInformers          userv1informer.SharedInformerFactory
 }
 
@@ -68,7 +68,7 @@ func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeCl
 	if err != nil {
 		return nil, err
 	}
-	securityClient, err := securityclient.NewForConfig(loopbackClientConfig)
+	securityClient, err := securityv1client.NewForConfig(loopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeCl
 		oauthInformers:              oauthv1informer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
 		quotaInformers:              quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		routeInformers:              routev1informer.NewSharedInformerFactory(routerClient, defaultInformerResyncPeriod),
-		securityInformers:           securityinformer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
+		securityInformers:           securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
 		userInformers:               userv1informer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 	}, nil
 }
@@ -115,7 +115,7 @@ func (i *InformerHolder) GetInternalOpenshiftQuotaInformers() quotainformer.Shar
 func (i *InformerHolder) GetOpenshiftRouteInformers() routev1informer.SharedInformerFactory {
 	return i.routeInformers
 }
-func (i *InformerHolder) GetInternalOpenshiftSecurityInformers() securityinformer.SharedInformerFactory {
+func (i *InformerHolder) GetOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory {
 	return i.securityInformers
 }
 func (i *InformerHolder) GetOpenshiftUserInformers() userv1informer.SharedInformerFactory {
