@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -122,6 +123,9 @@ func (p *Payload) References() (*imageapi.ImageStream, error) {
 
 func parseImageStream(path string) (*imageapi.ImageStream, error) {
 	data, err := ioutil.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil, err
+	}
 	if err != nil {
 		return nil, fmt.Errorf("unable to read release image info from release contents: %v", err)
 	}
