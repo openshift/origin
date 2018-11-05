@@ -12,7 +12,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	discocache "k8s.io/client-go/discovery/cached"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
@@ -42,8 +40,8 @@ import (
 	"github.com/openshift/origin/pkg/api/legacygroupification"
 )
 
-// Etcd data for all persisted objects.
-var etcdStorageData = map[schema.GroupVersionResource]etcddata.StorageData{
+// Etcd data for all persisted OpenShift objects.
+var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageData{
 	// github.com/openshift/origin/pkg/authorization/apis/authorization/v1
 	gvr("", "v1", "roles"): {
 		Stub:             `{"metadata": {"name": "r1b1o1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
@@ -353,414 +351,6 @@ var etcdStorageData = map[schema.GroupVersionResource]etcddata.StorageData{
 		ExpectedEtcdPath: "openshift.io/useridentities/github:user2g",
 	},
 	// --
-
-	// k8s.io/api/core/v1
-	gvr("", "v1", "configmaps"): {
-		Stub:             `{"data": {"foo": "bar"}, "metadata": {"name": "cm1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/configmaps/etcdstoragepathtestnamespace/cm1",
-	},
-	gvr("", "v1", "services"): {
-		Stub:             `{"metadata": {"name": "service1"}, "spec": {"externalName": "service1name", "ports": [{"port": 10000, "targetPort": 11000}], "selector": {"test": "data"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/services/specs/etcdstoragepathtestnamespace/service1",
-	},
-	gvr("", "v1", "podtemplates"): {
-		Stub:             `{"metadata": {"name": "pt1name"}, "template": {"metadata": {"labels": {"pt": "01"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container9"}]}}}`,
-		ExpectedEtcdPath: "kubernetes.io/podtemplates/etcdstoragepathtestnamespace/pt1name",
-	},
-	gvr("", "v1", "pods"): {
-		Stub:             `{"metadata": {"name": "pod1"}, "spec": {"containers": [{"image": "fedora:latest", "name": "container7", "resources": {"limits": {"cpu": "1M"}, "requests": {"cpu": "1M"}}}]}}`,
-		ExpectedEtcdPath: "kubernetes.io/pods/etcdstoragepathtestnamespace/pod1",
-	},
-	gvr("", "v1", "endpoints"): {
-		Stub:             `{"metadata": {"name": "ep1name"}, "subsets": [{"addresses": [{"hostname": "bar-001", "ip": "192.168.3.1"}], "ports": [{"port": 8000}]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/services/endpoints/etcdstoragepathtestnamespace/ep1name",
-	},
-	gvr("", "v1", "resourcequotas"): {
-		Stub:             `{"metadata": {"name": "rq1name"}, "spec": {"hard": {"cpu": "5M"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/resourcequotas/etcdstoragepathtestnamespace/rq1name",
-	},
-	gvr("", "v1", "limitranges"): {
-		Stub:             `{"metadata": {"name": "lr1name"}, "spec": {"limits": [{"type": "Pod"}]}}`,
-		ExpectedEtcdPath: "kubernetes.io/limitranges/etcdstoragepathtestnamespace/lr1name",
-	},
-	gvr("", "v1", "namespaces"): {
-		Stub:             `{"metadata": {"name": "namespace1"}, "spec": {"finalizers": ["kubernetes"]}}`,
-		ExpectedEtcdPath: "kubernetes.io/namespaces/namespace1",
-	},
-	gvr("", "v1", "nodes"): {
-		Stub:             `{"metadata": {"name": "node1"}, "spec": {"unschedulable": true}}`,
-		ExpectedEtcdPath: "kubernetes.io/minions/node1",
-	},
-	gvr("", "v1", "persistentvolumes"): {
-		Stub:             `{"metadata": {"name": "pv1name"}, "spec": {"accessModes": ["ReadWriteOnce"], "capacity": {"storage": "3M"}, "hostPath": {"path": "/tmp/test/"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/persistentvolumes/pv1name",
-	},
-	gvr("", "v1", "events"): {
-		Stub:             `{"involvedObject": {"namespace": "etcdstoragepathtestnamespace"}, "message": "some data here", "metadata": {"name": "event1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/events/etcdstoragepathtestnamespace/event1",
-	},
-	gvr("", "v1", "persistentvolumeclaims"): {
-		Stub:             `{"metadata": {"name": "pvc1"}, "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"limits": {"storage": "1M"}, "requests": {"storage": "2M"}}, "selector": {"matchLabels": {"pvc": "stuff"}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/persistentvolumeclaims/etcdstoragepathtestnamespace/pvc1",
-	},
-	gvr("", "v1", "serviceaccounts"): {
-		Stub:             `{"metadata": {"name": "sa1name"}, "secrets": [{"name": "secret00"}]}`,
-		ExpectedEtcdPath: "kubernetes.io/serviceaccounts/etcdstoragepathtestnamespace/sa1name",
-	},
-	gvr("", "v1", "secrets"): {
-		Stub:             `{"data": {"key": "ZGF0YSBmaWxl"}, "metadata": {"name": "secret1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/secrets/etcdstoragepathtestnamespace/secret1",
-	},
-	gvr("", "v1", "replicationcontrollers"): {
-		Stub:             `{"metadata": {"name": "rc1"}, "spec": {"selector": {"new": "stuff"}, "template": {"metadata": {"labels": {"new": "stuff"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container8"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/controllers/etcdstoragepathtestnamespace/rc1",
-	},
-	// --
-
-	// TODO storage is broken somehow.  failing on v1beta1 serialization
-	//// k8s.io/kubernetes/pkg/apis/admissionregistration/v1alpha1
-	//gvr("admissionregistration.k8s.io", "v1alpha1", "initializerconfigurations"): {
-	//	Stub:             `{"metadata": {"name": "ic1"}}`,
-	//	ExpectedEtcdPath: "kubernetes.io/initializerconfigurations/ic1",
-	//},
-	//// --
-
-	// k8s.io/kubernetes/pkg/apis/admissionregistration/v1beta1
-	gvr("admissionregistration.k8s.io", "v1beta1", "mutatingwebhookconfigurations"): {
-		Stub:             `{"metadata": {"name": "ic1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/mutatingwebhookconfigurations/ic1",
-	},
-	gvr("admissionregistration.k8s.io", "v1beta1", "validatingwebhookconfigurations"): {
-		Stub:             `{"metadata": {"name": "ic1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/validatingwebhookconfigurations/ic1",
-	},
-	// --
-
-	// k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1
-	gvr("apiextensions.k8s.io", "v1beta1", "customresourcedefinitions"): {
-		Stub:             `{"metadata": {"name": "openshiftwebconsoleconfigs.webconsole.operator.openshift.io"},"spec": {"scope": "Cluster","group": "webconsole.operator.openshift.io","version": "v1alpha1","names": {"kind": "OpenShiftWebConsoleConfig","plural": "openshiftwebconsoleconfigs","singular": "openshiftwebconsoleconfig"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/apiextensions.k8s.io/customresourcedefinitions/openshiftwebconsoleconfigs.webconsole.operator.openshift.io",
-	},
-	gvr("cr.bar.com", "v1", "foos"): {
-		Stub:             `{"kind": "Foo", "apiVersion": "cr.bar.com/v1", "metadata": {"name": "cr1foo"}, "color": "blue"}`, // requires TypeMeta due to CRD scheme's UnstructuredObjectTyper
-		ExpectedEtcdPath: "kubernetes.io/cr.bar.com/foos/etcdstoragepathtestnamespace/cr1foo",
-	},
-	gvr("custom.fancy.com", "v2", "pants"): {
-		Stub:             `{"kind": "Pant", "apiVersion": "custom.fancy.com/v2", "metadata": {"name": "cr2pant"}, "isFancy": true}`, // requires TypeMeta due to CRD scheme's UnstructuredObjectTyper
-		ExpectedEtcdPath: "kubernetes.io/custom.fancy.com/pants/cr2pant",
-	},
-	gvr("awesome.bears.com", "v1", "pandas"): {
-		Stub:             `{"kind": "Panda", "apiVersion": "awesome.bears.com/v1", "metadata": {"name": "cr3panda"}, "weight": 100}`, // requires TypeMeta due to CRD scheme's UnstructuredObjectTyper
-		ExpectedEtcdPath: "kubernetes.io/awesome.bears.com/pandas/cr3panda",
-	},
-	gvr("awesome.bears.com", "v3", "pandas"): {
-		Stub:             `{"kind": "Panda", "apiVersion": "awesome.bears.com/v3", "metadata": {"name": "cr4panda"}, "weight": 300}`, // requires TypeMeta due to CRD scheme's UnstructuredObjectTyper
-		ExpectedEtcdPath: "kubernetes.io/awesome.bears.com/pandas/cr4panda",
-		ExpectedGVK:      gvkP("awesome.bears.com", "v1", "Panda"),
-	},
-	// --
-
-	// k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1
-	// depends on aggregator using the same ungrouped RESTOptionsGetter as the kube apiserver, not SimpleRestOptionsFactory in aggregator.go
-	gvr("apiregistration.k8s.io", "v1beta1", "apiservices"): {
-		Stub:             `{"metadata": {"name": "as1.foo.com"}, "spec": {"group": "foo.com", "version": "as1", "groupPriorityMinimum":100, "versionPriority":10}}`,
-		ExpectedEtcdPath: "kubernetes.io/apiservices/as1.foo.com",
-		ExpectedGVK:      gvkP("apiregistration.k8s.io", "v1", "APIService"),
-	},
-	// --
-
-	// k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
-	// depends on aggregator using the same ungrouped RESTOptionsGetter as the kube apiserver, not SimpleRestOptionsFactory in aggregator.go
-	gvr("apiregistration.k8s.io", "v1", "apiservices"): {
-		Stub:             `{"metadata": {"name": "as2.foo.com"}, "spec": {"group": "foo.com", "version": "as2", "groupPriorityMinimum":100, "versionPriority":10}}`,
-		ExpectedEtcdPath: "kubernetes.io/apiservices/as2.foo.com",
-	},
-	// --
-
-	// k8s.io/api/apps/v1
-	gvr("apps", "v1", "daemonsets"): {
-		Stub:             `{"metadata": {"name": "ds3"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/daemonsets/etcdstoragepathtestnamespace/ds3",
-	},
-	gvr("apps", "v1", "deployments"): {
-		Stub:             `{"metadata": {"name": "deployment4"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment4",
-	},
-	gvr("apps", "v1", "statefulsets"): {
-		Stub:             `{"metadata": {"name": "ss4"}, "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/statefulsets/etcdstoragepathtestnamespace/ss4",
-	},
-	gvr("apps", "v1", "controllerrevisions"): {
-		Stub:             `{"metadata": {"name": "cr3"}, "data": {}, "revision": 6}`,
-		ExpectedEtcdPath: "kubernetes.io/controllerrevisions/etcdstoragepathtestnamespace/cr3",
-	},
-	gvr("apps", "v1", "replicasets"): {
-		Stub:             `{"metadata": {"name": "rs3"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs3",
-	},
-	// --
-
-	// k8s.io/api/apps/v1beta1
-	gvr("apps", "v1beta1", "deployments"): {
-		Stub:             `{"metadata": {"name": "deployment2"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment2",
-		ExpectedGVK:      gvkP("apps", "v1", "Deployment"),
-	},
-	gvr("apps", "v1beta1", "statefulsets"): {
-		Stub:             `{"metadata": {"name": "ss1"}, "spec": {"template": {"metadata": {"labels": {"a": "b"}}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/statefulsets/etcdstoragepathtestnamespace/ss1",
-		ExpectedGVK:      gvkP("apps", "v1", "StatefulSet"),
-	},
-	gvr("apps", "v1beta1", "controllerrevisions"): {
-		Stub:             `{"metadata": {"name": "cr1"}, "data": {}, "revision": 6}`,
-		ExpectedEtcdPath: "kubernetes.io/controllerrevisions/etcdstoragepathtestnamespace/cr1",
-		ExpectedGVK:      gvkP("apps", "v1", "ControllerRevision"),
-	},
-	// --
-
-	// k8s.io/api/apps/v1beta2
-	gvr("apps", "v1beta2", "statefulsets"): {
-		Stub:             `{"metadata": {"name": "ss2"}, "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/statefulsets/etcdstoragepathtestnamespace/ss2",
-		ExpectedGVK:      gvkP("apps", "v1", "StatefulSet"),
-	},
-	gvr("apps", "v1beta2", "deployments"): {
-		Stub:             `{"metadata": {"name": "deployment3"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment3",
-		ExpectedGVK:      gvkP("apps", "v1", "Deployment"),
-	},
-	gvr("apps", "v1beta2", "daemonsets"): {
-		Stub:             `{"metadata": {"name": "ds2"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/daemonsets/etcdstoragepathtestnamespace/ds2",
-		ExpectedGVK:      gvkP("apps", "v1", "DaemonSet"),
-	},
-	gvr("apps", "v1beta2", "replicasets"): {
-		Stub:             `{"metadata": {"name": "rs2"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs2",
-		ExpectedGVK:      gvkP("apps", "v1", "ReplicaSet"),
-	},
-	gvr("apps", "v1beta2", "controllerrevisions"): {
-		Stub:             `{"metadata": {"name": "cr2"}, "data": {}, "revision": 6}`,
-		ExpectedEtcdPath: "kubernetes.io/controllerrevisions/etcdstoragepathtestnamespace/cr2",
-		ExpectedGVK:      gvkP("apps", "v1", "ControllerRevision"),
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/autoscaling/v1
-	gvr("autoscaling", "v1", "horizontalpodautoscalers"): {
-		Stub:             `{"metadata": {"name": "hpa2"}, "spec": {"maxReplicas": 3, "scaleTargetRef": {"kind": "something", "name": "cross"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/horizontalpodautoscalers/etcdstoragepathtestnamespace/hpa2",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/autoscaling/v2beta1
-	gvr("autoscaling", "v2beta1", "horizontalpodautoscalers"): {
-		Stub:             `{"metadata": {"name": "hpa3"}, "spec": {"maxReplicas": 3, "scaleTargetRef": {"kind": "something", "name": "cross"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/horizontalpodautoscalers/etcdstoragepathtestnamespace/hpa3",
-		ExpectedGVK:      gvkP("autoscaling", "v1", "HorizontalPodAutoscaler"),
-	},
-	// --
-
-	// k8s.io/api/batch/v1
-	gvr("batch", "v1", "jobs"): {
-		Stub:             `{"metadata": {"name": "job1"}, "spec": {"manualSelector": true, "selector": {"matchLabels": {"controller-uid": "uid1"}}, "template": {"metadata": {"labels": {"controller-uid": "uid1"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container1"}], "dnsPolicy": "ClusterFirst", "restartPolicy": "Never"}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/jobs/etcdstoragepathtestnamespace/job1",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/batch/v1beta1
-	gvr("batch", "v1beta1", "cronjobs"): {
-		Stub:             `{"metadata": {"name": "cj2"}, "spec": {"jobTemplate": {"spec": {"template": {"metadata": {"labels": {"controller-uid": "uid0"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container0"}], "dnsPolicy": "ClusterFirst", "restartPolicy": "Never"}}}}, "schedule": "* * * * *"}}`,
-		ExpectedEtcdPath: "kubernetes.io/cronjobs/etcdstoragepathtestnamespace/cj2",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/batch/v2alpha1
-	gvr("batch", "v2alpha1", "cronjobs"): {
-		Stub:             `{"metadata": {"name": "cj1"}, "spec": {"jobTemplate": {"spec": {"template": {"metadata": {"labels": {"controller-uid": "uid0"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container0"}], "dnsPolicy": "ClusterFirst", "restartPolicy": "Never"}}}}, "schedule": "* * * * *"}}`,
-		ExpectedEtcdPath: "kubernetes.io/cronjobs/etcdstoragepathtestnamespace/cj1",
-		ExpectedGVK:      gvkP("batch", "v1beta1", "CronJob"),
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/certificates/v1alpha1
-	gvr("certificates.k8s.io", "v1beta1", "certificatesigningrequests"): {
-		Stub:             `{"metadata": {"name": "csr1"}, "spec": {"request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQnlqQ0NBVE1DQVFBd2dZa3hDekFKQmdOVkJBWVRBbFZUTVJNd0VRWURWUVFJRXdwRFlXeHBabTl5Ym1saApNUll3RkFZRFZRUUhFdzFOYjNWdWRHRnBiaUJXYVdWM01STXdFUVlEVlFRS0V3cEhiMjluYkdVZ1NXNWpNUjh3CkhRWURWUVFMRXhaSmJtWnZjbTFoZEdsdmJpQlVaV05vYm05c2IyZDVNUmN3RlFZRFZRUURFdzUzZDNjdVoyOXYKWjJ4bExtTnZiVENCbnpBTkJna3Foa2lHOXcwQkFRRUZBQU9CalFBd2dZa0NnWUVBcFp0WUpDSEo0VnBWWEhmVgpJbHN0UVRsTzRxQzAzaGpYK1prUHl2ZFlkMVE0K3FiQWVUd1htQ1VLWUhUaFZSZDVhWFNxbFB6eUlCd2llTVpyCldGbFJRZGRaMUl6WEFsVlJEV3dBbzYwS2VjcWVBWG5uVUsrNWZYb1RJL1VnV3NocmU4dEoreC9UTUhhUUtSL0oKY0lXUGhxYVFoc0p1elpidkFkR0E4MEJMeGRNQ0F3RUFBYUFBTUEwR0NTcUdTSWIzRFFFQkJRVUFBNEdCQUlobAo0UHZGcStlN2lwQVJnSTVaTStHWng2bXBDejQ0RFRvMEprd2ZSRGYrQnRyc2FDMHE2OGVUZjJYaFlPc3E0ZmtIClEwdUEwYVZvZzNmNWlKeENhM0hwNWd4YkpRNnpWNmtKMFRFc3VhYU9oRWtvOXNkcENvUE9uUkJtMmkvWFJEMkQKNmlOaDhmOHowU2hHc0ZxakRnRkh5RjNvK2xVeWorVUM2SDFRVzdibgotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0="}}`,
-		ExpectedEtcdPath: "kubernetes.io/certificatesigningrequests/csr1",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/events/v1beta1
-	gvr("events.k8s.io", "v1beta1", "events"): {
-		Stub:             `{"metadata": {"name": "event2"}, "regarding": {"namespace": "etcdstoragepathtestnamespace"}, "note": "some data here", "eventTime": "2017-08-09T15:04:05.000000Z", "reportingInstance": "node-xyz", "reportingController": "k8s.io/my-controller", "action": "DidNothing", "reason": "Laziness"}`,
-		ExpectedEtcdPath: "kubernetes.io/events/etcdstoragepathtestnamespace/event2",
-		ExpectedGVK:      gvkP("", "v1", "Event"),
-	},
-	// --
-
-	// k8s.io/api/extensions/v1beta1
-	gvr("extensions", "v1beta1", "daemonsets"): {
-		Stub:             `{"metadata": {"name": "ds1"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/daemonsets/etcdstoragepathtestnamespace/ds1",
-		ExpectedGVK:      gvkP("apps", "v1", "DaemonSet"),
-	},
-	gvr("extensions", "v1beta1", "podsecuritypolicies"): {
-		Stub:             `{"metadata": {"name": "psp1"}, "spec": {"fsGroup": {"rule": "RunAsAny"}, "privileged": true, "runAsUser": {"rule": "RunAsAny"}, "seLinux": {"rule": "MustRunAs"}, "supplementalGroups": {"rule": "RunAsAny"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/podsecuritypolicy/psp1",
-		ExpectedGVK:      gvkP("policy", "v1beta1", "PodSecurityPolicy"),
-	},
-	gvr("extensions", "v1beta1", "ingresses"): {
-		Stub:             `{"metadata": {"name": "ingress1"}, "spec": {"backend": {"serviceName": "service", "servicePort": 5000}}}`,
-		ExpectedEtcdPath: "kubernetes.io/ingress/etcdstoragepathtestnamespace/ingress1",
-	},
-	gvr("extensions", "v1beta1", "networkpolicies"): {
-		Stub:             `{"metadata": {"name": "np1"}, "spec": {"podSelector": {"matchLabels": {"e": "f"}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/networkpolicies/etcdstoragepathtestnamespace/np1",
-		ExpectedGVK:      gvkP("networking.k8s.io", "v1", "NetworkPolicy"),
-	},
-	gvr("extensions", "v1beta1", "deployments"): {
-		Stub:             `{"metadata": {"name": "deployment1"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment1",
-		ExpectedGVK:      gvkP("apps", "v1", "Deployment"),
-	},
-	gvr("extensions", "v1beta1", "replicasets"): {
-		Stub:             `{"metadata": {"name": "rs1"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs1",
-		ExpectedGVK:      gvkP("apps", "v1", "ReplicaSet"),
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/network/v1
-	gvr("networking.k8s.io", "v1", "networkpolicies"): {
-		Stub:             `{"metadata": {"name": "np2"}, "spec": {"podSelector": {"matchLabels": {"e": "f"}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/networkpolicies/etcdstoragepathtestnamespace/np2",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/policy/v1beta1
-	gvr("policy", "v1beta1", "poddisruptionbudgets"): {
-		Stub:             `{"metadata": {"name": "pdb1"}, "spec": {"selector": {"matchLabels": {"anokkey": "anokvalue"}}}}`,
-		ExpectedEtcdPath: "kubernetes.io/poddisruptionbudgets/etcdstoragepathtestnamespace/pdb1",
-	},
-	gvr("policy", "v1beta1", "podsecuritypolicies"): {
-		Stub:             `{"metadata": {"name": "psp2"}, "spec": {"fsGroup": {"rule": "RunAsAny"}, "privileged": true, "runAsUser": {"rule": "RunAsAny"}, "seLinux": {"rule": "MustRunAs"}, "supplementalGroups": {"rule": "RunAsAny"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/podsecuritypolicy/psp2",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/rbac/v1alpha1
-	gvr("rbac.authorization.k8s.io", "v1alpha1", "roles"): {
-		Stub:             `{"metadata": {"name": "r1a1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1a1",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"),
-	},
-	gvr("rbac.authorization.k8s.io", "v1alpha1", "rolebindings"): {
-		Stub:             `{"metadata": {"name": "rb1a1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1a1",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"),
-	},
-	gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterroles"): {
-		Stub:             `{"metadata": {"name": "cr1a1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/clusterroles/cr1a1",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"),
-	},
-	gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterrolebindings"): {
-		Stub:             `{"metadata": {"name": "crb1a1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1a1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1a1",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"),
-	},
-	// --
-
-	// k8s.io/api/rbac/v1beta1
-	gvr("rbac.authorization.k8s.io", "v1beta1", "roles"): {
-		Stub:             `{"metadata": {"name": "r1b1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"),
-	},
-	gvr("rbac.authorization.k8s.io", "v1beta1", "rolebindings"): {
-		Stub:             `{"metadata": {"name": "rb1b1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1b1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1b1",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"),
-	},
-	gvr("rbac.authorization.k8s.io", "v1beta1", "clusterroles"): {
-		Stub:             `{"metadata": {"name": "cr1b1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/clusterroles/cr1b1",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"),
-	},
-	gvr("rbac.authorization.k8s.io", "v1beta1", "clusterrolebindings"): {
-		Stub:             `{"metadata": {"name": "crb1b1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1b1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1b1",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"),
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/rbac/v1
-	gvr("rbac.authorization.k8s.io", "v1", "roles"): {
-		Stub:             `{"metadata": {"name": "r1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1",
-	},
-	gvr("rbac.authorization.k8s.io", "v1", "rolebindings"): {
-		Stub:             `{"metadata": {"name": "rb1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1",
-	},
-	gvr("rbac.authorization.k8s.io", "v1", "clusterroles"): {
-		Stub:             `{"metadata": {"name": "cr1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/clusterroles/cr1",
-	},
-	gvr("rbac.authorization.k8s.io", "v1", "clusterrolebindings"): {
-		Stub:             `{"metadata": {"name": "crb1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/scheduling/v1alpha1
-	gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"): {
-		Stub:             `{"metadata":{"name":"pc1"},"Value":1000}`,
-		ExpectedEtcdPath: "kubernetes.io/priorityclasses/pc1",
-		ExpectedGVK:      gvkP("scheduling.k8s.io", "v1beta1", "PriorityClass"),
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/scheduling/v1beta1
-	gvr("scheduling.k8s.io", "v1beta1", "priorityclasses"): {
-		Stub:             `{"metadata":{"name":"pc2"},"Value":1000}`,
-		ExpectedEtcdPath: "kubernetes.io/priorityclasses/pc2",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/settings/v1alpha1
-	gvr("settings.k8s.io", "v1alpha1", "podpresets"): {
-		Stub:             `{"metadata": {"name": "p1"}, "spec": {"selector": {"matchLabels": {"k": "v"}}, "env": [{"name": "n", "value": "v"}]}}`,
-		ExpectedEtcdPath: "kubernetes.io/podpresets/etcdstoragepathtestnamespace/p1",
-	},
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/storage/v1alpha1
-	gvr("storage.k8s.io", "v1alpha1", "volumeattachments"): {
-		Stub:             `{"metadata": {"name": "va1"}, "spec": {"attacher": "gce", "nodeName": "localhost", "source": {"persistentVolumeName": "pv1"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/volumeattachments/va1",
-		ExpectedGVK:      gvkP("storage.k8s.io", "v1beta1", "VolumeAttachment"),
-	},
-	// --
-
-	// k8s.io/api/storage/v1beta1
-	gvr("storage.k8s.io", "v1beta1", "storageclasses"): {
-		Stub:             `{"metadata": {"name": "sc1"}, "provisioner": "aws"}`,
-		ExpectedEtcdPath: "kubernetes.io/storageclasses/sc1",
-		ExpectedGVK:      gvkP("storage.k8s.io", "v1", "StorageClass"),
-	},
-	gvr("storage.k8s.io", "v1beta1", "volumeattachments"): {
-		Stub:             `{"metadata": {"name": "va2"}, "spec": {"attacher": "gce", "nodeName": "localhost", "source": {"persistentVolumeName": "pv2"}}}`,
-		ExpectedEtcdPath: "kubernetes.io/volumeattachments/va2",
-	},
-	// --
-
-	// k8s.io/api/storage/v1
-	gvr("storage.k8s.io", "v1", "storageclasses"): {
-		Stub:             `{"metadata": {"name": "sc2"}, "provisioner": "aws"}`,
-		ExpectedEtcdPath: "kubernetes.io/storageclasses/sc2",
-	},
-	// --
 }
 
 // Only add kinds to this list when there is no way to create the object
@@ -822,69 +412,7 @@ func TestEtcd3StoragePath(t *testing.T) {
 	kubeClient := kclientset.NewForConfigOrDie(kubeConfig)
 
 	// create CRDs so we can make sure that custom resources do not get lost
-	createTestCRDs(t, apiextensionsclientset.NewForConfigOrDie(kubeConfig),
-		// namespaced with legacy version field
-		&apiextensionsv1beta1.CustomResourceDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "foos.cr.bar.com",
-			},
-			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-				Group:   "cr.bar.com",
-				Version: "v1",
-				Scope:   apiextensionsv1beta1.NamespaceScoped,
-				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-					Plural: "foos",
-					Kind:   "Foo",
-				},
-			},
-		},
-		// cluster scoped with legacy version field
-		&apiextensionsv1beta1.CustomResourceDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "pants.custom.fancy.com",
-			},
-			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-				Group:   "custom.fancy.com",
-				Version: "v2",
-				Scope:   apiextensionsv1beta1.ClusterScoped,
-				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-					Plural: "pants",
-					Kind:   "Pant",
-				},
-			},
-		},
-		// cluster scoped with versions field
-		&apiextensionsv1beta1.CustomResourceDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "pandas.awesome.bears.com",
-			},
-			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-				Group: "awesome.bears.com",
-				Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
-					{
-						Name:    "v1",
-						Served:  true,
-						Storage: true,
-					},
-					{
-						Name:    "v2",
-						Served:  false,
-						Storage: false,
-					},
-					{
-						Name:    "v3",
-						Served:  true,
-						Storage: false,
-					},
-				},
-				Scope: apiextensionsv1beta1.ClusterScoped,
-				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-					Plural: "pandas",
-					Kind:   "Panda",
-				},
-			},
-		},
-	)
+	etcddata.CreateTestCRDs(t, apiextensionsclientset.NewForConfigOrDie(kubeConfig), false, etcddata.GetCustomResourceDefinitionData()...)
 
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
 	mapper.Reset()
@@ -896,6 +424,42 @@ func TestEtcd3StoragePath(t *testing.T) {
 
 	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
+	}
+
+	etcdStorageData := etcddata.GetEtcdStorageData()
+
+	// TODO storage is broken somehow.  failing on v1beta1 serialization
+	delete(etcdStorageData, gvr("admissionregistration.k8s.io", "v1alpha1", "initializerconfigurations"))
+
+	// we use a different default path prefix for kube resources
+	for gvr := range etcdStorageData {
+		data := etcdStorageData[gvr]
+		path := data.ExpectedEtcdPath
+
+		if !strings.HasPrefix(path, "/registry/") {
+			t.Fatalf("%s does not have expected Kube prefix, data=%#v", gvr.String(), data)
+		}
+
+		data.ExpectedEtcdPath = "kubernetes.io/" + path[10:]
+		etcdStorageData[gvr] = data
+	}
+
+	// add openshift specific data
+	for gvr, data := range openshiftEtcdStorageData {
+		if _, ok := etcdStorageData[gvr]; ok {
+			t.Errorf("%s exists in both Kube and OpenShift ETCD data, data=%#v", gvr.String(), data)
+		}
+
+		if len(gvr.Group) != 0 {
+			isOpenShiftResource := gvr.Group == "openshift.io" || strings.HasSuffix(gvr.Group, ".openshift.io")
+
+			// these should be moved to the upstream test
+			if !isOpenShiftResource {
+				t.Errorf("%s should be added in the upstream test, data=%#v", gvr.String(), data)
+			}
+		}
+
+		etcdStorageData[gvr] = data
 	}
 
 	kindSeen := sets.NewString()
@@ -1393,54 +957,4 @@ func diffMapKeys(a, b interface{}, stringer func(interface{}) string) []string {
 	}
 
 	return ret
-}
-
-// copied and modified from k8s.io/kubernetes/test/integration/master/crd_test.go#TestCRD
-
-func createTestCRDs(t *testing.T, client apiextensionsclientset.Interface, crds ...*apiextensionsv1beta1.CustomResourceDefinition) {
-	for _, crd := range crds {
-		createTestCRD(t, client, crd)
-	}
-}
-
-func createTestCRD(t *testing.T, client apiextensionsclientset.Interface, crd *apiextensionsv1beta1.CustomResourceDefinition) {
-	if _, err := client.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd); err != nil {
-		t.Fatalf("Failed to create %s CRD; %v", crd.Name, err)
-	}
-	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
-		return crdExistsInDiscovery(client, crd), nil
-	}); err != nil {
-		t.Fatalf("Failed to see %s in discovery: %v", crd.Name, err)
-	}
-}
-
-func crdExistsInDiscovery(client apiextensionsclientset.Interface, crd *apiextensionsv1beta1.CustomResourceDefinition) bool {
-	var versions []string
-	if len(crd.Spec.Version) != 0 {
-		versions = append(versions, crd.Spec.Version)
-	}
-	for _, v := range crd.Spec.Versions {
-		if v.Served {
-			versions = append(versions, v.Name)
-		}
-	}
-	for _, v := range versions {
-		if !crdVersionExistsInDiscovery(client, crd, v) {
-			return false
-		}
-	}
-	return true
-}
-
-func crdVersionExistsInDiscovery(client apiextensionsclientset.Interface, crd *apiextensionsv1beta1.CustomResourceDefinition, version string) bool {
-	resourceList, err := client.Discovery().ServerResourcesForGroupVersion(crd.Spec.Group + "/" + version)
-	if err != nil {
-		return false
-	}
-	for _, resource := range resourceList.APIResources {
-		if resource.Name == crd.Spec.Names.Plural {
-			return true
-		}
-	}
-	return false
 }
