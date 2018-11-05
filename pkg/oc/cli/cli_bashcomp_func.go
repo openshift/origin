@@ -22,9 +22,6 @@ __oc_override_flags()
                     ;;
             esac
         done
-        if [ "${w}" == "--all-namespaces" ]; then
-            namespace="--all-namespaces"
-        fi
     done
     for of in "${__oc_override_flag_list[@]}"; do
         if eval "test -n \"\$${of}\""; then
