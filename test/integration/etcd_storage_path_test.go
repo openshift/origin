@@ -467,33 +467,26 @@ func TestEtcd3StoragePath(t *testing.T) {
 	etcdSeen := map[schema.GroupVersionResource]empty{}
 	cohabitatingResources := map[string]map[schema.GroupVersionKind]empty{}
 
-	resourcesToPersist := []resourceToPersist{}
 	serverResources, err := kubeClient.Discovery().ServerResources()
 	if err != nil {
 		t.Fatal(err)
 	}
-	resourcesToPersist = append(resourcesToPersist, getResourcesToPersist(serverResources, t)...)
 	oapiServerResources := &metav1.APIResourceList{
 		GroupVersion: "v1",
 	}
 	if err := kubeClient.Discovery().RESTClient().Get().AbsPath("oapi", "v1").Do().Into(oapiServerResources); err != nil {
 		t.Fatal(err)
 	}
-	resourcesToPersist = append(resourcesToPersist, getResourcesToPersist([]*metav1.APIResourceList{oapiServerResources}, t)...)
+	resourcesToPersist := append(
+		etcddata.GetResources(t, serverResources),
+		etcddata.GetResources(t, []*metav1.APIResourceList{oapiServerResources})...,
+	)
 
 	for _, resourceToPersist := range resourcesToPersist {
-		gvk := resourceToPersist.gvk
-		gvResource := resourceToPersist.gvr
+		mapping := resourceToPersist.Mapping
+		gvResource := mapping.Resource
+		gvk := mapping.GroupVersionKind
 		kind := gvk.Kind
-
-		mapping := &meta.RESTMapping{
-			Resource:         resourceToPersist.gvr,
-			GroupVersionKind: resourceToPersist.gvk,
-			Scope:            meta.RESTScopeRoot,
-		}
-		if resourceToPersist.namespaced {
-			mapping.Scope = meta.RESTScopeNamespace
-		}
 
 		if kindWhiteList.Has(kind) {
 			kindSeen.Insert(kind)
@@ -597,60 +590,6 @@ func TestEtcd3StoragePath(t *testing.T) {
 			t.Errorf("invalid test data, please ensure all expectedEtcdPath are unique, path %s has duplicate GVRs:\n%s", path, gvrStrings)
 		}
 	}
-}
-
-type resourceToPersist struct {
-	gvk        schema.GroupVersionKind
-	gvr        schema.GroupVersionResource
-	namespaced bool
-}
-
-func getResourcesToPersist(serverResources []*metav1.APIResourceList, t *testing.T) []resourceToPersist {
-	resourcesToPersist := []resourceToPersist{}
-
-	for _, discoveryGroup := range serverResources {
-		for _, discoveryResource := range discoveryGroup.APIResources {
-			// this is a subresource, skip it
-			if strings.Contains(discoveryResource.Name, "/") {
-				continue
-			}
-			hasCreate := false
-			hasGet := false
-			for _, verb := range discoveryResource.Verbs {
-				if string(verb) == "get" {
-					hasGet = true
-				}
-				if string(verb) == "create" {
-					hasCreate = true
-				}
-			}
-			if !(hasCreate && hasGet) {
-				continue
-			}
-
-			resourceGV, err := schema.ParseGroupVersion(discoveryGroup.GroupVersion)
-			if err != nil {
-				t.Fatal(err)
-			}
-			gvk := resourceGV.WithKind(discoveryResource.Kind)
-			if len(discoveryResource.Group) > 0 || len(discoveryResource.Version) > 0 {
-				gvk = schema.GroupVersionKind{
-					Group:   discoveryResource.Group,
-					Version: discoveryResource.Version,
-					Kind:    discoveryResource.Kind,
-				}
-			}
-			gvr := resourceGV.WithResource(discoveryResource.Name)
-
-			resourcesToPersist = append(resourcesToPersist, resourceToPersist{
-				gvk:        gvk,
-				gvr:        gvr,
-				namespaced: discoveryResource.Namespaced,
-			})
-		}
-	}
-
-	return resourcesToPersist
 }
 
 func addGVKToEtcdBucket(cohabitatingResources map[string]map[schema.GroupVersionKind]empty, gvk schema.GroupVersionKind, bucket string) {
