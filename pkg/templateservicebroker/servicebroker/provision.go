@@ -43,15 +43,14 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInsta
 	}
 
 	// allow empty string values for non-generated parameters.
-	// empty string values will be ignored for generated parameter/
+	// empty string values will be ignored for generated parameter
 	for k, v := range preq.Parameters {
 		for _, param := range template.Parameters {
-			if param.Name == k && ((v == "" && param.Generate == "") || v != "") {
+			if param.Name == k && ((len(v) == 0 && param.Generate == "") || len(v) != 0) {
 				secret.Data[k] = []byte(v)
 			}
 		}
 	}
-
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "create",
