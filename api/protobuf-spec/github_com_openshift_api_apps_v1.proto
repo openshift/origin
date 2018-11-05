@@ -16,7 +16,7 @@ option go_package = "v1";
 
 // CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
 message CustomDeploymentStrategyParams {
-  // Image specifies a Docker image which can carry out a deployment.
+  // Image specifies a container image which can carry out a deployment.
   optional string image = 1;
 
   // Environment holds the environment which will be given to the container for Image.
@@ -362,7 +362,7 @@ message ExecNewPodHook {
   repeated k8s.io.api.core.v1.EnvVar env = 2;
 
   // ContainerName is the name of a container in the deployment pod template
-  // whose Docker image will be used for the hook pod's container.
+  // whose container image will be used for the hook pod's container.
   optional string containerName = 3;
 
   // Volumes is a list of named volumes from the pod template which should be

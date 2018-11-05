@@ -11,7 +11,7 @@ toc::[]
 
 == Description
 [%hardbreaks]
-ImageStreamMapping represents a mapping from a single tag to a Docker image as well as the reference to the Docker image stream the image came from.
+ImageStreamMapping represents a mapping from a single tag to a container image as well as the reference to the container image stream the image came from.
 
 == Object Schema
 Expand or mouse-over a field for more information about it.
@@ -19,7 +19,7 @@ Expand or mouse-over a field for more information about it.
 ++++
 <pre>
 <div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
-</div><details><summary><span title="(v1.Image) Image is a Docker image.">image</span>:
+</div><details><summary><span title="(v1.Image) Image is a container image.">image</span>:
 </summary><div style="margin-left:13px;">  <span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
 </div><div style="margin-left:13px;">  <span title="(string) DockerImageConfig is a JSON blob that the runtime uses to set up the container. This is a part of manifest schema v2.">dockerImageConfig</span>:
 </div><details><summary>  <span title="(array) DockerImageLayers represents the layers in the image. May not be set if the image does not define that data.">dockerImageLayers</span>:

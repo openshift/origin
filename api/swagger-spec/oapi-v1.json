@@ -22903,7 +22903,7 @@
    },
    "v1.BuildConfig": {
     "id": "v1.BuildConfig",
-    "description": "Build configurations define a build process for new Docker images. There are three types of builds possible - a Docker build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary Docker images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the Docker registry specified in the \"output\" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.\n\nEach build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have \"output\" set can be used to test code or run a verification build.",
+    "description": "Build configurations define a build process for new container images. There are three types of builds possible - a container image build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary container images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the container image registry specified in the \"output\" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.\n\nEach build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have \"output\" set can be used to test code or run a verification build.",
     "required": [
      "spec",
      "status"
@@ -22969,7 +22969,7 @@
      },
      "output": {
       "$ref": "v1.BuildOutput",
-      "description": "output describes the Docker image the Strategy should produce."
+      "description": "output describes the container image the Strategy should produce."
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
@@ -23129,7 +23129,7 @@
      },
      "binary": {
       "$ref": "v1.BinaryBuildSource",
-      "description": "binary builds accept a binary as their input. The binary is generally assumed to be a tar, gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build context and an optional Dockerfile may be specified to override any Dockerfile in the build context. For Source builds, this is assumed to be an archive as described above. For Source and Docker builds, if binary.asFile is set the build will receive a directory with a single file. contextDir may be used when an archive is provided. Custom builds will receive this binary as input on STDIN."
+      "description": "binary builds accept a binary as their input. The binary is generally assumed to be a tar, gzipped tar, or zip file depending on the strategy. For container image builds, this is the build context and an optional Dockerfile may be specified to override any Dockerfile in the build context. For Source builds, this is assumed to be an archive as described above. For Source and container image builds, if binary.asFile is set the build will receive a directory with a single file. contextDir may be used when an archive is provided. Custom builds will receive this binary as input on STDIN."
      },
      "dockerfile": {
       "type": "string",
@@ -23211,7 +23211,7 @@
    },
    "v1.ImageSource": {
     "id": "v1.ImageSource",
-    "description": "ImageSource is used to describe build source that will be extracted from an image or used during a multi stage build. A reference of type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified to pull the image from an external registry or override the default service account secret if pulling from the internal registry. Image sources can either be used to extract content from an image and place it into the build context along with the repository source, or used directly during a multi-stage Docker build to allow content to be copied without overwriting the contents of the repository source (see the 'paths' and 'as' fields).",
+    "description": "ImageSource is used to describe build source that will be extracted from an image or used during a multi stage build. A reference of type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified to pull the image from an external registry or override the default service account secret if pulling from the internal registry. Image sources can either be used to extract content from an image and place it into the build context along with the repository source, or used directly during a multi-stage container image build to allow content to be copied without overwriting the contents of the repository source (see the 'paths' and 'as' fields).",
     "required": [
      "from",
      "as",
@@ -23227,7 +23227,7 @@
       "items": {
        "type": "string"
       },
-      "description": "A list of image names that this source will be used in place of during a multi-stage Docker image build. For instance, a Dockerfile that uses \"COPY --from=nginx:latest\" will first check for an image source that has \"nginx:latest\" in this field before attempting to pull directly. If the Dockerfile does not reference an image source it is ignored. This field and paths may both be set, in which case the contents will be used twice."
+      "description": "A list of image names that this source will be used in place of during a multi-stage container image build. For instance, a Dockerfile that uses \"COPY --from=nginx:latest\" will first check for an image source that has \"nginx:latest\" in this field before attempting to pull directly. If the Dockerfile does not reference an image source it is ignored. This field and paths may both be set, in which case the contents will be used twice."
      },
      "paths": {
       "type": "array",
@@ -23283,7 +23283,7 @@
      },
      "destinationDir": {
       "type": "string",
-      "description": "destinationDir is the directory where the files from the secret should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. Later, when the script finishes, all files injected will be truncated to zero length. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build."
+      "description": "destinationDir is the directory where the files from the secret should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. Later, when the script finishes, all files injected will be truncated to zero length. For the container image build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during container image build."
      }
     }
    },
@@ -23300,7 +23300,7 @@
      },
      "destinationDir": {
       "type": "string",
-      "description": "destinationDir is the directory where the files from the configmap should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build."
+      "description": "destinationDir is the directory where the files from the configmap should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. For the container image build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during container image build."
      }
     }
    },
@@ -23370,7 +23370,7 @@
      },
      "dockerStrategy": {
       "$ref": "v1.DockerBuildStrategy",
-      "description": "dockerStrategy holds the parameters to the Docker build strategy."
+      "description": "dockerStrategy holds the parameters to the container image build strategy."
      },
      "sourceStrategy": {
       "$ref": "v1.SourceBuildStrategy",
@@ -23388,19 +23388,19 @@
    },
    "v1.DockerBuildStrategy": {
     "id": "v1.DockerBuildStrategy",
-    "description": "DockerBuildStrategy defines input parameters specific to Docker build.",
+    "description": "DockerBuildStrategy defines input parameters specific to container image build.",
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled the resulting image will be used in the FROM line of the Dockerfile for this build."
+      "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the container image should be pulled the resulting image will be used in the FROM line of the Dockerfile for this build."
      },
      "pullSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries"
+      "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the container images from the private Docker registries"
      },
      "noCache": {
       "type": "boolean",
-      "description": "noCache if set to true indicates that the docker build must be executed with the --no-cache=true flag"
+      "description": "noCache if set to true indicates that the container image build must be executed with the --no-cache=true flag"
      },
      "env": {
       "type": "array",
@@ -23415,7 +23415,7 @@
      },
      "dockerfilePath": {
       "type": "string",
-      "description": "dockerfilePath is the path of the Dockerfile that will be used to build the Docker image, relative to the root of the context (contextDir)."
+      "description": "dockerfilePath is the path of the Dockerfile that will be used to build the container image, relative to the root of the context (contextDir)."
      },
      "buildArgs": {
       "type": "array",
@@ -23426,7 +23426,7 @@
      },
      "imageOptimizationPolicy": {
       "$ref": "v1.ImageOptimizationPolicy",
-      "description": "imageOptimizationPolicy describes what optimizations the system can use when building images to reduce the final size or time spent building the image. The default policy is 'None' which means the final build image will be equivalent to an image created by the Docker build API. The experimental policy 'SkipLayers' will avoid commiting new layers in between each image step, and will fail if the Dockerfile cannot provide compatibility with the 'None' policy. An additional experimental policy 'SkipLayersAndWarn' is the same as 'SkipLayers' but simply warns if compatibility cannot be preserved."
+      "description": "imageOptimizationPolicy describes what optimizations the system can use when building images to reduce the final size or time spent building the image. The default policy is 'None' which means the final build image will be equivalent to an image created by the container image build API. The experimental policy 'SkipLayers' will avoid commiting new layers in between each image step, and will fail if the Dockerfile cannot provide compatibility with the 'None' policy. An additional experimental policy 'SkipLayersAndWarn' is the same as 'SkipLayers' but simply warns if compatibility cannot be preserved."
      }
     }
    },
@@ -23566,11 +23566,11 @@
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled"
+      "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the container image should be pulled"
      },
      "pullSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries"
+      "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the container images from the private Docker registries"
      },
      "env": {
       "type": "array",
@@ -23602,11 +23602,11 @@
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled"
+      "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the container image should be pulled"
      },
      "pullSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries"
+      "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the container images from the private Docker registries"
      },
      "env": {
       "type": "array",
@@ -23617,7 +23617,7 @@
      },
      "exposeDockerSocket": {
       "type": "boolean",
-      "description": "exposeDockerSocket will allow running Docker commands (and build Docker images) from inside the Docker container."
+      "description": "exposeDockerSocket will allow running Docker commands (and build container images) from inside the container."
      },
      "forcePull": {
       "type": "boolean",
@@ -23677,11 +23677,11 @@
    },
    "v1.BuildOutput": {
     "id": "v1.BuildOutput",
-    "description": "BuildOutput is input to a build strategy and describes the Docker image that the strategy should produce.",
+    "description": "BuildOutput is input to a build strategy and describes the container image that the strategy should produce.",
     "properties": {
      "to": {
       "$ref": "v1.ObjectReference",
-      "description": "to defines an optional location to push the output of this build to. Kind must be one of 'ImageStreamTag' or 'DockerImage'. This value will be used to look up a Docker image repository to push to. In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of the build unless Namespace is specified."
+      "description": "to defines an optional location to push the output of this build to. Kind must be one of 'ImageStreamTag' or 'DockerImage'. This value will be used to look up a container image repository to push to. In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of the build unless Namespace is specified."
      },
      "pushSecret": {
       "$ref": "v1.LocalObjectReference",
@@ -23743,7 +23743,7 @@
       "items": {
        "type": "string"
       },
-      "description": "args is a list of arguments that are provided to either Command, Script or the Docker image's default entrypoint. The arguments are placed immediately after the command to be run."
+      "description": "args is a list of arguments that are provided to either Command, Script or the container image's default entrypoint. The arguments are placed immediately after the command to be run."
      },
      "script": {
       "type": "string",
@@ -23887,7 +23887,7 @@
      },
      "output": {
       "$ref": "v1.BuildOutput",
-      "description": "output describes the Docker image the Strategy should produce."
+      "description": "output describes the container image the Strategy should produce."
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
@@ -24052,7 +24052,7 @@
      },
      "outputDockerImageReference": {
       "type": "string",
-      "description": "outputDockerImageReference contains a reference to the Docker image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image."
+      "description": "outputDockerImageReference contains a reference to the container image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image."
      },
      "config": {
       "$ref": "v1.ObjectReference",
@@ -24060,7 +24060,7 @@
      },
      "output": {
       "$ref": "v1.BuildStatusOutput",
-      "description": "output describes the Docker image the build has produced."
+      "description": "output describes the container image the build has produced."
      },
      "stages": {
       "type": "array",
@@ -24091,7 +24091,7 @@
     "properties": {
      "imageDigest": {
       "type": "string",
-      "description": "imageDigest is the digest of the built Docker image. The digest uniquely identifies the image in the registry to which it was pushed.\n\nPlease note that this field may not always be set even if the push completes successfully - e.g. when the registry returns no digest or returns it in a format that the builder doesn't understand."
+      "description": "imageDigest is the digest of the built container image. The digest uniquely identifies the image in the registry to which it was pushed.\n\nPlease note that this field may not always be set even if the push completes successfully - e.g. when the registry returns no digest or returns it in a format that the builder doesn't understand."
      }
     }
    },
@@ -24206,7 +24206,7 @@
    },
    "v1.DockerStrategyOptions": {
     "id": "v1.DockerStrategyOptions",
-    "description": "DockerStrategyOptions contains extra strategy options for Docker builds",
+    "description": "DockerStrategyOptions contains extra strategy options for container image builds",
     "properties": {
      "buildArgs": {
       "type": "array",
@@ -24782,7 +24782,7 @@
     "properties": {
      "image": {
       "type": "string",
-      "description": "Image specifies a Docker image which can carry out a deployment."
+      "description": "Image specifies a container image which can carry out a deployment."
      },
      "environment": {
       "type": "array",
@@ -24871,7 +24871,7 @@
      },
      "containerName": {
       "type": "string",
-      "description": "ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod's container."
+      "description": "ContainerName is the name of a container in the deployment pod template whose container image will be used for the hook pod's container."
      },
      "volumes": {
       "type": "array",
@@ -27640,7 +27640,7 @@
    },
    "v1.Image": {
     "id": "v1.Image",
-    "description": "Image is an immutable representation of a Docker image and metadata at a point in time.",
+    "description": "Image is an immutable representation of a container image and metadata at a point in time.",
     "required": [
      "dockerImageLayers"
     ],
@@ -27881,7 +27881,7 @@
    },
    "v1.ImageStreamImport": {
     "id": "v1.ImageStreamImport",
-    "description": "The image stream import resource provides an easy way for a user to find and import Docker images from other Docker registries into the server. Individual images or an entire image repository may be imported, and users may choose to see the results of the import prior to tagging the resulting images into the specified image stream.\n\nThis API is intended for end-user tools that need to see the metadata of the image prior to import (for instance, to generate an application from it). Clients that know the desired image can continue to create spec.tags directly into their image streams.",
+    "description": "The image stream import resource provides an easy way for a user to find and import container images from other container image registries into the server. Individual images or an entire image repository may be imported, and users may choose to see the results of the import prior to tagging the resulting images into the specified image stream.\n\nThis API is intended for end-user tools that need to see the metadata of the image prior to import (for instance, to generate an application from it). Clients that know the desired image can continue to create spec.tags directly into their image streams.",
     "required": [
      "spec",
      "status"
@@ -27922,7 +27922,7 @@
      },
      "repository": {
       "$ref": "v1.RepositoryImportSpec",
-      "description": "Repository is an optional import of an entire Docker image repository. A maximum limit on the number of tags imported this way is imposed by the server."
+      "description": "Repository is an optional import of an entire container image repository. A maximum limit on the number of tags imported this way is imposed by the server."
      },
      "images": {
       "type": "array",
@@ -27935,14 +27935,14 @@
    },
    "v1.RepositoryImportSpec": {
     "id": "v1.RepositoryImportSpec",
-    "description": "RepositoryImportSpec describes a request to import images from a Docker image repository.",
+    "description": "RepositoryImportSpec describes a request to import images from a container image repository.",
     "required": [
      "from"
     ],
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "From is the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed"
+      "description": "From is the source for the image repository to import; only kind DockerImage and a name of a container image repository is allowed"
      },
      "importPolicy": {
       "$ref": "v1.TagImportPolicy",
@@ -27981,7 +27981,7 @@
     "properties": {
      "type": {
       "type": "string",
-      "description": "Type determines how the image pull spec should be transformed when the image stream tag is used in deployment config triggers or new builds. The default value is `Source`, indicating the original location of the image should be used (if imported). The user may also specify `Local`, indicating that the pull spec should point to the integrated Docker registry and leverage the registry's ability to proxy the pull to an upstream registry. `Local` allows the credentials used to pull this image to be managed from the image stream's namespace, so others on the platform can access a remote image but have no access to the remote secret. It also allows the image layers to be mirrored into the local registry which the images can still be pulled even if the upstream registry is unavailable."
+      "description": "Type determines how the image pull spec should be transformed when the image stream tag is used in deployment config triggers or new builds. The default value is `Source`, indicating the original location of the image should be used (if imported). The user may also specify `Local`, indicating that the pull spec should point to the integrated container image registry and leverage the registry's ability to proxy the pull to an upstream registry. `Local` allows the credentials used to pull this image to be managed from the image stream's namespace, so others on the platform can access a remote image but have no access to the remote secret. It also allows the image layers to be mirrored into the local registry which the images can still be pulled even if the upstream registry is unavailable."
      }
     }
    },
@@ -28037,7 +28037,7 @@
    },
    "v1.ImageStream": {
     "id": "v1.ImageStream",
-    "description": "ImageStream stores a mapping of tags to images, metadata overrides that are applied when images are tagged in a stream, and an optional reference to a Docker image repository on a registry.",
+    "description": "ImageStream stores a mapping of tags to images, metadata overrides that are applied when images are tagged in a stream, and an optional reference to a container image repository on a registry.",
     "required": [
      "spec"
     ],
@@ -28074,7 +28074,7 @@
      },
      "dockerImageRepository": {
       "type": "string",
-      "description": "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server Deprecated: This field is deprecated as of v3.7 and will be removed in a future release. Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead."
+      "description": "dockerImageRepository is optional, if specified this stream is backed by a container repository on this server Deprecated: This field is deprecated as of v3.7 and will be removed in a future release. Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead."
      },
      "tags": {
       "type": "array",
@@ -28302,7 +28302,7 @@
    },
    "v1.ImageStreamMapping": {
     "id": "v1.ImageStreamMapping",
-    "description": "ImageStreamMapping represents a mapping from a single tag to a Docker image as well as the reference to the Docker image stream the image came from.",
+    "description": "ImageStreamMapping represents a mapping from a single tag to a container image as well as the reference to the container image stream the image came from.",
     "required": [
      "image",
      "tag"
@@ -28322,7 +28322,7 @@
      },
      "image": {
       "$ref": "v1.Image",
-      "description": "Image is a Docker image."
+      "description": "Image is a container image."
      },
      "tag": {
       "type": "string",
