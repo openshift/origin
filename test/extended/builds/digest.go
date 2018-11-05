@@ -67,7 +67,6 @@ var _ = g.Describe("[Feature:Builds][Slow] completed builds should have digest o
 
 func testBuildDigest(oc *exutil.CLI, buildFixture string, buildLogLevel uint) {
 	g.It(fmt.Sprintf("should save the image digest when finished"), func() {
-		g.Skip("TODO: find the digest from the pushImage call and ensure it is set: https://github.com/containers/image/issues/518")
 		g.By("creating test build")
 		err := oc.Run("create").Args("-f", buildFixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
