@@ -1030,7 +1030,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		// Return an error if the exit code of the container is
 		// non-zero.
 		glog.V(4).Infof("Waiting for container %q to stop ...", container.ID)
-		waitC, errC := d.client.ContainerWait(context.Background(), container.ID, dockercontainer.WaitConditionNextExit)
+		waitC, errC := d.client.ContainerWait(context.Background(), container.ID, dockercontainer.WaitConditionNotRunning)
 		select {
 		case result := <-waitC:
 			if result.StatusCode != 0 {

@@ -6,12 +6,17 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/wait"
+	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/library-go/pkg/config/client"
+	"github.com/openshift/library-go/pkg/config/configdefaults"
 	leaderelectionconverter "github.com/openshift/library-go/pkg/config/leaderelection"
+	"github.com/openshift/library-go/pkg/config/serving"
 )
 
 // StartFunc is the function to call on leader election start
@@ -27,7 +32,10 @@ type ControllerBuilder struct {
 	componentName    string
 	instanceIdentity string
 
-	// TODO add serving info, authentication, and authorization
+	servingInfo          *configv1.HTTPServingInfo
+	authenticationConfig *operatorv1alpha1.DelegatedAuthentication
+	authorizationConfig  *operatorv1alpha1.DelegatedAuthorization
+	healthChecks         []healthz.HealthzChecker
 }
 
 // NewController returns a builder struct for constructing the command you want to run
@@ -49,6 +57,21 @@ func (b *ControllerBuilder) WithLeaderElection(leaderElection configv1.LeaderEle
 	return b
 }
 
+// WithServer adds a server that provides metrics and healthz
+func (b *ControllerBuilder) WithServer(servingInfo configv1.HTTPServingInfo, authenticationConfig operatorv1alpha1.DelegatedAuthentication, authorizationConfig operatorv1alpha1.DelegatedAuthorization) *ControllerBuilder {
+	b.servingInfo = servingInfo.DeepCopy()
+	configdefaults.SetRecommendedHTTPServingInfoDefaults(b.servingInfo)
+	b.authenticationConfig = &authenticationConfig
+	b.authorizationConfig = &authorizationConfig
+	return b
+}
+
+// WithHealthChecks adds a list of healthchecks to the server
+func (b *ControllerBuilder) WithHealthChecks(healthChecks ...healthz.HealthzChecker) *ControllerBuilder {
+	b.healthChecks = append(b.healthChecks, healthChecks...)
+	return b
+}
+
 // WithKubeConfigFile sets an optional kubeconfig file. inclusterconfig will be used if filename is empty
 func (b *ControllerBuilder) WithKubeConfigFile(kubeConfigFilename string, defaults *client.ClientConnectionOverrides) *ControllerBuilder {
 	b.kubeAPIServerConfigFile = &kubeConfigFilename
@@ -64,10 +87,38 @@ func (b *ControllerBuilder) WithInstanceIdentity(identity string) *ControllerBui
 }
 
 // Run starts your controller for you.  It uses leader election if you asked, otherwise it directly calls you
-func (b *ControllerBuilder) Run() error {
+func (b *ControllerBuilder) Run(stopCh <-chan struct{}) error {
 	clientConfig, err := b.getClientConfig()
 	if err != nil {
 		return err
+	}
+
+	switch {
+	case b.servingInfo == nil && len(b.healthChecks) > 0:
+		return fmt.Errorf("healthchecks without server config won't work")
+
+	default:
+		kubeConfig := ""
+		if b.kubeAPIServerConfigFile != nil {
+			kubeConfig = *b.kubeAPIServerConfigFile
+		}
+		serverConfig, err := serving.ToServerConfig(*b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, kubeConfig)
+		if err != nil {
+			return err
+		}
+		serverConfig.HealthzChecks = append(serverConfig.HealthzChecks, b.healthChecks...)
+
+		server, err := serverConfig.Complete(nil).New(b.componentName, genericapiserver.NewEmptyDelegate())
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			if err := server.PrepareRun().Run(stopCh); err != nil {
+				glog.Error(err)
+			}
+			glog.Fatal("server exited")
+		}()
 	}
 
 	if b.leaderElection == nil {

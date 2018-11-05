@@ -60,7 +60,7 @@ const (
 	// user.
 	StatusReasonCancelledBuild StatusReason = "CancelledBuild"
 
-	// StatusReasonDockerBuildFailed indicates that the docker build strategy has
+	// StatusReasonDockerBuildFailed indicates that the container image build strategy has
 	// failed.
 	StatusReasonDockerBuildFailed StatusReason = "DockerBuildFailed"
 

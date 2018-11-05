@@ -64,6 +64,19 @@ func (LoggingConfig) SwaggerDoc() map[string]string {
 	return map_LoggingConfig
 }
 
+var map_NodeStatus = map[string]string{
+	"":                               "NodeStatus provides information about the current state of a particular node managed by this operator.",
+	"nodeName":                       "nodeName is the name of the node",
+	"currentDeploymentGeneration":    "currentDeploymentGeneration is the generation of the most recently successful deployment",
+	"targetDeploymentGeneration":     "targetDeploymentGeneration is the generation of the deployment we're trying to apply",
+	"lastFailedDeploymentGeneration": "lastFailedDeploymentGeneration is the generation of the deployment we tried and failed to deploy.",
+	"lastFailedDeploymentErrors":     "lastFailedDeploymentGenerationErrors is a list of the errors during the failed deployment referenced in lastFailedDeploymentGeneration",
+}
+
+func (NodeStatus) SwaggerDoc() map[string]string {
+	return map_NodeStatus
+}
+
 var map_OperatorCondition = map[string]string{
 	"": "OperatorCondition is just the standard condition fields.",
 }
@@ -76,6 +89,7 @@ var map_OperatorSpec = map[string]string{
 	"":                "OperatorSpec contains common fields for an operator to need.  It is intended to be anonymous included inside of the Spec struct for you particular operator.",
 	"managementState": "managementState indicates whether and how the operator should manage the component",
 	"imagePullSpec":   "imagePullSpec is the image to use for the component.",
+	"imagePullPolicy": "imagePullPolicy specifies the image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.",
 	"version":         "version is the desired state in major.minor.micro-patch.  Usually patch is ignored.",
 	"logging":         "logging contains glog parameters for the component pods.  It's always a command line arg for the moment",
 }
@@ -98,8 +112,18 @@ func (OperatorStatus) SwaggerDoc() map[string]string {
 	return map_OperatorStatus
 }
 
-var map_VersionAvailablity = map[string]string{
-	"":                "VersionAvailablity gives information about the synchronization and operational status of a particular version of the component",
+var map_StaticPodOperatorStatus = map[string]string{
+	"": "StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual node status must be tracked.",
+	"latestAvailableDeploymentGeneration": "latestAvailableDeploymentGeneration is the deploymentID of the most recent deployment",
+	"nodeStatuses":                        "nodeStatuses track the deployment values and errors across individual nodes",
+}
+
+func (StaticPodOperatorStatus) SwaggerDoc() map[string]string {
+	return map_StaticPodOperatorStatus
+}
+
+var map_VersionAvailability = map[string]string{
+	"":                "VersionAvailability gives information about the synchronization and operational status of a particular version of the component",
 	"version":         "version is the level this availability applies to",
 	"updatedReplicas": "updatedReplicas indicates how many replicas are at the desired state",
 	"readyReplicas":   "readyReplicas indicates how many replicas are ready and at the desired state",
@@ -107,8 +131,8 @@ var map_VersionAvailablity = map[string]string{
 	"generations":     "generations allows an operator to track what the generation of \"important\" resources was the last time we updated them",
 }
 
-func (VersionAvailablity) SwaggerDoc() map[string]string {
-	return map_VersionAvailablity
+func (VersionAvailability) SwaggerDoc() map[string]string {
+	return map_VersionAvailability
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

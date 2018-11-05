@@ -106,7 +106,7 @@ var map_BuildDefaultsConfig = map[string]string{
 	"gitNoProxy":    "gitNoProxy is the list of domains for which the proxy should not be used",
 	"env":           "env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
 	"sourceStrategyDefaults": "sourceStrategyDefaults are default values that apply to builds using the source strategy.",
-	"imageLabels":            "imageLabels is a list of docker labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
+	"imageLabels":            "imageLabels is a list of labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
 	"nodeSelector":           "nodeSelector is a selector which must be true for the build pod to fit on a node",
 	"annotations":            "annotations are annotations that will be added to the build pod",
 	"resources":              "resources defines resource requirements to execute the build.",
@@ -119,7 +119,7 @@ func (BuildDefaultsConfig) SwaggerDoc() map[string]string {
 var map_BuildOverridesConfig = map[string]string{
 	"":             "BuildOverridesConfig controls override settings for builds",
 	"forcePull":    "forcePull indicates whether the build strategy should always be set to ForcePull=true",
-	"imageLabels":  "imageLabels is a list of docker labels that are applied to the resulting image. If user provided a label in their Build/BuildConfig with the same name as one in this list, the user's label will be overwritten.",
+	"imageLabels":  "imageLabels is a list of labels that are applied to the resulting image. If user provided a label in their Build/BuildConfig with the same name as one in this list, the user's label will be overwritten.",
 	"nodeSelector": "nodeSelector is a selector which must be true for the build pod to fit on a node",
 	"annotations":  "annotations are annotations that will be added to the build pod",
 	"tolerations":  "tolerations is a list of Tolerations that will override any existing tolerations set on a build pod.",
@@ -213,7 +213,7 @@ func (DenyAllPasswordIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_DockerConfig = map[string]string{
 	"":                        "DockerConfig holds Docker related configuration options.",
-	"execHandlerName":         "ExecHandlerName is the name of the handler to use for executing commands in Docker containers.",
+	"execHandlerName":         "ExecHandlerName is the name of the handler to use for executing commands in containers.",
 	"dockerShimSocket":        "DockerShimSocket is the location of the dockershim socket the kubelet uses. Currently unix socket is supported on Linux, and tcp is supported on windows. Examples:'unix:///var/run/dockershim.sock', 'tcp://localhost:3735'",
 	"dockerShimRootDirectory": "DockershimRootDirectory is the dockershim root directory.",
 }
@@ -359,11 +359,11 @@ func (ImageConfig) SwaggerDoc() map[string]string {
 
 var map_ImagePolicyConfig = map[string]string{
 	"": "ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images",
-	"maxImagesBulkImportedPerRepository":         "MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a Docker repository. This number defaults to 50 to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
+	"maxImagesBulkImportedPerRepository":         "MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a container repository. This number defaults to 50 to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
 	"disableScheduledImport":                     "DisableScheduledImport allows scheduled background import of images to be disabled.",
 	"scheduledImageImportMinimumIntervalSeconds": "ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams scheduled for background import are checked against the upstream repository. The default value is 15 minutes.",
 	"maxScheduledImageImportsPerMinute":          "MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the background per minute. The default value is 60. Set to -1 for unlimited.",
-	"allowedRegistriesForImport":                 "AllowedRegistriesForImport limits the docker registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
+	"allowedRegistriesForImport":                 "AllowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
 	"internalRegistryHostname":                   "InternalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format. For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY environment variable but this setting overrides the environment variable.",
 	"externalRegistryHostname":                   "ExternalRegistryHostname sets the hostname for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
 	"additionalTrustedCA":                        "AdditionalTrustedCA is a path to a pem bundle file containing additional CAs that should be trusted during imagestream import.",
@@ -819,7 +819,7 @@ func (RoutingConfig) SwaggerDoc() map[string]string {
 
 var map_SecurityAllocator = map[string]string{
 	"":                    "SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.",
-	"uidAllocatorRange":   "UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the ranges Docker images will use once user namespaces are started).",
+	"uidAllocatorRange":   "UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the ranges container images will use once user namespaces are started).",
 	"mcsAllocatorRange":   "MCSAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is \"<prefix>/<numberOfLabels>[,<maxCategory>]\". The default is \"s0/2\" and will allocate from c0 -> c1023, which means a total of 535k labels are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default will allow the server to set them automatically.\n\nExamples: * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511 * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511",
 	"mcsLabelsPerProject": "MCSLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS ranges (100k namespaces, 535k/5 labels).",
 }

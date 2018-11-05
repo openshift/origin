@@ -26,3 +26,19 @@ rules:
   - watch
   - update
   - patch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
