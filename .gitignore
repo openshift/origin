@@ -26,3 +26,5 @@ origin.iml
 *.go~
 tags
 .envrc
+# To workaround go-git problem in publishing bots
+vendor/github.com/prometheus/procfs/fixtures/26231/exe
