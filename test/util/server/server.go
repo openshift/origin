@@ -191,17 +191,19 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 }
 
 func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfig, error) {
-	startOptions := start.MasterOptions{}
-	startOptions.MasterArgs = setupStartOptions(useDefaultPort)
-	startOptions.Complete()
-	// reset, since Complete alters the default
-	startOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
+	masterArgs := setupStartOptions(useDefaultPort)
+	if !masterArgs.ConfigDir.Provided() {
+		masterArgs.ConfigDir.Default("openshift.local.config/master")
+	}
 
-	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
+	// reset, since Complete alters the default
+	masterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
+
+	if err := CreateMasterCerts(masterArgs); err != nil {
 		return nil, err
 	}
 
-	masterConfig, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterConfig, err := masterArgs.BuildSerializeableMasterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +255,7 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 	}
 	masterConfig.ImagePolicyConfig.AllowedRegistriesForImport = &allowedRegistries
 
-	glog.Infof("Starting integration server from master %s", startOptions.MasterArgs.ConfigDir.Value())
+	glog.Infof("Starting integration server from master %s", masterArgs.ConfigDir.Value())
 
 	return masterConfig, nil
 }
