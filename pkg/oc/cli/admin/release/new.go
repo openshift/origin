@@ -42,6 +42,7 @@ func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
 	return &NewOptions{
 		IOStreams:      streams,
 		MaxPerRegistry: 4,
+		AlwaysInclude:  []string{"cluster-version-operator", "cli"},
 	}
 }
 
@@ -105,6 +106,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.BoolVar(&o.SkipManifestCheck, "skip-manifest-check", o.SkipManifestCheck, "Ignore errors when an operator includes a yaml/yml/json file that is not parseable.")
 
 	flags.StringSliceVar(&o.Exclude, "exclude", o.Exclude, "A list of image names or tags to exclude. It is applied after all inputs. Comma separated or individual arguments.")
+	flags.StringSliceVar(&o.AlwaysInclude, "include", o.AlwaysInclude, "A list of image tags that should not be pruned. Excluding a tag takes precedence. Comma separated or individual arguments.")
 
 	// destination
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Skips changes to external registries via mirroring or pushing images.")
@@ -136,7 +138,8 @@ type NewOptions struct {
 	FromImageStream string
 	Namespace       string
 
-	Exclude []string
+	Exclude       []string
+	AlwaysInclude []string
 
 	ForceManifest    bool
 	ReleaseMetadata  string
@@ -559,7 +562,7 @@ func (o *NewOptions) Run() error {
 	}
 
 	if payload == nil {
-		if err := pruneUnreferencedImageStreams(o.ErrOut, is, metadata); err != nil {
+		if err := pruneUnreferencedImageStreams(o.ErrOut, is, metadata, o.AlwaysInclude); err != nil {
 			return err
 		}
 	}
@@ -1181,7 +1184,7 @@ func takeFileByName(files *[]os.FileInfo, name string) os.FileInfo {
 
 type PayloadVerifier func(filename string, data []byte) error
 
-func pruneUnreferencedImageStreams(out io.Writer, is *imageapi.ImageStream, metadata map[string]imageData) error {
+func pruneUnreferencedImageStreams(out io.Writer, is *imageapi.ImageStream, metadata map[string]imageData, include []string) error {
 	referenced := make(map[string]struct{})
 	for _, v := range metadata {
 		is, err := parseImageStream(filepath.Join(v.Directory, "image-references"))
@@ -1194,6 +1197,9 @@ func pruneUnreferencedImageStreams(out io.Writer, is *imageapi.ImageStream, meta
 		for _, tag := range is.Spec.Tags {
 			referenced[tag.Name] = struct{}{}
 		}
+	}
+	for _, name := range include {
+		referenced[name] = struct{}{}
 	}
 	var updated []imageapi.TagReference
 	for _, tag := range is.Spec.Tags {
