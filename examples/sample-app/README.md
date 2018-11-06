@@ -95,103 +95,23 @@ This section covers how to perform all the steps of building, deploying, and upd
 **NOTE**
 
 * All commands assume the `oc`/`oadm` binaries/symlinks are in your path.
-    * **VAGRANT USERS**: `export PATH="/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH"`
 * All commands assume that you are working from the `sample-app` directory in your local environment.
     * If you are working from a local git repo, this might be `$GOPATH/src/github.com/<username>/origin/examples/sample-app`
-    * **VAGRANT USERS**: `cd /data/src/github.com/openshift/origin/examples/sample-app`
-* **VAGRANT USERS**: when you are inside of a vagrant environment, the `$KUBECONFIG` environment variable is preset and may interfere with subsequent commands, so it is recommended to unset it: `unset KUBECONFIG`
-
 - - -
 
 
-1. *Optional*: Pre-pull the Docker images used in this sample.  This is
-    not strictly necessary as OpenShift will pull the images as it needs them,
-    but by doing it up front it will prevent lengthy operations during build
-    and deployment which might otherwise lead you to believe the process
-    has failed or hung.
-
-        $ ./pullimages.sh
-
-
-2. Launch an all-in-one `openshift` instance
-
-        $ sudo openshift start &> openshift.log &
-
-       **VAGRANT USERS**: Instead of the above command, use
-
-        $ sudo `which openshift` start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
-
-    Note: sudo is required so the kubernetes proxy can manipulate iptables rules to expose service ports.
-
-    Note: when using vagrant synced folder it is advised to use a different directory for volume storage than the one in the synced folder. This can be achieved by passing `--volume-dir=/absolute/path` to `openshift start` command.
-
-
-3. Set up your client to reach the OpenShift master now running.
-
-    Since OpenShift services are secured by TLS, your client will
-    need to accept the server certificates and present its own client
-    certificate. These are generated as part of the `openshift start`
-    command in whatever the current directory is at the time. You will
-    need to point oc and curl at the appropriate certificates in order
-    to connect to OpenShift. Assuming you are running as a user other
-    than root, you will also need to make the .kubeconfig readable by
-    that user. (Note: this is just for example purposes; in a real
-    installation, users would generate their own keys and not have access
-    to the system keys.)
-
-        $ export CURL_CA_BUNDLE=`pwd`/openshift.local.config/master/ca.crt
-        $ sudo chmod a+rwX openshift.local.config/master/admin.kubeconfig
-
-4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
-
-        $ oc adm registry -n default --config=openshift.local.config/master/admin.kubeconfig
-        --> Creating registry registry ...
-            serviceaccount "registry" created
-            clusterrolebinding "registry-registry-role" created
-            deploymentconfig "docker-registry" created
-            service "docker-registry" created
-        --> Success  
-
-    Note that the private Docker registry is using ephemeral storage,
-    so when it is stopped, the image will be lost. An external volume
-    could be used for persistent storage, but that is beyond the scope
-    of this tutorial.
-
-
-5. Confirm the registry is started (this can take a few minutes):
-
-        $ oc describe service docker-registry --config=openshift.local.config/master/admin.kubeconfig
-
-    You should see:
-
-        Name:                docker-registry
-        Namespace:           default
-        Labels:              docker-registry=default
-        Selector:            docker-registry=default
-        Type:                ClusterIP
-        IP:                  172.30.163.205
-        Port:                5000-tcp    5000/TCP
-        Endpoints:           172.17.0.50:5000
-        Session Affinity:    ClientIP
-        No events.
-
-    If "Endpoints" is listed as `<none>`, your registry hasn't started yet.  You can run `oc get pods` to
-    see the registry pod and if there are any issues. Once the pod has started, the IP of the pod will
-    be added to the docker-registry service list so that it's reachable from other places.
-
-
-6. For the sake of this demo, grant a `cluster-admin` role to the `test-admin` user and login as that user using any password you want (note that in a real world scenario, as an OpenShift user you would be granted roles from a cluster admin and you might not be able to do most of the following things - depending on your granted roles).
+1. For the sake of this demo, grant a `cluster-admin` role to the `test-admin` user and login as that user using any password you want (note that in a real world scenario, as an OpenShift user you would be granted roles from a cluster admin and you might not be able to do most of the following things - depending on your granted roles).
 
         $ oc adm policy add-cluster-role-to-user cluster-admin test-admin --config=openshift.local.config/master/admin.kubeconfig
         $ oc login --certificate-authority=openshift.local.config/master/ca.crt -u test-admin
 
 
-7. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
+2. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
 
         $ oc new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3"
 
 
-8. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
+3. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
     * You will need to have the browser accept the certificate at
       `https://<host>:8443` before the console can consult the OpenShift
@@ -202,7 +122,7 @@ This section covers how to perform all the steps of building, deploying, and upd
       and run builds.
 
 
-9. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
+4. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
     to an OpenShift-visible git account that you control, preferably
     somewhere that can also reach your OpenShift server with a webhook.
     A github.com account is an obvious place for this, but an in-house
@@ -216,7 +136,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     OpenShift's public repository, just not a changed build.
 
 
-10. *Optional:* Add the following webhook under the settings in your new GitHub repository:
+5. *Optional:* Add the following webhook under the settings in your new GitHub repository:
 
         $ https://<host>:8443/osapi/v1/namespaces/test/buildconfigs/ruby-sample-build/webhooks/secret101/github
 
@@ -226,13 +146,13 @@ This section covers how to perform all the steps of building, deploying, and upd
     instance as the certificate chain generated is not publicly verified.
 
 
-11. Edit application-template-stibuild.json which will define the sample application
+6. Edit application-template-stibuild.json which will define the sample application
 
  * Update the BuildConfig's sourceURI (https://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
    *Note:* You can skip this step if you did not create a forked repository.
 
 
-12. Submit the application template for processing (generating shared parameters requested in the template)
+7. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
 
         $ oc new-app application-template-stibuild.json
@@ -258,7 +178,7 @@ This section covers how to perform all the steps of building, deploying, and upd
             deploymentconfig "database" created
         --> Success
             Build scheduled, use 'oc logs -f bc/ruby-sample-build' to track its progress.
-            Run 'oc status' to view your app. 
+            Run 'oc status' to view your app.
 
     Note that no build has actually occurred yet, so at this time there
     is no image to deploy and no application to visit. But since we've defined
@@ -266,7 +186,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     immediately.
 
 
-13. Monitor the progress of the build (this can take a few minutes):
+8. Monitor the progress of the build (this can take a few minutes):
 
         $ oc get builds
         NAME                  TYPE      FROM          STATUS    STARTED         DURATION
@@ -302,7 +222,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     pod each for the frontend (your Ruby code) and backend.
 
 
-14. Wait for the application's frontend pod and database pods to be started. By the time your build completes, the database pod will most probably have been deployed. Since your frontend depends on your build and once your build is complete, you can monitor your frontend deployment:
+9. Wait for the application's frontend pod and database pods to be started. By the time your build completes, the database pod will most probably have been deployed. Since your frontend depends on your build and once your build is complete, you can monitor your frontend deployment:
 
         $ oc logs -f dc/frontend
         I0310 12:36:46.976047       1 deployer.go:199] Deploying test/frontend-1 for the first time (replicas: 2)
@@ -319,7 +239,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         I0310 12:36:56.371762       1 lifecycle.go:168] Created lifecycle pod test/frontend-1-hook-post for deployment test/frontend-2
         I0310 12:36:56.371825       1 lifecycle.go:181] Watching logs for hook pod test/frontend-1-hook-post while awaiting completion
         I0310 12:37:00.209644       1 lifecycle.go:221] Finished reading logs for hook pod test/frontend-1-hook-post
-        I0310 12:37:00.236213       1 lifecycle.go:87] Hook failed, ignoring: 
+        I0310 12:37:00.236213       1 lifecycle.go:87] Hook failed, ignoring:
         I0310 12:37:00.236387       1 rolling.go:134] Post hook finished
 
 
@@ -335,7 +255,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 
 
-15. Determine the IP for the frontend service:
+10. Determine the IP for the frontend service:
 
         $ oc get services
         NAME       CLUSTER-IP      EXTERNAL-IP   PORT(S)    SELECTOR        AGE
@@ -347,7 +267,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     *Note:* you can also get this information from the web console.
 
 
-16. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
+11. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
 
 	- - -
 	**VAGRANT USERS:**
@@ -361,12 +281,12 @@ This section covers how to perform all the steps of building, deploying, and upd
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
 
-17. Make a change to your ruby sample main.html file, commit, and push it via git. If you do not have the webhook enabled, you'll have to manually trigger another build:
+12. Make a change to your ruby sample main.html file, commit, and push it via git. If you do not have the webhook enabled, you'll have to manually trigger another build:
 
         $ oc start-build ruby-sample-build
 
 
-18. Repeat step 13 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
+13. Repeat step 13 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
 Congratulations, you've successfully deployed and updated an application on OpenShift!
 
@@ -389,7 +309,7 @@ the ip address shown below with the correct one for your environment.
 
 
     Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will take some time.  Your pod will stay in Pending state while the pull is completed
-    
+
 
         $ docker pull openshift/origin-haproxy-router
 

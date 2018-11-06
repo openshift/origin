@@ -36,7 +36,6 @@ readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
   cmd/hypershift
   cmd/template-service-broker
-  cmd/openshift-node-config
   cmd/openshift-sdn
   cmd/openshift
   vendor/k8s.io/kubernetes/cmd/hyperkube
@@ -351,12 +350,6 @@ function os::build::check_binaries() {
     size=$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/oc" | cut -f 1)
     if [[ "${size}" -gt "118" ]]; then
       os::log::fatal "oc binary has grown substantially to ${size}. You must have approval before bumping this limit."
-    fi
-  fi
-  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" ]]; then
-    size=$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)
-    if [[ "${size}" -gt "32" ]]; then
-      os::log::fatal "openshift-node-config binary has grown substantially to ${size}. You must have approval before bumping this limit."
     fi
   fi
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/pod" ]]; then
