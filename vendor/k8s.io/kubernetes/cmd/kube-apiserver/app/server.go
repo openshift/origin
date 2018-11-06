@@ -645,8 +645,6 @@ func BuildStorageFactory(s *options.ServerRunOptions, apiResourceConfig *servers
 		return nil, fmt.Errorf("error in initializing storage factory: %s", err)
 	}
 
-	storageFactory.SetResourceEtcdPrefix(schema.GroupResource{Group: "apiregistration.k8s.io", Resource: "apiservices"}, "apiservices")
-
 	storageFactory.AddCohabitatingResources(networking.Resource("networkpolicies"), extensions.Resource("networkpolicies"))
 	storageFactory.AddCohabitatingResources(apps.Resource("deployments"), extensions.Resource("deployments"))
 	storageFactory.AddCohabitatingResources(apps.Resource("daemonsets"), extensions.Resource("daemonsets"))

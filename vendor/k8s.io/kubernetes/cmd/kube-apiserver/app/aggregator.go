@@ -35,10 +35,10 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
 	kubeexternalinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
-	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
@@ -47,7 +47,6 @@ import (
 	informers "k8s.io/kube-aggregator/pkg/client/informers/internalversion/apiregistration/internalversion"
 	"k8s.io/kube-aggregator/pkg/controllers/autoregister"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/master/controller/crdregistration"
 )
 
@@ -79,10 +78,7 @@ func createAggregatorConfig(
 	// copy the etcd options so we don't mutate originals.
 	etcdOptions := *commandOptions.Etcd
 	etcdOptions.StorageConfig.Codec = aggregatorscheme.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion)
-	// openshift accidentally wired the wrong RESTOptionsGetter here and stored in apiservices instead under a group.
-	// this patch installs the types in the scheme and re-uses the restoptions from the kubeapiserver
-	aggregatorinstall.Install(legacyscheme.Scheme)
-	//genericConfig.RESTOptionsGetter = &genericoptions.SimpleRestOptionsFactory{Options: etcdOptions}
+	genericConfig.RESTOptionsGetter = &genericoptions.SimpleRestOptionsFactory{Options: etcdOptions}
 
 	// override MergedResourceConfig with aggregator defaults and registry
 	if err := commandOptions.APIEnablement.ApplyTo(
