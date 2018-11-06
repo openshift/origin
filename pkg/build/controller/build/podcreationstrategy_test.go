@@ -14,7 +14,7 @@ type testPodCreationStrategy struct {
 	err error
 }
 
-func (s *testPodCreationStrategy) CreateBuildPod(b *buildv1.Build) (*v1.Pod, error) {
+func (s *testPodCreationStrategy) CreateBuildPod(b *buildv1.Build, includeCA bool) (*v1.Pod, error) {
 	return s.pod, s.err
 }
 
@@ -96,7 +96,7 @@ func TestStrategyCreateBuildPod(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		pod, err := test.strategy.CreateBuildPod(test.build)
+		pod, err := test.strategy.CreateBuildPod(test.build, true)
 		if test.expectError {
 			if err == nil {
 				t.Errorf("Expected error but did not get one")

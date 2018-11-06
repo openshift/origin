@@ -112,4 +112,8 @@ const (
 	// CustomBuildStrategyBaseImageKey is the environment variable that indicates the base image to be used when
 	// performing a custom build, if needed.
 	CustomBuildStrategyBaseImageKey = "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE"
+
+	// AdditionalTrustedCAKey is the ConfigMap key for the certificate bundle containing additional
+	// trusted CAs used by builds.
+	AdditionalTrustedCAKey = "additional-ca.crt"
 )

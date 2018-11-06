@@ -2,6 +2,9 @@ package build
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -40,6 +43,14 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+)
+
+const (
+	dummyCA = `
+	---- BEGIN CERTIFICATE ----
+	VEhJUyBJUyBBIEJBRCBDRVJUSUZJQ0FURQo=
+	---- END CERTIFICATE ----
+	`
 )
 
 // TestHandleBuild is the main test for build updates through the controller
@@ -594,7 +605,7 @@ func TestCreateBuildPodWithImageStreamUnresolved(t *testing.T) {
 
 type errorStrategy struct{}
 
-func (*errorStrategy) CreateBuildPod(build *buildv1.Build) (*corev1.Pod, error) {
+func (*errorStrategy) CreateBuildPod(build *buildv1.Build, includeCA bool) (*corev1.Pod, error) {
 	return nil, fmt.Errorf("error")
 }
 
@@ -1139,6 +1150,7 @@ func TestSetBuildCompletionTimestampAndDuration(t *testing.T) {
 
 func TestCreateBuildCAConfigMap(t *testing.T) {
 	bc := newFakeBuildController(nil, nil, nil, nil)
+	bc.additionalTrustedCAData = []byte(dummyCA)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 	pod := mockBuildPod(build)
@@ -1157,6 +1169,37 @@ func TestCreateBuildCAConfigMap(t *testing.T) {
 	if val != "true" {
 		t.Errorf("expected annotation %s to be %s; got %s", injectAnnotation, "true", val)
 	}
+	if _, hasCA := caMap.Data[buildutil.AdditionalTrustedCAKey]; !hasCA {
+		t.Errorf("expected CA configMap to have key %s", buildutil.AdditionalTrustedCAKey)
+	}
+	if caMap.Data[buildutil.AdditionalTrustedCAKey] != dummyCA {
+		t.Errorf("expected CA configMap.%s to contain\n%s\ngot:\n%s", buildutil.AdditionalTrustedCAKey, dummyCA, caMap.Data[buildutil.AdditionalTrustedCAKey])
+	}
+
+}
+
+func TestReadBuildCAData(t *testing.T) {
+	bc := newFakeBuildController(nil, nil, nil, nil)
+	defer bc.stop()
+	tmpDir, err := ioutil.TempDir("", "build-ctrl-test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+	testFile := filepath.Join(tmpDir, "test-ca.crt")
+	err = ioutil.WriteFile(testFile, []byte(dummyCA), 0600)
+	if err != nil {
+		t.Fatalf("failed to create test CA bundle: %v", err)
+	}
+	bc.additionalTrustedCAPath = testFile
+	caData, err := bc.readBuildCAData()
+	if err != nil {
+		t.Fatalf("error reading CA data: %v", err)
+	}
+	if dummyCA != string(caData) {
+		t.Errorf("expected additional trusted CA bundle to contain:\n%s\ngot:\n%s", dummyCA, string(caData))
+	}
+
 }
 
 func mockBuild(phase buildv1.BuildPhase, output buildv1.BuildOutput) *buildv1.Build {
