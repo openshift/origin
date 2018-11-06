@@ -16,15 +16,15 @@ import (
 	scsv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/service-serving-cert-signer/pkg/operator/v310_00_assets"
 )
 
 // syncSigningController_v311_00_to_latest takes care of synchronizing (not upgrading) the thing we're managing.
 // most of the time the sync method will be good for a large span of minor versions
-func syncSigningController_v311_00_to_latest(c ServiceCertSignerOperator, operatorConfig *scsv1alpha1.ServiceCertSignerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailablity) (operatorsv1alpha1.VersionAvailablity, []error) {
-	versionAvailability := operatorsv1alpha1.VersionAvailablity{
+func syncSigningController_v311_00_to_latest(c ServiceCertSignerOperator, operatorConfig *scsv1alpha1.ServiceCertSignerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailability) (operatorsv1alpha1.VersionAvailability, []error) {
+	versionAvailability := operatorsv1alpha1.VersionAvailability{
 		Version: operatorConfig.Spec.Version,
 	}
 
@@ -90,7 +90,7 @@ func syncSigningController_v311_00_to_latest(c ServiceCertSignerOperator, operat
 		errors = append(errors, fmt.Errorf("%q: %v", "deployment", err))
 	}
 
-	return resourcemerge.ApplyGenerationAvailability(versionAvailability, actualDeployment, errors...), errors
+	return resourcemerge.ApplyDeploymentGenerationAvailability(versionAvailability, actualDeployment, errors...), errors
 }
 
 func manageSigningConfigMap_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, operatorConfig *scsv1alpha1.ServiceCertSignerOperatorConfig) (*corev1.ConfigMap, bool, error) {
@@ -128,7 +128,7 @@ func manageSigningSecret_v311_00_to_latest(client coreclientv1.SecretsGetter) (*
 	return resourceapply.ApplySecret(client, secret)
 }
 
-func manageSignerDeployment_v311_00_to_latest(client appsclientv1.DeploymentsGetter, options *scsv1alpha1.ServiceCertSignerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailablity, forceDeployment bool) (*appsv1.Deployment, bool, error) {
+func manageSignerDeployment_v311_00_to_latest(client appsclientv1.DeploymentsGetter, options *scsv1alpha1.ServiceCertSignerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailability, forceDeployment bool) (*appsv1.Deployment, bool, error) {
 	required := resourceread.ReadDeploymentV1OrDie(v310_00_assets.MustAsset("v3.10.0/service-serving-cert-signer-controller/deployment.yaml"))
 	required.Spec.Template.Spec.Containers[0].Image = options.Spec.ImagePullSpec
 	required.Spec.Template.Spec.Containers[0].Args = append(required.Spec.Template.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", options.Spec.Logging.Level))

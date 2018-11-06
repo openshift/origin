@@ -9,7 +9,7 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 
 verify="${VERIFY:-}"
 
-for group in apps authorization build image network oauth project quota route security template user; do
+for group in apps authorization build config image network oauth project quota route security template user; do
   ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
     github.com/openshift/client-go/${group} \
     github.com/openshift/api \

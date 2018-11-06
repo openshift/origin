@@ -11,7 +11,7 @@ toc::[]
 
 == Description
 [%hardbreaks]
-Image is an immutable representation of a Docker image and metadata at a point in time.
+Image is an immutable representation of a container image and metadata at a point in time.
 
 == Object Schema
 Expand or mouse-over a field for more information about it.

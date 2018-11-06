@@ -14,25 +14,25 @@ import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
 // Package-wide variables from generator "generated".
 option go_package = "v1";
 
-// DockerImageReference points to a Docker image.
+// DockerImageReference points to a container image.
 message DockerImageReference {
-  // Registry is the registry that contains the Docker image
+  // Registry is the registry that contains the container image
   optional string registry = 1;
 
-  // Namespace is the namespace that contains the Docker image
+  // Namespace is the namespace that contains the container image
   optional string namespace = 2;
 
-  // Name is the name of the Docker image
+  // Name is the name of the container image
   optional string name = 3;
 
-  // Tag is which tag of the Docker image is being referenced
+  // Tag is which tag of the container image is being referenced
   optional string tag = 4;
 
-  // ID is the identifier for the Docker image
+  // ID is the identifier for the container image
   optional string iD = 5;
 }
 
-// Image is an immutable representation of a Docker image and metadata at a point in time.
+// Image is an immutable representation of a container image and metadata at a point in time.
 message Image {
   // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
@@ -201,7 +201,7 @@ message ImageSignature {
 }
 
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
-// when images are tagged in a stream, and an optional reference to a Docker image
+// when images are tagged in a stream, and an optional reference to a container image
 // repository on a registry.
 message ImageStream {
   // Standard object's metadata.
@@ -223,8 +223,8 @@ message ImageStreamImage {
   optional Image image = 2;
 }
 
-// The image stream import resource provides an easy way for a user to find and import Docker images
-// from other Docker registries into the server. Individual images or an entire image repository may
+// The image stream import resource provides an easy way for a user to find and import container images
+// from other container image registries into the server. Individual images or an entire image repository may
 // be imported, and users may choose to see the results of the import prior to tagging the resulting
 // images into the specified image stream.
 // 
@@ -248,7 +248,7 @@ message ImageStreamImportSpec {
   // and status of the image stream defined by the type meta.
   optional bool import = 1;
 
-  // Repository is an optional import of an entire Docker image repository. A maximum limit on the
+  // Repository is an optional import of an entire container image repository. A maximum limit on the
   // number of tags imported this way is imposed by the server.
   optional RepositoryImportSpec repository = 2;
 
@@ -291,13 +291,13 @@ message ImageStreamList {
   repeated ImageStream items = 2;
 }
 
-// ImageStreamMapping represents a mapping from a single tag to a Docker image as
-// well as the reference to the Docker image stream the image came from.
+// ImageStreamMapping represents a mapping from a single tag to a container image as
+// well as the reference to the container image stream the image came from.
 message ImageStreamMapping {
   // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
-  // Image is a Docker image.
+  // Image is a container image.
   optional Image image = 2;
 
   // Tag is a string value this image can be located with inside the stream.
@@ -309,7 +309,7 @@ message ImageStreamSpec {
   // lookupPolicy controls how other resources reference images within this namespace.
   optional ImageLookupPolicy lookupPolicy = 3;
 
-  // dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server
+  // dockerImageRepository is optional, if specified this stream is backed by a container repository on this server
   // Deprecated: This field is deprecated as of v3.7 and will be removed in a future release.
   // Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.
   optional string dockerImageRepository = 1;
@@ -385,9 +385,9 @@ message NamedTagEventList {
   repeated TagEventCondition conditions = 3;
 }
 
-// RepositoryImportSpec describes a request to import images from a Docker image repository.
+// RepositoryImportSpec describes a request to import images from a container image repository.
 message RepositoryImportSpec {
-  // From is the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed
+  // From is the source for the image repository to import; only kind DockerImage and a name of a container image repository is allowed
   optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // ImportPolicy is the policy controlling how the image is imported
@@ -546,7 +546,7 @@ message TagReferencePolicy {
   // Type determines how the image pull spec should be transformed when the image stream tag is used in
   // deployment config triggers or new builds. The default value is `Source`, indicating the original
   // location of the image should be used (if imported). The user may also specify `Local`, indicating
-  // that the pull spec should point to the integrated Docker registry and leverage the registry's
+  // that the pull spec should point to the integrated container image registry and leverage the registry's
   // ability to proxy the pull to an upstream registry. `Local` allows the credentials used to pull this
   // image to be managed from the image stream's namespace, so others on the platform can access a remote
   // image but have no access to the remote secret. It also allows the image layers to be mirrored into

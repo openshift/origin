@@ -1,12 +1,26 @@
 package configdefaults
 
 import (
+	"time"
+
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 )
 
 func DefaultString(target *string, defaultVal string) {
 	if len(*target) == 0 {
+		*target = defaultVal
+	}
+}
+
+func DefaultInt(target *int, defaultVal int) {
+	if *target == 0 {
+		*target = defaultVal
+	}
+}
+
+func DefaultMetaDuration(target *time.Duration, defaultVal time.Duration) {
+	if *target == 0 {
 		*target = defaultVal
 	}
 }

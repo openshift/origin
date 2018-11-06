@@ -14,7 +14,7 @@ $ oc get nodes
 ### Create a project
 $ oc new-project testproject
 ### Create an app
-$ oc new-app https://github.com/openshift/cakephp-ex
+$ oc new-app https://github.com/sclorg/cakephp-ex
 $ oc get build
 NAME           TYPE      FROM          STATUS     STARTED          DURATION
 cakephp-ex-1   Source    Git@e04b8cc   Complete   37 minutes ago   1m39s

@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/util/logs"
 
+	configv1 "github.com/openshift/api/config/v1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	servicecertsignerv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -21,8 +22,9 @@ import (
 )
 
 var (
-	componentName = "openshift-service-serving-cert-signer"
-	configScheme  = runtime.NewScheme()
+	componentName      = "openshift-service-serving-cert-signer-apiservice-injector"
+	componentNamespace = "openshift-service-cert-signer"
+	configScheme       = runtime.NewScheme()
 )
 
 func init() {
@@ -81,9 +83,9 @@ func (o *ControllerCommandOptions) StartController() error {
 		return fmt.Errorf("unexpected config: %T", uncastConfig)
 	}
 
-	return controllercmd.NewController(componentName, (&apiservicecabundle.APIServiceCABundleInjectorOptions{Config: config}).RunAPIServiceCABundleInjector).
+	opts := &apiservicecabundle.APIServiceCABundleInjectorOptions{Config: config, LeaderElection: configv1.LeaderElection{}}
+	return controllercmd.NewController(componentName, opts.RunAPIServiceCABundleInjector).
 		WithKubeConfigFile(o.basicFlags.KubeConfigFile, nil).
-		// TODO we can update the API with leader election
-		//WithLeaderElection(config.LeaderElection, "", componentName+"-lock").
+		WithLeaderElection(opts.LeaderElection, componentNamespace, componentName+"-lock").
 		Run()
 }

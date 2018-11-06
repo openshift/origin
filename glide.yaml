@@ -41,8 +41,6 @@ import:
   version: master
 - package: github.com/openshift/client-go
   version: master
-- package: github.com/openshift/imagebuilder
-  version: master
 - package: github.com/openshift/library-go
   version: master
 - package: github.com/openshift/service-serving-cert-signer
@@ -140,10 +138,9 @@ import:
 # networking
 - package: github.com/containernetworking/plugins
   version: ~0.6.0
-# builds
+# builds/cli
 - package: github.com/fsouza/go-dockerclient
-  repo:    https://github.com/openshift/go-dockerclient.git
-  version: openshift-3.9
+  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 # auth (for testing)
 - package: github.com/vjeantet/ldapserver
   version: v1.0

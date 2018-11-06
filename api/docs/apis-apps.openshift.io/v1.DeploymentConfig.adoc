@@ -124,7 +124,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">            <span title="(string) The key of the secret to select from.  Must be a valid secret key.">key</span>:
 </div><div style="margin-left:13px;">            <span title="(string) Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names">name</span>:
 </div><div style="margin-left:13px;">            <span title="(boolean) Specify whether the Secret or it&#39;s key must be defined">optional</span>:
-</div></details></details></details><div style="margin-left:13px;">      <span title="(string) Image specifies a Docker image which can carry out a deployment.">image</span>:
+</div></details></details></details><div style="margin-left:13px;">      <span title="(string) Image specifies a container image which can carry out a deployment.">image</span>:
 </div></details><details><summary>    <span title="(object) Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.">labels</span>:
 </summary><div style="margin-left:13px;">      <span title="(string)">[string]</span>:
 </div></details><details><summary>    <span title="(v1.RecreateDeploymentStrategyParams) RecreateParams are the input to the Recreate deployment strategy.">recreateParams</span>:
@@ -132,7 +132,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><details><summary>        <span title="(v1.ExecNewPodHook) ExecNewPod specifies the options for a lifecycle hook backed by a pod.">execNewPod</span>:
 </summary><details><summary>          <span title="(array) Command is the action command and its arguments.">command</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
-</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod&#39;s container.">containerName</span>:
+</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose container image will be used for the hook pod&#39;s container.">containerName</span>:
 </div><details><summary>          <span title="(array) Env is a set of environment variables to supply to the hook pod&#39;s container.">env</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string) Name of the environment variable. Must be a C_IDENTIFIER.">name</span>:
 </div><div style="margin-left:13px;">            <span title="(string) Variable references $(VAR_NAME) are expanded using the previous defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to &#34;&#34;.">value</span>:
@@ -169,7 +169,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><details><summary>        <span title="(v1.ExecNewPodHook) ExecNewPod specifies the options for a lifecycle hook backed by a pod.">execNewPod</span>:
 </summary><details><summary>          <span title="(array) Command is the action command and its arguments.">command</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
-</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod&#39;s container.">containerName</span>:
+</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose container image will be used for the hook pod&#39;s container.">containerName</span>:
 </div><details><summary>          <span title="(array) Env is a set of environment variables to supply to the hook pod&#39;s container.">env</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string) Name of the environment variable. Must be a C_IDENTIFIER.">name</span>:
 </div><div style="margin-left:13px;">            <span title="(string) Variable references $(VAR_NAME) are expanded using the previous defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to &#34;&#34;.">value</span>:
@@ -206,7 +206,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><details><summary>        <span title="(v1.ExecNewPodHook) ExecNewPod specifies the options for a lifecycle hook backed by a pod.">execNewPod</span>:
 </summary><details><summary>          <span title="(array) Command is the action command and its arguments.">command</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
-</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod&#39;s container.">containerName</span>:
+</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose container image will be used for the hook pod&#39;s container.">containerName</span>:
 </div><details><summary>          <span title="(array) Env is a set of environment variables to supply to the hook pod&#39;s container.">env</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string) Name of the environment variable. Must be a C_IDENTIFIER.">name</span>:
 </div><div style="margin-left:13px;">            <span title="(string) Variable references $(VAR_NAME) are expanded using the previous defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to &#34;&#34;.">value</span>:
@@ -261,7 +261,7 @@ Example: when this is set to 30%, the old RC can be scaled down by 30% immediate
 </summary><details><summary>        <span title="(v1.ExecNewPodHook) ExecNewPod specifies the options for a lifecycle hook backed by a pod.">execNewPod</span>:
 </summary><details><summary>          <span title="(array) Command is the action command and its arguments.">command</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
-</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod&#39;s container.">containerName</span>:
+</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose container image will be used for the hook pod&#39;s container.">containerName</span>:
 </div><details><summary>          <span title="(array) Env is a set of environment variables to supply to the hook pod&#39;s container.">env</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string) Name of the environment variable. Must be a C_IDENTIFIER.">name</span>:
 </div><div style="margin-left:13px;">            <span title="(string) Variable references $(VAR_NAME) are expanded using the previous defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to &#34;&#34;.">value</span>:
@@ -298,7 +298,7 @@ Example: when this is set to 30%, the old RC can be scaled down by 30% immediate
 </summary><details><summary>        <span title="(v1.ExecNewPodHook) ExecNewPod specifies the options for a lifecycle hook backed by a pod.">execNewPod</span>:
 </summary><details><summary>          <span title="(array) Command is the action command and its arguments.">command</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
-</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod&#39;s container.">containerName</span>:
+</div></details><div style="margin-left:13px;">          <span title="(string) ContainerName is the name of a container in the deployment pod template whose container image will be used for the hook pod&#39;s container.">containerName</span>:
 </div><details><summary>          <span title="(array) Env is a set of environment variables to supply to the hook pod&#39;s container.">env</span>:
 </summary><div style="margin-left:13px;">          - <span title="(string) Name of the environment variable. Must be a C_IDENTIFIER.">name</span>:
 </div><div style="margin-left:13px;">            <span title="(string) Variable references $(VAR_NAME) are expanded using the previous defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to &#34;&#34;.">value</span>:

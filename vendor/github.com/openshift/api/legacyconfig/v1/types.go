@@ -156,7 +156,7 @@ type NodeNetworkConfig struct {
 // DockerConfig holds Docker related configuration options.
 type DockerConfig struct {
 	// ExecHandlerName is the name of the handler to use for executing
-	// commands in Docker containers.
+	// commands in containers.
 	ExecHandlerName DockerExecHandlerType `json:"execHandlerName"`
 	// DockerShimSocket is the location of the dockershim socket the kubelet uses.
 	// Currently unix socket is supported on Linux, and tcp is supported on windows.
@@ -386,7 +386,7 @@ type JenkinsPipelineConfig struct {
 // ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images
 type ImagePolicyConfig struct {
 	// MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user
-	// does a bulk import of a Docker repository. This number defaults to 50 to prevent users from
+	// does a bulk import of a container repository. This number defaults to 50 to prevent users from
 	// importing large numbers of images accidentally. Set -1 for no limit.
 	MaxImagesBulkImportedPerRepository int `json:"maxImagesBulkImportedPerRepository"`
 	// DisableScheduledImport allows scheduled background import of images to be disabled.
@@ -397,7 +397,7 @@ type ImagePolicyConfig struct {
 	// MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the
 	// background per minute. The default value is 60. Set to -1 for unlimited.
 	MaxScheduledImageImportsPerMinute int `json:"maxScheduledImageImportsPerMinute"`
-	// AllowedRegistriesForImport limits the docker registries that normal users may import
+	// AllowedRegistriesForImport limits the container image registries that normal users may import
 	// images from. Set this list to the registries that you trust to contain valid Docker
 	// images and that you want applications to be able to import from. Users with
 	// permission to create Images or ImageStreamMappings via the API are not affected by
@@ -456,7 +456,7 @@ type SecurityAllocator struct {
 	// UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the
 	// block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks
 	// before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the
-	// ranges Docker images will use once user namespaces are started).
+	// ranges container images will use once user namespaces are started).
 	UIDAllocatorRange string `json:"uidAllocatorRange"`
 	// MCSAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is
 	// "<prefix>/<numberOfLabels>[,<maxCategory>]". The default is "s0/2" and will allocate from c0 -> c1023, which means a total of 535k labels
@@ -1477,7 +1477,7 @@ type BuildDefaultsConfig struct {
 	// source strategy.
 	SourceStrategyDefaults *SourceStrategyDefaultsConfig `json:"sourceStrategyDefaults,omitempty"`
 
-	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// imageLabels is a list of labels that are applied to the resulting image.
 	// User can override a default label by providing a label with the same name in their
 	// Build/BuildConfig.
 	ImageLabels []buildv1.ImageLabel `json:"imageLabels,omitempty"`
@@ -1510,7 +1510,7 @@ type BuildOverridesConfig struct {
 	// forcePull indicates whether the build strategy should always be set to ForcePull=true
 	ForcePull bool `json:"forcePull"`
 
-	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// imageLabels is a list of labels that are applied to the resulting image.
 	// If user provided a label in their Build/BuildConfig with the same name as one in this
 	// list, the user's label will be overwritten.
 	ImageLabels []buildv1.ImageLabel `json:"imageLabels,omitempty"`

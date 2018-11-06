@@ -9,11 +9,13 @@ import (
 	apiserviceclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	apiserviceinformer "k8s.io/kube-aggregator/pkg/client/informers/externalversions"
 
+	configv1 "github.com/openshift/api/config/v1"
 	servicecertsignerv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
 )
 
 type APIServiceCABundleInjectorOptions struct {
-	Config *servicecertsignerv1alpha1.APIServiceCABundleInjectorConfig
+	Config         *servicecertsignerv1alpha1.APIServiceCABundleInjectorConfig
+	LeaderElection configv1.LeaderElection
 }
 
 func (o *APIServiceCABundleInjectorOptions) RunAPIServiceCABundleInjector(clientConfig *rest.Config, stopCh <-chan struct{}) error {

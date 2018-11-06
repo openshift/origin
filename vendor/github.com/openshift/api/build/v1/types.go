@@ -64,7 +64,7 @@ type CommonSpec struct {
 	// strategy defines how to perform a build.
 	Strategy BuildStrategy `json:"strategy" protobuf:"bytes,4,opt,name=strategy"`
 
-	// output describes the Docker image the Strategy should produce.
+	// output describes the container image the Strategy should produce.
 	Output BuildOutput `json:"output,omitempty" protobuf:"bytes,5,opt,name=output"`
 
 	// resources computes resource requirements to execute the build.
@@ -200,7 +200,7 @@ type BuildStatus struct {
 	// duration contains time.Duration object describing build time.
 	Duration time.Duration `json:"duration,omitempty" protobuf:"varint,7,opt,name=duration,casttype=time.Duration"`
 
-	// outputDockerImageReference contains a reference to the Docker image that
+	// outputDockerImageReference contains a reference to the container image that
 	// will be built by this build. Its value is computed from
 	// Build.Spec.Output.To, and should include the registry address, so that
 	// it can be used to push and pull the image.
@@ -209,7 +209,7 @@ type BuildStatus struct {
 	// config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *corev1.ObjectReference `json:"config,omitempty" protobuf:"bytes,9,opt,name=config"`
 
-	// output describes the Docker image the build has produced.
+	// output describes the container image the build has produced.
 	Output BuildStatusOutput `json:"output,omitempty" protobuf:"bytes,10,opt,name=output"`
 
 	// stages contains details about each stage that occurs during the build
@@ -297,10 +297,10 @@ const (
 	// StepPushImage pushes an image to the registry.
 	StepPushImage StepName = "PushImage"
 
-	// StepPushDockerImage pushes a docker image to the registry.
+	// StepPushDockerImage pushes a container image to the registry.
 	StepPushDockerImage StepName = "PushDockerImage"
 
-	//StepDockerBuild performs the docker build
+	//StepDockerBuild performs the container image build
 	StepDockerBuild StepName = "DockerBuild"
 )
 
@@ -346,7 +346,7 @@ type BuildStatusOutput struct {
 // BuildStatusOutputTo describes the status of the built image with regards to
 // image registry to which it was supposed to be pushed.
 type BuildStatusOutputTo struct {
-	// imageDigest is the digest of the built Docker image. The digest uniquely
+	// imageDigest is the digest of the built container image. The digest uniquely
 	// identifies the image in the registry to which it was pushed.
 	//
 	// Please note that this field may not always be set even if the push
@@ -379,10 +379,10 @@ type BuildSource struct {
 	Type BuildSourceType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=BuildSourceType"`
 
 	// binary builds accept a binary as their input. The binary is generally assumed to be a tar,
-	// gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build
+	// gzipped tar, or zip file depending on the strategy. For container image builds, this is the build
 	// context and an optional Dockerfile may be specified to override any Dockerfile in the
 	// build context. For Source builds, this is assumed to be an archive as described above. For
-	// Source and Docker builds, if binary.asFile is set the build will receive a directory with
+	// Source and container image builds, if binary.asFile is set the build will receive a directory with
 	// a single file. contextDir may be used when an archive is provided. Custom builds will
 	// receive this binary as input on STDIN.
 	Binary *BinaryBuildSource `json:"binary,omitempty" protobuf:"bytes,2,opt,name=binary"`
@@ -427,14 +427,14 @@ type BuildSource struct {
 // A pull secret can be specified to pull the image from an external registry or override the default
 // service account secret if pulling from the internal registry. Image sources can either be used to
 // extract content from an image and place it into the build context along with the repository source,
-// or used directly during a multi-stage Docker build to allow content to be copied without overwriting
+// or used directly during a multi-stage container image build to allow content to be copied without overwriting
 // the contents of the repository source (see the 'paths' and 'as' fields).
 type ImageSource struct {
 	// from is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to
 	// copy source from.
 	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 
-	// A list of image names that this source will be used in place of during a multi-stage Docker image
+	// A list of image names that this source will be used in place of during a multi-stage container image
 	// build. For instance, a Dockerfile that uses "COPY --from=nginx:latest" will first check for an image
 	// source that has "nginx:latest" in this field before attempting to pull directly. If the Dockerfile
 	// does not reference an image source it is ignored. This field and paths may both be set, in which case
@@ -479,9 +479,9 @@ type SecretBuildSource struct {
 	// For the Source build strategy, these will be injected into a container
 	// where the assemble script runs. Later, when the script finishes, all files
 	// injected will be truncated to zero length.
-	// For the Docker build strategy, these will be copied into the build
+	// For the container image build strategy, these will be copied into the build
 	// directory, where the Dockerfile is located, so users can ADD or COPY them
-	// during docker build.
+	// during container image build.
 	DestinationDir string `json:"destinationDir,omitempty" protobuf:"bytes,2,opt,name=destinationDir"`
 }
 
@@ -497,9 +497,9 @@ type ConfigMapBuildSource struct {
 	// available for the build time.
 	// For the Source build strategy, these will be injected into a container
 	// where the assemble script runs.
-	// For the Docker build strategy, these will be copied into the build
+	// For the container image build strategy, these will be copied into the build
 	// directory, where the Dockerfile is located, so users can ADD or COPY them
-	// during docker build.
+	// during container image build.
 	DestinationDir string `json:"destinationDir,omitempty" protobuf:"bytes,2,opt,name=destinationDir"`
 }
 
@@ -580,7 +580,7 @@ type BuildStrategy struct {
 	// +k8s:conversion-gen=false
 	Type BuildStrategyType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=BuildStrategyType"`
 
-	// dockerStrategy holds the parameters to the Docker build strategy.
+	// dockerStrategy holds the parameters to the container image build strategy.
 	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty" protobuf:"bytes,2,opt,name=dockerStrategy"`
 
 	// sourceStrategy holds the parameters to the Source build strategy.
@@ -605,7 +605,7 @@ const (
 	// and a builder image.
 	SourceBuildStrategyType BuildStrategyType = "Source"
 
-	// CustomBuildStrategyType performs builds using custom builder Docker image.
+	// CustomBuildStrategyType performs builds using custom builder container image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
 
 	// JenkinsPipelineBuildStrategyType indicates the build will run via Jenkine Pipeline.
@@ -615,19 +615,19 @@ const (
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
 	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
+	// the container image should be pulled
 	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 
 	// pullSecret is the name of a Secret that would be used for setting up
-	// the authentication for pulling the Docker images from the private Docker
+	// the authentication for pulling the container images from the private Docker
 	// registries
 	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
 
 	// env contains additional environment variables you want to pass into a builder container.
 	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 
-	// exposeDockerSocket will allow running Docker commands (and build Docker images) from
-	// inside the Docker container.
+	// exposeDockerSocket will allow running Docker commands (and build container images) from
+	// inside the container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool `json:"exposeDockerSocket,omitempty" protobuf:"varint,4,opt,name=exposeDockerSocket"`
 
@@ -646,8 +646,8 @@ type CustomBuildStrategy struct {
 type ImageOptimizationPolicy string
 
 const (
-	// ImageOptimizationNone will generate a canonical Docker image as produced by the
-	// `docker build` command.
+	// ImageOptimizationNone will generate a canonical container image as produced by the
+	// `container image build` command.
 	ImageOptimizationNone ImageOptimizationPolicy = "None"
 
 	// ImageOptimizationSkipLayers is an experimental policy and will avoid creating
@@ -663,19 +663,19 @@ const (
 	ImageOptimizationSkipLayersAndWarn ImageOptimizationPolicy = "SkipLayersAndWarn"
 )
 
-// DockerBuildStrategy defines input parameters specific to Docker build.
+// DockerBuildStrategy defines input parameters specific to container image build.
 type DockerBuildStrategy struct {
 	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
+	// the container image should be pulled
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *corev1.ObjectReference `json:"from,omitempty" protobuf:"bytes,1,opt,name=from"`
 
 	// pullSecret is the name of a Secret that would be used for setting up
-	// the authentication for pulling the Docker images from the private Docker
+	// the authentication for pulling the container images from the private Docker
 	// registries
 	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
 
-	// noCache if set to true indicates that the docker build must be executed with the
+	// noCache if set to true indicates that the container image build must be executed with the
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty" protobuf:"varint,3,opt,name=noCache"`
 
@@ -685,7 +685,7 @@ type DockerBuildStrategy struct {
 	// forcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty" protobuf:"varint,5,opt,name=forcePull"`
 
-	// dockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
+	// dockerfilePath is the path of the Dockerfile that will be used to build the container image,
 	// relative to the root of the context (contextDir).
 	DockerfilePath string `json:"dockerfilePath,omitempty" protobuf:"bytes,6,opt,name=dockerfilePath"`
 
@@ -695,7 +695,7 @@ type DockerBuildStrategy struct {
 
 	// imageOptimizationPolicy describes what optimizations the system can use when building images
 	// to reduce the final size or time spent building the image. The default policy is 'None' which
-	// means the final build image will be equivalent to an image created by the Docker build API.
+	// means the final build image will be equivalent to an image created by the container image build API.
 	// The experimental policy 'SkipLayers' will avoid commiting new layers in between each
 	// image step, and will fail if the Dockerfile cannot provide compatibility with the 'None'
 	// policy. An additional experimental policy 'SkipLayersAndWarn' is the same as
@@ -706,11 +706,11 @@ type DockerBuildStrategy struct {
 // SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategy struct {
 	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
+	// the container image should be pulled
 	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 
 	// pullSecret is the name of a Secret that would be used for setting up
-	// the authentication for pulling the Docker images from the private Docker
+	// the authentication for pulling the container images from the private Docker
 	// registries
 	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
 
@@ -820,7 +820,7 @@ type BuildPostCommitSpec struct {
 	// more convenient.
 	Command []string `json:"command,omitempty" protobuf:"bytes,1,rep,name=command"`
 	// args is a list of arguments that are provided to either Command,
-	// Script or the Docker image's default entrypoint. The arguments are
+	// Script or the container image's default entrypoint. The arguments are
 	// placed immediately after the command to be run.
 	Args []string `json:"args,omitempty" protobuf:"bytes,2,rep,name=args"`
 	// script is a shell script to be run with `/bin/sh -ic`. It may not be
@@ -836,12 +836,12 @@ type BuildPostCommitSpec struct {
 	Script string `json:"script,omitempty" protobuf:"bytes,3,opt,name=script"`
 }
 
-// BuildOutput is input to a build strategy and describes the Docker image that the strategy
+// BuildOutput is input to a build strategy and describes the container image that the strategy
 // should produce.
 type BuildOutput struct {
 	// to defines an optional location to push the output of this build to.
 	// Kind must be one of 'ImageStreamTag' or 'DockerImage'.
-	// This value will be used to look up a Docker image repository to push to.
+	// This value will be used to look up a container image repository to push to.
 	// In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of
 	// the build unless Namespace is specified.
 	To *corev1.ObjectReference `json:"to,omitempty" protobuf:"bytes,1,opt,name=to"`
@@ -869,7 +869,7 @@ type ImageLabel struct {
 // +genclient:method=Instantiate,verb=create,subresource=instantiate,input=BuildRequest,result=Build
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Build configurations define a build process for new Docker images. There are three types of builds possible - a Docker build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary Docker images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the Docker registry specified in the "output" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.
+// Build configurations define a build process for new container images. There are three types of builds possible - a container image build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary container images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the container image registry specified in the "output" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.
 //
 // Each build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have "output" set can be used to test code or run a verification build.
 type BuildConfig struct {
@@ -1092,7 +1092,7 @@ type BuildLog struct {
 	metav1.TypeMeta `json:",inline"`
 }
 
-// DockerStrategyOptions contains extra strategy options for Docker builds
+// DockerStrategyOptions contains extra strategy options for container image builds
 type DockerStrategyOptions struct {
 	// Args contains any build arguments that are to be passed to Docker.  See
 	// https://docs.docker.com/engine/reference/builder/#/arg for more details

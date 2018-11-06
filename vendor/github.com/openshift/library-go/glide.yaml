@@ -24,6 +24,8 @@ import:
 # sig-master - transitive through raven-go, this is the level we had when we noticed
 - package: github.com/certifi/gocertifi
   version: ee1a9a0726d2ae45f54118cac878c990d4016ded
+- package: github.com/jteeuwen/go-bindata
+  version: a0ff2567cfb70903282db057e799fd826784d41d
 
 # matches kube
 - package: github.com/spf13/cobra

@@ -124,7 +124,7 @@ func (c ServiceCertSignerOperator) sync() error {
 	errors := []error{}
 	switch {
 	case v310_00_to_unknown.BetweenOrEmpty(currentActualVerion) && v310_00_to_unknown.Between(&desiredVersion):
-		var versionAvailability operatorsv1alpha1.VersionAvailablity
+		var versionAvailability operatorsv1alpha1.VersionAvailability
 		operatorConfig.Status.TaskSummary = "sync-[3.10.0,3.10.1)"
 		operatorConfig.Status.TargetAvailability = nil
 		versionAvailability, errors = sync_v311_00_to_latest(c, operatorConfig, operatorConfig.Status.CurrentAvailability)

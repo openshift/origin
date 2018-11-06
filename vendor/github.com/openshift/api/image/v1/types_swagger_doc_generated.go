@@ -12,12 +12,12 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_DockerImageReference = map[string]string{
-	"":          "DockerImageReference points to a Docker image.",
-	"Registry":  "Registry is the registry that contains the Docker image",
-	"Namespace": "Namespace is the namespace that contains the Docker image",
-	"Name":      "Name is the name of the Docker image",
-	"Tag":       "Tag is which tag of the Docker image is being referenced",
-	"ID":        "ID is the identifier for the Docker image",
+	"":          "DockerImageReference points to a container image.",
+	"Registry":  "Registry is the registry that contains the container image",
+	"Namespace": "Namespace is the namespace that contains the container image",
+	"Name":      "Name is the name of the container image",
+	"Tag":       "Tag is which tag of the container image is being referenced",
+	"ID":        "ID is the identifier for the container image",
 }
 
 func (DockerImageReference) SwaggerDoc() map[string]string {
@@ -25,7 +25,7 @@ func (DockerImageReference) SwaggerDoc() map[string]string {
 }
 
 var map_Image = map[string]string{
-	"":                             "Image is an immutable representation of a Docker image and metadata at a point in time.",
+	"":                             "Image is an immutable representation of a container image and metadata at a point in time.",
 	"metadata":                     "Standard object's metadata.",
 	"dockerImageReference":         "DockerImageReference is the string that can be used to pull this image.",
 	"dockerImageMetadata":          "DockerImageMetadata contains metadata about this image",
@@ -135,7 +135,7 @@ func (ImageSignature) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStream = map[string]string{
-	"":         "ImageStream stores a mapping of tags to images, metadata overrides that are applied when images are tagged in a stream, and an optional reference to a Docker image repository on a registry.",
+	"":         "ImageStream stores a mapping of tags to images, metadata overrides that are applied when images are tagged in a stream, and an optional reference to a container image repository on a registry.",
 	"metadata": "Standard object's metadata.",
 	"spec":     "Spec describes the desired state of this stream",
 	"status":   "Status describes the current state of this stream",
@@ -156,7 +156,7 @@ func (ImageStreamImage) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamImport = map[string]string{
-	"":         "The image stream import resource provides an easy way for a user to find and import Docker images from other Docker registries into the server. Individual images or an entire image repository may be imported, and users may choose to see the results of the import prior to tagging the resulting images into the specified image stream.\n\nThis API is intended for end-user tools that need to see the metadata of the image prior to import (for instance, to generate an application from it). Clients that know the desired image can continue to create spec.tags directly into their image streams.",
+	"":         "The image stream import resource provides an easy way for a user to find and import container images from other container image registries into the server. Individual images or an entire image repository may be imported, and users may choose to see the results of the import prior to tagging the resulting images into the specified image stream.\n\nThis API is intended for end-user tools that need to see the metadata of the image prior to import (for instance, to generate an application from it). Clients that know the desired image can continue to create spec.tags directly into their image streams.",
 	"metadata": "Standard object's metadata.",
 	"spec":     "Spec is a description of the images that the user wishes to import",
 	"status":   "Status is the the result of importing the image",
@@ -169,7 +169,7 @@ func (ImageStreamImport) SwaggerDoc() map[string]string {
 var map_ImageStreamImportSpec = map[string]string{
 	"":           "ImageStreamImportSpec defines what images should be imported.",
 	"import":     "Import indicates whether to perform an import - if so, the specified tags are set on the spec and status of the image stream defined by the type meta.",
-	"repository": "Repository is an optional import of an entire Docker image repository. A maximum limit on the number of tags imported this way is imposed by the server.",
+	"repository": "Repository is an optional import of an entire container image repository. A maximum limit on the number of tags imported this way is imposed by the server.",
 	"images":     "Images are a list of individual images to import.",
 }
 
@@ -210,9 +210,9 @@ func (ImageStreamList) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamMapping = map[string]string{
-	"":         "ImageStreamMapping represents a mapping from a single tag to a Docker image as well as the reference to the Docker image stream the image came from.",
+	"":         "ImageStreamMapping represents a mapping from a single tag to a container image as well as the reference to the container image stream the image came from.",
 	"metadata": "Standard object's metadata.",
-	"image":    "Image is a Docker image.",
+	"image":    "Image is a container image.",
 	"tag":      "Tag is a string value this image can be located with inside the stream.",
 }
 
@@ -223,7 +223,7 @@ func (ImageStreamMapping) SwaggerDoc() map[string]string {
 var map_ImageStreamSpec = map[string]string{
 	"":                      "ImageStreamSpec represents options for ImageStreams.",
 	"lookupPolicy":          "lookupPolicy controls how other resources reference images within this namespace.",
-	"dockerImageRepository": "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server Deprecated: This field is deprecated as of v3.7 and will be removed in a future release. Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.",
+	"dockerImageRepository": "dockerImageRepository is optional, if specified this stream is backed by a container repository on this server Deprecated: This field is deprecated as of v3.7 and will be removed in a future release. Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.",
 	"tags":                  "tags map arbitrary string values to specific image locators",
 }
 
@@ -278,8 +278,8 @@ func (NamedTagEventList) SwaggerDoc() map[string]string {
 }
 
 var map_RepositoryImportSpec = map[string]string{
-	"":                "RepositoryImportSpec describes a request to import images from a Docker image repository.",
-	"from":            "From is the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed",
+	"":                "RepositoryImportSpec describes a request to import images from a container image repository.",
+	"from":            "From is the source for the image repository to import; only kind DockerImage and a name of a container image repository is allowed",
 	"importPolicy":    "ImportPolicy is the policy controlling how the image is imported",
 	"referencePolicy": "ReferencePolicy defines how other components should consume the image",
 	"includeManifest": "IncludeManifest determines if the manifest for each image is returned in the response",
@@ -394,7 +394,7 @@ func (TagReference) SwaggerDoc() map[string]string {
 
 var map_TagReferencePolicy = map[string]string{
 	"":     "TagReferencePolicy describes how pull-specs for images in this image stream tag are generated when image change triggers in deployment configs or builds are resolved. This allows the image stream author to control how images are accessed.",
-	"type": "Type determines how the image pull spec should be transformed when the image stream tag is used in deployment config triggers or new builds. The default value is `Source`, indicating the original location of the image should be used (if imported). The user may also specify `Local`, indicating that the pull spec should point to the integrated Docker registry and leverage the registry's ability to proxy the pull to an upstream registry. `Local` allows the credentials used to pull this image to be managed from the image stream's namespace, so others on the platform can access a remote image but have no access to the remote secret. It also allows the image layers to be mirrored into the local registry which the images can still be pulled even if the upstream registry is unavailable.",
+	"type": "Type determines how the image pull spec should be transformed when the image stream tag is used in deployment config triggers or new builds. The default value is `Source`, indicating the original location of the image should be used (if imported). The user may also specify `Local`, indicating that the pull spec should point to the integrated container image registry and leverage the registry's ability to proxy the pull to an upstream registry. `Local` allows the credentials used to pull this image to be managed from the image stream's namespace, so others on the platform can access a remote image but have no access to the remote secret. It also allows the image layers to be mirrored into the local registry which the images can still be pulled even if the upstream registry is unavailable.",
 }
 
 func (TagReferencePolicy) SwaggerDoc() map[string]string {

@@ -1,5 +1,5 @@
-hash: ac6dbd6bab6de923e6faddb7966a8b9e7b56d07183369819b85ec31f37a4971c
-updated: 2018-10-03T16:29:15.670011885-04:00
+hash: f2456ad942294612c1b98b764126de079fcaf3915fdc91653f94d73e66baaae4
+updated: 2018-11-05T13:31:13.552981925-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -339,7 +339,6 @@ imports:
   - api/types/volume
   - builder/dockerfile/command
   - builder/dockerfile/parser
-  - cli/config
   - client
   - opts
   - pkg/archive
@@ -403,8 +402,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fsouza/go-dockerclient
-  version: 7511300f03c521cfc8e07e88ea8c915add790f50
-  repo: https://github.com/openshift/go-dockerclient.git
+  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 - name: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/ghodss/yaml
@@ -607,11 +605,11 @@ imports:
   - pagination
   - testhelper
 - name: github.com/gorilla/context
-  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+  version: 51ce91d2eaddeca0ef29a71d766bb3634dadf729
 - name: github.com/gorilla/mux
-  version: 9e1f5955c0d22b55d9e20d6faa28589f83b2faca
+  version: 3d80bc801bb034e17cae38591335b3b1110f1c47
 - name: github.com/gorilla/securecookie
-  version: bb1ab76598893258e90f45d8a708a2505a95af2a
+  version: e65cf8c5df817c89aeb47ecb46064e802e2de943
 - name: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
 - name: github.com/gorilla/websocket
@@ -817,7 +815,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: c9d033a0b3c3dfca1c70722720c3aea184022496
+  version: 22c4ad19c5f2de1ffe266456e0a31e8fd1069f44
   subpackages:
   - apps
   - apps/v1
@@ -862,7 +860,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 431ec9a26e5021f35fa41ee9a89842db9bfdb370
+  version: 8641daf5752d24858c43f5f28feb2abc0afbfb2c
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -975,17 +973,9 @@ imports:
   - user/informers/externalversions/user
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
-- name: github.com/openshift/imagebuilder
-  version: fbd4f31c568b767447302e08fb3531b33bcbf837
-  subpackages:
-  - dockerclient
-  - imageprogress
-  - signal
-  - strslice
 - name: github.com/openshift/library-go
-  version: 80f2f78af2af54fd257580a3680cba397b79cc49
+  version: 85241b52707ef2beb85ad9254a176448c58ee021
   subpackages:
-  - pkg/assets
   - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/leaderelection
@@ -998,39 +988,23 @@ imports:
   - pkg/network/networkapihelpers
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: 20988243298ac483d5c7898842cf23ba115e1b50
+  version: c1b908459c67d8c03c2099878cefabaadd2a6403
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: 402b6f8302ae9a5c35643d939b607c715136ea36
+  version: 3c34ff83e47ae6947b157f053fd119bc378635ba
   subpackages:
   - pkg/api
   - pkg/api/constants
-  - pkg/api/describe
-  - pkg/api/validation
-  - pkg/build
-  - pkg/build/strategies
-  - pkg/build/strategies/dockerfile
-  - pkg/build/strategies/layered
-  - pkg/build/strategies/onbuild
-  - pkg/build/strategies/sti
-  - pkg/docker
   - pkg/errors
-  - pkg/ignore
-  - pkg/scm
-  - pkg/scm/downloaders/empty
-  - pkg/scm/downloaders/file
-  - pkg/scm/downloaders/git
   - pkg/scm/git
-  - pkg/scripts
   - pkg/tar
   - pkg/util
   - pkg/util/cmd
   - pkg/util/cygpath
   - pkg/util/fs
   - pkg/util/glog
-  - pkg/util/interrupt
   - pkg/util/status
   - pkg/util/user
 - name: github.com/pborman/uuid
@@ -1042,7 +1016,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: 057bc52a47ec3c79498dda63f4a6f8298725e976
+  version: 22592cc4bae3572d59be8852c6980023e4c9dec5
 - name: github.com/pkg/sftp
   version: 4d0e916071f68db74f8a73926335f809396d6b42
 - name: github.com/pmezard/go-difflib
@@ -1875,7 +1849,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 852d32d3b3526363bad501101fc2e73b344b1d9a
+  version: b39448a71a2733b79ea5458aa28a823700f82e44
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2700,7 +2674,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: d55e0f90463d5b0aa4db614bb18c30af4fac7748
+  version: 7f1db76f88256f6e74acfc5253bb279b3eb15b91
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1
