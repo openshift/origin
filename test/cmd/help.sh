@@ -6,14 +6,12 @@ os::test::junit::declare_suite_start "cmd/help"
 # This test validates the help commands and output text
 
 # verify some default commands
-os::cmd::expect_failure 'openshift'
 os::cmd::expect_success 'kubectl'
 os::cmd::expect_success 'oc'
 os::cmd::expect_success 'oc ex'
 os::cmd::expect_failure 'origin'
 
 # help for root commands must be consistent
-os::cmd::expect_failure_and_text 'openshift' 'Application Platform'
 os::cmd::expect_success_and_text 'oc' 'OpenShift Client'
 os::cmd::expect_success_and_text 'oc -h' 'Build and Deploy Commands:'
 os::cmd::expect_success_and_text 'oc -h' 'Other Commands:'
@@ -32,7 +30,6 @@ os::cmd::expect_success_and_text 'oc adm create-server-cert -h' 'Create a key an
 os::cmd::expect_success_and_text 'oc adm create-signer-cert -h' 'Create a self-signed CA'
 
 # help for root commands with --help flag must be consistent
-os::cmd::expect_success_and_text 'openshift --help' 'OpenShift Application Platform'
 os::cmd::expect_success_and_text 'oc --help' 'OpenShift Client'
 os::cmd::expect_success_and_text 'oc login --help' 'Options'
 os::cmd::expect_success_and_not_text 'oc login --help' 'Global Options'
@@ -40,8 +37,6 @@ os::cmd::expect_success_and_text 'oc login --help' 'insecure-skip-tls-verify'
 
 # help for given command with --help flag must be consistent
 os::cmd::expect_success_and_text 'oc get --help' 'Display one or many resources'
-os::cmd::expect_success_and_text 'openshift start --help' 'Start components of OpenShift'
-os::cmd::expect_success_and_text 'openshift start master --help' 'Start a master'
 os::cmd::expect_success_and_text 'openshift-sdn --help' 'Start node network'
 os::cmd::expect_success_and_text 'oc project --help' 'Switch to another project'
 os::cmd::expect_success_and_text 'oc projects --help' 'existing projects'
@@ -49,8 +44,6 @@ os::cmd::expect_success_and_text 'oc get --help' 'oc'
 
 # help for given command through help command must be consistent
 os::cmd::expect_success_and_text 'oc help get' 'Display one or many resources'
-os::cmd::expect_success_and_text 'openshift help start' 'Start components of OpenShift'
-os::cmd::expect_success_and_text 'openshift help start master' 'Start a master'
 os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
 os::cmd::expect_success_and_text 'oc help projects' 'current active project and existing projects on the server'
 

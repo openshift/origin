@@ -745,13 +745,10 @@ framework](http://swagger.io) which aims to make it easier to document and
 write clients for RESTful APIs.  When you start OpenShift, the Swagger API
 endpoint is exposed at `https://localhost:8443/swaggerapi`. The Swagger UI
 makes it easy to view your documentation - to view the docs for your local
-version of OpenShift start the server with CORS enabled:
-
-    $ openshift start --cors-allowed-origins=.*
-
-and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs
-a copy of the Swagger UI that points to localhost:8080 by default).  Expand the
-operations available on v1 to see the schemas (and to try the API directly).
+version of OpenShift start the server with CORS enabled and then browse to
+http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the
+Swagger UI that points to localhost:8080 by default).  Expand the operations
+available on v1 to see the schemas (and to try the API directly).
 Additionally, you can download swagger-ui from http://swagger.io/swagger-ui/
 and use it to point to your local swagger API endpoint.
 
@@ -770,7 +767,7 @@ on the secured HTTPS port for the `openshift` binary:
 To view profiles, you use
 [pprof](http://goog-perftools.sourceforge.net/doc/cpu_profiler.html) which is
 part of `go tool`.  You must pass the captured pprof file (for source lines
-you will need to build the binary locally).  For instance, to view a `cpu` profile 
+you will need to build the binary locally).  For instance, to view a `cpu` profile
 from above, you would run OpenShift to completion, and then run:
 
     $ go tool pprof cpu.pprof
@@ -805,7 +802,7 @@ but you can also see the allocated object counts:
     $ go tool pprof --alloc_objects mem.pprof
 
 Finally, when using the `web` profile mode, you can have the go tool directly
-fetch your profiles via HTTP for services that only expose their profiling 
+fetch your profiles via HTTP for services that only expose their profiling
 contents over an unsecured HTTP endpoint:
 
     # for a 30s CPU trace

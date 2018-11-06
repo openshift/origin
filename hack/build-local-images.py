@@ -146,7 +146,6 @@ image_config = {
         "directory": "node",
         "binaries": {
             "openshift": "/usr/bin/openshift",
-            "openshift-node-config": "/usr/bin/openshift-node-config",
             "hyperkube": "/usr/bin/hyperkube"
         },
         "files": {}

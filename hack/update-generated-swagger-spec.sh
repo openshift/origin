@@ -3,6 +3,9 @@
 # Script to create latest swagger spec.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+os::log::info "Generating & verifying swagger is disabled temporarily due to removal of openshift start"
+exit 0
+
 function cleanup() {
     return_code=$?
     os::test::junit::generate_report
