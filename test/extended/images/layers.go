@@ -20,7 +20,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
+var _ = g.Describe("[Feature:ImageLayers][registry] Image layer subresource", func() {
 	defer g.GinkgoRecover()
 	var oc *exutil.CLI
 	var ns []string
@@ -147,9 +147,6 @@ var _ = g.Describe("[Feature:ImageLayers] Image layer subresource", func() {
 		_, err = client.ImageStreams(oc.Namespace()).Layers("doesnotexist", metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
-
-		// until buildah builds properly set status.output.to, this test must be disabled.
-		g.Skip("TODO: find the digest from the pushImage call and ensure it is set: https://github.com/containers/image/issues/518")
 
 		dockerfile := `
 FROM a
