@@ -230,7 +230,7 @@ func findSpecTag(tags []imageapi.TagReference, name string) *imageapi.TagReferen
 	return nil
 }
 
-type cincinnatiMetadata struct {
+type CincinnatiMetadata struct {
 	Kind string `json:"kind"`
 
 	Version  string   `json:"version"`
@@ -264,9 +264,9 @@ func (o *NewOptions) Run() error {
 		name = "0.0.1-" + now.Format("2006-01-02T150405Z")
 	}
 
-	var cm *cincinnatiMetadata
+	var cm *CincinnatiMetadata
 	if len(o.PreviousVersions) > 0 || len(o.ReleaseMetadata) > 0 || o.ForceManifest {
-		cm = &cincinnatiMetadata{Kind: "cincinnati-metadata-v0"}
+		cm = &CincinnatiMetadata{Kind: "cincinnati-metadata-v0"}
 		semverName, err := semver.Parse(name)
 		if err != nil {
 			return fmt.Errorf("when release metadata is added, the --name must be a semantic version")
@@ -866,7 +866,7 @@ func writeNestedTarHeader(tw *tar.Writer, parts []string, existing map[string]st
 	return nil
 }
 
-func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *cincinnatiMetadata, ordered []string, metadata map[string]imageData, allowMissingImages bool, verifiers []PayloadVerifier) ([]string, error) {
+func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *CincinnatiMetadata, ordered []string, metadata map[string]imageData, allowMissingImages bool, verifiers []PayloadVerifier) ([]string, error) {
 	var operators []string
 	directories := make(map[string]struct{})
 	files := make(map[string]int)
@@ -993,7 +993,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *cinc
 	return operators, nil
 }
 
-func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *cincinnatiMetadata, directory string, verifiers []PayloadVerifier) error {
+func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *CincinnatiMetadata, directory string, verifiers []PayloadVerifier) error {
 	directories := make(map[string]struct{})
 
 	gw := gzip.NewWriter(w)

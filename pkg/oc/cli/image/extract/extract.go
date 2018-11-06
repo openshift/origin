@@ -14,10 +14,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/docker/distribution/registry/api/errcode"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"github.com/docker/distribution"
+	registryapiv2 "github.com/docker/distribution/registry/api/v2"
 	dockerarchive "github.com/docker/docker/pkg/archive"
 	digest "github.com/opencontainers/go-digest"
 
@@ -253,6 +256,28 @@ func parseMappings(images, paths []string, requireEmpty bool) ([]Mapping, error)
 	return mappings, nil
 }
 
+type imageNotFound struct {
+	msg string
+	err error
+}
+
+func IsImageNotFound(err error) bool {
+	switch t := err.(type) {
+	case errcode.Errors:
+		return len(t) == 1 && IsImageNotFound(t[0])
+	case errcode.Error:
+		return t.Code == registryapiv2.ErrorCodeManifestUnknown
+	case *imageNotFound:
+		return true
+	default:
+		return false
+	}
+}
+
+func (e *imageNotFound) Error() string {
+	return e.msg
+}
+
 func (o *Options) Complete(cmd *cobra.Command, args []string) error {
 	if err := o.FilterOptions.Complete(cmd.Flags()); err != nil {
 		return err
@@ -309,6 +334,15 @@ func (o *Options) Run() error {
 
 				srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, from, repo, o.FilterOptions.Include)
 				if err != nil {
+					if IsImageNotFound(err) {
+						var msg string
+						if len(o.Mappings) == 1 {
+							msg = "image does not exist"
+						} else {
+							msg = fmt.Sprintf("image %q does not exist", from)
+						}
+						return &imageNotFound{msg: msg, err: err}
+					}
 					return fmt.Errorf("unable to read image %s: %v", from, err)
 				}
 
