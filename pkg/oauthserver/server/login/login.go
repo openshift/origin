@@ -165,6 +165,10 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 		failed(errorCodeUserRequired, w, req)
 		return
 	}
+	if len(password) == 0 {
+		failed(errorCodeAccessDenied, w, req)
+		return
+	}
 	result := metrics.SuccessResult
 	defer func() {
 		metrics.RecordFormPasswordAuth(result)

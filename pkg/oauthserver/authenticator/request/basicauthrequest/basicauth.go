@@ -21,7 +21,7 @@ type basicAuthRequestHandler struct {
 }
 
 func NewBasicAuthAuthentication(provider string, passwordAuthenticator authenticator.Password, removeHeader bool) authenticator.Request {
-	return &basicAuthRequestHandler{provider, passwordAuthenticator, removeHeader}
+	return &basicAuthRequestHandler{provider: provider, passwordAuthenticator: passwordAuthenticator, removeHeader: removeHeader}
 }
 
 func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -33,7 +33,7 @@ func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Reques
 		return nil, false, nil
 	}
 
-	var result string = metrics.SuccessResult
+	result := metrics.SuccessResult
 	defer func() {
 		metrics.RecordBasicPasswordAuth(result)
 	}()
@@ -70,13 +70,20 @@ func getBasicAuthInfo(r *http.Request) (string, string, bool, error) {
 
 	str, err := base64.StdEncoding.DecodeString(auth[len(basicScheme):])
 	if err != nil {
-		return "", "", false, errors.New("No valid base64 data in basic auth scheme found")
+		return "", "", false, errors.New("no valid base64 data in basic auth scheme found")
 	}
 
 	cred := strings.SplitN(string(str), ":", 2)
 	if len(cred) < 2 {
-		return "", "", false, errors.New("Invalid Authorization header")
+		return "", "", false, errors.New("invalid Authorization header")
 	}
 
-	return cred[0], cred[1], true, nil
+	username, password := cred[0], cred[1]
+
+	// empty user or pass is not an error but we do not want to try to authenticate in this case
+	if len(username) == 0 || len(password) == 0 {
+		return "", "", false, nil
+	}
+
+	return username, password, true, nil
 }

@@ -93,38 +93,38 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 		for _, identityProvider := range config.OAuthConfig.IdentityProviders {
 			switch provider := identityProvider.Provider.(type) {
-			case (*RequestHeaderIdentityProvider):
+			case *RequestHeaderIdentityProvider:
 				refs = append(refs, &provider.ClientCA)
 
-			case (*HTPasswdPasswordIdentityProvider):
+			case *HTPasswdPasswordIdentityProvider:
 				refs = append(refs, &provider.File)
 
-			case (*LDAPPasswordIdentityProvider):
+			case *LDAPPasswordIdentityProvider:
 				refs = append(refs, &provider.CA)
 				refs = append(refs, GetStringSourceFileReferences(&provider.BindPassword)...)
 
-			case (*BasicAuthPasswordIdentityProvider):
+			case *BasicAuthPasswordIdentityProvider:
 				refs = append(refs, &provider.RemoteConnectionInfo.CA)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
 
-			case (*KeystonePasswordIdentityProvider):
+			case *KeystonePasswordIdentityProvider:
 				refs = append(refs, &provider.RemoteConnectionInfo.CA)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
 
-			case (*GitLabIdentityProvider):
+			case *GitLabIdentityProvider:
 				refs = append(refs, &provider.CA)
 				refs = append(refs, GetStringSourceFileReferences(&provider.ClientSecret)...)
 
-			case (*OpenIDIdentityProvider):
+			case *OpenIDIdentityProvider:
 				refs = append(refs, &provider.CA)
 				refs = append(refs, GetStringSourceFileReferences(&provider.ClientSecret)...)
 
-			case (*GoogleIdentityProvider):
+			case *GoogleIdentityProvider:
 				refs = append(refs, GetStringSourceFileReferences(&provider.ClientSecret)...)
 
-			case (*GitHubIdentityProvider):
+			case *GitHubIdentityProvider:
 				refs = append(refs, GetStringSourceFileReferences(&provider.ClientSecret)...)
 				refs = append(refs, &provider.CA)
 
@@ -319,7 +319,7 @@ func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 		for _, identityProvider := range options.OAuthConfig.IdentityProviders {
 
 			switch provider := identityProvider.Provider.(type) {
-			case (*RequestHeaderIdentityProvider):
+			case *RequestHeaderIdentityProvider:
 				caFile := provider.ClientCA
 				if len(caFile) == 0 {
 					continue
@@ -339,12 +339,12 @@ func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 func IsPasswordAuthenticator(provider IdentityProvider) bool {
 	switch provider.Provider.(type) {
 	case
-		(*BasicAuthPasswordIdentityProvider),
-		(*AllowAllPasswordIdentityProvider),
-		(*DenyAllPasswordIdentityProvider),
-		(*HTPasswdPasswordIdentityProvider),
-		(*LDAPPasswordIdentityProvider),
-		(*KeystonePasswordIdentityProvider):
+		*BasicAuthPasswordIdentityProvider,
+		*AllowAllPasswordIdentityProvider,
+		*DenyAllPasswordIdentityProvider,
+		*HTPasswdPasswordIdentityProvider,
+		*LDAPPasswordIdentityProvider,
+		*KeystonePasswordIdentityProvider:
 
 		return true
 	}
@@ -355,17 +355,17 @@ func IsPasswordAuthenticator(provider IdentityProvider) bool {
 func IsIdentityProviderType(provider runtime.Object) bool {
 	switch provider.(type) {
 	case
-		(*RequestHeaderIdentityProvider),
-		(*BasicAuthPasswordIdentityProvider),
-		(*AllowAllPasswordIdentityProvider),
-		(*DenyAllPasswordIdentityProvider),
-		(*HTPasswdPasswordIdentityProvider),
-		(*LDAPPasswordIdentityProvider),
-		(*KeystonePasswordIdentityProvider),
-		(*OpenIDIdentityProvider),
-		(*GitHubIdentityProvider),
-		(*GitLabIdentityProvider),
-		(*GoogleIdentityProvider):
+		*RequestHeaderIdentityProvider,
+		*BasicAuthPasswordIdentityProvider,
+		*AllowAllPasswordIdentityProvider,
+		*DenyAllPasswordIdentityProvider,
+		*HTPasswdPasswordIdentityProvider,
+		*LDAPPasswordIdentityProvider,
+		*KeystonePasswordIdentityProvider,
+		*OpenIDIdentityProvider,
+		*GitHubIdentityProvider,
+		*GitLabIdentityProvider,
+		*GoogleIdentityProvider:
 
 		return true
 	}

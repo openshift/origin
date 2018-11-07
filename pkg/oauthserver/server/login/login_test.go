@@ -114,6 +114,17 @@ func TestLogin(t *testing.T) {
 			},
 			ExpectRedirect: "/login?reason=user_required&then=%2Fanotherurl",
 		},
+		"redirect when no password": {
+			CSRF: &csrf.FakeCSRF{Token: "test"},
+			Auth: &testAuth{},
+			Path: "/login",
+			PostValues: url.Values{
+				"csrf":     []string{"test"},
+				"username": []string{"user"},
+				"then":     []string{"/anotherurl"},
+			},
+			ExpectRedirect: "/login?reason=access_denied&then=%2Fanotherurl",
+		},
 		"redirect when not authenticated": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{Success: false},
@@ -132,6 +143,7 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"password": []string{"pass"},
 				"then":     []string{"/anotherurl"},
 			},
 			ExpectRedirect: "/login?reason=authentication_error&then=%2Fanotherurl",
@@ -143,6 +155,7 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"password": []string{"pass"},
 				"then":     []string{"/anotherurl"},
 			},
 			ExpectRedirect: "/login?reason=mapping_lookup_error&then=%2Fanotherurl",
@@ -154,6 +167,7 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"password": []string{"pass"},
 				"then":     []string{"/anotherurl"},
 			},
 			ExpectRedirect: "/login?reason=mapping_claim_error&then=%2Fanotherurl",
@@ -165,6 +179,7 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"password": []string{"pass"},
 				"then":     []string{"/anotherurl"},
 			},
 			ExpectRedirect: "/login?reason=authentication_error&then=%2Fanotherurl",
@@ -176,6 +191,7 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"password": []string{"pass"},
 			},
 			ExpectThen: "/done",
 		},
