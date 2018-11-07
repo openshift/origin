@@ -182,33 +182,32 @@ func ValidateIdentityProvider(identityProvider configapi.IdentityProvider, fldPa
 		validationResults.AddErrors(field.Invalid(fldPath.Child("provider"), identityProvider.Provider, fmt.Sprintf("%v is invalid in this context", identityProvider.Provider)))
 	} else {
 		switch provider := identityProvider.Provider.(type) {
-		case (*configapi.RequestHeaderIdentityProvider):
+		case *configapi.RequestHeaderIdentityProvider:
 			validationResults.Append(ValidateRequestHeaderIdentityProvider(provider, identityProvider, fldPath))
 
-		case (*configapi.BasicAuthPasswordIdentityProvider):
+		case *configapi.BasicAuthPasswordIdentityProvider:
 			validationResults.AddErrors(ValidateRemoteConnectionInfo(provider.RemoteConnectionInfo, providerPath)...)
 
-		case (*configapi.HTPasswdPasswordIdentityProvider):
+		case *configapi.HTPasswdPasswordIdentityProvider:
 			validationResults.AddErrors(common.ValidateFile(provider.File, providerPath.Child("file"))...)
 
-		case (*configapi.LDAPPasswordIdentityProvider):
+		case *configapi.LDAPPasswordIdentityProvider:
 			validationResults.Append(ValidateLDAPIdentityProvider(provider, providerPath))
 
-		case (*configapi.KeystonePasswordIdentityProvider):
+		case *configapi.KeystonePasswordIdentityProvider:
 			validationResults.Append(ValidateKeystoneIdentityProvider(provider, identityProvider, providerPath))
 
-		case (*configapi.GitHubIdentityProvider):
+		case *configapi.GitHubIdentityProvider:
 			validationResults.Append(ValidateGitHubIdentityProvider(provider, identityProvider.UseAsChallenger, identityProvider.MappingMethod, fldPath))
 
-		case (*configapi.GitLabIdentityProvider):
+		case *configapi.GitLabIdentityProvider:
 			validationResults.AddErrors(ValidateGitLabIdentityProvider(provider, fldPath)...)
 
-		case (*configapi.GoogleIdentityProvider):
+		case *configapi.GoogleIdentityProvider:
 			validationResults.Append(ValidateGoogleIdentityProvider(provider, identityProvider.UseAsChallenger, identityProvider.MappingMethod, fldPath))
 
-		case (*configapi.OpenIDIdentityProvider):
+		case *configapi.OpenIDIdentityProvider:
 			validationResults.AddErrors(ValidateOpenIDIdentityProvider(provider, identityProvider, fldPath)...)
-
 		}
 	}
 
