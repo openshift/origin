@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -22,6 +23,9 @@ import (
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	kubeinformers "k8s.io/client-go/informers"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
+	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
+	openapicontroller "k8s.io/kube-aggregator/pkg/controllers/openapi"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -71,7 +75,6 @@ import (
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/legacy"
-	"k8s.io/client-go/restmapper"
 )
 
 type OpenshiftAPIExtraConfig struct {
@@ -509,6 +512,73 @@ func (c *completedConfig) withUserAPIServer(delegateAPIServer genericapiserver.D
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: userapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
+func createAggregatorConfig(kubeAPIServerConfig genericapiserver.Config, externalInformers kubeinformers.SharedInformerFactory, serviceResolver aggregatorapiserver.ServiceResolver, proxyTransport *http.Transport) (*aggregatorapiserver.Config, error) {
+	// make a shallow copy to let us twiddle a few things
+	// most of the config actually remains the same.  We only need to mess with a couple items related to the particulars of the aggregator
+	genericConfig := kubeAPIServerConfig
+
+	// the aggregator doesn't wire these up.  It just delegates them to the kubeapiserver
+	genericConfig.EnableSwaggerUI = false
+	genericConfig.SwaggerConfig = nil
+
+	aggregatorConfig := &aggregatorapiserver.Config{
+		GenericConfig: &genericapiserver.RecommendedConfig{
+			Config:                genericConfig,
+			SharedInformerFactory: externalInformers,
+		},
+		ExtraConfig: aggregatorapiserver.ExtraConfig{
+			ServiceResolver: serviceResolver,
+			ProxyTransport:  proxyTransport,
+		},
+	}
+
+	return aggregatorConfig, nil
+}
+
+func (c *completedConfig) withOpenAPIAggregator(delegatedAPIServer *genericapiserver.GenericAPIServer) (*genericapiserver.GenericAPIServer, error) {
+	aggregatorConfig, err := createAggregatorConfig(
+		*c.GenericConfig.Config,
+		c.ExtraConfig.KubeInformers,
+		aggregatorapiserver.NewClusterIPServiceResolver(c.ExtraConfig.KubeInformers.Core().V1().Services().Lister()),
+		utilnet.SetTransportDefaults(&http.Transport{}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	completedConfig := aggregatorConfig.Complete()
+	openApiConfig := completedConfig.GenericConfig.OpenAPIConfig
+	completedConfig.GenericConfig.OpenAPIConfig = nil
+
+	if openApiConfig == nil {
+		return delegatedAPIServer, nil
+	}
+
+	genericServer, err := completedConfig.GenericConfig.New("openapi-aggregator", delegatedAPIServer)
+	if err != nil {
+		return nil, err
+	}
+
+	specDownloader := openapicontroller.NewDownloader()
+	openAPIAggregator, err := openapicontroller.BuildAndRegisterAggregator(
+		&specDownloader,
+		delegatedAPIServer,
+		genericServer.Handler.GoRestfulContainer.RegisteredWebServices(),
+		openApiConfig,
+		genericServer.Handler.NonGoRestfulMux)
+	if err != nil {
+		return nil, err
+	}
+	openAPIAggregationController := openapicontroller.NewAggregationController(&specDownloader, openAPIAggregator)
+
+	genericServer.AddPostStartHook("apiservice-openapi-controller", func(context genericapiserver.PostStartHookContext) error {
+		go openAPIAggregationController.Run(context.StopCh)
+		return nil
+	})
+
+	return genericServer, nil
+}
+
 type apiServerAppenderFunc func(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error)
 
 func addAPIServerOrDie(delegateAPIServer genericapiserver.DelegationTarget, legacyStorageModifiers legacyStorageMutators, apiServerAppenderFn apiServerAppenderFunc) (genericapiserver.DelegationTarget, legacyStorageMutators) {
@@ -557,6 +627,13 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 	if err := s.GenericAPIServer.InstallLegacyAPIGroup(legacy.RESTPrefix, apiLegacyV1(LegacyStorage(legacyStorage))); err != nil {
 		return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
 	}
+
+	// we register the aggregator last
+	s.GenericAPIServer, err = c.withOpenAPIAggregator(s.GenericAPIServer)
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize openapi aggregator: %v\n", err)
+	}
+
 	glog.Infof("Started Origin API at %s/%s", legacy.RESTPrefix, legacy.GroupVersion.Version)
 
 	// fix API doc string
