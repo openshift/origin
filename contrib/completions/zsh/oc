@@ -5122,6 +5122,54 @@ _oc_adm_release_extract()
     noun_aliases=()
 }
 
+_oc_adm_release_info()
+{
+    last_command="oc_adm_release_info"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--changes-from=")
+    local_nonpersistent_flags+=("--changes-from=")
+    flags+=("--commits")
+    local_nonpersistent_flags+=("--commits")
+    flags+=("--pullspecs")
+    local_nonpersistent_flags+=("--pullspecs")
+    flags+=("--as=")
+    flags+=("--as-group=")
+    flags+=("--cache-dir=")
+    flags+=("--certificate-authority=")
+    flags+=("--client-certificate=")
+    flags+=("--client-key=")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags+=("--context=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--kubeconfig=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    flags_with_completion+=("--namespace")
+    flags_completion+=("__oc_get_namespaces")
+    two_word_flags+=("-n")
+    flags_with_completion+=("-n")
+    flags_completion+=("__oc_get_namespaces")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    two_word_flags+=("-s")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _oc_adm_release_mirror()
 {
     last_command="oc_adm_release_mirror"
@@ -5265,6 +5313,7 @@ _oc_adm_release()
     last_command="oc_adm_release"
     commands=()
     commands+=("extract")
+    commands+=("info")
     commands+=("mirror")
     commands+=("new")
 

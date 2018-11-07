@@ -21,6 +21,7 @@ func NewCmd(f kcmdutil.Factory, parentName string, streams genericclioptions.IOS
 			return cmd.Help()
 		},
 	}
+	cmd.AddCommand(NewInfo(f, parentName+" release", streams))
 	cmd.AddCommand(NewRelease(f, parentName+" release", streams))
 	cmd.AddCommand(NewExtract(f, parentName+" release", streams))
 	cmd.AddCommand(NewMirror(f, parentName+" release", streams))
