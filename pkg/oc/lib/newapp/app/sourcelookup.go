@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/golang/glog"
+	"github.com/moby/buildkit/frontend/dockerfile/parser"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
