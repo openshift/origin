@@ -24,6 +24,8 @@ type NodeIPTables struct {
 	vxlanPort          uint32
 
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
+
+	egressIPs map[string]string
 }
 
 func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool, vxlanPort uint32) *NodeIPTables {
@@ -33,6 +35,7 @@ func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masq
 		syncPeriod:         syncPeriod,
 		masqueradeServices: masqueradeServices,
 		vxlanPort:          vxlanPort,
+		egressIPs:          make(map[string]string),
 	}
 }
 
@@ -140,6 +143,12 @@ func (n *NodeIPTables) syncIPTableRules() error {
 		}
 	}
 
+	for egressIP, mark := range n.egressIPs {
+		if err := n.ensureEgressIPRules(egressIP, mark); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -213,7 +222,7 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 	return chainArray
 }
 
-func (n *NodeIPTables) AddEgressIPRules(egressIP, mark string) error {
+func (n *NodeIPTables) ensureEgressIPRules(egressIP, mark string) error {
 	for _, cidr := range n.clusterNetworkCIDR {
 		_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", mark, "-j", "SNAT", "--to-source", egressIP)
 		if err != nil {
@@ -224,7 +233,23 @@ func (n *NodeIPTables) AddEgressIPRules(egressIP, mark string) error {
 	return err
 }
 
+func (n *NodeIPTables) AddEgressIPRules(egressIP, mark string) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	if err := n.ensureEgressIPRules(egressIP, mark); err != nil {
+		return err
+	}
+	n.egressIPs[egressIP] = mark
+	return nil
+}
+
 func (n *NodeIPTables) DeleteEgressIPRules(egressIP, mark string) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	delete(n.egressIPs, egressIP)
+
 	for _, cidr := range n.clusterNetworkCIDR {
 		err := n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", mark, "-j", "SNAT", "--to-source", egressIP)
 		if err != nil {
