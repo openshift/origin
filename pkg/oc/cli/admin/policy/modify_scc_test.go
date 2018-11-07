@@ -6,9 +6,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
 	securityv1 "github.com/openshift/api/security/v1"
 	fakesecurityclient "github.com/openshift/client-go/security/clientset/versioned/fake"

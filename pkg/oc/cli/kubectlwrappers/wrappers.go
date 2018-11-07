@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/pflag"
 
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdauth "k8s.io/kubernetes/pkg/kubectl/cmd/auth"
@@ -20,7 +21,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kwait "k8s.io/kubernetes/pkg/kubectl/cmd/wait"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"

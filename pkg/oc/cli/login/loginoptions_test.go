@@ -15,9 +15,9 @@ import (
 	"github.com/openshift/origin/pkg/oauth/util"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	restclient "k8s.io/client-go/rest"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 const (

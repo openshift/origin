@@ -3,9 +3,9 @@ package deployments
 import (
 	"testing"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	fakecorev1client "k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	clienttesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	fakeappsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1/fake"
 )

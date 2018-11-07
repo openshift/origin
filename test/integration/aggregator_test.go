@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	apiregistrationclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	projectclientset "github.com/openshift/client-go/project/clientset/versioned"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
