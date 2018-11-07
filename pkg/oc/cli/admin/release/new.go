@@ -947,7 +947,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 			// get put in a scoped bucket at the end. Only a few components should need to
 			// be in the global order.
 			if !strings.HasPrefix(filename, "0000_") {
-				filename = fmt.Sprintf("99_%s_%s", name, filename)
+				filename = fmt.Sprintf("0000_70_%s_%s", name, filename)
 			}
 			if count, ok := files[filename]; ok {
 				count++
