@@ -12,6 +12,7 @@ import (
 
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
@@ -20,10 +21,7 @@ import (
 
 const (
 	// Standard claims (http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims)
-	SubjectClaim           = "sub"
-	PreferredUsernameClaim = "preferred_username"
-	EmailClaim             = "email"
-	NameClaim              = "name"
+	subjectClaim = "sub"
 )
 
 type TokenValidator func(map[string]interface{}) error
@@ -73,19 +71,19 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 
 	// Validate url presence
 	if len(config.AuthorizeURL) == 0 {
-		return nil, errors.New("Authorize URL is required")
+		return nil, errors.New("authorize URL is required")
 	} else if u, err := url.Parse(config.AuthorizeURL); err != nil {
-		return nil, errors.New("Authorize URL is invalid")
+		return nil, errors.New("authorize URL is invalid")
 	} else if u.Scheme != "https" {
-		return nil, errors.New("Authorize URL must use https scheme")
+		return nil, errors.New("authorize URL must use https scheme")
 	}
 
 	if len(config.TokenURL) == 0 {
-		return nil, errors.New("Token URL is required")
+		return nil, errors.New("token URL is required")
 	} else if u, err := url.Parse(config.TokenURL); err != nil {
-		return nil, errors.New("Token URL is invalid")
+		return nil, errors.New("token URL is invalid")
 	} else if u.Scheme != "https" {
-		return nil, errors.New("Token URL must use https scheme")
+		return nil, errors.New("token URL must use https scheme")
 	}
 
 	if len(config.UserInfoURL) > 0 {
@@ -97,14 +95,14 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 	}
 
 	if !sets.NewString(config.Scopes...).Has("openid") {
-		return nil, errors.New("Scopes must include openid")
+		return nil, errors.New("scopes must include openid")
 	}
 
 	if len(config.IDClaims) == 0 {
 		return nil, errors.New("IDClaims must specify at least one claim")
 	}
 
-	return provider{providerName, transport, config}, nil
+	return provider{providerName: providerName, transport: transport, Config: config}, nil
 }
 
 // NewConfig implements external/interfaces/Provider.NewConfig
@@ -136,9 +134,9 @@ func (p provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
 func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
 	// Token response MUST include id_token
 	// http://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
-	idToken, ok := data.ResponseData["id_token"].(string)
+	idToken, ok := getClaimValue(data.ResponseData, "id_token")
 	if !ok {
-		return nil, false, fmt.Errorf("No id_token returned in %v", data.ResponseData)
+		return nil, false, fmt.Errorf("no id_token returned in %#v", data.ResponseData)
 	}
 
 	// id_token MUST be a valid JWT
@@ -158,7 +156,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 
 	// id_token MUST contain a sub claim as the subject identifier
 	// http://openid.net/specs/openid-connect-core-1_0.html#IDToken
-	idTokenSubject, ok := idTokenClaims[SubjectClaim].(string)
+	idTokenSubject, ok := getClaimValue(idTokenClaims, subjectClaim)
 	if !ok {
 		return nil, false, fmt.Errorf("id_token did not contain a 'sub' claim: %#v", idTokenClaims)
 	}
@@ -175,7 +173,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 
 		// The sub (subject) Claim MUST always be returned in the UserInfo Response.
 		// http://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
-		userInfoSubject, ok := userInfoClaims[SubjectClaim].(string)
+		userInfoSubject, ok := getClaimValue(userInfoClaims, subjectClaim)
 		if !ok {
 			return nil, false, fmt.Errorf("userinfo response did not contain a 'sub' claim: %#v", userInfoClaims)
 		}
@@ -195,49 +193,46 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 
 	glog.V(5).Infof("openid claims: %#v", claims)
 
-	id, _ := getClaimValue(claims, p.IDClaims)
-	if id == "" {
-		return nil, false, fmt.Errorf("Could not retrieve id claim for %#v from %#v", p.IDClaims, claims)
+	id, ok := getClaimValue(claims, p.IDClaims...)
+	if !ok {
+		return nil, false, fmt.Errorf("could not retrieve id claim for %#v from %#v", p.IDClaims, claims)
 	}
+
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, id)
 
-	if preferredUsername, _ := getClaimValue(claims, p.PreferredUsernameClaims); len(preferredUsername) != 0 {
+	if preferredUsername, ok := getClaimValue(claims, p.PreferredUsernameClaims...); ok {
 		identity.Extra[authapi.IdentityPreferredUsernameKey] = preferredUsername
 	}
 
-	if email, _ := getClaimValue(claims, p.EmailClaims); len(email) != 0 {
+	if email, ok := getClaimValue(claims, p.EmailClaims...); ok {
 		identity.Extra[authapi.IdentityEmailKey] = email
 	}
 
-	if name, _ := getClaimValue(claims, p.NameClaims); len(name) != 0 {
+	if name, ok := getClaimValue(claims, p.NameClaims...); ok {
 		identity.Extra[authapi.IdentityDisplayNameKey] = name
 	}
 
-	glog.V(4).Infof("identity=%v", identity)
+	glog.V(4).Infof("identity=%#v", identity)
 
 	return identity, true, nil
 }
 
-func getClaimValue(data map[string]interface{}, claims []string) (string, error) {
+func getClaimValue(data map[string]interface{}, claims ...string) (string, bool) {
 	for _, claim := range claims {
-		value, ok := data[claim]
-		if !ok {
-			continue
-		}
-		stringValue, ok := value.(string)
-		if !ok {
-			return "", fmt.Errorf("Claim %s was not a string type", claim)
-		}
-		if len(stringValue) > 0 {
-			return stringValue, nil
+		s, _ := data[claim].(string)
+		if len(s) > 0 {
+			return s, true
 		}
 	}
-	return "", errors.New("No value found")
+	return "", false
 }
 
 // fetch and decode JSON from the given UserInfo URL
 func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[string]interface{}, error) {
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	client := &http.Client{Transport: transport}
@@ -248,7 +243,7 @@ func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[st
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-200 response from UserInfo: %d, WWW-Authenticate=%s", resp.StatusCode, resp.Header.Get("WWW-Authenticate"))
+		return nil, fmt.Errorf("non-200 response from UserInfo: %d, WWW-Authenticate=%s", resp.StatusCode, resp.Header.Get("WWW-Authenticate"))
 	}
 
 	// The UserInfo Claims MUST be returned as the members of a JSON object
@@ -257,12 +252,7 @@ func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[st
 	if err != nil {
 		return nil, err
 	}
-	decoded := map[string]interface{}{}
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return nil, err
-	}
-
-	return decoded, nil
+	return getJSON(data)
 }
 
 // Decode JWT
@@ -270,7 +260,7 @@ func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[st
 func decodeJWT(jwt string) (map[string]interface{}, error) {
 	jwtParts := strings.Split(jwt, ".")
 	if len(jwtParts) != 3 {
-		return nil, fmt.Errorf("Invalid JSON Web Token: expected 3 parts, got %d", len(jwtParts))
+		return nil, fmt.Errorf("invalid JSON Web Token: expected 3 parts, got %d", len(jwtParts))
 	}
 
 	// Re-pad, if needed
@@ -282,15 +272,17 @@ func decodeJWT(jwt string) (map[string]interface{}, error) {
 	// Decode base64url
 	decodedPayload, err := base64.URLEncoding.DecodeString(encodedPayload)
 	if err != nil {
-		return nil, fmt.Errorf("Error decoding payload: %v", err)
+		return nil, fmt.Errorf("error decoding payload: %v", err)
 	}
 
 	// Parse JSON
-	var data map[string]interface{}
-	err = json.Unmarshal([]byte(decodedPayload), &data)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing token: %v", err)
-	}
+	return getJSON(decodedPayload)
+}
 
+func getJSON(in []byte) (map[string]interface{}, error) {
+	var data map[string]interface{}
+	if err := json.Unmarshal(in, &data); err != nil {
+		return nil, fmt.Errorf("error parsing token: %v", err)
+	}
 	return data, nil
 }
