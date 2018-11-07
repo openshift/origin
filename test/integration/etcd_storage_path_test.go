@@ -200,7 +200,7 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 		},
 	},
 	gvr("", "v1", "oauthauthorizetokens"): {
-		Stub:             `{"clientName": "client0", "metadata": {"name": "tokenneedstobelongenoughelseitwontwork"}, "userName": "user", "userUID": "cannot be empty"}`,
+		Stub:             `{"clientName": "client0", "metadata": {"name": "tokenneedstobelongenoughelseitwontwork"}, "userName": "user", "userUID": "cannot be empty", "expiresIn": 86400}`,
 		ExpectedEtcdPath: "openshift.io/oauth/authorizetokens/tokenneedstobelongenoughelseitwontwork",
 		Prerequisites: []etcddata.Prerequisite{
 			{
@@ -211,7 +211,7 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 		ExpectedGVK: gvkP("oauth.openshift.io", "v1", "OAuthAuthorizeToken"),
 	},
 	gvr("oauth.openshift.io", "v1", "oauthauthorizetokens"): {
-		Stub:             `{"clientName": "client0g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "userUID": "cannot be empty"}`,
+		Stub:             `{"clientName": "client0g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "userUID": "cannot be empty", "expiresIn": 86400}`,
 		ExpectedEtcdPath: "openshift.io/oauth/authorizetokens/tokenneedstobelongenoughelseitwontworkg",
 		Prerequisites: []etcddata.Prerequisite{
 			{

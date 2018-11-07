@@ -86,6 +86,10 @@ func ValidateAccessToken(accessToken *oauthapi.OAuthAccessToken) field.ErrorList
 		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), accessToken.RedirectURI, msg))
 	}
 
+	if accessToken.ExpiresIn < 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("expiresIn"), accessToken.ExpiresIn, "cannot be a negative value"))
+	}
+
 	return allErrs
 }
 
@@ -148,6 +152,10 @@ func ValidateAuthorizeToken(authorizeToken *oauthapi.OAuthAuthorizeToken) field.
 		default:
 			allErrs = append(allErrs, field.NotSupported(field.NewPath("codeChallengeMethod"), authorizeToken.CodeChallengeMethod, CodeChallengeMethodsSupported))
 		}
+	}
+
+	if authorizeToken.ExpiresIn <= 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("expiresIn"), authorizeToken.ExpiresIn, "must be greater than zero"))
 	}
 
 	return allErrs

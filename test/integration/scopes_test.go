@@ -375,6 +375,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			obj: &oauthapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
+				ExpiresIn:  86400,
 				UserName:   "name",
 				UserUID:    "uid",
 			},
@@ -385,6 +386,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			obj: &oauthapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
+				ExpiresIn:  86400,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"user:info", "user:check-access"},
@@ -396,6 +398,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			obj: &oauthapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
+				ExpiresIn:  86400,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"role:one:*"},
@@ -406,6 +409,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			obj: &oauthapi.OAuthAuthorizeToken{
 				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
+				ExpiresIn:  86400,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"role:one:bravo"},
