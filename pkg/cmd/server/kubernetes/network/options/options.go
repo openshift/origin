@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
-	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	apitesting "k8s.io/apimachinery/pkg/api/testing"
+	apitesting "k8s.io/apimachinery/pkg/api/apitesting"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restfake "k8s.io/client-go/rest/fake"
 

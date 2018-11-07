@@ -32,7 +32,7 @@ import (
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 	kexec "k8s.io/utils/exec"
 
 	networkapi "github.com/openshift/api/network/v1"

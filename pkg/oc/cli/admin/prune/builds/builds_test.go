@@ -3,8 +3,8 @@ package builds
 import (
 	"testing"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	clienttesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1/fake"
 )

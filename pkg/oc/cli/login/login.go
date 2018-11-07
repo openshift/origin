@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"

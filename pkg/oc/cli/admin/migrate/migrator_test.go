@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 )
 
 // TestResourceVisitor_Visit is used to check for race conditions

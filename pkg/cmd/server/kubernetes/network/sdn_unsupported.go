@@ -8,7 +8,7 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"

@@ -27,7 +27,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
-	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 )
 
 func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {

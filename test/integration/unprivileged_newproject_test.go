@@ -6,8 +6,8 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
