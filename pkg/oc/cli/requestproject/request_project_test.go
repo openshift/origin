@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // TestRequestProjectDefaultFlags ensures that flags default values are set.

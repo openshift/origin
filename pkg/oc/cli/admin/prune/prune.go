@@ -3,9 +3,9 @@ package prune
 import (
 	"github.com/spf13/cobra"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	groups "github.com/openshift/origin/pkg/oc/cli/admin/groups/sync"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune/auth"

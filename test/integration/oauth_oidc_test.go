@@ -11,9 +11,9 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"

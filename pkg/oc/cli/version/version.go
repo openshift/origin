@@ -12,12 +12,12 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	kubeversiontypes "k8s.io/apimachinery/pkg/version"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kubeversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/oc/lib/tokencmd"

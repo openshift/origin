@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
 	proxy "k8s.io/kubernetes/pkg/proxy"
-	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	"k8s.io/kubernetes/pkg/proxy/healthcheck"
 	"k8s.io/kubernetes/pkg/proxy/iptables"

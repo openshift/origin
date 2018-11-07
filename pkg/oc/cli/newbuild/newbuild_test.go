@@ -6,7 +6,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
