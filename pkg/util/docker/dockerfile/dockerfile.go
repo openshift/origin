@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/docker/builder/dockerfile/command"
-	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/moby/buildkit/frontend/dockerfile/command"
+	"github.com/moby/buildkit/frontend/dockerfile/parser"
 )
 
 var portRangeRegexp = regexp.MustCompile(`^(\d+)-(\d+)$`)
@@ -16,7 +16,7 @@ var argSplitRegexp = regexp.MustCompile(`^([a-zA-Z_]+[a-zA-Z0-9_]*)=(.*)$`)
 
 // FindAll returns the indices of all children of node such that
 // node.Children[i].Value == cmd. Valid values for cmd are defined in the
-// package github.com/docker/docker/builder/dockerfile/command.
+// package github.com/moby/buildkit/frontend/dockerfile/command.
 func FindAll(node *parser.Node, cmd string) []int {
 	if node == nil {
 		return nil

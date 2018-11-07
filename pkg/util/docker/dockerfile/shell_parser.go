@@ -4,7 +4,7 @@ package dockerfile
 // 'dockerfile.go' in this package instead
 //
 // This file is copied form vendor 'github.com/docker/docker', trying to import
-// entire package 'github.com/docker/docker/builder/dockerfile' was causing
+// entire package 'github.com/moby/buildkit/frontend/dockerfile' was causing
 // glide to fail with conflicting versions of other dependencies
 
 import (
