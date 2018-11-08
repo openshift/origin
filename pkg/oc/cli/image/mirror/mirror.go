@@ -85,6 +85,7 @@ type MirrorImageOptions struct {
 	Insecure           bool
 	SkipMount          bool
 	SkipMultipleScopes bool
+	SkipMissing        bool
 	Force              bool
 
 	MaxRegistry    int
@@ -127,6 +128,7 @@ func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.
 
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing to the destinations.")
 	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
+	flag.BoolVar(&o.SkipMissing, "skip-missing", o.SkipMissing, "If an input image is not found, skip them.")
 	flag.BoolVar(&o.SkipMount, "skip-mount", o.SkipMount, "Always push layers instead of cross-mounting them")
 	flag.BoolVar(&o.SkipMultipleScopes, "skip-multiple-scopes", o.SkipMultipleScopes, "Some registries do not support multiple scopes passed to the registry login.")
 	flag.BoolVar(&o.Force, "force", o.Force, "Attempt to write all layers and manifests even if they exist in the remote repository.")
@@ -364,6 +366,12 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 					w.Parallel(func() {
 						desc, err := srcRepo.Tags(ctx).Get(ctx, srcTag)
 						if err != nil {
+							if o.SkipMissing && imagemanifest.IsImageNotFound(err) {
+								ref := src.ref
+								ref.Tag = srcTag
+								fmt.Fprintf(o.ErrOut, "warning: Image %s does not exist and will not be mirrored\n", ref)
+								return
+							}
 							plan.AddError(retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s by tag %s: %v", src.ref, srcTag, err)})
 							return
 						}
