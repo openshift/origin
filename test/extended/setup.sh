@@ -15,9 +15,13 @@ function os::test::extended::focus () {
 	if [[ -n "${FOCUS:-}" ]]; then
 		exitstatus=0
 
+		local skip="\[Serial\]"
+		if [[ -n "${SKIP:-}" ]]; then
+		    skip+="|${SKIP}"
+		fi
 		# first run anything that isn't explicitly declared [Serial], and matches the $FOCUS, in a parallel mode.
 		os::log::info "Running parallel tests N=${PARALLEL_NODES:-<default>} with focus ${FOCUS}"
-		TEST_REPORT_FILE_NAME=focus_parallel TEST_PARALLEL="${PARALLEL_NODES:-5}" os::test::extended::run -- -ginkgo.skip "\[Serial\]" -test.timeout 6h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
+		TEST_REPORT_FILE_NAME=focus_parallel TEST_PARALLEL="${PARALLEL_NODES:-5}" os::test::extended::run -- -ginkgo.skip "${skip}" -test.timeout 6h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
 
 		# Then run everything that requires serial and matches the $FOCUS, serially.
 		# there is bit of overlap here because not all serial tests declare [Serial], so they might have run in the
