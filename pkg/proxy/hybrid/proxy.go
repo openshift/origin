@@ -7,10 +7,10 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	api "k8s.io/kubernetes/pkg/apis/core"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/kubernetes/pkg/proxy"
 	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"
 
@@ -28,7 +28,7 @@ type HybridProxier struct {
 	mainProxy                proxy.ProxyProvider
 	unidlingProxy            proxy.ProxyProvider
 	syncPeriod               time.Duration
-	serviceLister            kcorelisters.ServiceLister
+	serviceLister            corev1listers.ServiceLister
 
 	// TODO(directxman12): figure out a good way to avoid duplicating this information
 	// (it's saved in the individual proxies as well)
@@ -54,7 +54,7 @@ func NewHybridProxier(
 	mainProxy proxy.ProxyProvider,
 	unidlingProxy proxy.ProxyProvider,
 	syncPeriod time.Duration,
-	serviceLister kcorelisters.ServiceLister,
+	serviceLister corev1listers.ServiceLister,
 ) (*HybridProxier, error) {
 	return &HybridProxier{
 		unidlingEndpointsHandler: unidlingEndpointsHandler,
@@ -71,7 +71,7 @@ func NewHybridProxier(
 	}, nil
 }
 
-func (p *HybridProxier) OnServiceAdd(service *api.Service) {
+func (p *HybridProxier) OnServiceAdd(service *corev1.Service) {
 	svcName := types.NamespacedName{
 		Namespace: service.Namespace,
 		Name:      service.Name,
@@ -91,7 +91,7 @@ func (p *HybridProxier) OnServiceAdd(service *api.Service) {
 	}
 }
 
-func (p *HybridProxier) OnServiceUpdate(oldService, service *api.Service) {
+func (p *HybridProxier) OnServiceUpdate(oldService, service *corev1.Service) {
 	svcName := types.NamespacedName{
 		Namespace: service.Namespace,
 		Name:      service.Name,
@@ -111,7 +111,7 @@ func (p *HybridProxier) OnServiceUpdate(oldService, service *api.Service) {
 	}
 }
 
-func (p *HybridProxier) OnServiceDelete(service *api.Service) {
+func (p *HybridProxier) OnServiceDelete(service *corev1.Service) {
 	svcName := types.NamespacedName{
 		Namespace: service.Namespace,
 		Name:      service.Name,
@@ -143,7 +143,7 @@ func (p *HybridProxier) OnServiceSynced() {
 
 // shouldEndpointsUseUserspace checks to see if the given endpoints have the correct
 // annotations and size to use the unidling proxy.
-func (p *HybridProxier) shouldEndpointsUseUserspace(endpoints *api.Endpoints) bool {
+func (p *HybridProxier) shouldEndpointsUseUserspace(endpoints *corev1.Endpoints) bool {
 	hasEndpoints := false
 	for _, subset := range endpoints.Subsets {
 		if len(subset.Addresses) > 0 {
@@ -195,7 +195,7 @@ func (p *HybridProxier) switchService(name types.NamespacedName) {
 	p.switchedToUserspace[name] = p.usingUserspace[name]
 }
 
-func (p *HybridProxier) OnEndpointsAdd(endpoints *api.Endpoints) {
+func (p *HybridProxier) OnEndpointsAdd(endpoints *corev1.Endpoints) {
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
 	glog.V(6).Infof("hybrid proxy: (always) add ep %s/%s in unidling proxy", endpoints.Namespace, endpoints.Name)
@@ -224,7 +224,7 @@ func (p *HybridProxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 	}
 }
 
-func (p *HybridProxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints) {
+func (p *HybridProxier) OnEndpointsUpdate(oldEndpoints, endpoints *corev1.Endpoints) {
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
 	glog.V(6).Infof("hybrid proxy: (always) update ep %s/%s in unidling proxy", endpoints.Namespace, endpoints.Name)
@@ -265,7 +265,7 @@ func (p *HybridProxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints
 	p.switchService(svcName)
 }
 
-func (p *HybridProxier) OnEndpointsDelete(endpoints *api.Endpoints) {
+func (p *HybridProxier) OnEndpointsDelete(endpoints *corev1.Endpoints) {
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
 	glog.V(6).Infof("hybrid proxy: (always) del ep %s/%s in unidling proxy", endpoints.Namespace, endpoints.Name)
