@@ -3,12 +3,14 @@ package dns
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
+
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/watch"
+	watchtools "k8s.io/client-go/tools/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -209,7 +212,9 @@ func validateDNSResults(f *e2e.Framework, pod *kapiv1.Pod, fileNames sets.String
 	if err != nil {
 		e2e.Failf("Failed: %v", err)
 	}
-	if _, err = watch.Until(e2e.PodStartTimeout, w, PodSucceeded); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), e2e.PodStartTimeout)
+	defer cancel()
+	if _, err = watchtools.UntilWithoutRetry(ctx, w, PodSucceeded); err != nil {
 		e2e.Failf("Failed: %v", err)
 	}
 

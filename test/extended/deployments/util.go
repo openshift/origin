@@ -26,6 +26,7 @@ import (
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -407,7 +408,9 @@ func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duratio
 	}
 	defer watcher.Stop()
 	var rc *corev1.ReplicationController
-	if _, err := watch.Until(timeout, watcher, func(e watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	if _, err := watchtools.UntilWithoutRetry(ctx, watcher, func(e watch.Event) (bool, error) {
 		if e.Type == watch.Error {
 			return false, fmt.Errorf("error while waiting for replication controller: %v", e.Object)
 		}
@@ -457,7 +460,9 @@ func waitForPodModification(oc *exutil.CLI, namespace string, name string, timeo
 		return nil, err
 	}
 
-	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
 			return true, fmt.Errorf("different kind of event appeared while waiting for Pod modification: event: %#v", event)
 		}
@@ -475,7 +480,9 @@ func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeou
 		return nil, err
 	}
 
-	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
 			return true, fmt.Errorf("different kind of event appeared while waiting for RC modification: event: %#v", event)
 		}
@@ -496,7 +503,9 @@ func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeou
 		return nil, err
 	}
 
-	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
 			return true, fmt.Errorf("different kind of event appeared while waiting for DC modification: event: %#v", event)
 		}

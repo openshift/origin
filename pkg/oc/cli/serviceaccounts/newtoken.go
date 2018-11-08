@@ -1,6 +1,7 @@
 package serviceaccounts
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -206,7 +207,9 @@ func waitForToken(token *corev1.Secret, serviceAccount *corev1.ServiceAccount, t
 		return nil, fmt.Errorf("could not begin watch for token: %v", err)
 	}
 
-	event, err := watchtools.UntilWithoutRetry(timeout, watcher, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if event.Type == watch.Error {
 			return false, fmt.Errorf("encountered error while watching for token: %v", event.Object)
 		}

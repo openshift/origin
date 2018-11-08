@@ -1,12 +1,14 @@
 package integration
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	watchtools "k8s.io/client-go/tools/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	testutil "github.com/openshift/origin/test/util"
@@ -58,7 +60,9 @@ func TestServiceServingCertSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = watch.Until(30*time.Second, secretWatcher1, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, err = watchtools.UntilWithoutRetry(ctx, secretWatcher1, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Added {
 			return false, nil
 		}
@@ -87,7 +91,9 @@ func TestServiceServingCertSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = watch.Until(30*time.Second, secretWatcher2, func(event watch.Event) (bool, error) {
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel2()
+	_, err = watchtools.UntilWithoutRetry(ctx2, secretWatcher2, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Modified {
 			return false, nil
 		}
@@ -122,7 +128,9 @@ func TestServiceServingCertSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = watch.Until(30*time.Second, secretWatcher3, func(event watch.Event) (bool, error) {
+	ctx3, cancel3 := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel3()
+	_, err = watchtools.UntilWithoutRetry(ctx3, secretWatcher3, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Modified {
 			return false, nil
 		}
