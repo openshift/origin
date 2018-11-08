@@ -30366,7 +30366,7 @@ var _examplesJenkinsPipelineBluegreenPipelineYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
   template: bluegreen-pipeline
-message: A Jenkins server will be automatically instantiated in this project to manage
+message: A Jenkins server must be instantiated in this project to manage
   the Pipeline BuildConfig created by this template.  You will be able to log in to
   it using your OpenShift user credentials.
 metadata:
@@ -31301,7 +31301,7 @@ kind: Template
 labels:
   template: application-template-sample-pipeline
 message: |-
-  A Jenkins server will be automatically instantiated in this project to manage
+  A Jenkins server must be instantiated in this project to manage
   the Pipeline BuildConfig created by this template.  You will be able to log in to
   it using your OpenShift user credentials.
 metadata:
