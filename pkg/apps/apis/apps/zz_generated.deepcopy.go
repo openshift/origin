@@ -42,12 +42,8 @@ func (in *DeploymentCause) DeepCopyInto(out *DeploymentCause) {
 	*out = *in
 	if in.ImageTrigger != nil {
 		in, out := &in.ImageTrigger, &out.ImageTrigger
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(DeploymentCauseImageTrigger)
-			**out = **in
-		}
+		*out = new(DeploymentCauseImageTrigger)
+		**out = **in
 	}
 	return
 }
@@ -221,12 +217,8 @@ func (in *DeploymentConfigSpec) DeepCopyInto(out *DeploymentConfigSpec) {
 	}
 	if in.RevisionHistoryLimit != nil {
 		in, out := &in.RevisionHistoryLimit, &out.RevisionHistoryLimit
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int32)
-			**out = **in
-		}
+		*out = new(int32)
+		**out = **in
 	}
 	if in.Selector != nil {
 		in, out := &in.Selector, &out.Selector
@@ -237,12 +229,8 @@ func (in *DeploymentConfigSpec) DeepCopyInto(out *DeploymentConfigSpec) {
 	}
 	if in.Template != nil {
 		in, out := &in.Template, &out.Template
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core.PodTemplateSpec)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(core.PodTemplateSpec)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -262,12 +250,8 @@ func (in *DeploymentConfigStatus) DeepCopyInto(out *DeploymentConfigStatus) {
 	*out = *in
 	if in.Details != nil {
 		in, out := &in.Details, &out.Details
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(DeploymentDetails)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(DeploymentDetails)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
@@ -343,47 +327,27 @@ func (in *DeploymentLogOptions) DeepCopyInto(out *DeploymentLogOptions) {
 	out.TypeMeta = in.TypeMeta
 	if in.SinceSeconds != nil {
 		in, out := &in.SinceSeconds, &out.SinceSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.SinceTime != nil {
 		in, out := &in.SinceTime, &out.SinceTime
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = (*in).DeepCopy()
-		}
+		*out = (*in).DeepCopy()
 	}
 	if in.TailLines != nil {
 		in, out := &in.TailLines, &out.TailLines
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.LimitBytes != nil {
 		in, out := &in.LimitBytes, &out.LimitBytes
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	return
 }
@@ -441,30 +405,18 @@ func (in *DeploymentStrategy) DeepCopyInto(out *DeploymentStrategy) {
 	*out = *in
 	if in.CustomParams != nil {
 		in, out := &in.CustomParams, &out.CustomParams
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(CustomDeploymentStrategyParams)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(CustomDeploymentStrategyParams)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.RecreateParams != nil {
 		in, out := &in.RecreateParams, &out.RecreateParams
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(RecreateDeploymentStrategyParams)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(RecreateDeploymentStrategyParams)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.RollingParams != nil {
 		in, out := &in.RollingParams, &out.RollingParams
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(RollingDeploymentStrategyParams)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(RollingDeploymentStrategyParams)
+		(*in).DeepCopyInto(*out)
 	}
 	in.Resources.DeepCopyInto(&out.Resources)
 	if in.Labels != nil {
@@ -483,12 +435,8 @@ func (in *DeploymentStrategy) DeepCopyInto(out *DeploymentStrategy) {
 	}
 	if in.ActiveDeadlineSeconds != nil {
 		in, out := &in.ActiveDeadlineSeconds, &out.ActiveDeadlineSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	return
 }
@@ -530,12 +478,8 @@ func (in *DeploymentTriggerPolicy) DeepCopyInto(out *DeploymentTriggerPolicy) {
 	*out = *in
 	if in.ImageChangeParams != nil {
 		in, out := &in.ImageChangeParams, &out.ImageChangeParams
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(DeploymentTriggerImageChangeParams)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(DeploymentTriggerImageChangeParams)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -588,12 +532,8 @@ func (in *LifecycleHook) DeepCopyInto(out *LifecycleHook) {
 	*out = *in
 	if in.ExecNewPod != nil {
 		in, out := &in.ExecNewPod, &out.ExecNewPod
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(ExecNewPodHook)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(ExecNewPodHook)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.TagImages != nil {
 		in, out := &in.TagImages, &out.TagImages
@@ -618,39 +558,23 @@ func (in *RecreateDeploymentStrategyParams) DeepCopyInto(out *RecreateDeployment
 	*out = *in
 	if in.TimeoutSeconds != nil {
 		in, out := &in.TimeoutSeconds, &out.TimeoutSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.Pre != nil {
 		in, out := &in.Pre, &out.Pre
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(LifecycleHook)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(LifecycleHook)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Mid != nil {
 		in, out := &in.Mid, &out.Mid
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(LifecycleHook)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(LifecycleHook)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Post != nil {
 		in, out := &in.Post, &out.Post
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(LifecycleHook)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(LifecycleHook)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -670,50 +594,30 @@ func (in *RollingDeploymentStrategyParams) DeepCopyInto(out *RollingDeploymentSt
 	*out = *in
 	if in.UpdatePeriodSeconds != nil {
 		in, out := &in.UpdatePeriodSeconds, &out.UpdatePeriodSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.IntervalSeconds != nil {
 		in, out := &in.IntervalSeconds, &out.IntervalSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.TimeoutSeconds != nil {
 		in, out := &in.TimeoutSeconds, &out.TimeoutSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	out.MaxUnavailable = in.MaxUnavailable
 	out.MaxSurge = in.MaxSurge
 	if in.Pre != nil {
 		in, out := &in.Pre, &out.Pre
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(LifecycleHook)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(LifecycleHook)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Post != nil {
 		in, out := &in.Post, &out.Post
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(LifecycleHook)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(LifecycleHook)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }

@@ -40,9 +40,7 @@ func (in *ImageCondition) DeepCopyInto(out *ImageCondition) {
 		in, out := &in.MatchImageLabelSelectors, &out.MatchImageLabelSelectors
 		*out = make([]labels.Selector, len(*in))
 		for i := range *in {
-			if (*in)[i] == nil {
-				(*out)[i] = nil
-			} else {
+			if (*in)[i] != nil {
 				(*out)[i] = (*in)[i].DeepCopySelector()
 			}
 		}

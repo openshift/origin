@@ -7,7 +7,7 @@ package v1
 import (
 	v1 "github.com/openshift/api/legacyconfig/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
 // RegisterDefaults adds defaulters functions to the given scheme.
@@ -25,12 +25,12 @@ func SetObjectDefaults_BuildDefaultsConfig(in *v1.BuildDefaultsConfig) {
 		a := &in.Env[i]
 		if a.ValueFrom != nil {
 			if a.ValueFrom.FieldRef != nil {
-				core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+				corev1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 			}
 		}
 	}
-	core_v1.SetDefaults_ResourceList(&in.Resources.Limits)
-	core_v1.SetDefaults_ResourceList(&in.Resources.Requests)
+	corev1.SetDefaults_ResourceList(&in.Resources.Limits)
+	corev1.SetDefaults_ResourceList(&in.Resources.Requests)
 }
 
 func SetObjectDefaults_MasterConfig(in *v1.MasterConfig) {
