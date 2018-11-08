@@ -116,7 +116,7 @@ func TestPodAdmission(t *testing.T) {
 		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 
-		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", project.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil)
+		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", project.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
 		err := handler.Admit(attrs)
 		if test.admit && err != nil {
 			t.Errorf("Test: %s, expected no error but got: %s", test.testName, err)
