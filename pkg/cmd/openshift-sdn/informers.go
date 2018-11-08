@@ -1,7 +1,8 @@
 package openshift_sdn
 
 import (
-	kclientset "k8s.io/client-go/kubernetes"
+	kinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
@@ -13,10 +14,12 @@ import (
 
 // informers is a small bag of data that holds our informers
 type informers struct {
-	KubeClient     kclientset.Interface
+	KubeClient     kubernetes.Interface
 	NetworkClient  networkclient.Interface
 	InternalClient kclientsetinternal.Interface
 
+	// External kubernetes shared informer factory.
+	KubeInformers kinformers.SharedInformerFactory
 	// Internal kubernetes shared informer factory.
 	InternalKubeInformers kinternalinformers.SharedInformerFactory
 	// Network shared informer factory.
@@ -29,7 +32,7 @@ func (sdn *OpenShiftSDN) buildInformers() error {
 	if err != nil {
 		return err
 	}
-	kubeClient, err := kclientset.NewForConfig(kubeConfig)
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		return err
 	}
@@ -42,6 +45,7 @@ func (sdn *OpenShiftSDN) buildInformers() error {
 		return err
 	}
 
+	kubeInformers := kinformers.NewSharedInformerFactory(kubeClient, sdn.ProxyConfig.IPTables.SyncPeriod.Duration)
 	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(internalClient, sdn.ProxyConfig.IPTables.SyncPeriod.Duration)
 	networkInformers := networkinformers.NewSharedInformerFactory(networkClient, network.DefaultInformerResyncPeriod)
 
@@ -50,6 +54,7 @@ func (sdn *OpenShiftSDN) buildInformers() error {
 		NetworkClient:  networkClient,
 		InternalClient: internalClient,
 
+		KubeInformers:         kubeInformers,
 		InternalKubeInformers: internalKubeInformers,
 		NetworkInformers:      networkInformers,
 	}
@@ -58,6 +63,7 @@ func (sdn *OpenShiftSDN) buildInformers() error {
 
 // start starts the informers.
 func (i *informers) start(stopCh <-chan struct{}) {
+	i.KubeInformers.Start(stopCh)
 	i.InternalKubeInformers.Start(stopCh)
 	i.NetworkInformers.Start(stopCh)
 }
