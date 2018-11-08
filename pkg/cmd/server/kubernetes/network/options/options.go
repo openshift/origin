@@ -7,6 +7,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 
@@ -54,7 +55,7 @@ func Build(options configapi.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguratio
 	proxyconfig.ResourceContainer = ""
 
 	// use the same client as the node
-	proxyconfig.ClientConnection.KubeConfigFile = options.MasterKubeConfig
+	proxyconfig.ClientConnection.Kubeconfig = options.MasterKubeConfig
 
 	// ProxyMode, set to iptables
 	proxyconfig.Mode = "iptables"
@@ -80,7 +81,9 @@ func Build(options configapi.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguratio
 	// UDPIdleTimeout, use default
 
 	// Resolve cmd flags to add any user overrides
-	if err := cmdflags.Resolve(options.ProxyArguments, proxyOptions.AddFlags); len(err) > 0 {
+	fss := apiserverflag.NamedFlagSets{}
+	proxyOptions.AddFlags(fss.FlagSet("proxy"))
+	if err := cmdflags.Resolve(options.ProxyArguments, fss); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}
 

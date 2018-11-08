@@ -1,6 +1,7 @@
 package openshift_network_controller
 
 import (
+	"context"
 	"os"
 
 	"github.com/golang/glog"
@@ -30,7 +31,7 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 		return err
 	}
 
-	originControllerManager := func(stopCh <-chan struct{}) {
+	originControllerManager := func(ctx context.Context) {
 		if err := openshift_controller_manager.WaitForHealthyAPIServer(kubeClient.Discovery().RESTClient()); err != nil {
 			glog.Fatal(err)
 		}
@@ -69,18 +70,19 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 	if err != nil {
 		return err
 	}
-	go leaderelection.RunOrDie(leaderelection.LeaderElectionConfig{
-		Lock:          rl,
-		LeaseDuration: config.LeaderElection.LeaseDuration.Duration,
-		RenewDeadline: config.LeaderElection.RenewDeadline.Duration,
-		RetryPeriod:   config.LeaderElection.RetryPeriod.Duration,
-		Callbacks: leaderelection.LeaderCallbacks{
-			OnStartedLeading: originControllerManager,
-			OnStoppedLeading: func() {
-				glog.Fatalf("leaderelection lost")
+	go leaderelection.RunOrDie(context.Background(),
+		leaderelection.LeaderElectionConfig{
+			Lock:          rl,
+			LeaseDuration: config.LeaderElection.LeaseDuration.Duration,
+			RenewDeadline: config.LeaderElection.RenewDeadline.Duration,
+			RetryPeriod:   config.LeaderElection.RetryPeriod.Duration,
+			Callbacks: leaderelection.LeaderCallbacks{
+				OnStartedLeading: originControllerManager,
+				OnStoppedLeading: func() {
+					glog.Fatalf("leaderelection lost")
+				},
 			},
-		},
-	})
+		})
 
 	return nil
 }

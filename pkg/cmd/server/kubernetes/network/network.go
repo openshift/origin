@@ -66,7 +66,10 @@ func (c *NetworkConfig) RunProxy() {
 
 	portRange := utilnet.ParsePortRangeOrDie(c.ProxyConfig.PortRange)
 
-	hostname := utilnode.GetHostname(c.ProxyConfig.HostnameOverride)
+	hostname, err := utilnode.GetHostname(c.ProxyConfig.HostnameOverride)
+	if err != nil {
+		glog.Fatalf("Unable to get hostname: %v", err)
+	}
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: c.KubeClientset.CoreV1().Events("")})
@@ -95,7 +98,7 @@ func (c *NetworkConfig) RunProxy() {
 		glog.V(0).Info("Using iptables Proxier.")
 		if bindAddr.Equal(net.IPv4zero) {
 			var err error
-			bindAddr, err = getNodeIP(c.ExternalKubeClientset.CoreV1(), hostname)
+			bindAddr, err = getNodeIP(c.KubeClientset.CoreV1(), hostname)
 			if err != nil {
 				glog.Fatalf("Unable to get a bind address: %v", err)
 			}
@@ -167,7 +170,7 @@ func (c *NetworkConfig) RunProxy() {
 	// only notify on changes, and the initial update (on process start) may be lost if no handlers
 	// are registered yet.
 	serviceConfig := pconfig.NewServiceConfig(
-		c.InternalKubeInformers.Core().InternalVersion().Services(),
+		c.KubeInformers.Core().V1().Services(),
 		c.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 
@@ -186,7 +189,7 @@ func (c *NetworkConfig) RunProxy() {
 			proxier,
 			unidlingUserspaceProxy,
 			c.ProxyConfig.IPTables.SyncPeriod.Duration,
-			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
+			c.KubeInformers.Core().V1().Services().Lister(),
 		)
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
@@ -201,7 +204,7 @@ func (c *NetworkConfig) RunProxy() {
 	go serviceConfig.Run(utilwait.NeverStop)
 
 	endpointsConfig := pconfig.NewEndpointsConfig(
-		c.InternalKubeInformers.Core().InternalVersion().Endpoints(),
+		c.KubeInformers.Core().V1().Endpoints(),
 		c.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 	// customized handling registration that inserts a filter if needed

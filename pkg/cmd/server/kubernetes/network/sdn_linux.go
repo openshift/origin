@@ -3,8 +3,8 @@ package network
 import (
 	"strings"
 
-	kclientv1 "k8s.io/api/core/v1"
-	kclientset "k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -20,7 +20,7 @@ import (
 )
 
 func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.Interface,
-	kubeClientset kclientset.Interface, kubeClient kinternalclientset.Interface,
+	kubeClient kubernetes.Interface, internalKubeClient kinternalclientset.Interface,
 	internalKubeInformers kinternalinformers.SharedInformerFactory,
 	internalNetworkInformers networkinformers.SharedInformerFactory,
 	proxyconfig *kubeproxyconfig.KubeProxyConfiguration) (NodeInterface, ProxyInterface, error) {
@@ -49,8 +49,8 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	enableHostports := !strings.Contains(runtimeEndpoint, "crio")
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kubeClientset.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: options.NodeName})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "openshift-sdn", Host: options.NodeName})
 
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
 		PluginName:         options.NetworkConfig.NetworkPluginName,
@@ -62,7 +62,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		CNIConfDir:         cniConfDir,
 		MTU:                options.NetworkConfig.MTU,
 		NetworkClient:      networkClient,
-		KClient:            kubeClient,
+		KClient:            internalKubeClient,
 		KubeInformers:      internalKubeInformers,
 		NetworkInformers:   internalNetworkInformers,
 		IPTablesSyncPeriod: proxyconfig.IPTables.SyncPeriod.Duration,
@@ -75,7 +75,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		return nil, nil, err
 	}
 
-	proxy, err := sdnproxy.New(options.NetworkConfig.NetworkPluginName, networkClient, kubeClient, internalNetworkInformers)
+	proxy, err := sdnproxy.New(options.NetworkConfig.NetworkPluginName, networkClient, internalKubeClient, internalNetworkInformers)
 	if err != nil {
 		return nil, nil, err
 	}

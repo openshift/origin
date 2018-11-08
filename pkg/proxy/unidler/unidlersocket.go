@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
+	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 )
@@ -115,7 +116,7 @@ var (
 	needPodsTickLen     = 5 * time.Second
 )
 
-func newUnidlerSocket(protocol api.Protocol, ip net.IP, port int, signaler NeedPodsSignaler) (userspace.ProxySocket, error) {
+func newUnidlerSocket(protocol corev1.Protocol, ip net.IP, port int, signaler NeedPodsSignaler) (userspace.ProxySocket, error) {
 	host := ""
 	if ip != nil {
 		host = ip.String()

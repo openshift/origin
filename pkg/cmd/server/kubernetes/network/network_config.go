@@ -9,8 +9,8 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	kclientset "k8s.io/client-go/kubernetes"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/certificate"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -30,11 +30,9 @@ import (
 // through Kubernetes. All fields are required.
 type NetworkConfig struct {
 	// External kube client
-	KubeClientset kclientset.Interface
-	// External kube client
-	ExternalKubeClientset kclientsetexternal.Interface
-	// Internal kubernetes shared informer factory.
-	InternalKubeInformers kinternalinformers.SharedInformerFactory
+	KubeClientset kubernetes.Interface
+	// External kubernetes shared informer factory.
+	KubeInformers informers.SharedInformerFactory
 	// Network shared informer factory.
 	NetworkInformers networkinformers.SharedInformerFactory
 
@@ -93,11 +91,7 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 	if err != nil {
 		return nil, err
 	}
-	externalKubeClient, err := kclientsetexternal.NewForConfig(kubeConfig)
-	if err != nil {
-		return nil, err
-	}
-	kubeClient, err := kclientset.NewForConfig(kubeConfig)
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +100,12 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 		return nil, err
 	}
 
+	kubeInformers := informers.NewSharedInformerFactory(kubeClient, proxyConfig.ConfigSyncPeriod.Duration)
 	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(internalKubeClient, proxyConfig.ConfigSyncPeriod.Duration)
 
 	config := &NetworkConfig{
-		KubeClientset:         kubeClient,
-		ExternalKubeClientset: externalKubeClient,
-		InternalKubeInformers: internalKubeInformers,
+		KubeClientset: kubeClient,
+		KubeInformers: kubeInformers,
 
 		ProxyConfig:    proxyConfig,
 		EnableUnidling: options.EnableUnidling,

@@ -9,12 +9,12 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 
@@ -30,7 +30,7 @@ type EndpointsConfigHandler interface {
 	// OnEndpointsUpdate gets called when endpoints configuration is changed for a given
 	// service on any of the configuration sources. An example is when a new
 	// service comes up, or when containers come up or down for an existing service.
-	OnEndpointsUpdate(endpoints []*kapi.Endpoints)
+	OnEndpointsUpdate(endpoints []*corev1.Endpoints)
 }
 
 type firewallItem struct {
@@ -44,7 +44,7 @@ type proxyFirewallItem struct {
 }
 
 type proxyEndpoints struct {
-	endpoints *kapi.Endpoints
+	endpoints *corev1.Endpoints
 	blocked   bool
 }
 
@@ -270,7 +270,7 @@ func (proxy *OsdnProxy) firewallBlocksIP(namespace string, ip net.IP) bool {
 	return false
 }
 
-func (proxy *OsdnProxy) endpointsBlocked(ep *kapi.Endpoints) bool {
+func (proxy *OsdnProxy) endpointsBlocked(ep *corev1.Endpoints) bool {
 	for _, ss := range ep.Subsets {
 		for _, addr := range ss.Addresses {
 			IP := net.ParseIP(addr.IP)
@@ -286,7 +286,7 @@ func (proxy *OsdnProxy) endpointsBlocked(ep *kapi.Endpoints) bool {
 	return false
 }
 
-func (proxy *OsdnProxy) OnEndpointsAdd(ep *kapi.Endpoints) {
+func (proxy *OsdnProxy) OnEndpointsAdd(ep *corev1.Endpoints) {
 	proxy.lock.Lock()
 	defer proxy.lock.Unlock()
 
@@ -297,7 +297,7 @@ func (proxy *OsdnProxy) OnEndpointsAdd(ep *kapi.Endpoints) {
 	}
 }
 
-func (proxy *OsdnProxy) OnEndpointsUpdate(old, ep *kapi.Endpoints) {
+func (proxy *OsdnProxy) OnEndpointsUpdate(old, ep *corev1.Endpoints) {
 	proxy.lock.Lock()
 	defer proxy.lock.Unlock()
 
@@ -321,7 +321,7 @@ func (proxy *OsdnProxy) OnEndpointsUpdate(old, ep *kapi.Endpoints) {
 	}
 }
 
-func (proxy *OsdnProxy) OnEndpointsDelete(ep *kapi.Endpoints) {
+func (proxy *OsdnProxy) OnEndpointsDelete(ep *corev1.Endpoints) {
 	proxy.lock.Lock()
 	defer proxy.lock.Unlock()
 
@@ -341,7 +341,7 @@ func (proxy *OsdnProxy) OnEndpointsSynced() {
 }
 
 func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
-	policies, err := proxy.networkClient.Network().EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
+	policies, err := proxy.networkClient.Network().EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Could not get EgressNetworkPolicies: %v", err))
 		return
@@ -355,7 +355,7 @@ func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
 
 		policy, ok := getPolicy(policyUpdates.UID, policies)
 		if !ok {
-			policies, err = proxy.networkClient.Network().EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
+			policies, err = proxy.networkClient.Network().EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
 			if err != nil {
 				utilruntime.HandleError(fmt.Errorf("Failed to update proxy firewall for policy: %v, Could not get EgressNetworkPolicies: %v", policyUpdates.UID, err))
 				continue
