@@ -22,9 +22,6 @@ __oc_override_flags()
                     ;;
             esac
         done
-        if [ "${w}" == "--all-namespaces" ]; then
-            namespace="--all-namespaces"
-        fi
     done
     for of in "${__oc_override_flag_list[@]}"; do
         if eval "test -n \"\$${of}\""; then
@@ -55,9 +52,14 @@ __oc_get_namespaces()
 __oc_get_resource()
 {
     if [[ ${#nouns[@]} -eq 0 ]]; then
-        return 1
+      local oc_out
+      if oc_out=$(oc api-resources $(__oc_override_flags) -o name --cached --request-timeout=5s --verbs=get 2>/dev/null); then
+          COMPREPLY=( $( compgen -W "${oc_out[*]}" -- "$cur" ) )
+          return 0
+      fi
+      return 1
     fi
-    __oc_parse_get ${nouns[${#nouns[@]} -1]}
+    __oc_parse_get "${nouns[${#nouns[@]} -1]}"
 }
 
 # $1 is the name of the pod we want to get the list of containers inside
