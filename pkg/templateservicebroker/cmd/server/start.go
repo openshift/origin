@@ -35,7 +35,7 @@ type TemplateServiceBrokerServerOptions struct {
 
 func NewTemplateServiceBrokerServerOptions(out, errOut io.Writer) *TemplateServiceBrokerServerOptions {
 	o := &TemplateServiceBrokerServerOptions{
-		SecureServing:  genericoptions.WithLoopback(genericoptions.NewSecureServingOptions()),
+		SecureServing:  genericoptions.NewSecureServingOptions().WithLoopback(),
 		Authentication: genericoptions.NewDelegatingAuthenticationOptions(),
 		Authorization:  genericoptions.NewDelegatingAuthorizationOptions(),
 		Audit:          genericoptions.NewAuditOptions(),
@@ -119,7 +119,7 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 	}
 
 	serverConfig := genericapiserver.NewConfig(server.Codecs)
-	if err := o.SecureServing.ApplyTo(serverConfig); err != nil {
+	if err := o.SecureServing.ApplyTo(&serverConfig.SecureServing, &serverConfig.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
 	if err := o.Authentication.ApplyTo(&serverConfig.Authentication, serverConfig.SecureServing, serverConfig.OpenAPIConfig); err != nil {
