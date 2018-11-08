@@ -106,6 +106,7 @@ var (
 		"openshift.io/IngressAdmission",
 		mutatingwebhook.PluginName,
 		validatingwebhook.PluginName,
+		imagepolicyapi.PluginName,
 	)
 
 	// DefaultOffPlugins includes plugins which require explicit configuration to run
@@ -115,7 +116,6 @@ var (
 		"RunOnceDuration",
 		"PodNodeConstraints",
 		overrideapi.PluginName,
-		imagepolicyapi.PluginName,
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
 		"openshift.io/RestrictSubjectBindings",
