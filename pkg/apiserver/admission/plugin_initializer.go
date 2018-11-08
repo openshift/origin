@@ -8,9 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
-	webhookconfig "k8s.io/apiserver/pkg/admission/plugin/webhook/config"
 	webhookinitializer "k8s.io/apiserver/pkg/admission/plugin/webhook/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/util/webhook"
 	kexternalinformers "k8s.io/client-go/informers"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -104,8 +104,8 @@ func NewPluginInitializer(
 		restMapper,
 		generic.NewConfiguration(quotaRegistry.List(), map[schema.GroupResource]struct{}{}))
 
-	webhookAuthResolverWrapper := func(delegate webhookconfig.AuthenticationInfoResolver) webhookconfig.AuthenticationInfoResolver {
-		return &webhookconfig.AuthenticationInfoResolverDelegator{
+	webhookAuthResolverWrapper := func(delegate webhook.AuthenticationInfoResolver) webhook.AuthenticationInfoResolver {
+		return &webhook.AuthenticationInfoResolverDelegator{
 			ClientConfigForFunc: func(server string) (*rest.Config, error) {
 				if server == "kubernetes.default.svc" {
 					return rest.CopyConfig(privilegedLoopbackConfig), nil
