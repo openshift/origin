@@ -7,6 +7,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -90,6 +92,8 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 		RoleKind:   "ClusterRole",
 		RbacClient: rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Subjects:   subjects,
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	options.AddRole()
 
@@ -121,6 +125,8 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 		RoleKind:   "ClusterRole",
 		RbacClient: rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Subjects:   subjects,
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	options.AddRole()
 

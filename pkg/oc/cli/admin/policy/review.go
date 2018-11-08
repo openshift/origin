@@ -71,6 +71,7 @@ type SCCReviewOptions struct {
 	builder                  *resource.Builder
 	RESTClientFactory        func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	FilenameOptions          resource.FilenameOptions
+	noHeaders                bool
 	serviceAccountNames      []string // it contains user inputs it could be long sa name like system:serviceaccount:bob:default or short one
 	shortServiceAccountNames []string // it contains only short sa name for example 'bob'
 
@@ -99,14 +100,13 @@ func NewCmdSccReview(name, fullName string, f kcmdutil.Factory, streams genericc
 
 	cmd.Flags().StringSliceVarP(&o.serviceAccountNames, "serviceaccount", "z", o.serviceAccountNames, "service account in the current namespace to use as a user")
 	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, "Filename, directory, or URL to a file identifying the resource to get from a server.")
-	kcmdutil.AddNoHeadersFlags(cmd)
+	cmd.Flags().BoolVar(&o.noHeaders, "no-headers", o.noHeaders, "When using the default output format, don't print headers (default print headers).")
 
 	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
 type policyPrinter struct {
-	humanPrinting  bool
 	humanPrintFunc func(*resource.Info, runtime.Object, *bool, io.Writer) error
 	noHeaders      bool
 	printFlags     *genericclioptions.PrintFlags
@@ -119,16 +119,15 @@ func (p *policyPrinter) WithInfo(info *resource.Info) *policyPrinter {
 }
 
 func (p *policyPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
-	if !p.humanPrinting {
-		printer, err := p.printFlags.ToPrinter()
-		if err != nil {
-			return err
-		}
-
-		return printer.PrintObj(obj, out)
+	if p.printFlags.OutputFormat == nil || len(*p.printFlags.OutputFormat) == 0 || *p.printFlags.OutputFormat == "wide" {
+		return p.humanPrintFunc(p.info, obj, &p.noHeaders, out)
 	}
 
-	return p.humanPrintFunc(p.info, obj, &p.noHeaders, out)
+	printer, err := p.printFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	return printer.PrintObj(obj, out)
 }
 
 func (o *SCCReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobra.Command) error {
@@ -162,14 +161,10 @@ func (o *SCCReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobr
 	o.builder = f.NewBuilder()
 	o.RESTClientFactory = f.ClientForMapping
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	wide := len(output) > 0 && output == "wide"
-
 	o.Printer = &policyPrinter{
 		printFlags:     o.PrintFlags,
-		humanPrinting:  len(output) == 0 || wide,
 		humanPrintFunc: sccReviewHumanPrintFunc,
-		noHeaders:      kcmdutil.GetFlagBool(cmd, "no-headers"),
+		noHeaders:      o.noHeaders,
 	}
 
 	return nil

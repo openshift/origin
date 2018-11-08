@@ -56,6 +56,7 @@ type SCCSubjectReviewOptions struct {
 	FilenameOptions        resource.FilenameOptions
 	User                   string
 	Groups                 []string
+	noHeaders              bool
 	serviceAccount         string
 
 	genericclioptions.IOStreams
@@ -84,8 +85,8 @@ func NewCmdSccSubjectReview(name, fullName string, f kcmdutil.Factory, streams g
 	cmd.Flags().StringVarP(&o.User, "user", "u", o.User, "Review will be performed on behalf of this user")
 	cmd.Flags().StringSliceVarP(&o.Groups, "groups", "g", o.Groups, "Comma separated, list of groups. Review will be performed on behalf of these groups")
 	cmd.Flags().StringVarP(&o.serviceAccount, "serviceaccount", "z", o.serviceAccount, "service account in the current namespace to use as a user")
+	cmd.Flags().BoolVar(&o.noHeaders, "no-headers", o.noHeaders, "When using the default output format, don't print headers (default print headers).")
 	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, "Filename, directory, or URL to a file identifying the resource to get from a server.")
-	kcmdutil.AddNoHeadersFlags(cmd)
 
 	o.PrintFlags.AddFlags(cmd)
 	return cmd
@@ -127,14 +128,10 @@ func (o *SCCSubjectReviewOptions) Complete(f kcmdutil.Factory, args []string, cm
 	o.builder = f.NewBuilder()
 	o.RESTClientFactory = f.ClientForMapping
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	wide := len(output) > 0 && output == "wide"
-
 	o.Printer = &policyPrinter{
 		printFlags:     o.PrintFlags,
-		humanPrinting:  len(output) == 0 || wide,
 		humanPrintFunc: subjectReviewHumanPrinter,
-		noHeaders:      kcmdutil.GetFlagBool(cmd, "no-headers"),
+		noHeaders:      o.noHeaders,
 	}
 
 	return nil
