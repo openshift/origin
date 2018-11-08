@@ -8,6 +8,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -242,6 +244,8 @@ func makeUserAnImageSigner(rbacClient rbacv1client.RbacV1Interface, userClient k
 		RoleKind:   "ClusterRole",
 		RbacClient: rbacClient,
 		Users:      []string{userName},
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addImageSignerRole.AddRole(); err != nil {
 		return err

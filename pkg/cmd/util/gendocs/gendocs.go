@@ -11,8 +11,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/printers"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 )
 
 type Examples []*unstructured.Unstructured
@@ -44,11 +43,7 @@ func GenDocs(cmd *cobra.Command, filename string) error {
 		output.Items = append(output.Items, *examples[i])
 	}
 
-	printOpts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
-	printOpts.OutputFormatType = "template"
-	printOpts.OutputFormatArgument = string(template)
-	printer, err := printers.GetStandardPrinter(
-		nil, nil, nil, *printOpts)
+	printer, err := printers.NewGoTemplatePrinter(template)
 	if err != nil {
 		return err
 	}

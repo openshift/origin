@@ -21,6 +21,8 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	kclientset "k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -513,6 +515,8 @@ func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namesp
 					RoleName:             roleName,
 					RbacClient:           rbacClient,
 					Users:                []string{sa},
+					PrintFlags:           genericclioptions.NewPrintFlags(""),
+					ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 				}
 				if err := addRole.AddRole(); err != nil {
 					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)

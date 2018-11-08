@@ -86,16 +86,14 @@ func NewCmdCanI(name, fullName string, f kcmdutil.Factory, streams genericcliopt
 	cmd.Flags().StringSliceVar(&o.Scopes, "scopes", o.Scopes, "Check the specified action using these scopes.  By default, the scopes on the current token will be used.")
 	cmd.Flags().StringVar(&o.User, "user", o.User, "Check the specified action using this user instead of your user.")
 	cmd.Flags().StringSliceVar(&o.Groups, "groups", o.Groups, "Check the specified action using these groups instead of your groups.")
+	cmd.Flags().BoolVar(&o.NoHeaders, "no-headers", o.NoHeaders, "When using the default output format, don't print headers (default print headers).")
 
-	kcmdutil.AddNoHeadersFlags(cmd)
 	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
 func (o *CanIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	o.Args = args
-
-	o.NoHeaders = kcmdutil.GetFlagBool(cmd, "no-headers")
 
 	if o.ListAll && o.AllNamespaces {
 		return errors.New("--list and --all-namespaces are mutually exclusive")

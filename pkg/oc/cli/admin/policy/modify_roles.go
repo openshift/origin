@@ -3,7 +3,6 @@ package policy
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -12,12 +11,15 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
@@ -79,6 +81,10 @@ var (
 )
 
 type RoleModificationOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+
+	ToPrinter func(string) (printers.ResourcePrinter, error)
+
 	RoleName             string
 	RoleNamespace        string
 	RoleKind             string
@@ -96,9 +102,7 @@ type RoleModificationOptions struct {
 	Subjects []rbacv1.Subject
 
 	DryRun bool
-	Output string
 
-	PrintObj  func(obj runtime.Object) error
 	PrintErrf func(format string, args ...interface{})
 
 	genericclioptions.IOStreams
@@ -106,7 +110,8 @@ type RoleModificationOptions struct {
 
 func NewRoleModificationOptions(streams genericclioptions.IOStreams) *RoleModificationOptions {
 	return &RoleModificationOptions{
-		IOStreams: streams,
+		PrintFlags: genericclioptions.NewPrintFlags("added").WithTypeSetter(scheme.Scheme),
+		IOStreams:  streams,
 	}
 }
 
@@ -121,9 +126,6 @@ func NewCmdAddRoleToGroup(name, fullName string, f kcmdutil.Factory, streams gen
 			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
 			kcmdutil.CheckErr(o.checkRoleBindingNamespace(f))
 			kcmdutil.CheckErr(o.AddRole())
-			if len(o.Output) == 0 {
-				printSuccessForCommand(o.RoleName, true, "group", o.Targets, true, o.DryRun, o.Out)
-			}
 		},
 	}
 
@@ -131,7 +133,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f kcmdutil.Factory, streams gen
 	cmd.Flags().StringVar(&o.RoleNamespace, "role-namespace", o.RoleNamespace, "namespace where the role is located: empty means a role defined in cluster policy")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -148,9 +150,6 @@ func NewCmdAddRoleToUser(name, fullName string, f kcmdutil.Factory, streams gene
 			kcmdutil.CheckErr(o.CompleteUserWithSA(f, cmd, args))
 			kcmdutil.CheckErr(o.checkRoleBindingNamespace(f))
 			kcmdutil.CheckErr(o.AddRole())
-			if len(o.Output) == 0 {
-				printSuccessForCommand(o.RoleName, true, "user", o.Targets, true, o.DryRun, o.Out)
-			}
 		},
 	}
 
@@ -159,7 +158,7 @@ func NewCmdAddRoleToUser(name, fullName string, f kcmdutil.Factory, streams gene
 	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -174,9 +173,6 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f kcmdutil.Factory, stream
 			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
 			kcmdutil.CheckErr(o.checkRoleBindingNamespace(f))
 			kcmdutil.CheckErr(o.RemoveRole())
-			if len(o.Output) == 0 {
-				printSuccessForCommand(o.RoleName, false, "group", o.Targets, true, o.DryRun, o.Out)
-			}
 		},
 	}
 
@@ -184,7 +180,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f kcmdutil.Factory, stream
 	cmd.Flags().StringVar(&o.RoleNamespace, "role-namespace", o.RoleNamespace, "namespace where the role is located: empty means a role defined in cluster policy")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -200,9 +196,6 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f kcmdutil.Factory, streams
 			kcmdutil.CheckErr(o.CompleteUserWithSA(f, cmd, args))
 			kcmdutil.CheckErr(o.checkRoleBindingNamespace(f))
 			kcmdutil.CheckErr(o.RemoveRole())
-			if len(o.Output) == 0 {
-				printSuccessForCommand(o.RoleName, false, "user", o.Targets, true, o.DryRun, o.Out)
-			}
 		},
 	}
 
@@ -211,7 +204,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f kcmdutil.Factory, streams
 	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -226,16 +219,13 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f kcmdutil.Factory, stre
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
 			kcmdutil.CheckErr(o.AddRole())
-			if len(o.Output) == 0 {
-				printSuccessForCommand(o.RoleName, true, "group", o.Targets, false, o.DryRun, o.Out)
-			}
 		},
 	}
 
 	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -251,9 +241,6 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f kcmdutil.Factory, strea
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.CompleteUserWithSA(f, cmd, args))
 			kcmdutil.CheckErr(o.AddRole())
-			if len(o.Output) == 0 {
-				printSuccessForCommand(o.RoleName, true, "user", o.Targets, false, o.DryRun, o.Out)
-			}
 		},
 	}
 
@@ -261,7 +248,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f kcmdutil.Factory, strea
 	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use o.SANamess a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -276,16 +263,13 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f kcmdutil.Factory,
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args, &o.Groups, "group"))
 			kcmdutil.CheckErr(o.RemoveRole())
-			if len(o.Output) == 0 {
-				printSuccessForCommand(o.RoleName, false, "group", o.Targets, false, o.DryRun, o.Out)
-			}
 		},
 	}
 
 	cmd.Flags().StringVar(&o.RoleBindingName, "rolebinding-name", o.RoleBindingName, "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -301,9 +285,6 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f kcmdutil.Factory, 
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.CompleteUserWithSA(f, cmd, args))
 			kcmdutil.CheckErr(o.RemoveRole())
-			if len(o.Output) == 0 {
-				printSuccessForCommand(o.RoleName, false, "user", o.Targets, false, o.DryRun, o.Out)
-			}
 		},
 	}
 
@@ -311,7 +292,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f kcmdutil.Factory, 
 	cmd.Flags().StringSliceVarP(&o.SANames, "serviceaccount", "z", o.SANames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -352,10 +333,6 @@ func (o *RoleModificationOptions) innerComplete(f kcmdutil.Factory, cmd *cobra.C
 	}
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, o.Out)
-	}
 	o.PrintErrf = func(format string, args ...interface{}) {
 		fmt.Fprintf(o.ErrOut, format, args...)
 	}
@@ -407,6 +384,11 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *co
 		o.Subjects = append(o.Subjects, rbacv1.Subject{Namespace: defaultNamespace, Name: sa, Kind: rbacv1.ServiceAccountKind})
 	}
 
+	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = getSuccessMessage(o.DryRun, operation, o.Targets)
+		return o.PrintFlags.ToPrinter()
+	}
+
 	return nil
 }
 
@@ -420,7 +402,16 @@ func (o *RoleModificationOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comman
 
 	o.Targets = *target
 
-	return o.innerComplete(f, cmd)
+	if err := o.innerComplete(f, cmd); err != nil {
+		return err
+	}
+
+	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = getSuccessMessage(o.DryRun, operation, o.Targets)
+		return o.PrintFlags.ToPrinter()
+	}
+
+	return nil
 }
 
 func (o *RoleModificationOptions) getRoleBinding() (*roleBindingAbstraction, bool /* isUpdate */, error) {
@@ -473,6 +464,13 @@ func (o *RoleModificationOptions) AddRole() error {
 		err         error
 	)
 
+	p, err := o.ToPrinter("added")
+	if err != nil {
+		return err
+	}
+
+	roleToPrint := o.roleObjectToPrint()
+
 	// Look for an existing rolebinding by name.
 	if len(o.RoleBindingName) > 0 {
 		roleBinding, isUpdate, err = o.getRoleBinding()
@@ -490,10 +488,10 @@ func (o *RoleModificationOptions) AddRole() error {
 				newSubjects := addSubjects(o.Users, o.Groups, o.Subjects, checkBinding.Subjects())
 				if len(newSubjects) == len(checkBinding.Subjects()) {
 					// we already have a rolebinding that matches
-					if len(o.Output) > 0 {
-						return o.PrintObj(checkBinding.Object())
+					if o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) > 0 {
+						return p.PrintObj(checkBinding.Object(), o.Out)
 					}
-					return nil
+					return p.PrintObj(roleToPrint, o.Out)
 				}
 			}
 		}
@@ -546,12 +544,8 @@ func (o *RoleModificationOptions) AddRole() error {
 	}
 	roleBinding.SetSubjects(newSubjects)
 
-	if len(o.Output) > 0 {
-		return o.PrintObj(roleBinding.Object())
-	}
-
-	if o.DryRun {
-		return nil
+	if o.DryRun || (o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) > 0) {
+		return p.PrintObj(roleBinding.Object(), o.Out)
 	}
 
 	if isUpdate {
@@ -567,7 +561,7 @@ func (o *RoleModificationOptions) AddRole() error {
 		return err
 	}
 
-	return nil
+	return p.PrintObj(roleToPrint, o.Out)
 }
 
 // addSubjects appends new subjects to the list existing ones, removing any duplicates.
@@ -605,6 +599,24 @@ func (o *RoleModificationOptions) checkRolebindingAutoupdate(roleBinding *roleBi
 				roleBinding.Name(), rbacv1.AutoUpdateAnnotationKey)
 		}
 	}
+}
+
+func (o *RoleModificationOptions) roleObjectToPrint() runtime.Object {
+	var roleToPrint runtime.Object
+	if len(o.RoleBindingNamespace) == 0 {
+		roleToPrint = &rbacv1.ClusterRole{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta:   metav1.TypeMeta{APIVersion: rbacv1.SchemeGroupVersion.String(), Kind: o.RoleKind},
+			ObjectMeta: metav1.ObjectMeta{Name: o.RoleName},
+		}
+	} else {
+		roleToPrint = &rbacv1.Role{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta:   metav1.TypeMeta{APIVersion: rbacv1.SchemeGroupVersion.String(), Kind: o.RoleKind},
+			ObjectMeta: metav1.ObjectMeta{Name: o.RoleName},
+		}
+	}
+	return roleToPrint
 }
 
 func (o *RoleModificationOptions) RemoveRole() error {
@@ -649,42 +661,57 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		found += cnt
 	}
 
-	if len(o.Output) > 0 {
+	p, err := o.ToPrinter("removed")
+	if err != nil {
+		return err
+	}
+
+	if o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) > 0 {
 		if found == 0 {
 			return fmt.Errorf("unable to find target %v", o.Targets)
 		}
-		var updated runtime.Object
+
+		var updated *unstructured.UnstructuredList
 		if len(o.RoleBindingNamespace) > 0 {
-			updatedBindings := &rbacv1.RoleBindingList{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "List",
-					APIVersion: "v1",
+			updatedBindings := &unstructured.UnstructuredList{
+				Object: map[string]interface{}{
+					"kind":       "List",
+					"apiVersion": "v1",
+					"metadata":   map[string]interface{}{},
 				},
-				ListMeta: metav1.ListMeta{},
 			}
 			for _, binding := range roleBindings {
-				updatedBindings.Items = append(updatedBindings.Items, *(binding.Object().(*rbacv1.RoleBinding)))
+				obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(binding.Object())
+				if err != nil {
+					return err
+				}
+				updatedBindings.Items = append(updatedBindings.Items, unstructured.Unstructured{Object: obj})
 			}
 			updated = updatedBindings
 		} else {
-			updatedBindings := &rbacv1.ClusterRoleBindingList{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "List",
-					APIVersion: "v1",
+			updatedBindings := &unstructured.UnstructuredList{
+				Object: map[string]interface{}{
+					"kind":       "List",
+					"apiVersion": "v1",
+					"metadata":   map[string]interface{}{},
 				},
-				ListMeta: metav1.ListMeta{},
 			}
 			for _, binding := range roleBindings {
-				updatedBindings.Items = append(updatedBindings.Items, *(binding.Object().(*rbacv1.ClusterRoleBinding)))
+				obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(binding.Object())
+				if err != nil {
+					return err
+				}
+				updatedBindings.Items = append(updatedBindings.Items, unstructured.Unstructured{Object: obj})
 			}
 			updated = updatedBindings
 		}
 
-		return o.PrintObj(updated)
+		return p.PrintObj(updated, o.Out)
 	}
 
+	roleToPrint := o.roleObjectToPrint()
 	if o.DryRun {
-		return nil
+		return p.PrintObj(roleToPrint, o.Out)
 	}
 
 	for _, roleBinding := range roleBindings {
@@ -702,7 +729,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		return fmt.Errorf("unable to find target %v", o.Targets)
 	}
 
-	return nil
+	return p.PrintObj(roleToPrint, o.Out)
 }
 
 func removeSubjects(haystack, needles []rbacv1.Subject) ([]rbacv1.Subject, int) {
@@ -727,25 +754,13 @@ existingLoop:
 	return newSubjects, found
 }
 
-// prints affirmative output for role modification commands
-func printSuccessForCommand(role string, didAdd bool, targetName string, targets []string, isNamespaced bool, dryRun bool, out io.Writer) {
-	verb := "removed"
-	clusterScope := "cluster "
+func getSuccessMessage(dryRun bool, operation string, targets []string) string {
 	allTargets := fmt.Sprintf("%q", targets)
-	if isNamespaced {
-		clusterScope = ""
-	}
 	if len(targets) == 1 {
 		allTargets = fmt.Sprintf("%q", targets[0])
 	}
-	if didAdd {
-		verb = "added"
-	}
-
-	msg := "%srole %q %s: %s"
 	if dryRun {
-		msg += " (dry run)"
+		return fmt.Sprintf("%s: %s (dry run)", operation, allTargets)
 	}
-
-	fmt.Fprintf(out, msg+"\n", clusterScope, role, verb, allTargets)
+	return fmt.Sprintf("%s: %s", operation, allTargets)
 }

@@ -16,6 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/client-go/discovery"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
@@ -294,6 +296,8 @@ func TestAuthorizationResolution(t *testing.T) {
 		RoleKind:   "ClusterRole",
 		RbacClient: clusterAdminAuthorizationClient,
 		Users:      []string{"valerie"},
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -308,6 +312,8 @@ func TestAuthorizationResolution(t *testing.T) {
 		RoleKind:   "ClusterRole",
 		RbacClient: clusterAdminAuthorizationClient,
 		Users:      []string{"edgar"},
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -333,6 +339,8 @@ func TestAuthorizationResolution(t *testing.T) {
 		RoleKind:   "ClusterRole",
 		RbacClient: clusterAdminAuthorizationClient,
 		Users:      []string{"build-lister"},
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addBuildLister.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -534,6 +542,8 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(haroldConfig),
 		Users:                []string{"valerie"},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -545,6 +555,8 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(markConfig),
 		Users:                []string{"edgar"},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1040,6 +1052,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Users:                []string{"system:anonymous"},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addAnonymous.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1051,6 +1065,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Users:                []string{"danny"},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addDanny.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1107,6 +1123,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(haroldConfig),
 		Users:                []string{"valerie"},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1118,6 +1136,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(markConfig),
 		Users:                []string{"edgar"},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
