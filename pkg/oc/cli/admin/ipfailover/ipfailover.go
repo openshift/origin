@@ -283,7 +283,7 @@ func (o *IPFailoverOptions) createResources(items []runtime.Object, dryRun bool)
 			continue
 		}
 
-		if _, err := o.DynamicClient.Resource(mapping.Resource).Namespace(namespace).Create(unstructuredObj); err != nil {
+		if _, err := o.DynamicClient.Resource(mapping.Resource).Namespace(namespace).Create(unstructuredObj, metav1.CreateOptions{}); err != nil {
 			errors = append(errors, err)
 			continue
 		}

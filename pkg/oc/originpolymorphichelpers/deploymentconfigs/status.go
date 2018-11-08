@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 func NewDeploymentConfigStatusViewer(client appstypedclient.AppsV1Interface) kubectl.StatusViewer {
@@ -26,20 +26,21 @@ type DeploymentConfigStatusViewer struct {
 var _ kubectl.StatusViewer = &DeploymentConfigStatusViewer{}
 
 // Status returns a message describing deployment status, and a bool value indicating if the status is considered done
-func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRevision int64) (string, bool, error) {
-	config, err := s.dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+func (s *DeploymentConfigStatusViewer) Status(obj runtime.Unstructured, desiredRevision int64) (string, bool, error) {
+	config := &appsv1.DeploymentConfig{}
+	err := scheme.Scheme.Convert(obj, config, nil)
 	if err != nil {
-		return "", false, err
+		return "", false, fmt.Errorf("failed to convert %T to %T: %v", obj, config, err)
 	}
 	latestRevision := config.Status.LatestVersion
 
 	if latestRevision == 0 {
 		switch {
 		case appsutil.HasImageChangeTrigger(config):
-			return fmt.Sprintf("Deployment config %q waiting on image update\n", name), false, nil
+			return fmt.Sprintf("Deployment config %q waiting on image update\n", config.Name), false, nil
 
 		case len(config.Spec.Triggers) == 0:
-			return "", true, fmt.Errorf("Deployment config %q waiting on manual update (use 'oc rollout latest %s')", name, name)
+			return "", true, fmt.Errorf("Deployment config %q waiting on manual update (use 'oc rollout latest %s')", config.Name, config.Name)
 		}
 	}
 

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -190,7 +191,7 @@ func (c Creator) Create(obj *unstructured.Unstructured, namespace string) (*unst
 		namespace = ""
 	}
 
-	return c.Client.Resource(mapping.Resource).Namespace(namespace).Create(obj)
+	return c.Client.Resource(mapping.Resource).Namespace(namespace).Create(obj, metav1.CreateOptions{})
 }
 
 func NoOp(obj *unstructured.Unstructured, namespace string) (*unstructured.Unstructured, error) {

@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
@@ -19,7 +19,7 @@ type remoteExecutor struct {
 	PodName           string
 	ContainerName     string
 	SuggestedCmdUsage string
-	Client            kclientset.Interface
+	Client            kubernetes.Interface
 	Config            *restclient.Config
 }
 
@@ -43,7 +43,7 @@ func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.
 		},
 		SuggestedCmdUsage: e.SuggestedCmdUsage,
 		Executor:          &kubecmd.DefaultRemoteExecutor{},
-		PodClient:         e.Client.Core(),
+		PodClient:         e.Client.CoreV1(),
 		Config:            e.Config,
 		Command:           command,
 	}
@@ -64,7 +64,7 @@ func newRemoteExecutor(f kcmdutil.Factory, o *RsyncOptions) (executor, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := kclientset.NewForConfig(config)
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

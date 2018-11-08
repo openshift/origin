@@ -1,6 +1,7 @@
 package templateprocessing
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -37,7 +38,7 @@ func (c *dynamicTemplateProcessor) ProcessToList(template *templatev1.Template) 
 
 func (c *dynamicTemplateProcessor) ProcessToListFromUnstructured(unstructuredTemplate *unstructured.Unstructured) (*unstructured.UnstructuredList, error) {
 	processedTemplate, err := c.client.Resource(templatev1.GroupVersion.WithResource("processedtemplates")).
-		Namespace("default").Create(unstructuredTemplate)
+		Namespace("default").Create(unstructuredTemplate, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}

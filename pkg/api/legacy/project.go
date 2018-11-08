@@ -52,7 +52,7 @@ func addUngroupifiedInternalProjectTypes(scheme *runtime.Scheme) error {
 }
 
 func addLegacyProjectFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "Project", legacyProjectFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("Project"), legacyProjectFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil

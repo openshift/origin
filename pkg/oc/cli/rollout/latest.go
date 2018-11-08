@@ -120,11 +120,11 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 		}
 	}
 
-	o.kubeClient, err = f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ToRESTConfig()
+	o.kubeClient, err = kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

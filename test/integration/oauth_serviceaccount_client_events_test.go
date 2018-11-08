@@ -13,6 +13,7 @@ import (
 
 	"github.com/RangelReale/osincli"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -287,6 +289,10 @@ func setupTestSA(client kclientset.Interface, annotationPrefix, annotation strin
 }
 
 func setupTestSecrets(client kclientset.Interface, sa *kapi.ServiceAccount) (*kapi.Secret, error) {
+	sav1 := &corev1.ServiceAccount{}
+	if err := corev1conversions.Convert_core_ServiceAccount_To_v1_ServiceAccount(sa, sav1, nil); err != nil {
+		return nil, err
+	}
 	var oauthSecret *kapi.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err := wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
@@ -296,8 +302,12 @@ func setupTestSecrets(client kclientset.Interface, sa *kapi.ServiceAccount) (*ka
 		}
 		for i := range allSecrets.Items {
 			secret := &allSecrets.Items[i]
-
-			if serviceaccount.InternalIsServiceAccountToken(secret, sa) {
+			secretv1 := &corev1.Secret{}
+			err := corev1conversions.Convert_core_Secret_To_v1_Secret(secret, secretv1, nil)
+			if err != nil {
+				return false, err
+			}
+			if serviceaccount.IsServiceAccountToken(secretv1, sav1) {
 				oauthSecret = secret
 				return true, nil
 			}
