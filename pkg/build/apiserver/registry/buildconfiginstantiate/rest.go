@@ -55,7 +55,7 @@ func (s *InstantiateREST) New() runtime.Object {
 }
 
 // Create instantiates a new build from a build configuration
-func (s *InstantiateREST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *InstantiateREST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
 	}

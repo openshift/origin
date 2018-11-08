@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"io"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,6 +27,6 @@ func (obj *PassThroughStreamer) DeepCopyObject() runtime.Object {
 }
 
 // InputStream returns a stream with the contents of the embedded pipe.
-func (s *PassThroughStreamer) InputStream(apiVersion, acceptHeader string) (stream io.ReadCloser, flush bool, contentType string, err error) {
+func (s *PassThroughStreamer) InputStream(ctx context.Context, apiVersion, acceptHeader string) (stream io.ReadCloser, flush bool, contentType string, err error) {
 	return s.In, s.Flush, s.ContentType, nil
 }

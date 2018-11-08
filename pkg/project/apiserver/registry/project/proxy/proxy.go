@@ -143,7 +143,7 @@ func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
-func (s *REST) Create(ctx context.Context, obj runtime.Object, creationValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx context.Context, obj runtime.Object, creationValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	projectObj, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
@@ -166,7 +166,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, creationValidatio
 
 var _ = rest.Updater(&REST{})
 
-func (s *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, creationValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, creationValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 	oldObj, err := s.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err

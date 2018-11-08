@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -44,7 +45,7 @@ func (s *REST) NamespaceScoped() bool {
 }
 
 // Create registers a given new pspssr instance to r.registry.
-func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	pspssr, ok := obj.(*securityapi.PodSecurityPolicySelfSubjectReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicySelfSubjectReview: %#v", obj))

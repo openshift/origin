@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
@@ -33,7 +34,7 @@ var _ RollbackGenerator = &terribleGenerator{}
 
 func TestCreateError(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfig{}, apiserverrest.ValidateAllObjectFunc, false)
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfig{}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -46,7 +47,7 @@ func TestCreateError(t *testing.T) {
 
 func TestCreateInvalid(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{}, apiserverrest.ValidateAllObjectFunc, false)
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -75,7 +76,7 @@ func TestCreateOk(t *testing.T) {
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, apiserverrest.ValidateAllObjectFunc, false)
+	}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -102,7 +103,7 @@ func TestCreateRollbackToLatest(t *testing.T) {
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 2,
 		},
-	}, apiserverrest.ValidateAllObjectFunc, false)
+	}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 
 	if err == nil {
 		t.Errorf("expected an error when rolling back to the existing deployed revision")
@@ -137,7 +138,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, apiserverrest.ValidateAllObjectFunc, false)
+	}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 
 	if err == nil || !strings.Contains(err.Error(), "something terrible happened") {
 		t.Errorf("Unexpected error: %v", err)
@@ -161,7 +162,7 @@ func TestCreateMissingDeployment(t *testing.T) {
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, apiserverrest.ValidateAllObjectFunc, false)
+	}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -193,7 +194,7 @@ func TestCreateInvalidDeployment(t *testing.T) {
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, apiserverrest.ValidateAllObjectFunc, false)
+	}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -223,7 +224,7 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, apiserverrest.ValidateAllObjectFunc, false)
+	}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 
 	if err == nil {
 		t.Errorf("Expected an error")

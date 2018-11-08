@@ -120,7 +120,7 @@ func TestCreateConflictingNamespace(t *testing.T) {
 	mapping := validNewMappingWithName()
 	mapping.Namespace = "some-value"
 
-	ch, err := storage.Create(apirequest.WithNamespace(apirequest.NewContext(), "legal-name"), mapping, rest.ValidateAllObjectFunc, false)
+	ch, err := storage.Create(apirequest.WithNamespace(apirequest.NewContext(), "legal-name"), mapping, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if ch != nil {
 		t.Error("Expected a nil obj, but we got a value")
 	}
@@ -137,7 +137,7 @@ func TestCreateImageStreamNotFoundWithName(t *testing.T) {
 	_, server, storage := setup(t)
 	defer server.Terminate(t)
 
-	obj, err := storage.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), rest.ValidateAllObjectFunc, false)
+	obj, err := storage.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if obj != nil {
 		t.Errorf("Unexpected non-nil obj %#v", obj)
 	}
@@ -179,7 +179,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &user.DefaultInfo{})
 
 	mapping := validNewMappingWithName()
-	_, err = storage.Create(ctx, mapping, rest.ValidateAllObjectFunc, false)
+	_, err = storage.Create(ctx, mapping, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
@@ -266,7 +266,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		Tag:   "latest",
 	}
 	ctx := apirequest.NewDefaultContext()
-	_, err = storage.Create(ctx, &mapping, rest.ValidateAllObjectFunc, false)
+	_, err = storage.Create(ctx, &mapping, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Errorf("Unexpected error creating image stream mapping%v", err)
 	}
@@ -362,7 +362,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 		Tag:   "latest",
 	}
 	ctx := apirequest.NewDefaultContext()
-	_, err = storage.Create(ctx, &mapping, rest.ValidateAllObjectFunc, false)
+	_, err = storage.Create(ctx, &mapping, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
@@ -466,7 +466,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 		Image: *existingImage,
 		Tag:   "existingTag",
 	}
-	_, err = storage.Create(apirequest.NewDefaultContext(), &mapping, rest.ValidateAllObjectFunc, false)
+	_, err = storage.Create(apirequest.NewDefaultContext(), &mapping, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if !errors.IsInvalid(err) {
 		t.Fatalf("Unexpected non-error creating mapping: %#v", err)
 	}
@@ -554,7 +554,7 @@ func TestTrackingTags(t *testing.T) {
 
 	ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &user.DefaultInfo{})
 
-	_, err = storage.Create(ctx, &mapping, rest.ValidateAllObjectFunc, false)
+	_, err = storage.Create(ctx, &mapping, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %v", err)
 	}
@@ -615,7 +615,7 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 			},
 		},
 	}
-	obj, err := restInstance.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), rest.ValidateAllObjectFunc, false)
+	obj, err := restInstance.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err == nil {
 		t.Errorf("expected an error")
 	}
@@ -658,7 +658,7 @@ func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 			},
 		},
 	}
-	obj, err := restInstance.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), rest.ValidateAllObjectFunc, false)
+	obj, err := restInstance.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -713,7 +713,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 			},
 		},
 	}
-	obj, err := restInstance.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), rest.ValidateAllObjectFunc, false)
+	obj, err := restInstance.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err == nil {
 		t.Fatalf("expected an error")
 	}
@@ -770,16 +770,16 @@ func (f *fakeImageStreamRegistry) ListImageStreams(ctx context.Context, options 
 func (f *fakeImageStreamRegistry) GetImageStream(ctx context.Context, id string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 	return f.getImageStream(ctx, id, options)
 }
-func (f *fakeImageStreamRegistry) CreateImageStream(ctx context.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (f *fakeImageStreamRegistry) CreateImageStream(ctx context.Context, repo *imageapi.ImageStream, options *metav1.CreateOptions) (*imageapi.ImageStream, error) {
 	return f.createImageStream(ctx, repo)
 }
-func (f *fakeImageStreamRegistry) UpdateImageStream(ctx context.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (f *fakeImageStreamRegistry) UpdateImageStream(ctx context.Context, repo *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error) {
 	return f.updateImageStream(ctx, repo)
 }
-func (f *fakeImageStreamRegistry) UpdateImageStreamSpec(ctx context.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (f *fakeImageStreamRegistry) UpdateImageStreamSpec(ctx context.Context, repo *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error) {
 	return f.updateImageStreamSpec(ctx, repo)
 }
-func (f *fakeImageStreamRegistry) UpdateImageStreamStatus(ctx context.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (f *fakeImageStreamRegistry) UpdateImageStreamStatus(ctx context.Context, repo *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error) {
 	return f.updateImageStreamStatus(ctx, repo)
 }
 func (f *fakeImageStreamRegistry) DeleteImageStream(ctx context.Context, id string) (*metav1.Status, error) {

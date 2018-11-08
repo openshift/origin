@@ -35,8 +35,8 @@ type Storage interface {
 	rest.Getter
 	rest.Watcher
 
-	Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error)
-	Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error)
+	Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error)
+	Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -67,12 +67,12 @@ func (s *storage) GetImage(ctx context.Context, imageID string, options *metav1.
 }
 
 func (s *storage) CreateImage(ctx context.Context, image *imageapi.Image) error {
-	_, err := s.Create(ctx, image, rest.ValidateAllObjectFunc, false)
+	_, err := s.Create(ctx, image, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	return err
 }
 
 func (s *storage) UpdateImage(ctx context.Context, image *imageapi.Image) (*imageapi.Image, error) {
-	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
+	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, false, &metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
