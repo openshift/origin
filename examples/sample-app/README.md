@@ -94,7 +94,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 - - -
 **NOTE**
 
-* All commands assume the `oc`/`oadm` binaries/symlinks are in your path.
+* All commands assume the `oc` binaries are in your path.
     * **VAGRANT USERS**: `export PATH="/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH"`
 * All commands assume that you are working from the `sample-app` directory in your local environment.
     * If you are working from a local git repo, this might be `$GOPATH/src/github.com/<username>/origin/examples/sample-app`
@@ -150,7 +150,7 @@ This section covers how to perform all the steps of building, deploying, and upd
             clusterrolebinding "registry-registry-role" created
             deploymentconfig "docker-registry" created
             service "docker-registry" created
-        --> Success  
+        --> Success
 
     Note that the private Docker registry is using ephemeral storage,
     so when it is stopped, the image will be lost. An external volume
@@ -258,7 +258,7 @@ This section covers how to perform all the steps of building, deploying, and upd
             deploymentconfig "database" created
         --> Success
             Build scheduled, use 'oc logs -f bc/ruby-sample-build' to track its progress.
-            Run 'oc status' to view your app. 
+            Run 'oc status' to view your app.
 
     Note that no build has actually occurred yet, so at this time there
     is no image to deploy and no application to visit. But since we've defined
@@ -319,7 +319,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         I0310 12:36:56.371762       1 lifecycle.go:168] Created lifecycle pod test/frontend-1-hook-post for deployment test/frontend-2
         I0310 12:36:56.371825       1 lifecycle.go:181] Watching logs for hook pod test/frontend-1-hook-post while awaiting completion
         I0310 12:37:00.209644       1 lifecycle.go:221] Finished reading logs for hook pod test/frontend-1-hook-post
-        I0310 12:37:00.236213       1 lifecycle.go:87] Hook failed, ignoring: 
+        I0310 12:37:00.236213       1 lifecycle.go:87] Hook failed, ignoring:
         I0310 12:37:00.236387       1 rolling.go:134] Post hook finished
 
 
@@ -389,7 +389,7 @@ the ip address shown below with the correct one for your environment.
 
 
     Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will take some time.  Your pod will stay in Pending state while the pull is completed
-    
+
 
         $ docker pull openshift/origin-haproxy-router
 
