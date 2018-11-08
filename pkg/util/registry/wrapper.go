@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -37,7 +37,7 @@ func (s *noWatchStorageErrWrapper) NamespaceScoped() bool {
 	return s.delegate.NamespaceScoped()
 }
 
-func (s *noWatchStorageErrWrapper) Get(ctx context.Context, name string, options *v1.GetOptions) (runtime.Object, error) {
+func (s *noWatchStorageErrWrapper) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	obj, err := s.delegate.Get(ctx, name, options)
 	return obj, errors.SyncStatusError(ctx, err)
 }
@@ -51,17 +51,17 @@ func (s *noWatchStorageErrWrapper) ConvertToTable(ctx context.Context, object ru
 	return s.delegate.ConvertToTable(ctx, object, tableOptions)
 }
 
-func (s *noWatchStorageErrWrapper) Create(ctx context.Context, in runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
-	obj, err := s.delegate.Create(ctx, in, createValidation, includeUninitialized)
+func (s *noWatchStorageErrWrapper) Create(ctx context.Context, in runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
+	obj, err := s.delegate.Create(ctx, in, createValidation, options)
 	return obj, errors.SyncStatusError(ctx, err)
 }
 
-func (s *noWatchStorageErrWrapper) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
-	obj, created, err := s.delegate.Update(ctx, name, objInfo, createValidation, updateValidation)
+func (s *noWatchStorageErrWrapper) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+	obj, created, err := s.delegate.Update(ctx, name, objInfo, createValidation, updateValidation, forceAllowCreate, options)
 	return obj, created, errors.SyncStatusError(ctx, err)
 }
 
-func (s *noWatchStorageErrWrapper) Delete(ctx context.Context, name string, options *v1.DeleteOptions) (runtime.Object, bool, error) {
+func (s *noWatchStorageErrWrapper) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	obj, deleted, err := s.delegate.Delete(ctx, name, options)
 	return obj, deleted, errors.SyncStatusError(ctx, err)
 }

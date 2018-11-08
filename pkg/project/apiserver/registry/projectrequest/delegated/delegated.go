@@ -105,7 +105,7 @@ var (
 	roleBindingKind         = "RoleBinding"
 )
 
-func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			return nil, kapierror.NewInternalError(mappingErr)
 		}
 
-		_, createErr := r.client.Resource(restMapping.Resource).Namespace(createdProject.Name).Create(toCreate)
+		_, createErr := r.client.Resource(restMapping.Resource).Namespace(createdProject.Name).Create(toCreate, metav1.CreateOptions{})
 		// if a default role binding already exists, we're probably racing the controller.  Don't die
 		if gvk := restMapping.GroupVersionKind; kapierror.IsAlreadyExists(createErr) &&
 			gvk.Kind == roleBindingKind && roleBindingGroups.Has(gvk.Group) && defaultRoleBindingNames.Has(toCreate.GetName()) {

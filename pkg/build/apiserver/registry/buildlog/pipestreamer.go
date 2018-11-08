@@ -17,6 +17,7 @@ limitations under the License.
 package buildlog
 
 import (
+	"context"
 	"io"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +46,7 @@ func (obj *PipeStreamer) DeepCopyObject() runtime.Object {
 }
 
 // InputStream returns a stream with the contents of the embedded pipe.
-func (s *PipeStreamer) InputStream(apiVersion, acceptHeader string) (stream io.ReadCloser, flush bool, contentType string, err error) {
+func (s *PipeStreamer) InputStream(ctx context.Context, apiVersion, acceptHeader string) (stream io.ReadCloser, flush bool, contentType string, err error) {
 	flush = s.Flush
 	stream = s.Out
 	return

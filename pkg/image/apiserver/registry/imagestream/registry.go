@@ -19,13 +19,13 @@ type Registry interface {
 	// GetImageStream retrieves a specific image stream.
 	GetImageStream(ctx context.Context, id string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
 	// CreateImageStream creates a new image stream.
-	CreateImageStream(ctx context.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	CreateImageStream(ctx context.Context, repo *imageapi.ImageStream, options *metav1.CreateOptions) (*imageapi.ImageStream, error)
 	// UpdateImageStream updates an image stream.
-	UpdateImageStream(ctx context.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	UpdateImageStream(ctx context.Context, repo *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error)
 	// UpdateImageStreamSpec updates an image stream's spec.
-	UpdateImageStreamSpec(ctx context.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	UpdateImageStreamSpec(ctx context.Context, repo *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error)
 	// UpdateImageStreamStatus updates an image stream's status.
-	UpdateImageStreamStatus(ctx context.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	UpdateImageStreamStatus(ctx context.Context, repo *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error)
 	// DeleteImageStream deletes an image stream.
 	DeleteImageStream(ctx context.Context, id string) (*metav1.Status, error)
 	// WatchImageStreams watches for new/changed/deleted image streams.
@@ -39,8 +39,8 @@ type Storage interface {
 	rest.Getter
 	rest.Watcher
 
-	Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error)
-	Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error)
+	Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error)
+	Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -72,32 +72,32 @@ func (s *storage) GetImageStream(ctx context.Context, imageStreamID string, opti
 	return obj.(*imageapi.ImageStream), nil
 }
 
-func (s *storage) CreateImageStream(ctx context.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := s.Create(ctx, imageStream, rest.ValidateAllObjectFunc, false)
+func (s *storage) CreateImageStream(ctx context.Context, imageStream *imageapi.ImageStream, options *metav1.CreateOptions) (*imageapi.ImageStream, error) {
+	obj, err := s.Create(ctx, imageStream, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*imageapi.ImageStream), nil
 }
 
-func (s *storage) UpdateImageStream(ctx context.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
+func (s *storage) UpdateImageStream(ctx context.Context, imageStream *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error) {
+	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, forceAllowCreate, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*imageapi.ImageStream), nil
 }
 
-func (s *storage) UpdateImageStreamSpec(ctx context.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
+func (s *storage) UpdateImageStreamSpec(ctx context.Context, imageStream *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error) {
+	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, forceAllowCreate, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*imageapi.ImageStream), nil
 }
 
-func (s *storage) UpdateImageStreamStatus(ctx context.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
+func (s *storage) UpdateImageStreamStatus(ctx context.Context, imageStream *imageapi.ImageStream, forceAllowCreate bool, options *metav1.UpdateOptions) (*imageapi.ImageStream, error) {
+	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, forceAllowCreate, options)
 	if err != nil {
 		return nil, err
 	}

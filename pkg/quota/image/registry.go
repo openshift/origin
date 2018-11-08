@@ -29,7 +29,7 @@ func NewReplenishmentEvaluators(f quota.ListerForResourceFunc, isInformer imagev
 	// these evaluators require an alias for backwards compatibility
 	for gvr, alias := range legacyObjectCountAliases {
 		result = append(result,
-			generic.NewObjectCountEvaluator(false, gvr.GroupResource(), generic.ListResourceUsingListerFunc(f, gvr), alias))
+			generic.NewObjectCountEvaluator(gvr.GroupResource(), generic.ListResourceUsingListerFunc(f, gvr), alias))
 	}
 	return result
 }
@@ -55,12 +55,11 @@ func NewReplenishmentEvaluatorsForAdmission(isInformer imagev1informer.ImageStre
 	// these evaluators require an alias for backwards compatibility
 	for gvr, alias := range legacyObjectCountAliases {
 		result = append(result,
-			generic.NewObjectCountEvaluator(false, gvr.GroupResource(), generic.ListResourceUsingListerFunc(nil, gvr), alias))
+			generic.NewObjectCountEvaluator(gvr.GroupResource(), generic.ListResourceUsingListerFunc(nil, gvr), alias))
 	}
 	// add the handling for the old resources
 	result = append(result,
 		generic.NewObjectCountEvaluator(
-			false,
 			legacy.Resource("imagestreams"),
 			generic.ListResourceUsingListerFunc(nil, imagev1.GroupVersion.WithResource("imagestreams")),
 			imageapi.ResourceImageStreams))
