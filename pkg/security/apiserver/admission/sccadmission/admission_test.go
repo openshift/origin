@@ -38,7 +38,7 @@ func newTestAdmission(lister securityv1listers.SecurityContextConstraintsLister,
 func TestFailClosedOnInvalidPod(t *testing.T) {
 	plugin := newTestAdmission(nil, nil, nil)
 	pod := &corev1.Pod{}
-	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, false, &user.DefaultInfo{})
 	err := plugin.(kadmission.MutationInterface).Admit(attrs)
 
 	if err == nil {
@@ -168,7 +168,7 @@ func testSCCAdmit(testCaseName string, sccs []*securityv1.SecurityContextConstra
 	testAuthorizer := &sccTestAuthorizer{t: t}
 	plugin := newTestAdmission(lister, tc, testAuthorizer)
 
-	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, false, &user.DefaultInfo{})
 	err := plugin.(kadmission.MutationInterface).Admit(attrs)
 	if shouldPass && err != nil {
 		t.Errorf("%s expected no mutating admission errors but received %v", testCaseName, err)
@@ -405,7 +405,7 @@ func TestAdmitFailure(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		for k, v := range testCases {
 			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
-			attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+			attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, false, &user.DefaultInfo{})
 			err := p.(kadmission.MutationInterface).Admit(attrs)
 
 			if err == nil {
@@ -654,7 +654,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		scc := v.scc()
 
 		// create the providers, this method only needs the namespace
-		attributes := kadmission.NewAttributesRecord(nil, nil, kapi.Kind("Pod").WithVersion("version"), v.namespace.Name, "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, nil)
+		attributes := kadmission.NewAttributesRecord(nil, nil, kapi.Kind("Pod").WithVersion("version"), v.namespace.Name, "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, false, nil)
 		_, errs := oscc.CreateProvidersFromConstraints(attributes.GetNamespace(), []*securityapi.SecurityContextConstraints{scc}, tc)
 
 		if !reflect.DeepEqual(scc, v.scc()) {
@@ -1044,7 +1044,7 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 		testAuthorizer := &sccTestAuthorizer{t: t}
 		plugin := newTestAdmission(lister, tc, testAuthorizer)
 
-		attrs := kadmission.NewAttributesRecord(testCase.newPod, testCase.oldPod, kapi.Kind("Pod").WithVersion("version"), testCase.newPod.Namespace, testCase.newPod.Name, kapi.Resource("pods").WithVersion("version"), "", testCase.operation, &user.DefaultInfo{})
+		attrs := kadmission.NewAttributesRecord(testCase.newPod, testCase.oldPod, kapi.Kind("Pod").WithVersion("version"), testCase.newPod.Namespace, testCase.newPod.Name, kapi.Resource("pods").WithVersion("version"), "", testCase.operation, false, &user.DefaultInfo{})
 		err := plugin.(kadmission.MutationInterface).Admit(attrs)
 
 		if testCase.shouldPass {
@@ -1072,7 +1072,7 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 // SCC. Returns true when errors have been encountered.
 func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC, testName string, t *testing.T) bool {
 	t.Helper()
-	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, false, &user.DefaultInfo{})
 	err := plugin.(kadmission.MutationInterface).Admit(attrs)
 	if err != nil {
 		t.Errorf("%s error admitting pod: %v", testName, err)

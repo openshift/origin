@@ -106,7 +106,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		config.Status.LatestVersion++
 
 		userInfo, _ := apirequest.UserFrom(ctx)
-		attrs := admission.NewAttributesRecord(config, old, apps.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, apps.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
+		attrs := admission.NewAttributesRecord(config, old, apps.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, apps.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, false, userInfo)
 		if err := s.admit.(admission.MutationInterface).Admit(attrs); err != nil {
 			return err
 		}
