@@ -97,7 +97,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	genericConfig.CorsAllowedOriginList = config.CORSAllowedOrigins
 	genericConfig.Version = &openshiftVersion
 	// we don't use legacy audit anymore
-	genericConfig.LegacyAuditWriter = nil
 	genericConfig.AuditBackend = backend
 	genericConfig.AuditPolicyChecker = policyChecker
 	genericConfig.ExternalAddress = "apiserver.openshift-apiserver.svc"
@@ -121,7 +120,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	if err != nil {
 		return nil, err
 	}
-	if err := servingOptions.ApplyTo(&genericConfig.Config); err != nil {
+	if err := servingOptions.ApplyTo(&genericConfig.Config.SecureServing, &genericConfig.Config.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
 	authenticationOptions := genericapiserveroptions.NewDelegatingAuthenticationOptions()
