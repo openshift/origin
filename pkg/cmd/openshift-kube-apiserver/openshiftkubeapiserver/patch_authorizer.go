@@ -7,7 +7,6 @@ import (
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
 	"k8s.io/client-go/informers"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
-	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
@@ -16,7 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
-func NewAuthorizer(internalInformers internalinformers.SharedInformerFactory, versionedInformers informers.SharedInformerFactory) authorizer.Authorizer {
+func NewAuthorizer(versionedInformers informers.SharedInformerFactory) authorizer.Authorizer {
 	rbacInformers := versionedInformers.Rbac().V1()
 
 	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister())
@@ -31,9 +30,9 @@ func NewAuthorizer(internalInformers internalinformers.SharedInformerFactory, ve
 	graph := node.NewGraph()
 	node.AddGraphEventHandlers(
 		graph,
-		internalInformers.Core().InternalVersion().Nodes(),
-		internalInformers.Core().InternalVersion().Pods(),
-		internalInformers.Core().InternalVersion().PersistentVolumes(),
+		versionedInformers.Core().V1().Nodes(),
+		versionedInformers.Core().V1().Pods(),
+		versionedInformers.Core().V1().PersistentVolumes(),
 		versionedInformers.Storage().V1beta1().VolumeAttachments(),
 	)
 	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())

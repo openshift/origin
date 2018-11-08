@@ -72,7 +72,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 
 		// AUTHORIZER
 		genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
-		authorizer := NewAuthorizer(internalInformers, kubeInformers)
+		authorizer := NewAuthorizer(kubeInformers)
 		genericConfig.Authorization.Authorizer = authorizer
 		// END AUTHORIZER
 
