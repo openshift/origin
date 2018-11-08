@@ -53,7 +53,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create instantiates a deployment config
-func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	req, ok := obj.(*appsapi.DeploymentRequest)
 	if !ok {
 		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
@@ -119,7 +119,10 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			config.Name,
 			rest.DefaultUpdatedObjectInfo(config),
 			rest.AdmissionToValidateObjectFunc(s.admit, attrs),
-			rest.AdmissionToValidateObjectUpdateFunc(s.admit, attrs))
+			rest.AdmissionToValidateObjectUpdateFunc(s.admit, attrs),
+			false,
+			&metav1.UpdateOptions{},
+		)
 		return err
 	})
 

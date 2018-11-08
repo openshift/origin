@@ -96,7 +96,7 @@ func (s *REST) NamespaceScoped() bool {
 	return true
 }
 
-func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	isi, ok := obj.(*imageapi.ImageStreamImport)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamImport: %#v", obj))
@@ -355,7 +355,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	if create {
 		stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
 		glog.V(4).Infof("create new stream: %#v", stream)
-		obj, err = r.internalStreams.Create(ctx, stream, rest.ValidateAllObjectFunc, false)
+		obj, err = r.internalStreams.Create(ctx, stream, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	} else {
 		if hasAnnotation && !hasChanges {
 			glog.V(4).Infof("stream did not change: %#v", stream)
@@ -365,7 +365,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 				glog.V(4).Infof("updating stream %s", diff.ObjectDiff(original, stream))
 			}
 			stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
-			obj, _, err = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(stream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
+			obj, _, err = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(stream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, false, &metav1.UpdateOptions{})
 		}
 	}
 
@@ -376,7 +376,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			originalStream := original
 			recordLimitExceededStatus(originalStream, stream, err, now, nextGeneration)
 			var limitErr error
-			obj, _, limitErr = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(originalStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
+			obj, _, limitErr = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(originalStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, false, &metav1.UpdateOptions{})
 			if limitErr != nil {
 				utilruntime.HandleError(fmt.Errorf("failed to record limit exceeded status in image stream %s/%s: %v", stream.Namespace, stream.Name, limitErr))
 			}
@@ -517,7 +517,7 @@ func (r *REST) importSuccessful(
 		return nil, false
 	}
 
-	updated, err := r.images.Create(ctx, image, rest.ValidateAllObjectFunc, false)
+	updated, err := r.images.Create(ctx, image, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	switch {
 	case kapierrors.IsAlreadyExists(err):
 		if err := util.InternalImageWithMetadata(image); err != nil {

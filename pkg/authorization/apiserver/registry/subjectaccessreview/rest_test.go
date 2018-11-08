@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -248,7 +249,7 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 		ctx = apirequest.WithUser(ctx, &user.DefaultInfo{Name: "dummy"})
 	}
 
-	obj, err := storage.Create(ctx, r.reviewRequest, apiserverrest.ValidateAllObjectFunc, false)
+	obj, err := storage.Create(ctx, r.reviewRequest, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	switch {
 	case err == nil && len(r.expectedError) == 0:
 	case err == nil && len(r.expectedError) != 0:

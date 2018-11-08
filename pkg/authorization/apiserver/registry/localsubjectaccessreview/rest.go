@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -38,7 +39,7 @@ func (s *REST) NamespaceScoped() bool {
 
 // Create transforms a LocalSAR into an ClusterSAR that is requesting a namespace.  That collapses the code paths.
 // LocalSubjectAccessReview exists to allow clean expression of policy.
-func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	localSAR, ok := obj.(*authorizationapi.LocalSubjectAccessReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a localSubjectAccessReview: %#v", obj))

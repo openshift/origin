@@ -28,7 +28,7 @@ func TestNewRESTDefaultsName(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
-	}, rest.ValidateAllObjectFunc, false)
+	}, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestNewRESTInvalidParameter(t *testing.T) {
 			},
 		},
 		Objects: []runtime.Object{},
-	}, rest.ValidateAllObjectFunc, false)
+	}, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err == nil {
 		t.Fatalf("Expected 'invalid parameter error', got nothing")
 	}
@@ -101,7 +101,7 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 		t.Fatal(err)
 	}
 	internalTemplate := objToCreate.(*template.Template)
-	obj, err := storage.Create(nil, internalTemplate, rest.ValidateAllObjectFunc, false)
+	obj, err := storage.Create(nil, internalTemplate, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 	}
 	internalTemplate := objToCreate.(*template.Template)
 
-	obj, err := storage.Create(nil, internalTemplate, rest.ValidateAllObjectFunc, false)
+	obj, err := storage.Create(nil, internalTemplate, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
