@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -21,7 +22,7 @@ import (
 )
 
 func ValidateDeploymentConfig(config *appsapi.DeploymentConfig) field.ErrorList {
-	allErrs := validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
+	allErrs := validation.ValidateObjectMeta(&config.ObjectMeta, true, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateDeploymentConfigSpec(config.Spec)...)
 	allErrs = append(allErrs, ValidateDeploymentConfigStatus(config.Status)...)
 	return allErrs

@@ -65,7 +65,7 @@ func addUngroupifiedInternalUserTypes(scheme *runtime.Scheme) error {
 }
 
 func addLegacyUserFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "Identity", legacyIdentityFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("Identity"), legacyIdentityFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil

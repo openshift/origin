@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -205,7 +206,7 @@ func waitForToken(token *corev1.Secret, serviceAccount *corev1.ServiceAccount, t
 		return nil, fmt.Errorf("could not begin watch for token: %v", err)
 	}
 
-	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+	event, err := watchtools.UntilWithoutRetry(timeout, watcher, func(event watch.Event) (bool, error) {
 		if event.Type == watch.Error {
 			return false, fmt.Errorf("encountered error while watching for token: %v", event.Object)
 		}

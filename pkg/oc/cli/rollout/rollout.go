@@ -69,7 +69,7 @@ var (
 
 // NewCmdRolloutHistory is a wrapper for the Kubernetes cli rollout history command
 func NewCmdRolloutHistory(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := rollout.NewCmdRolloutHistory(f, streams.Out)
+	cmd := rollout.NewCmdRolloutHistory(f, streams)
 	cmd.Long = rolloutHistoryLong
 	cmd.Example = fmt.Sprintf(rolloutHistoryExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
@@ -151,7 +151,7 @@ var (
 
 // NewCmdRolloutUndo is a wrapper for the Kubernetes cli rollout undo command
 func NewCmdRolloutUndo(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := rollout.NewCmdRolloutUndo(f, streams.Out)
+	cmd := rollout.NewCmdRolloutUndo(f, streams)
 	cmd.Long = rolloutUndoLong
 	cmd.Example = fmt.Sprintf(rolloutUndoExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")

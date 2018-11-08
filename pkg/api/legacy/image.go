@@ -77,7 +77,7 @@ func addUngroupifiedInternalImageTypes(scheme *runtime.Scheme) error {
 }
 
 func addLegacyImageFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "ImageStream", legacyImageStreamFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("ImageStream"), legacyImageStreamFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil

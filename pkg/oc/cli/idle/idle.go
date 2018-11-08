@@ -25,6 +25,7 @@ import (
 	kextensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
@@ -34,7 +35,6 @@ import (
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
-	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 var (
@@ -142,7 +142,7 @@ func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 		return err
 	}
 
-	o.InternalClientset, err = f.ClientSet()
+	o.InternalClientset, err = kinternalclientset.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
@@ -521,7 +521,7 @@ func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mappin
 
 	helper := resource.NewHelper(clientForMapping, mapping)
 
-	return helper.Patch(metadata.GetNamespace(), metadata.GetName(), types.StrategicMergePatchType, patchBytes)
+	return helper.Patch(metadata.GetNamespace(), metadata.GetName(), types.StrategicMergePatchType, patchBytes, &metav1.UpdateOptions{})
 }
 
 type scaleInfo struct {

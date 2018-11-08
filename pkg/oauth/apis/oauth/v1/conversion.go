@@ -7,13 +7,13 @@ import (
 )
 
 func addFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.String(), "OAuthAccessToken", oauthAccessTokenFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.WithKind("OAuthAccessToken"), oauthAccessTokenFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
-	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.String(), "OAuthAuthorizeToken", oauthAuthorizeTokenFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.WithKind("OAuthAuthorizeToken"), oauthAuthorizeTokenFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
-	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.String(), "OAuthClientAuthorization", oauthClientAuthorizationFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.WithKind("OAuthClientAuthorization"), oauthClientAuthorizationFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil

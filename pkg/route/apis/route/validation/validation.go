@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -19,7 +20,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
-var ValidateRouteName = validation.NameIsDNSSubdomain
+var ValidateRouteName = apimachineryvalidation.NameIsDNSSubdomain
 
 // ValidateRoute tests if required fields in the route are set.
 func ValidateRoute(route *routeapi.Route) field.ErrorList {

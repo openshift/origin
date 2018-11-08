@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/validation"
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
@@ -17,7 +18,7 @@ import (
 // security context constraint name is valid.
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
-var ValidateSecurityContextConstraintsName = validation.NameIsDNSSubdomain
+var ValidateSecurityContextConstraintsName = apimachineryvalidation.NameIsDNSSubdomain
 
 func ValidateSecurityContextConstraints(scc *securityapi.SecurityContextConstraints) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&scc.ObjectMeta, false, ValidateSecurityContextConstraintsName, field.NewPath("metadata"))

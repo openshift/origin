@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
@@ -31,7 +32,7 @@ func ValidateProcessedTemplate(template *templateapi.Template) field.ErrorList {
 	return validateTemplateBody(template)
 }
 
-var ValidateTemplateName = validation.NameIsDNSSubdomain
+var ValidateTemplateName = apimachineryvalidation.NameIsDNSSubdomain
 
 // ValidateTemplate tests if required fields in the Template are set.
 func ValidateTemplate(template *templateapi.Template) (allErrs field.ErrorList) {
@@ -53,7 +54,7 @@ func validateTemplateBody(template *templateapi.Template) (allErrs field.ErrorLi
 	return
 }
 
-var ValidateTemplateInstanceName = validation.NameIsDNSSubdomain
+var ValidateTemplateInstanceName = apimachineryvalidation.NameIsDNSSubdomain
 
 // ValidateTemplateInstance tests if required fields in the TemplateInstance are set.
 func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (allErrs field.ErrorList) {
@@ -99,7 +100,7 @@ func ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance *templ
 	return
 }
 
-var ValidateBrokerTemplateInstanceName = validation.NameIsDNSSubdomain
+var ValidateBrokerTemplateInstanceName = apimachineryvalidation.NameIsDNSSubdomain
 
 // ValidateBrokerTemplateInstance tests if required fields in the BrokerTemplateInstance are set.
 func ValidateBrokerTemplateInstance(brokerTemplateInstance *templateapi.BrokerTemplateInstance) (allErrs field.ErrorList) {

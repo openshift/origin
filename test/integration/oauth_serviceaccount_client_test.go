@@ -24,7 +24,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
@@ -110,6 +110,10 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	sav1 := &corev1.ServiceAccount{}
+	if err := corev1conversions.Convert_core_ServiceAccount_To_v1_ServiceAccount(defaultSA, sav1, nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	var oauthSecret *kapi.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
@@ -121,11 +125,11 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 		for i := range allSecrets.Items {
 			secret := &allSecrets.Items[i]
 			secretv1 := &corev1.Secret{}
-			err := kapiv1.Convert_core_Secret_To_v1_Secret(secret, secretv1, nil)
+			err := corev1conversions.Convert_core_Secret_To_v1_Secret(secret, secretv1, nil)
 			if err != nil {
 				return false, err
 			}
-			if serviceaccount.InternalIsServiceAccountToken(secret, defaultSA) {
+			if serviceaccount.IsServiceAccountToken(secretv1, sav1) {
 				oauthSecret = secret
 				return true, nil
 			}

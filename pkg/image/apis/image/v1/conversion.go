@@ -291,7 +291,7 @@ func AddConversionFuncs(scheme *runtime.Scheme) error {
 }
 
 func addFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.String(), "ImageStream", imageStreamFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.WithKind("ImageStream"), imageStreamFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil

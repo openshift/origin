@@ -6,7 +6,7 @@ import (
 )
 
 func addFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.String(), "Identity", identityFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(v1.GroupVersion.WithKind("Identity"), identityFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil

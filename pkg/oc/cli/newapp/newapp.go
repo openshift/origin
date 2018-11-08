@@ -554,7 +554,7 @@ func followInstallation(config *newcmd.AppConfig, clientGetter genericclioptions
 			Container: pod.Spec.Containers[0].Name,
 		},
 		RESTClientGetter: clientGetter,
-		ConsumeRequestFn: kcmd.DefaultConsumeRequestFn,
+		ConsumeRequestFn: kcmd.DefaultConsumeRequest,
 		LogsForObject:    logsForObjectFn,
 		IOStreams:        genericclioptions.IOStreams{Out: config.Out},
 	}

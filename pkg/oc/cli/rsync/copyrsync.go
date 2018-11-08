@@ -10,8 +10,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -59,7 +61,11 @@ func newRsyncStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (co
 	if o.Source.Local() {
 		podName = o.Destination.PodName
 	}
-	client, err := f.ClientSet()
+	config, err := f.ToRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
