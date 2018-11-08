@@ -10,12 +10,12 @@ import (
 
 	v1 "github.com/openshift/api/build/v1"
 	build "github.com/openshift/origin/pkg/build/apis/build"
-	api_core_v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apicorev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
-	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
 func init() {
@@ -24,115 +24,583 @@ func init() {
 
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
-func RegisterConversions(scheme *runtime.Scheme) error {
-	return scheme.AddGeneratedConversionFuncs(
-		Convert_v1_BinaryBuildRequestOptions_To_build_BinaryBuildRequestOptions,
-		Convert_build_BinaryBuildRequestOptions_To_v1_BinaryBuildRequestOptions,
-		Convert_v1_BinaryBuildSource_To_build_BinaryBuildSource,
-		Convert_build_BinaryBuildSource_To_v1_BinaryBuildSource,
-		Convert_v1_BitbucketWebHookCause_To_build_BitbucketWebHookCause,
-		Convert_build_BitbucketWebHookCause_To_v1_BitbucketWebHookCause,
-		Convert_v1_Build_To_build_Build,
-		Convert_build_Build_To_v1_Build,
-		Convert_v1_BuildConfig_To_build_BuildConfig,
-		Convert_build_BuildConfig_To_v1_BuildConfig,
-		Convert_v1_BuildConfigList_To_build_BuildConfigList,
-		Convert_build_BuildConfigList_To_v1_BuildConfigList,
-		Convert_v1_BuildConfigSpec_To_build_BuildConfigSpec,
-		Convert_build_BuildConfigSpec_To_v1_BuildConfigSpec,
-		Convert_v1_BuildConfigStatus_To_build_BuildConfigStatus,
-		Convert_build_BuildConfigStatus_To_v1_BuildConfigStatus,
-		Convert_v1_BuildList_To_build_BuildList,
-		Convert_build_BuildList_To_v1_BuildList,
-		Convert_v1_BuildLog_To_build_BuildLog,
-		Convert_build_BuildLog_To_v1_BuildLog,
-		Convert_v1_BuildLogOptions_To_build_BuildLogOptions,
-		Convert_build_BuildLogOptions_To_v1_BuildLogOptions,
-		Convert_v1_BuildOutput_To_build_BuildOutput,
-		Convert_build_BuildOutput_To_v1_BuildOutput,
-		Convert_v1_BuildPostCommitSpec_To_build_BuildPostCommitSpec,
-		Convert_build_BuildPostCommitSpec_To_v1_BuildPostCommitSpec,
-		Convert_v1_BuildRequest_To_build_BuildRequest,
-		Convert_build_BuildRequest_To_v1_BuildRequest,
-		Convert_v1_BuildSource_To_build_BuildSource,
-		Convert_build_BuildSource_To_v1_BuildSource,
-		Convert_v1_BuildSpec_To_build_BuildSpec,
-		Convert_build_BuildSpec_To_v1_BuildSpec,
-		Convert_v1_BuildStatus_To_build_BuildStatus,
-		Convert_build_BuildStatus_To_v1_BuildStatus,
-		Convert_v1_BuildStatusOutput_To_build_BuildStatusOutput,
-		Convert_build_BuildStatusOutput_To_v1_BuildStatusOutput,
-		Convert_v1_BuildStatusOutputTo_To_build_BuildStatusOutputTo,
-		Convert_build_BuildStatusOutputTo_To_v1_BuildStatusOutputTo,
-		Convert_v1_BuildStrategy_To_build_BuildStrategy,
-		Convert_build_BuildStrategy_To_v1_BuildStrategy,
-		Convert_v1_BuildTriggerCause_To_build_BuildTriggerCause,
-		Convert_build_BuildTriggerCause_To_v1_BuildTriggerCause,
-		Convert_v1_BuildTriggerPolicy_To_build_BuildTriggerPolicy,
-		Convert_build_BuildTriggerPolicy_To_v1_BuildTriggerPolicy,
-		Convert_v1_CommonSpec_To_build_CommonSpec,
-		Convert_build_CommonSpec_To_v1_CommonSpec,
-		Convert_v1_CommonWebHookCause_To_build_CommonWebHookCause,
-		Convert_build_CommonWebHookCause_To_v1_CommonWebHookCause,
-		Convert_v1_ConfigMapBuildSource_To_build_ConfigMapBuildSource,
-		Convert_build_ConfigMapBuildSource_To_v1_ConfigMapBuildSource,
-		Convert_v1_CustomBuildStrategy_To_build_CustomBuildStrategy,
-		Convert_build_CustomBuildStrategy_To_v1_CustomBuildStrategy,
-		Convert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy,
-		Convert_build_DockerBuildStrategy_To_v1_DockerBuildStrategy,
-		Convert_v1_DockerStrategyOptions_To_build_DockerStrategyOptions,
-		Convert_build_DockerStrategyOptions_To_v1_DockerStrategyOptions,
-		Convert_v1_GenericWebHookCause_To_build_GenericWebHookCause,
-		Convert_build_GenericWebHookCause_To_v1_GenericWebHookCause,
-		Convert_v1_GenericWebHookEvent_To_build_GenericWebHookEvent,
-		Convert_build_GenericWebHookEvent_To_v1_GenericWebHookEvent,
-		Convert_v1_GitBuildSource_To_build_GitBuildSource,
-		Convert_build_GitBuildSource_To_v1_GitBuildSource,
-		Convert_v1_GitHubWebHookCause_To_build_GitHubWebHookCause,
-		Convert_build_GitHubWebHookCause_To_v1_GitHubWebHookCause,
-		Convert_v1_GitInfo_To_build_GitInfo,
-		Convert_build_GitInfo_To_v1_GitInfo,
-		Convert_v1_GitLabWebHookCause_To_build_GitLabWebHookCause,
-		Convert_build_GitLabWebHookCause_To_v1_GitLabWebHookCause,
-		Convert_v1_GitRefInfo_To_build_GitRefInfo,
-		Convert_build_GitRefInfo_To_v1_GitRefInfo,
-		Convert_v1_GitSourceRevision_To_build_GitSourceRevision,
-		Convert_build_GitSourceRevision_To_v1_GitSourceRevision,
-		Convert_v1_ImageChangeCause_To_build_ImageChangeCause,
-		Convert_build_ImageChangeCause_To_v1_ImageChangeCause,
-		Convert_v1_ImageChangeTrigger_To_build_ImageChangeTrigger,
-		Convert_build_ImageChangeTrigger_To_v1_ImageChangeTrigger,
-		Convert_v1_ImageLabel_To_build_ImageLabel,
-		Convert_build_ImageLabel_To_v1_ImageLabel,
-		Convert_v1_ImageSource_To_build_ImageSource,
-		Convert_build_ImageSource_To_v1_ImageSource,
-		Convert_v1_ImageSourcePath_To_build_ImageSourcePath,
-		Convert_build_ImageSourcePath_To_v1_ImageSourcePath,
-		Convert_v1_JenkinsPipelineBuildStrategy_To_build_JenkinsPipelineBuildStrategy,
-		Convert_build_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy,
-		Convert_v1_ProxyConfig_To_build_ProxyConfig,
-		Convert_build_ProxyConfig_To_v1_ProxyConfig,
-		Convert_v1_SecretBuildSource_To_build_SecretBuildSource,
-		Convert_build_SecretBuildSource_To_v1_SecretBuildSource,
-		Convert_v1_SecretLocalReference_To_build_SecretLocalReference,
-		Convert_build_SecretLocalReference_To_v1_SecretLocalReference,
-		Convert_v1_SecretSpec_To_build_SecretSpec,
-		Convert_build_SecretSpec_To_v1_SecretSpec,
-		Convert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy,
-		Convert_build_SourceBuildStrategy_To_v1_SourceBuildStrategy,
-		Convert_v1_SourceControlUser_To_build_SourceControlUser,
-		Convert_build_SourceControlUser_To_v1_SourceControlUser,
-		Convert_v1_SourceRevision_To_build_SourceRevision,
-		Convert_build_SourceRevision_To_v1_SourceRevision,
-		Convert_v1_SourceStrategyOptions_To_build_SourceStrategyOptions,
-		Convert_build_SourceStrategyOptions_To_v1_SourceStrategyOptions,
-		Convert_v1_StageInfo_To_build_StageInfo,
-		Convert_build_StageInfo_To_v1_StageInfo,
-		Convert_v1_StepInfo_To_build_StepInfo,
-		Convert_build_StepInfo_To_v1_StepInfo,
-		Convert_v1_WebHookTrigger_To_build_WebHookTrigger,
-		Convert_build_WebHookTrigger_To_v1_WebHookTrigger,
-	)
+func RegisterConversions(s *runtime.Scheme) error {
+	if err := s.AddGeneratedConversionFunc((*v1.BinaryBuildRequestOptions)(nil), (*build.BinaryBuildRequestOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BinaryBuildRequestOptions_To_build_BinaryBuildRequestOptions(a.(*v1.BinaryBuildRequestOptions), b.(*build.BinaryBuildRequestOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BinaryBuildRequestOptions)(nil), (*v1.BinaryBuildRequestOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BinaryBuildRequestOptions_To_v1_BinaryBuildRequestOptions(a.(*build.BinaryBuildRequestOptions), b.(*v1.BinaryBuildRequestOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BinaryBuildSource)(nil), (*build.BinaryBuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BinaryBuildSource_To_build_BinaryBuildSource(a.(*v1.BinaryBuildSource), b.(*build.BinaryBuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BinaryBuildSource)(nil), (*v1.BinaryBuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BinaryBuildSource_To_v1_BinaryBuildSource(a.(*build.BinaryBuildSource), b.(*v1.BinaryBuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BitbucketWebHookCause)(nil), (*build.BitbucketWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BitbucketWebHookCause_To_build_BitbucketWebHookCause(a.(*v1.BitbucketWebHookCause), b.(*build.BitbucketWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BitbucketWebHookCause)(nil), (*v1.BitbucketWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BitbucketWebHookCause_To_v1_BitbucketWebHookCause(a.(*build.BitbucketWebHookCause), b.(*v1.BitbucketWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.Build)(nil), (*build.Build)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Build_To_build_Build(a.(*v1.Build), b.(*build.Build), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.Build)(nil), (*v1.Build)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_Build_To_v1_Build(a.(*build.Build), b.(*v1.Build), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildConfig)(nil), (*build.BuildConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildConfig_To_build_BuildConfig(a.(*v1.BuildConfig), b.(*build.BuildConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildConfig)(nil), (*v1.BuildConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildConfig_To_v1_BuildConfig(a.(*build.BuildConfig), b.(*v1.BuildConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildConfigList)(nil), (*build.BuildConfigList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildConfigList_To_build_BuildConfigList(a.(*v1.BuildConfigList), b.(*build.BuildConfigList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildConfigList)(nil), (*v1.BuildConfigList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildConfigList_To_v1_BuildConfigList(a.(*build.BuildConfigList), b.(*v1.BuildConfigList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildConfigSpec)(nil), (*build.BuildConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildConfigSpec_To_build_BuildConfigSpec(a.(*v1.BuildConfigSpec), b.(*build.BuildConfigSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildConfigSpec)(nil), (*v1.BuildConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildConfigSpec_To_v1_BuildConfigSpec(a.(*build.BuildConfigSpec), b.(*v1.BuildConfigSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildConfigStatus)(nil), (*build.BuildConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildConfigStatus_To_build_BuildConfigStatus(a.(*v1.BuildConfigStatus), b.(*build.BuildConfigStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildConfigStatus)(nil), (*v1.BuildConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildConfigStatus_To_v1_BuildConfigStatus(a.(*build.BuildConfigStatus), b.(*v1.BuildConfigStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildList)(nil), (*build.BuildList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildList_To_build_BuildList(a.(*v1.BuildList), b.(*build.BuildList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildList)(nil), (*v1.BuildList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildList_To_v1_BuildList(a.(*build.BuildList), b.(*v1.BuildList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildLog)(nil), (*build.BuildLog)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildLog_To_build_BuildLog(a.(*v1.BuildLog), b.(*build.BuildLog), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildLog)(nil), (*v1.BuildLog)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildLog_To_v1_BuildLog(a.(*build.BuildLog), b.(*v1.BuildLog), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildLogOptions)(nil), (*build.BuildLogOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildLogOptions_To_build_BuildLogOptions(a.(*v1.BuildLogOptions), b.(*build.BuildLogOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildLogOptions)(nil), (*v1.BuildLogOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildLogOptions_To_v1_BuildLogOptions(a.(*build.BuildLogOptions), b.(*v1.BuildLogOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildOutput)(nil), (*build.BuildOutput)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildOutput_To_build_BuildOutput(a.(*v1.BuildOutput), b.(*build.BuildOutput), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildOutput)(nil), (*v1.BuildOutput)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildOutput_To_v1_BuildOutput(a.(*build.BuildOutput), b.(*v1.BuildOutput), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildPostCommitSpec)(nil), (*build.BuildPostCommitSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildPostCommitSpec_To_build_BuildPostCommitSpec(a.(*v1.BuildPostCommitSpec), b.(*build.BuildPostCommitSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildPostCommitSpec)(nil), (*v1.BuildPostCommitSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(a.(*build.BuildPostCommitSpec), b.(*v1.BuildPostCommitSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildRequest)(nil), (*build.BuildRequest)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildRequest_To_build_BuildRequest(a.(*v1.BuildRequest), b.(*build.BuildRequest), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildRequest)(nil), (*v1.BuildRequest)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildRequest_To_v1_BuildRequest(a.(*build.BuildRequest), b.(*v1.BuildRequest), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildSource)(nil), (*build.BuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildSource_To_build_BuildSource(a.(*v1.BuildSource), b.(*build.BuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildSource)(nil), (*v1.BuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildSource_To_v1_BuildSource(a.(*build.BuildSource), b.(*v1.BuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildSpec)(nil), (*build.BuildSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildSpec_To_build_BuildSpec(a.(*v1.BuildSpec), b.(*build.BuildSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildSpec)(nil), (*v1.BuildSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildSpec_To_v1_BuildSpec(a.(*build.BuildSpec), b.(*v1.BuildSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildStatus)(nil), (*build.BuildStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildStatus_To_build_BuildStatus(a.(*v1.BuildStatus), b.(*build.BuildStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildStatus)(nil), (*v1.BuildStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildStatus_To_v1_BuildStatus(a.(*build.BuildStatus), b.(*v1.BuildStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildStatusOutput)(nil), (*build.BuildStatusOutput)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildStatusOutput_To_build_BuildStatusOutput(a.(*v1.BuildStatusOutput), b.(*build.BuildStatusOutput), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildStatusOutput)(nil), (*v1.BuildStatusOutput)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildStatusOutput_To_v1_BuildStatusOutput(a.(*build.BuildStatusOutput), b.(*v1.BuildStatusOutput), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildStatusOutputTo)(nil), (*build.BuildStatusOutputTo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildStatusOutputTo_To_build_BuildStatusOutputTo(a.(*v1.BuildStatusOutputTo), b.(*build.BuildStatusOutputTo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildStatusOutputTo)(nil), (*v1.BuildStatusOutputTo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildStatusOutputTo_To_v1_BuildStatusOutputTo(a.(*build.BuildStatusOutputTo), b.(*v1.BuildStatusOutputTo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildStrategy)(nil), (*build.BuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildStrategy_To_build_BuildStrategy(a.(*v1.BuildStrategy), b.(*build.BuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildStrategy)(nil), (*v1.BuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildStrategy_To_v1_BuildStrategy(a.(*build.BuildStrategy), b.(*v1.BuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildTriggerCause)(nil), (*build.BuildTriggerCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildTriggerCause_To_build_BuildTriggerCause(a.(*v1.BuildTriggerCause), b.(*build.BuildTriggerCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildTriggerCause)(nil), (*v1.BuildTriggerCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildTriggerCause_To_v1_BuildTriggerCause(a.(*build.BuildTriggerCause), b.(*v1.BuildTriggerCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.BuildTriggerPolicy)(nil), (*build.BuildTriggerPolicy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildTriggerPolicy_To_build_BuildTriggerPolicy(a.(*v1.BuildTriggerPolicy), b.(*build.BuildTriggerPolicy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.BuildTriggerPolicy)(nil), (*v1.BuildTriggerPolicy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(a.(*build.BuildTriggerPolicy), b.(*v1.BuildTriggerPolicy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.CommonSpec)(nil), (*build.CommonSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_CommonSpec_To_build_CommonSpec(a.(*v1.CommonSpec), b.(*build.CommonSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.CommonSpec)(nil), (*v1.CommonSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_CommonSpec_To_v1_CommonSpec(a.(*build.CommonSpec), b.(*v1.CommonSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.CommonWebHookCause)(nil), (*build.CommonWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_CommonWebHookCause_To_build_CommonWebHookCause(a.(*v1.CommonWebHookCause), b.(*build.CommonWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.CommonWebHookCause)(nil), (*v1.CommonWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_CommonWebHookCause_To_v1_CommonWebHookCause(a.(*build.CommonWebHookCause), b.(*v1.CommonWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.ConfigMapBuildSource)(nil), (*build.ConfigMapBuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ConfigMapBuildSource_To_build_ConfigMapBuildSource(a.(*v1.ConfigMapBuildSource), b.(*build.ConfigMapBuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.ConfigMapBuildSource)(nil), (*v1.ConfigMapBuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_ConfigMapBuildSource_To_v1_ConfigMapBuildSource(a.(*build.ConfigMapBuildSource), b.(*v1.ConfigMapBuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.CustomBuildStrategy)(nil), (*build.CustomBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_CustomBuildStrategy_To_build_CustomBuildStrategy(a.(*v1.CustomBuildStrategy), b.(*build.CustomBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.CustomBuildStrategy)(nil), (*v1.CustomBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_CustomBuildStrategy_To_v1_CustomBuildStrategy(a.(*build.CustomBuildStrategy), b.(*v1.CustomBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.DockerBuildStrategy)(nil), (*build.DockerBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy(a.(*v1.DockerBuildStrategy), b.(*build.DockerBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.DockerBuildStrategy)(nil), (*v1.DockerBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_DockerBuildStrategy_To_v1_DockerBuildStrategy(a.(*build.DockerBuildStrategy), b.(*v1.DockerBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.DockerStrategyOptions)(nil), (*build.DockerStrategyOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_DockerStrategyOptions_To_build_DockerStrategyOptions(a.(*v1.DockerStrategyOptions), b.(*build.DockerStrategyOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.DockerStrategyOptions)(nil), (*v1.DockerStrategyOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_DockerStrategyOptions_To_v1_DockerStrategyOptions(a.(*build.DockerStrategyOptions), b.(*v1.DockerStrategyOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.GenericWebHookCause)(nil), (*build.GenericWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_GenericWebHookCause_To_build_GenericWebHookCause(a.(*v1.GenericWebHookCause), b.(*build.GenericWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.GenericWebHookCause)(nil), (*v1.GenericWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_GenericWebHookCause_To_v1_GenericWebHookCause(a.(*build.GenericWebHookCause), b.(*v1.GenericWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.GenericWebHookEvent)(nil), (*build.GenericWebHookEvent)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_GenericWebHookEvent_To_build_GenericWebHookEvent(a.(*v1.GenericWebHookEvent), b.(*build.GenericWebHookEvent), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.GenericWebHookEvent)(nil), (*v1.GenericWebHookEvent)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_GenericWebHookEvent_To_v1_GenericWebHookEvent(a.(*build.GenericWebHookEvent), b.(*v1.GenericWebHookEvent), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.GitBuildSource)(nil), (*build.GitBuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_GitBuildSource_To_build_GitBuildSource(a.(*v1.GitBuildSource), b.(*build.GitBuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.GitBuildSource)(nil), (*v1.GitBuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_GitBuildSource_To_v1_GitBuildSource(a.(*build.GitBuildSource), b.(*v1.GitBuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.GitHubWebHookCause)(nil), (*build.GitHubWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_GitHubWebHookCause_To_build_GitHubWebHookCause(a.(*v1.GitHubWebHookCause), b.(*build.GitHubWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.GitHubWebHookCause)(nil), (*v1.GitHubWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_GitHubWebHookCause_To_v1_GitHubWebHookCause(a.(*build.GitHubWebHookCause), b.(*v1.GitHubWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.GitInfo)(nil), (*build.GitInfo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_GitInfo_To_build_GitInfo(a.(*v1.GitInfo), b.(*build.GitInfo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.GitInfo)(nil), (*v1.GitInfo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_GitInfo_To_v1_GitInfo(a.(*build.GitInfo), b.(*v1.GitInfo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.GitLabWebHookCause)(nil), (*build.GitLabWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_GitLabWebHookCause_To_build_GitLabWebHookCause(a.(*v1.GitLabWebHookCause), b.(*build.GitLabWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.GitLabWebHookCause)(nil), (*v1.GitLabWebHookCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_GitLabWebHookCause_To_v1_GitLabWebHookCause(a.(*build.GitLabWebHookCause), b.(*v1.GitLabWebHookCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.GitRefInfo)(nil), (*build.GitRefInfo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_GitRefInfo_To_build_GitRefInfo(a.(*v1.GitRefInfo), b.(*build.GitRefInfo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.GitRefInfo)(nil), (*v1.GitRefInfo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_GitRefInfo_To_v1_GitRefInfo(a.(*build.GitRefInfo), b.(*v1.GitRefInfo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.GitSourceRevision)(nil), (*build.GitSourceRevision)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_GitSourceRevision_To_build_GitSourceRevision(a.(*v1.GitSourceRevision), b.(*build.GitSourceRevision), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.GitSourceRevision)(nil), (*v1.GitSourceRevision)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_GitSourceRevision_To_v1_GitSourceRevision(a.(*build.GitSourceRevision), b.(*v1.GitSourceRevision), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.ImageChangeCause)(nil), (*build.ImageChangeCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ImageChangeCause_To_build_ImageChangeCause(a.(*v1.ImageChangeCause), b.(*build.ImageChangeCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.ImageChangeCause)(nil), (*v1.ImageChangeCause)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_ImageChangeCause_To_v1_ImageChangeCause(a.(*build.ImageChangeCause), b.(*v1.ImageChangeCause), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.ImageChangeTrigger)(nil), (*build.ImageChangeTrigger)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ImageChangeTrigger_To_build_ImageChangeTrigger(a.(*v1.ImageChangeTrigger), b.(*build.ImageChangeTrigger), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.ImageChangeTrigger)(nil), (*v1.ImageChangeTrigger)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_ImageChangeTrigger_To_v1_ImageChangeTrigger(a.(*build.ImageChangeTrigger), b.(*v1.ImageChangeTrigger), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.ImageLabel)(nil), (*build.ImageLabel)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ImageLabel_To_build_ImageLabel(a.(*v1.ImageLabel), b.(*build.ImageLabel), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.ImageLabel)(nil), (*v1.ImageLabel)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_ImageLabel_To_v1_ImageLabel(a.(*build.ImageLabel), b.(*v1.ImageLabel), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.ImageSource)(nil), (*build.ImageSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ImageSource_To_build_ImageSource(a.(*v1.ImageSource), b.(*build.ImageSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.ImageSource)(nil), (*v1.ImageSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_ImageSource_To_v1_ImageSource(a.(*build.ImageSource), b.(*v1.ImageSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.ImageSourcePath)(nil), (*build.ImageSourcePath)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ImageSourcePath_To_build_ImageSourcePath(a.(*v1.ImageSourcePath), b.(*build.ImageSourcePath), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.ImageSourcePath)(nil), (*v1.ImageSourcePath)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_ImageSourcePath_To_v1_ImageSourcePath(a.(*build.ImageSourcePath), b.(*v1.ImageSourcePath), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.JenkinsPipelineBuildStrategy)(nil), (*build.JenkinsPipelineBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_JenkinsPipelineBuildStrategy_To_build_JenkinsPipelineBuildStrategy(a.(*v1.JenkinsPipelineBuildStrategy), b.(*build.JenkinsPipelineBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.JenkinsPipelineBuildStrategy)(nil), (*v1.JenkinsPipelineBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(a.(*build.JenkinsPipelineBuildStrategy), b.(*v1.JenkinsPipelineBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.ProxyConfig)(nil), (*build.ProxyConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ProxyConfig_To_build_ProxyConfig(a.(*v1.ProxyConfig), b.(*build.ProxyConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.ProxyConfig)(nil), (*v1.ProxyConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_ProxyConfig_To_v1_ProxyConfig(a.(*build.ProxyConfig), b.(*v1.ProxyConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.SecretBuildSource)(nil), (*build.SecretBuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_SecretBuildSource_To_build_SecretBuildSource(a.(*v1.SecretBuildSource), b.(*build.SecretBuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.SecretBuildSource)(nil), (*v1.SecretBuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_SecretBuildSource_To_v1_SecretBuildSource(a.(*build.SecretBuildSource), b.(*v1.SecretBuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.SecretLocalReference)(nil), (*build.SecretLocalReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_SecretLocalReference_To_build_SecretLocalReference(a.(*v1.SecretLocalReference), b.(*build.SecretLocalReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.SecretLocalReference)(nil), (*v1.SecretLocalReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_SecretLocalReference_To_v1_SecretLocalReference(a.(*build.SecretLocalReference), b.(*v1.SecretLocalReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.SecretSpec)(nil), (*build.SecretSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_SecretSpec_To_build_SecretSpec(a.(*v1.SecretSpec), b.(*build.SecretSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.SecretSpec)(nil), (*v1.SecretSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_SecretSpec_To_v1_SecretSpec(a.(*build.SecretSpec), b.(*v1.SecretSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.SourceBuildStrategy)(nil), (*build.SourceBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy(a.(*v1.SourceBuildStrategy), b.(*build.SourceBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.SourceBuildStrategy)(nil), (*v1.SourceBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_SourceBuildStrategy_To_v1_SourceBuildStrategy(a.(*build.SourceBuildStrategy), b.(*v1.SourceBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.SourceControlUser)(nil), (*build.SourceControlUser)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_SourceControlUser_To_build_SourceControlUser(a.(*v1.SourceControlUser), b.(*build.SourceControlUser), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.SourceControlUser)(nil), (*v1.SourceControlUser)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_SourceControlUser_To_v1_SourceControlUser(a.(*build.SourceControlUser), b.(*v1.SourceControlUser), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.SourceRevision)(nil), (*build.SourceRevision)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_SourceRevision_To_build_SourceRevision(a.(*v1.SourceRevision), b.(*build.SourceRevision), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.SourceRevision)(nil), (*v1.SourceRevision)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_SourceRevision_To_v1_SourceRevision(a.(*build.SourceRevision), b.(*v1.SourceRevision), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.SourceStrategyOptions)(nil), (*build.SourceStrategyOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_SourceStrategyOptions_To_build_SourceStrategyOptions(a.(*v1.SourceStrategyOptions), b.(*build.SourceStrategyOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.SourceStrategyOptions)(nil), (*v1.SourceStrategyOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_SourceStrategyOptions_To_v1_SourceStrategyOptions(a.(*build.SourceStrategyOptions), b.(*v1.SourceStrategyOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.StageInfo)(nil), (*build.StageInfo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_StageInfo_To_build_StageInfo(a.(*v1.StageInfo), b.(*build.StageInfo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.StageInfo)(nil), (*v1.StageInfo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_StageInfo_To_v1_StageInfo(a.(*build.StageInfo), b.(*v1.StageInfo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.StepInfo)(nil), (*build.StepInfo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_StepInfo_To_build_StepInfo(a.(*v1.StepInfo), b.(*build.StepInfo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.StepInfo)(nil), (*v1.StepInfo)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_StepInfo_To_v1_StepInfo(a.(*build.StepInfo), b.(*v1.StepInfo), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.WebHookTrigger)(nil), (*build.WebHookTrigger)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_WebHookTrigger_To_build_WebHookTrigger(a.(*v1.WebHookTrigger), b.(*build.WebHookTrigger), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*build.WebHookTrigger)(nil), (*v1.WebHookTrigger)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_WebHookTrigger_To_v1_WebHookTrigger(a.(*build.WebHookTrigger), b.(*v1.WebHookTrigger), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*build.BuildSource)(nil), (*v1.BuildSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildSource_To_v1_BuildSource(a.(*build.BuildSource), b.(*v1.BuildSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*build.BuildStrategy)(nil), (*v1.BuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_BuildStrategy_To_v1_BuildStrategy(a.(*build.BuildStrategy), b.(*v1.BuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*build.SourceRevision)(nil), (*v1.SourceRevision)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_build_SourceRevision_To_v1_SourceRevision(a.(*build.SourceRevision), b.(*v1.SourceRevision), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.BuildConfig)(nil), (*build.BuildConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildConfig_To_build_BuildConfig(a.(*v1.BuildConfig), b.(*build.BuildConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.BuildOutput)(nil), (*build.BuildOutput)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildOutput_To_build_BuildOutput(a.(*v1.BuildOutput), b.(*build.BuildOutput), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.BuildTriggerPolicy)(nil), (*build.BuildTriggerPolicy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_BuildTriggerPolicy_To_build_BuildTriggerPolicy(a.(*v1.BuildTriggerPolicy), b.(*build.BuildTriggerPolicy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.CustomBuildStrategy)(nil), (*build.CustomBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_CustomBuildStrategy_To_build_CustomBuildStrategy(a.(*v1.CustomBuildStrategy), b.(*build.CustomBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.DockerBuildStrategy)(nil), (*build.DockerBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy(a.(*v1.DockerBuildStrategy), b.(*build.DockerBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.SourceBuildStrategy)(nil), (*build.SourceBuildStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy(a.(*v1.SourceBuildStrategy), b.(*build.SourceBuildStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func autoConvert_v1_BinaryBuildRequestOptions_To_build_BinaryBuildRequestOptions(in *v1.BinaryBuildRequestOptions, out *build.BinaryBuildRequestOptions, s conversion.Scope) error {
@@ -451,7 +919,7 @@ func autoConvert_v1_BuildLogOptions_To_build_BuildLogOptions(in *v1.BuildLogOpti
 	out.Follow = in.Follow
 	out.Previous = in.Previous
 	out.SinceSeconds = (*int64)(unsafe.Pointer(in.SinceSeconds))
-	out.SinceTime = (*meta_v1.Time)(unsafe.Pointer(in.SinceTime))
+	out.SinceTime = (*metav1.Time)(unsafe.Pointer(in.SinceTime))
 	out.Timestamps = in.Timestamps
 	out.TailLines = (*int64)(unsafe.Pointer(in.TailLines))
 	out.LimitBytes = (*int64)(unsafe.Pointer(in.LimitBytes))
@@ -470,7 +938,7 @@ func autoConvert_build_BuildLogOptions_To_v1_BuildLogOptions(in *build.BuildLogO
 	out.Follow = in.Follow
 	out.Previous = in.Previous
 	out.SinceSeconds = (*int64)(unsafe.Pointer(in.SinceSeconds))
-	out.SinceTime = (*meta_v1.Time)(unsafe.Pointer(in.SinceTime))
+	out.SinceTime = (*metav1.Time)(unsafe.Pointer(in.SinceTime))
 	out.Timestamps = in.Timestamps
 	out.TailLines = (*int64)(unsafe.Pointer(in.TailLines))
 	out.LimitBytes = (*int64)(unsafe.Pointer(in.LimitBytes))
@@ -488,7 +956,7 @@ func autoConvert_v1_BuildOutput_To_build_BuildOutput(in *v1.BuildOutput, out *bu
 	if in.To != nil {
 		in, out := &in.To, &out.To
 		*out = new(core.ObjectReference)
-		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -497,7 +965,7 @@ func autoConvert_v1_BuildOutput_To_build_BuildOutput(in *v1.BuildOutput, out *bu
 	if in.PushSecret != nil {
 		in, out := &in.PushSecret, &out.PushSecret
 		*out = new(core.LocalObjectReference)
-		if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -510,8 +978,8 @@ func autoConvert_v1_BuildOutput_To_build_BuildOutput(in *v1.BuildOutput, out *bu
 func autoConvert_build_BuildOutput_To_v1_BuildOutput(in *build.BuildOutput, out *v1.BuildOutput, s conversion.Scope) error {
 	if in.To != nil {
 		in, out := &in.To, &out.To
-		*out = new(api_core_v1.ObjectReference)
-		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.ObjectReference)
+		if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -519,8 +987,8 @@ func autoConvert_build_BuildOutput_To_v1_BuildOutput(in *build.BuildOutput, out 
 	}
 	if in.PushSecret != nil {
 		in, out := &in.PushSecret, &out.PushSecret
-		*out = new(api_core_v1.LocalObjectReference)
-		if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.LocalObjectReference)
+		if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -573,7 +1041,7 @@ func autoConvert_v1_BuildRequest_To_build_BuildRequest(in *v1.BuildRequest, out 
 	if in.TriggeredByImage != nil {
 		in, out := &in.TriggeredByImage, &out.TriggeredByImage
 		*out = new(core.ObjectReference)
-		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -582,7 +1050,7 @@ func autoConvert_v1_BuildRequest_To_build_BuildRequest(in *v1.BuildRequest, out 
 	if in.From != nil {
 		in, out := &in.From, &out.From
 		*out = new(core.ObjectReference)
-		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -594,7 +1062,7 @@ func autoConvert_v1_BuildRequest_To_build_BuildRequest(in *v1.BuildRequest, out 
 		in, out := &in.Env, &out.Env
 		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -643,8 +1111,8 @@ func autoConvert_build_BuildRequest_To_v1_BuildRequest(in *build.BuildRequest, o
 	}
 	if in.TriggeredByImage != nil {
 		in, out := &in.TriggeredByImage, &out.TriggeredByImage
-		*out = new(api_core_v1.ObjectReference)
-		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.ObjectReference)
+		if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -652,8 +1120,8 @@ func autoConvert_build_BuildRequest_To_v1_BuildRequest(in *build.BuildRequest, o
 	}
 	if in.From != nil {
 		in, out := &in.From, &out.From
-		*out = new(api_core_v1.ObjectReference)
-		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.ObjectReference)
+		if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -663,9 +1131,9 @@ func autoConvert_build_BuildRequest_To_v1_BuildRequest(in *build.BuildRequest, o
 	out.LastVersion = (*int64)(unsafe.Pointer(in.LastVersion))
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]api_core_v1.EnvVar, len(*in))
+		*out = make([]apicorev1.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -721,7 +1189,7 @@ func autoConvert_v1_BuildSource_To_build_BuildSource(in *v1.BuildSource, out *bu
 	if in.SourceSecret != nil {
 		in, out := &in.SourceSecret, &out.SourceSecret
 		*out = new(core.LocalObjectReference)
-		if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -775,8 +1243,8 @@ func autoConvert_build_BuildSource_To_v1_BuildSource(in *build.BuildSource, out 
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
 		in, out := &in.SourceSecret, &out.SourceSecret
-		*out = new(api_core_v1.LocalObjectReference)
-		if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.LocalObjectReference)
+		if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -858,14 +1326,14 @@ func autoConvert_v1_BuildStatus_To_build_BuildStatus(in *v1.BuildStatus, out *bu
 	out.Cancelled = in.Cancelled
 	out.Reason = build.StatusReason(in.Reason)
 	out.Message = in.Message
-	out.StartTimestamp = (*meta_v1.Time)(unsafe.Pointer(in.StartTimestamp))
-	out.CompletionTimestamp = (*meta_v1.Time)(unsafe.Pointer(in.CompletionTimestamp))
+	out.StartTimestamp = (*metav1.Time)(unsafe.Pointer(in.StartTimestamp))
+	out.CompletionTimestamp = (*metav1.Time)(unsafe.Pointer(in.CompletionTimestamp))
 	out.Duration = time.Duration(in.Duration)
 	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
 		in, out := &in.Config, &out.Config
 		*out = new(core.ObjectReference)
-		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -889,14 +1357,14 @@ func autoConvert_build_BuildStatus_To_v1_BuildStatus(in *build.BuildStatus, out 
 	out.Cancelled = in.Cancelled
 	out.Reason = v1.StatusReason(in.Reason)
 	out.Message = in.Message
-	out.StartTimestamp = (*meta_v1.Time)(unsafe.Pointer(in.StartTimestamp))
-	out.CompletionTimestamp = (*meta_v1.Time)(unsafe.Pointer(in.CompletionTimestamp))
+	out.StartTimestamp = (*metav1.Time)(unsafe.Pointer(in.StartTimestamp))
+	out.CompletionTimestamp = (*metav1.Time)(unsafe.Pointer(in.CompletionTimestamp))
 	out.Duration = time.Duration(in.Duration)
 	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
 		in, out := &in.Config, &out.Config
-		*out = new(api_core_v1.ObjectReference)
-		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.ObjectReference)
+		if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1212,7 +1680,7 @@ func autoConvert_v1_CommonSpec_To_build_CommonSpec(in *v1.CommonSpec, out *build
 	if err := Convert_v1_BuildOutput_To_build_BuildOutput(&in.Output, &out.Output, s); err != nil {
 		return err
 	}
-	if err := core_v1.Convert_v1_ResourceRequirements_To_core_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+	if err := corev1.Convert_v1_ResourceRequirements_To_core_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
 	if err := Convert_v1_BuildPostCommitSpec_To_build_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
@@ -1248,7 +1716,7 @@ func autoConvert_build_CommonSpec_To_v1_CommonSpec(in *build.CommonSpec, out *v1
 	if err := Convert_build_BuildOutput_To_v1_BuildOutput(&in.Output, &out.Output, s); err != nil {
 		return err
 	}
-	if err := core_v1.Convert_core_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+	if err := corev1.Convert_core_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
 	if err := Convert_build_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(&in.PostCommit, &out.PostCommit, s); err != nil {
@@ -1303,7 +1771,7 @@ func Convert_build_CommonWebHookCause_To_v1_CommonWebHookCause(in *build.CommonW
 }
 
 func autoConvert_v1_ConfigMapBuildSource_To_build_ConfigMapBuildSource(in *v1.ConfigMapBuildSource, out *build.ConfigMapBuildSource, s conversion.Scope) error {
-	if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(&in.ConfigMap, &out.ConfigMap, s); err != nil {
+	if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(&in.ConfigMap, &out.ConfigMap, s); err != nil {
 		return err
 	}
 	out.DestinationDir = in.DestinationDir
@@ -1316,7 +1784,7 @@ func Convert_v1_ConfigMapBuildSource_To_build_ConfigMapBuildSource(in *v1.Config
 }
 
 func autoConvert_build_ConfigMapBuildSource_To_v1_ConfigMapBuildSource(in *build.ConfigMapBuildSource, out *v1.ConfigMapBuildSource, s conversion.Scope) error {
-	if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(&in.ConfigMap, &out.ConfigMap, s); err != nil {
+	if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(&in.ConfigMap, &out.ConfigMap, s); err != nil {
 		return err
 	}
 	out.DestinationDir = in.DestinationDir
@@ -1329,13 +1797,13 @@ func Convert_build_ConfigMapBuildSource_To_v1_ConfigMapBuildSource(in *build.Con
 }
 
 func autoConvert_v1_CustomBuildStrategy_To_build_CustomBuildStrategy(in *v1.CustomBuildStrategy, out *build.CustomBuildStrategy, s conversion.Scope) error {
-	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
 		*out = new(core.LocalObjectReference)
-		if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1345,7 +1813,7 @@ func autoConvert_v1_CustomBuildStrategy_To_build_CustomBuildStrategy(in *v1.Cust
 		in, out := &in.Env, &out.Env
 		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1370,13 +1838,13 @@ func autoConvert_v1_CustomBuildStrategy_To_build_CustomBuildStrategy(in *v1.Cust
 }
 
 func autoConvert_build_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *build.CustomBuildStrategy, out *v1.CustomBuildStrategy, s conversion.Scope) error {
-	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
-		*out = new(api_core_v1.LocalObjectReference)
-		if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.LocalObjectReference)
+		if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1384,9 +1852,9 @@ func autoConvert_build_CustomBuildStrategy_To_v1_CustomBuildStrategy(in *build.C
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]api_core_v1.EnvVar, len(*in))
+		*out = make([]apicorev1.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1419,7 +1887,7 @@ func autoConvert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy(in *v1.Dock
 	if in.From != nil {
 		in, out := &in.From, &out.From
 		*out = new(core.ObjectReference)
-		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1428,7 +1896,7 @@ func autoConvert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy(in *v1.Dock
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
 		*out = new(core.LocalObjectReference)
-		if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1439,7 +1907,7 @@ func autoConvert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy(in *v1.Dock
 		in, out := &in.Env, &out.Env
 		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1452,7 +1920,7 @@ func autoConvert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy(in *v1.Dock
 		in, out := &in.BuildArgs, &out.BuildArgs
 		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1466,8 +1934,8 @@ func autoConvert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy(in *v1.Dock
 func autoConvert_build_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build.DockerBuildStrategy, out *v1.DockerBuildStrategy, s conversion.Scope) error {
 	if in.From != nil {
 		in, out := &in.From, &out.From
-		*out = new(api_core_v1.ObjectReference)
-		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.ObjectReference)
+		if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1475,8 +1943,8 @@ func autoConvert_build_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build.D
 	}
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
-		*out = new(api_core_v1.LocalObjectReference)
-		if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.LocalObjectReference)
+		if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1485,9 +1953,9 @@ func autoConvert_build_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build.D
 	out.NoCache = in.NoCache
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]api_core_v1.EnvVar, len(*in))
+		*out = make([]apicorev1.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1496,9 +1964,9 @@ func autoConvert_build_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *build.D
 	}
 	if in.BuildArgs != nil {
 		in, out := &in.BuildArgs, &out.BuildArgs
-		*out = make([]api_core_v1.EnvVar, len(*in))
+		*out = make([]apicorev1.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1521,7 +1989,7 @@ func autoConvert_v1_DockerStrategyOptions_To_build_DockerStrategyOptions(in *v1.
 		in, out := &in.BuildArgs, &out.BuildArgs
 		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1540,9 +2008,9 @@ func Convert_v1_DockerStrategyOptions_To_build_DockerStrategyOptions(in *v1.Dock
 func autoConvert_build_DockerStrategyOptions_To_v1_DockerStrategyOptions(in *build.DockerStrategyOptions, out *v1.DockerStrategyOptions, s conversion.Scope) error {
 	if in.BuildArgs != nil {
 		in, out := &in.BuildArgs, &out.BuildArgs
-		*out = make([]api_core_v1.EnvVar, len(*in))
+		*out = make([]apicorev1.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1603,7 +2071,7 @@ func autoConvert_v1_GenericWebHookEvent_To_build_GenericWebHookEvent(in *v1.Gene
 		in, out := &in.Env, &out.Env
 		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1631,9 +2099,9 @@ func autoConvert_build_GenericWebHookEvent_To_v1_GenericWebHookEvent(in *build.G
 	out.Git = (*v1.GitInfo)(unsafe.Pointer(in.Git))
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]api_core_v1.EnvVar, len(*in))
+		*out = make([]apicorev1.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1848,7 +2316,7 @@ func autoConvert_v1_ImageChangeCause_To_build_ImageChangeCause(in *v1.ImageChang
 	if in.FromRef != nil {
 		in, out := &in.FromRef, &out.FromRef
 		*out = new(core.ObjectReference)
-		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1866,8 +2334,8 @@ func autoConvert_build_ImageChangeCause_To_v1_ImageChangeCause(in *build.ImageCh
 	out.ImageID = in.ImageID
 	if in.FromRef != nil {
 		in, out := &in.FromRef, &out.FromRef
-		*out = new(api_core_v1.ObjectReference)
-		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.ObjectReference)
+		if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1886,7 +2354,7 @@ func autoConvert_v1_ImageChangeTrigger_To_build_ImageChangeTrigger(in *v1.ImageC
 	if in.From != nil {
 		in, out := &in.From, &out.From
 		*out = new(core.ObjectReference)
-		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1905,8 +2373,8 @@ func autoConvert_build_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *build.Ima
 	out.LastTriggeredImageID = in.LastTriggeredImageID
 	if in.From != nil {
 		in, out := &in.From, &out.From
-		*out = new(api_core_v1.ObjectReference)
-		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.ObjectReference)
+		if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1944,7 +2412,7 @@ func Convert_build_ImageLabel_To_v1_ImageLabel(in *build.ImageLabel, out *v1.Ima
 }
 
 func autoConvert_v1_ImageSource_To_build_ImageSource(in *v1.ImageSource, out *build.ImageSource, s conversion.Scope) error {
-	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	out.As = *(*[]string)(unsafe.Pointer(&in.As))
@@ -1952,7 +2420,7 @@ func autoConvert_v1_ImageSource_To_build_ImageSource(in *v1.ImageSource, out *bu
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
 		*out = new(core.LocalObjectReference)
-		if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1967,15 +2435,15 @@ func Convert_v1_ImageSource_To_build_ImageSource(in *v1.ImageSource, out *build.
 }
 
 func autoConvert_build_ImageSource_To_v1_ImageSource(in *build.ImageSource, out *v1.ImageSource, s conversion.Scope) error {
-	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	out.As = *(*[]string)(unsafe.Pointer(&in.As))
 	out.Paths = *(*[]v1.ImageSourcePath)(unsafe.Pointer(&in.Paths))
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
-		*out = new(api_core_v1.LocalObjectReference)
-		if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.LocalObjectReference)
+		if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -2018,7 +2486,7 @@ func autoConvert_v1_JenkinsPipelineBuildStrategy_To_build_JenkinsPipelineBuildSt
 		in, out := &in.Env, &out.Env
 		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -2038,9 +2506,9 @@ func autoConvert_build_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildSt
 	out.Jenkinsfile = in.Jenkinsfile
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]api_core_v1.EnvVar, len(*in))
+		*out = make([]apicorev1.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -2080,7 +2548,7 @@ func Convert_build_ProxyConfig_To_v1_ProxyConfig(in *build.ProxyConfig, out *v1.
 }
 
 func autoConvert_v1_SecretBuildSource_To_build_SecretBuildSource(in *v1.SecretBuildSource, out *build.SecretBuildSource, s conversion.Scope) error {
-	if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
+	if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
 		return err
 	}
 	out.DestinationDir = in.DestinationDir
@@ -2093,7 +2561,7 @@ func Convert_v1_SecretBuildSource_To_build_SecretBuildSource(in *v1.SecretBuildS
 }
 
 func autoConvert_build_SecretBuildSource_To_v1_SecretBuildSource(in *build.SecretBuildSource, out *v1.SecretBuildSource, s conversion.Scope) error {
-	if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
+	if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
 		return err
 	}
 	out.DestinationDir = in.DestinationDir
@@ -2126,7 +2594,7 @@ func Convert_build_SecretLocalReference_To_v1_SecretLocalReference(in *build.Sec
 }
 
 func autoConvert_v1_SecretSpec_To_build_SecretSpec(in *v1.SecretSpec, out *build.SecretSpec, s conversion.Scope) error {
-	if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(&in.SecretSource, &out.SecretSource, s); err != nil {
+	if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(&in.SecretSource, &out.SecretSource, s); err != nil {
 		return err
 	}
 	out.MountPath = in.MountPath
@@ -2139,7 +2607,7 @@ func Convert_v1_SecretSpec_To_build_SecretSpec(in *v1.SecretSpec, out *build.Sec
 }
 
 func autoConvert_build_SecretSpec_To_v1_SecretSpec(in *build.SecretSpec, out *v1.SecretSpec, s conversion.Scope) error {
-	if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(&in.SecretSource, &out.SecretSource, s); err != nil {
+	if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(&in.SecretSource, &out.SecretSource, s); err != nil {
 		return err
 	}
 	out.MountPath = in.MountPath
@@ -2152,13 +2620,13 @@ func Convert_build_SecretSpec_To_v1_SecretSpec(in *build.SecretSpec, out *v1.Sec
 }
 
 func autoConvert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy(in *v1.SourceBuildStrategy, out *build.SourceBuildStrategy, s conversion.Scope) error {
-	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := corev1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
 		*out = new(core.LocalObjectReference)
-		if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
+		if err := corev1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -2168,7 +2636,7 @@ func autoConvert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy(in *v1.Sour
 		in, out := &in.Env, &out.Env
 		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -2182,13 +2650,13 @@ func autoConvert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy(in *v1.Sour
 }
 
 func autoConvert_build_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build.SourceBuildStrategy, out *v1.SourceBuildStrategy, s conversion.Scope) error {
-	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := corev1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
-		*out = new(api_core_v1.LocalObjectReference)
-		if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(apicorev1.LocalObjectReference)
+		if err := corev1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -2196,9 +2664,9 @@ func autoConvert_build_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build.S
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]api_core_v1.EnvVar, len(*in))
+		*out = make([]apicorev1.EnvVar, len(*in))
 		for i := range *in {
-			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

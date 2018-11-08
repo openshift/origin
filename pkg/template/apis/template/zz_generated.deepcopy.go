@@ -142,9 +142,7 @@ func (in *Template) DeepCopyInto(out *Template) {
 		in, out := &in.Objects, &out.Objects
 		*out = make([]runtime.Object, len(*in))
 		for i := range *in {
-			if (*in)[i] == nil {
-				(*out)[i] = nil
-			} else {
+			if (*in)[i] != nil {
 				(*out)[i] = (*in)[i].DeepCopyObject()
 			}
 		}
@@ -284,12 +282,15 @@ func (in *TemplateInstanceRequester) DeepCopyInto(out *TemplateInstanceRequester
 		in, out := &in.Extra, &out.Extra
 		*out = make(map[string]ExtraValue, len(*in))
 		for key, val := range *in {
+			var outVal []string
 			if val == nil {
 				(*out)[key] = nil
 			} else {
-				(*out)[key] = make([]string, len(val))
-				copy((*out)[key], val)
+				in, out := &val, &outVal
+				*out = make(ExtraValue, len(*in))
+				copy(*out, *in)
 			}
+			(*out)[key] = outVal
 		}
 	}
 	return
@@ -311,21 +312,13 @@ func (in *TemplateInstanceSpec) DeepCopyInto(out *TemplateInstanceSpec) {
 	in.Template.DeepCopyInto(&out.Template)
 	if in.Secret != nil {
 		in, out := &in.Secret, &out.Secret
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core.LocalObjectReference)
-			**out = **in
-		}
+		*out = new(core.LocalObjectReference)
+		**out = **in
 	}
 	if in.Requester != nil {
 		in, out := &in.Requester, &out.Requester
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(TemplateInstanceRequester)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(TemplateInstanceRequester)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }

@@ -14,12 +14,8 @@ func (in *RunOnceDurationConfig) DeepCopyInto(out *RunOnceDurationConfig) {
 	out.TypeMeta = in.TypeMeta
 	if in.ActiveDeadlineSecondsOverride != nil {
 		in, out := &in.ActiveDeadlineSecondsOverride, &out.ActiveDeadlineSecondsOverride
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	return
 }
