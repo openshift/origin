@@ -39,12 +39,15 @@ func Register(plugins *admission.Plugins) {
 			if err != nil {
 				return nil, err
 			}
+			var config *imagepolicy.ImagePolicyConfig
 			if obj == nil {
-				return nil, nil
-			}
-			config, ok := obj.(*imagepolicy.ImagePolicyConfig)
-			if !ok {
-				return nil, fmt.Errorf("unexpected config object: %#v", obj)
+				config = &imagepolicy.ImagePolicyConfig{}
+			} else {
+				var ok bool
+				config, ok = obj.(*imagepolicy.ImagePolicyConfig)
+				if !ok {
+					return nil, fmt.Errorf("unexpected config object: %#v", obj)
+				}
 			}
 			if errs := validation.Validate(config); len(errs) > 0 {
 				return nil, errs.ToAggregate()
