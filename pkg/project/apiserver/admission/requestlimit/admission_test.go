@@ -292,6 +292,7 @@ func TestAdmit(t *testing.T) {
 			project.Resource("projectrequests").WithVersion("version"),
 			"",
 			"CREATE",
+			false,
 			&user.DefaultInfo{Name: tc.user}))
 		if err != nil && !tc.expectForbidden {
 			t.Errorf("Got unexpected error for user %s: %v", tc.user, err)

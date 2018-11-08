@@ -98,7 +98,7 @@ func TestExecAdmit(t *testing.T) {
 		p.constraintAdmission.sccLister = cache
 		p.SetInternalKubeClientSet(tc)
 
-		attrs := kadmission.NewAttributesRecord(v.pod, v.oldPod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, &user.DefaultInfo{})
+		attrs := kadmission.NewAttributesRecord(v.pod, v.oldPod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, false, &user.DefaultInfo{})
 		err := p.Validate(attrs)
 
 		if v.shouldAdmit && err != nil {
