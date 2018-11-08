@@ -7,6 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -229,6 +231,8 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(projectAdminConfig),
 		Users:                []string{"joe"},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addJoe.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -283,6 +287,8 @@ func removeBuildStrategyRoleResources(t *testing.T, clusterAdminAuthorizationCli
 			RoleKind:   "ClusterRole",
 			RbacClient: clusterAdminAuthorizationClient,
 			Groups:     []string{"system:authenticated"},
+			PrintFlags: genericclioptions.NewPrintFlags(""),
+			ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 		}
 		if err := options.RemoveRole(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -311,6 +317,8 @@ func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminAuthori
 			RoleKind:   "ClusterRole",
 			RbacClient: clusterAdminAuthorizationClient,
 			Groups:     []string{"system:authenticated"},
+			PrintFlags: genericclioptions.NewPrintFlags(""),
+			ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 		}
 		if err := options.AddRole(); err != nil {
 			t.Fatalf("unexpected error: %v", err)

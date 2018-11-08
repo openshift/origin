@@ -82,12 +82,7 @@ func NewCmdExtract(fullName string, f kcmdutil.Factory, streams genericclioption
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Validate())
-			// TODO: move me to kcmdutil
-			err := o.Run()
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 	cmd.Flags().BoolVar(&o.Overwrite, "confirm", o.Overwrite, "If true, overwrite files that already exist.")
@@ -95,7 +90,6 @@ func NewCmdExtract(fullName string, f kcmdutil.Factory, streams genericclioption
 	cmd.Flags().StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "Filename, directory, or URL to file to identify to extract the resource.")
 	cmd.MarkFlagFilename("filename")
 	cmd.Flags().StringSliceVar(&o.OnlyKeys, "keys", o.OnlyKeys, "An optional list of keys to extract (default is all keys).")
-	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 

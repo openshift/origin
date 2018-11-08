@@ -12,6 +12,7 @@ import (
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -67,7 +68,7 @@ func NewCmdNewProject(name, fullName string, f kcmdutil.Factory, streams generic
 		Short: "Create a new project",
 		Long:  newProjectLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -81,7 +82,7 @@ func NewCmdNewProject(name, fullName string, f kcmdutil.Factory, streams generic
 	return cmd
 }
 
-func (o *NewProjectOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+func (o *NewProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("you must specify one argument: project name")
 	}
@@ -139,13 +140,13 @@ func (o *NewProjectOptions) Run() error {
 
 	errs := []error{}
 	if len(o.AdminUser) != 0 {
-		adduser := &policy.RoleModificationOptions{
-			RoleName:             o.AdminRole,
-			RoleKind:             "ClusterRole",
-			RoleBindingNamespace: project.Name,
-			RbacClient:           o.RbacClient,
-			Users:                []string{o.AdminUser},
-		}
+		adduser := policy.NewRoleModificationOptions(o.IOStreams)
+		adduser.RoleName = o.AdminRole
+		adduser.RoleKind = "ClusterRole"
+		adduser.RoleBindingNamespace = project.Name
+		adduser.RbacClient = o.RbacClient
+		adduser.Users = []string{o.AdminUser}
+		adduser.ToPrinter = noopPrinter
 
 		if err := adduser.AddRole(); err != nil {
 			fmt.Fprintf(o.Out, "%v could not be added to the %v role: %v\n", o.AdminUser, o.AdminRole, err)
@@ -175,13 +176,13 @@ func (o *NewProjectOptions) Run() error {
 	}
 
 	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(o.ProjectName) {
-		addRole := &policy.RoleModificationOptions{
-			RoleName:             binding.RoleRef.Name,
-			RoleKind:             binding.RoleRef.Kind,
-			RoleBindingNamespace: o.ProjectName,
-			RbacClient:           o.RbacClient,
-			Subjects:             binding.Subjects,
-		}
+		addRole := policy.NewRoleModificationOptions(o.IOStreams)
+		addRole.RoleName = binding.RoleRef.Name
+		addRole.RoleKind = binding.RoleRef.Kind
+		addRole.RoleBindingNamespace = o.ProjectName
+		addRole.RbacClient = o.RbacClient
+		addRole.Subjects = binding.Subjects
+		addRole.ToPrinter = noopPrinter
 		if err := addRole.AddRole(); err != nil {
 			fmt.Fprintf(o.Out, "Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)
 			errs = append(errs, err)
@@ -189,4 +190,8 @@ func (o *NewProjectOptions) Run() error {
 	}
 
 	return errorsutil.NewAggregate(errs)
+}
+
+func noopPrinter(operation string) (printers.ResourcePrinter, error) {
+	return printers.NewDiscardingPrinter(), nil
 }
