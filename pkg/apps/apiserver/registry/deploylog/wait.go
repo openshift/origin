@@ -1,6 +1,7 @@
 package deploylog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -11,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	watchtools "k8s.io/client-go/tools/watch"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -32,8 +34,9 @@ func WaitForRunningDeployment(rn corev1client.ReplicationControllersGetter, obse
 		return observed, false, err
 	}
 	defer w.Stop()
-
-	if _, err := watch.Until(timeout, w, func(e watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	if _, err := watchtools.UntilWithoutRetry(ctx, w, func(e watch.Event) (bool, error) {
 		if e.Type == watch.Error {
 			// When we send too old resource version in observed replication controller to
 			// watcher, restart the watch with latest available controller.

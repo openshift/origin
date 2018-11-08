@@ -1,11 +1,13 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	watchtools "k8s.io/client-go/tools/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -48,7 +50,9 @@ func DeleteAndWaitForNamespaceTermination(c kclientset.Interface, name string) e
 	if err := c.Core().Namespaces().Delete(name, nil); err != nil {
 		return err
 	}
-	_, err = watch.Until(30*time.Second, w, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, err = watchtools.UntilWithoutRetry(ctx, w, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Deleted {
 			return false, nil
 		}

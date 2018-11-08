@@ -22,6 +22,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	watchtools "k8s.io/client-go/tools/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
 
@@ -259,7 +260,9 @@ func GetFirstPod(client corev1client.PodsGetter, namespace string, selector stri
 	condition := func(event watch.Event) (bool, error) {
 		return event.Type == watch.Added || event.Type == watch.Modified, nil
 	}
-	event, err := watch.Until(timeout, w, condition)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	event, err := watchtools.UntilWithoutRetry(ctx, w, condition)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -291,7 +294,9 @@ func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *corev1.Rep
 	}
 
 	defer watcher.Stop()
-	_, err = watch.Until(timeout, watcher, func(e watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	_, err = watchtools.UntilWithoutRetry(ctx, watcher, func(e watch.Event) (bool, error) {
 		if e.Type == watch.Error {
 			return false, fmt.Errorf("encountered error while watching for pod: %v", e.Object)
 		}
