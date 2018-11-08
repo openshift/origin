@@ -59,7 +59,9 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 					Type: autoscaling.ResourceMetricSourceType,
 					Resource: &autoscaling.ResourceMetricSource{
 						Name: kapi.ResourceCPU,
-						TargetAverageUtilization: &percent,
+						Target: autoscaling.MetricTarget{
+							AverageUtilization: &percent,
+						},
 					},
 				},
 			},

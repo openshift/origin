@@ -482,7 +482,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 			continue
 		}
 
-		createObj, createErr := c.dynamicClient.Resource(restMapping.Resource).Namespace(namespace).Create(&currObj)
+		createObj, createErr := c.dynamicClient.Resource(restMapping.Resource).Namespace(namespace).Create(&currObj, metav1.CreateOptions{})
 		if kerrors.IsAlreadyExists(createErr) {
 			freshGottenObj, getErr := c.dynamicClient.Resource(restMapping.Resource).Namespace(namespace).Get(currObj.GetName(), metav1.GetOptions{})
 			if getErr != nil {

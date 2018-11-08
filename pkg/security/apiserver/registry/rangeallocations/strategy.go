@@ -4,6 +4,7 @@ import (
 	"context"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -33,7 +34,7 @@ func (strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 func (strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	cfg := obj.(*securityapi.RangeAllocation)
 
-	return validation.ValidateObjectMeta(&cfg.ObjectMeta, false, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
+	return validation.ValidateObjectMeta(&cfg.ObjectMeta, false, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
 }
 
 func (strategy) Canonicalize(obj runtime.Object) {

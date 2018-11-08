@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/equality"
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -281,7 +282,7 @@ func ValidateRoleBindingUpdate(roleBinding *authorizationapi.RoleBinding, oldRol
 
 func ValidateRoleBindingRestriction(rbr *authorizationapi.RoleBindingRestriction) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&rbr.ObjectMeta, true,
-		validation.NameIsDNSSubdomain, field.NewPath("metadata"))
+		apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
 
 	allErrs = append(allErrs,
 		ValidateRoleBindingRestrictionSpec(&rbr.Spec, field.NewPath("spec"))...)

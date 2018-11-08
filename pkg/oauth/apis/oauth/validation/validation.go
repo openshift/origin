@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
@@ -170,7 +171,7 @@ func ValidateAuthorizeTokenUpdate(newToken, oldToken *oauthapi.OAuthAuthorizeTok
 }
 
 func ValidateClient(client *oauthapi.OAuthClient) field.ErrorList {
-	allErrs := validation.ValidateObjectMeta(&client.ObjectMeta, false, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
+	allErrs := validation.ValidateObjectMeta(&client.ObjectMeta, false, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	for i, redirect := range client.RedirectURIs {
 		if ok, msg := ValidateRedirectURI(redirect); !ok {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURIs").Index(i), redirect, msg))
@@ -304,7 +305,7 @@ func ValidateClientNameField(value string, fldPath *field.Path) field.ErrorList 
 		if reasons := validation.ValidateServiceAccountName(saName, false); len(reasons) != 0 {
 			return field.ErrorList{field.Invalid(fldPath, value, strings.Join(reasons, ", "))}
 		}
-	} else if reasons := validation.NameIsDNSSubdomain(value, false); len(reasons) != 0 {
+	} else if reasons := apimachineryvalidation.NameIsDNSSubdomain(value, false); len(reasons) != 0 {
 		return field.ErrorList{field.Invalid(fldPath, value, strings.Join(reasons, ", "))}
 	}
 	return field.ErrorList{}

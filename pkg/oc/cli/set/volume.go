@@ -319,11 +319,14 @@ func (a *AddVolumeOptions) Validate() error {
 }
 
 func (o *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	kc, err := f.ClientSet()
+	config, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	o.Client = kc.Core()
+	o.Client, err = kcoreclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
 
 	o.DefaultNamespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
@@ -500,7 +503,7 @@ func (o *VolumeOptions) RunVolume() error {
 	for _, info := range updateInfos {
 		var obj runtime.Object
 		if len(info.ResourceVersion) == 0 {
-			obj, err = resource.NewHelper(info.Client, info.Mapping).Create(info.Namespace, false, info.Object)
+			obj, err = resource.NewHelper(info.Client, info.Mapping).Create(info.Namespace, false, info.Object, &metav1.CreateOptions{})
 		} else {
 			obj, err = resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, info.Object)
 		}
@@ -530,7 +533,7 @@ func (o *VolumeOptions) RunVolume() error {
 			continue
 		}
 
-		actual, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch, &metav1.UpdateOptions{})
 		if err != nil {
 			allErrs = append(allErrs, fmt.Errorf("failed to patch volume update to pod template: %v\n", err))
 			continue
