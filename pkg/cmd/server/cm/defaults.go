@@ -1,19 +1,11 @@
 package cm
 
 import (
-	"github.com/spf13/pflag"
-
+	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 	kcmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 )
 
-var (
-	// default to the same controllers as upstream
-	ControllersDisabledByDefault = kcmapp.ControllersDisabledByDefault
-)
-
-func OriginControllerManagerAddFlags(cmserver *kcmoptions.KubeControllerManagerOptions) func(flags *pflag.FlagSet) {
-	return func(flags *pflag.FlagSet) {
-		cmserver.AddFlags(flags, kcmapp.KnownControllers(), ControllersDisabledByDefault.List())
-	}
+func OriginControllerManagerAddFlags(cmserver *kcmoptions.KubeControllerManagerOptions) apiserverflag.NamedFlagSets {
+	return cmserver.Flags(kcmapp.KnownControllers(), kcmapp.ControllersDisabledByDefault.List())
 }

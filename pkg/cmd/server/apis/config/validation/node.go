@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -132,7 +133,9 @@ func ValidateDockerConfig(config configapi.DockerConfig, fldPath *field.Path) fi
 
 func ValidateKubeletExtendedArguments(config configapi.ExtendedArguments, fldPath *field.Path) field.ErrorList {
 	server, _ := kubeletoptions.NewKubeletServer()
-	return ValidateExtendedArguments(config, server.AddFlags, fldPath)
+	fss := apiserverflag.NamedFlagSets{}
+	server.AddFlags(fss.FlagSet("kubelet"))
+	return ValidateExtendedArguments(config, fss, fldPath)
 }
 
 func ValidateVolumeConfig(config configapi.NodeVolumeConfig, fldPath *field.Path) field.ErrorList {
