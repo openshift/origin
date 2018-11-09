@@ -1,8 +1,6 @@
 package extended
 
 import (
-	"testing"
-
 	_ "k8s.io/kubernetes/test/e2e"
 
 	// test sources
@@ -13,6 +11,7 @@ import (
 	_ "k8s.io/kubernetes/test/e2e/common"
 	_ "k8s.io/kubernetes/test/e2e/instrumentation"
 	_ "k8s.io/kubernetes/test/e2e/kubectl"
+
 	// _ "k8s.io/kubernetes/test/e2e/lifecycle"
 	// _ "k8s.io/kubernetes/test/e2e/lifecycle/bootstrap"
 	// _ "k8s.io/kubernetes/test/e2e/multicluster"
@@ -22,6 +21,7 @@ import (
 	_ "k8s.io/kubernetes/test/e2e/scheduling"
 	_ "k8s.io/kubernetes/test/e2e/servicecatalog"
 	_ "k8s.io/kubernetes/test/e2e/storage"
+
 	// _ "k8s.io/kubernetes/test/e2e/ui"
 
 	_ "github.com/openshift/origin/test/extended/builds"
@@ -37,19 +37,9 @@ import (
 	_ "github.com/openshift/origin/test/extended/jobs"
 	_ "github.com/openshift/origin/test/extended/localquota"
 	_ "github.com/openshift/origin/test/extended/networking"
+	_ "github.com/openshift/origin/test/extended/operators"
 	_ "github.com/openshift/origin/test/extended/prometheus"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"
 	_ "github.com/openshift/origin/test/extended/templates"
-
-	exutil "github.com/openshift/origin/test/extended/util"
 )
-
-// init initialize the extended testing suite.
-func init() {
-	exutil.InitTest()
-}
-
-func TestExtended(t *testing.T) {
-	exutil.ExecuteTest(t, "Extended")
-}

@@ -163,7 +163,7 @@ var _ = g.Describe("[default] STI build", func() {
 	)
 
 	g.Describe("Building from a template", func() {
-		g.It(fmt.Sprintf("should create a image from %q template", stiBuildFixture), func() {
+		g.It(fmt.Sprintf("should create a image from %q template", filepath.Base(stiBuildFixture)), func() {
 			...
 		}
 	}
