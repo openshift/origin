@@ -28,8 +28,8 @@ os::cmd::expect_failure_and_text 'oc observe services --exit-after=1m --all-name
 os::cmd::expect_failure_and_text 'oc observe services --exit-after=1m --all-namespaces --retry-on-exit-code=2 --maximum-errors=1 --loglevel=4 -- /bin/sh -c "exit 2"' 'retrying command: exit status 2'
 
 # argument templates
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{ .spec.clusterIP }"' '10.3.0.1'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .spec.clusterIP }}" --output=gotemplate' '10.3.0.1'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{ .spec.clusterIP }"' '172.30.0.1'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .spec.clusterIP }}" --output=gotemplate' '172.30.0.1'
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{ .missingkey }key"' 'badkey'
 os::cmd::expect_failure_and_text 'oc observe services --once --all-namespaces -a "bad{ .missingkey }key" --strict-templates' 'missingkey is not found'
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .unknown }}" --output=gotemplate' '""'
