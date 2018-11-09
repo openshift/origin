@@ -257,7 +257,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc oadm openshift hypershift hyperkube template-service-broker openshift-node-config openshift-sdn
+for bin in oc openshift hypershift hyperkube template-service-broker openshift-node-config openshift-sdn
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -277,10 +277,6 @@ install -p -m 755 _output/local/bin/darwin/amd64/oc %{buildroot}/%{_datadir}/%{n
 install -p -m 755 _output/local/bin/darwin/amd64/kubectl %{buildroot}/%{_datadir}/%{name}/macosx/kubectl
 install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 install -p -m 755 _output/local/bin/windows/amd64/kubectl.exe %{buildroot}/%{_datadir}/%{name}/windows/kubectl.exe
-# Install oadm client executable
-install -p -m 755 _output/local/bin/linux/amd64/oadm %{buildroot}%{_datadir}/%{name}/linux/oadm
-install -p -m 755 _output/local/bin/darwin/amd64/oadm %{buildroot}/%{_datadir}/%{name}/macosx/oadm
-install -p -m 755 _output/local/bin/windows/amd64/oadm.exe %{buildroot}/%{_datadir}/%{name}/windows/oadm.exe
 %endif
 
 # Install pod
@@ -412,7 +408,6 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %license LICENSE
 %{_bindir}/oc
 %{_bindir}/kubectl
-%{_bindir}/oadm
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-docker-build
 %{_bindir}/openshift-sti-build
@@ -436,9 +431,6 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_datadir}/%{name}/macosx/kubectl
 %{_datadir}/%{name}/windows/oc.exe
 %{_datadir}/%{name}/windows/kubectl.exe
-%{_datadir}/%{name}/linux/oadm
-%{_datadir}/%{name}/macosx/oadm
-%{_datadir}/%{name}/windows/oadm.exe
 %endif
 
 %files pod

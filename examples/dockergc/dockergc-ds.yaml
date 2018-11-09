@@ -5,7 +5,7 @@ items:
   kind: ServiceAccount
   metadata:
     name: dockergc
-  # You must grant privileged via: oadm policy add-scc-to-user -z dockergc privileged
+  # You must grant privileged via: oc adm policy add-scc-to-user -z dockergc privileged
   # in order for the dockergc to access the docker socket and root directory
 - apiVersion: extensions/v1beta1
   kind: DaemonSet
