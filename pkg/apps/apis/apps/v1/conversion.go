@@ -13,7 +13,7 @@ import (
 )
 
 func Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImageChangeParams(in *v1.DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImageChangeParams(in, out, s); err != nil {
 		return err
 	}
 	switch in.From.Kind {
@@ -30,7 +30,7 @@ func Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImag
 }
 
 func Convert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams(in *newer.DeploymentTriggerImageChangeParams, out *v1.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams(in, out, s); err != nil {
 		return err
 	}
 	switch in.From.Kind {
