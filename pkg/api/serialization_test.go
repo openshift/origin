@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/gofuzz"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
@@ -19,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	componentconfig "k8s.io/kubernetes/cmd/cloud-controller-manager/app/apis/config/scheme"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/v1"
@@ -552,13 +551,7 @@ func TestRoundTripTypes(t *testing.T) {
 	seed := rand.Int63()
 	fuzzer := originFuzzer(t, seed)
 
-	kubeExceptions := map[schema.GroupVersionKind]bool{
-		componentconfig.SchemeGroupVersion.WithKind("KubeletConfiguration"):       true,
-		componentconfig.SchemeGroupVersion.WithKind("KubeProxyConfiguration"):     true,
-		componentconfig.SchemeGroupVersion.WithKind("KubeSchedulerConfiguration"): true,
-	}
-
-	roundtrip.RoundTripTypes(t, legacyscheme.Scheme, legacyscheme.Codecs, fuzzer, mergeGvks(kubeExceptions, dockerImageTypes))
+	roundtrip.RoundTripTypes(t, legacyscheme.Scheme, legacyscheme.Codecs, fuzzer, dockerImageTypes)
 }
 
 // TestRoundTripDockerImage tests DockerImage whether it serializes from/into docker's registry API.
