@@ -193,14 +193,6 @@ func Convert_image_ImageStreamStatus_To_v1_ImageStreamStatus(in *newer.ImageStre
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func Convert_image_ImageStreamMapping_To_v1_ImageStreamMapping(in *newer.ImageStreamMapping, out *v1.ImageStreamMapping, s conversion.Scope) error {
-	return s.DefaultConvert(in, out, conversion.DestFromSource)
-}
-
-func Convert_v1_ImageStreamMapping_To_image_ImageStreamMapping(in *v1.ImageStreamMapping, out *newer.ImageStreamMapping, s conversion.Scope) error {
-	return s.DefaultConvert(in, out, conversion.SourceToDest)
-}
-
 func Convert_v1_NamedTagEventListArray_to_api_TagEventListArray(in *[]v1.NamedTagEventList, out *map[string]newer.TagEventList, s conversion.Scope) error {
 	for _, curr := range *in {
 		newTagEventList := newer.TagEventList{}
@@ -279,8 +271,6 @@ func AddConversionFuncs(scheme *runtime.Scheme) error {
 		Convert_image_ImageStreamSpec_To_v1_ImageStreamSpec,
 		Convert_v1_ImageStreamStatus_To_image_ImageStreamStatus,
 		Convert_image_ImageStreamStatus_To_v1_ImageStreamStatus,
-		Convert_image_ImageStreamMapping_To_v1_ImageStreamMapping,
-		Convert_v1_ImageStreamMapping_To_image_ImageStreamMapping,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
