@@ -22,6 +22,7 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/route/apis/route/v1
     github.com/openshift/origin/pkg/security/apis/security/v1
     github.com/openshift/origin/pkg/template/apis/template/v1
+    github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1
     github.com/openshift/origin/pkg/user/apis/user/v1
 )
 
