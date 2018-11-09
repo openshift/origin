@@ -7,6 +7,124 @@
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
+          "openshift.io/display-name": ".NET Core"
+        },
+        "name": "dotnet"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run .NET Core applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core (Latest)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.1"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 2.1 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.1",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.1,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet21",
+              "version": "2.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnet-21-rhel7:2.1"
+            },
+            "name": "2.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "RETIRED: Build and run .NET Core 2.0 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.0",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet20",
+              "version": "2.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnet-20-rhel7:2.0"
+            },
+            "name": "2.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 1.1 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/1.1/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 1.1",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-1.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:1.1,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnetcore11",
+              "version": "1.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnetcore-11-rhel7:1.1"
+            },
+            "name": "1.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 1.0 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/1.0/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 1.0",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-1.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:1.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnetcore10",
+              "version": "1.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnetcore-10-rhel7:1.0"
+            },
+            "name": "1.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
           "openshift.io/display-name": "Apache HTTP Server (httpd)"
         },
         "name": "httpd"
@@ -19,7 +137,7 @@
               "iconClass": "icon-apache",
               "openshift.io/display-name": "Apache HTTP Server (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/httpd-ex.git",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
               "tags": "builder,httpd"
             },
@@ -38,7 +156,7 @@
               "iconClass": "icon-apache",
               "openshift.io/display-name": "Apache HTTP Server 2.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/httpd-ex.git",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
               "tags": "builder,httpd",
               "version": "2.4"
@@ -501,11 +619,11 @@
         "tags": [
           {
             "annotations": {
-              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
+              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs",
               "tags": "builder,nodejs"
             },
@@ -524,7 +642,7 @@
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 0.10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:0.10,nodejs:0.1,nodejs",
               "tags": "hidden,nodejs",
               "version": "0.10"
@@ -544,7 +662,7 @@
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:4,nodejs",
               "tags": "hidden,builder,nodejs",
               "version": "4"
@@ -564,7 +682,7 @@
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:6,nodejs",
               "tags": "builder,nodejs",
               "version": "6"
@@ -584,7 +702,7 @@
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "8"
             },
@@ -599,11 +717,11 @@
           },
           {
             "annotations": {
-              "description": "Build and run Node.js 8 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.",
+              "description": "Build and run Node.js 8 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "OpenShift Application Runtimes Node.js 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "8"
             },
@@ -618,11 +736,11 @@
           },
           {
             "annotations": {
-              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.",
+              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "OpenShift Application Runtimes Node.js 10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "10"
             },
@@ -768,7 +886,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php",
               "tags": "builder,php"
             },
@@ -787,7 +905,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:5.5,php",
               "tags": "hidden,builder,php",
               "version": "5.5"
@@ -807,7 +925,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:5.6,php",
               "tags": "hidden,builder,php",
               "version": "5.6"
@@ -827,7 +945,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 7.0",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:7.0,php",
               "tags": "builder,php",
               "version": "7.0"
@@ -847,7 +965,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 7.1",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:7.1,php",
               "tags": "builder,php",
               "version": "7.1"
@@ -1002,7 +1120,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python",
               "tags": "builder,python"
             },
@@ -1021,7 +1139,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.3",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.3,python",
               "tags": "hidden,builder,python",
               "version": "3.3"
@@ -1041,7 +1159,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:2.7,python",
               "tags": "builder,python",
               "version": "2.7"
@@ -1061,7 +1179,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.4,python",
               "tags": "hidden,builder,python",
               "version": "3.4"
@@ -1081,7 +1199,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.5,python",
               "tags": "builder,python",
               "version": "3.5"
@@ -1101,7 +1219,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.6,python",
               "tags": "builder,python",
               "version": "3.6"
@@ -1184,7 +1302,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby",
               "tags": "builder,ruby"
             },
@@ -1203,7 +1321,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.0",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.0,ruby",
               "tags": "hidden,builder,ruby",
               "version": "2.0"
@@ -1223,7 +1341,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.2",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.2,ruby",
               "tags": "hidden,builder,ruby",
               "version": "2.2"
@@ -1243,7 +1361,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.3",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.3,ruby",
               "tags": "builder,ruby",
               "version": "2.3"
@@ -1263,7 +1381,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.4,ruby",
               "tags": "builder,ruby",
               "version": "2.4"

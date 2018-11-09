@@ -6,6 +6,7 @@ of referencing a image registry/repository:tag directly, your resources can be t
 when image updates are rolled out.
 
 * [.NET Centos7](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/community/dotnet/imagestreams/dotnet-centos7.json)
+* [.NET RHEL7](https://raw.githubusercontent.com/openshift/library/master/official/dotnet/imagestreams/dotnet-rhel7.json)
 
 * [HTTPD Centos7](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/community/httpd/imagestreams/httpd-centos7.json)
 * [HTTPD RHEL7](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/httpd/imagestreams/httpd-rhel7.json)
