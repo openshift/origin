@@ -1,9 +1,8 @@
 package validation
 
 import (
-	"github.com/spf13/pflag"
-
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
@@ -66,11 +65,11 @@ func ValidatePodManifestConfig(podManifestConfig *config.PodManifestConfig, fldP
 	return allErrs
 }
 
-func ValidateExtendedArguments(config config.ExtendedArguments, flagFunc func(*pflag.FlagSet), fldPath *field.Path) field.ErrorList {
+func ValidateExtendedArguments(config config.ExtendedArguments, flagSet apiserverflag.NamedFlagSets, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// check extended arguments for errors
-	for _, err := range cmdflags.Resolve(config, flagFunc) {
+	for _, err := range cmdflags.Resolve(config, flagSet) {
 		switch t := err.(type) {
 		case *field.Error:
 			allErrs = append(allErrs, t)

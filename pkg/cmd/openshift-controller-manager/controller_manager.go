@@ -1,6 +1,7 @@
 package openshift_controller_manager
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -57,19 +58,19 @@ func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftCont
 		glog.Infof("Build controller using images from %q", imageTemplate.ExpandOrDie("<component>"))
 	}
 
-	originControllerManager := func(stopCh <-chan struct{}) {
+	originControllerManager := func(ctx context.Context) {
 		if err := WaitForHealthyAPIServer(kubeClient.Discovery().RESTClient()); err != nil {
 			glog.Fatal(err)
 		}
 
-		controllerContext, err := origincontrollers.NewControllerContext(*config, clientConfig, stopCh)
+		controllerContext, err := origincontrollers.NewControllerContext(*config, clientConfig, ctx.Done())
 		if err != nil {
 			glog.Fatal(err)
 		}
 		if err := startControllers(controllerContext); err != nil {
 			glog.Fatal(err)
 		}
-		controllerContext.StartInformers(stopCh)
+		controllerContext.StartInformers(ctx.Done())
 	}
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -92,18 +93,19 @@ func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftCont
 	if err != nil {
 		return err
 	}
-	go leaderelection.RunOrDie(leaderelection.LeaderElectionConfig{
-		Lock:          rl,
-		LeaseDuration: config.LeaderElection.LeaseDuration.Duration,
-		RenewDeadline: config.LeaderElection.RenewDeadline.Duration,
-		RetryPeriod:   config.LeaderElection.RetryPeriod.Duration,
-		Callbacks: leaderelection.LeaderCallbacks{
-			OnStartedLeading: originControllerManager,
-			OnStoppedLeading: func() {
-				glog.Fatalf("leaderelection lost")
+	go leaderelection.RunOrDie(context.Background(),
+		leaderelection.LeaderElectionConfig{
+			Lock:          rl,
+			LeaseDuration: config.LeaderElection.LeaseDuration.Duration,
+			RenewDeadline: config.LeaderElection.RenewDeadline.Duration,
+			RetryPeriod:   config.LeaderElection.RetryPeriod.Duration,
+			Callbacks: leaderelection.LeaderCallbacks{
+				OnStartedLeading: originControllerManager,
+				OnStoppedLeading: func() {
+					glog.Fatalf("leaderelection lost")
+				},
 			},
-		},
-	})
+		})
 
 	return nil
 }

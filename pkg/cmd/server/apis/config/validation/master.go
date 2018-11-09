@@ -611,7 +611,7 @@ func ValidateRoutingConfig(config configapi.RoutingConfig, fldPath *field.Path) 
 func ValidateAPIServerExtendedArguments(config configapi.ExtendedArguments, fldPath *field.Path) common.ValidationResults {
 	validationResults := common.ValidationResults{}
 
-	validationResults.AddErrors(ValidateExtendedArguments(config, apiserveroptions.NewServerRunOptions().AddFlags, fldPath)...)
+	validationResults.AddErrors(ValidateExtendedArguments(config, apiserveroptions.NewServerRunOptions().Flags(), fldPath)...)
 
 	for i, key := range config["runtime-config"] {
 		if strings.HasPrefix(key, "apis/") {

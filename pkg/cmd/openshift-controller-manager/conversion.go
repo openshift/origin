@@ -28,7 +28,7 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.Master
 		// coder error
 		panic(err)
 	}
-	flagOptions.GenericComponent.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
+	flagOptions.Generic.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
 	flagFunc := cm.OriginControllerManagerAddFlags(flagOptions)
 	errors := cmdflags.Resolve(input.KubernetesMasterConfig.ControllerArguments, flagFunc)
 	if len(errors) > 0 {
@@ -73,14 +73,14 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.Master
 		LeaderElection: configv1.LeaderElection{
 			Namespace:     "kube-system",
 			Name:          "openshift-master-controllers",
-			RetryPeriod:   flagOptions.GenericComponent.LeaderElection.RetryPeriod,
-			RenewDeadline: flagOptions.GenericComponent.LeaderElection.RenewDeadline,
-			LeaseDuration: flagOptions.GenericComponent.LeaderElection.LeaseDuration,
+			RetryPeriod:   flagOptions.Generic.LeaderElection.RetryPeriod,
+			RenewDeadline: flagOptions.Generic.LeaderElection.RenewDeadline,
+			LeaseDuration: flagOptions.Generic.LeaderElection.LeaseDuration,
 		},
 		ResourceQuota: openshiftcontrolplanev1.ResourceQuotaControllerConfig{
 			ConcurrentSyncs: flagOptions.ResourceQuotaController.ConcurrentResourceQuotaSyncs,
 			SyncPeriod:      flagOptions.ResourceQuotaController.ResourceQuotaSyncPeriod,
-			MinResyncPeriod: flagOptions.GenericComponent.MinResyncPeriod,
+			MinResyncPeriod: flagOptions.Generic.MinResyncPeriod,
 		},
 		ServiceServingCert: openshiftcontrolplanev1.ServiceServingCert{
 			Signer: &configv1.CertInfo{
