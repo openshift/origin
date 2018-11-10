@@ -9,11 +9,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/kubernetes/pkg/api/endpoints"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/master/reconcilers"
-	"k8s.io/kubernetes/pkg/registry/core/endpoint"
 )
 
 // Leases is an interface which assists in managing the set of active masters
@@ -85,16 +85,16 @@ func NewLeases(storage storage.Interface, baseKey string, leaseTime uint64) Leas
 }
 
 type leaseEndpointReconciler struct {
-	endpointRegistry endpoint.Registry
-	masterLeases     Leases
+	endpointStorage rest.StandardStorage
+	masterLeases    Leases
 }
 
 var _ reconcilers.EndpointReconciler = &leaseEndpointReconciler{}
 
-func NewLeaseEndpointReconciler(endpointRegistry endpoint.Registry, masterLeases Leases) *leaseEndpointReconciler {
+func NewLeaseEndpointReconciler(endpointStorage rest.StandardStorage, masterLeases Leases) *leaseEndpointReconciler {
 	return &leaseEndpointReconciler{
-		endpointRegistry: endpointRegistry,
-		masterLeases:     masterLeases,
+		endpointStorage: endpointStorage,
+		masterLeases:    masterLeases,
 	}
 }
 
@@ -116,7 +116,8 @@ func (r *leaseEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.
 	}
 
 	// Retrieve the current list of endpoints...
-	e, err := r.endpointRegistry.GetEndpoints(ctx, serviceName, &metav1.GetOptions{})
+	var e *api.Endpoints
+	obj, err := r.endpointStorage.Get(ctx, serviceName, &metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
@@ -128,6 +129,8 @@ func (r *leaseEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.
 				Namespace: api.NamespaceDefault,
 			},
 		}
+	} else {
+		e = obj.(*api.Endpoints)
 	}
 
 	// ... and the list of master IP keys from etcd
@@ -174,7 +177,8 @@ func (r *leaseEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.
 	}
 
 	glog.Warningf("Resetting endpoints for master service %q to %v", serviceName, masterIPs)
-	return r.endpointRegistry.UpdateEndpoints(ctx, e, nil, nil)
+	_, _, err = r.endpointStorage.Update(ctx, e.Name, rest.DefaultUpdatedObjectInfo(e), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, false, &metav1.UpdateOptions{})
+	return err
 }
 
 // TODO collapse onto upstream
