@@ -42,12 +42,12 @@ func (c *MasterConfig) RunDNSServer() {
 		return
 	}
 
-	services, err := dns.NewCachedServiceAccessor(c.InternalKubeInformers.Core().InternalVersion().Services())
+	services, err := dns.NewCachedServiceAccessor(c.ClientGoKubeInformers.Core().V1().Services())
 	if err != nil {
 		glog.Fatalf("Could not start DNS: failed to add ClusterIP index: %v", err)
 	}
 
-	endpoints, err := dns.NewCachedEndpointsAccessor(c.InternalKubeInformers.Core().InternalVersion().Endpoints())
+	endpoints, err := dns.NewCachedEndpointsAccessor(c.ClientGoKubeInformers.Core().V1().Endpoints())
 	if err != nil {
 		glog.Fatalf("Could not start DNS: failed to add endpoints index: %v", err)
 	}

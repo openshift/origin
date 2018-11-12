@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 )
@@ -584,9 +586,9 @@ func TestGetImageStreamUsage(t *testing.T) {
 		},
 	} {
 		usage := GetImageStreamUsage(&tc.is)
-		expectedUsage := kapi.ResourceList{
-			imageapi.ResourceImageStreamTags:   *resource.NewQuantity(tc.expectedTags, resource.DecimalSI),
-			imageapi.ResourceImageStreamImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
+		expectedUsage := corev1.ResourceList{
+			imagev1.ResourceImageStreamTags:   *resource.NewQuantity(tc.expectedTags, resource.DecimalSI),
+			imagev1.ResourceImageStreamImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
 		}
 
 		if len(usage) != len(expectedUsage) {

@@ -232,6 +232,7 @@ func StartNetwork(nodeConfig configapi.NodeConfig, components *utilflags.Compone
 	}
 
 	networkConfig.InternalKubeInformers.Start(stopCh)
+	networkConfig.KubeInformers.Start(stopCh)
 	if networkConfig.NetworkInformers != nil {
 		networkConfig.NetworkInformers.Start(stopCh)
 	}

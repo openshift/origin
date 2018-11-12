@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	admission "k8s.io/apiserver/pkg/admission"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/util"
@@ -25,7 +27,7 @@ const (
 	PluginName = "openshift.io/ImageLimitRange"
 )
 
-func newLimitExceededError(limitType kapi.LimitType, resourceName kapi.ResourceName, requested, limit *resource.Quantity) error {
+func newLimitExceededError(limitType corev1.LimitType, resourceName corev1.ResourceName, requested, limit *resource.Quantity) error {
 	return fmt.Errorf("requested usage of %s exceeds the maximum limit per %s (%s > %s)", resourceName, limitType, requested.String(), limit.String())
 }
 
@@ -169,7 +171,7 @@ func admitImage(size int64, limit kapi.LimitRangeItem) error {
 	imageQuantity := resource.NewQuantity(size, resource.BinarySI)
 	if limitQuantity.Cmp(*imageQuantity) < 0 {
 		// image size is larger than the permitted limit range max size, image is forbidden
-		return newLimitExceededError(imageapi.LimitTypeImage, kapi.ResourceStorage, imageQuantity, &limitQuantity)
+		return newLimitExceededError(imagev1.LimitTypeImage, corev1.ResourceStorage, imageQuantity, &limitQuantity)
 	}
 	return nil
 }

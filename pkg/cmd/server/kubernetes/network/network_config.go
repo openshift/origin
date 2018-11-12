@@ -9,6 +9,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/informers"
 	kclientset "k8s.io/client-go/kubernetes"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -35,6 +36,8 @@ type NetworkConfig struct {
 	ExternalKubeClientset kclientsetexternal.Interface
 	// Internal kubernetes shared informer factory.
 	InternalKubeInformers kinternalinformers.SharedInformerFactory
+	// External kubernetes shared informer factory.
+	KubeInformers informers.SharedInformerFactory
 	// Network shared informer factory.
 	NetworkInformers networkinformers.SharedInformerFactory
 
@@ -107,10 +110,12 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 	}
 
 	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(internalKubeClient, proxyConfig.ConfigSyncPeriod.Duration)
+	kubeInformers := informers.NewSharedInformerFactory(kubeClient, proxyConfig.ConfigSyncPeriod.Duration)
 
 	config := &NetworkConfig{
 		KubeClientset:         kubeClient,
 		ExternalKubeClientset: externalKubeClient,
+		KubeInformers:         kubeInformers,
 		InternalKubeInformers: internalKubeInformers,
 
 		ProxyConfig:    proxyConfig,
@@ -120,7 +125,7 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
 		config.NetworkInformers = networkinformers.NewSharedInformerFactory(networkClient, network.DefaultInformerResyncPeriod)
 
-		config.SDNNode, config.SDNProxy, err = NewSDNInterfaces(options, networkClient, kubeClient, internalKubeClient, internalKubeInformers, config.NetworkInformers, proxyConfig)
+		config.SDNNode, config.SDNProxy, err = NewSDNInterfaces(options, networkClient, kubeClient, internalKubeClient, kubeInformers, config.NetworkInformers, proxyConfig)
 		if err != nil {
 			return nil, fmt.Errorf("SDN initialization failed: %v", err)
 		}
@@ -156,12 +161,12 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 			dnsConfig.Nameservers = nameservers
 		}
 
-		services, err := dns.NewCachedServiceAccessor(internalKubeInformers.Core().InternalVersion().Services())
+		services, err := dns.NewCachedServiceAccessor(kubeInformers.Core().V1().Services())
 		if err != nil {
 			return nil, fmt.Errorf("could not start DNS: failed to add ClusterIP index: %v", err)
 		}
 
-		endpoints, err := dns.NewCachedEndpointsAccessor(internalKubeInformers.Core().InternalVersion().Endpoints())
+		endpoints, err := dns.NewCachedEndpointsAccessor(kubeInformers.Core().V1().Endpoints())
 		if err != nil {
 			return nil, fmt.Errorf("could not start DNS: failed to add HostnameIP index: %v", err)
 		}

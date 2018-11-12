@@ -24,11 +24,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -82,7 +82,7 @@ type OsdnNodeConfig struct {
 	KClient       kclientset.Interface
 	Recorder      record.EventRecorder
 
-	KubeInformers    kinternalinformers.SharedInformerFactory
+	KubeInformers    informers.SharedInformerFactory
 	NetworkInformers networkinformers.SharedInformerFactory
 
 	IPTablesSyncPeriod time.Duration
@@ -111,7 +111,7 @@ type OsdnNode struct {
 	egressPolicies     map[uint32][]networkapi.EgressNetworkPolicy
 	egressDNS          *common.EgressDNS
 
-	kubeInformers    kinternalinformers.SharedInformerFactory
+	KubeInformers    informers.SharedInformerFactory
 	networkInformers networkinformers.SharedInformerFactory
 
 	// Holds runtime endpoint shim to make SDN <-> runtime communication
@@ -178,7 +178,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		mtu:                c.MTU,
 		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
 		egressDNS:          common.NewEgressDNS(),
-		kubeInformers:      c.KubeInformers,
+		KubeInformers:      c.KubeInformers,
 		networkInformers:   c.NetworkInformers,
 		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
 		cniDirPath:         c.CNIConfDir,
@@ -465,7 +465,7 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	funcs := common.InformerFuncs(&kapi.Service{}, node.handleAddOrUpdateService, node.handleDeleteService)
-	node.kubeInformers.Core().InternalVersion().Services().Informer().AddEventHandler(funcs)
+	node.KubeInformers.Core().V1().Services().Informer().AddEventHandler(funcs)
 }
 
 func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventType watch.EventType) {

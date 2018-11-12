@@ -222,7 +222,7 @@ func BuildMasterConfig(
 	}
 
 	// ensure that the limit range informer will be started
-	config.LimitVerifier = openshiftapiserver.ImageLimitVerifier(config.InternalKubeInformers.Core().InternalVersion().LimitRanges())
+	config.LimitVerifier = openshiftapiserver.ImageLimitVerifier(config.ClientGoKubeInformers.Core().V1().LimitRanges())
 
 	return config, nil
 }

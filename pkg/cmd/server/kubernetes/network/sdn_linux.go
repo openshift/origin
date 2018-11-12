@@ -4,12 +4,12 @@ import (
 	"strings"
 
 	kclientv1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/informers"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
@@ -21,7 +21,7 @@ import (
 
 func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.Interface,
 	kubeClientset kclientset.Interface, kubeClient kinternalclientset.Interface,
-	internalKubeInformers kinternalinformers.SharedInformerFactory,
+	kubeInformers informers.SharedInformerFactory,
 	internalNetworkInformers networkinformers.SharedInformerFactory,
 	proxyconfig *kubeproxyconfig.KubeProxyConfiguration) (NodeInterface, ProxyInterface, error) {
 
@@ -63,7 +63,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		MTU:                options.NetworkConfig.MTU,
 		NetworkClient:      networkClient,
 		KClient:            kubeClient,
-		KubeInformers:      internalKubeInformers,
+		KubeInformers:      kubeInformers,
 		NetworkInformers:   internalNetworkInformers,
 		IPTablesSyncPeriod: proxyconfig.IPTables.SyncPeriod.Duration,
 		MasqueradeBit:      proxyconfig.IPTables.MasqueradeBit,

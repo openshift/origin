@@ -7,12 +7,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	corev1informers "k8s.io/client-go/informers/core/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 )
 
 // ServiceAccessor is the interface used by the ServiceResolver to access
@@ -35,7 +35,7 @@ var _ ServiceAccessor = &cachedServiceAccessor{}
 
 // NewCachedServiceAccessor returns a service accessor that can answer queries about services.
 // It uses a backing cache to make ClusterIP lookups efficient.
-func NewCachedServiceAccessor(serviceInformer kcoreinformers.ServiceInformer) (ServiceAccessor, error) {
+func NewCachedServiceAccessor(serviceInformer corev1informers.ServiceInformer) (ServiceAccessor, error) {
 	if _, found := serviceInformer.Informer().GetIndexer().GetIndexers()["namespace"]; !found {
 		err := serviceInformer.Informer().AddIndexers(cache.Indexers{
 			"namespace": cache.MetaNamespaceIndexFunc,
@@ -149,7 +149,7 @@ func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, param
 // endpoints.
 type EndpointsAccessor interface {
 	HasSynced() bool
-	kcorelisters.EndpointsLister
+	corev1listers.EndpointsLister
 	// EndpointsByHostnameIP retrieves the Endpoints object containing a hostname
 	// that resolves to IP. Only endpoint addresses with a hostname field will match.
 	// If this returns an error, the caller should indicate that this may be a
@@ -161,7 +161,7 @@ type EndpointsAccessor interface {
 // about service lookups efficiently.
 type cachedEndpointsAccessor struct {
 	store cache.Indexer
-	kcorelisters.EndpointsLister
+	corev1listers.EndpointsLister
 	hasSynced func() bool
 }
 
@@ -170,7 +170,7 @@ var _ EndpointsAccessor = &cachedEndpointsAccessor{}
 
 // NewCachedEndpointsAccessor returns a service accessor that can answer queries about services.
 // It uses a backing cache to make ClusterIP lookups efficient.
-func NewCachedEndpointsAccessor(endpointsInformer kcoreinformers.EndpointsInformer) (EndpointsAccessor, error) {
+func NewCachedEndpointsAccessor(endpointsInformer corev1informers.EndpointsInformer) (EndpointsAccessor, error) {
 	if _, found := endpointsInformer.Informer().GetIndexer().GetIndexers()["namespace"]; !found {
 		err := endpointsInformer.Informer().AddIndexers(cache.Indexers{
 			"namespace": cache.MetaNamespaceIndexFunc,
@@ -229,7 +229,7 @@ func indexEndpointsByAddressHostnameIP(obj interface{}) ([]string, error) {
 // SimpleEndpointsAccessor answers endpoint lookups but always returns an error for
 // EndpointsByHostnameIP.
 type SimpleEndpointsAccessor struct {
-	kcorelisters.EndpointsLister
+	corev1listers.EndpointsLister
 }
 
 // cachedEndpointsAccessor implements EndpointsAccessor

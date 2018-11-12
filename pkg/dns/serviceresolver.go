@@ -10,6 +10,7 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -404,7 +405,7 @@ func buildDNSName(labels ...string) string {
 }
 
 // getHostname returns true if the provided address has a hostname, or false otherwise.
-func getHostname(address *kapi.EndpointAddress) (string, bool) {
+func getHostname(address *corev1.EndpointAddress) (string, bool) {
 	if len(address.Hostname) > 0 {
 		return address.Hostname, true
 	}

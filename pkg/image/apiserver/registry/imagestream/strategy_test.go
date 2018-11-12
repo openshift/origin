@@ -409,7 +409,7 @@ func TestLimitVerifier(t *testing.T) {
 				imageapi.ResourceImageStreamImages: *resource.NewQuantity(maxImages, resource.DecimalSI),
 				imageapi.ResourceImageStreamTags:   *resource.NewQuantity(maxImageTags, resource.DecimalSI),
 			}
-			usage := limitrange.GetImageStreamUsage(is)
+			usage := limitrange.GetImageStreamUsageInternal(is)
 			if less, exceeded := kquota.LessThanOrEqual(usage, limit); !less {
 				return makeISForbiddenError(is.Name, exceeded)
 			}
