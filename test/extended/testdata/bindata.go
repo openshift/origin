@@ -66,6 +66,7 @@
 // test/extended/testdata/builds/test-cds-dockerbuild.json
 // test/extended/testdata/builds/test-cds-sourcebuild.json
 // test/extended/testdata/builds/test-context-build.json
+// test/extended/testdata/builds/test-docker-app/Dockerfile
 // test/extended/testdata/builds/test-docker-build-pullsecret.json
 // test/extended/testdata/builds/test-docker-build-quota-optimized.json
 // test/extended/testdata/builds/test-docker-build-quota.json
@@ -3267,6 +3268,24 @@ func testExtendedTestdataBuildsTestContextBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-context-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestDockerAppDockerfile = []byte(`FROM docker-registry.default.svc:5000/openshift/nodejs
+RUN touch /tmp/foo`)
+
+func testExtendedTestdataBuildsTestDockerAppDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestDockerAppDockerfile, nil
+}
+
+func testExtendedTestdataBuildsTestDockerAppDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestDockerAppDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-docker-app/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -34329,6 +34348,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-cds-dockerbuild.json": testExtendedTestdataBuildsTestCdsDockerbuildJson,
 	"test/extended/testdata/builds/test-cds-sourcebuild.json": testExtendedTestdataBuildsTestCdsSourcebuildJson,
 	"test/extended/testdata/builds/test-context-build.json": testExtendedTestdataBuildsTestContextBuildJson,
+	"test/extended/testdata/builds/test-docker-app/Dockerfile": testExtendedTestdataBuildsTestDockerAppDockerfile,
 	"test/extended/testdata/builds/test-docker-build-pullsecret.json": testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
 	"test/extended/testdata/builds/test-docker-build-quota-optimized.json": testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson,
 	"test/extended/testdata/builds/test-docker-build-quota.json": testExtendedTestdataBuildsTestDockerBuildQuotaJson,
@@ -34818,6 +34838,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-cds-dockerbuild.json": &bintree{testExtendedTestdataBuildsTestCdsDockerbuildJson, map[string]*bintree{}},
 					"test-cds-sourcebuild.json": &bintree{testExtendedTestdataBuildsTestCdsSourcebuildJson, map[string]*bintree{}},
 					"test-context-build.json": &bintree{testExtendedTestdataBuildsTestContextBuildJson, map[string]*bintree{}},
+					"test-docker-app": &bintree{nil, map[string]*bintree{
+						"Dockerfile": &bintree{testExtendedTestdataBuildsTestDockerAppDockerfile, map[string]*bintree{}},
+					}},
 					"test-docker-build-pullsecret.json": &bintree{testExtendedTestdataBuildsTestDockerBuildPullsecretJson, map[string]*bintree{}},
 					"test-docker-build-quota-optimized.json": &bintree{testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson, map[string]*bintree{}},
 					"test-docker-build-quota.json": &bintree{testExtendedTestdataBuildsTestDockerBuildQuotaJson, map[string]*bintree{}},
