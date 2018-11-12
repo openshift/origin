@@ -102,18 +102,21 @@ func applyOpenShiftConfigControllerArgs(controllerManagerOptions *options.KubeCo
 func applyFlags(args map[string][]string, flags apiserverflag.NamedFlagSets) []error {
 	var errs []error
 	for key, value := range args {
+		found := false
+		// since flags are now groupped into sets we need to check each and every
+		// single of them and complain only if we don't find the flag at all
 		for _, fs := range flags.FlagSets {
-			flag := fs.Lookup(key)
-			if flag == nil {
-				errs = append(errs, field.Invalid(field.NewPath("flag"), key, "is not a valid flag"))
-				continue
-			}
-			for _, s := range value {
-				if err := flag.Value.Set(s); err != nil {
-					errs = append(errs, field.Invalid(field.NewPath(key), s, fmt.Sprintf("could not be set: %v", err)))
-					break
+			if flag := fs.Lookup(key); flag != nil {
+				for _, s := range value {
+					if err := flag.Value.Set(s); err != nil {
+						errs = append(errs, field.Invalid(field.NewPath(key), s, fmt.Sprintf("could not be set: %v", err)))
+						break
+					}
 				}
 			}
+		}
+		if !found {
+			errs = append(errs, field.Invalid(field.NewPath("flag"), key, "is not a valid flag"))
 		}
 	}
 	return errs
