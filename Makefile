@@ -55,7 +55,7 @@ build-network:
 .PHONY: build-network
 
 build-extended-test:
-	hack/build-go.sh test/extended/extended.test
+	hack/build-go.sh cmd/openshift-tests
 .PHONY: build-extended-test
 
 build-integration-test: build-router-e2e-test
