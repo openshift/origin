@@ -20,21 +20,17 @@ os::cmd::expect_success_and_text "oc import-image --confirm --from=nginx:latest 
 os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "updated"
 # Image lookup works for pods
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=nginx:latest nginx"
-# TODO: the container image resolves to "nginx:latest", not the actual image ref. Why?
-#os::cmd::expect_success_and_text "oc get pod/nginx -o jsonpath='{.spec.containers[0].image}'" "nginx@sha256:"
+os::cmd::expect_success_and_text "oc get pod/nginx -o jsonpath='{.spec.containers[0].image}'" "nginx@sha256:"
 # Image lookup works for jobs
 os::cmd::expect_success          "oc run --generator=job/v1 --restart=Never --image=nginx:latest nginx"
-# TODO: the container image resolves to "nginx:latest", not the actual image ref. Why?
-#os::cmd::expect_success_and_text "oc get job/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
+os::cmd::expect_success_and_text "oc get job/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
 # Image lookup works for replica sets
 os::cmd::expect_success          "oc create deployment --image=nginx:latest nginx"
-# TODO: the container image resolves to "nginx:latest", not the actual image ref. Why?
-#os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"
+os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"
 # Image lookup works for replication controllers
 rc='{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"nginx"},"spec":{"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"nginx:latest"}]}}}}'
 os::cmd::expect_success          "echo '${rc}' | oc create -f -"
-# TODO: the container image resolves to "nginx:latest", not the actual image ref. Why?
-#os::cmd::expect_success_and_text "oc get rc/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
+os::cmd::expect_success_and_text "oc get rc/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
 
 # Verify swapping settings on image stream
 os::cmd::expect_success_and_text "oc set image-lookup is/nginx --v=1" "was not changed"
@@ -54,7 +50,6 @@ rc='{"kind":"Deployment","apiVersion":"apps/v1beta1","metadata":{"name":"alterna
 os::cmd::expect_success          "echo '${rc}' | oc set image-lookup --local -f - -o json | oc create -f -"
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=alternate:latest alternate"
 os::cmd::expect_success_and_text "oc get pod/alternate -o jsonpath='{.spec.containers[0].image}'" "alternate:latest"
-# TODO: the container image resolves to "nginx:latest", not the actual image ref. Why?
-#os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"
+os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"
 
 os::test::junit::declare_suite_end
