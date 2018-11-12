@@ -291,6 +291,8 @@ function localup::init_master() {
     LOG_DIR=${LOCALUP_CONFIG}/logs
     ROOT_CA_FILE=${CERT_DIR}/server-ca.crt
 
+    echo "Logging to ${LOG_DIR}..."
+
     kube::util::test_openssl_installed
     kube::util::ensure-cfssl
 
