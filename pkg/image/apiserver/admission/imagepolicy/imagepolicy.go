@@ -41,7 +41,37 @@ func Register(plugins *admission.Plugins) {
 			}
 			var config *imagepolicy.ImagePolicyConfig
 			if obj == nil {
-				config = &imagepolicy.ImagePolicyConfig{}
+				config = &imagepolicy.ImagePolicyConfig{
+					ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
+						{TargetResource: metav1.GroupResource{Resource: "pods"}, LocalNames: true},
+						{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, LocalNames: true},
+						{TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}, LocalNames: true},
+						{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},
+						{TargetResource: metav1.GroupResource{Resource: "replicationcontrollers"}, LocalNames: true},
+						{TargetResource: metav1.GroupResource{Group: "apps", Resource: "deployments"}, LocalNames: true},
+						{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "deployments"}, LocalNames: true},
+						{TargetResource: metav1.GroupResource{Group: "apps", Resource: "statefulsets"}, LocalNames: true},
+						{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "daemonsets"}, LocalNames: true},
+					},
+				}
+				// default the resolution policy to the global default
+				for i := range config.ResolutionRules {
+					if len(config.ResolutionRules[i].Policy) != 0 {
+						continue
+					}
+					config.ResolutionRules[i].Policy = imagepolicy.DoNotAttempt
+					for _, rule := range config.ExecutionRules {
+						if executionRuleCoversResource(rule, config.ResolutionRules[i].TargetResource) {
+							config.ResolutionRules[i].Policy = config.ResolveImages
+							break
+						}
+					}
+				}
+				for i := range config.ExecutionRules {
+					if len(config.ExecutionRules[i].OnResources) == 0 {
+						config.ExecutionRules[i].OnResources = []schema.GroupResource{{Resource: "pods", Group: kapi.GroupName}}
+					}
+				}
 			} else {
 				var ok bool
 				config, ok = obj.(*imagepolicy.ImagePolicyConfig)
@@ -553,4 +583,13 @@ func (config resolutionConfig) RewriteImagePullSpec(attr *rules.ImagePolicyAttri
 // resolutionRuleCoversResource implements wildcard checking on Resource names
 func resolutionRuleCoversResource(rule metav1.GroupResource, gr schema.GroupResource) bool {
 	return rule.Group == gr.Group && (rule.Resource == gr.Resource || rule.Resource == "*")
+}
+
+func executionRuleCoversResource(rule imagepolicy.ImageExecutionPolicyRule, gr metav1.GroupResource) bool {
+	for _, target := range rule.OnResources {
+		if target.Group == gr.Group && (target.Resource == gr.Resource || target.Resource == "*") {
+			return true
+		}
+	}
+	return false
 }
