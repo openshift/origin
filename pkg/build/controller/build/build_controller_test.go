@@ -1050,10 +1050,24 @@ func newFakeBuildController(buildClient buildinternalclientset.Interface, imageC
 		kubeExternalClient = fakeKubeExternalClientSet()
 	}
 	if kubeInternalClient == nil {
-		builderSA := kapi.ServiceAccount{}
+		builderSA := &kapi.ServiceAccount{}
 		builderSA.Name = "builder"
 		builderSA.Namespace = "namespace"
-		kubeInternalClient = fakeKubeInternalClientSet(&builderSA)
+		builderSA.Secrets = []kapi.ObjectReference{
+			{
+				Name: "secret",
+			},
+		}
+
+		secret := &kapi.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret",
+				Namespace: "namespace",
+			},
+			Type: kapi.SecretTypeDockerConfigJson,
+		}
+
+		kubeInternalClient = fakeKubeInternalClientSet(builderSA, secret)
 	}
 
 	kubeExternalInformers := fakeKubeExternalInformers(kubeExternalClient)

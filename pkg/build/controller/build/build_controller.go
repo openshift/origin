@@ -516,12 +516,17 @@ func (bc *BuildController) resolveImageSecretAsReference(build *buildapi.Build, 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", build.Namespace, serviceAccount, err)
 	}
-	secret := buildutil.FindDockerSecretAsReference(builderSecrets, imagename)
+	var secret *kapi.LocalObjectReference
+	if len(imagename) != 0 {
+		secret = buildutil.FindDockerSecretAsReference(builderSecrets, imagename)
+	}
 	if secret == nil {
+		glog.V(4).Infof("build %s is referencing an unknown image, will attempt to use the default secret for the service account", build.Name)
 		dockerSecretExists := false
 		for _, builderSecret := range builderSecrets {
 			if builderSecret.Type == kapi.SecretTypeDockercfg || builderSecret.Type == kapi.SecretTypeDockerConfigJson {
 				dockerSecretExists = true
+				secret = &kapi.LocalObjectReference{Name: builderSecret.Name}
 				break
 			}
 		}
@@ -530,7 +535,7 @@ func (bc *BuildController) resolveImageSecretAsReference(build *buildapi.Build, 
 		if !dockerSecretExists {
 			return nil, fmt.Errorf("No docker secrets associated with build service account %s", serviceAccount)
 		}
-		glog.V(4).Infof("No secrets found for pushing or pulling image named %s for build %s/%s", imagename, build.Namespace, build.Name)
+		glog.V(4).Infof("No secrets found for pushing or pulling image named %s for build, using default: %s %s/%s", imagename, build.Namespace, build.Name, secret.Name)
 	}
 	return secret, nil
 }
@@ -822,9 +827,11 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 		pullSecret = build.Spec.Strategy.CustomStrategy.PullSecret
 		imageName = build.Spec.Strategy.CustomStrategy.From.Name
 	}
-	// Only look up a pull secret if the user hasn't explicitly provided one and
-	// we have a base/builder image (Docker builds may not have one).
-	if pullSecret == nil && len(imageName) != 0 {
+
+	// Only look up a pull secret if the user hasn't explicitly provided one
+	// if we don't know what image they are referencing, we'll end up using the
+	// docker secret associated w/ the build's service account.
+	if pullSecret == nil {
 		var err error
 		pullSecret, err = bc.resolveImageSecretAsReference(build, imageName)
 		if err != nil {
