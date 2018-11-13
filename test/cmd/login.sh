@@ -84,7 +84,7 @@ os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-au
 os::cmd::expect_success_and_text 'oc config view' "current-context.+/${API_HOST}:${API_PORT}/new-and-unknown-user"
 # denies access after logging out
 os::cmd::expect_success 'oc logout'
-os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list pods'
+os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list resource "pods" in API group ""'
 
 # make sure we report an error if the config file we pass is not writable
 # Does not work inside of a container, determine why and reenable
@@ -99,7 +99,7 @@ os::cmd::expect_success_and_text "oc login --token=$(oc sa get-token testservice
 # attempt to logout successfully
 os::cmd::expect_success_and_text "oc logout" "Logged \"system:serviceaccount:project-foo:testserviceaccount\" out"
 # verify that the token is no longer present in our local config
-os::cmd::expect_failure_and_text "oc whoami" "User \"system:anonymous\" cannot get users"
+os::cmd::expect_failure_and_text "oc whoami" 'User "system:anonymous" cannot get resource "users" in API group "user.openshift.io"'
 
 # log in and set project to use from now on
 os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
