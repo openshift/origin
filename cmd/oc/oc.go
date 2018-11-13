@@ -17,7 +17,6 @@ import (
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/network"
 	"github.com/openshift/api/oauth"
-	"github.com/openshift/api/operator"
 	"github.com/openshift/api/project"
 	"github.com/openshift/api/quota"
 	"github.com/openshift/api/route"
@@ -51,7 +50,6 @@ func main() {
 	utilruntime.Must(image.Install(scheme.Scheme))
 	utilruntime.Must(network.Install(scheme.Scheme))
 	utilruntime.Must(oauth.Install(scheme.Scheme))
-	utilruntime.Must(operator.Install(scheme.Scheme))
 	utilruntime.Must(project.Install(scheme.Scheme))
 	utilruntime.Must(quota.Install(scheme.Scheme))
 	utilruntime.Must(route.Install(scheme.Scheme))
