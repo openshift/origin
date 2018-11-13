@@ -31,8 +31,8 @@ os::cmd::expect_success_and_text 'oc policy can-i create pv' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i create storageclass' 'yes'
 
 # Test failure to change policy on users for storage-admin
-os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin storage-adm' 'cannot list rolebindings'
-os::cmd::expect_failure_and_text 'oc policy remove-user screeley' 'cannot list rolebindings'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin storage-adm' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
+os::cmd::expect_failure_and_text 'oc policy remove-user screeley' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
 os::cmd::expect_success 'oc logout'
 
 # Test that scoped storage-admin now an admin in project foo
