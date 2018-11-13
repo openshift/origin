@@ -49,8 +49,6 @@ os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 os::util::ensure_tmpfs "${ETCD_DATA_DIR}"
 
-echo "Logging to ${LOG_DIR}..."
-
 os::log::system::start
 
 # Prevent user environment from colliding with the test setup
