@@ -11,7 +11,13 @@ rules:
   resources:
   - '*'
   verbs:
-  - '*'
+  - create
+  - update
+  - patch
+  - delete
+  - get
+  - list
+  - watch
 - apiGroups: null
   attributeRestrictions: null
   nonResourceURLs:

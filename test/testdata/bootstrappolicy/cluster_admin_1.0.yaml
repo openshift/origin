@@ -5,11 +5,19 @@ metadata:
   name: alternate-cluster-admin
   resourceVersion: "RESOURCE_VERSION"
 rules:
-- attributeRestrictions: null
+- apiGroups:
+  - '*'
+  attributeRestrictions: null
   resources:
   - '*'
   verbs:
-  - '*'
+  - create
+  - update
+  - patch
+  - delete
+  - get
+  - list
+  - watch
 - attributeRestrictions: null
   nonResourceURLs:
   - '*'
