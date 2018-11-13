@@ -40,7 +40,7 @@ os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 os::cmd::expect_success 'oc delete project policy-login'
 
 # validate --serviceaccount values
-os::cmd::expect_success_and_text 'oc policy add-role-to-user admin -z default' 'role "admin" added\: "default"'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user admin -z default' 'clusterrole.rbac.authorization.k8s.io/admin added: "default"'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin -z system:serviceaccount:test:default' 'should only be used with short\-form serviceaccount names'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin -z :invalid' '"\:invalid" is not a valid serviceaccount name'
 
@@ -49,20 +49,20 @@ os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify 
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user -z NamespaceWithoutRole' 'you must specify a role'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user view' 'you must specify at least one user or service account'
 
-os::cmd::expect_success_and_text 'oc policy add-role-to-group cluster-admin --rolebinding-name cluster-admin system:unauthenticated' 'role "cluster-admin" added: "system:unauthenticated"'
-os::cmd::expect_success_and_text 'oc policy add-role-to-user --rolebinding-name cluster-admin cluster-admin system:no-user' 'role "cluster-admin" added: "system:no-user"'
+os::cmd::expect_success_and_text 'oc policy add-role-to-group cluster-admin --rolebinding-name cluster-admin system:unauthenticated' 'clusterrole.rbac.authorization.k8s.io/cluster-admin added: "system:unauthenticated"'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user --rolebinding-name cluster-admin cluster-admin system:no-user' 'clusterrole.rbac.authorization.k8s.io/cluster-admin added: "system:no-user"'
 os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'system:no-user'
 
-os::cmd::expect_success_and_text 'oc policy add-role-to-user --rolebinding-name cluster-admin cluster-admin -z=one,two --serviceaccount=three,four' 'role "cluster-admin" added: \["one" "two" "three" "four"\]'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user --rolebinding-name cluster-admin cluster-admin -z=one,two --serviceaccount=three,four' 'clusterrole.rbac.authorization.k8s.io/cluster-admin added: \["one" "two" "three" "four"\]'
 os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'one'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'four'
 
-os::cmd::expect_success_and_text 'oc policy remove-role-from-group --rolebinding-name cluster-admin cluster-admin system:unauthenticated' 'role "cluster-admin" removed: "system:unauthenticated"'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-group --rolebinding-name cluster-admin cluster-admin system:unauthenticated' 'clusterrole.rbac.authorization.k8s.io/cluster-admin removed: "system:unauthenticated"'
 
-os::cmd::expect_success_and_text 'oc policy remove-role-from-user --rolebinding-name cluster-admin cluster-admin system:no-user' 'role "cluster-admin" removed: "system:no-user"'
-os::cmd::expect_success_and_text 'oc policy remove-role-from-user --rolebinding-name cluster-admin cluster-admin -z=one,two --serviceaccount=three,four' 'role "cluster-admin" removed: \["one" "two" "three" "four"\]'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-user --rolebinding-name cluster-admin cluster-admin system:no-user' 'clusterrole.rbac.authorization.k8s.io/cluster-admin removed: "system:no-user"'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-user --rolebinding-name cluster-admin cluster-admin -z=one,two --serviceaccount=three,four' 'clusterrole.rbac.authorization.k8s.io/cluster-admin removed: \["one" "two" "three" "four"\]'
 os::cmd::expect_failure_and_text 'oc get rolebinding/cluster-admin --no-headers' 'NotFound'
 
 os::cmd::expect_success 'oc policy remove-group system:unauthenticated'
@@ -86,7 +86,7 @@ os::cmd::expect_success 'oc delete pod/test-build-pod-issue --cascade=false'
 os::cmd::try_until_failure 'oc get pods pod/test-build-pod-issue'
 
 
-os::cmd::expect_success_and_text 'oc policy add-role-to-user admin namespaced-user' 'role "admin" added: "namespaced-user"'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user admin namespaced-user' 'clusterrole.rbac.authorization.k8s.io/admin added: "namespaced-user"'
 # Ensure the user has create permissions on builds, but that build strategy permissions are granted through the authenticated users group
 os::cmd::try_until_text              'oc adm policy who-can create builds' 'namespaced-user'
 os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/docker' 'namespaced-user'
@@ -97,9 +97,9 @@ os::cmd::expect_success_and_text     'oc adm policy who-can create builds/docker
 os::cmd::expect_success_and_text     'oc adm policy who-can create builds/source' 'system:authenticated'
 os::cmd::expect_success_and_text     'oc adm policy who-can create builds/jenkinspipeline' 'system:authenticated'
 # if this method for removing access to docker/custom/source/jenkinspipeline builds changes, docs need to be updated as well
-os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated' 'cluster role "system:build-strategy-docker" removed: "system:authenticated"'
-os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated' 'cluster role "system:build-strategy-source" removed: "system:authenticated"'
-os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated' 'cluster role "system:build-strategy-jenkinspipeline" removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated' 'clusterrole.rbac.authorization.k8s.io/system:build-strategy-docker removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated' 'clusterrole.rbac.authorization.k8s.io/system:build-strategy-source removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated' 'clusterrole.rbac.authorization.k8s.io/system:build-strategy-jenkinspipeline removed: "system:authenticated"'
 
 # ensure build strategy permissions no longer exist
 os::cmd::try_until_failure           'oc adm policy who-can create builds/source | grep system:authenticated'
@@ -111,8 +111,8 @@ os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/jenkin
 os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin namespaced-user -o yaml' 'name: admin'
 os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user -o yaml' 'name: namespaced-user'
 
-os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin namespaced-user --dry-run' 'role "admin" removed: "namespaced\-user" \(dry run\)'
-os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user --dry-run' 'role "admin" added: "namespaced\-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin namespaced-user --dry-run' 'clusterrole.rbac.authorization.k8s.io/admin removed: "namespaced-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user --dry-run' 'clusterrole.rbac.authorization.k8s.io/admin added: "namespaced-user" \(dry run\)'
 
 # ensure that running an `oc adm policy` sub-command with --output does not actually perform any changes
 os::cmd::expect_success_and_text 'oc adm policy who-can create pods -o yaml' '\- namespaced\-user'
@@ -132,9 +132,9 @@ os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup -o yaml' 'name: testgroup'
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user -o yaml' 'name: namespaced\-user'
 
-os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup --dry-run' 'role "view" added: "testgroup" \(dry run\)'
-os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup --dry-run' 'cluster role "cluster\-reader" added: "testgroup" \(dry run\)'
-os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user --dry-run' 'cluster role "cluster\-reader" added: "namespaced\-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup --dry-run' 'rolebinding.rbac.authorization.k8s.io/view added: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup --dry-run' 'clusterrolebinding.rbac.authorization.k8s.io/cluster-reader added: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user --dry-run' 'clusterrolebinding.rbac.authorization.k8s.io/cluster-reader added: "namespaced-user" \(dry run\)'
 
 os::cmd::expect_success 'oc adm policy add-role-to-group view testgroup'
 os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-reader testgroup'
@@ -148,9 +148,9 @@ os::cmd::expect_success_and_not_text 'oc adm policy remove-role-from-group view 
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup -o yaml' 'name: cluster\-readers'
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user -o yaml' 'name: cluster\-reader'
 
-os::cmd::expect_success_and_text 'oc adm policy remove-role-from-group view testgroup --dry-run' 'role "view" removed: "testgroup" \(dry run\)'
-os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup --dry-run' 'cluster role "cluster\-reader" removed: "testgroup" \(dry run\)'
-os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user --dry-run' 'cluster role "cluster\-reader" removed: "namespaced\-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-group view testgroup --dry-run' 'clusterrole.rbac.authorization.k8s.io/view removed: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup --dry-run' 'clusterrole.rbac.authorization.k8s.io/cluster-reader removed: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user --dry-run' 'clusterrole.rbac.authorization.k8s.io/cluster-reader removed: "namespaced-user" \(dry run\)'
 
 os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user -o yaml' "namespace: ${project}"
 os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user --dry-run' "Removing admin from users \[namespaced\-user\] in project ${project}"
@@ -169,7 +169,7 @@ os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-group anyuid tes
 
 # ensure system:authenticated users can not create custom builds by default, but can if explicitly granted access
 os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
-os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated' 'cluster role "system:build-strategy-custom" added: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated' 'clusterrole.rbac.authorization.k8s.io/system:build-strategy-custom added: "system:authenticated"'
 os::cmd::expect_success_and_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
 
 os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
@@ -201,22 +201,22 @@ os::cmd::expect_failure_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/tes
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z foo,bar -f ${OS_ROOT}/test/testdata/job.yaml'  'error: only one Service Account is supported'
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z system:serviceaccount:test:default,system:serviceaccount:test:builder -f ${OS_ROOT}/test/testdata/job.yaml'  'error: only one Service Account is supported'
 os::cmd::expect_failure_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/redis-slave.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.allowedBy.name}' 'anyuid'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/redis-slave.yaml -o=jsonpath={.status.allowedBy.name}' 'anyuid'
 # In the past system:admin only had access to a few SCCs, so the following command resulted in the privileged SCC being used
 # Since SCCs are now authorized via RBAC, and system:admin can perform all RBAC actions == system:admin can access all SCCs now
 # Thus the following command now results in the use of the hostnetwork SCC which is the most restrictive SCC that still allows the pod to run
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.AllowedBy.name}' 'hostnetwork'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.allowedBy.name}' 'hostnetwork'
 # Make sure that the legacy ungroupified objects continue to work by directly doing a create
 os::cmd::expect_success_and_text 'oc create -f ${OS_ROOT}/test/testdata/legacy_ungroupified_psp_review.yaml -o=jsonpath={.status.allowedBy.name}' 'restricted'
 os::cmd::expect_success "oc login -u bob -p bobpassword"
 os::cmd::expect_success_and_text 'oc whoami' 'bob'
 os::cmd::expect_success 'oc new-project policy-second'
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.AllowedBy.name}' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.allowedBy.name}' 'restricted'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   restricted'
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/two_jobs.yaml -o=jsonpath={.status.AllowedBy.name}' 'restrictedrestricted'
-os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml -ojsonpath={.status.allowedServiceAccounts}' '\[\]'
-os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml -ojsonpath={.status.allowedServiceAccounts}' '\[\]'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/two_jobs.yaml -o=jsonpath={.status.allowedBy.name}' 'restrictedrestricted'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml -ojsonpath={.status.allowedServiceAccounts}' '<nil>'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml -ojsonpath={.status.allowedServiceAccounts}' '<nil>'
 os::cmd::expect_failure 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/external-service.yaml'
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml -n policy-second -o=jsonpath={.status.allowedBy.name}' 'restricted'
@@ -234,7 +234,7 @@ os::cmd::expect_success_and_text 'oc policy scc-review -z default  -f ${OS_ROOT}
 os::cmd::expect_success_and_text 'oc policy scc-review -z system:serviceaccount:policy-second:default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml --no-headers=true' 'DeploymentConfig/deployment-simple   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml --no-headers=true' ''
-os::cmd::expect_failure_and_text 'oc policy scc-review -z default -f ${OS_ROOT}/test/testdata/job.yaml --namespace=no-exist' 'error: unable to compute Pod Security Policy Review for "hello": podsecuritypolicyreviews.security.openshift.io is forbidden: User "bob" cannot create podsecuritypolicyreviews.security.openshift.io in the namespace "no-exist"'
+os::cmd::expect_failure_and_text 'oc policy scc-review -z default -f ${OS_ROOT}/test/testdata/job.yaml --namespace=no-exist' 'error: unable to compute Pod Security Policy Review for "hello": podsecuritypolicyreviews.security.openshift.io is forbidden: User "bob" cannot create resource "podsecuritypolicyreviews" in API group "security.openshift.io" in the namespace "no-exist"'
 os::cmd::expect_failure_and_text 'oc policy scc-review -z default -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
 os::cmd::expect_failure_and_text 'oc policy scc-review -z no-exist -f ${OS_ROOT}/test/testdata/job.yaml' 'error: unable to compute Pod Security Policy Review for "hello": unable to retrieve ServiceAccount no-exist: serviceaccount "no-exist" not found'
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
@@ -277,12 +277,12 @@ os::cmd::expect_failure_and_text "oc replace --kubeconfig=${new_kubeconfig} clus
 # This test validates cluster level policy for serviceaccounts
 # ensure service account cannot list pods at the namespace level
 os::cmd::expect_success_and_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
-os::cmd::expect_success_and_text "oc adm policy add-role-to-user view -z=testserviceaccount" "role \"view\" added: \"testserviceaccount\""
+os::cmd::expect_success_and_text "oc adm policy add-role-to-user view -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/view added: "testserviceaccount"'
 # ensure service account can list pods at the namespace level after "view" role is added, but not at the cluster level
 os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
 # ensure service account can list pods at the cluster level after "cluster-reader" cluster role is added
-os::cmd::expect_success_and_text "oc adm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" "cluster role \"cluster-reader\" added: \"testserviceaccount\""
+os::cmd::expect_success_and_text "oc adm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/cluster-reader added: "testserviceaccount"'
 os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 
 echo "policy: ok"

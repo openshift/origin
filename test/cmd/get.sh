@@ -17,7 +17,7 @@ os::cmd::expect_success_and_text 'oc create service loadbalancer testsvc1  --tcp
 os::cmd::expect_success_and_text 'oc get all' "service/testsvc1"
 # ensure that getting mixed resource types still returns prefixed resources, if there are at most resources of one type
 os::cmd::expect_success_and_text 'oc get svc,pod' "service/testsvc1"
-os::cmd::expect_failure_and_text 'oc get svc,pod testsvc1' "service/testsvc1"
+os::cmd::expect_failure_and_text 'oc get svc,pod testsvc1' "testsvc1"
 # create second resource type and ensure that prefixed resource names are returned for both
 os::cmd::expect_success_and_text 'oc create imagestream testimg1' "imagestream.image.openshift.io/testimg1 created"
 os::cmd::expect_success_and_text 'oc get svc,is' "service/testsvc1"
