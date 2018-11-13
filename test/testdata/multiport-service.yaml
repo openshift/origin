@@ -11,7 +11,7 @@ items:
     resourceVersion: "259"
     uid: 024d82eb-7193-11e5-b84d-080027c5bfa9
   spec:
-    clusterIP: 10.3.182.32
+    clusterIP: 172.30.182.32
     ports:
     - name: web
       port: 5432

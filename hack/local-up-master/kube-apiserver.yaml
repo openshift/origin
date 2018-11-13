@@ -61,7 +61,7 @@ oauthConfig:
 serviceAccountPublicKeyFiles:
 - service-account
 servicesNodePortRange: 30000-32767
-servicesSubnet: 10.3.0.0/16 # ServiceCIDR
+servicesSubnet: 172.30.0.0/16 # ServiceCIDR
 servingInfo:
   bindAddress: 0.0.0.0:8443
   bindNetwork: tcp4
