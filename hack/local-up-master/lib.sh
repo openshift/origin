@@ -26,7 +26,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/etcd.sh"
 set -e
 
 function clusterup::cleanup() {
-  echo "Cleaning up..."
+  os::log::debug "Cleaning up..."
 
   set +e
 
@@ -189,7 +189,7 @@ function localup::start_etcd() {
         mkdir -p ${LOCALUP_CONFIG}/etcd
         localup::generate_etcd_certs
     fi
-    echo "Starting etcd"
+    os::log::debug "Starting etcd"
     ETCD_LOGFILE=${LOG_DIR}/etcd.log
     kube::etcd::start
 }
@@ -209,9 +209,9 @@ function localup::start_kubeapiserver() {
     KUBE_APISERVER_PID=$!
 
     # Wait for kube-apiserver to come up before launching the rest of the components.
-    echo "Waiting for kube-apiserver to come up"
+    os::log::debug "Waiting for kube-apiserver to come up"
     kube::util::wait_for_url "https://${API_HOST_IP}:${API_SECURE_PORT}/healthz" "kube-apiserver: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
-        || { echo "check kube-apiserver logs: ${KUBE_APISERVER_LOG}" ; exit 1 ; }
+        || { os::log::error "check kube-apiserver logs: ${KUBE_APISERVER_LOG}" ; exit 1 ; }
 
     # Create kubeconfigs for all components, using client certs
     kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${CERT_DIR}" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" admin
@@ -235,9 +235,9 @@ function localup::start_kubecontrollermanager() {
       --leader-elect=false >"${KUBE_CONTROLLER_MANAGER_LOG}" 2>&1 &
     KUBE_CONTROLLER_MANAGER_PID=$!
 
-    echo "Waiting for kube-controller-manager to come up"
+    os::log::debug "Waiting for kube-controller-manager to come up"
     kube::util::wait_for_url "http://localhost:10252/healthz" "kube-controller-manager: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
-        || { echo "check kube-controller-manager logs: ${KUBE_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
+        || { os::log::error "check kube-controller-manager logs: ${KUBE_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
 }
 
 function localup::start_openshiftapiserver() {
@@ -255,9 +255,9 @@ function localup::start_openshiftapiserver() {
     OPENSHIFT_APISERVER_PID=$!
 
     # Wait for openshift-apiserver to come up before launching the rest of the components.
-    echo "Waiting for openshift-apiserver to come up"
+    os::log::debug "Waiting for openshift-apiserver to come up"
     kube::util::wait_for_url "https://${API_HOST_IP}:8444/healthz" "openshift-apiserver: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
-        || { echo "check kube-apiserver logs: ${OPENSHIFT_APISERVER_LOG}" ; exit 1 ; }
+        || { os::log::error "check kube-apiserver logs: ${OPENSHIFT_APISERVER_LOG}" ; exit 1 ; }
 
     NON_LOOPBACK_IPV4=$(ip -o -4 addr show up primary scope global | awk '{print $4}' | cut -f1 -d'/' | head -n1)
     for filename in ${OS_ROOT}/hack/local-up-master/openshift-apiserver-manifests/*.yaml; do
@@ -277,9 +277,9 @@ function localup::start_openshiftcontrollermanager() {
       --config=${LOCALUP_CONFIG}/openshift-controller-manager/openshift-controller-manager.yaml >"${OPENSHIFT_CONTROLLER_MANAGER_LOG}" 2>&1 &
     OPENSHIFT_CONTROLLER_MANAGER_PID=$!
 
-    echo "Waiting for openshift-controller-manager to come up"
+    os::log::debug "Waiting for openshift-controller-manager to come up"
     kube::util::wait_for_url "https://localhost:8445/healthz" "openshift-controller-manager: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
-        || { echo "check openshift-controller-manager logs: ${OPENSHIFT_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
+        || { os::log::error "check openshift-controller-manager logs: ${OPENSHIFT_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
 }
 
 function localup::init_master() {
@@ -291,7 +291,14 @@ function localup::init_master() {
     LOG_DIR=${LOCALUP_CONFIG}/logs
     ROOT_CA_FILE=${CERT_DIR}/server-ca.crt
 
-    echo "Logging to ${LOG_DIR}..."
+    # ensure necessary ports are free
+    ! ${USE_SUDO:+sudo} fuser -s 2379/tcp || { os::log::error "port 2379 already in use"; exit 1 ; }
+    ! ${USE_SUDO:+sudo} fuser -s 8443/tcp || { os::log::error "port 8443 already in use"; exit 1 ; }
+    ! ${USE_SUDO:+sudo} fuser -s 8444/tcp || { os::log::error "port 8444 already in use"; exit 1 ; }
+    ! ${USE_SUDO:+sudo} fuser -s 8445/tcp || { os::log::error "port 8445 already in use"; exit 1 ; }
+    ! ${USE_SUDO:+sudo} fuser -s 10252/tcp || { os::log::error "port 10252 already in use"; exit 1 ; }
+
+    os::log::debug "Logging to ${LOG_DIR}..."
 
     kube::util::test_openssl_installed
     kube::util::ensure-cfssl
@@ -308,5 +315,5 @@ function localup::init_master() {
     ${USE_SUDO:+sudo} chown -R "$( id -u )" "${LOCALUP_CONFIG}"
     ${USE_SUDO:+sudo} chmod a+rw ${LOCALUP_CONFIG}/admin.kubeconfig
 
-    echo "Created config directory in ${LOCALUP_CONFIG}"
+    os::log::debug "Created config directory in ${LOCALUP_CONFIG}"
 }
