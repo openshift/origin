@@ -253,13 +253,6 @@ new_kubeconfig="${workingdir}/tempconfig"
 os::cmd::expect_success "oc config view --raw > $new_kubeconfig"
 os::cmd::expect_success "oc login -u alternate-cluster-admin-user -p anything --kubeconfig=${new_kubeconfig}"
 
-# alternate-cluster-admin should default to having star rights, so he should be able to update his role to that
-os::cmd::try_until_text "oc policy who-can update clusterrroles" "alternate-cluster-admin-user"
-resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
-cp ${OS_ROOT}/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
-os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
-os::cmd::expect_success "oc replace --kubeconfig=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml"
-
 # alternate-cluster-admin can restrict himself to less groups (no star)
 os::cmd::try_until_text "oc policy who-can update clusterrroles" "alternate-cluster-admin-user"
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
@@ -272,7 +265,7 @@ os::cmd::try_until_failure "oc policy who-can update hpa.autoscaling | grep -q a
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
 cp ${OS_ROOT}/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
-os::cmd::expect_failure_and_text "oc replace --kubeconfig=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "attempt to grant extra privileges"
+os::cmd::expect_failure_and_text "oc replace --kubeconfig=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "attempting to grant RBAC permissions not currently held"
 
 # This test validates cluster level policy for serviceaccounts
 # ensure service account cannot list pods at the namespace level
