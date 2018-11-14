@@ -1,5 +1,5 @@
 hash: f2456ad942294612c1b98b764126de079fcaf3915fdc91653f94d73e66baaae4
-updated: 2018-11-05T13:31:13.552981925-05:00
+updated: 2018-11-10T16:03:45.102647622-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -742,7 +742,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/onsi/ginkgo
-  version: 6e93088a6ab736ec6a12d10ef99962f8d9e435ee
+  version: 2adc71ecca6a3b0d54214b3c1ea1c2cfc11e970a
   repo: https://github.com/openshift/onsi-ginkgo.git
   subpackages:
   - config
@@ -815,7 +815,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 22c4ad19c5f2de1ffe266456e0a31e8fd1069f44
+  version: c3b47bfe89cdc8f9eeba184e9ab130518893e471
   subpackages:
   - apps
   - apps/v1
@@ -860,7 +860,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 8641daf5752d24858c43f5f28feb2abc0afbfb2c
+  version: 94890c75c8081c1f818f137be55d0720758c4638
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -1607,7 +1607,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 427190a5c8fb757089de86d5081f2e058408d217
+  version: b28cdde46f9c296b8ecde9c0bed0d215b6cda59d
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1849,7 +1849,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: b39448a71a2733b79ea5458aa28a823700f82e44
+  version: 22b8c511baaf712194dee3eb9c6d8e96d282d3a5
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2649,6 +2649,9 @@ imports:
   - test/e2e/storage/vsphere
   - test/images/net/common
   - test/images/net/nat
+  - test/integration
+  - test/integration/etcd
+  - test/integration/framework
   - test/utils
   - test/utils/image
   - third_party/forked/golang/expansion
@@ -2674,7 +2677,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 7f1db76f88256f6e74acfc5253bb279b3eb15b91
+  version: cb8e07308edfc551f1b83405c19ede45e6008a4d
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1

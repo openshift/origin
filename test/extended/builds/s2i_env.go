@@ -2,6 +2,7 @@ package builds
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -49,7 +50,7 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 		})
 
 		g.Describe("Building from a template", func() {
-			g.It(fmt.Sprintf("should create a image from %q template and run it in a pod", stiEnvBuildFixture), func() {
+			g.It(fmt.Sprintf("should create a image from %q template and run it in a pod", filepath.Base(stiEnvBuildFixture)), func() {
 
 				g.By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 				err := oc.Run("create").Args("-f", imageStreamFixture).Execute()

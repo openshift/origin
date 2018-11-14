@@ -7,7 +7,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-	"testing"
 
 	"github.com/golang/glog"
 	"github.com/onsi/ginkgo"
@@ -46,12 +45,21 @@ var TestContext *e2e.TestContextType = &e2e.TestContext
 // KUBECONFIG - Path to kubeconfig containing embedded authinfo
 // TEST_REPORT_DIR - If set, JUnit output will be written to this directory for each test
 // TEST_REPORT_FILE_NAME - If set, will determine the name of the file that JUnit output is written to
+func Init() {
+	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
+	e2e.ViperizeFlags()
+	InitTest()
+}
+
+func InitStandardFlags() {
+	e2e.RegisterCommonFlags()
+	e2e.RegisterClusterFlags()
+	e2e.RegisterStorageFlags()
+}
+
 func InitTest() {
 	// interpret synthetic input in `--ginkgo.focus` and/or `--ginkgo.skip`
 	ginkgo.BeforeEach(checkSyntheticInput)
-
-	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
-	e2e.ViperizeFlags()
 
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
@@ -82,10 +90,10 @@ func InitTest() {
 	// Ensure that Kube tests run privileged (like they do upstream)
 	TestContext.CreateTestingNS = createTestingNS
 
-	glog.Infof("Extended test version %s", version.Get().String())
+	glog.V(2).Infof("Extended test version %s", version.Get().String())
 }
 
-func ExecuteTest(t *testing.T, suite string) {
+func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 	var r []ginkgo.Reporter
 
 	if dir := os.Getenv("TEST_REPORT_DIR"); len(dir) > 0 {
@@ -109,6 +117,17 @@ func ExecuteTest(t *testing.T, suite string) {
 		r = append(r, reporters.NewJUnitReporter(path.Join(TestContext.ReportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
 
+	AnnotateTestSuite()
+
+	if quiet {
+		r = append(r, NewSimpleReporter())
+		ginkgo.RunSpecsWithCustomReporters(t, suite, r)
+	} else {
+		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
+	}
+}
+
+func AnnotateTestSuite() {
 	matches := make(map[string]*regexp.Regexp)
 	for label, items := range testMaps {
 		matches[label] = regexp.MustCompile(strings.Join(items, `|`))
@@ -154,13 +173,6 @@ func ExecuteTest(t *testing.T, suite string) {
 		}
 		node.SetText(node.Text() + labels)
 	})
-
-	if quiet {
-		r = append(r, NewSimpleReporter())
-		ginkgo.RunSpecsWithCustomReporters(t, suite, r)
-	} else {
-		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
-	}
 }
 
 // TODO: Use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228 to implement this.
@@ -369,6 +381,12 @@ var (
 			`should allow starting 95 pods per node`,
 
 			`Should be able to support the 1.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
+		},
+		// tests that will pass in 4.0
+		// TODO: this will be removed once 4.0 passes all conformance tests
+		"[Suite:openshift/smoke-4]": {
+			`Secrets should be consumable from pods in volume with defaultMode set`,
+			`Managed cluster should start all core operators`,
 		},
 	}
 

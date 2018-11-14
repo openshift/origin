@@ -38,6 +38,7 @@ readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   cmd/template-service-broker
   cmd/openshift-node-config
   cmd/openshift-sdn
+  cmd/openshift-tests
   cmd/openshift
   vendor/k8s.io/kubernetes/cmd/hyperkube
 )
@@ -50,10 +51,6 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/oc
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
-
-readonly OS_TEST_TARGETS=(
-  test/extended/extended.test
-)
 
 readonly OS_GOVET_BLACKLIST=(
 )

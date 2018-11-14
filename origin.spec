@@ -225,7 +225,6 @@ of docker.  Exclude those versions of docker.
 %if 0%{make_redistributable}
 # Create Binaries for all supported arches
 %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
-%{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build WHAT=vendor/github.com/onsi/ginkgo/ginkgo
 %else
 # Create Binaries only for building arch
 %ifarch x86_64
@@ -244,7 +243,6 @@ of docker.  Exclude those versions of docker.
   BUILD_PLATFORM="linux/s390x"
 %endif
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build WHAT=vendor/github.com/onsi/ginkgo/ginkgo
 %endif
 
 # Generate man pages
@@ -257,16 +255,11 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift hypershift hyperkube template-service-broker openshift-node-config openshift-sdn
+for bin in oc openshift hypershift hyperkube template-service-broker openshift-node-config openshift-sdn openshift-tests
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
-
-# Install tests
-install -d %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
-install -p -m 755 _output/local/bin/${PLATFORM}/ginkgo %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -369,8 +362,7 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %files tests
-%{_libexecdir}/%{name}
-%{_libexecdir}/%{name}/extended.test
+%{_bindir}/openshift-tests
 
 %files hypershift
 %{_bindir}/hypershift
