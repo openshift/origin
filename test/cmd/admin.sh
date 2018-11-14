@@ -276,7 +276,6 @@ os::cmd::expect_failure_and_text 'oc adm registry --daemonset --dry-run' 'does n
 os::cmd::expect_success_and_text "oc adm registry --daemonset -o yaml" 'DaemonSet'
 os::cmd::expect_success "oc adm registry --daemonset --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oc adm registry --daemonset' 'service exists'
-os::cmd::try_until_text 'oc get ds/docker-registry --template="{{.status.desiredNumberScheduled}}"' '1'
 # clean up so we can test non-daemonset
 os::cmd::expect_success "oc adm registry --daemonset -o yaml | oc delete -f - -ncmd-admin --cascade=false"
 echo "registry daemonset: ok"
