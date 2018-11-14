@@ -62,7 +62,7 @@ func (oc *ovsController) AlreadySetUp() bool {
 	return false
 }
 
-func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway string) error {
+func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway string, mtu uint32) error {
 	err := oc.ovs.DeleteBridge(true)
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 		return err
 	}
 	_ = oc.ovs.DeletePort(Tun0)
-	_, err = oc.ovs.AddPort(Tun0, 2, "type=internal")
+	_, err = oc.ovs.AddPort(Tun0, 2, "type=internal", fmt.Sprintf("mtu_request=%d", mtu))
 	if err != nil {
 		return err
 	}
