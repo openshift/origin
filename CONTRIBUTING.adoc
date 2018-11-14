@@ -32,7 +32,6 @@ never installed Docker before and you're not on RHEL/CentOS/Fedora).
 The tar file for each platform contains a single binary `openshift` which is
 the all-in-one OpenShift installation.
 
-* Use `oc cluster up` to launch the server.
 * Use `oc login <server> ...` to connect to an OpenShift server
 * Use `openshift help` to see more about the commands in the binary
 
@@ -157,25 +156,6 @@ $ export PATH="$( source hack/lib/init.sh; echo "${OS_OUTPUT_BINPATH}/$( os::bui
 
 See more information in https://github.com/openshift/origin/blob/master/HACKING.md#building-on-non-linux-systems[`HACKING.md`]
 for a more in-depth approach to building releases and incremental artifacts.
-
-==== Running the OpenShift Server
-Next, follow the set-up steps in https://github.com/openshift/origin/blob/master/docs/cluster_up_down.md[`cluster_up_down.md`]
-to start a cluster with `oc cluster up`. When starting the cluster, you will
-need to use container images. Images built locally with the `make release` and
-`hack/build-images.sh` scripts are tagged with the `git` commit you're working
-off of as well as `:latest`. If you have not built all of the images locally,
-ask `oc cluster up` for the `:latest` version and any missing images will be
-pulled down:
-----
-$ oc cluster up --tag=latest
-----
-If you have built a full suite of images and want to ensure that only the images
-you just built are going to be used, ask `oc cluster up` for the version that
-corresponds to your `git` commit:
-----
-$ oc cluster up --tag="$(git log -1 --pretty=%h )"
-----
-NOTE: The `--tag` flag can be used only for development purposes. It is not meant for running a cluster of a different version than `oc` binary.
 
 === Develop and test using a docker-in-docker cluster
 

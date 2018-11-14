@@ -39,13 +39,11 @@ the shell script helpers to execute the extended tests.
 Rapid local testing
 --------------------
 
-If you already have a running OpenShift cluster, e.g. one created using `oc
-cluster up`, you can skip having the extended test infrastructure spin up an
-OpenShift cluster each time the tests are run by setting the `TEST_ONLY`
-environment variable as follows:
+If you already have a running OpenShift cluster, you can skip having the
+extended test infrastructure spin up an OpenShift cluster each time the
+tests are run by setting the `TEST_ONLY` environment variable as follows:
 
 ```console
-$ oc cluster up
 $ oc login -u system:admin
 $ export KUBECONFIG=${KUBECONFIG-$HOME/.kube/config}
 ```
