@@ -17,7 +17,6 @@ import (
 
 	dockerclient "github.com/fsouza/go-dockerclient"
 	g "github.com/onsi/ginkgo"
-
 	godigest "github.com/opencontainers/go-digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +34,6 @@ import (
 
 const (
 	// There are coefficients used to multiply layer data size to get a rough size of uploaded blob.
-	layerSizeMultiplierForDocker18     = 2.0
 	layerSizeMultiplierForLatestDocker = 0.8
 	defaultLayerSize                   = 1024
 	digestSHA256GzippedEmptyTar        = godigest.Digest("sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4")
@@ -214,8 +212,10 @@ func BuildAndPushImageOfSizeWithBuilder(
 	}
 	buildLog, logsErr := br.Logs()
 
-	if match := reSuccessfulBuild.FindStringSubmatch(buildLog); len(match) > 1 {
-		defer dClient.RemoveImageExtended(match[1], dockerclient.RemoveImageOptions{Force: true})
+	if dClient != nil {
+		if match := reSuccessfulBuild.FindStringSubmatch(buildLog); len(match) > 1 {
+			defer dClient.RemoveImageExtended(match[1], dockerclient.RemoveImageOptions{Force: true})
+		}
 	}
 
 	if !shouldSucceed {
