@@ -138,6 +138,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.BuildSpec":                                                      schema_openshift_api_config_v1_BuildSpec(ref),
 		"github.com/openshift/api/config/v1.CertInfo":                                                       schema_openshift_api_config_v1_CertInfo(ref),
 		"github.com/openshift/api/config/v1.ClientConnectionOverrides":                                      schema_openshift_api_config_v1_ClientConnectionOverrides(ref),
+		"github.com/openshift/api/config/v1.ClusterOperator":                                                schema_openshift_api_config_v1_ClusterOperator(ref),
+		"github.com/openshift/api/config/v1.ClusterOperatorList":                                            schema_openshift_api_config_v1_ClusterOperatorList(ref),
+		"github.com/openshift/api/config/v1.ClusterOperatorSpec":                                            schema_openshift_api_config_v1_ClusterOperatorSpec(ref),
+		"github.com/openshift/api/config/v1.ClusterOperatorStatus":                                          schema_openshift_api_config_v1_ClusterOperatorStatus(ref),
+		"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition":                                 schema_openshift_api_config_v1_ClusterOperatorStatusCondition(ref),
+		"github.com/openshift/api/config/v1.ClusterVersion":                                                 schema_openshift_api_config_v1_ClusterVersion(ref),
+		"github.com/openshift/api/config/v1.ClusterVersionList":                                             schema_openshift_api_config_v1_ClusterVersionList(ref),
+		"github.com/openshift/api/config/v1.ClusterVersionSpec":                                             schema_openshift_api_config_v1_ClusterVersionSpec(ref),
+		"github.com/openshift/api/config/v1.ClusterVersionStatus":                                           schema_openshift_api_config_v1_ClusterVersionStatus(ref),
+		"github.com/openshift/api/config/v1.ComponentOverride":                                              schema_openshift_api_config_v1_ComponentOverride(ref),
 		"github.com/openshift/api/config/v1.ConfigMapReference":                                             schema_openshift_api_config_v1_ConfigMapReference(ref),
 		"github.com/openshift/api/config/v1.Console":                                                        schema_openshift_api_config_v1_Console(ref),
 		"github.com/openshift/api/config/v1.ConsoleList":                                                    schema_openshift_api_config_v1_ConsoleList(ref),
@@ -147,9 +157,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.DNSList":                                                        schema_openshift_api_config_v1_DNSList(ref),
 		"github.com/openshift/api/config/v1.DNSSpec":                                                        schema_openshift_api_config_v1_DNSSpec(ref),
 		"github.com/openshift/api/config/v1.DNSStatus":                                                      schema_openshift_api_config_v1_DNSStatus(ref),
+		"github.com/openshift/api/config/v1.DelegatedAuthentication":                                        schema_openshift_api_config_v1_DelegatedAuthentication(ref),
+		"github.com/openshift/api/config/v1.DelegatedAuthorization":                                         schema_openshift_api_config_v1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/config/v1.EtcdConnectionInfo":                                             schema_openshift_api_config_v1_EtcdConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.EtcdStorageConfig":                                              schema_openshift_api_config_v1_EtcdStorageConfig(ref),
 		"github.com/openshift/api/config/v1.GenericAPIServerConfig":                                         schema_openshift_api_config_v1_GenericAPIServerConfig(ref),
+		"github.com/openshift/api/config/v1.GenericControllerConfig":                                        schema_openshift_api_config_v1_GenericControllerConfig(ref),
 		"github.com/openshift/api/config/v1.HTTPServingInfo":                                                schema_openshift_api_config_v1_HTTPServingInfo(ref),
 		"github.com/openshift/api/config/v1.IdentityProvider":                                               schema_openshift_api_config_v1_IdentityProvider(ref),
 		"github.com/openshift/api/config/v1.IdentityProviderList":                                           schema_openshift_api_config_v1_IdentityProviderList(ref),
@@ -192,6 +205,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ServingInfo":                                                    schema_openshift_api_config_v1_ServingInfo(ref),
 		"github.com/openshift/api/config/v1.StringSource":                                                   schema_openshift_api_config_v1_StringSource(ref),
 		"github.com/openshift/api/config/v1.StringSourceSpec":                                               schema_openshift_api_config_v1_StringSourceSpec(ref),
+		"github.com/openshift/api/config/v1.Update":                                                         schema_openshift_api_config_v1_Update(ref),
 		"github.com/openshift/api/image/v1.DockerImageReference":                                            schema_openshift_api_image_v1_DockerImageReference(ref),
 		"github.com/openshift/api/image/v1.Image":                                                           schema_openshift_api_image_v1_Image(ref),
 		"github.com/openshift/api/image/v1.ImageBlobReferences":                                             schema_openshift_api_image_v1_ImageBlobReferences(ref),
@@ -366,6 +380,22 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/openshiftcontrolplane/v1.ServiceAccountControllerConfig":                  schema_openshift_api_openshiftcontrolplane_v1_ServiceAccountControllerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.ServiceServingCert":                              schema_openshift_api_openshiftcontrolplane_v1_ServiceServingCert(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.SourceStrategyDefaultsConfig":                    schema_openshift_api_openshiftcontrolplane_v1_SourceStrategyDefaultsConfig(ref),
+		"github.com/openshift/api/operator/v1.CapnsLogConfig":                                               schema_openshift_api_operator_v1_CapnsLogConfig(ref),
+		"github.com/openshift/api/operator/v1.GenerationStatus":                                             schema_openshift_api_operator_v1_GenerationStatus(ref),
+		"github.com/openshift/api/operator/v1.GlogConfig":                                                   schema_openshift_api_operator_v1_GlogConfig(ref),
+		"github.com/openshift/api/operator/v1.JavaLog":                                                      schema_openshift_api_operator_v1_JavaLog(ref),
+		"github.com/openshift/api/operator/v1.LoggingConfig":                                                schema_openshift_api_operator_v1_LoggingConfig(ref),
+		"github.com/openshift/api/operator/v1.MyOperatorResource":                                           schema_openshift_api_operator_v1_MyOperatorResource(ref),
+		"github.com/openshift/api/operator/v1.MyOperatorResourceSpec":                                       schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref),
+		"github.com/openshift/api/operator/v1.MyOperatorResourceStatus":                                     schema_openshift_api_operator_v1_MyOperatorResourceStatus(ref),
+		"github.com/openshift/api/operator/v1.NodeStatus":                                                   schema_openshift_api_operator_v1_NodeStatus(ref),
+		"github.com/openshift/api/operator/v1.OperandContainerSpec":                                         schema_openshift_api_operator_v1_OperandContainerSpec(ref),
+		"github.com/openshift/api/operator/v1.OperandSpec":                                                  schema_openshift_api_operator_v1_OperandSpec(ref),
+		"github.com/openshift/api/operator/v1.OperatorCondition":                                            schema_openshift_api_operator_v1_OperatorCondition(ref),
+		"github.com/openshift/api/operator/v1.OperatorSpec":                                                 schema_openshift_api_operator_v1_OperatorSpec(ref),
+		"github.com/openshift/api/operator/v1.OperatorStatus":                                               schema_openshift_api_operator_v1_OperatorStatus(ref),
+		"github.com/openshift/api/operator/v1.ResourcePatch":                                                schema_openshift_api_operator_v1_ResourcePatch(ref),
+		"github.com/openshift/api/operator/v1.StaticPodOperatorStatus":                                      schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthentication":                                schema_openshift_api_operator_v1alpha1_DelegatedAuthentication(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization":                                 schema_openshift_api_operator_v1alpha1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/operator/v1alpha1.GenerationHistory":                                      schema_openshift_api_operator_v1alpha1_GenerationHistory(ref),
@@ -7167,6 +7197,463 @@ func schema_openshift_api_config_v1_ClientConnectionOverrides(ref common.Referen
 	}
 }
 
+func schema_openshift_api_config_v1_ClusterOperator(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterOperator is the Custom Resource object which holds the current state of an operator. This object is used by operators to convey their state to the rest of the cluster.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "spec hold the intent of how this operator should behave.",
+							Ref:         ref("github.com/openshift/api/config/v1.ClusterOperatorSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status holds the information about the state of an operator.  It is consistent with status information across the kube ecosystem.",
+							Ref:         ref("github.com/openshift/api/config/v1.ClusterOperatorStatus"),
+						},
+					},
+				},
+				Required: []string{"metadata", "spec", "status"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ClusterOperatorSpec", "github.com/openshift/api/config/v1.ClusterOperatorStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_config_v1_ClusterOperatorList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterOperatorList is a list of OperatorStatus resources.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.ClusterOperator"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"metadata", "items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ClusterOperator", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_config_v1_ClusterOperatorSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterOperatorSpec is empty for now, but you could imagine holding information like \"pause\".",
+				Properties:  map[string]spec.Schema{},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_ClusterOperatorStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterOperatorStatus provides information about the status of the operator.",
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-merge-key": "type",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions describes the state of the operator's reconciliation functionality.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.ClusterOperatorStatusCondition"),
+									},
+								},
+							},
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version indicates which version of the operator updated the current status object.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"extension": {
+						SchemaProps: spec.SchemaProps{
+							Description: "extension contains any additional status information specific to the operator which owns this status object.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"conditions", "version"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_openshift_api_config_v1_ClusterOperatorStatusCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterOperatorStatusCondition represents the state of the operator's reconciliation functionality.",
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type specifies the state of the operator's reconciliation functionality.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the condition, one of True, False, Unknown.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastTransitionTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "lastTransitionTime is the time of the last update to the current status object.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "reason is the reason for the condition's last transition.  Reasons are CamelCase",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message provides additional information about the current condition. This is only to be consumed by humans.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"type", "status", "lastTransitionTime"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_openshift_api_config_v1_ClusterVersion(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterVersion is the configuration for the ClusterVersionOperator. This is where parameters related to automatic updates can be set.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "spec is the desired state of the cluster version - the operator will work to ensure that the desired version is applied to the cluster.",
+							Ref:         ref("github.com/openshift/api/config/v1.ClusterVersionSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status contains information about the available updates and any in-progress updates.",
+							Ref:         ref("github.com/openshift/api/config/v1.ClusterVersionStatus"),
+						},
+					},
+				},
+				Required: []string{"spec", "status"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ClusterVersionSpec", "github.com/openshift/api/config/v1.ClusterVersionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_config_v1_ClusterVersionList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterVersionList is a list of ClusterVersion resources.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.ClusterVersion"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"metadata", "items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ClusterVersion", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_config_v1_ClusterVersionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterVersionSpec is the desired version state of the cluster. It includes the version the cluster should be at, how the cluster is identified, and where the cluster should look for version updates.",
+				Properties: map[string]spec.Schema{
+					"clusterID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clusterID uniquely identifies this cluster. This is expected to be an RFC4122 UUID value (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx in hexadecimal values). This is a required field.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"desiredUpdate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "desiredUpdate is an optional field that indicates the desired value of the cluster version. Setting this value will trigger an upgrade (if the current version does not match the desired version). The set of recommended update values is listed as part of available updates in status, and setting values outside that range may cause the upgrade to fail.\n\nIf an upgrade fails the operator will halt and report status about the failing component. Setting the desired update value back to the previous version will cause a rollback to be attempted. Not all rollbacks will succeed.",
+							Ref:         ref("github.com/openshift/api/config/v1.Update"),
+						},
+					},
+					"upstream": {
+						SchemaProps: spec.SchemaProps{
+							Description: "upstream may be used to specify the preferred update server. By default it will use the appropriate update server for the cluster and region.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"channel": {
+						SchemaProps: spec.SchemaProps{
+							Description: "channel is an identifier for explicitly requesting that a non-default set of updates be applied to this cluster. The default channel will be contain stable updates that are appropriate for production clusters.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"overrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "overrides is list of overides for components that are managed by cluster version operator. Marking a component unmanaged will prevent the operator from creating or updating the object.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.ComponentOverride"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"clusterID"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ComponentOverride", "github.com/openshift/api/config/v1.Update"},
+	}
+}
+
+func schema_openshift_api_config_v1_ClusterVersionStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterVersionStatus reports the status of the cluster versioning, including any upgrades that are in progress. The current field will be set to whichever version the cluster is reconciling to, and the conditions array will report whether the update succeeded, is in progress, or is failing.",
+				Properties: map[string]spec.Schema{
+					"current": {
+						SchemaProps: spec.SchemaProps{
+							Description: "current is the version that the cluster will be reconciled to. This value may be empty during cluster startup, and then will be set whenever a new update is being applied. Use the conditions array to know whether the update is complete.",
+							Ref:         ref("github.com/openshift/api/config/v1.Update"),
+						},
+					},
+					"generation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generation reports which version of the spec is being processed. If this value is not equal to metadata.generation, then the current and conditions fields have not yet been updated to reflect the latest request.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"versionHash": {
+						SchemaProps: spec.SchemaProps{
+							Description: "versionHash is a fingerprint of the content that the cluster will be updated with. It is used by the operator to avoid unnecessary work and is for internal use only.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions provides information about the cluster version. The condition \"Available\" is set to true if the desiredUpdate has been reached. The condition \"Progressing\" is set to true if an update is being applied. The condition \"Failing\" is set to true if an update is currently blocked by a temporary or permanent error. Conditions are only valid for the current desiredUpdate when metadata.generation is equal to status.generation.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.ClusterOperatorStatusCondition"),
+									},
+								},
+							},
+						},
+					},
+					"availableUpdates": {
+						SchemaProps: spec.SchemaProps{
+							Description: "availableUpdates contains the list of updates that are appropriate for this cluster. This list may be empty if no updates are recommended, if the update service is unavailable, or if an invalid channel has been specified.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.Update"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"current", "generation", "versionHash", "conditions", "availableUpdates"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition", "github.com/openshift/api/config/v1.Update"},
+	}
+}
+
+func schema_openshift_api_config_v1_ComponentOverride(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ComponentOverride allows overriding cluster version operator's behavior for a component.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "kind indentifies which object to override.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"group": {
+						SchemaProps: spec.SchemaProps{
+							Description: "group identifies the API group that the kind is in.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespace is the component's namespace. If the resource is cluster scoped, the namespace should be empty.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the component's name.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"unmanaged": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unmanaged controls if cluster version operator should stop managing the resources in this cluster. Default: false",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"kind", "group", "namespace", "name", "unmanaged"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_openshift_api_config_v1_ConfigMapReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -7430,6 +7917,46 @@ func schema_openshift_api_config_v1_DNSStatus(ref common.ReferenceCallback) comm
 	}
 }
 
+func schema_openshift_api_config_v1_DelegatedAuthentication(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DelegatedAuthentication allows authentication to be disabled.",
+				Properties: map[string]spec.Schema{
+					"disabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disabled indicates that authentication should be disabled.  By default it will use delegated authentication.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_DelegatedAuthorization(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DelegatedAuthorization allows authorization to be disabled.",
+				Properties: map[string]spec.Schema{
+					"disabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disabled indicates that authorization should be disabled.  By default it will use delegated authorization.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_openshift_api_config_v1_EtcdConnectionInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -7595,6 +8122,58 @@ func schema_openshift_api_config_v1_GenericAPIServerConfig(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig"},
+	}
+}
+
+func schema_openshift_api_config_v1_GenericControllerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "GenericControllerConfig provides information to configure a controller",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"servingInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServingInfo is the HTTP serving information for the controller's endpoints",
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
+						},
+					},
+					"leaderElection": {
+						SchemaProps: spec.SchemaProps{
+							Description: "leaderElection provides information to elect a leader. Only override this if you have a specific need",
+							Ref:         ref("github.com/openshift/api/config/v1.LeaderElection"),
+						},
+					},
+					"authentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authentication allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/config/v1.DelegatedAuthentication"),
+						},
+					},
+					"authorization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authorization allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/config/v1.DelegatedAuthorization"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.DelegatedAuthentication", "github.com/openshift/api/config/v1.DelegatedAuthorization", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.LeaderElection"},
 	}
 }
 
@@ -9033,6 +9612,33 @@ func schema_openshift_api_config_v1_StringSourceSpec(ref common.ReferenceCallbac
 					},
 				},
 				Required: []string{"value", "env", "file", "keyFile"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_Update(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Update represents a release of the ClusterVersionOperator, referenced by the Payload member.",
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is a semantic versioning identifying the update version. When this field is part of spec, version is optional if payload is specified.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"payload": {
+						SchemaProps: spec.SchemaProps{
+							Description: "payload is a container image location that contains the update. When this field is part of spec, payload is optional if version is specified and the availableUpdates field contains a matching version.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
 		Dependencies: []string{},
@@ -17982,6 +18588,695 @@ func schema_openshift_api_openshiftcontrolplane_v1_SourceStrategyDefaultsConfig(
 			},
 		},
 		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_CapnsLogConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"level": {
+						SchemaProps: spec.SchemaProps{
+							Description: "level is passed to capnslog: critical, error, warning, notice, info, debug, trace",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"level"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_GenerationStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "GenerationStatus keeps track of the generation for a given resource so that decisions about forced updates can be made.",
+				Properties: map[string]spec.Schema{
+					"group": {
+						SchemaProps: spec.SchemaProps{
+							Description: "group is the group of the thing you're tracking",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resource": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resource is the resource type of the thing you're tracking",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespace is where the thing you're tracking is",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the thing you're tracking",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "lastGeneration is the last generation of the workload controller involved",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"hash": {
+						SchemaProps: spec.SchemaProps{
+							Description: "hash is an optional field set for resources without generation that are content sensitive like secrets and configmaps",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"group", "resource", "namespace", "name", "lastGeneration", "hash"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_GlogConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "GlogConfig holds information about configuring logging",
+				Properties: map[string]spec.Schema{
+					"level": {
+						SchemaProps: spec.SchemaProps{
+							Description: "level is passed to glog.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"vmodule": {
+						SchemaProps: spec.SchemaProps{
+							Description: "vmodule is passed to glog.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"level", "vmodule"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_JavaLog(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"level": {
+						SchemaProps: spec.SchemaProps{
+							Description: "level is passed to jsr47: fatal, error, warning, info, fine, finer, finest",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"level"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_LoggingConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "LoggingConfig holds information about configuring logging",
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"glog": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.GlogConfig"),
+						},
+					},
+					"capnsLog": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.CapnsLogConfig"),
+						},
+					},
+					"java": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.JavaLog"),
+						},
+					},
+				},
+				Required: []string{"type"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.CapnsLogConfig", "github.com/openshift/api/operator/v1.GlogConfig", "github.com/openshift/api/operator/v1.JavaLog"},
+	}
+}
+
+func schema_openshift_api_operator_v1_MyOperatorResource(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MyOperatorResource is an example operator configuration type",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.MyOperatorResourceSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.MyOperatorResourceStatus"),
+						},
+					},
+				},
+				Required: []string{"metadata", "spec", "status"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.MyOperatorResourceSpec", "github.com/openshift/api/operator/v1.MyOperatorResourceStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"managementState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managementState indicates whether and how the operator should manage the component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"operandSpecs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "operandSpecs provide customization for functional units within the component",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
+									},
+								},
+							},
+						},
+					},
+					"unsupportedConfigOverrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unsupportedConfigOverrides holds a sparse config that will override any previously set options.  It only needs to be the fields to override it will end up overlaying in the following order: 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"observedConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"managementState", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_openshift_api_operator_v1_MyOperatorResourceStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions is a list of conditions and their status",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperatorCondition"),
+									},
+								},
+							},
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the level this availability applies to",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas indicates how many replicas are ready and at the desired state",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"generations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.GenerationStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"version", "readyReplicas", "generations"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
+	}
+}
+
+func schema_openshift_api_operator_v1_NodeStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NodeStatus provides information about the current state of a particular node managed by this operator.",
+				Properties: map[string]spec.Schema{
+					"nodeName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeName is the name of the node",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"currentDeploymentGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "currentDeploymentGeneration is the generation of the most recently successful deployment",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"targetDeploymentGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "targetDeploymentGeneration is the generation of the deployment we're trying to apply",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"lastFailedDeploymentGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "lastFailedDeploymentGeneration is the generation of the deployment we tried and failed to deploy.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"lastFailedDeploymentErrors": {
+						SchemaProps: spec.SchemaProps{
+							Description: "lastFailedDeploymentGenerationErrors is a list of the errors during the failed deployment referenced in lastFailedDeploymentGeneration",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"nodeName", "currentDeploymentGeneration", "targetDeploymentGeneration", "lastFailedDeploymentGeneration", "lastFailedDeploymentErrors"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_OperandContainerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the container to modify",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resources are the requests and limits to place in the container.  Nil means to accept the defaults.",
+							Ref:         ref("k8s.io/api/core/v1.ResourceRequirements"),
+						},
+					},
+					"logging": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logging contains parameters for setting log values on the operand. Nil means to accept the defaults.",
+							Ref:         ref("github.com/openshift/api/operator/v1.LoggingConfig"),
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.LoggingConfig", "k8s.io/api/core/v1.ResourceRequirements"},
+	}
+}
+
+func schema_openshift_api_operator_v1_OperandSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperandSpec holds information for customization of a particular functional unit - logically maps to a workload",
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of this unit.  The operator must be aware of it.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"operandContainerSpecs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "operandContainerSpecs are per-container options",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperandContainerSpec"),
+									},
+								},
+							},
+						},
+					},
+					"unsupportedResourcePatches": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unsupportedResourcePatches are applied to the workload resource for this unit. This is an unsupported workaround if anything needs to be modified on the workload that is not otherwise configurable.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.ResourcePatch"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"name", "operandContainerSpecs", "unsupportedResourcePatches"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OperandContainerSpec", "github.com/openshift/api/operator/v1.ResourcePatch"},
+	}
+}
+
+func schema_openshift_api_operator_v1_OperatorCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperatorCondition is just the standard condition fields.",
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"lastTransitionTime": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"type", "status"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_openshift_api_operator_v1_OperatorSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperatorSpec contains common fields operators need.  It is intended to be anonymous included inside of the Spec struct for your particular operator.",
+				Properties: map[string]spec.Schema{
+					"managementState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managementState indicates whether and how the operator should manage the component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"operandSpecs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "operandSpecs provide customization for functional units within the component",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
+									},
+								},
+							},
+						},
+					},
+					"unsupportedConfigOverrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unsupportedConfigOverrides holds a sparse config that will override any previously set options.  It only needs to be the fields to override it will end up overlaying in the following order: 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"observedConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"managementState", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_openshift_api_operator_v1_OperatorStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions is a list of conditions and their status",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperatorCondition"),
+									},
+								},
+							},
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the level this availability applies to",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas indicates how many replicas are ready and at the desired state",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"generations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.GenerationStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"version", "readyReplicas", "generations"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
+	}
+}
+
+func schema_openshift_api_operator_v1_ResourcePatch(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourcePatch is a way to represent the patch you would issue to `kubectl patch` in the API",
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type is the type of patch to apply: jsonmerge, strategicmerge",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"patch": {
+						SchemaProps: spec.SchemaProps{
+							Description: "patch the patch itself",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"type", "patch"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual node status must be tracked.",
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions is a list of conditions and their status",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperatorCondition"),
+									},
+								},
+							},
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the level this availability applies to",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas indicates how many replicas are ready and at the desired state",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"generations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.GenerationStatus"),
+									},
+								},
+							},
+						},
+					},
+					"latestAvailableDeploymentGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "latestAvailableDeploymentGeneration is the deploymentID of the most recent deployment",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeStatuses": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeStatuses track the deployment values and errors across individual nodes",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.NodeStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableDeploymentGeneration", "nodeStatuses"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.NodeStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
 	}
 }
 
