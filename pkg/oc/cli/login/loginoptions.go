@@ -4,18 +4,23 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
@@ -29,9 +34,11 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
 	"github.com/openshift/origin/pkg/oc/util/project"
 	loginutil "github.com/openshift/origin/pkg/oc/util/project"
+	"github.com/openshift/origin/pkg/version"
 )
 
 const defaultClusterURL = "https://localhost:8443"
+const versionDoc = "https://docs.openshift.com/container-platform/latest/release_notes/index.html#release-versioning-policy"
 
 const projectsItemsSuppressThreshold = 50
 
@@ -340,6 +347,39 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 	}
 
+	return nil
+}
+
+// Check that the client version is the same as the API version and
+// display a warning otherwise
+func (o *LoginOptions) CheckVersion() error {
+	var ocServerInfo apimachineryversion.Info
+
+	kClient, err := kclientset.NewForConfig(o.Config)
+	if err != nil {
+		return err
+	}
+
+	ocVersionBody, err := kClient.Discovery().RESTClient().Get().AbsPath("/version/openshift").Do().Raw()
+	switch {
+	case err == nil:
+		err = json.Unmarshal(ocVersionBody, &ocServerInfo)
+		if err != nil && len(ocVersionBody) > 0 {
+			return err
+		}
+	case kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err):
+		return nil
+	case strings.HasSuffix(fmt.Sprintf("%v", err), "connection refused"):
+		return nil
+	default:
+		return err
+	}
+	ocClientInfo := version.Get()
+	if (ocClientInfo.Major != ocServerInfo.Major || ocClientInfo.Minor != ocServerInfo.Minor) {
+		fmt.Fprintf(o.Out, "oc client version %v\n", ocClientInfo)
+        	fmt.Fprintf(o.Out, "OpenShift server version %v\n", ocServerInfo)
+		fmt.Fprintf(o.Out, "Warning: Server and client version mismatch. More information at %s\n",versionDoc)
+	}
 	return nil
 }
 

@@ -184,5 +184,10 @@ func (o LoginOptions) Run() error {
 	if newFileCreated {
 		fmt.Fprintf(o.Out, "Welcome! See '%s help' to get started.\n", o.CommandName)
 	}
+
+        if err := o.CheckVersion(); err != nil {
+                return err
+        }
+
 	return nil
 }
