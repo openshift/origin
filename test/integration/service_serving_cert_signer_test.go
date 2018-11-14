@@ -12,7 +12,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
-	"github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert"
+	servingcert "github.com/openshift/service-serving-cert-signer/pkg/controller/api"
 )
 
 func TestServiceServingCertSigner(t *testing.T) {

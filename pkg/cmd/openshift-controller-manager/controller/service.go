@@ -6,7 +6,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	servingcertcontroller "github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert"
+	servingcertcontroller "github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert/controller"
 )
 
 func RunServiceServingCertsController(ctx *ControllerContext) (bool, error) {
