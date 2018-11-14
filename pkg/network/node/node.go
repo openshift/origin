@@ -146,6 +146,8 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 	}
 	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
 
+	common.InitVariableLogging()
+
 	if useConnTrack && c.ProxyMode != kubeproxyconfig.ProxyModeIPTables {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
 	}

@@ -55,6 +55,7 @@ func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networ
 	kClient kclientset.Interface, kubeInformers informers.SharedInformerFactory,
 	networkInformers networkinternalinformers.SharedInformerFactory) error {
 	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
+	common.InitVariableLogging()
 
 	master := &OsdnMaster{
 		kClient:       kClient,
