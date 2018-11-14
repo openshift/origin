@@ -92,7 +92,9 @@ var staticSuites = []*ginkgo.TestSuite{
 		available.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/smoke-4]")
+			// TODO: temporarily run all
+			// return strings.Contains(name, "[Suite:openshift/smoke-4]")
+			return strings.Contains(name, "[Suite:openshift/conformance/")
 		},
 		Parallelism: 10,
 	},
