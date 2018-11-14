@@ -1,4 +1,4 @@
-package servingcert
+package controller
 
 import (
 	"crypto/x509"
@@ -23,6 +23,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/service-serving-cert-signer/pkg/controller/api"
 	"github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert/cryptoextensions"
 )
 
@@ -63,8 +64,6 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 		informerFactory.Core().V1().Secrets(),
 		kubeclient.Core(), kubeclient.Core(), ca, "cluster.local", 10*time.Minute,
 	)
-	controller.serviceHasSynced = func() bool { return true }
-	controller.secretHasSynced = func() bool { return true }
 
 	return signerName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory
 }
@@ -120,10 +119,10 @@ func TestBasicControllerFlow(t *testing.T) {
 	received := make(chan bool)
 
 	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
-	controller.syncHandler = func(serviceKey string) error {
+	controller.syncHandler = func(obj interface{}) error {
 		defer func() { received <- true }()
 
-		err := controller.syncService(serviceKey)
+		err := controller.syncService(obj)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -136,15 +135,15 @@ func TestBasicControllerFlow(t *testing.T) {
 	expectedSecretName := "new-secret"
 	serviceName := "svc-name"
 	serviceUID := "some-uid"
-	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertCreatedByAnnotation: caName}
-	expectedSecretAnnotations := map[string]string{ServiceUIDAnnotation: serviceUID, ServiceNameAnnotation: serviceName}
+	expectedServiceAnnotations := map[string]string{api.ServingCertSecretAnnotation: expectedSecretName, api.ServingCertCreatedByAnnotation: caName}
+	expectedSecretAnnotations := map[string]string{api.ServiceUIDAnnotation: serviceUID, api.ServiceNameAnnotation: serviceName}
 	namespace := "ns"
 
 	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
-	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName}
+	serviceToAdd.Annotations = map[string]string{api.ServingCertSecretAnnotation: expectedSecretName}
 	fakeWatch.Add(serviceToAdd)
 
 	t.Log("waiting to reach syncHandler")
@@ -169,7 +168,7 @@ func TestBasicControllerFlow(t *testing.T) {
 				t.Errorf("expected %v, got %v", namespace, newSecret.Namespace)
 				continue
 			}
-			delete(newSecret.Annotations, ServingCertExpiryAnnotation)
+			delete(newSecret.Annotations, api.ServingCertExpiryAnnotation)
 			if !reflect.DeepEqual(newSecret.Annotations, expectedSecretAnnotations) {
 				t.Errorf("expected %v, got %v", expectedSecretAnnotations, newSecret.Annotations)
 				continue
@@ -206,7 +205,7 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 	expectedSecretName := "new-secret"
 	serviceName := "svc-name"
 	serviceUID := "some-uid"
-	expectedSecretAnnotations := map[string]string{ServiceUIDAnnotation: serviceUID, ServiceNameAnnotation: serviceName}
+	expectedSecretAnnotations := map[string]string{api.ServiceUIDAnnotation: serviceUID, api.ServiceNameAnnotation: serviceName}
 	namespace := "ns"
 
 	existingSecret := &v1.Secret{}
@@ -219,10 +218,10 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Secret{}, kapierrors.NewAlreadyExists(v1.Resource("secrets"), "new-secret")
 	})
-	controller.syncHandler = func(serviceKey string) error {
+	controller.syncHandler = func(obj interface{}) error {
 		defer func() { received <- true }()
 
-		err := controller.syncService(serviceKey)
+		err := controller.syncService(obj)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -232,13 +231,13 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
-	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertCreatedByAnnotation: caName}
+	expectedServiceAnnotations := map[string]string{api.ServingCertSecretAnnotation: expectedSecretName, api.ServingCertCreatedByAnnotation: caName}
 
 	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
-	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName}
+	serviceToAdd.Annotations = map[string]string{api.ServingCertSecretAnnotation: expectedSecretName}
 	fakeWatch.Add(serviceToAdd)
 
 	t.Log("waiting to reach syncHandler")
@@ -291,16 +290,16 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 	existingSecret.Name = expectedSecretName
 	existingSecret.Namespace = namespace
 	existingSecret.Type = v1.SecretTypeTLS
-	existingSecret.Annotations = map[string]string{ServiceUIDAnnotation: "wrong-uid", ServiceNameAnnotation: serviceName}
+	existingSecret.Annotations = map[string]string{api.ServiceUIDAnnotation: "wrong-uid", api.ServiceNameAnnotation: serviceName}
 
 	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Secret{}, kapierrors.NewAlreadyExists(v1.Resource("secrets"), "new-secret")
 	})
-	controller.syncHandler = func(serviceKey string) error {
+	controller.syncHandler = func(obj interface{}) error {
 		defer func() { received <- true }()
 
-		err := controller.syncService(serviceKey)
+		err := controller.syncService(obj)
 		if err != nil && err.Error() != expectedError {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -310,13 +309,13 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
-	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertErrorAnnotation: expectedError, ServingCertErrorNumAnnotation: "1"}
+	expectedServiceAnnotations := map[string]string{api.ServingCertSecretAnnotation: expectedSecretName, api.ServingCertErrorAnnotation: expectedError, api.ServingCertErrorNumAnnotation: "1"}
 
 	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
-	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName}
+	serviceToAdd.Annotations = map[string]string{api.ServingCertSecretAnnotation: expectedSecretName}
 	fakeWatch.Add(serviceToAdd)
 
 	t.Log("waiting to reach syncHandler")
@@ -368,10 +367,10 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Secret{}, kapierrors.NewForbidden(v1.Resource("secrets"), "new-secret", fmt.Errorf("any reason"))
 	})
-	controller.syncHandler = func(serviceKey string) error {
+	controller.syncHandler = func(obj interface{}) error {
 		defer func() { received <- true }()
 
-		err := controller.syncService(serviceKey)
+		err := controller.syncService(obj)
 		if err != nil && err.Error() != expectedError {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -381,13 +380,13 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
-	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertErrorAnnotation: expectedError, ServingCertErrorNumAnnotation: "1"}
+	expectedServiceAnnotations := map[string]string{api.ServingCertSecretAnnotation: expectedSecretName, api.ServingCertErrorAnnotation: expectedError, api.ServingCertErrorNumAnnotation: "1"}
 
 	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
-	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName}
+	serviceToAdd.Annotations = map[string]string{api.ServingCertSecretAnnotation: expectedSecretName}
 	fakeWatch.Add(serviceToAdd)
 
 	t.Log("waiting to reach syncHandler")
@@ -437,16 +436,22 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	kubeclient.PrependReactor("update", "secret", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Secret{}, kapierrors.NewForbidden(v1.Resource("asdf"), "new-secret", fmt.Errorf("any reason"))
 	})
-	controller.syncHandler = func(serviceKey string) error {
+	controller.syncHandler = func(obj interface{}) error {
 		defer func() { received <- true }()
 
-		err := controller.syncService(serviceKey)
+		err := controller.syncService(obj)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 
 		return err
 	}
+
+	secretToAdd := &v1.Secret{}
+	secretToAdd.Name = expectedSecretName
+	secretToAdd.Namespace = namespace
+	fakeSecretWatch.Add(secretToAdd)
+
 	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
@@ -454,7 +459,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
-	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertErrorAnnotation: "any-error", ServingCertErrorNumAnnotation: "11"}
+	serviceToAdd.Annotations = map[string]string{api.ServingCertSecretAnnotation: expectedSecretName, api.ServingCertErrorAnnotation: "any-error", api.ServingCertErrorNumAnnotation: "11"}
 	fakeWatch.Add(serviceToAdd)
 
 	t.Log("waiting to reach syncHandler")
@@ -471,15 +476,8 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 		}
 	}
 
-	secretToAdd := &v1.Secret{}
-	secretToAdd.Name = expectedSecretName
-	secretToAdd.Namespace = namespace
-	fakeSecretWatch.Add(secretToAdd)
-	// makes sure that our lister has the secret.  Given wiring, I think it's this or kill the test
-	time.Sleep(2 * time.Second)
-
 	kubeclient.ClearActions()
-	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertCreatedByAnnotation: caName}
+	serviceToAdd.Annotations = map[string]string{api.ServingCertSecretAnnotation: expectedSecretName, api.ServingCertCreatedByAnnotation: caName}
 	fakeWatch.Add(serviceToAdd)
 
 	t.Log("waiting to reach syncHandler")
@@ -503,10 +501,10 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 	received := make(chan bool)
 
 	caName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
-	controller.syncHandler = func(serviceKey string) error {
+	controller.syncHandler = func(obj interface{}) error {
 		defer func() { received <- true }()
 
-		err := controller.syncService(serviceKey)
+		err := controller.syncService(obj)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -519,8 +517,8 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 	expectedSecretName := "new-secret"
 	serviceName := "svc-name"
 	serviceUID := "some-uid"
-	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertCreatedByAnnotation: caName}
-	expectedSecretAnnotations := map[string]string{ServiceUIDAnnotation: serviceUID, ServiceNameAnnotation: serviceName}
+	expectedServiceAnnotations := map[string]string{api.ServingCertSecretAnnotation: expectedSecretName, api.ServingCertCreatedByAnnotation: caName}
+	expectedSecretAnnotations := map[string]string{api.ServiceUIDAnnotation: serviceUID, api.ServiceNameAnnotation: serviceName}
 	expectedOwnerRef := []metav1.OwnerReference{{APIVersion: "v1", Kind: "Service", Name: serviceName, UID: types.UID(serviceUID)}}
 	namespace := "ns"
 
@@ -528,13 +526,13 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
-	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName}
+	serviceToAdd.Annotations = map[string]string{api.ServingCertSecretAnnotation: expectedSecretName}
 	fakeWatch.Add(serviceToAdd)
 
 	secretToDelete := &v1.Secret{}
 	secretToDelete.Name = expectedSecretName
 	secretToDelete.Namespace = namespace
-	secretToDelete.Annotations = map[string]string{ServiceNameAnnotation: serviceName}
+	secretToDelete.Annotations = map[string]string{api.ServiceNameAnnotation: serviceName}
 
 	t.Log("waiting to reach syncHandler")
 	select {
@@ -558,7 +556,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 				t.Errorf("expected %v, got %v", namespace, newSecret.Namespace)
 				continue
 			}
-			delete(newSecret.Annotations, ServingCertExpiryAnnotation)
+			delete(newSecret.Annotations, api.ServingCertExpiryAnnotation)
 			if !reflect.DeepEqual(newSecret.Annotations, expectedSecretAnnotations) {
 				t.Errorf("expected %v, got %v", expectedSecretAnnotations, newSecret.Annotations)
 				continue
@@ -614,7 +612,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 				t.Errorf("expected %v, got %v", namespace, newSecret.Namespace)
 				continue
 			}
-			delete(newSecret.Annotations, ServingCertExpiryAnnotation)
+			delete(newSecret.Annotations, api.ServingCertExpiryAnnotation)
 			if !reflect.DeepEqual(newSecret.Annotations, expectedSecretAnnotations) {
 				t.Errorf("expected %v, got %v", expectedSecretAnnotations, newSecret.Annotations)
 				continue

@@ -1,18 +1,20 @@
-package configmapcainjector
+package controller
 
 import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/client-go/kubernetes/fake"
 	listers "k8s.io/client-go/listers/core/v1"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openshift/service-serving-cert-signer/pkg/controller/api"
 )
 
 func TestSyncConfigMapCABundle(t *testing.T) {
@@ -20,13 +22,13 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 		name               string
 		startingConfigMaps []runtime.Object
 		key                string
-		caBundle           []byte
+		caBundle           string
 		validateActions    func(t *testing.T, actions []clienttesting.Action)
 	}{
 		{
 			name:     "missing",
 			key:      "foo",
-			caBundle: []byte("content"),
+			caBundle: "content",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 0 {
 					t.Fatal(spew.Sdump(actions))
@@ -38,15 +40,15 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 			startingConfigMaps: []runtime.Object{
 				&v1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "foo",
-						Annotations: map[string]string{InjectCABundleAnnotation: "true"},
-						Namespace: "foo",
+						Name:        "foo",
+						Annotations: map[string]string{api.InjectCABundleAnnotationName: "true"},
+						Namespace:   "foo",
 					},
 					Data: map[string]string{},
 				},
 			},
 			key:      "foo/foo",
-			caBundle: []byte("content"),
+			caBundle: "content",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 1 {
 					t.Fatal(spew.Sdump(actions))
@@ -55,7 +57,7 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 					t.Error(spew.Sdump(actions))
 				}
 				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*v1.ConfigMap)
-				if expected := "content"; string(actual.Data[InjectionDataKey]) != expected {
+				if expected := "content"; string(actual.Data[api.InjectionDataKey]) != expected {
 					t.Error(diff.ObjectDiff(expected, actual))
 				}
 			},
@@ -65,17 +67,17 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 			startingConfigMaps: []runtime.Object{
 				&v1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "foo",
-						Annotations: map[string]string{InjectCABundleAnnotation: "true"},
-						Namespace: "foo",
+						Name:        "foo",
+						Annotations: map[string]string{api.InjectCABundleAnnotationName: "true"},
+						Namespace:   "foo",
 					},
 					Data: map[string]string{
-						InjectionDataKey: "foo",
+						api.InjectionDataKey: "foo",
 					},
 				},
 			},
 			key:      "foo/foo",
-			caBundle: []byte("content"),
+			caBundle: "content",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 1 {
 					t.Fatal(spew.Sdump(actions))
@@ -84,7 +86,7 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 					t.Error(spew.Sdump(actions))
 				}
 				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*v1.ConfigMap)
-				if expected := "content"; string(actual.Data[InjectionDataKey]) != expected {
+				if expected := "content"; string(actual.Data[api.InjectionDataKey]) != expected {
 					t.Error(diff.ObjectDiff(expected, actual))
 				}
 			},
@@ -94,24 +96,23 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 			startingConfigMaps: []runtime.Object{
 				&v1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "foo",
-						Annotations: map[string]string{InjectCABundleAnnotation: "true"},
-						Namespace: "foo",
+						Name:        "foo",
+						Annotations: map[string]string{api.InjectCABundleAnnotationName: "true"},
+						Namespace:   "foo",
 					},
 					Data: map[string]string{
-						InjectionDataKey: "content",
+						api.InjectionDataKey: "content",
 					},
 				},
 			},
 			key:      "foo/foo",
-			caBundle: []byte("content"),
+			caBundle: "content",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 0 {
 					t.Fatal(spew.Sdump(actions))
 				}
 			},
 		},
-
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -123,7 +124,7 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 			c := &ConfigMapCABundleInjectionController{
 				configMapLister: listers.NewConfigMapLister(index),
 				configMapClient: fakeClient.CoreV1(),
-				ca:              string(tc.caBundle),
+				ca:              tc.caBundle,
 			}
 			err := c.syncConfigMap(tc.key)
 			if err != nil {

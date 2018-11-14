@@ -2,6 +2,30 @@
 
 package v1
 
+type AuthenticationExpansion interface{}
+
 type BuildExpansion interface{}
 
+type ClusterOperatorExpansion interface{}
+
+type ClusterVersionExpansion interface{}
+
+type ConsoleExpansion interface{}
+
+type DNSExpansion interface{}
+
+type IdentityProviderExpansion interface{}
+
 type ImageExpansion interface{}
+
+type InfrastructureExpansion interface{}
+
+type IngressExpansion interface{}
+
+type NetworkExpansion interface{}
+
+type OAuthExpansion interface{}
+
+type ProjectExpansion interface{}
+
+type SchedulingExpansion interface{}

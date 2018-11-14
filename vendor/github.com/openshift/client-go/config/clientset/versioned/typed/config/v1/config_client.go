@@ -11,8 +11,20 @@ import (
 
 type ConfigV1Interface interface {
 	RESTClient() rest.Interface
+	AuthenticationsGetter
 	BuildsGetter
+	ClusterOperatorsGetter
+	ClusterVersionsGetter
+	ConsolesGetter
+	DNSsGetter
+	IdentityProvidersGetter
 	ImagesGetter
+	InfrastructuresGetter
+	IngressesGetter
+	NetworksGetter
+	OAuthsGetter
+	ProjectsGetter
+	SchedulingsGetter
 }
 
 // ConfigV1Client is used to interact with features provided by the config.openshift.io group.
@@ -20,12 +32,60 @@ type ConfigV1Client struct {
 	restClient rest.Interface
 }
 
+func (c *ConfigV1Client) Authentications() AuthenticationInterface {
+	return newAuthentications(c)
+}
+
 func (c *ConfigV1Client) Builds() BuildInterface {
 	return newBuilds(c)
 }
 
+func (c *ConfigV1Client) ClusterOperators() ClusterOperatorInterface {
+	return newClusterOperators(c)
+}
+
+func (c *ConfigV1Client) ClusterVersions() ClusterVersionInterface {
+	return newClusterVersions(c)
+}
+
+func (c *ConfigV1Client) Consoles() ConsoleInterface {
+	return newConsoles(c)
+}
+
+func (c *ConfigV1Client) DNSs() DNSInterface {
+	return newDNSs(c)
+}
+
+func (c *ConfigV1Client) IdentityProviders() IdentityProviderInterface {
+	return newIdentityProviders(c)
+}
+
 func (c *ConfigV1Client) Images() ImageInterface {
 	return newImages(c)
+}
+
+func (c *ConfigV1Client) Infrastructures() InfrastructureInterface {
+	return newInfrastructures(c)
+}
+
+func (c *ConfigV1Client) Ingresses() IngressInterface {
+	return newIngresses(c)
+}
+
+func (c *ConfigV1Client) Networks() NetworkInterface {
+	return newNetworks(c)
+}
+
+func (c *ConfigV1Client) OAuths() OAuthInterface {
+	return newOAuths(c)
+}
+
+func (c *ConfigV1Client) Projects() ProjectInterface {
+	return newProjects(c)
+}
+
+func (c *ConfigV1Client) Schedulings() SchedulingInterface {
+	return newSchedulings(c)
 }
 
 // NewForConfig creates a new ConfigV1Client for the given config.

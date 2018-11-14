@@ -345,6 +345,7 @@ spec:
   - name: https
     port: 443
     targetPort: 8443
+  type: ClusterIP
 `)
 
 func v3100ApiserviceCabundleControllerSvcYamlBytes() ([]byte, error) {
@@ -637,6 +638,7 @@ spec:
   - name: https
     port: 443
     targetPort: 8443
+  type: ClusterIP
 `)
 
 func v3100ConfigmapCabundleControllerSvcYamlBytes() ([]byte, error) {
@@ -946,6 +948,7 @@ spec:
   - name: https
     port: 443
     targetPort: 8443
+  type: ClusterIP
 `)
 
 func v3100ServiceServingCertSignerControllerSvcYamlBytes() ([]byte, error) {

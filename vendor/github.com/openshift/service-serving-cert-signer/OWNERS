@@ -1,10 +1,10 @@
 reviewers:
-  - deads2k
   - enj
-  - mfojtik
   - mrogers950
-  - soltysh
+  - ericavonb
+  - stlaz
 approvers:
-  - smarterclayton
-  - deads2k
-  - liggitt
+  - enj
+  - mrogers950
+  - ericavonb
+  - stlaz

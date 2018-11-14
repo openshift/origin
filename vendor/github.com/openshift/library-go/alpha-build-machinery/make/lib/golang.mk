@@ -8,7 +8,7 @@ GO_PACKAGES ?=./...
 GO_PACKAGES_EXPANDED ?=$(GOLIST) $(GO_PACKAGES)
 GO_TEST_PACKAGES ?=$(GO_PACKAGES)
 
-GO_BUILD_PACKAGES ?=./cmd/...
+GO_BUILD_PACKAGES ?=$(shell find ./cmd -mindepth 1 -maxdepth 1 -print)
 GO_BUILD_FLAGS ?=
 GO_TEST_FLAGS ?=-race
 

@@ -11,9 +11,9 @@ update-deps:
 # $1 - temporary directory to restore vendor dependencies from glide.lock
 define restore-deps
 	ln -s $(abspath ./) "$(1)"/current
-	cp -r -H ./ "$(1)"/updated
+	cp -R -H ./ "$(1)"/updated
 	$(RM) -r "$(1)"/updated/vendor
-	cd "$(1)"/updated && glide install --strip-vendor
+	cd "$(1)"/updated && glide install --strip-vendor && git ls-files --others -i --exclude-standard vendor/ | xargs rm -f
 	cd "$(1)" && $(DIFF) -r -N {current,updated}/vendor/ > updated/glide.diff || true
 endef
 

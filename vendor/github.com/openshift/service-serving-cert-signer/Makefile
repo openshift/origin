@@ -88,6 +88,16 @@ test-unit:
 	GOTEST_FLAGS="$(TESTFLAGS)" hack/test-go.sh $(WHAT) $(TESTS)
 .PHONY: test-unit
 
+# Run e2e tests.
+# 
+# Args:
+#
+# Example:
+#   make test-e2e
+test-e2e:
+	test/e2e.sh
+.PHONY: test-e2e
+
 # Remove all build artifacts.
 #
 # Example:

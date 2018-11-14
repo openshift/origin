@@ -1,4 +1,4 @@
-package servingcert
+package controller
 
 import (
 	"testing"
@@ -9,6 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openshift/service-serving-cert-signer/pkg/controller/api"
 )
 
 func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
@@ -36,7 +38,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
 					Annotations: map[string]string{
-						ServiceNameAnnotation: "foo",
+						api.ServiceNameAnnotation: "foo",
 					},
 				},
 			},
@@ -46,15 +48,15 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "service-uid-mismatch",
 			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-2"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-2"), Annotations: map[string]string{api.ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
 					Annotations: map[string]string{
-						ServiceNameAnnotation: "foo",
-						ServiceUIDAnnotation:  "uid-1",
+						api.ServiceNameAnnotation: "foo",
+						api.ServiceUIDAnnotation:  "uid-1",
 					},
 					OwnerReferences: []metav1.OwnerReference{ownerRef(&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: types.UID("uid-2")}})},
 				},
@@ -65,15 +67,15 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "service secret name mismatch",
 			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret2"}},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{api.ServingCertSecretAnnotation: "mysecret2"}},
 				})
 			},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
 					Annotations: map[string]string{
-						ServiceNameAnnotation: "foo",
-						ServiceUIDAnnotation:  "uid-1",
+						api.ServiceNameAnnotation: "foo",
+						api.ServiceUIDAnnotation:  "uid-1",
 					},
 					OwnerReferences: []metav1.OwnerReference{ownerRef(&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: types.UID("uid-1")}})},
 				},
@@ -84,15 +86,15 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "no expiry",
 			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{api.ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
 					Annotations: map[string]string{
-						ServiceNameAnnotation: "foo",
-						ServiceUIDAnnotation:  "uid-1",
+						api.ServiceNameAnnotation: "foo",
+						api.ServiceUIDAnnotation:  "uid-1",
 					},
 					OwnerReferences: []metav1.OwnerReference{ownerRef(&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: types.UID("uid-1")}})},
 				},
@@ -103,16 +105,16 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "bad expiry",
 			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{api.ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
 					Annotations: map[string]string{
-						ServiceNameAnnotation:       "foo",
-						ServiceUIDAnnotation:        "uid-1",
-						ServingCertExpiryAnnotation: "bad-format",
+						api.ServiceNameAnnotation:       "foo",
+						api.ServiceUIDAnnotation:        "uid-1",
+						api.ServingCertExpiryAnnotation: "bad-format",
 					},
 					OwnerReferences: []metav1.OwnerReference{ownerRef(&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: types.UID("uid-1")}})},
 				},
@@ -123,16 +125,16 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "expired expiry",
 			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{api.ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
 					Annotations: map[string]string{
-						ServiceNameAnnotation:       "foo",
-						ServiceUIDAnnotation:        "uid-1",
-						ServingCertExpiryAnnotation: time.Now().Add(-30 * time.Minute).Format(time.RFC3339),
+						api.ServiceNameAnnotation:       "foo",
+						api.ServiceUIDAnnotation:        "uid-1",
+						api.ServingCertExpiryAnnotation: time.Now().Add(-30 * time.Minute).Format(time.RFC3339),
 					},
 					OwnerReferences: []metav1.OwnerReference{ownerRef(&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: types.UID("uid-1")}})},
 				},
@@ -143,16 +145,16 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "distant expiry",
 			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{api.ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
 					Annotations: map[string]string{
-						ServiceNameAnnotation:       "foo",
-						ServiceUIDAnnotation:        "uid-1",
-						ServingCertExpiryAnnotation: time.Now().Add(10 * time.Minute).Format(time.RFC3339),
+						api.ServiceNameAnnotation:       "foo",
+						api.ServiceUIDAnnotation:        "uid-1",
+						api.ServingCertExpiryAnnotation: time.Now().Add(10 * time.Minute).Format(time.RFC3339),
 					},
 					OwnerReferences: []metav1.OwnerReference{ownerRef(&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: types.UID("uid-1")}})},
 				},
@@ -163,16 +165,16 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "missing ownerref",
 			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{api.ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
 					Annotations: map[string]string{
-						ServiceNameAnnotation:       "foo",
-						ServiceUIDAnnotation:        "uid-1",
-						ServingCertExpiryAnnotation: time.Now().Add(10 * time.Minute).Format(time.RFC3339),
+						api.ServiceNameAnnotation:       "foo",
+						api.ServiceUIDAnnotation:        "uid-1",
+						api.ServingCertExpiryAnnotation: time.Now().Add(10 * time.Minute).Format(time.RFC3339),
 					},
 					OwnerReferences: []metav1.OwnerReference{ownerRef(&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: types.UID("uid-2")}})},
 				},
