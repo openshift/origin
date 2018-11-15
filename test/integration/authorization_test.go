@@ -902,7 +902,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -916,7 +916,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -930,7 +930,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1096,7 +1096,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "",
 		},
 	}.run(t)
@@ -1105,16 +1105,16 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		clusterInterface:  dannyAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanDannyGetProject,
 		kubeAuthInterface: dannySARGetter,
-		err:               `subjectaccessreviews.authorization.openshift.io is forbidden: User "danny" cannot create subjectaccessreviews.authorization.openshift.io at the cluster scope`,
-		kubeErr:           `subjectaccessreviews.authorization.k8s.io is forbidden: User "danny" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
+		err:               `subjectaccessreviews.authorization.openshift.io is forbidden: User "danny" cannot create resource "subjectaccessreviews" in API group "authorization.openshift.io" at the cluster scope`,
+		kubeErr:           `subjectaccessreviews.authorization.k8s.io is forbidden: User "danny" cannot create resource "subjectaccessreviews" in API group "authorization.k8s.io" at the cluster scope`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "as anonymous, can I make cluster subject access reviews",
 		clusterInterface:  anonymousAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanDannyGetProject,
 		kubeAuthInterface: anonymousSARGetter,
-		err:               `subjectaccessreviews.authorization.openshift.io is forbidden: User "system:anonymous" cannot create subjectaccessreviews.authorization.openshift.io at the cluster scope`,
-		kubeErr:           `subjectaccessreviews.authorization.k8s.io is forbidden: User "system:anonymous" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
+		err:               `subjectaccessreviews.authorization.openshift.io is forbidden: User "system:anonymous" cannot create resource "subjectaccessreviews" in API group "authorization.openshift.io" at the cluster scope`,
+		kubeErr:           `subjectaccessreviews.authorization.k8s.io is forbidden: User "system:anonymous" cannot create resource "subjectaccessreviews" in API group "authorization.k8s.io" at the cluster scope`,
 	}.run(t)
 
 	addValerie := &policy.RoleModificationOptions{
@@ -1165,7 +1165,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: markSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1192,8 +1192,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "mallet-project",
-		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "harold" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "mallet-project"`,
-		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "mallet-project"`,
+		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "harold" cannot create resource "localsubjectaccessreviews" in API group "authorization.openshift.io" in the namespace "mallet-project"`,
+		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "harold" cannot create resource "localsubjectaccessreviews" in API group "authorization.k8s.io" in the namespace "mallet-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project mallet-project",
@@ -1201,8 +1201,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "mallet-project",
-		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "system:anonymous" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "mallet-project"`,
-		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "mallet-project"`,
+		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "system:anonymous" cannot create resource "localsubjectaccessreviews" in API group "authorization.openshift.io" in the namespace "mallet-project"`,
+		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "system:anonymous" cannot create resource "localsubjectaccessreviews" in API group "authorization.k8s.io" in the namespace "mallet-project"`,
 	}.run(t)
 	// ensure message does not leak whether the namespace exists or not
 	subjectAccessReviewTest{
@@ -1211,8 +1211,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "nonexistent-project",
-		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "harold" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "nonexistent-project"`,
-		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "nonexistent-project"`,
+		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "harold" cannot create resource "localsubjectaccessreviews" in API group "authorization.openshift.io" in the namespace "nonexistent-project"`,
+		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "harold" cannot create resource "localsubjectaccessreviews" in API group "authorization.k8s.io" in the namespace "nonexistent-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project nonexistent-project",
@@ -1220,8 +1220,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "nonexistent-project",
-		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "system:anonymous" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "nonexistent-project"`,
-		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "nonexistent-project"`,
+		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "system:anonymous" cannot create resource "localsubjectaccessreviews" in API group "authorization.openshift.io" in the namespace "nonexistent-project"`,
+		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "system:anonymous" cannot create resource "localsubjectaccessreviews" in API group "authorization.k8s.io" in the namespace "nonexistent-project"`,
 	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.LocalSubjectAccessReview{
@@ -1260,8 +1260,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		clusterInterface:  haroldAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanClusterAdminsCreateProject,
 		kubeAuthInterface: haroldSARGetter,
-		err:               `subjectaccessreviews.authorization.openshift.io is forbidden: User "harold" cannot create subjectaccessreviews.authorization.openshift.io at the cluster scope`,
-		kubeErr:           `subjectaccessreviews.authorization.k8s.io is forbidden: User "harold" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
+		err:               `subjectaccessreviews.authorization.openshift.io is forbidden: User "harold" cannot create resource "subjectaccessreviews" in API group "authorization.openshift.io" at the cluster scope`,
+		kubeErr:           `subjectaccessreviews.authorization.k8s.io is forbidden: User "harold" cannot create resource "subjectaccessreviews" in API group "authorization.k8s.io" at the cluster scope`,
 	}.run(t)
 
 	askCanICreatePods := &authorizationapi.LocalSubjectAccessReview{
@@ -1298,7 +1298,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1309,7 +1309,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1323,7 +1323,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "nonexistent-project",
 		},
 	}.run(t)
@@ -1334,7 +1334,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "nonexistent-project",
 		},
 	}.run(t)
@@ -1349,7 +1349,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanICreatePolicyBindings,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `no RBAC policy matched`,
+			Reason:    "",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1389,8 +1389,8 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 		if errProxy == nil {
 			return false
 		}
-		return strings.Contains(errProxy.Error(), `cannot proxy pods in the namespace "ns": proxy verb changed to unsafeproxy`) ||
-			strings.Contains(errProxy.Error(), `cannot get pods/proxy in the namespace "ns": proxy subresource changed to unsafeproxy`)
+		return strings.Contains(errProxy.Error(), `cannot proxy resource "pods" in API group "" in the namespace "ns": proxy verb changed to unsafeproxy`) ||
+			strings.Contains(errProxy.Error(), `cannot get resource "pods/proxy" in API group "" in the namespace "ns": proxy subresource changed to unsafeproxy`)
 	}
 
 	for _, tc := range []struct {

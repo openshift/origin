@@ -36,7 +36,7 @@ func TestOAuthCertFallback(t *testing.T) {
 		certUser  = "system:admin"
 
 		unauthorizedError = "Unauthorized"
-		anonymousError    = `users.user.openshift.io "~" is forbidden: User "system:anonymous" cannot get users.user.openshift.io at the cluster scope: no RBAC policy matched`
+		anonymousError    = `users.user.openshift.io "~" is forbidden: User "system:anonymous" cannot get resource "users" in API group "user.openshift.io" at the cluster scope`
 	)
 
 	// Build master config
