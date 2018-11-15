@@ -84,7 +84,7 @@ func TestTemplate(t *testing.T) {
 			t.Fatalf("unexpected object: %#v", svc)
 		}
 		// clear namespace
-		if meta["namespace"] != "" {
+		if _, ok := meta["namespace"]; ok {
 			t.Fatalf("unexpected object: %#v", svc)
 		}
 		// preserve values exactly
