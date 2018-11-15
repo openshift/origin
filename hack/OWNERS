@@ -1,6 +1,5 @@
 reviewers:
   - smarterclayton
-  - stevekuznetsov
   - bparees
   - soltysh
   - knobunc
@@ -10,7 +9,6 @@ reviewers:
   - marun
 approvers:
   - smarterclayton
-  - stevekuznetsov
   - bparees
   - knobunc
   - dcbw
