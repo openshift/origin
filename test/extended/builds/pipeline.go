@@ -552,7 +552,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				br.AssertSuccess()
 
 				// wait for the service to be running
-				g.By("expecting the openshift-jee-sample service to be deployed and running")
+				g.By("expecting the nodejs-mongodb-example service to be deployed and running")
 				_, err = exutil.GetEndpointAddress(oc, "nodejs-mongodb-example")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
