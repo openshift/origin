@@ -129,7 +129,7 @@ func writeJUnitReport(name string, tests []*testCase, dir string, duration time.
 				SystemOut: string(test.out),
 				Duration:  test.duration.Seconds(),
 				SkipMessage: &SkipMessage{
-					Message: lastLinesUntil(string(test.out), 40, "skip ["),
+					Message: lastLinesUntil(string(test.out), 100, "skip ["),
 				},
 			})
 		case test.failed:
@@ -140,7 +140,7 @@ func writeJUnitReport(name string, tests []*testCase, dir string, duration time.
 				SystemOut: string(test.out),
 				Duration:  test.duration.Seconds(),
 				FailureOutput: &FailureOutput{
-					Output: lastLinesUntil(string(test.out), 40, "fail ["),
+					Output: lastLinesUntil(string(test.out), 100, "fail ["),
 				},
 			})
 		case test.success:
