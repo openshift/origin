@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/certificates"
+	"k8s.io/kubernetes/pkg/apis/coordination"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
@@ -53,6 +54,7 @@ var (
 	apiRegistrationGroup       = "apiregistration.k8s.io"
 	batchGroup                 = batch.GroupName
 	certificatesGroup          = certificates.GroupName
+	coordinationGroup          = coordination.GroupName
 	extensionsGroup            = extensions.GroupName
 	networkingGroup            = "networking.k8s.io"
 	policyGroup                = policy.GroupName
@@ -147,6 +149,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers/status").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(batchGroup).Resources("jobs/status", "cronjobs/status").RuleOrDie(),
+
+				rbacv1helpers.NewRule(read...).Groups(coordinationGroup).Resources("leases").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets/status", "deployments/status", "horizontalpodautoscalers",
 					"horizontalpodautoscalers/status", "ingresses/status", "jobs", "jobs/status", "podsecuritypolicies", "replicasets/status", "replicationcontrollers",
