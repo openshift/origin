@@ -225,7 +225,6 @@ of docker.  Exclude those versions of docker.
 %if 0%{make_redistributable}
 # Create Binaries for all supported arches
 %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
-%{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build WHAT=vendor/github.com/onsi/ginkgo/ginkgo
 %else
 # Create Binaries only for building arch
 %ifarch x86_64
@@ -244,7 +243,6 @@ of docker.  Exclude those versions of docker.
   BUILD_PLATFORM="linux/s390x"
 %endif
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build WHAT=vendor/github.com/onsi/ginkgo/ginkgo
 %endif
 
 # Generate man pages
@@ -257,16 +255,11 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc oadm openshift hypershift hyperkube template-service-broker openshift-node-config openshift-sdn
+for bin in oc openshift hypershift hyperkube template-service-broker openshift-node-config openshift-sdn openshift-tests
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
-
-# Install tests
-install -d %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
-install -p -m 755 _output/local/bin/${PLATFORM}/ginkgo %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -277,10 +270,6 @@ install -p -m 755 _output/local/bin/darwin/amd64/oc %{buildroot}/%{_datadir}/%{n
 install -p -m 755 _output/local/bin/darwin/amd64/kubectl %{buildroot}/%{_datadir}/%{name}/macosx/kubectl
 install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 install -p -m 755 _output/local/bin/windows/amd64/kubectl.exe %{buildroot}/%{_datadir}/%{name}/windows/kubectl.exe
-# Install oadm client executable
-install -p -m 755 _output/local/bin/linux/amd64/oadm %{buildroot}%{_datadir}/%{name}/linux/oadm
-install -p -m 755 _output/local/bin/darwin/amd64/oadm %{buildroot}/%{_datadir}/%{name}/macosx/oadm
-install -p -m 755 _output/local/bin/windows/amd64/oadm.exe %{buildroot}/%{_datadir}/%{name}/windows/oadm.exe
 %endif
 
 # Install pod
@@ -373,8 +362,7 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %files tests
-%{_libexecdir}/%{name}
-%{_libexecdir}/%{name}/extended.test
+%{_bindir}/openshift-tests
 
 %files hypershift
 %{_bindir}/hypershift
@@ -412,7 +400,6 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %license LICENSE
 %{_bindir}/oc
 %{_bindir}/kubectl
-%{_bindir}/oadm
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-docker-build
 %{_bindir}/openshift-sti-build
@@ -436,9 +423,6 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_datadir}/%{name}/macosx/kubectl
 %{_datadir}/%{name}/windows/oc.exe
 %{_datadir}/%{name}/windows/kubectl.exe
-%{_datadir}/%{name}/linux/oadm
-%{_datadir}/%{name}/macosx/oadm
-%{_datadir}/%{name}/windows/oadm.exe
 %endif
 
 %files pod

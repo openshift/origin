@@ -31,7 +31,7 @@ OKD: The Origin Community Distribution of Kubernetes
 **Learn More:**
 
 * **[Public Documentation](https://docs.okd.io/latest/welcome/)**
-  * **[API Documentation](https://docs.okd.io/latest/rest_api/openshift_v1.html)**
+  * **[API Documentation](https://docs.okd.io/latest/rest_api/index.html)**
 * Our **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
@@ -43,7 +43,6 @@ Getting Started
 
 If you have downloaded the client tools from the [releases page](https://github.com/openshift/origin/releases), place the included binaries in your PATH.
 
-* On any system with a Docker engine installed, you can run `oc cluster up` to get started immediately.  Try it out now!
 * For a full cluster installation using [Ansible](https://github.com/openshift/openshift-ansible), follow the [Advanced Installation guide](https://docs.okd.io/latest/install_config/install/advanced_install.html)
 * To build and run from source, see [CONTRIBUTING.adoc](CONTRIBUTING.adoc)
 

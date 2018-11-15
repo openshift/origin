@@ -29,7 +29,8 @@ function ovn-kubernetes-master() {
 	--nb-address "tcp://${ovn_master_ip}:6641" \
 	--sb-address "tcp://${ovn_master_ip}:6642" \
 	--init-master `hostname` \
-	--net-controller
+	--net-controller \
+	--nodeport
 }
 
 if [[ -n "${OPENSHIFT_OVN_KUBERNETES}" ]]; then

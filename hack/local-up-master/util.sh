@@ -643,7 +643,7 @@ current-context: /localhost:8443/system:admin
 EOF
 
     # flatten the kubeconfig files to make them self contained
-    username=$(whoami)
+    username=$(id -u)
     ${sudo} /usr/bin/env bash -e <<EOF
     oc --config="${dest_dir}/${client_id}.kubeconfig" config view --minify --flatten > "/tmp/${client_id}.kubeconfig"
     mv -f "/tmp/${client_id}.kubeconfig" "${dest_dir}/${client_id}.kubeconfig"

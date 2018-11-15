@@ -3,69 +3,37 @@
 This document describes how a developer can write a new extended test for
 OpenShift and the structure of extended tests.
 
-Running tests
--------------
-
-From the top-level origin directory, run
-
-	$ test/extended/<some_script>.sh
-
-Where \<some_script\>.sh is one of the bucket scripts such as "core.sh".
-
-You can further narrow the set of tests being run by setting the environment
-variable `FOCUS='regex'` where 'regex' is a regular expression matching the
-description of the test you want to run.  For example one of the s2i tests
-(s2i_incremental.go) defines:
-
-	var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
-
-So you can write a focus regex that includes this test by setting
-`FOCUS='\[Feature:Builds\]'` or `FOCUS='incremental s2i'`.
 
 Prerequisites
 -------------
 
-In order to execute the extended tests, you have to install
-[Ginkgo](https://github.com/onsi/ginkgo) framework which is used in extended
-tests. You can do it by running following command:
+* Compile both `oc` and `openshift-tests` in this repository (with `make WHAT=cmd/openshift-tests`)
+* Have the environment variable `KUBECONFIG` set pointing to your cluster.
+
+
+Running Tests
+-------------
+
+To run a test by name:
 
 ```console
-$ go get github.com/onsi/ginkgo/ginkgo
+$ openshift-tests run-test <FULL_TEST_NAME>
 ```
 
-You also need to have the `openshift` binary in the `PATH` if you want to use
-the shell script helpers to execute the extended tests.
-
-Rapid local testing
---------------------
-
-If you already have a running OpenShift cluster, e.g. one created using `oc
-cluster up`, you can skip having the extended test infrastructure spin up an
-OpenShift cluster each time the tests are run by setting the `TEST_ONLY`
-environment variable as follows:
+To see the list of suites available, run:
 
 ```console
-$ oc cluster up
-$ oc login -u system:admin
-$ export KUBECONFIG=${KUBECONFIG-$HOME/.kube/config}
+$ openshift-tests help run
 ```
 
-Then, for example:
-```console
-$ make build-extended-test
-$ FOCUS='\[Feature:Builds\]' TEST_ONLY=1 test/extended/core.sh
-```
+See the description on the test for more info about what prerequites may exist for the test.
 
-By default the Kubernetes test framework will remove the project associated with
-your test spec when it completes, regardless of whether it fails or not.
-Origin's wrapper scripts may also do clean-up.  Running tests in parallel can
-also hinder debugging.  To stop these behaviours, set the `SKIP_TEARDOWN`
-environment variable, set `DELETE_NAMESPACE=false`, and set `PARALLEL_NODES=1`:
+To run a subset of tests using a regexp, run:
 
 ```console
-$ make build-extended-test
-$ FOCUS='\[Feature:Builds\]' TEST_ONLY=1 SKIP_TEARDOWN=1 DELETE_NAMESPACE=false PARALLEL_NODES=1 test/extended/core.sh
+$ openshift-tests run openshift/all --dry-run | grep -E "<REGEX>" | openshift-tests -f -
 ```
+
 
 Test labels
 -----------
@@ -109,12 +77,6 @@ The structure of this directory is following:
 access to the Kubernetes [E2E framework](https://github.com/openshift/origin/tree/master/vendor/k8s.io/kubernetes/test/e2e) helpers. It also contains OpenShift helpers that are shared across multiple test cases, to make the test cases more DRY.
 * [**`test/extended/fixtures`**](fixtures) contains the JSON and YAML fixtures that are meant to be used by the extended tests.
 * [**`test/extended/[images,builds,...]`**](builds) each of these Go packages contains extended tests that are related to each other. For example, the `images` directory should contain test cases that are exercising usage of various Docker images in OpenShift.
-* [**`hack/test-extended/[group]/run.sh`**](../../hack/test-extended) is the shell script that sets up any needed dependencies and then launches the extended tests whose top level ginkgo spec's Describe call reference the [group](#groups-vs-packages)
-* [**`test/extended/extended_test.go`**](extended_test.go) is a runner for all extended test packages. Look inside this file to see how you can add new extended test Go package to be compiled:
-```go
-	_ "github.com/openshift/origin/test/extended/builds"
-	_ "github.com/openshift/origin/test/extended/images"
-```
 
 Groups vs. packages
 -------------------
@@ -201,7 +163,7 @@ var _ = g.Describe("[default] STI build", func() {
 	)
 
 	g.Describe("Building from a template", func() {
-		g.It(fmt.Sprintf("should create a image from %q template", stiBuildFixture), func() {
+		g.It(fmt.Sprintf("should create a image from %q template", filepath.Base(stiBuildFixture)), func() {
 			...
 		}
 	}

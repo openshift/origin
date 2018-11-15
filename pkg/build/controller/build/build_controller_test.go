@@ -1256,7 +1256,23 @@ func fakeBuildClient(objects ...runtime.Object) buildv1client.Interface {
 }
 
 func fakeKubeExternalClientSet(objects ...runtime.Object) kubernetes.Interface {
-	return fake.NewSimpleClientset(objects...)
+	builderSA := &corev1.ServiceAccount{}
+	builderSA.Name = "builder"
+	builderSA.Namespace = "namespace"
+	builderSA.Secrets = []corev1.ObjectReference{
+		{
+			Name: "secret",
+		},
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret",
+			Namespace: "namespace",
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+	}
+	return fake.NewSimpleClientset(append(objects, builderSA, secret)...)
 }
 
 func fakeKubeInternalClientSet(objects ...runtime.Object) kubernetes.Interface {
@@ -1297,12 +1313,6 @@ func newFakeBuildController(buildClient buildv1client.Interface, imageClient ima
 	}
 	if kubeExternalClient == nil {
 		kubeExternalClient = fakeKubeExternalClientSet()
-	}
-	if kubeInternalClient == nil {
-		builderSA := corev1.ServiceAccount{}
-		builderSA.Name = "builder"
-		builderSA.Namespace = "namespace"
-		kubeInternalClient = fakeKubeInternalClientSet(&builderSA)
 	}
 
 	kubeExternalInformers := fakeKubeExternalInformers(kubeExternalClient)

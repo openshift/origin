@@ -52,8 +52,7 @@ os::test::junit::declare_suite_start "end-to-end/core"
 os::log::info "openshift version: `openshift version`"
 os::log::info "oc version:        `oc version`"
 
-# Ensure that the master service responds to DNS requests. At this point 'oc cluster up' has verified
-# that the service is up
+# Ensure that the master service responds to DNS requests.
 MASTER_SERVICE_IP="172.30.0.1"
 DNS_SERVICE_IP="172.30.0.2"
 # find the IP of the master service again by asking the IP of the master service, to verify port 53 tcp/udp is routed by the service

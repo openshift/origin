@@ -68,6 +68,7 @@
 // test/extended/testdata/builds/test-cds-dockerbuild.json
 // test/extended/testdata/builds/test-cds-sourcebuild.json
 // test/extended/testdata/builds/test-context-build.json
+// test/extended/testdata/builds/test-docker-app/Dockerfile
 // test/extended/testdata/builds/test-docker-build-pullsecret.json
 // test/extended/testdata/builds/test-docker-build.json
 // test/extended/testdata/builds/test-docker-no-outputname.json
@@ -3370,6 +3371,24 @@ func testExtendedTestdataBuildsTestContextBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-context-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestDockerAppDockerfile = []byte(`FROM docker-registry.default.svc:5000/openshift/nodejs
+RUN touch /tmp/foo`)
+
+func testExtendedTestdataBuildsTestDockerAppDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestDockerAppDockerfile, nil
+}
+
+func testExtendedTestdataBuildsTestDockerAppDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestDockerAppDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-docker-app/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -16151,7 +16170,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Build and run .NET Core 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
+              "description": "RETIRED: Build and run .NET Core 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
               "iconClass": "icon-dotnet",
               "openshift.io/display-name": ".NET Core 2.0",
               "sampleContextDir": "app",
@@ -16187,7 +16206,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-apache",
               "openshift.io/display-name": "Apache HTTP Server (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/httpd-ex.git",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
               "tags": "builder,httpd"
             },
@@ -16206,7 +16225,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-apache",
               "openshift.io/display-name": "Apache HTTP Server 2.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/httpd-ex.git",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
               "tags": "builder,httpd",
               "version": "2.4"
@@ -16669,11 +16688,11 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         "tags": [
           {
             "annotations": {
-              "description": "Build and run Node.js applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
+              "description": "Build and run Node.js applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs",
               "tags": "builder,nodejs"
             },
@@ -16692,7 +16711,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 0.10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:0.10,nodejs:0.1,nodejs",
               "tags": "hidden,nodejs",
               "version": "0.10"
@@ -16712,7 +16731,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:4,nodejs",
               "tags": "hidden,builder,nodejs",
               "version": "4"
@@ -16732,7 +16751,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:6,nodejs",
               "tags": "builder,nodejs",
               "version": "6"
@@ -16752,7 +16771,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "8"
             },
@@ -16767,17 +16786,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Build and run Node.js 8 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.",
+              "description": "Build and run Node.js 8 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 8 (RHOAR)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "8"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/bucharestgold/centos7-s2i-nodejs:8.x"
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:8.x"
             },
             "name": "8-RHOAR",
             "referencePolicy": {
@@ -16786,17 +16805,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Build and run Node.js 10 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.",
+              "description": "Build and run Node.js 10 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "10"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/bucharestgold/centos7-s2i-nodejs:10.x"
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:10.x"
             },
             "name": "10",
             "referencePolicy": {
@@ -16936,7 +16955,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php",
               "tags": "builder,php"
             },
@@ -16955,7 +16974,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:5.5,php",
               "tags": "hidden,builder,php",
               "version": "5.5"
@@ -16975,7 +16994,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:5.6,php",
               "tags": "hidden,builder,php",
               "version": "5.6"
@@ -16995,7 +17014,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 7.0",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:7.0,php",
               "tags": "builder,php",
               "version": "7.0"
@@ -17015,7 +17034,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 7.1",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:7.1,php",
               "tags": "builder,php",
               "version": "7.1"
@@ -17170,7 +17189,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python",
               "tags": "builder,python"
             },
@@ -17189,7 +17208,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.3",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.3,python",
               "tags": "hidden,builder,python",
               "version": "3.3"
@@ -17209,7 +17228,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:2.7,python",
               "tags": "builder,python",
               "version": "2.7"
@@ -17229,7 +17248,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.4,python",
               "tags": "hidden,builder,python",
               "version": "3.4"
@@ -17249,7 +17268,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.5,python",
               "tags": "builder,python",
               "version": "3.5"
@@ -17269,7 +17288,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.6,python",
               "tags": "builder,python",
               "version": "3.6"
@@ -17352,7 +17371,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby",
               "tags": "builder,ruby"
             },
@@ -17371,7 +17390,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.0",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.0,ruby",
               "tags": "hidden,builder,ruby",
               "version": "2.0"
@@ -17391,7 +17410,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.2",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.2,ruby",
               "tags": "hidden,builder,ruby",
               "version": "2.2"
@@ -17411,7 +17430,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.3",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.3,ruby",
               "tags": "builder,ruby",
               "version": "2.3"
@@ -17431,7 +17450,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.4,ruby",
               "tags": "builder,ruby",
               "version": "2.4"
@@ -17689,6 +17708,124 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
+          "openshift.io/display-name": ".NET Core"
+        },
+        "name": "dotnet"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run .NET Core applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core (Latest)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.1"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 2.1 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.1",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.1,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet21",
+              "version": "2.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnet-21-rhel7:2.1"
+            },
+            "name": "2.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "RETIRED: Build and run .NET Core 2.0 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.0",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet20",
+              "version": "2.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnet-20-rhel7:2.0"
+            },
+            "name": "2.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 1.1 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/1.1/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 1.1",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-1.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:1.1,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnetcore11",
+              "version": "1.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnetcore-11-rhel7:1.1"
+            },
+            "name": "1.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 1.0 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/1.0/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 1.0",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-1.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:1.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnetcore10",
+              "version": "1.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnetcore-10-rhel7:1.0"
+            },
+            "name": "1.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
           "openshift.io/display-name": "Apache HTTP Server (httpd)"
         },
         "name": "httpd"
@@ -17701,7 +17838,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-apache",
               "openshift.io/display-name": "Apache HTTP Server (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/httpd-ex.git",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
               "tags": "builder,httpd"
             },
@@ -17720,7 +17857,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-apache",
               "openshift.io/display-name": "Apache HTTP Server 2.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/httpd-ex.git",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
               "tags": "builder,httpd",
               "version": "2.4"
@@ -18183,11 +18320,11 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
         "tags": [
           {
             "annotations": {
-              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
+              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs",
               "tags": "builder,nodejs"
             },
@@ -18206,7 +18343,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 0.10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:0.10,nodejs:0.1,nodejs",
               "tags": "hidden,nodejs",
               "version": "0.10"
@@ -18226,7 +18363,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:4,nodejs",
               "tags": "hidden,builder,nodejs",
               "version": "4"
@@ -18246,7 +18383,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:6,nodejs",
               "tags": "builder,nodejs",
               "version": "6"
@@ -18266,7 +18403,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "8"
             },
@@ -18281,11 +18418,11 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Build and run Node.js 8 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.",
+              "description": "Build and run Node.js 8 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "OpenShift Application Runtimes Node.js 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "8"
             },
@@ -18300,11 +18437,11 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.",
+              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "OpenShift Application Runtimes Node.js 10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "10"
             },
@@ -18450,7 +18587,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php",
               "tags": "builder,php"
             },
@@ -18469,7 +18606,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:5.5,php",
               "tags": "hidden,builder,php",
               "version": "5.5"
@@ -18489,7 +18626,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:5.6,php",
               "tags": "hidden,builder,php",
               "version": "5.6"
@@ -18509,7 +18646,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 7.0",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:7.0,php",
               "tags": "builder,php",
               "version": "7.0"
@@ -18529,7 +18666,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 7.1",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:7.1,php",
               "tags": "builder,php",
               "version": "7.1"
@@ -18684,7 +18821,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python",
               "tags": "builder,python"
             },
@@ -18703,7 +18840,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.3",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.3,python",
               "tags": "hidden,builder,python",
               "version": "3.3"
@@ -18723,7 +18860,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:2.7,python",
               "tags": "builder,python",
               "version": "2.7"
@@ -18743,7 +18880,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.4,python",
               "tags": "hidden,builder,python",
               "version": "3.4"
@@ -18763,7 +18900,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.5,python",
               "tags": "builder,python",
               "version": "3.5"
@@ -18783,7 +18920,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.6,python",
               "tags": "builder,python",
               "version": "3.6"
@@ -18866,7 +19003,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby",
               "tags": "builder,ruby"
             },
@@ -18885,7 +19022,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.0",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.0,ruby",
               "tags": "hidden,builder,ruby",
               "version": "2.0"
@@ -18905,7 +19042,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.2",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.2,ruby",
               "tags": "hidden,builder,ruby",
               "version": "2.2"
@@ -18925,7 +19062,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.3",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.3,ruby",
               "tags": "builder,ruby",
               "version": "2.3"
@@ -18945,7 +19082,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.4,ruby",
               "tags": "builder,ruby",
               "version": "2.4"
@@ -21177,7 +21314,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
         "app": "cakephp-mysql-persistent",
         "template": "cakephp-mysql-persistent"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
             "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.",
@@ -21777,7 +21914,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
         "app": "cakephp-mysql-example",
         "template": "cakephp-mysql-example"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
             "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
@@ -30366,7 +30503,7 @@ var _examplesJenkinsPipelineBluegreenPipelineYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
   template: bluegreen-pipeline
-message: A Jenkins server will be automatically instantiated in this project to manage
+message: A Jenkins server must be instantiated in this project to manage
   the Pipeline BuildConfig created by this template.  You will be able to log in to
   it using your OpenShift user credentials.
 metadata:
@@ -31301,7 +31438,7 @@ kind: Template
 labels:
   template: application-template-sample-pipeline
 message: |-
-  A Jenkins server will be automatically instantiated in this project to manage
+  A Jenkins server must be instantiated in this project to manage
   the Pipeline BuildConfig created by this template.  You will be able to log in to
   it using your OpenShift user credentials.
 metadata:
@@ -31670,7 +31807,7 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
         "app": "cakephp-mysql-example",
         "template": "cakephp-mysql-example"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
             "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
@@ -32415,6 +32552,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-cds-dockerbuild.json": testExtendedTestdataBuildsTestCdsDockerbuildJson,
 	"test/extended/testdata/builds/test-cds-sourcebuild.json": testExtendedTestdataBuildsTestCdsSourcebuildJson,
 	"test/extended/testdata/builds/test-context-build.json": testExtendedTestdataBuildsTestContextBuildJson,
+	"test/extended/testdata/builds/test-docker-app/Dockerfile": testExtendedTestdataBuildsTestDockerAppDockerfile,
 	"test/extended/testdata/builds/test-docker-build-pullsecret.json": testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
 	"test/extended/testdata/builds/test-docker-build.json": testExtendedTestdataBuildsTestDockerBuildJson,
 	"test/extended/testdata/builds/test-docker-no-outputname.json": testExtendedTestdataBuildsTestDockerNoOutputnameJson,
@@ -32838,6 +32976,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-cds-dockerbuild.json": &bintree{testExtendedTestdataBuildsTestCdsDockerbuildJson, map[string]*bintree{}},
 					"test-cds-sourcebuild.json": &bintree{testExtendedTestdataBuildsTestCdsSourcebuildJson, map[string]*bintree{}},
 					"test-context-build.json": &bintree{testExtendedTestdataBuildsTestContextBuildJson, map[string]*bintree{}},
+					"test-docker-app": &bintree{nil, map[string]*bintree{
+						"Dockerfile": &bintree{testExtendedTestdataBuildsTestDockerAppDockerfile, map[string]*bintree{}},
+					}},
 					"test-docker-build-pullsecret.json": &bintree{testExtendedTestdataBuildsTestDockerBuildPullsecretJson, map[string]*bintree{}},
 					"test-docker-build.json": &bintree{testExtendedTestdataBuildsTestDockerBuildJson, map[string]*bintree{}},
 					"test-docker-no-outputname.json": &bintree{testExtendedTestdataBuildsTestDockerNoOutputnameJson, map[string]*bintree{}},

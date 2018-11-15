@@ -49,8 +49,6 @@ os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 os::util::ensure_tmpfs "${ETCD_DATA_DIR}"
 
-echo "Logging to ${LOG_DIR}..."
-
 os::log::system::start
 
 # Prevent user environment from colliding with the test setup
@@ -69,6 +67,7 @@ os::cmd::expect_success_and_not_text "KUBECONFIG='' oc version" "Missing or inco
 os::test::junit::declare_suite_end
 
 export HOME="${FAKE_HOME_DIR}"
+${USE_SUDO:+sudo} rm -rf "${FAKE_HOME_DIR}"
 mkdir -p "${HOME}/.kube"
 cp "${LOCALUP_CONFIG}/admin.kubeconfig" "${HOME}/.kube/non-default-config"
 export KUBECONFIG="${HOME}/.kube/non-default-config"

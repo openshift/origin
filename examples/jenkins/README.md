@@ -1,6 +1,6 @@
 OpenShift 3 Jenkins Example
 =========================
-This sample walks through the process of starting up an OpenShift cluster and deploying a Jenkins Pod in it.
+This sample walks through the process of login to an OpenShift cluster and deploying a Jenkins Pod in it.
 It also configures a simple application and then creates a Jenkins job to trigger a build of that application.
 
 The Jenkins job will trigger OpenShift to build+deploy a test version of the application, validate that
@@ -9,13 +9,9 @@ the deployment works, and then tag the test version into production.
 Steps
 -----
 
-1. Unless you have built OpenShift locally, be sure  to grab the [latest oc command](https://github.com/openshift/origin/releases/latest)
+1. Unless you have built OpenShift locally, be sure to grab the [latest oc command](https://github.com/openshift/origin/releases/latest)
 
-1. Stand up an openshift cluster from origin master, installing the standard imagestreams to the openshift namespace:
-
-        $ oc cluster up
-
-1. Login as a normal user (any non-empty user name and password is fine)
+1. Login as a normal user
 
         $ oc login
 
@@ -37,7 +33,7 @@ Steps
     
 1. View/Manage Jenkins
 
-    If you have a router running (`oc cluster up` provides one), run:
+    If you have a router running, run:
 
         $ oc get route
 

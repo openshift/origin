@@ -3,6 +3,7 @@ package mirror
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -104,14 +105,17 @@ func parseArgs(args []string, overlap map[string]string) ([]Mapping, error) {
 	return mappings, nil
 }
 
-func parseFile(filename string, overlap map[string]string) ([]Mapping, error) {
+func parseFile(filename string, overlap map[string]string, in io.Reader) ([]Mapping, error) {
 	var fileMappings []Mapping
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
+	if filename != "-" {
+		f, err := os.Open(filename)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		in = f
 	}
-	defer f.Close()
-	s := bufio.NewScanner(f)
+	s := bufio.NewScanner(in)
 	lineNumber := 0
 	for s.Scan() {
 		line := s.Text()

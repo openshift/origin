@@ -36,6 +36,14 @@ type HybridProxier struct {
 	// when we need to delete from an existing proxier when adding to a new one.
 	usingUserspace     map[types.NamespacedName]bool
 	usingUserspaceLock sync.Mutex
+
+	// There are some bugs where we can call switchService() multiple times
+	// even though we don't actually want to switch. This calls OnServiceDelete()
+	// multiple times for the underlying proxies, which causes bugs.
+	// See bz 1635330
+	// So, add an additional state store to ensure we only switch once
+	switchedToUserspace     map[types.NamespacedName]bool
+	switchedToUserspaceLock sync.Mutex
 }
 
 func NewHybridProxier(
@@ -58,7 +66,8 @@ func NewHybridProxier(
 		syncPeriod:               syncPeriod,
 		serviceLister:            serviceLister,
 
-		usingUserspace: make(map[types.NamespacedName]bool),
+		usingUserspace:      make(map[types.NamespacedName]bool),
+		switchedToUserspace: make(map[types.NamespacedName]bool),
 	}, nil
 }
 
@@ -111,6 +120,10 @@ func (p *HybridProxier) OnServiceDelete(service *api.Service) {
 	p.usingUserspaceLock.Lock()
 	defer p.usingUserspaceLock.Unlock()
 
+	// Careful, we always need to get this lock after usingUserspace, or else we could deadlock
+	p.switchedToUserspaceLock.Lock()
+	defer p.switchedToUserspaceLock.Unlock()
+
 	if isUsingUserspace, ok := p.usingUserspace[svcName]; ok && isUsingUserspace {
 		glog.V(6).Infof("hybrid proxy: del svc %s/%s in unidling proxy", service.Namespace, service.Name)
 		p.unidlingServiceHandler.OnServiceDelete(service)
@@ -118,6 +131,8 @@ func (p *HybridProxier) OnServiceDelete(service *api.Service) {
 		glog.V(6).Infof("hybrid proxy: del svc %s/%s in main proxy", service.Namespace, service.Name)
 		p.mainServicesHandler.OnServiceDelete(service)
 	}
+
+	delete(p.switchedToUserspace, svcName)
 }
 
 func (p *HybridProxier) OnServiceSynced() {
@@ -146,7 +161,21 @@ func (p *HybridProxier) shouldEndpointsUseUserspace(endpoints *api.Endpoints) bo
 	return false
 }
 
+// switchService moves a service between the unidling and main proxies.
 func (p *HybridProxier) switchService(name types.NamespacedName) {
+	// We shouldn't call switchService more than once (per switch), but there
+	// are some logic bugs where this happens
+	// So, cache the real state and don't allow this to be called twice.
+	// This assumes the caller already holds usingUserspaceLock
+	p.switchedToUserspaceLock.Lock()
+	defer p.switchedToUserspaceLock.Unlock()
+
+	switched, ok := p.switchedToUserspace[name]
+	if ok && p.usingUserspace[name] == switched {
+		glog.V(6).Infof("hybrid proxy: ignoring duplicate switchService(%s/%s)", name.Namespace, name.Name)
+		return
+	}
+
 	svc, err := p.serviceLister.Services(name.Namespace).Get(name.Name)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error while getting service %s/%s from cache: %v", name.Namespace, name.String(), err))
@@ -162,6 +191,8 @@ func (p *HybridProxier) switchService(name types.NamespacedName) {
 		p.mainServicesHandler.OnServiceAdd(svc)
 		p.unidlingServiceHandler.OnServiceDelete(svc)
 	}
+
+	p.switchedToUserspace[name] = p.usingUserspace[name]
 }
 
 func (p *HybridProxier) OnEndpointsAdd(endpoints *api.Endpoints) {
@@ -240,6 +271,9 @@ func (p *HybridProxier) OnEndpointsDelete(endpoints *api.Endpoints) {
 	glog.V(6).Infof("hybrid proxy: (always) del ep %s/%s in unidling proxy", endpoints.Namespace, endpoints.Name)
 	p.unidlingEndpointsHandler.OnEndpointsDelete(endpoints)
 
+	// Careful - there is the potential for deadlocks here,
+	// except that we always get usingUserspaceLock first, then
+	// get switchedToUserspaceLock.
 	p.usingUserspaceLock.Lock()
 	defer p.usingUserspaceLock.Unlock()
 

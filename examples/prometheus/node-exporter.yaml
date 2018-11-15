@@ -8,7 +8,7 @@ items:
   kind: ServiceAccount
   metadata:
     name: prometheus-node-exporter
-  # You must grant hostaccess via: oadm policy add-scc-to-user -z prometheus-node-exporter hostaccess
+  # You must grant hostaccess via: oc adm policy add-scc-to-user -z prometheus-node-exporter hostaccess
   # in order for the node-exporter to access the host network and mount /proc and /sys from the host
 - apiVersion: v1
   kind: Service
