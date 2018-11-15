@@ -61,7 +61,8 @@ EOF
 	--nb-address "tcp://${ovn_master_ip}:6641" \
 	--sb-address "tcp://${ovn_master_ip}:6642" \
 	--init-node ${host} \
-	--init-gateways
+	--init-gateways \
+	--nodeport
 }
 
 if [[ -n "${OPENSHIFT_OVN_KUBERNETES}" ]]; then
