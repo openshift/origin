@@ -198,7 +198,6 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 
 	// reset, since Complete alters the default
 	masterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
-
 	if err := CreateMasterCerts(masterArgs); err != nil {
 		return nil, err
 	}
@@ -432,6 +431,7 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	// we need to set enable-aggregator-routing so that APIServices are resolved from Endpoints
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
 	kubeAPIServerConfig.APIServerArguments["audit-log-format"] = kubecontrolplanev1.Arguments{"json"}
+
 	go openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh)
 
 	url, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
@@ -469,6 +469,7 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		return fmt.Errorf("couldn't find free address for OpenShift API: %v", err)
 	}
 	openshiftAPIServerConfig.ServingInfo.BindAddress = openshiftAddrStr
+
 	go openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh)
 
 	openshiftAddr, err := url.Parse(fmt.Sprintf("https://%s", openshiftAddrStr))
@@ -601,18 +602,25 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 	cmdLineArgs["use-service-account-credentials"] = []string{"true"}
 	cmdLineArgs["cluster-signing-cert-file"] = []string{""}
 	cmdLineArgs["cluster-signing-key-file"] = []string{""}
+	cmdLineArgs["cert-dir"] = []string{""}
+	cmdLineArgs["tls-cert-file"] = []string{masterConfig.ServingInfo.ServerCert.CertFile}
+	cmdLineArgs["tls-private-key-file"] = []string{masterConfig.ServingInfo.ServerCert.KeyFile}
 	cmdLineArgs["leader-elect"] = []string{"false"}
 
 	kubeAddrStr, err := FindAvailableBindAddress(10000, 29999)
 	if err != nil {
 		return fmt.Errorf("couldn't find free address for Kubernetes controller-mananger: %v", err)
 	}
-	kubeAddr, err := url.Parse(fmt.Sprintf("http://%s", kubeAddrStr))
+	kubeAddr, err := url.Parse(fmt.Sprintf("https://%s", kubeAddrStr))
 	if err != nil {
 		return err
 	}
 	cmdLineArgs["bind-address"] = []string{kubeAddr.Hostname()}
-	cmdLineArgs["port"] = []string{kubeAddr.Port()}
+	cmdLineArgs["secure-port"] = []string{kubeAddr.Port()}
+
+	// we need to explicitly disable insecure port to prevent bind failures due
+	// to default port being taken already by other instances of CM running in parallel
+	cmdLineArgs["port"] = []string{"0"}
 
 	args := []string{}
 	for key, value := range cmdLineArgs {
@@ -665,6 +673,7 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 		return fmt.Errorf("couldn't find free address for OpenShift controller-manager: %v", err)
 	}
 	openshiftControllerConfig.ServingInfo.BindAddress = openshiftAddrStr
+
 	go openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig)
 
 	openshiftAddr, err := url.Parse(fmt.Sprintf("https://%s", openshiftAddrStr))
