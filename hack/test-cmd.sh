@@ -67,6 +67,7 @@ os::cmd::expect_success_and_not_text "KUBECONFIG='' oc version" "Missing or inco
 os::test::junit::declare_suite_end
 
 export HOME="${FAKE_HOME_DIR}"
+${USE_SUDO:+sudo} rm -rf "${FAKE_HOME_DIR}"
 mkdir -p "${HOME}/.kube"
 cp "${LOCALUP_CONFIG}/admin.kubeconfig" "${HOME}/.kube/non-default-config"
 export KUBECONFIG="${HOME}/.kube/non-default-config"
