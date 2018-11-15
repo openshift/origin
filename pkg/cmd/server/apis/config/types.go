@@ -55,6 +55,7 @@ var (
 	APIGroupAutoscaling           = "autoscaling"
 	APIGroupBatch                 = "batch"
 	APIGroupCertificates          = "certificates.k8s.io"
+	APIGroupCoordination          = "coordination.k8s.io"
 	APIGroupNetworking            = "networking.k8s.io"
 	APIGroupPolicy                = "policy"
 	APIGroupStorage               = "storage.k8s.io"
@@ -91,9 +92,10 @@ var (
 		APIGroupAuthentication:        {"v1", "v1beta1"},
 		APIGroupAuthorization:         {"v1", "v1beta1"},
 		APIGroupAuthorizationRbac:     {"v1", "v1beta1"},
-		APIGroupAutoscaling:           {"v1", "v2beta1"},
+		APIGroupAutoscaling:           {"v1", "v2beta1", "v2beta2"},
 		APIGroupBatch:                 {"v1", "v1beta1"},
 		APIGroupCertificates:          {"v1beta1"},
+		APIGroupCoordination:          {"v1beta1"},
 		APIGroupImagePolicy:           {},
 		APIGroupNetworking:            {"v1"},
 		APIGroupPolicy:                {"v1beta1"},
