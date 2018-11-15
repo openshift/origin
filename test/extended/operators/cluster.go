@@ -3,15 +3,20 @@ package operators
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
+	"github.com/beorn7/perks/quantile"
+
+	"github.com/beorn7/perks/histogram"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -107,6 +112,73 @@ var _ = g.Describe("[Feature:Platform][Suite:openshift/smoke-4] Managed cluster 
 		}
 
 		o.Expect(msg).To(o.BeEmpty())
+	})
+
+	g.It("respond to 99% of API requests within 1s over 2 minutes with < 0.5% error rate", func() {
+		cfg, err := e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		cfg.QPS = 100
+		cfg.Burst = 100
+		cfg.Timeout = 10 * time.Second
+		cfg.Dial = (&net.Dialer{Timeout: 10 * time.Second}).DialContext
+		c, err := coreclient.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for i := 0; i < 3; i++ {
+			_, err := c.Namespaces().Get("kube-system", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		h := histogram.New(10)
+		q := quantile.NewHighBiased(0.01)
+		min, max := float64(1e30), float64(0)
+		var errs []string
+
+		start := time.Now()
+		for i := 0; ; i++ {
+			// create a new connection to get a different load balancer every reasonable chunk
+			if (i+1)%20 == 0 {
+				cfg.Dial = (&net.Dialer{Timeout: 10 * time.Second}).DialContext
+				c, err = coreclient.NewForConfig(cfg)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
+			startGet := time.Now()
+			_, err := c.Namespaces().Get("kube-system", metav1.GetOptions{})
+			endGet := time.Now()
+			if err != nil {
+				errs = append(errs, err.Error())
+			} else {
+				s := endGet.Sub(startGet).Seconds()
+				if s > max {
+					max = s
+				}
+				if s < min {
+					min = s
+				}
+				h.Insert(s)
+				q.Insert(s)
+			}
+			if endGet.Sub(start) > 2*time.Minute {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		for _, b := range h.Bins() {
+			e2e.Logf("Bin %2.3f: %3d", b.Mean(), b.Count)
+		}
+		e2e.Logf("Quantile   0: %2.3f", min)
+		for _, quantile := range []float64{0.5, 0.9, 0.99} {
+			e2e.Logf("Quantile %3.0f: %2.3f", quantile*100, q.Query(quantile))
+		}
+		e2e.Logf("Quantile 100: %2.3f", max)
+		e2e.Logf("Errors: %d", len(errs))
+
+		o.Expect(q.Query(0.50)).To(o.BeNumerically("<", 0.25))
+		o.Expect(q.Query(0.90)).To(o.BeNumerically("<", 0.5))
+		o.Expect(q.Query(0.99)).To(o.BeNumerically("<", 1))
+		o.Expect(float64(len(errs))/float64(q.Count())).To(o.BeNumerically("<", 0.005), "\n\n"+strings.Join(errs, "\n"))
 	})
 })
 
