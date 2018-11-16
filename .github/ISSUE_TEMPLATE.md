@@ -20,7 +20,6 @@ Documentation issues are better reported at https://github.com/openshift/openshi
 ##### Expected Result
 
 ##### Additional Information
-[try to run `$ oc adm diagnostics` (or `oadm diagnostics`) command if possible]
 [if you are reporting issue related to builds, provide build logs with `BUILD_LOGLEVEL=5`]
 [consider attaching output of the `$ oc get all -o json -n <namespace>` command to the issue]
 [visit https://docs.openshift.org/latest/welcome/index.html]
