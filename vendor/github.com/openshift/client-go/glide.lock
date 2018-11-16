@@ -1,5 +1,5 @@
 hash: 63644647f862ec7482e1c18412fc08babd74694a38b4ca257e42a0656677f513
-updated: 2018-11-07T13:15:35.008895803-05:00
+updated: 2018-11-14T15:33:05.000941213-05:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -49,7 +49,7 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: fd594d07117b2d47134db828fb9ea85efa2a0c2f
+  version: a9f1717256838b91cb9f2406018e52cb905845e0
   subpackages:
   - apps/v1
   - authorization/v1

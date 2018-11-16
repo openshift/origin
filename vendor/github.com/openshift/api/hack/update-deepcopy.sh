@@ -10,6 +10,6 @@ verify="${VERIFY:-}"
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
   github.com/openshift/api/generated \
   github.com/openshift/api \
-  "apps:v1 authorization:v1 build:v1 config:v1 image:v1,docker10,dockerpre012 kubecontrolplane:v1 legacyconfig:v1 network:v1 oauth:v1 openshiftcontrolplane:v1 operator:v1alpha1 osin:v1 project:v1 quota:v1 route:v1 security:v1 servicecertsigner:v1alpha1 template:v1 user:v1 webconsole:v1" \
+  "apps:v1 authorization:v1 build:v1 config:v1 image:v1,docker10,dockerpre012 kubecontrolplane:v1 legacyconfig:v1 network:v1 oauth:v1 openshiftcontrolplane:v1 operator:v1 operator:v1alpha1 osin:v1 project:v1 quota:v1 route:v1 security:v1 servicecertsigner:v1alpha1 template:v1 user:v1 webconsole:v1" \
   --go-header-file ${SCRIPT_ROOT}/hack/empty.txt \
   ${verify}

@@ -1,4 +1,4 @@
-package apiservicecabundle
+package controller
 
 import (
 	"testing"
@@ -13,6 +13,8 @@ import (
 	apiregistrationapiv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	apiserviceclientfake "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/fake"
 	apiservicelister "k8s.io/kube-aggregator/pkg/client/listers/apiregistration/v1"
+
+	"github.com/openshift/service-serving-cert-signer/pkg/controller/api"
 )
 
 func TestSyncAPIService(t *testing.T) {
@@ -37,7 +39,7 @@ func TestSyncAPIService(t *testing.T) {
 			name: "requested and empty",
 			startingAPIServices: []runtime.Object{
 				&apiregistrationapiv1.APIService{
-					ObjectMeta: metav1.ObjectMeta{Name: "foo", Annotations: map[string]string{InjectCABundleAnnotationName: "true"}},
+					ObjectMeta: metav1.ObjectMeta{Name: "foo", Annotations: map[string]string{api.InjectCABundleAnnotationName: "true"}},
 				},
 			},
 			key:      "foo",
@@ -59,7 +61,7 @@ func TestSyncAPIService(t *testing.T) {
 			name: "requested and nochange",
 			startingAPIServices: []runtime.Object{
 				&apiregistrationapiv1.APIService{
-					ObjectMeta: metav1.ObjectMeta{Name: "foo", Annotations: map[string]string{InjectCABundleAnnotationName: "true"}},
+					ObjectMeta: metav1.ObjectMeta{Name: "foo", Annotations: map[string]string{api.InjectCABundleAnnotationName: "true"}},
 					Spec: apiregistrationapiv1.APIServiceSpec{
 						CABundle: []byte("content"),
 					},
@@ -77,7 +79,7 @@ func TestSyncAPIService(t *testing.T) {
 			name: "requested and differe",
 			startingAPIServices: []runtime.Object{
 				&apiregistrationapiv1.APIService{
-					ObjectMeta: metav1.ObjectMeta{Name: "foo", Annotations: map[string]string{InjectCABundleAnnotationName: "true"}},
+					ObjectMeta: metav1.ObjectMeta{Name: "foo", Annotations: map[string]string{api.InjectCABundleAnnotationName: "true"}},
 					Spec: apiregistrationapiv1.APIServiceSpec{
 						CABundle: []byte("old"),
 					},

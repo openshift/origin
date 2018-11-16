@@ -16,5 +16,5 @@ origin.iml
 .tag*
 .project
 *.go~
-tags
 .envrc
+.hg_archival.txt

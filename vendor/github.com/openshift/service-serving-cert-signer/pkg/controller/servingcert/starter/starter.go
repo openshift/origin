@@ -1,4 +1,4 @@
-package servingcert
+package starter
 
 import (
 	"fmt"
@@ -8,47 +8,48 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	configv1 "github.com/openshift/api/config/v1"
 	servicecertsignerv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
+	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert/controller"
 )
 
-type ServingCertOptions struct {
-	Config         *servicecertsignerv1alpha1.ServiceServingCertSignerConfig
-	LeaderElection configv1.LeaderElection
+func ToStartFunc(config *servicecertsignerv1alpha1.ServiceServingCertSignerConfig) (controllercmd.StartFunc, error) {
+	ca, err := crypto.GetCA(config.Signer.CertFile, config.Signer.KeyFile, "")
+	if err != nil {
+		return nil, err
+	}
+
+	opts := &servingCertOptions{ca: ca}
+	return opts.runServingCert, nil
 }
 
-func (o *ServingCertOptions) RunServingCert(clientConfig *rest.Config, stopCh <-chan struct{}) error {
+type servingCertOptions struct {
+	ca *crypto.CA
+}
+
+func (o *servingCertOptions) runServingCert(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 	kubeInformers := informers.NewSharedInformerFactory(kubeClient, 2*time.Minute)
 
-	signer := o.Config.Signer
-	if len(signer.CertFile) == 0 || len(signer.KeyFile) == 0 {
-		return fmt.Errorf("no signing cert/key pair provided")
-	}
-	ca, err := crypto.GetCA(signer.CertFile, signer.KeyFile, "")
-	if err != nil {
-		return err
-	}
-
-	servingCertController := NewServiceServingCertController(
+	servingCertController := controller.NewServiceServingCertController(
 		kubeInformers.Core().V1().Services(),
 		kubeInformers.Core().V1().Secrets(),
 		kubeClient.CoreV1(),
 		kubeClient.CoreV1(),
-		ca,
+		o.ca,
 		// TODO this needs to be configurable
 		"cluster.local",
 		2*time.Minute,
 	)
-	servingCertUpdateController := NewServiceServingCertUpdateController(
+	servingCertUpdateController := controller.NewServiceServingCertUpdateController(
 		kubeInformers.Core().V1().Services(),
 		kubeInformers.Core().V1().Secrets(),
 		kubeClient.CoreV1(),
-		ca,
+		o.ca,
 		// TODO this needs to be configurable
 		"cluster.local",
 		20*time.Minute,
