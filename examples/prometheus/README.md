@@ -89,7 +89,7 @@ CPU consumption per system service or container on the infrastructure nodes.
 
 CPU consumed per namespace on the cluster.
 
-> drop_common_labels(sort_desc(sum without (cpu) (rate(container_cpu_usage_seconds_total{container_name="prometheus"}[5m]))))
+> sort_desc(sum without (cpu) (rate(container_cpu_usage_seconds_total{container_name="prometheus"}[5m])))
 
 CPU per instance of Prometheus container.
 
@@ -114,11 +114,11 @@ The number of containers that start or restart over the last ten minutes.
 
 ### API related queries
 
-> sort_desc(drop_common_labels(sum without (instance,type,code) (rate(apiserver_request_count{verb=~"POST|PUT|DELETE|PATCH"}[5m]))))
+> sort_desc(sum without (instance,type,code) (rate(apiserver_request_count{verb=~"POST|PUT|DELETE|PATCH"}[5m])))
 
 Number of mutating API requests being made to the control plane.
 
-> sort_desc(drop_common_labels(sum without (instance,type,code) (rate(apiserver_request_count{verb=~"GET|LIST|WATCH"}[5m]))))
+> sort_desc(sum without (instance,type,code) (rate(apiserver_request_count{verb=~"GET|LIST|WATCH"}[5m])))
 
 Number of non-mutating API requests being made to the control plane.
 
