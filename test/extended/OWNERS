@@ -1,7 +1,6 @@
 reviewers:
   - smarterclayton
   - bparees
-  - stevekuznetsov
   - mfojtik
   - gabemontero
   - deads2k
@@ -13,7 +12,6 @@ reviewers:
 approvers:
   - smarterclayton
   - bparees
-  - stevekuznetsov
   - mfojtik
   - knobunc
   - ironcladlou

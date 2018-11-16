@@ -4,7 +4,6 @@ reviewers:
   - knobunc
   - ironcladlou
   - squeed
-  - stevekuznetsov
   - rajatchopra
   - JacobTanenbaum
   - bparees
@@ -14,4 +13,3 @@ approvers:
   - knobunc
   - ironcladlou
   - squeed
-  - stevekuznetsov

@@ -2,7 +2,6 @@ reviewers:
   - smarterclayton
   - deads2k
   - bparees
-  - stevekuznetsov
   - soltysh
   - tbielawa
 approvers:
@@ -12,6 +11,5 @@ approvers:
   - mfojtik
   - eparis
   - derekwaynecarr
-  - stevekuznetsov # for build and tooling changes
   - tbielawa # also for build and automated release tooling changes
   - pweil-
