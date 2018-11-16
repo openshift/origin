@@ -200,7 +200,7 @@ func (opt *Options) Run(args []string) error {
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
-	if opt.DetectFlakes > 0 && fail > 0 {
+	if fail > 0 && fail <= opt.DetectFlakes {
 		var retries []*testCase
 		for _, test := range failing {
 			retries = append(retries, test.Retry())
@@ -229,7 +229,7 @@ func (opt *Options) Run(args []string) error {
 		}
 	}
 
-	if fail > 0 {
+	if len(failing) > 0 {
 		names := testNames(failing)
 		sort.Strings(names)
 		fmt.Fprintf(opt.ErrOut, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
@@ -242,7 +242,10 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	if fail > 0 {
-		return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
+		if len(failing) > 0 || !suite.AllowPassWithFlakes {
+			return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
+		}
+		fmt.Fprintf(opt.ErrOut, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
 	}
 	fmt.Fprintf(opt.ErrOut, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return nil
