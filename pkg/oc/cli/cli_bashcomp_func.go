@@ -95,7 +95,7 @@ __custom_func() {
     case ${last_command} in
  
         # first arg is the kind according to ValidArgs, second is resource name
-        oc_get | oc_describe | oc_delete | oc_label | oc_stop | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume | oc_scale )
+        oc_get | oc_describe | oc_delete | oc_label | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume | oc_scale | oc_observe )
             __oc_get_resource
             return
             ;;
