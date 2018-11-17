@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e9ca6e19e1799986909617f2c3c45ee1d7ba910f
+%global commit e66bc12ffe833281eb51f41634b2a50646d72081
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.50 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=50 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=27abb5e8b7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.51 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=51 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=786f590549 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.51
+Version:        3.9.52
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,12 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sat Nov 17 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.9.52-1
+- Explicitly set the MTU on the tun0 interface (bbennett@redhat.com)
+- UPSTREAM: 70291: Do not delete vspehre node on shutdown (hekumar@redhat.com)
+- Don't allow pods to send VXLAN packets out of the SDN (danw@redhat.com)
+- UPSTREAM: 67825: Fix multiattach issue on vsphere (hekumar@redhat.com)
+
 * Fri Nov 09 2018 AOS Automation Release Team <aos-team-art@redhat.com> 3.9.51-1
 - UPSTREAM: 00000: Verify backend upgrade (deads@redhat.com)
 - UPSTREAM: 60069: Fix race in healthchecking etcds leading to crashes
