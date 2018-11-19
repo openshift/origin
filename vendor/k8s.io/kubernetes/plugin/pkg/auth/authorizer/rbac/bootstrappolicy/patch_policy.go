@@ -57,7 +57,7 @@ var ClusterRoleBindings = clusterRoleBindings
 func OpenshiftClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 	bindings := clusterRoleBindings()
 	bindings = append(bindings, []rbacv1.ClusterRoleBinding{
-		rbacv1helpers.NewClusterBinding("system:node-admin").Users("system:master").Groups("system:node-admins").BindingOrDie(),
+		rbacv1helpers.NewClusterBinding("system:node-admin").Users("system:master", "system:kube-apiserver").Groups("system:node-admins").BindingOrDie(),
 	}...)
 
 	addClusterRoleBindingLabel(bindings)
