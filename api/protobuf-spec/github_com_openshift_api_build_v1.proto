@@ -716,7 +716,8 @@ message GitBuildSource {
   // ref is the branch/tag/ref to build.
   optional string ref = 2;
 
-  // proxyConfig defines the proxies to use for the git clone operation
+  // proxyConfig defines the proxies to use for the git clone operation. Values
+  // not set here are inherited from cluster-wide build git proxy settings.
   optional ProxyConfig proxyConfig = 3;
 }
 
