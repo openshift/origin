@@ -205,6 +205,9 @@ func (c *CLI) SetupProject() {
 		},
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = WaitForServiceAccount(c.KubeClient().Core().ServiceAccounts(newNamespace), "default")
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 // SetupProject creates a new project and assign a random user to the project.

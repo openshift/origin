@@ -61,8 +61,8 @@ var staticSuites = []*ginkgo.TestSuite{
 			return strings.Contains(name, "[Feature:Builds]")
 		},
 		Parallelism: 7,
-		// Jenkins tests can take upwards of 40 minutes
-		TestTimeout: 45 * time.Minute,
+		// Jenkins tests can take a really long time
+		TestTimeout: 60 * time.Minute,
 	},
 	{
 		Name: "openshift/image-registry",
@@ -92,9 +92,10 @@ var staticSuites = []*ginkgo.TestSuite{
 		available.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/smoke-4]")
+			return strings.Contains(name, "[Suite:openshift/smoke-4]") && strings.Contains(name, "[Suite:openshift/conformance/")
 		},
-		Parallelism: 30,
+		AllowPassWithFlakes: true,
+		Parallelism:         30,
 	},
 	{
 		Name: "openshift/all",
