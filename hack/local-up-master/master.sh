@@ -7,6 +7,14 @@ source "$(dirname "${BASH_SOURCE}")/../local-up-master/lib.sh"
 
 trap "clusterup::cleanup" EXIT
 
+os::cleanup::tmpdir
+os::util::environment::setup_all_server_vars
+os::util::ensure_tmpfs "${ETCD_DATA_DIR}"
+
+echo "Logging to ${LOG_DIR}..."
+
+os::log::system::start
+
 LOCALUP_ROOT=${LOCALUP_ROOT:-$(pwd)}
 LOCALUP_CONFIG=${LOCALUP_ROOT}/openshift.local.masterup
 

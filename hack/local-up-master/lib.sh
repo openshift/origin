@@ -285,10 +285,8 @@ function localup::start_openshiftcontrollermanager() {
 function localup::init_master() {
     export LOCALUP_ROOT=${LOCALUP_ROOT:-$(pwd)}
     export LOCALUP_CONFIG=${LOCALUP_ROOT}/openshift.local.masterup
-    mkdir -p ${LOCALUP_CONFIG}/logs
     ETCD_DIR=${LOCALUP_CONFIG}/etcd
     CERT_DIR=${LOCALUP_CONFIG}/kube-apiserver
-    LOG_DIR=${LOCALUP_CONFIG}/logs
     ROOT_CA_FILE=${CERT_DIR}/server-ca.crt
 
     # ensure necessary ports are free
@@ -297,8 +295,6 @@ function localup::init_master() {
     ! ${USE_SUDO:+sudo} fuser -s 8444/tcp || { os::log::error "port 8444 already in use"; exit 1 ; }
     ! ${USE_SUDO:+sudo} fuser -s 8445/tcp || { os::log::error "port 8445 already in use"; exit 1 ; }
     ! ${USE_SUDO:+sudo} fuser -s 10252/tcp || { os::log::error "port 10252 already in use"; exit 1 ; }
-
-    os::log::debug "Logging to ${LOG_DIR}..."
 
     kube::util::test_openssl_installed
     kube::util::ensure-cfssl
