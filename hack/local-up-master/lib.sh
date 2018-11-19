@@ -298,8 +298,6 @@ function localup::init_master() {
     ! ${USE_SUDO:+sudo} fuser -s 8445/tcp || { os::log::error "port 8445 already in use"; exit 1 ; }
     ! ${USE_SUDO:+sudo} fuser -s 10252/tcp || { os::log::error "port 10252 already in use"; exit 1 ; }
 
-    os::log::debug "Logging to ${LOG_DIR}..."
-
     kube::util::test_openssl_installed
     kube::util::ensure-cfssl
 
