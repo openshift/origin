@@ -10,7 +10,7 @@ import (
 	corelisterv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 
-	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // NewFakeSharedIndexInformer returns a fake shared index informer, suitable to use in static pod controller unit tests.
@@ -55,8 +55,8 @@ func (fakeSharedIndexInformer) GetIndexer() cache.Indexer {
 }
 
 // NewFakeStaticPodOperatorClient returns a fake operator client suitable to use in static pod controller unit tests.
-func NewFakeStaticPodOperatorClient(spec *operatorv1alpha1.OperatorSpec, status *operatorv1alpha1.OperatorStatus,
-	staticPodStatus *operatorv1alpha1.StaticPodOperatorStatus, triggerErr error) OperatorClient {
+func NewFakeStaticPodOperatorClient(spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus,
+	staticPodStatus *operatorv1.StaticPodOperatorStatus, triggerErr func(rv string, status *operatorv1.StaticPodOperatorStatus) error) OperatorClient {
 	return &fakeStaticPodOperatorClient{
 		fakeOperatorSpec:            spec,
 		fakeOperatorStatus:          status,
@@ -67,31 +67,33 @@ func NewFakeStaticPodOperatorClient(spec *operatorv1alpha1.OperatorSpec, status 
 }
 
 type fakeStaticPodOperatorClient struct {
-	fakeOperatorSpec            *operatorv1alpha1.OperatorSpec
-	fakeOperatorStatus          *operatorv1alpha1.OperatorStatus
-	fakeStaticPodOperatorStatus *operatorv1alpha1.StaticPodOperatorStatus
+	fakeOperatorSpec            *operatorv1.OperatorSpec
+	fakeOperatorStatus          *operatorv1.OperatorStatus
+	fakeStaticPodOperatorStatus *operatorv1.StaticPodOperatorStatus
 	resourceVersion             string
-	triggerStatusUpdateError    error
+	triggerStatusUpdateError    func(rv string, status *operatorv1.StaticPodOperatorStatus) error
 }
 
 func (c *fakeStaticPodOperatorClient) Informer() cache.SharedIndexInformer {
 	return &fakeSharedIndexInformer{}
 }
 
-func (c *fakeStaticPodOperatorClient) Get() (*operatorv1alpha1.OperatorSpec, *operatorv1alpha1.StaticPodOperatorStatus, string, error) {
+func (c *fakeStaticPodOperatorClient) Get() (*operatorv1.OperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error) {
 	return c.fakeOperatorSpec, c.fakeStaticPodOperatorStatus, "1", nil
 }
 
-func (c *fakeStaticPodOperatorClient) UpdateStatus(resourceVersion string, status *operatorv1alpha1.StaticPodOperatorStatus) (*operatorv1alpha1.StaticPodOperatorStatus, error) {
+func (c *fakeStaticPodOperatorClient) UpdateStatus(resourceVersion string, status *operatorv1.StaticPodOperatorStatus) (*operatorv1.StaticPodOperatorStatus, error) {
 	c.resourceVersion = resourceVersion
-	c.fakeStaticPodOperatorStatus = status
 	if c.triggerStatusUpdateError != nil {
-		return nil, c.triggerStatusUpdateError
+		if err := c.triggerStatusUpdateError(resourceVersion, status); err != nil {
+			return nil, err
+		}
 	}
+	c.fakeStaticPodOperatorStatus = status
 	return c.fakeStaticPodOperatorStatus, nil
 }
 
-func (c *fakeStaticPodOperatorClient) CurrentStatus() (operatorv1alpha1.OperatorStatus, error) {
+func (c *fakeStaticPodOperatorClient) CurrentStatus() (operatorv1.OperatorStatus, error) {
 	return *c.fakeOperatorStatus, nil
 }
 

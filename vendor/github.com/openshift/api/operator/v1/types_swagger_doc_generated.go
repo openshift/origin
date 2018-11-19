@@ -68,12 +68,12 @@ func (MyOperatorResource) SwaggerDoc() map[string]string {
 }
 
 var map_NodeStatus = map[string]string{
-	"":                               "NodeStatus provides information about the current state of a particular node managed by this operator.",
-	"nodeName":                       "nodeName is the name of the node",
-	"currentDeploymentGeneration":    "currentDeploymentGeneration is the generation of the most recently successful deployment",
-	"targetDeploymentGeneration":     "targetDeploymentGeneration is the generation of the deployment we're trying to apply",
-	"lastFailedDeploymentGeneration": "lastFailedDeploymentGeneration is the generation of the deployment we tried and failed to deploy.",
-	"lastFailedDeploymentErrors":     "lastFailedDeploymentGenerationErrors is a list of the errors during the failed deployment referenced in lastFailedDeploymentGeneration",
+	"":                         "NodeStatus provides information about the current state of a particular node managed by this operator.",
+	"nodeName":                 "nodeName is the name of the node",
+	"currentRevision":          "currentRevision is the generation of the most recently successful deployment",
+	"targetRevision":           "targetRevision is the generation of the deployment we're trying to apply",
+	"lastFailedRevision":       "lastFailedRevision is the generation of the deployment we tried and failed to deploy.",
+	"lastFailedRevisionErrors": "lastFailedRevisionErrors is a list of the errors during the failed deployment referenced in lastFailedRevision",
 }
 
 func (NodeStatus) SwaggerDoc() map[string]string {
@@ -144,8 +144,8 @@ func (ResourcePatch) SwaggerDoc() map[string]string {
 
 var map_StaticPodOperatorStatus = map[string]string{
 	"": "StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual node status must be tracked.",
-	"latestAvailableDeploymentGeneration": "latestAvailableDeploymentGeneration is the deploymentID of the most recent deployment",
-	"nodeStatuses":                        "nodeStatuses track the deployment values and errors across individual nodes",
+	"latestAvailableRevision": "latestAvailableRevision is the deploymentID of the most recent deployment",
+	"nodeStatuses":            "nodeStatuses track the deployment values and errors across individual nodes",
 }
 
 func (StaticPodOperatorStatus) SwaggerDoc() map[string]string {

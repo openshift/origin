@@ -2,6 +2,7 @@ package controllercmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -17,20 +18,27 @@ import (
 	"github.com/openshift/library-go/pkg/config/configdefaults"
 	leaderelectionconverter "github.com/openshift/library-go/pkg/config/leaderelection"
 	"github.com/openshift/library-go/pkg/config/serving"
+	"github.com/openshift/library-go/pkg/controller/fileobserver"
 )
 
 // StartFunc is the function to call on leader election start
 type StartFunc func(config *rest.Config, stop <-chan struct{}) error
+
+// defaultObserverInterval specifies the default interval that file observer will do rehash the files it watches and react to any changes
+// in those files.
+var defaultObserverInterval = 5 * time.Second
 
 // OperatorBuilder allows the construction of an controller in optional pieces.
 type ControllerBuilder struct {
 	kubeAPIServerConfigFile *string
 	clientOverrides         *client.ClientConnectionOverrides
 	leaderElection          *configv1.LeaderElection
+	fileObserver            fileobserver.Observer
 
 	startFunc        StartFunc
 	componentName    string
 	instanceIdentity string
+	observerInterval time.Duration
 
 	servingInfo          *configv1.HTTPServingInfo
 	authenticationConfig *operatorv1alpha1.DelegatedAuthentication
@@ -41,9 +49,25 @@ type ControllerBuilder struct {
 // NewController returns a builder struct for constructing the command you want to run
 func NewController(componentName string, startFunc StartFunc) *ControllerBuilder {
 	return &ControllerBuilder{
-		startFunc:     startFunc,
-		componentName: componentName,
+		startFunc:        startFunc,
+		componentName:    componentName,
+		observerInterval: defaultObserverInterval,
 	}
+}
+
+func (b *ControllerBuilder) WithFileObserver(reactorFunc func(file string, action fileobserver.ActionType) error, files ...string) *ControllerBuilder {
+	if len(files) == 0 {
+		return b
+	}
+	if b.fileObserver == nil {
+		observer, err := fileobserver.NewObserver(b.observerInterval)
+		if err != nil {
+			panic(err)
+		}
+		b.fileObserver = observer
+	}
+	b.fileObserver.AddReactor(reactorFunc, files...)
+	return b
 }
 
 // WithLeaderElection adds leader election options
@@ -91,6 +115,10 @@ func (b *ControllerBuilder) Run(stopCh <-chan struct{}) error {
 	clientConfig, err := b.getClientConfig()
 	if err != nil {
 		return err
+	}
+
+	if b.fileObserver != nil {
+		go b.fileObserver.Run(stopCh)
 	}
 
 	switch {

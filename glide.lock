@@ -1,5 +1,5 @@
 hash: 0e9f84bfd5657942debe1823c56b3acc325fed4afb8debf6e6025ea80d5b793b
-updated: 2018-11-14T18:11:14.510285503-05:00
+updated: 2018-11-19T17:51:08.233992468-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -815,7 +815,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 8a3880e9178ebf7a6655469c7dd213ea9a378c33
+  version: 7019e79772a9bfa1ade7b231de705293b9c12401
   subpackages:
   - apps
   - apps/v1
@@ -975,7 +975,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 5f5681bf4c9adb56cae09c7ee16aad9ae8fe4b79
+  version: b468f2b93d32f4506f0b4a998ca2ae4fc4a6871c
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -989,7 +989,7 @@ imports:
   - pkg/network/networkapihelpers
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: 3826b0c865626ae69d20ee9a1b04eafda02145d3
+  version: 058da9c8b336ae72ce1f8d9f0708b73dd445ceb2
   subpackages:
   - pkg/boilerplate/controller
   - pkg/controller/api
@@ -2680,7 +2680,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: cb8e07308edfc551f1b83405c19ede45e6008a4d
+  version: 3ee9c24f9398f7dcde4007aea8a3a260fcfed6d9
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1

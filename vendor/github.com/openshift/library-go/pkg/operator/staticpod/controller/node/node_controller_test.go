@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 
-	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
@@ -28,13 +28,13 @@ func TestNewNodeController(t *testing.T) {
 	tests := []struct {
 		name               string
 		startNodes         []runtime.Object
-		startNodeStatus    []operatorv1alpha1.NodeStatus
-		evaluateNodeStatus func([]operatorv1alpha1.NodeStatus) error
+		startNodeStatus    []operatorv1.NodeStatus
+		evaluateNodeStatus func([]operatorv1.NodeStatus) error
 	}{
 		{
 			name:       "single-node",
 			startNodes: []runtime.Object{fakeMasterNode("test-node-1")},
-			evaluateNodeStatus: func(s []operatorv1alpha1.NodeStatus) error {
+			evaluateNodeStatus: func(s []operatorv1.NodeStatus) error {
 				if len(s) != 1 {
 					return fmt.Errorf("expected 1 node status, got %d", len(s))
 				}
@@ -47,12 +47,12 @@ func TestNewNodeController(t *testing.T) {
 		{
 			name:       "multi-node",
 			startNodes: []runtime.Object{fakeMasterNode("test-node-1"), fakeMasterNode("test-node-2"), fakeMasterNode("test-node-3")},
-			startNodeStatus: []operatorv1alpha1.NodeStatus{
+			startNodeStatus: []operatorv1.NodeStatus{
 				{
 					NodeName: "test-node-1",
 				},
 			},
-			evaluateNodeStatus: func(s []operatorv1alpha1.NodeStatus) error {
+			evaluateNodeStatus: func(s []operatorv1.NodeStatus) error {
 				if len(s) != 3 {
 					return fmt.Errorf("expected 3 node status, got %d", len(s))
 				}
@@ -68,12 +68,12 @@ func TestNewNodeController(t *testing.T) {
 		{
 			name:       "single-node-removed",
 			startNodes: []runtime.Object{},
-			startNodeStatus: []operatorv1alpha1.NodeStatus{
+			startNodeStatus: []operatorv1.NodeStatus{
 				{
 					NodeName: "lost-node",
 				},
 			},
-			evaluateNodeStatus: func(s []operatorv1alpha1.NodeStatus) error {
+			evaluateNodeStatus: func(s []operatorv1.NodeStatus) error {
 				if len(s) != 0 {
 					return fmt.Errorf("expected no node status, got %d", len(s))
 				}
@@ -83,12 +83,12 @@ func TestNewNodeController(t *testing.T) {
 		{
 			name:       "no-op",
 			startNodes: []runtime.Object{fakeMasterNode("test-node-1")},
-			startNodeStatus: []operatorv1alpha1.NodeStatus{
+			startNodeStatus: []operatorv1.NodeStatus{
 				{
 					NodeName: "test-node-1",
 				},
 			},
-			evaluateNodeStatus: func(s []operatorv1alpha1.NodeStatus) error {
+			evaluateNodeStatus: func(s []operatorv1.NodeStatus) error {
 				if len(s) != 1 {
 					return fmt.Errorf("expected one node status, got %d", len(s))
 				}
@@ -103,14 +103,13 @@ func TestNewNodeController(t *testing.T) {
 			fakeLister := common.NewFakeNodeLister(kubeClient)
 			kubeInformers := informers.NewSharedInformerFactory(kubeClient, 1*time.Minute)
 			fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
-				&operatorv1alpha1.OperatorSpec{
-					ManagementState: operatorv1alpha1.Managed,
-					Version:         "3.11.1",
+				&operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
 				},
-				&operatorv1alpha1.OperatorStatus{},
-				&operatorv1alpha1.StaticPodOperatorStatus{
-					LatestAvailableDeploymentGeneration: 1,
-					NodeStatuses:                        test.startNodeStatus,
+				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 1,
+					NodeStatuses:            test.startNodeStatus,
 				},
 				nil,
 			)

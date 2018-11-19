@@ -109,16 +109,19 @@ func TestSyncAPIService(t *testing.T) {
 				index.Add(apiService)
 			}
 
-			c := &ServiceServingCertUpdateController{
+			c := &serviceServingCertUpdateController{
 				apiServiceLister: apiservicelister.NewAPIServiceLister(index),
 				apiServiceClient: fakeClient.ApiregistrationV1(),
 				caBundle:         tc.caBundle,
 			}
 
-			err := c.syncAPIService(tc.key)
-			if err != nil {
-				t.Fatal(err)
+			obj, err := c.Key("", tc.key)
+			if err == nil {
+				if err := c.Sync(obj); err != nil {
+					t.Fatal(err)
+				}
 			}
+
 			tc.validateActions(t, fakeClient.Actions())
 		})
 	}

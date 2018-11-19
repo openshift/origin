@@ -27,11 +27,11 @@ type ImageSpec struct {
 	// permissions.
 	AllowedRegistriesForImport []RegistryLocation `json:"allowedRegistriesForImport,omitempty"`
 
-	// ExternalRegistryHostname sets the hostname for the default external image
+	// externalRegistryHostnames provides the hostnames for the default external image
 	// registry. The external hostname should be set only when the image registry
-	// is exposed externally. The value is used in 'publicDockerImageRepository'
+	// is exposed externally. The first value is used in 'publicDockerImageRepository'
 	// field in ImageStreams. The value must be in "hostname[:port]" format.
-	ExternalRegistryHostname string `json:"externalRegistryHostname,omitempty"`
+	ExternalRegistryHostnames []string `json:"externalRegistryHostnames,omitempty"`
 
 	// AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that
 	// should be trusted during imagestream import.
@@ -46,6 +46,12 @@ type ImageStatus struct {
 	// For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY
 	// environment variable but this setting overrides the environment variable.
 	InternalRegistryHostname string `json:"internalRegistryHostname,omitempty"`
+
+	// externalRegistryHostnames provides the hostnames for the default external image
+	// registry. The external hostname should be set only when the image registry
+	// is exposed externally. The first value is used in 'publicDockerImageRepository'
+	// field in ImageStreams. The value must be in "hostname[:port]" format.
+	ExternalRegistryHostnames []string `json:"externalRegistryHostnames,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -33,7 +33,7 @@ func (o *servingCertOptions) runServingCert(clientConfig *rest.Config, stopCh <-
 	if err != nil {
 		return err
 	}
-	kubeInformers := informers.NewSharedInformerFactory(kubeClient, 2*time.Minute)
+	kubeInformers := informers.NewSharedInformerFactory(kubeClient, 20*time.Minute)
 
 	servingCertController := controller.NewServiceServingCertController(
 		kubeInformers.Core().V1().Services(),
@@ -43,7 +43,6 @@ func (o *servingCertOptions) runServingCert(clientConfig *rest.Config, stopCh <-
 		o.ca,
 		// TODO this needs to be configurable
 		"cluster.local",
-		2*time.Minute,
 	)
 	servingCertUpdateController := controller.NewServiceServingCertUpdateController(
 		kubeInformers.Core().V1().Services(),
@@ -52,12 +51,11 @@ func (o *servingCertOptions) runServingCert(clientConfig *rest.Config, stopCh <-
 		o.ca,
 		// TODO this needs to be configurable
 		"cluster.local",
-		20*time.Minute,
 	)
 
 	kubeInformers.Start(stopCh)
 
-	go servingCertController.Run(1, stopCh)
+	go servingCertController.Run(5, stopCh)
 	go servingCertUpdateController.Run(5, stopCh)
 
 	<-stopCh

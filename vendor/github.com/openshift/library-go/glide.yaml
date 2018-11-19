@@ -15,6 +15,10 @@ import:
 - package: github.com/openshift/api
   version: master
 
+
+# sig-master - needed for file observer
+- package: github.com/sigma/go-inotify
+  version: c87b6cf5033d2c6486046f045eeebdc3d910fd38
 # sig-master
 - package: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14

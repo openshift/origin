@@ -20,15 +20,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
-	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
-	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	v1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 var workQueueKey = "instance"
 
 type OperatorStatusProvider interface {
 	Informer() cache.SharedIndexInformer
-	CurrentStatus() (operatorv1alpha1.OperatorStatus, error)
+	CurrentStatus() (operatorv1.OperatorStatus, error)
 }
 
 type StatusSyncer struct {
@@ -52,7 +52,7 @@ func NewClusterOperatorStatusController(
 	c := &StatusSyncer{
 		clusterOperatorNamespace: namespace,
 		clusterOperatorName:      name,
-		clusterOperatorClient:    clusterOperatorClient.Resource(schema.GroupVersionResource{Group: "operatorstatus.openshift.io", Version: "v1", Resource: "clusteroperators"}).Namespace(namespace),
+		clusterOperatorClient:    clusterOperatorClient.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "clusteroperators"}).Namespace(namespace),
 		operatorStatusProvider:   operatorStatusProvider,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "StatusSyncer-"+name),
@@ -88,35 +88,26 @@ func (c StatusSyncer) sync() error {
 	}
 	unstructured.RemoveNestedField(operatorConfig.Object, "status")
 	unstructured.SetNestedField(operatorConfig.Object, "ClusterOperator", "kind")
-	unstructured.SetNestedField(operatorConfig.Object, "operatorstatus.openshift.io/v1", "apiVersion")
+	unstructured.SetNestedField(operatorConfig.Object, "config.openshift.io/v1", "apiVersion")
 	unstructured.SetNestedField(operatorConfig.Object, c.clusterOperatorNamespace, "metadata", "namespace")
 	unstructured.SetNestedField(operatorConfig.Object, c.clusterOperatorName, "metadata", "name")
 
-	errorMessages := []string{}
-	if currentDetailedStatus.TargetAvailability != nil {
-		errorMessages = append(errorMessages, currentDetailedStatus.TargetAvailability.Errors...)
-	}
-	if currentDetailedStatus.CurrentAvailability != nil {
-		unstructured.SetNestedField(operatorConfig.Object, currentDetailedStatus.CurrentAvailability.Version, "status", "version")
-		errorMessages = append(errorMessages, currentDetailedStatus.CurrentAvailability.Errors...)
-	}
-
 	conditions := []interface{}{}
-	availableCondition, err := OperatorConditionToClusterOperatorCondition(v1alpha1helpers.FindOperatorCondition(currentDetailedStatus.Conditions, operatorv1alpha1.OperatorStatusTypeAvailable))
+	availableCondition, err := OperatorConditionToClusterOperatorCondition(v1helpers.FindOperatorCondition(currentDetailedStatus.Conditions, operatorv1.OperatorStatusTypeAvailable))
 	if err != nil {
 		return err
 	}
 	if availableCondition != nil {
 		conditions = append(conditions, availableCondition)
 	}
-	failingCondition, err := OperatorConditionToClusterOperatorCondition(v1alpha1helpers.FindOperatorCondition(currentDetailedStatus.Conditions, operatorv1alpha1.OperatorStatusTypeFailing))
+	failingCondition, err := OperatorConditionToClusterOperatorCondition(v1helpers.FindOperatorCondition(currentDetailedStatus.Conditions, operatorv1.OperatorStatusTypeFailing))
 	if err != nil {
 		return err
 	}
 	if failingCondition != nil {
 		conditions = append(conditions, failingCondition)
 	}
-	progressingCondition, err := OperatorConditionToClusterOperatorCondition(v1alpha1helpers.FindOperatorCondition(currentDetailedStatus.Conditions, operatorv1alpha1.OperatorStatusTypeProgressing))
+	progressingCondition, err := OperatorConditionToClusterOperatorCondition(v1helpers.FindOperatorCondition(currentDetailedStatus.Conditions, operatorv1.OperatorStatusTypeProgressing))
 	if err != nil {
 		return err
 	}
@@ -130,9 +121,9 @@ func (c StatusSyncer) sync() error {
 	}
 
 	glog.V(4).Infof("clusterOperator %s/%s set to %v", c.clusterOperatorNamespace, c.clusterOperatorName, runtime.EncodeOrDie(unstructured.UnstructuredJSONScheme, operatorConfig))
-	_, updateErr := c.clusterOperatorClient.Update(operatorConfig)
+	_, updateErr := c.clusterOperatorClient.UpdateStatus(operatorConfig)
 	if apierrors.IsNotFound(updateErr) {
-		_, createErr := c.clusterOperatorClient.Create(operatorConfig)
+		freshOperatorConfig, createErr := c.clusterOperatorClient.Create(operatorConfig)
 		if apierrors.IsNotFound(createErr) {
 			// this means that the API isn't present.  We did not fail.  Try again later
 			glog.Infof("ClusterOperator API not created")
@@ -142,6 +133,10 @@ func (c StatusSyncer) sync() error {
 		if createErr != nil {
 			return createErr
 		}
+		if err := unstructured.SetNestedMap(freshOperatorConfig.Object, operatorConfig.Object["status"].(map[string]interface{}), "status"); err != nil {
+			return err
+		}
+		_, updateErr = c.clusterOperatorClient.UpdateStatus(operatorConfig)
 	}
 	if updateErr != nil {
 		return updateErr
@@ -150,7 +145,7 @@ func (c StatusSyncer) sync() error {
 	return nil
 }
 
-func OperatorConditionToClusterOperatorCondition(condition *operatorv1alpha1.OperatorCondition) (map[string]interface{}, error) {
+func OperatorConditionToClusterOperatorCondition(condition *operatorv1.OperatorCondition) (map[string]interface{}, error) {
 	if condition == nil {
 		return nil, nil
 	}

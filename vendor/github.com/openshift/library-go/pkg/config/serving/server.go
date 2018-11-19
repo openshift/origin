@@ -1,6 +1,8 @@
 package serving
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
@@ -10,7 +12,9 @@ import (
 )
 
 func ToServerConfig(servingInfo configv1.HTTPServingInfo, authenticationConfig operatorv1alpha1.DelegatedAuthentication, authorizationConfig operatorv1alpha1.DelegatedAuthorization, kubeConfigFile string) (*genericapiserver.Config, error) {
-	config := genericapiserver.NewConfig(serializer.NewCodecFactory(nil))
+	scheme := runtime.NewScheme()
+	metav1.AddToGroupVersion(scheme, metav1.SchemeGroupVersion)
+	config := genericapiserver.NewConfig(serializer.NewCodecFactory(scheme))
 
 	servingOptions, err := ToServingOptions(servingInfo)
 	if err != nil {
