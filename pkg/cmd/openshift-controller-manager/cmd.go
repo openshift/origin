@@ -8,8 +8,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/configdefault"
-
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -27,6 +25,7 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/configdefault"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"

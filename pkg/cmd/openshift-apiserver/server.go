@@ -12,6 +12,9 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/util"
+
+	// for metrics
+	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
 // default this to true so that the integration tests don't instantly break

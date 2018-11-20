@@ -18,6 +18,9 @@ import (
 	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
+
+	// for metrics
+	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
 func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) error {
