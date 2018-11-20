@@ -1,11 +1,12 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -461,7 +462,7 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 	ac.notifyWatchers(namespace, lastKnownValue, sets.NewString(review.Users()...), sets.NewString(review.Groups()...))
 
 	if errMsg := review.EvaluationError(); len(errMsg) > 0 {
-		return errors.New(errMsg)
+		glog.V(5).Info(errMsg)
 	}
 	return nil
 }
