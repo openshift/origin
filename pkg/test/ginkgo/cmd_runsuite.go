@@ -1,7 +1,6 @@
 package ginkgo
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -210,8 +209,7 @@ func (opt *Options) Run(args []string) error {
 		}
 
 		q := newParallelTestQueue(retries)
-		buf := &bytes.Buffer{}
-		status := newTestStatus(buf, len(retries), timeout)
+		status := newTestStatus(ioutil.Discard, len(retries), timeout)
 		q.Execute(ctx, parallelism, status.Run)
 		var flaky []string
 		var repeatFailures []*testCase
@@ -225,19 +223,19 @@ func (opt *Options) Run(args []string) error {
 		if len(flaky) > 0 {
 			failing = repeatFailures
 			sort.Strings(flaky)
-			fmt.Fprintf(opt.ErrOut, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
+			fmt.Fprintf(opt.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
 		}
 	}
 
 	if len(failing) > 0 {
 		names := testNames(failing)
 		sort.Strings(names)
-		fmt.Fprintf(opt.ErrOut, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
+		fmt.Fprintf(opt.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
 	}
 
 	if len(opt.JUnitDir) > 0 {
 		if err := writeJUnitReport("openshift-tests", tests, opt.JUnitDir, duration, opt.ErrOut); err != nil {
-			fmt.Fprintf(opt.ErrOut, "error: Unable to write JUnit results: %v", err)
+			fmt.Fprintf(opt.Out, "error: Unable to write JUnit results: %v", err)
 		}
 	}
 
@@ -245,8 +243,8 @@ func (opt *Options) Run(args []string) error {
 		if len(failing) > 0 || !suite.AllowPassWithFlakes {
 			return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
 		}
-		fmt.Fprintf(opt.ErrOut, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
+		fmt.Fprintf(opt.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
 	}
-	fmt.Fprintf(opt.ErrOut, "%d pass, %d skip (%s)\n", pass, skip, duration)
+	fmt.Fprintf(opt.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return nil
 }

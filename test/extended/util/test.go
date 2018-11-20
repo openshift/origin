@@ -447,6 +447,8 @@ var (
 			`\[sig-network\] Services .* NodePort`,
 			`DynamicProvisioner deletion should be idempotent`,
 			`Kubectl taint \[Serial\]`,
+			// flaking, very slow
+			`100 namespaces in 150 seconds`,
 		},
 	}
 

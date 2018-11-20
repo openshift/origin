@@ -102,7 +102,10 @@ func main() {
 	cmd.Flags().DurationVar(&suiteOpt.Timeout, "timeout", suiteOpt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	root.AddCommand(cmd)
 
-	testOpt := &testginkgo.TestOptions{}
+	testOpt := &testginkgo.TestOptions{
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
 	cmd = &cobra.Command{
 		Use:   "run-test NAME",
 		Short: "Run a single test by name",
