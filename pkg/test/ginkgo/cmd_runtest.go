@@ -40,7 +40,7 @@ func (opt *TestOptions) Run(args []string) error {
 	}
 
 	if opt.DryRun {
-		fmt.Printf("Running test (dry-run)\n")
+		fmt.Fprintf(opt.Out, "Running test (dry-run)\n")
 		return nil
 	}
 
@@ -65,21 +65,21 @@ func (opt *TestOptions) Run(args []string) error {
 	case summary.Passed():
 	case summary.Skipped():
 		if len(summary.Failure.Message) > 0 {
-			fmt.Fprintf(os.Stderr, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
+			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
 		}
 		if len(summary.Failure.ForwardedPanic) > 0 {
-			fmt.Fprintf(os.Stderr, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
+			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
 		}
 		os.Exit(3)
 	case summary.Failed(), summary.Panicked():
 		if len(summary.Failure.ForwardedPanic) > 0 {
 			if len(summary.Failure.Location.FullStackTrace) > 0 {
-				fmt.Fprintf(os.Stderr, "\n%s\n", summary.Failure.Location.FullStackTrace)
+				fmt.Fprintf(opt.ErrOut, "\n%s\n", summary.Failure.Location.FullStackTrace)
 			}
-			fmt.Fprintf(os.Stderr, "fail [%s:%d]: Test Panicked: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
+			fmt.Fprintf(opt.ErrOut, "fail [%s:%d]: Test Panicked: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stderr, "fail [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
+		fmt.Fprintf(opt.ErrOut, "fail [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
 		os.Exit(1)
 	default:
 		return fmt.Errorf("unrecognized test case outcome: %#v", summary)
