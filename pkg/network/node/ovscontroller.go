@@ -357,7 +357,7 @@ func (oc *ovsController) getPodDetailsBySandboxID(sandboxID string) (int, net.IP
 	}
 
 	if len(strports) == 0 || len(strIDs) == 0 {
-		return 0, nil, fmt.Errorf("failed to find pod details from OVS flows")
+		return 0, nil, fmt.Errorf("failed to find pod details in OVS database")
 	} else if len(strports) > 1 || len(strIDs) > 1 {
 		return 0, nil, fmt.Errorf("found multiple pods for sandbox ID %q: %#v / %#v", sandboxID, strports, strIDs)
 	}
