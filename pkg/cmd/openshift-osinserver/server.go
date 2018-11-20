@@ -8,6 +8,9 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+
+	// for metrics
+	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
 func RunOpenShiftOsinServer(oauthConfig configapi.OAuthConfig, kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {

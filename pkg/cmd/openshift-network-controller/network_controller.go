@@ -18,6 +18,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
 	"github.com/openshift/origin/pkg/cmd/util"
+
+	// for metrics
+	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
 func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig, clientConfig *rest.Config) error {
