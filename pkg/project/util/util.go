@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,6 +24,24 @@ func ConvertNamespace(namespace *kapi.Namespace) *projectapi.Project {
 		},
 		Status: projectapi.ProjectStatus{
 			Phase: namespace.Status.Phase,
+		},
+	}
+}
+
+// ConvertNamespaceFromExternal transforms a versioned Namespace into a Project
+func ConvertNamespaceFromExternal(namespace *corev1.Namespace) *projectapi.Project {
+	internalFinalizers := []kapi.FinalizerName{}
+	for _, externalFinalizer := range namespace.Spec.Finalizers {
+		internalFinalizers = append(internalFinalizers, kapi.FinalizerName(string(externalFinalizer)))
+	}
+
+	return &projectapi.Project{
+		ObjectMeta: namespace.ObjectMeta,
+		Spec: projectapi.ProjectSpec{
+			Finalizers: internalFinalizers,
+		},
+		Status: projectapi.ProjectStatus{
+			Phase: kapi.NamespacePhase(string(namespace.Status.Phase)),
 		},
 	}
 }

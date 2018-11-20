@@ -149,7 +149,7 @@ func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, users,
 
 		event := watch.Event{
 			Type:   watch.Added,
-			Object: projectutil.ConvertNamespace(namespace),
+			Object: projectutil.ConvertNamespaceFromExternal(namespace),
 		}
 
 		// if we already have this in our list, then we're getting notified because the object changed

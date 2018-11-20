@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/quota/generic"
 	"k8s.io/kubernetes/pkg/quota/install"
@@ -50,7 +49,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		postStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 	}
 	return func(genericConfig *genericapiserver.Config, internalInformers internalinformers.SharedInformerFactory, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) (genericapiserver.DelegationTarget, error) {
-		kubeAPIServerInformers, err := NewInformers(internalInformers, kubeInformers, genericConfig.LoopbackClientConfig)
+		kubeAPIServerInformers, err := NewInformers(kubeInformers, genericConfig.LoopbackClientConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -78,11 +77,11 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// END AUTHORIZER
 
 		// ADMISSION
-		projectCache, err := openshiftapiserver.NewProjectCache(kubeAPIServerInformers.InternalKubernetesInformers.Core().InternalVersion().Namespaces(), genericConfig.LoopbackClientConfig, kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector)
+		projectCache, err := openshiftapiserver.NewProjectCache(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), genericConfig.LoopbackClientConfig, kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector)
 		if err != nil {
 			return nil, err
 		}
-		clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(kubeAPIServerInformers.InternalKubernetesInformers.Core().InternalVersion().Namespaces(), kubeAPIServerInformers.InternalOpenshiftQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
+		clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), kubeAPIServerInformers.InternalOpenshiftQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
 		patchContext.postStartHooks["quota.openshift.io-clusterquotamapping"] = func(context genericapiserver.PostStartHookContext) error {
 			go clusterQuotaMappingController.Run(5, context.StopCh)
 			return nil
@@ -144,7 +143,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		}
 		// END CONSTRUCT DELEGATE
 
-		patchContext.informerStartFuncs = append(patchContext.informerStartFuncs, kubeAPIServerInformers.Start)
+		patchContext.informerStartFuncs = append(patchContext.informerStartFuncs, kubeAPIServerInformers.Start, internalInformers.Start)
 		patchContext.initialized = true
 
 		return openshiftNonAPIServer.GenericAPIServer, nil
@@ -170,7 +169,7 @@ func (c *KubeAPIServerServerPatchContext) PatchServer(server *master.Master) err
 }
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
-func NewInformers(internalInformers internalinformers.SharedInformerFactory, versionedInformers clientgoinformers.SharedInformerFactory, loopbackClientConfig *rest.Config) (*KubeAPIServerInformers, error) {
+func NewInformers(versionedInformers clientgoinformers.SharedInformerFactory, loopbackClientConfig *rest.Config) (*KubeAPIServerInformers, error) {
 	oauthClient, err := oauthclient.NewForConfig(loopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -193,7 +192,6 @@ func NewInformers(internalInformers internalinformers.SharedInformerFactory, ver
 	const defaultInformerResyncPeriod = 10 * time.Minute
 
 	ret := &KubeAPIServerInformers{
-		InternalKubernetesInformers:     internalInformers,
 		KubernetesInformers:             versionedInformers,
 		OpenshiftOAuthInformers:         oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
 		InternalOpenshiftQuotaInformers: quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
@@ -210,7 +208,6 @@ func NewInformers(internalInformers internalinformers.SharedInformerFactory, ver
 }
 
 type KubeAPIServerInformers struct {
-	InternalKubernetesInformers     kinternalinformers.SharedInformerFactory
 	KubernetesInformers             kexternalinformers.SharedInformerFactory
 	OpenshiftOAuthInformers         oauthinformer.SharedInformerFactory
 	InternalOpenshiftQuotaInformers quotainformer.SharedInformerFactory
@@ -218,9 +215,6 @@ type KubeAPIServerInformers struct {
 	OpenshiftUserInformers          userinformer.SharedInformerFactory
 }
 
-func (i *KubeAPIServerInformers) GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory {
-	return i.InternalKubernetesInformers
-}
 func (i *KubeAPIServerInformers) GetKubernetesInformers() kexternalinformers.SharedInformerFactory {
 	return i.KubernetesInformers
 }
@@ -235,7 +229,6 @@ func (i *KubeAPIServerInformers) GetOpenshiftUserInformers() userinformer.Shared
 }
 
 func (i *KubeAPIServerInformers) Start(stopCh <-chan struct{}) {
-	i.InternalKubernetesInformers.Start(stopCh)
 	i.KubernetesInformers.Start(stopCh)
 	i.OpenshiftOAuthInformers.Start(stopCh)
 	i.InternalOpenshiftQuotaInformers.Start(stopCh)
