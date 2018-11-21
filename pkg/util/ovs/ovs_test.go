@@ -259,3 +259,41 @@ func TestOVSVersion(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
+
+func TestFind(t *testing.T) {
+	fexec := normalSetup()
+	ovsif, err := New(fexec, "br0", "")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --no-heading --columns=name find interface type=vxlan", "\"vxlan0\"\n", nil)
+	values, err := ovsif.Find("interface", "name", "type=vxlan")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if len(values) != 1 || values[0] != "vxlan0" {
+		t.Fatalf("Unexpected response: %#v", values)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --no-heading --columns=name find interface type=internal", "\"tun0\"\n\n\"br0\"\n", nil)
+	values, err = ovsif.Find("interface", "name", "type=internal")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if len(values) != 2 || values[0] != "tun0" || values[1] != "br0" {
+		t.Fatalf("Unexpected response: %#v", values)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --no-heading --columns=name find interface type=bob", "", nil)
+	values, err = ovsif.Find("interface", "name", "type=bob")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if len(values) != 0 {
+		t.Fatalf("Unexpected response: %#v", values)
+	}
+	ensureTestResults(t, fexec)
+}

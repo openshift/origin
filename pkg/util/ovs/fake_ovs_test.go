@@ -123,7 +123,7 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
-func TestFind(t *testing.T) {
+func TestFakeFind(t *testing.T) {
 	ovsif := NewFake("br0")
 	if err := ovsif.AddBridge(); err != nil {
 		t.Fatalf("unexpected error adding bridge: %v", err)

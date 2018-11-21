@@ -282,6 +282,10 @@ func (ovsif *ovsExec) Find(table, column, condition string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	output = strings.TrimSuffix(output, "\n")
+	if output == "" {
+		return nil, err
+	}
 	values := strings.Split(output, "\n\n")
 	// We want "bare" values for strings, but we can't pass --bare to ovs-vsctl because
 	// it breaks more complicated types. So try passing each value through Unquote();
