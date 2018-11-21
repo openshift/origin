@@ -624,6 +624,10 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 	cmdLineArgs["bind-address"] = []string{kubeAddr.Hostname()}
 	cmdLineArgs["port"] = []string{kubeAddr.Port()}
 
+	// we need to explicitly disable insecure port to prevent bind failures due
+	// to default port being taken already by other instances of CM running in parallel
+	cmdLineArgs["port"] = []string{"0"}
+
 	args := []string{}
 	for key, value := range cmdLineArgs {
 		for _, token := range value {
