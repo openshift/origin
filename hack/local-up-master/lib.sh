@@ -228,6 +228,7 @@ function localup::start_kubecontrollermanager() {
     hyperkube controller-manager \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
+      --cert-dir="${CERT_DIR}" \
       --service-account-private-key-file="${LOCALUP_CONFIG}/kube-controller-manager/etcd-serving-ca.crt" \
       --root-ca-file="${ROOT_CA_FILE}" \
       --kubeconfig  ${LOCALUP_CONFIG}/kube-controller-manager/controller.kubeconfig \
