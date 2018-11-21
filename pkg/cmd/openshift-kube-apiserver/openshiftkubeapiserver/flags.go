@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
@@ -174,11 +177,34 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 // currently for cluster up, audit is just broken.
 // TODO fix this
 func auditFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) map[string][]string {
+	setAudit := false
 	args := map[string][]string{}
 	for key, slice := range kubeAPIServerConfig.APIServerArguments {
+		if !strings.HasPrefix("audit-", key) {
+			continue
+		}
+		setAudit = true
 		for _, val := range slice {
 			args[key] = append(args[key], val)
 		}
+	}
+	if setAudit {
+		return args
+	}
+
+	// if the user has not attempted to set any audit values and the user has not explicitly said to disable audit logging
+	// then we set a default audit to stdout
+	defaultAuditPolicyFile := "openshift.local.log/audit-policy.yaml"
+	if err := os.MkdirAll(filepath.Dir(defaultAuditPolicyFile), 0755); err != nil {
+		utilruntime.HandleError(err)
+	}
+	if err := ioutil.WriteFile(defaultAuditPolicyFile, []byte(defaultAuditPolicy), 0644); err != nil {
+		utilruntime.HandleError(err)
+	} else {
+		setIfUnset(args, "audit-log-maxbackup", "10")
+		setIfUnset(args, "audit-log-maxsize", "100")
+		setIfUnset(args, "audit-log-path", "openshift.local.log/audit.log")
+		setIfUnset(args, "audit-policy-file", defaultAuditPolicyFile)
 	}
 
 	return args

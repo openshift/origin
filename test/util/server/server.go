@@ -442,6 +442,7 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	}
 	// we need to set enable-aggregator-routing so that APIServices are resolved from Endpoints
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
+	kubeAPIServerConfig.APIServerArguments["audit-log-format"] = kubecontrolplanev1.Arguments{"json"}
 	go openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig)
 
 	url, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))

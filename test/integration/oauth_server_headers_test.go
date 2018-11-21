@@ -92,7 +92,7 @@ func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, checkUrl string) {
 
 	// these headers can change per request and are not important to us
 	// only add items to this list if they cannot be statically checked above
-	ignoredHeaders := []string{"Date", "Content-Length", "Location"}
+	ignoredHeaders := []string{"Audit-Id", "Date", "Content-Length", "Location"}
 	for _, h := range ignoredHeaders {
 		resp.Header.Del(h)
 	}
