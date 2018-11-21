@@ -139,7 +139,7 @@ function os::util::environment::setup_tmpdir_vars() {
 
     BASEOUTDIR="${OS_OUTPUT_SCRIPTPATH}/${sub_dir}"
     export BASEOUTDIR
-    LOG_DIR="${LOG_DIR:-${BASEOUTDIR}/logs}"
+    LOG_DIR="${ARTIFACT_DIR:-${BASEOUTDIR}}/logs"
     export LOG_DIR
     ARTIFACT_DIR="${ARTIFACT_DIR:-${BASEOUTDIR}/artifacts}"
     export ARTIFACT_DIR
