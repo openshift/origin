@@ -26,8 +26,8 @@ type InstallOptions struct {
 	KubeConfig string
 	KubeClient kubernetes.Interface
 
-	DeploymentID string
-	Namespace    string
+	Revision  string
+	Namespace string
 
 	PodConfigMapNamePrefix string
 	SecretNamePrefixes     []string
@@ -70,7 +70,7 @@ func NewInstaller() *cobra.Command {
 
 func (o *InstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.KubeConfig, "kubeconfig", o.KubeConfig, "kubeconfig file or empty")
-	fs.StringVar(&o.DeploymentID, "deployment-id", o.DeploymentID, "identifier for this particular installation instance.  For example, a counter or a hash")
+	fs.StringVar(&o.Revision, "revision", o.Revision, "identifier for this particular installation instance.  For example, a counter or a hash")
 	fs.StringVar(&o.Namespace, "namespace", o.Namespace, "namespace to retrieve all resources from and create the static pod in")
 	fs.StringVar(&o.PodConfigMapNamePrefix, "pod", o.PodConfigMapNamePrefix, "name of configmap that contains the pod to be created")
 	fs.StringSliceVar(&o.SecretNamePrefixes, "secrets", o.SecretNamePrefixes, "list of secret names to be included")
@@ -92,8 +92,8 @@ func (o *InstallOptions) Complete() error {
 }
 
 func (o *InstallOptions) Validate() error {
-	if len(o.DeploymentID) == 0 {
-		return fmt.Errorf("--deployment-id is required")
+	if len(o.Revision) == 0 {
+		return fmt.Errorf("--revision is required")
 	}
 	if len(o.Namespace) == 0 {
 		return fmt.Errorf("--namespace is required")
@@ -116,11 +116,11 @@ func (o *InstallOptions) Validate() error {
 }
 
 func (o *InstallOptions) nameFor(prefix string) string {
-	return fmt.Sprintf("%s-%s", prefix, o.DeploymentID)
+	return fmt.Sprintf("%s-%s", prefix, o.Revision)
 }
 
 func (o *InstallOptions) prefixFor(name string) string {
-	return name[0 : len(name)-len(fmt.Sprintf("-%s", o.DeploymentID))]
+	return name[0 : len(name)-len(fmt.Sprintf("-%s", o.Revision))]
 }
 
 func (o *InstallOptions) copyContent() error {
@@ -150,7 +150,7 @@ func (o *InstallOptions) copyContent() error {
 		return err
 	}
 	podContent := podConfigMap.Data["pod.yaml"]
-	podContent = strings.Replace(podContent, "DEPLOYMENT_ID", o.DeploymentID, -1)
+	podContent = strings.Replace(podContent, "REVISION", o.Revision, -1)
 
 	// write secrets, configmaps, static pods
 	resourceDir := path.Join(o.ResourceDir, o.nameFor(o.PodConfigMapNamePrefix))

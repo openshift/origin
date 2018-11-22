@@ -1,16 +1,25 @@
 package api
 
-import "strings"
+import (
+	"strings"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 const (
 	InjectCABundleAnnotationName = "service.alpha.openshift.io/inject-cabundle"
 	InjectionDataKey             = "service-ca.crt"
 )
 
-func HasInjectCABundleAnnotation(annotations map[string]string) bool {
-	return strings.EqualFold(annotations[InjectCABundleAnnotationName], "true")
+func HasInjectCABundleAnnotation(metadata v1.Object) bool {
+	return strings.EqualFold(metadata.GetAnnotations()[InjectCABundleAnnotationName], "true")
 }
 
+func HasInjectCABundleAnnotationUpdate(old, cur v1.Object) bool {
+	return HasInjectCABundleAnnotation(cur)
+}
+
+// Annotations on service
 const (
 	// ServingCertSecretAnnotation stores the name of the secret to generate into.
 	ServingCertSecretAnnotation = "service.alpha.openshift.io/serving-cert-secret-name"
@@ -23,6 +32,10 @@ const (
 	// ServingCertErrorNumAnnotation stores how many consecutive errors we've hit.  A value of the maxRetries will prevent
 	// the controller from reattempting until it is cleared.
 	ServingCertErrorNumAnnotation = "service.alpha.openshift.io/serving-cert-generation-error-num"
+)
+
+// Annotations on secret
+const (
 	// ServiceUIDAnnotation is an annotation on a secret that indicates which service created it, by UID
 	ServiceUIDAnnotation = "service.alpha.openshift.io/originating-service-uid"
 	// ServiceNameAnnotation is an annotation on a secret that indicates which service created it, by Name to allow reverse lookups on services

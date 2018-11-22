@@ -27,7 +27,7 @@ import (
 	"github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert/cryptoextensions"
 )
 
-func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}, t *testing.T) ( /*caName*/ string, *fake.Clientset, *watch.RaceFreeFakeWatcher, *watch.RaceFreeFakeWatcher, *ServiceServingCertController, informers.SharedInformerFactory) {
+func controllerSetup(startingObjects []runtime.Object, t *testing.T) ( /*caName*/ string, *fake.Clientset, *watch.RaceFreeFakeWatcher, *watch.RaceFreeFakeWatcher, *serviceServingCertController, informers.SharedInformerFactory) {
 	certDir, err := ioutil.TempDir("", "serving-cert-unit-")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -62,10 +62,10 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	controller := NewServiceServingCertController(
 		informerFactory.Core().V1().Services(),
 		informerFactory.Core().V1().Secrets(),
-		kubeclient.Core(), kubeclient.Core(), ca, "cluster.local", 10*time.Minute,
+		kubeclient.Core(), kubeclient.Core(), ca, "cluster.local",
 	)
 
-	return signerName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory
+	return signerName, kubeclient, fakeWatch, fakeSecretWatch, controller.(*serviceServingCertController), informerFactory
 }
 
 func checkGeneratedCertificate(t *testing.T, certData []byte, service *v1.Service) {
@@ -118,8 +118,8 @@ func TestBasicControllerFlow(t *testing.T) {
 	defer close(stopChannel)
 	received := make(chan bool)
 
-	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
-	controller.syncHandler = func(obj interface{}) error {
+	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, t)
+	controller.syncHandler = func(obj metav1.Object) error {
 		defer func() { received <- true }()
 
 		err := controller.syncService(obj)
@@ -214,11 +214,11 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 	existingSecret.Type = v1.SecretTypeTLS
 	existingSecret.Annotations = expectedSecretAnnotations
 
-	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
+	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Secret{}, kapierrors.NewAlreadyExists(v1.Resource("secrets"), "new-secret")
 	})
-	controller.syncHandler = func(obj interface{}) error {
+	controller.syncHandler = func(obj metav1.Object) error {
 		defer func() { received <- true }()
 
 		err := controller.syncService(obj)
@@ -292,11 +292,11 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 	existingSecret.Type = v1.SecretTypeTLS
 	existingSecret.Annotations = map[string]string{api.ServiceUIDAnnotation: "wrong-uid", api.ServiceNameAnnotation: serviceName}
 
-	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
+	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Secret{}, kapierrors.NewAlreadyExists(v1.Resource("secrets"), "new-secret")
 	})
-	controller.syncHandler = func(obj interface{}) error {
+	controller.syncHandler = func(obj metav1.Object) error {
 		defer func() { received <- true }()
 
 		err := controller.syncService(obj)
@@ -363,11 +363,11 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 	serviceUID := "some-uid"
 	namespace := "ns"
 
-	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
+	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Secret{}, kapierrors.NewForbidden(v1.Resource("secrets"), "new-secret", fmt.Errorf("any reason"))
 	})
-	controller.syncHandler = func(obj interface{}) error {
+	controller.syncHandler = func(obj metav1.Object) error {
 		defer func() { received <- true }()
 
 		err := controller.syncService(obj)
@@ -426,7 +426,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	serviceUID := "some-uid"
 	namespace := "ns"
 
-	caName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
+	caName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory := controllerSetup([]runtime.Object{}, t)
 	kubeclient.PrependReactor("update", "service", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Service{}, kapierrors.NewForbidden(v1.Resource("fdsa"), "new-service", fmt.Errorf("any service reason"))
 	})
@@ -436,7 +436,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	kubeclient.PrependReactor("update", "secret", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Secret{}, kapierrors.NewForbidden(v1.Resource("asdf"), "new-secret", fmt.Errorf("any reason"))
 	})
-	controller.syncHandler = func(obj interface{}) error {
+	controller.syncHandler = func(obj metav1.Object) error {
 		defer func() { received <- true }()
 
 		err := controller.syncService(obj)
@@ -500,8 +500,8 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 	defer close(stopChannel)
 	received := make(chan bool)
 
-	caName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
-	controller.syncHandler = func(obj interface{}) error {
+	caName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory := controllerSetup([]runtime.Object{}, t)
+	controller.syncHandler = func(obj metav1.Object) error {
 		defer func() { received <- true }()
 
 		err := controller.syncService(obj)

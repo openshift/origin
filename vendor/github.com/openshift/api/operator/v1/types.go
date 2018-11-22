@@ -190,8 +190,8 @@ const (
 type StaticPodOperatorStatus struct {
 	OperatorStatus `json:",inline"`
 
-	// latestAvailableDeploymentGeneration is the deploymentID of the most recent deployment
-	LatestAvailableDeploymentGeneration int32 `json:"latestAvailableDeploymentGeneration"`
+	// latestAvailableRevision is the deploymentID of the most recent deployment
+	LatestAvailableRevision int32 `json:"latestAvailableRevision"`
 
 	// nodeStatuses track the deployment values and errors across individual nodes
 	NodeStatuses []NodeStatus `json:"nodeStatuses"`
@@ -202,13 +202,13 @@ type NodeStatus struct {
 	// nodeName is the name of the node
 	NodeName string `json:"nodeName"`
 
-	// currentDeploymentGeneration is the generation of the most recently successful deployment
-	CurrentDeploymentGeneration int32 `json:"currentDeploymentGeneration"`
-	// targetDeploymentGeneration is the generation of the deployment we're trying to apply
-	TargetDeploymentGeneration int32 `json:"targetDeploymentGeneration"`
-	// lastFailedDeploymentGeneration is the generation of the deployment we tried and failed to deploy.
-	LastFailedDeploymentGeneration int32 `json:"lastFailedDeploymentGeneration"`
+	// currentRevision is the generation of the most recently successful deployment
+	CurrentRevision int32 `json:"currentRevision"`
+	// targetRevision is the generation of the deployment we're trying to apply
+	TargetRevision int32 `json:"targetRevision"`
+	// lastFailedRevision is the generation of the deployment we tried and failed to deploy.
+	LastFailedRevision int32 `json:"lastFailedRevision"`
 
-	// lastFailedDeploymentGenerationErrors is a list of the errors during the failed deployment referenced in lastFailedDeploymentGeneration
-	LastFailedDeploymentErrors []string `json:"lastFailedDeploymentErrors"`
+	// lastFailedRevisionErrors is a list of the errors during the failed deployment referenced in lastFailedRevision
+	LastFailedRevisionErrors []string `json:"lastFailedRevisionErrors"`
 }

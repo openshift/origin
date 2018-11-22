@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert"
+	"github.com/openshift/service-serving-cert-signer/pkg/controller/api"
 )
 
 const (
@@ -58,7 +58,7 @@ func createServingCertAnnotatedService(client *kubernetes.Clientset, secretName,
 		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 			Annotations: map[string]string{
-				servingcert.ServingCertSecretAnnotation: secretName,
+				api.ServingCertSecretAnnotation: secretName,
 			},
 		},
 		Spec: v1.ServiceSpec{
@@ -90,6 +90,8 @@ func cleanupServiceSignerTestObjects(client *kubernetes.Clientset, secretName, s
 	client.CoreV1().Secrets(namespace).Delete(secretName, &metav1.DeleteOptions{})
 	client.CoreV1().Services(namespace).Delete(serviceName, &metav1.DeleteOptions{})
 	client.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{})
+	// TODO this should just delete the namespace and wait for it to be gone
+	// it should probably fail the test if the namespace gets stuck
 }
 
 func TestE2E(t *testing.T) {
@@ -161,6 +163,7 @@ func init() {
 
 var characters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 
+// TODO drop this and just use generate name
 // used for random suffix
 func randSeq(n int) string {
 	b := make([]rune, n)

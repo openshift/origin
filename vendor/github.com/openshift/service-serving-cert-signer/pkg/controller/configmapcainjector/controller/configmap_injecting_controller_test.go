@@ -21,14 +21,16 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 	tests := []struct {
 		name               string
 		startingConfigMaps []runtime.Object
-		key                string
+		namespace          string
+		cmName             string
 		caBundle           string
 		validateActions    func(t *testing.T, actions []clienttesting.Action)
 	}{
 		{
-			name:     "missing",
-			key:      "foo",
-			caBundle: "content",
+			name:      "missing",
+			namespace: "foo",
+			cmName:    "foo",
+			caBundle:  "content",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 0 {
 					t.Fatal(spew.Sdump(actions))
@@ -47,8 +49,9 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 					Data: map[string]string{},
 				},
 			},
-			key:      "foo/foo",
-			caBundle: "content",
+			namespace: "foo",
+			cmName:    "foo",
+			caBundle:  "content",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 1 {
 					t.Fatal(spew.Sdump(actions))
@@ -76,8 +79,9 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 					},
 				},
 			},
-			key:      "foo/foo",
-			caBundle: "content",
+			namespace: "foo",
+			cmName:    "foo",
+			caBundle:  "content",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 1 {
 					t.Fatal(spew.Sdump(actions))
@@ -105,8 +109,9 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 					},
 				},
 			},
-			key:      "foo/foo",
-			caBundle: "content",
+			namespace: "foo",
+			cmName:    "foo",
+			caBundle:  "content",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 0 {
 					t.Fatal(spew.Sdump(actions))
@@ -121,15 +126,19 @@ func TestSyncConfigMapCABundle(t *testing.T) {
 			for _, configMap := range tc.startingConfigMaps {
 				index.Add(configMap)
 			}
-			c := &ConfigMapCABundleInjectionController{
+			c := &configMapCABundleInjectionController{
 				configMapLister: listers.NewConfigMapLister(index),
 				configMapClient: fakeClient.CoreV1(),
 				ca:              tc.caBundle,
 			}
-			err := c.syncConfigMap(tc.key)
-			if err != nil {
-				t.Fatal(err)
+
+			obj, err := c.Key(tc.namespace, tc.cmName)
+			if err == nil {
+				if err := c.Sync(obj); err != nil {
+					t.Fatal(err)
+				}
 			}
+
 			tc.validateActions(t, fakeClient.Actions())
 		})
 	}

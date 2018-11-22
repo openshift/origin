@@ -8528,11 +8528,18 @@ func schema_openshift_api_config_v1_ImageSpec(ref common.ReferenceCallback) comm
 							},
 						},
 					},
-					"externalRegistryHostname": {
+					"externalRegistryHostnames": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ExternalRegistryHostname sets the hostname for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "externalRegistryHostnames provides the hostnames for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The first value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 					"additionalTrustedCA": {
@@ -8559,6 +8566,20 @@ func schema_openshift_api_config_v1_ImageStatus(ref common.ReferenceCallback) co
 							Description: "this value is set by the image registry operator which controls the internal registry hostname InternalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format. For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY environment variable but this setting overrides the environment variable.",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"externalRegistryHostnames": {
+						SchemaProps: spec.SchemaProps{
+							Description: "externalRegistryHostnames provides the hostnames for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The first value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -18908,30 +18929,30 @@ func schema_openshift_api_operator_v1_NodeStatus(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
-					"currentDeploymentGeneration": {
+					"currentRevision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "currentDeploymentGeneration is the generation of the most recently successful deployment",
+							Description: "currentRevision is the generation of the most recently successful deployment",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
-					"targetDeploymentGeneration": {
+					"targetRevision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "targetDeploymentGeneration is the generation of the deployment we're trying to apply",
+							Description: "targetRevision is the generation of the deployment we're trying to apply",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
-					"lastFailedDeploymentGeneration": {
+					"lastFailedRevision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "lastFailedDeploymentGeneration is the generation of the deployment we tried and failed to deploy.",
+							Description: "lastFailedRevision is the generation of the deployment we tried and failed to deploy.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
-					"lastFailedDeploymentErrors": {
+					"lastFailedRevisionErrors": {
 						SchemaProps: spec.SchemaProps{
-							Description: "lastFailedDeploymentGenerationErrors is a list of the errors during the failed deployment referenced in lastFailedDeploymentGeneration",
+							Description: "lastFailedRevisionErrors is a list of the errors during the failed deployment referenced in lastFailedRevision",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -18944,7 +18965,7 @@ func schema_openshift_api_operator_v1_NodeStatus(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"nodeName", "currentDeploymentGeneration", "targetDeploymentGeneration", "lastFailedDeploymentGeneration", "lastFailedDeploymentErrors"},
+				Required: []string{"nodeName", "currentRevision", "targetRevision", "lastFailedRevision", "lastFailedRevisionErrors"},
 			},
 		},
 		Dependencies: []string{},
@@ -19251,9 +19272,9 @@ func schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref common.Referen
 							},
 						},
 					},
-					"latestAvailableDeploymentGeneration": {
+					"latestAvailableRevision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "latestAvailableDeploymentGeneration is the deploymentID of the most recent deployment",
+							Description: "latestAvailableRevision is the deploymentID of the most recent deployment",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -19272,7 +19293,7 @@ func schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"version", "readyReplicas", "generations", "latestAvailableDeploymentGeneration", "nodeStatuses"},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision", "nodeStatuses"},
 			},
 		},
 		Dependencies: []string{

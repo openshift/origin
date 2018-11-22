@@ -185,7 +185,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			index := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-			c := &ServiceServingCertUpdateController{
+			c := &serviceServingCertUpdateController{
 				serviceLister: listers.NewServiceLister(index),
 			}
 			tc.primeServices(index)

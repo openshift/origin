@@ -43,29 +43,22 @@ type configMapCABundleInjectorOptions struct {
 	ca string
 }
 
-// These might need adjustment
-const (
-	InformerResyncInterval   = 2 * time.Minute
-	ControllerResyncInterval = 20 * time.Minute
-)
-
 func (o *configMapCABundleInjectorOptions) runConfigMapCABundleInjector(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	kubeInformers := informers.NewSharedInformerFactory(kubeClient, InformerResyncInterval)
+	kubeInformers := informers.NewSharedInformerFactory(kubeClient, 20*time.Minute)
 
 	configMapInjectorController := controller.NewConfigMapCABundleInjectionController(
 		kubeInformers.Core().V1().ConfigMaps(),
 		kubeClient.CoreV1(),
 		o.ca,
-		ControllerResyncInterval,
 	)
 
 	kubeInformers.Start(stopCh)
 
-	go configMapInjectorController.Run(1, stopCh)
+	go configMapInjectorController.Run(5, stopCh)
 
 	<-stopCh
 
