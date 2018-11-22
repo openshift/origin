@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,7 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"github.com/docker/distribution"
-	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/transport"

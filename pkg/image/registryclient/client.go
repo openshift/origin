@@ -11,10 +11,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	gocontext "golang.org/x/net/context"
+	"golang.org/x/net/context"
 
 	"github.com/docker/distribution"
-	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
 	registryclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
@@ -27,7 +26,7 @@ import (
 type RepositoryRetriever interface {
 	// Repository returns a properly authenticated distribution.Repository for the given registry, repository
 	// name, and insecure toleration behavior.
-	Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error)
+	Repository(ctx context.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error)
 }
 
 // ErrNotV2Registry is returned when the server does not report itself as a V2 Docker registry
@@ -140,7 +139,7 @@ func (c *Context) cachedPing(src url.URL) (*url.URL, error) {
 }
 
 // Ping contacts a registry and returns the transport and URL of the registry or an error.
-func (c *Context) Ping(ctx gocontext.Context, registry *url.URL, insecure bool) (http.RoundTripper, *url.URL, error) {
+func (c *Context) Ping(ctx context.Context, registry *url.URL, insecure bool) (http.RoundTripper, *url.URL, error) {
 	t := c.Transport
 	if insecure && c.InsecureTransport != nil {
 		t = c.InsecureTransport
@@ -175,7 +174,7 @@ func (c *Context) Ping(ctx gocontext.Context, registry *url.URL, insecure bool) 
 	return t, &src, nil
 }
 
-func (c *Context) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
+func (c *Context) Repository(ctx context.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
 	named, err := reference.WithName(repoName)
 	if err != nil {
 		return nil, err
@@ -188,7 +187,7 @@ func (c *Context) Repository(ctx gocontext.Context, registry *url.URL, repoName 
 
 	rt = c.repositoryTransport(rt, src, repoName)
 
-	repo, err := registryclient.NewRepository(context.Context(ctx), named, src.String(), rt)
+	repo, err := registryclient.NewRepository(named, src.String(), rt)
 	if err != nil {
 		return nil, err
 	}

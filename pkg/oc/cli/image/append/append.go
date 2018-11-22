@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/docker/distribution"
-	distributioncontext "github.com/docker/distribution/context"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/client"
@@ -567,16 +566,16 @@ type scratchRepo struct{}
 var _ distribution.Repository = scratchRepo{}
 
 func (_ scratchRepo) Named() reference.Named { panic("not implemented") }
-func (_ scratchRepo) Tags(ctx distributioncontext.Context) distribution.TagService {
+func (_ scratchRepo) Tags(ctx context.Context) distribution.TagService {
 	panic("not implemented")
 }
-func (_ scratchRepo) Manifests(ctx distributioncontext.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
+func (_ scratchRepo) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
 	panic("not implemented")
 }
 
-func (r scratchRepo) Blobs(ctx distributioncontext.Context) distribution.BlobStore { return r }
+func (r scratchRepo) Blobs(ctx context.Context) distribution.BlobStore { return r }
 
-func (_ scratchRepo) Stat(ctx distributioncontext.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+func (_ scratchRepo) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
 	if dgst != dockerlayer.GzippedEmptyLayerDigest {
 		return distribution.Descriptor{}, distribution.ErrBlobUnknown
 	}
@@ -587,7 +586,7 @@ func (_ scratchRepo) Stat(ctx distributioncontext.Context, dgst digest.Digest) (
 	}, nil
 }
 
-func (_ scratchRepo) Get(ctx distributioncontext.Context, dgst digest.Digest) ([]byte, error) {
+func (_ scratchRepo) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
 	if dgst != dockerlayer.GzippedEmptyLayerDigest {
 		return nil, distribution.ErrBlobUnknown
 	}
@@ -606,29 +605,29 @@ func (_ nopCloseBuffer) Close() error {
 	return nil
 }
 
-func (_ scratchRepo) Open(ctx distributioncontext.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
+func (_ scratchRepo) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
 	if dgst != dockerlayer.GzippedEmptyLayerDigest {
 		return nil, distribution.ErrBlobUnknown
 	}
 	return nopCloseBuffer{bytes.NewBuffer(dockerlayer.GzippedEmptyLayer)}, nil
 }
 
-func (_ scratchRepo) Put(ctx distributioncontext.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
+func (_ scratchRepo) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
 	panic("not implemented")
 }
 
-func (_ scratchRepo) Create(ctx distributioncontext.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
+func (_ scratchRepo) Create(ctx context.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
 	panic("not implemented")
 }
 
-func (_ scratchRepo) Resume(ctx distributioncontext.Context, id string) (distribution.BlobWriter, error) {
+func (_ scratchRepo) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {
 	panic("not implemented")
 }
 
-func (_ scratchRepo) ServeBlob(ctx distributioncontext.Context, w http.ResponseWriter, r *http.Request, dgst digest.Digest) error {
+func (_ scratchRepo) ServeBlob(ctx context.Context, w http.ResponseWriter, r *http.Request, dgst digest.Digest) error {
 	panic("not implemented")
 }
 
-func (_ scratchRepo) Delete(ctx distributioncontext.Context, dgst digest.Digest) error {
+func (_ scratchRepo) Delete(ctx context.Context, dgst digest.Digest) error {
 	panic("not implemented")
 }
