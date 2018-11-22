@@ -42,12 +42,13 @@ func NewServiceServingCertUpdateController(services informers.ServiceInformer, s
 		minTimeLeftForCert: 1 * time.Hour,
 	}
 
-	return controller.New("ServiceServingCertUpdateController", sc).
-		WithInformerSynced(services.Informer().GetController().HasSynced).
-		WithInformer(secrets.Informer(), controller.FilterFuncs{
+	return controller.New("ServiceServingCertUpdateController", sc,
+		controller.WithInformerSynced(services),
+		controller.WithInformer(secrets, controller.FilterFuncs{
 			AddFunc:    sc.addSecret,
 			UpdateFunc: sc.updateSecret,
-		})
+		}),
+	)
 }
 
 func (sc *serviceServingCertUpdateController) addSecret(obj metav1.Object) bool {

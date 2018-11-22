@@ -205,10 +205,8 @@ func TestHost(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
 	}
 }
 
@@ -439,12 +437,10 @@ func TestPath(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-			testUseEscapedRoute(t, test)
-			testRegexp(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
+		testUseEscapedRoute(t, test)
+		testRegexp(t, test)
 	}
 }
 
@@ -520,11 +516,9 @@ func TestPathPrefix(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-			testUseEscapedRoute(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
+		testUseEscapedRoute(t, test)
 	}
 }
 
@@ -629,11 +623,9 @@ func TestSchemeHostPath(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-			testUseEscapedRoute(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
+		testUseEscapedRoute(t, test)
 	}
 }
 
@@ -690,10 +682,8 @@ func TestHeaders(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
 	}
 }
 
@@ -742,11 +732,9 @@ func TestMethods(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-			testMethods(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
+		testMethods(t, test)
 	}
 }
 
@@ -1051,12 +1039,11 @@ func TestQueries(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testTemplate(t, test)
-			testQueriesTemplates(t, test)
-			testUseEscapedRoute(t, test)
-			testQueriesRegexp(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
+		testQueriesTemplates(t, test)
+		testUseEscapedRoute(t, test)
+		testQueriesRegexp(t, test)
 	}
 }
 
@@ -1105,10 +1092,8 @@ func TestSchemes(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
 	}
 }
 
@@ -1142,10 +1127,8 @@ func TestMatcherFunc(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
 	}
 }
 
@@ -1180,10 +1163,8 @@ func TestBuildVarsFunc(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
 	}
 }
 
@@ -1313,11 +1294,9 @@ func TestSubRouter(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-			testUseEscapedRoute(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
+		testUseEscapedRoute(t, test)
 	}
 }
 
@@ -1421,11 +1400,9 @@ func TestStrictSlash(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-			testUseEscapedRoute(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
+		testUseEscapedRoute(t, test)
 	}
 }
 
@@ -1457,10 +1434,8 @@ func TestUseEncodedPath(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testRoute(t, test)
-			testTemplate(t, test)
-		})
+		testRoute(t, test)
+		testTemplate(t, test)
 	}
 }
 
@@ -2065,9 +2040,7 @@ func TestMethodsSubrouterCatchall(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testMethodsSubrouter(t, test)
-		})
+		testMethodsSubrouter(t, test)
 	}
 }
 
@@ -2123,9 +2096,7 @@ func TestMethodsSubrouterStrictSlash(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testMethodsSubrouter(t, test)
-		})
+		testMethodsSubrouter(t, test)
 	}
 }
 
@@ -2172,9 +2143,7 @@ func TestMethodsSubrouterPathPrefix(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testMethodsSubrouter(t, test)
-		})
+		testMethodsSubrouter(t, test)
 	}
 }
 
@@ -2230,9 +2199,7 @@ func TestMethodsSubrouterSubrouter(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testMethodsSubrouter(t, test)
-		})
+		testMethodsSubrouter(t, test)
 	}
 }
 
@@ -2286,9 +2253,7 @@ func TestMethodsSubrouterPathVariable(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.title, func(t *testing.T) {
-			testMethodsSubrouter(t, test)
-		})
+		testMethodsSubrouter(t, test)
 	}
 }
 

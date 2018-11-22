@@ -41,7 +41,7 @@ func TestLookup(t *testing.T) {
 	}
 	assertEqualDigests(t, dgst, digests[3])
 
-	dgst, err = dset.Lookup("1234")
+	_, err = dset.Lookup("1234")
 	if err == nil {
 		t.Fatal("Expected ambiguous error looking up: 1234")
 	}
@@ -49,15 +49,15 @@ func TestLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dgst, err = dset.Lookup("9876")
+	_, err = dset.Lookup("9876")
 	if err == nil {
-		t.Fatal("Expected ambiguous error looking up: 9876")
+		t.Fatal("Expected not found error looking up: 9876")
 	}
 	if err != ErrDigestNotFound {
 		t.Fatal(err)
 	}
 
-	dgst, err = dset.Lookup("sha256:1234")
+	_, err = dset.Lookup("sha256:1234")
 	if err == nil {
 		t.Fatal("Expected ambiguous error looking up: sha256:1234")
 	}
@@ -118,7 +118,7 @@ func TestAddDuplication(t *testing.T) {
 	}
 
 	if len(dset.entries) != 8 {
-		t.Fatal("Duplicate digest insert allowed")
+		t.Fatal("Duplicate digest insert should not increase entries size")
 	}
 
 	if err := dset.Add(digest.Digest("sha384:123451111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")); err != nil {
@@ -126,7 +126,7 @@ func TestAddDuplication(t *testing.T) {
 	}
 
 	if len(dset.entries) != 9 {
-		t.Fatal("Insert with different algorithm not allowed")
+		t.Fatal("Insert with different algorithm should be allowed")
 	}
 }
 

@@ -125,6 +125,10 @@ type JavaLog struct {
 }
 
 type OperatorStatus struct {
+	// observedGeneration is the last generation change you've dealt with
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
 	// conditions is a list of conditions and their status
 	Conditions []OperatorCondition `json:"conditions,omitempty"`
 

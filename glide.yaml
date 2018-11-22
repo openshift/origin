@@ -77,7 +77,7 @@ import:
 # cli
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git
-  version: openshift-3.10-docker-edc3ab2
+  version: image-registry-3.11
 # close-write carry
 - package: github.com/docker/docker
   repo:    https://github.com/openshift/moby-moby.git

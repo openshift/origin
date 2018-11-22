@@ -20,6 +20,9 @@ const (
 	// AssembleInputFilesLabel is the Docker image LABEL that tells S2I which files wil be copied from builder to a runtime image.
 	AssembleInputFilesLabel = DefaultNamespace + "assemble-input-files"
 
+	// AssembleRuntimeUserLabel is the Docker image label that tells S2I which user should execute the assemble-runtime scripts.
+	AssembleRuntimeUserLabel = DefaultNamespace + "assemble-runtime-user"
+
 	// AssembleUserLabel is the Docker image label that tells S2I which user should execute the assemble scripts.
 	AssembleUserLabel = DefaultNamespace + "assemble-user"
 

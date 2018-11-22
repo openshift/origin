@@ -71,6 +71,15 @@ func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeCo
 	if len(overrides.ContentType) > 0 {
 		kubeConfig.ContentConfig.ContentType = overrides.ContentType
 	}
+
+	// if we have no preferences at this point, claim that we accept both proto and json.  We will get proto if the server supports it.
+	// this is a slightly niggly thing.  If the server has proto and our client does not (possible, but not super likely) then this fails.
+	if len(kubeConfig.ContentConfig.AcceptContentTypes) == 0 {
+		kubeConfig.ContentConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	}
+	if len(kubeConfig.ContentConfig.ContentType) == 0 {
+		kubeConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf,application/json"
+	}
 }
 
 // defaultClientTransport sets defaults for a client Transport that are suitable for use by infrastructure components.

@@ -27,11 +27,12 @@ func NewConfigMapCABundleInjectionController(configMaps informers.ConfigMapInfor
 		ca:              ca,
 	}
 
-	return controller.New("ConfigMapCABundleInjectionController", ic).
-		WithInformer(configMaps.Informer(), controller.FilterFuncs{
+	return controller.New("ConfigMapCABundleInjectionController", ic,
+		controller.WithInformer(configMaps, controller.FilterFuncs{
 			AddFunc:    api.HasInjectCABundleAnnotation,
 			UpdateFunc: api.HasInjectCABundleAnnotationUpdate,
-		})
+		}),
+	)
 }
 
 func (ic *configMapCABundleInjectionController) Key(namespace, name string) (v1.Object, error) {

@@ -27,11 +27,12 @@ func NewAPIServiceCABundleInjector(apiServiceInformer apiserviceinformer.APIServ
 		caBundle:         caBundle,
 	}
 
-	return controller.New("APIServiceCABundleInjector", sc).
-		WithInformer(apiServiceInformer.Informer(), controller.FilterFuncs{
+	return controller.New("APIServiceCABundleInjector", sc,
+		controller.WithInformer(apiServiceInformer, controller.FilterFuncs{
 			AddFunc:    api.HasInjectCABundleAnnotation,
 			UpdateFunc: api.HasInjectCABundleAnnotationUpdate,
-		})
+		}),
+	)
 }
 
 func (c *serviceServingCertUpdateController) Key(namespace, name string) (v1.Object, error) {

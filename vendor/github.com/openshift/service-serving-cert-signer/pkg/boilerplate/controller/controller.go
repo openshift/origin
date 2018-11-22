@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -19,94 +18,48 @@ type Runner interface {
 	Run(workers int, stopCh <-chan struct{})
 }
 
-func New(name string, sync Syncer) *Controller {
-	c := &Controller{
+func New(name string, sync KeySyncer, opts ...Option) Runner {
+	c := &controller{
 		name: name,
 		sync: sync,
 	}
-	return c.WithRateLimiter(workqueue.DefaultControllerRateLimiter())
+
+	WithRateLimiter(workqueue.DefaultControllerRateLimiter())(c)
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
 }
 
-type Controller struct {
+type controller struct {
 	name string
-	sync Syncer
+	sync KeySyncer
 
 	queue      workqueue.RateLimitingInterface
 	maxRetries int
 
+	run     bool
+	runOpts []Option
+
 	cacheSyncs []cache.InformerSynced
 }
 
-func (c *Controller) WithMaxRetries(maxRetries int) *Controller {
-	c.maxRetries = maxRetries
-	return c
-}
-
-func (c *Controller) WithRateLimiter(limiter workqueue.RateLimiter) *Controller {
-	c.queue = workqueue.NewNamedRateLimitingQueue(limiter, c.name)
-	return c
-}
-
-func (c *Controller) WithInformerSynced(synced cache.InformerSynced) *Controller {
-	c.cacheSyncs = append(c.cacheSyncs, synced)
-	return c
-}
-
-func (c *Controller) WithInformer(informer cache.SharedInformer, filter Filter) *Controller {
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			object := metaOrDie(obj)
-			if filter.Add(object) {
-				glog.V(4).Infof("%s: handling add %s/%s", c.name, object.GetNamespace(), object.GetName())
-				c.add(filter, object)
-			}
-		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			oldObject := metaOrDie(oldObj)
-			newObject := metaOrDie(newObj)
-			if filter.Update(oldObject, newObject) {
-				glog.V(4).Infof("%s: handling update %s/%s", c.name, newObject.GetNamespace(), newObject.GetName())
-				c.add(filter, newObject)
-			}
-		},
-		DeleteFunc: func(obj interface{}) {
-			accessor, err := meta.Accessor(obj)
-			if err != nil {
-				tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-				if !ok {
-					utilruntime.HandleError(fmt.Errorf("could not get object from tombstone: %+v", obj))
-					return
-				}
-				accessor, err = meta.Accessor(tombstone.Obj)
-				if err != nil {
-					utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not an accessor: %+v", obj))
-					return
-				}
-			}
-			if filter.Delete(accessor) {
-				glog.V(4).Infof("%s: handling delete %s/%s", c.name, accessor.GetNamespace(), accessor.GetName())
-				c.add(filter, accessor)
-			}
-		},
-	})
-	return c.WithInformerSynced(informer.GetController().HasSynced)
-}
-
-func (c *Controller) add(filter Filter, object v1.Object) {
-	parent := filter.Parent(object)
-	qKey := queueKey{namespace: object.GetNamespace(), name: parent}
-	c.queue.Add(qKey)
-}
-
-func (c *Controller) Run(workers int, stopCh <-chan struct{}) {
+func (c *controller) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	glog.Infof("Starting %s", c.name)
 	defer glog.Infof("Shutting down %s", c.name)
 
+	c.run = true
+	for _, opt := range c.runOpts {
+		opt(c)
+	}
+
 	if !cache.WaitForCacheSync(stopCh, c.cacheSyncs...) {
-		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
+		utilruntime.HandleError(fmt.Errorf("%s: timed out waiting for caches to sync", c.name))
 		return
 	}
 
@@ -117,12 +70,18 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) {
 	<-stopCh
 }
 
-func (c *Controller) runWorker() {
+func (c *controller) add(filter ParentFilter, object v1.Object) {
+	namespace, name := filter.Parent(object)
+	qKey := queueKey{namespace: namespace, name: name}
+	c.queue.Add(qKey)
+}
+
+func (c *controller) runWorker() {
 	for c.processNextWorkItem() {
 	}
 }
 
-func (c *Controller) processNextWorkItem() bool {
+func (c *controller) processNextWorkItem() bool {
 	key, quit := c.queue.Get()
 	if quit {
 		return false
@@ -137,7 +96,7 @@ func (c *Controller) processNextWorkItem() bool {
 	return true
 }
 
-func (c *Controller) handleSync(key queueKey) error {
+func (c *controller) handleSync(key queueKey) error {
 	obj, err := c.sync.Key(key.namespace, key.name)
 	if errors.IsNotFound(err) {
 		return nil
@@ -148,7 +107,7 @@ func (c *Controller) handleSync(key queueKey) error {
 	return c.sync.Sync(obj)
 }
 
-func (c *Controller) handleKey(key queueKey, err error) {
+func (c *controller) handleKey(key queueKey, err error) {
 	if err == nil {
 		c.queue.Forget(key)
 		return
@@ -168,12 +127,4 @@ func (c *Controller) handleKey(key queueKey, err error) {
 type queueKey struct {
 	namespace string
 	name      string
-}
-
-func metaOrDie(obj interface{}) v1.Object {
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		panic(err) // this should never happen
-	}
-	return accessor
 }

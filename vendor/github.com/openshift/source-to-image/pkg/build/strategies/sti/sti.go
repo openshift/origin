@@ -317,6 +317,18 @@ func (builder *STI) Prepare(config *api.Config) error {
 				}
 			}
 		}
+
+		if len(config.AssembleRuntimeUser) == 0 {
+			if config.AssembleRuntimeUser, err = builder.docker.GetAssembleRuntimeUser(config.RuntimeImage); err != nil {
+				builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+					utilstatus.ReasonGenericS2IBuildFailed,
+					utilstatus.ReasonMessageGenericS2iBuildFailed,
+				)
+				return fmt.Errorf("could not get %q label value on image %q: %v",
+					constants.AssembleRuntimeUserLabel, config.RuntimeImage, err)
+			}
+		}
+
 		// we're validating values here to be sure that we're handling both of the cases of the invocation:
 		// from main() and as a method from OpenShift
 		for _, volumeSpec := range builder.config.RuntimeArtifacts {

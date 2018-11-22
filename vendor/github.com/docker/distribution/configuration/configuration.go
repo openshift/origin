@@ -30,7 +30,7 @@ type Configuration struct {
 		} `yaml:"accesslog,omitempty"`
 
 		// Level is the granularity at which registry operations are logged.
-		Level Loglevel `yaml:"level"`
+		Level Loglevel `yaml:"level,omitempty"`
 
 		// Formatter overrides the default formatter with another. Options
 		// include "text", "json" and "logstash".
@@ -45,8 +45,9 @@ type Configuration struct {
 		Hooks []LogHook `yaml:"hooks,omitempty"`
 	}
 
-	// Loglevel is the level at which registry operations are logged. This is
-	// deprecated. Please use Log.Level in the future.
+	// Loglevel is the level at which registry operations are logged.
+	//
+	// Deprecated: Use Log.Level instead.
 	Loglevel Loglevel `yaml:"loglevel,omitempty"`
 
 	// Storage is the configuration for the registry's storage driver
@@ -84,6 +85,10 @@ type Configuration struct {
 		// Location headers
 		RelativeURLs bool `yaml:"relativeurls,omitempty"`
 
+		// Amount of time to wait for connection to drain before shutting down when registry
+		// receives a stop signal
+		DrainTimeout time.Duration `yaml:"draintimeout,omitempty"`
+
 		// TLS instructs the http server to listen with a TLS configuration.
 		// This only support simple tls configuration with a cert and key.
 		// Mostly, this is useful for testing situations or simple deployments
@@ -114,6 +119,10 @@ type Configuration struct {
 
 				// Email is the email to use during Let's Encrypt registration
 				Email string `yaml:"email,omitempty"`
+
+				// Hosts specifies the hosts which are allowed to obtain Let's
+				// Encrypt certificates.
+				Hosts []string `yaml:"hosts,omitempty"`
 			} `yaml:"letsencrypt,omitempty"`
 		} `yaml:"tls,omitempty"`
 
@@ -129,6 +138,11 @@ type Configuration struct {
 		Debug struct {
 			// Addr specifies the bind address for the debug server.
 			Addr string `yaml:"addr,omitempty"`
+			// Prometheus configures the Prometheus telemetry endpoint.
+			Prometheus struct {
+				Enabled bool   `yaml:"enabled,omitempty"`
+				Path    string `yaml:"path,omitempty"`
+			} `yaml:"prometheus,omitempty"`
 		} `yaml:"debug,omitempty"`
 
 		// HTTP2 configuration options
@@ -184,6 +198,8 @@ type Configuration struct {
 			// TrustKey is the signing key to use for adding the signature to
 			// schema1 manifests.
 			TrustKey string `yaml:"signingkeyfile,omitempty"`
+			// Enabled determines if schema1 manifests should be pullable
+			Enabled bool `yaml:"enabled,omitempty"`
 		} `yaml:"schema1,omitempty"`
 	} `yaml:"compatibility,omitempty"`
 
@@ -535,6 +551,8 @@ func (auth Auth) MarshalYAML() (interface{}, error) {
 
 // Notifications configures multiple http endpoints.
 type Notifications struct {
+	// EventConfig is the configuration for the event format that is sent to each Endpoint.
+	EventConfig Events `yaml:"events,omitempty"`
 	// Endpoints is a list of http configurations for endpoints that
 	// respond to webhook notifications. In the future, we may allow other
 	// kinds of endpoints, such as external queues.
@@ -552,6 +570,18 @@ type Endpoint struct {
 	Threshold         int           `yaml:"threshold"`         // circuit breaker threshold before backing off on failure
 	Backoff           time.Duration `yaml:"backoff"`           // backoff duration
 	IgnoredMediaTypes []string      `yaml:"ignoredmediatypes"` // target media types to ignore
+	Ignore            Ignore        `yaml:"ignore"`            // ignore event types
+}
+
+// Events configures notification events.
+type Events struct {
+	IncludeReferences bool `yaml:"includereferences"` // include reference data in manifest events
+}
+
+//Ignore configures mediaTypes and actions of the event, that it won't be propagated
+type Ignore struct {
+	MediaTypes []string `yaml:"mediatypes"` // target media types to ignore
+	Actions    []string `yaml:"actions"`    // ignore action types
 }
 
 // Reporting defines error reporting methods.
@@ -624,8 +654,15 @@ func Parse(rd io.Reader) (*Configuration, error) {
 			ParseAs: reflect.TypeOf(v0_1Configuration{}),
 			ConversionFunc: func(c interface{}) (interface{}, error) {
 				if v0_1, ok := c.(*v0_1Configuration); ok {
-					if v0_1.Loglevel == Loglevel("") {
-						v0_1.Loglevel = Loglevel("info")
+					if v0_1.Log.Level == Loglevel("") {
+						if v0_1.Loglevel != Loglevel("") {
+							v0_1.Log.Level = v0_1.Loglevel
+						} else {
+							v0_1.Log.Level = Loglevel("info")
+						}
+					}
+					if v0_1.Loglevel != Loglevel("") {
+						v0_1.Loglevel = Loglevel("")
 					}
 					if v0_1.Storage.Type() == "" {
 						return nil, errors.New("No storage configuration provided")

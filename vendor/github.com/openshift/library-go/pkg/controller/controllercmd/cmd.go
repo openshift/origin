@@ -23,7 +23,7 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/serviceability"
 
-	// add prometheus metrics
+	// for metrics
 	_ "github.com/openshift/library-go/pkg/controller/metrics"
 )
 

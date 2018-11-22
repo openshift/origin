@@ -2,8 +2,12 @@ package controller
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-type Syncer interface {
+type KeySyncer interface {
 	Key(namespace, name string) (v1.Object, error)
+	Syncer
+}
+
+type Syncer interface {
 	Sync(v1.Object) error
 }
 
