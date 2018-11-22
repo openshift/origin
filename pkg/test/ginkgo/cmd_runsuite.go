@@ -1,6 +1,7 @@
 package ginkgo
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -12,6 +13,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor"
 
 	"github.com/onsi/ginkgo/config"
 )
@@ -25,6 +28,8 @@ type Options struct {
 	TestFile     string
 	OutFile      string
 	DetectFlakes int
+
+	IncludeSuccessOutput bool
 
 	Provider string
 
@@ -177,7 +182,11 @@ func (opt *Options) Run(args []string) error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	status := newTestStatus(opt.Out, len(tests), timeout)
+	m, err := monitor.Start(ctx)
+	if err != nil {
+		return err
+	}
+	status := newTestStatus(opt.Out, opt.IncludeSuccessOutput, len(tests), timeout, m)
 
 	smoke, normal := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Smoke]")
@@ -201,6 +210,63 @@ func (opt *Options) Run(args []string) error {
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
+	// monitor the cluster while the tests are running and report any detected
+	// anomalies
+	var syntheticTestResults []*JUnitTestCase
+	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
+		buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}
+		fmt.Fprintf(buf, "\nTimeline:\n\n")
+		errorCount := 0
+		for _, test := range tests {
+			if !test.failed {
+				continue
+			}
+			events = append(events,
+				&monitor.EventInterval{
+					From: test.start,
+					To:   test.end,
+					Condition: &monitor.Condition{
+						Level:   monitor.Info,
+						Locator: fmt.Sprintf("test=%q", test.name),
+						Message: "running",
+					},
+				},
+				&monitor.EventInterval{
+					From: test.end,
+					To:   test.end,
+					Condition: &monitor.Condition{
+						Level:   monitor.Info,
+						Locator: fmt.Sprintf("test=%q", test.name),
+						Message: "failed",
+					},
+				},
+			)
+		}
+		sort.Sort(events)
+		for _, event := range events {
+			if event.Level == monitor.Error {
+				errorCount++
+				fmt.Fprintln(errBuf, event.String())
+			}
+			fmt.Fprintln(buf, event.String())
+		}
+		fmt.Fprintln(buf)
+
+		if errorCount > 0 {
+			syntheticTestResults = append(syntheticTestResults, &JUnitTestCase{
+				Name:      "Monitor cluster while tests execute",
+				SystemOut: buf.String(),
+				Duration:  duration.Seconds(),
+				FailureOutput: &FailureOutput{
+					Output: fmt.Sprintf("%d error level events were detected during this test run:\n\n%s", errorCount, errBuf.String()),
+				},
+			})
+		}
+
+		opt.Out.Write(buf.Bytes())
+	}
+
+	// attempt to retry failures to do flake detection
 	if fail > 0 && fail <= opt.DetectFlakes {
 		var retries []*testCase
 		for _, test := range failing {
@@ -211,7 +277,7 @@ func (opt *Options) Run(args []string) error {
 		}
 
 		q := newParallelTestQueue(retries)
-		status := newTestStatus(ioutil.Discard, len(retries), timeout)
+		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, m)
 		q.Execute(ctx, parallelism, status.Run)
 		var flaky []string
 		var repeatFailures []*testCase
@@ -236,7 +302,7 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	if len(opt.JUnitDir) > 0 {
-		if err := writeJUnitReport("openshift-tests", tests, opt.JUnitDir, duration, opt.ErrOut); err != nil {
+		if err := writeJUnitReport("openshift-tests", tests, opt.JUnitDir, duration, opt.ErrOut, syntheticTestResults...); err != nil {
 			fmt.Fprintf(opt.Out, "error: Unable to write JUnit results: %v", err)
 		}
 	}
@@ -247,6 +313,13 @@ func (opt *Options) Run(args []string) error {
 		}
 		fmt.Fprintf(opt.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
 	}
+
+	// if we detect a transition that is considered an error state (invariant violation) during
+	// the test run, exit with a failure
+	if len(syntheticTestResults) > 0 {
+		return fmt.Errorf("failing due to error event detection, %d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
+	}
+
 	fmt.Fprintf(opt.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return nil
 }

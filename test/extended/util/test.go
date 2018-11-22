@@ -449,6 +449,10 @@ var (
 			`Kubectl taint \[Serial\]`,
 			// flaking, very slow
 			`100 namespaces in 150 seconds`,
+
+			// appear to be flaking
+			`should run a successful deployment with multiple triggers`,
+			`should run a successful deployment with a trigger used by different containers`,
 		},
 	}
 
