@@ -15,4 +15,4 @@ if [[ -n "${sub_tests}" ]]; then
 	gotest_flags+=" -run TestIntegration/${sub_tests} -v"
 fi
 
-COVERAGE_SPEC=" " DETECT_RACES=false TMPDIR="${BASETMPDIR}" TIMEOUT=45m GOTEST_FLAGS="${gotest_flags}" "${OS_ROOT}/hack/test-go.sh" "test/integration/runner"
+COVERAGE_SPEC=" " DETECT_RACES=false TMPDIR="${BASETMPDIR}" TIMEOUT=2h GOTEST_FLAGS="${gotest_flags}" "${OS_ROOT}/hack/test-go.sh" "test/integration/runner"
