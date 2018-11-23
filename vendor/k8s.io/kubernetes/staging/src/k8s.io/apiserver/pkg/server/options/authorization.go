@@ -19,6 +19,10 @@ package options
 import (
 	"time"
 
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/authorization/path"
+	"k8s.io/apiserver/pkg/authorization/union"
+
 	"github.com/spf13/pflag"
 
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
@@ -44,6 +48,13 @@ type DelegatingAuthorizationOptions struct {
 	// DenyCacheTTL is the length of time that an unsuccessful authorization response will be cached.
 	// You generally want more responsive, "deny, try again" flows.
 	DenyCacheTTL time.Duration
+
+	// AlwaysAllowPaths are HTTP paths which are excluded from authorization. They can be plain
+	// paths or end in * in which case prefix-match is applied. A leading / is optional.
+	AlwaysAllowPaths []string
+
+	// AlwaysAllowGroups are groups which are allowed to take any actions.  In kube, this is system:masters.
+	AlwaysAllowGroups []string
 }
 
 func NewDelegatingAuthorizationOptions() *DelegatingAuthorizationOptions {
@@ -52,6 +63,18 @@ func NewDelegatingAuthorizationOptions() *DelegatingAuthorizationOptions {
 		AllowCacheTTL: 10 * time.Second,
 		DenyCacheTTL:  10 * time.Second,
 	}
+}
+
+// WithAlwaysAllowGroups appends the list of paths to AlwaysAllowGroups
+func (s *DelegatingAuthorizationOptions) WithAlwaysAllowGroups(groups ...string) *DelegatingAuthorizationOptions {
+	s.AlwaysAllowGroups = append(s.AlwaysAllowGroups, groups...)
+	return s
+}
+
+// WithAlwaysAllowPaths appends the list of paths to AlwaysAllowPaths
+func (s *DelegatingAuthorizationOptions) WithAlwaysAllowPaths(paths ...string) *DelegatingAuthorizationOptions {
+	s.AlwaysAllowPaths = append(s.AlwaysAllowPaths, paths...)
+	return s
 }
 
 func (s *DelegatingAuthorizationOptions) Validate() []error {
@@ -83,16 +106,29 @@ func (s *DelegatingAuthorizationOptions) ApplyTo(c *server.AuthorizationInfo) er
 		return nil
 	}
 
+	var authorizers []authorizer.Authorizer
+	if len(s.AlwaysAllowGroups) > 0 {
+		authorizers = append(authorizers, authorizerfactory.NewPrivilegedGroups(s.AlwaysAllowGroups...))
+	}
+	if len(s.AlwaysAllowPaths) > 0 {
+		a, err := path.NewAuthorizer(s.AlwaysAllowPaths)
+		if err != nil {
+			return err
+		}
+		authorizers = append(authorizers, a)
+	}
+
 	cfg, err := s.ToAuthorizationConfig()
 	if err != nil {
 		return err
 	}
-	authorizer, err := cfg.New()
+	delegatedAuthorizer, err := cfg.New()
 	if err != nil {
 		return err
 	}
+	authorizers = append(authorizers, delegatedAuthorizer)
 
-	c.Authorizer = authorizer
+	c.Authorizer = union.New(authorizers...)
 	return nil
 }
 
