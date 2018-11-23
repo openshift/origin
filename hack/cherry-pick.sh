@@ -6,12 +6,14 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
 package="${UPSTREAM_PACKAGE:-pkg/api}"
 UPSTREAM_REPO_LOCATION="${UPSTREAM_REPO_LOCATION:-../../../${repo}}"
-pr="$1"
 
 if [[ "$#" -ne 1 ]]; then
   echo "You must supply a pull request by number or a Git range in the upstream ${repo} project" 1>&2
   exit 1
 fi
+
+pr="$1"
+
 os::build::require_clean_tree # Origin tree must be clean
 
 patch="${TMPDIR:-/tmp}/patch"
