@@ -4,6 +4,7 @@ metadata:
   name: myphp
 spec:
   failedBuildsHistoryLimit: 2
+  runPolicy: Parallel
   source:
     type: Git
     git:

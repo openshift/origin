@@ -72,9 +72,19 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting four test builds")
+
+			done := make(chan struct{})
 			for i := 0; i < 4; i++ {
-				br, _ := exutil.StartBuildAndWait(oc, "myphp")
-				br.AssertSuccess()
+				go func() {
+					br, _ := exutil.StartBuildAndWait(oc, "myphp")
+					br.AssertSuccess()
+					done <- struct{}{}
+				}()
+				// avoid conflicts that may occur when launching multiple builds in parallel.
+				time.Sleep(5 * time.Second)
+			}
+			for i := 0; i < 4; i++ {
+				<-done
 			}
 
 			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
@@ -117,9 +127,18 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting four test builds")
+			done := make(chan struct{})
 			for i := 0; i < 4; i++ {
-				br, _ := exutil.StartBuildAndWait(oc, "myphp")
-				br.AssertFailure()
+				go func() {
+					br, _ := exutil.StartBuildAndWait(oc, "myphp")
+					br.AssertFailure()
+					done <- struct{}{}
+				}()
+				// avoid conflicts that may occur when launching multiple builds in parallel.
+				time.Sleep(5 * time.Second)
+			}
+			for i := 0; i < 4; i++ {
+				<-done
 			}
 
 			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
@@ -207,9 +226,18 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting four test builds")
+			done := make(chan struct{})
 			for i := 0; i < 4; i++ {
-				br, _ := exutil.StartBuildAndWait(oc, "myphp")
-				br.AssertFailure()
+				go func() {
+					br, _ := exutil.StartBuildAndWait(oc, "myphp")
+					br.AssertFailure()
+					done <- struct{}{}
+				}()
+				// avoid conflicts that may occur when launching multiple builds in parallel.
+				time.Sleep(5 * time.Second)
+			}
+			for i := 0; i < 4; i++ {
+				<-done
 			}
 
 			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
