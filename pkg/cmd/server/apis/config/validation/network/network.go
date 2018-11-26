@@ -23,8 +23,7 @@ func ValidateInClusterNetworkNodeConfig(config *configapi.NodeConfig, fldPath *f
 	}
 
 	servingInfoPath := fldPath.Child("servingInfo")
-	hasCertDir := len(config.KubeletArguments["cert-dir"]) > 0
-	validationResults.Append(common.ValidateServingInfo(config.ServingInfo, !hasCertDir, servingInfoPath))
+	validationResults.Append(common.ValidateServingInfo(config.ServingInfo, false, servingInfoPath))
 	if config.ServingInfo.BindNetwork == "tcp6" {
 		validationResults.AddErrors(field.Invalid(servingInfoPath.Child("bindNetwork"), config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for nodes, must be tcp or tcp4"))
 	}
