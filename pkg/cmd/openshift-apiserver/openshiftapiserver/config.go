@@ -190,7 +190,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	if err != nil {
 		return nil, err
 	}
-	imageLimitVerifier := ImageLimitVerifier(informers.kubernetesInformers.Core().V1().LimitRanges())
+	imageLimitVerifier := ImageLimitVerifier(informers.internalKubernetesInformers.Core().InternalVersion().LimitRanges())
 
 	var caData []byte
 	if len(config.ImagePolicyConfig.AdditionalTrustedCA) != 0 {

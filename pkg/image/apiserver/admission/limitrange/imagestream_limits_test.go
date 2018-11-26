@@ -4,12 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
@@ -18,8 +16,8 @@ import (
 func TestGetMaxLimits(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
-		lrs            []corev1.LimitRange
-		expectedLimits corev1.ResourceList
+		lrs            []kapi.LimitRange
+		expectedLimits kapi.ResourceList
 	}{
 		{
 			name: "no limit range",
@@ -27,13 +25,13 @@ func TestGetMaxLimits(t *testing.T) {
 
 		{
 			name: "unrelevant limit range",
-			lrs: []corev1.LimitRange{
+			lrs: []kapi.LimitRange{
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: corev1.LimitTypePod,
-								Max:  corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("200m")},
+								Type: kapi.LimitTypePod,
+								Max:  kapi.ResourceList{kapi.ResourceCPU: resource.MustParse("200m")},
 							},
 						},
 					},
@@ -43,179 +41,179 @@ func TestGetMaxLimits(t *testing.T) {
 
 		{
 			name: "max image stream images",
-			lrs: []corev1.LimitRange{
+			lrs: []kapi.LimitRange{
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max:  corev1.ResourceList{imagev1.ResourceImageStreamImages: resource.MustParse("15")},
+								Type: imageapi.LimitTypeImageStream,
+								Max:  kapi.ResourceList{imageapi.ResourceImageStreamImages: resource.MustParse("15")},
 							},
 						},
 					},
 				},
 			},
-			expectedLimits: corev1.ResourceList{imagev1.ResourceImageStreamImages: resource.MustParse("15")},
+			expectedLimits: kapi.ResourceList{imageapi.ResourceImageStreamImages: resource.MustParse("15")},
 		},
 
 		{
 			name: "both limits",
-			lrs: []corev1.LimitRange{
+			lrs: []kapi.LimitRange{
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamImages: resource.MustParse("15"),
-									imagev1.ResourceImageStreamTags:   resource.MustParse("10"),
+								Type: imageapi.LimitTypeImageStream,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamImages: resource.MustParse("15"),
+									imageapi.ResourceImageStreamTags:   resource.MustParse("10"),
 								},
 							},
 						},
 					},
 				},
 			},
-			expectedLimits: corev1.ResourceList{
-				imagev1.ResourceImageStreamImages: resource.MustParse("15"),
-				imagev1.ResourceImageStreamTags:   resource.MustParse("10"),
+			expectedLimits: kapi.ResourceList{
+				imageapi.ResourceImageStreamImages: resource.MustParse("15"),
+				imageapi.ResourceImageStreamTags:   resource.MustParse("10"),
 			},
 		},
 
 		{
 			name: "both limits in two limit ranges",
-			lrs: []corev1.LimitRange{
+			lrs: []kapi.LimitRange{
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamImages: resource.MustParse("15"),
+								Type: imageapi.LimitTypeImageStream,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamImages: resource.MustParse("15"),
 								},
 							},
 						},
 					},
 				},
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamTags: resource.MustParse("10"),
+								Type: imageapi.LimitTypeImageStream,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamTags: resource.MustParse("10"),
 								},
 							},
 						},
 					},
 				},
 			},
-			expectedLimits: corev1.ResourceList{
-				imagev1.ResourceImageStreamImages: resource.MustParse("15"),
-				imagev1.ResourceImageStreamTags:   resource.MustParse("10"),
+			expectedLimits: kapi.ResourceList{
+				imageapi.ResourceImageStreamImages: resource.MustParse("15"),
+				imageapi.ResourceImageStreamTags:   resource.MustParse("10"),
 			},
 		},
 
 		{
 			name: "pick up the smaller",
-			lrs: []corev1.LimitRange{
+			lrs: []kapi.LimitRange{
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamImages: resource.MustParse("15"),
-									imagev1.ResourceImageStreamTags:   resource.MustParse("10"),
+								Type: imageapi.LimitTypeImageStream,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamImages: resource.MustParse("15"),
+									imageapi.ResourceImageStreamTags:   resource.MustParse("10"),
 								},
 							},
 						},
 					},
 				},
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamImages: resource.MustParse("5"),
-									imagev1.ResourceImageStreamTags:   resource.MustParse("20"),
+								Type: imageapi.LimitTypeImageStream,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamImages: resource.MustParse("5"),
+									imageapi.ResourceImageStreamTags:   resource.MustParse("20"),
 								},
 							},
 						},
 					},
 				},
 			},
-			expectedLimits: corev1.ResourceList{
-				imagev1.ResourceImageStreamImages: resource.MustParse("5"),
-				imagev1.ResourceImageStreamTags:   resource.MustParse("10"),
+			expectedLimits: kapi.ResourceList{
+				imageapi.ResourceImageStreamImages: resource.MustParse("5"),
+				imageapi.ResourceImageStreamTags:   resource.MustParse("10"),
 			},
 		},
 
 		{
 			name: "pick up the smaller with unrelated resources",
-			lrs: []corev1.LimitRange{
+			lrs: []kapi.LimitRange{
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
+								Type: imageapi.LimitTypeImageStream,
 								// min doesn't count
-								Min: corev1.ResourceList{
-									imagev1.ResourceImageStreamImages: resource.MustParse("15"),
-									imagev1.ResourceImageStreamTags:   resource.MustParse("10"),
+								Min: kapi.ResourceList{
+									imageapi.ResourceImageStreamImages: resource.MustParse("15"),
+									imageapi.ResourceImageStreamTags:   resource.MustParse("10"),
 								},
 							},
 						},
 					},
 				},
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamTags: resource.MustParse("10"),
+								Type: imageapi.LimitTypeImageStream,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamTags: resource.MustParse("10"),
 									// ignored
-									corev1.ResourceCPU: resource.MustParse("20"),
+									kapi.ResourceCPU: resource.MustParse("20"),
 								},
 							},
 							{
 								// wrong type
-								Type: corev1.LimitTypeContainer,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamTags: resource.MustParse("5"),
+								Type: kapi.LimitTypeContainer,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamTags: resource.MustParse("5"),
 								},
 							},
 						},
 					},
 				},
 				{
-					Spec: corev1.LimitRangeSpec{
-						Limits: []corev1.LimitRangeItem{
+					Spec: kapi.LimitRangeSpec{
+						Limits: []kapi.LimitRangeItem{
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamImages: resource.MustParse("25"),
+								Type: imageapi.LimitTypeImageStream,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamImages: resource.MustParse("25"),
 								},
 							},
 							{
-								Type: imagev1.LimitTypeImageStream,
-								Max: corev1.ResourceList{
-									imagev1.ResourceImageStreamImages: resource.MustParse("30"),
-									imagev1.ResourceImageStreamTags:   resource.MustParse("20"),
+								Type: imageapi.LimitTypeImageStream,
+								Max: kapi.ResourceList{
+									imageapi.ResourceImageStreamImages: resource.MustParse("30"),
+									imageapi.ResourceImageStreamTags:   resource.MustParse("20"),
 								},
 							},
 						},
 					},
 				},
 			},
-			expectedLimits: corev1.ResourceList{
-				imagev1.ResourceImageStreamImages: resource.MustParse("25"),
-				imagev1.ResourceImageStreamTags:   resource.MustParse("10"),
+			expectedLimits: kapi.ResourceList{
+				imageapi.ResourceImageStreamImages: resource.MustParse("25"),
+				imageapi.ResourceImageStreamTags:   resource.MustParse("10"),
 			},
 		},
 	} {
-		var limits corev1.ResourceList
+		var limits kapi.ResourceList
 		for i := range tc.lrs {
 			limits = getMaxLimits(&tc.lrs[i], limits)
 		}
@@ -245,9 +243,9 @@ func TestGetMaxLimits(t *testing.T) {
 func TestVerifyLimits(t *testing.T) {
 	for _, tc := range []struct {
 		name              string
-		maxUsage          corev1.ResourceList
+		maxUsage          kapi.ResourceList
 		is                imageapi.ImageStream
-		exceededResources []corev1.ResourceName
+		exceededResources []kapi.ResourceName
 	}{
 		{
 			name: "no limits",
@@ -269,17 +267,17 @@ func TestVerifyLimits(t *testing.T) {
 
 		{
 			name: "zero limits",
-			maxUsage: corev1.ResourceList{
-				imagev1.ResourceImageStreamImages: resource.MustParse("0"),
-				imagev1.ResourceImageStreamTags:   resource.MustParse("0"),
+			maxUsage: kapi.ResourceList{
+				imageapi.ResourceImageStreamImages: resource.MustParse("0"),
+				imageapi.ResourceImageStreamTags:   resource.MustParse("0"),
 			},
 		},
 
 		{
 			name: "exceed images",
-			maxUsage: corev1.ResourceList{
-				imagev1.ResourceImageStreamImages: resource.MustParse("0"),
-				imagev1.ResourceImageStreamTags:   resource.MustParse("0"),
+			maxUsage: kapi.ResourceList{
+				imageapi.ResourceImageStreamImages: resource.MustParse("0"),
+				imageapi.ResourceImageStreamTags:   resource.MustParse("0"),
 			},
 			is: imageapi.ImageStream{
 				Status: imageapi.ImageStreamStatus{
@@ -295,13 +293,13 @@ func TestVerifyLimits(t *testing.T) {
 					},
 				},
 			},
-			exceededResources: []corev1.ResourceName{imagev1.ResourceImageStreamImages},
+			exceededResources: []kapi.ResourceName{imageapi.ResourceImageStreamImages},
 		},
 
 		{
 			name: "exceed tags",
-			maxUsage: corev1.ResourceList{
-				imagev1.ResourceImageStreamTags: resource.MustParse("0"),
+			maxUsage: kapi.ResourceList{
+				imageapi.ResourceImageStreamTags: resource.MustParse("0"),
 			},
 			is: imageapi.ImageStream{
 				Spec: imageapi.ImageStreamSpec{
@@ -328,14 +326,14 @@ func TestVerifyLimits(t *testing.T) {
 					},
 				},
 			},
-			exceededResources: []corev1.ResourceName{imagev1.ResourceImageStreamTags},
+			exceededResources: []kapi.ResourceName{imageapi.ResourceImageStreamTags},
 		},
 
 		{
 			name: "exceed tags and images",
-			maxUsage: corev1.ResourceList{
-				imagev1.ResourceImageStreamTags:   resource.MustParse("1"),
-				imagev1.ResourceImageStreamImages: resource.MustParse("0"),
+			maxUsage: kapi.ResourceList{
+				imageapi.ResourceImageStreamTags:   resource.MustParse("1"),
+				imageapi.ResourceImageStreamImages: resource.MustParse("0"),
 			},
 			is: imageapi.ImageStream{
 				Spec: imageapi.ImageStreamSpec{
@@ -369,21 +367,21 @@ func TestVerifyLimits(t *testing.T) {
 					},
 				},
 			},
-			exceededResources: []corev1.ResourceName{
-				imagev1.ResourceImageStreamTags,
-				imagev1.ResourceImageStreamImages,
+			exceededResources: []kapi.ResourceName{
+				imageapi.ResourceImageStreamTags,
+				imageapi.ResourceImageStreamImages,
 			},
 		},
 	} {
-		limitRange := &corev1.LimitRange{
+		limitRange := &kapi.LimitRange{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "test",
 				Name:      "limitrange",
 			},
-			Spec: corev1.LimitRangeSpec{
-				Limits: []corev1.LimitRangeItem{
+			Spec: kapi.LimitRangeSpec{
+				Limits: []kapi.LimitRangeItem{
 					{
-						Type: imagev1.LimitTypeImageStream,
+						Type: imageapi.LimitTypeImageStream,
 						Max:  tc.maxUsage,
 					},
 				},
@@ -391,8 +389,8 @@ func TestVerifyLimits(t *testing.T) {
 		}
 
 		verifier := &limitVerifier{
-			limiter: LimitRangesForNamespaceFunc(func(ns string) ([]*corev1.LimitRange, error) {
-				return []*corev1.LimitRange{limitRange}, nil
+			limiter: LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
+				return []*kapi.LimitRange{limitRange}, nil
 			}),
 		}
 
