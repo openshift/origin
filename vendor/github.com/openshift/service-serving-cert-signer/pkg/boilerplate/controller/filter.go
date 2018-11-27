@@ -2,23 +2,27 @@ package controller
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+type ParentFilter interface {
+	Parent(obj v1.Object) (namespace, name string)
+	Filter
+}
+
 type Filter interface {
-	Parent(obj v1.Object) (name string)
 	Add(obj v1.Object) bool
 	Update(oldObj, newObj v1.Object) bool
 	Delete(obj v1.Object) bool
 }
 
 type FilterFuncs struct {
-	ParentFunc func(obj v1.Object) (name string)
+	ParentFunc func(obj v1.Object) (namespace, name string)
 	AddFunc    func(obj v1.Object) bool
 	UpdateFunc func(oldObj, newObj v1.Object) bool
 	DeleteFunc func(obj v1.Object) bool
 }
 
-func (f FilterFuncs) Parent(obj v1.Object) string {
+func (f FilterFuncs) Parent(obj v1.Object) (namespace, name string) {
 	if f.ParentFunc == nil {
-		return obj.GetName()
+		return obj.GetNamespace(), obj.GetName()
 	}
 	return f.ParentFunc(obj)
 }

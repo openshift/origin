@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/docker/distribution"
-	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/proxy/scheduler"
 	"github.com/docker/distribution/registry/storage"
@@ -350,24 +350,30 @@ func testProxyStoreServe(t *testing.T, te *testEnv, numClients int) {
 				w := httptest.NewRecorder()
 				r, err := http.NewRequest("GET", "", nil)
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 
 				err = te.store.ServeBlob(te.ctx, w, r, remoteBlob.Digest)
 				if err != nil {
-					t.Fatalf(err.Error())
+					t.Errorf(err.Error())
+					return
 				}
 
 				bodyBytes := w.Body.Bytes()
 				localDigest := digest.FromBytes(bodyBytes)
 				if localDigest != remoteBlob.Digest {
-					t.Fatalf("Mismatching blob fetch from proxy")
+					t.Errorf("Mismatching blob fetch from proxy")
+					return
 				}
 			}
 		}()
 	}
 
 	wg.Wait()
+	if t.Failed() {
+		t.FailNow()
+	}
 
 	remoteBlobCount := len(te.inRemote)
 	sbsMu.Lock()
@@ -404,7 +410,6 @@ func testProxyStoreServe(t *testing.T, te *testEnv, numClients int) {
 		}
 	}
 
-	localStats = te.LocalStats()
 	remoteStats = te.RemoteStats()
 
 	// Ensure remote unchanged

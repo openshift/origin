@@ -95,6 +95,7 @@ type Docker interface {
 	RemoveContainer(id string) error
 	GetScriptsURL(name string) (string, error)
 	GetAssembleInputFiles(string) (string, error)
+	GetAssembleRuntimeUser(string) (string, error)
 	RunContainer(opts RunContainerOptions) error
 	GetImageID(name string) (string, error)
 	GetImageWorkdir(name string) (string, error)
@@ -688,6 +689,15 @@ func (d *stiDocker) GetAssembleInputFiles(image string) (string, error) {
 		glog.V(3).Infof("Image %q contains %s set to %q", image, constants.AssembleInputFilesLabel, label)
 	}
 	return label, nil
+}
+
+// GetAssembleRuntimeUser finds a io.openshift.s2i.assemble-runtime-user label on the given image.
+func (d *stiDocker) GetAssembleRuntimeUser(image string) (string, error) {
+	imageMetadata, err := d.CheckAndPullImage(image)
+	if err != nil {
+		return "", err
+	}
+	return getLabel(imageMetadata, constants.AssembleRuntimeUserLabel), nil
 }
 
 // getScriptsURL finds a scripts url label in the image metadata

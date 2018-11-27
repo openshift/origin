@@ -52,7 +52,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	operatorInformers.Start(stopCh)
 	kubeInformersNamespaced.Start(stopCh)
 
-	go operator.Run(1, stopCh)
+	go operator.Run(stopCh)
 	go clusterOperatorStatus.Run(1, stopCh)
 
 	<-stopCh

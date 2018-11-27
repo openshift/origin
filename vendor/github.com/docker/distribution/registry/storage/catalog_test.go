@@ -1,13 +1,13 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"math/rand"
 	"testing"
 
 	"github.com/docker/distribution"
-	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/storage/cache/memory"
 	"github.com/docker/distribution/registry/storage/driver"
@@ -26,7 +26,7 @@ type setupEnv struct {
 func setupFS(t *testing.T) *setupEnv {
 	d := inmemory.New()
 	ctx := context.Background()
-	registry, err := NewRegistry(ctx, d, BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), EnableRedirect)
+	registry, err := NewRegistry(ctx, d, BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), EnableRedirect, EnableSchema1)
 	if err != nil {
 		t.Fatalf("error creating registry: %v", err)
 	}
@@ -207,7 +207,7 @@ func testEq(a, b []string, size int) bool {
 func setupBadWalkEnv(t *testing.T) *setupEnv {
 	d := newBadListDriver()
 	ctx := context.Background()
-	registry, err := NewRegistry(ctx, d, BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), EnableRedirect)
+	registry, err := NewRegistry(ctx, d, BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), EnableRedirect, EnableSchema1)
 	if err != nil {
 		t.Fatalf("error creating registry: %v", err)
 	}
@@ -273,7 +273,7 @@ func BenchmarkPathCompareNative(B *testing.B) {
 
 	for i := 0; i < B.N; i++ {
 		c := a < b
-		c = c && false
+		_ = c && false
 	}
 }
 
@@ -285,7 +285,7 @@ func BenchmarkPathCompareNativeEqual(B *testing.B) {
 
 	for i := 0; i < B.N; i++ {
 		c := a < b
-		c = c && false
+		_ = c && false
 	}
 }
 

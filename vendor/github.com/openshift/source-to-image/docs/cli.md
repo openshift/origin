@@ -75,6 +75,7 @@ that image and add them to the tar streamed to the container into `/artifacts`.
 | `-n (--application-name`)   | Specify the display name for the application (default: output image name) |
 | `--as-dockerfile`           | EXPERIMENTAL: Output a Dockerfile to this path instead of building a new image |
 | `--assemble-user`           | Specify the user to run assemble with |
+| `--assemble-runtime-user`   | Specify the user to run assemble-runtime with |
 | `--callback-url`            | URL to be invoked after a build (see [Callback URL](#callback-url)) |
 | `--cap-drop`                | Specify a comma-separated list of capabilities to drop when running Docker containers |
 | `--context-dir`             | Specify the sub-directory inside the repository with the application sources |

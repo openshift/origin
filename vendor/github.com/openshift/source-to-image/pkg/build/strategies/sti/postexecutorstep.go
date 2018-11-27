@@ -328,6 +328,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 		CapDrop:         step.builder.config.DropCapabilities,
 		PostExec:        step.builder.postExecutor,
 		Env:             step.builder.env,
+		User:            step.builder.config.AssembleRuntimeUser,
 	}
 
 	opts.OnStart = func(containerID string) error {

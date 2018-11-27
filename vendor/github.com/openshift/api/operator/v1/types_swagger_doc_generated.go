@@ -122,10 +122,11 @@ func (OperatorSpec) SwaggerDoc() map[string]string {
 }
 
 var map_OperatorStatus = map[string]string{
-	"conditions":    "conditions is a list of conditions and their status",
-	"version":       "version is the level this availability applies to",
-	"readyReplicas": "readyReplicas indicates how many replicas are ready and at the desired state",
-	"generations":   "generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.",
+	"observedGeneration": "observedGeneration is the last generation change you've dealt with",
+	"conditions":         "conditions is a list of conditions and their status",
+	"version":            "version is the level this availability applies to",
+	"readyReplicas":      "readyReplicas indicates how many replicas are ready and at the desired state",
+	"generations":        "generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.",
 }
 
 func (OperatorStatus) SwaggerDoc() map[string]string {

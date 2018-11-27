@@ -1,7 +1,7 @@
 ---
 title: "Oauth2 Token Authentication"
 description: "Specifies the Docker Registry v2 authentication"
-keywords: ["registry, on-prem, images, tags, repository, distribution, oauth2, advanced"]
+keywords: registry, on-prem, images, tags, repository, distribution, oauth2, advanced
 ---
 
 # Docker Registry v2 authentication using OAuth2
@@ -39,7 +39,7 @@ Content-Type: application/x-www-form-urlencoded
     <dd>
         (REQUIRED) Type of grant used to get token. When getting a refresh token
         using credentials this type should be set to "password" and have the
-        accompanying username and password paramters. Type "authorization_code"
+        accompanying username and password parameters. Type "authorization_code"
         is reserved for future use for authenticating to an authorization server
         without having to send credentials directly from the client. When
         requesting an access token with a refresh token this should be set to

@@ -24,6 +24,8 @@ type FakeDocker struct {
 	DefaultURLError              error
 	AssembleInputFilesResult     string
 	AssembleInputFilesError      error
+	AssembleRuntimeUserResult    string
+	AssembleRuntimeUserError     error
 	RunContainerOpts             RunContainerOptions
 	RunContainerError            error
 	RunContainerErrorBeforeStart bool
@@ -103,6 +105,11 @@ func (f *FakeDocker) GetScriptsURL(image string) (string, error) {
 // GetAssembleInputFiles finds a io.openshift.s2i.assemble-input-files label on the given image.
 func (f *FakeDocker) GetAssembleInputFiles(image string) (string, error) {
 	return f.AssembleInputFilesResult, f.AssembleInputFilesError
+}
+
+// GetAssembleRuntimeUser finds a io.openshift.s2i.assemble-runtime-user label on the given image.
+func (f *FakeDocker) GetAssembleRuntimeUser(image string) (string, error) {
+	return f.AssembleRuntimeUserResult, f.AssembleRuntimeUserError
 }
 
 // RunContainer runs a fake Docker container

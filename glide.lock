@@ -1,5 +1,5 @@
-hash: 0e9f84bfd5657942debe1823c56b3acc325fed4afb8debf6e6025ea80d5b793b
-updated: 2018-11-19T17:51:08.233992468-05:00
+hash: c8ac0c0bb0e2eada6660066d264865b8581a69cd19ccecac917e67b84559fa12
+updated: 2018-11-22T13:19:30.554734993-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -298,7 +298,7 @@ imports:
 - name: github.com/dgrijalva/jwt-go
   version: 01aeca54ebda6e0fbfafd0a524d234159c05ec20
 - name: github.com/docker/distribution
-  version: 9e3018b6ff58e5b86c76b5f9b8826494caca28ea
+  version: d4c35485a70df4dce2179bc227b1393a69edb809
   repo: https://github.com/openshift/docker-distribution.git
   subpackages:
   - context
@@ -307,6 +307,7 @@ imports:
   - manifest/manifestlist
   - manifest/schema1
   - manifest/schema2
+  - metrics
   - reference
   - registry/api/errcode
   - registry/api/v2
@@ -366,6 +367,8 @@ imports:
   - nat
   - sockets
   - tlsconfig
+- name: github.com/docker/go-metrics
+  version: 399ea8c73916000c64c2c76e8da00ca82f8387ab
 - name: github.com/docker/go-units
   version: 9e638d38cf6977a37a8ea0078f3ee75a7cdb2dd1
 - name: github.com/docker/libnetwork
@@ -605,11 +608,11 @@ imports:
   - pagination
   - testhelper
 - name: github.com/gorilla/context
-  version: 51ce91d2eaddeca0ef29a71d766bb3634dadf729
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
-  version: 3d80bc801bb034e17cae38591335b3b1110f1c47
+  version: e48e440e4c92e3251d812f8ce7858944dfa3331c
 - name: github.com/gorilla/securecookie
-  version: e65cf8c5df817c89aeb47ecb46064e802e2de943
+  version: 51f47194a536d357035c4ad9304e2fa42dde262a
 - name: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
 - name: github.com/gorilla/websocket
@@ -815,7 +818,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 7019e79772a9bfa1ade7b231de705293b9c12401
+  version: ffac7eec5e7f87c6a9fcbc766e3b024ed3ef39ea
   subpackages:
   - apps
   - apps/v1
@@ -975,7 +978,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: b468f2b93d32f4506f0b4a998ca2ae4fc4a6871c
+  version: 72a5cdae3a8e159dcaa76346ae75a2c748877a38
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -989,14 +992,14 @@ imports:
   - pkg/network/networkapihelpers
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: 058da9c8b336ae72ce1f8d9f0708b73dd445ceb2
+  version: 9700c97cae62dd320d15708b0d38f0e85fba63f1
   subpackages:
   - pkg/boilerplate/controller
   - pkg/controller/api
   - pkg/controller/servingcert/controller
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: 3c34ff83e47ae6947b157f053fd119bc378635ba
+  version: b54d75d3de92d123e68a79c6ee09c2c5fe44e720
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1019,7 +1022,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: 22592cc4bae3572d59be8852c6980023e4c9dec5
+  version: 057bc52a47ec3c79498dda63f4a6f8298725e976
 - name: github.com/pkg/sftp
   version: 4d0e916071f68db74f8a73926335f809396d6b42
 - name: github.com/pmezard/go-difflib
@@ -1852,7 +1855,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 7bc23512e58d861696ff262173188c053c68d66c
+  version: ef466f3ac3a45422b0c6829673279dfe2ac6ee54
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2079,6 +2082,7 @@ imports:
   - pkg/client/listers/scheduling/internalversion
   - pkg/client/listers/settings/internalversion
   - pkg/client/listers/storage/internalversion
+  - pkg/client/metrics/prometheus
   - pkg/cloudprovider
   - pkg/cloudprovider/providers
   - pkg/cloudprovider/providers/aws
@@ -2680,7 +2684,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 3ee9c24f9398f7dcde4007aea8a3a260fcfed6d9
+  version: 2fce749cdc6721edd1b2d74e875e55cc1fe6abfb
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1

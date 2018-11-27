@@ -120,7 +120,7 @@ func TestBlobDelete(t *testing.T) {
 	defer c()
 
 	ctx := context.Background()
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestBlobFetch(t *testing.T) {
 
 	ctx := context.Background()
 	repo, _ := reference.WithName("test.example.com/repo1")
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestBlobExistsNoContentLength(t *testing.T) {
 	defer c()
 
 	ctx := context.Background()
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +222,7 @@ func TestBlobExists(t *testing.T) {
 
 	ctx := context.Background()
 	repo, _ := reference.WithName("test.example.com/repo1")
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,7 +327,7 @@ func TestBlobUploadChunked(t *testing.T) {
 	defer c()
 
 	ctx := context.Background()
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,7 +437,7 @@ func TestBlobUploadMonolithic(t *testing.T) {
 	defer c()
 
 	ctx := context.Background()
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -514,7 +514,7 @@ func TestBlobMount(t *testing.T) {
 	defer c()
 
 	ctx := context.Background()
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -649,7 +649,38 @@ func addTestManifest(repo reference.Named, reference string, mediatype string, c
 			}),
 		},
 	})
+}
 
+func addTestManifestWithoutDigestHeader(repo reference.Named, reference string, mediatype string, content []byte, m *testutil.RequestResponseMap) {
+	*m = append(*m, testutil.RequestResponseMapping{
+		Request: testutil.Request{
+			Method: "GET",
+			Route:  "/v2/" + repo.Name() + "/manifests/" + reference,
+		},
+		Response: testutil.Response{
+			StatusCode: http.StatusOK,
+			Body:       content,
+			Headers: http.Header(map[string][]string{
+				"Content-Length": {fmt.Sprint(len(content))},
+				"Last-Modified":  {time.Now().Add(-1 * time.Second).Format(time.ANSIC)},
+				"Content-Type":   {mediatype},
+			}),
+		},
+	})
+	*m = append(*m, testutil.RequestResponseMapping{
+		Request: testutil.Request{
+			Method: "HEAD",
+			Route:  "/v2/" + repo.Name() + "/manifests/" + reference,
+		},
+		Response: testutil.Response{
+			StatusCode: http.StatusOK,
+			Headers: http.Header(map[string][]string{
+				"Content-Length": {fmt.Sprint(len(content))},
+				"Last-Modified":  {time.Now().Add(-1 * time.Second).Format(time.ANSIC)},
+				"Content-Type":   {mediatype},
+			}),
+		},
+	})
 }
 
 func checkEqualManifest(m1, m2 *schema1.SignedManifest) error {
@@ -694,7 +725,7 @@ func TestV1ManifestFetch(t *testing.T) {
 	e, c := testServer(m)
 	defer c()
 
-	r, err := NewRepository(context.Background(), repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -766,7 +797,7 @@ func TestManifestFetchWithEtag(t *testing.T) {
 	defer c()
 
 	ctx := context.Background()
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -797,7 +828,7 @@ func TestManifestFetchWithAccept(t *testing.T) {
 	defer close(headers)
 	defer s.Close()
 
-	r, err := NewRepository(context.Background(), repo, s.URL, nil)
+	r, err := NewRepository(repo, s.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -866,7 +897,7 @@ func TestManifestDelete(t *testing.T) {
 	e, c := testServer(m)
 	defer c()
 
-	r, err := NewRepository(context.Background(), repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -929,7 +960,7 @@ func TestManifestPut(t *testing.T) {
 	e, c := testServer(m)
 	defer c()
 
-	r, err := NewRepository(context.Background(), repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -982,7 +1013,7 @@ func TestManifestTags(t *testing.T) {
 	e, c := testServer(m)
 	defer c()
 
-	r, err := NewRepository(context.Background(), repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1039,7 +1070,7 @@ func TestObtainsErrorForMissingTag(t *testing.T) {
 	defer c()
 
 	ctx := context.Background()
-	r, err := NewRepository(ctx, repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1055,6 +1086,36 @@ func TestObtainsErrorForMissingTag(t *testing.T) {
 	}
 }
 
+func TestObtainsManifestForTagWithoutHeaders(t *testing.T) {
+	repo, _ := reference.WithName("test.example.com/repo")
+
+	var m testutil.RequestResponseMap
+	m1, dgst, _ := newRandomSchemaV1Manifest(repo, "latest", 6)
+	_, pl, err := m1.Payload()
+	if err != nil {
+		t.Fatal(err)
+	}
+	addTestManifestWithoutDigestHeader(repo, "1.0.0", schema1.MediaTypeSignedManifest, pl, &m)
+
+	e, c := testServer(m)
+	defer c()
+
+	ctx := context.Background()
+	r, err := NewRepository(repo, e, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tagService := r.Tags(ctx)
+
+	desc, err := tagService.Get(ctx, "1.0.0")
+	if err != nil {
+		t.Fatalf("Expected no error")
+	}
+	if desc.Digest != dgst {
+		t.Fatalf("Unexpected digest")
+	}
+}
 func TestManifestTagsPaginated(t *testing.T) {
 	s := httptest.NewServer(http.NotFoundHandler())
 	defer s.Close()
@@ -1075,13 +1136,27 @@ func TestManifestTagsPaginated(t *testing.T) {
 			queryParams["n"] = []string{"1"}
 			queryParams["last"] = []string{tagsList[i-1]}
 		}
+
+		// Test both relative and absolute links.
+		relativeLink := "/v2/" + repo.Name() + "/tags/list?n=1&last=" + tagsList[i]
+		var link string
+		switch i {
+		case 0:
+			link = relativeLink
+		case len(tagsList) - 1:
+			link = ""
+		default:
+			link = s.URL + relativeLink
+		}
+
 		headers := http.Header(map[string][]string{
 			"Content-Length": {fmt.Sprint(len(body))},
 			"Last-Modified":  {time.Now().Add(-1 * time.Second).Format(time.ANSIC)},
 		})
-		if i < 2 {
-			headers.Set("Link", "<"+s.URL+"/v2/"+repo.Name()+"/tags/list?n=1&last="+tagsList[i]+`>; rel="next"`)
+		if link != "" {
+			headers.Set("Link", fmt.Sprintf(`<%s>; rel="next"`, link))
 		}
+
 		m = append(m, testutil.RequestResponseMapping{
 			Request: testutil.Request{
 				Method:      "GET",
@@ -1098,7 +1173,7 @@ func TestManifestTagsPaginated(t *testing.T) {
 
 	s.Config.Handler = testutil.NewHandler(m)
 
-	r, err := NewRepository(context.Background(), repo, s.URL, nil)
+	r, err := NewRepository(repo, s.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1146,7 +1221,7 @@ func TestManifestUnauthorized(t *testing.T) {
 	e, c := testServer(m)
 	defer c()
 
-	r, err := NewRepository(context.Background(), repo, e, nil)
+	r, err := NewRepository(repo, e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1183,7 +1258,7 @@ func TestCatalog(t *testing.T) {
 
 	entries := make([]string, 5)
 
-	r, err := NewRegistry(context.Background(), e, nil)
+	r, err := NewRegistry(e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1215,7 +1290,7 @@ func TestCatalogInParts(t *testing.T) {
 
 	entries := make([]string, 2)
 
-	r, err := NewRegistry(context.Background(), e, nil)
+	r, err := NewRegistry(e, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
