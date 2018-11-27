@@ -19,9 +19,9 @@ import (
 var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		configPath = exutil.FixturePath("testdata", "scoped-router.yaml")
-		oc         *exutil.CLI
-		ns         string
+		oc          *exutil.CLI
+		ns          string
+		routerImage string
 	)
 
 	// this hook must be registered before the framework namespace teardown
@@ -41,27 +41,31 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		routerImage, _ := exutil.FindImageFormatString(oc)
+		routerImage, _ = exutil.FindImageFormatString(oc)
 		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath,
-			`-p=IMAGE=`+routerImage,
-			`-p=SCOPE=["--name=test-unprivileged", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first", "--update-status=false"]`,
-		).Execute()
+		configPath := exutil.FixturePath("testdata", "router-common.yaml")
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should run even if it has no access to update status", func() {
 
+			configPath := exutil.FixturePath("testdata", "router-scoped.yaml")
+			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
+			err := oc.AsAdmin().Run("new-app").Args("-f", configPath,
+				`-p=IMAGE=`+routerImage,
+				`-p=SCOPE=["--name=test-unprivileged", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first", "--update-status=false"]`,
+			).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
-
 			var routerIP string
-			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
+			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("router-scoped", metav1.GetOptions{})
 				if err != nil {
 					return false, err
