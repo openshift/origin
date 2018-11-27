@@ -5,9 +5,14 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-#  oc delete all,templates --all
-  oc delete-project template-substitute
-  oc delete-project prefix-template-substitute
+  oc login -u system:admin
+  oc delete all,templates --all
+  oc delete all,templates --all -n openshift
+  oc delete project template-substitute
+  oc delete project prefix-template-substitute
+  oc delete project test-imagestreams
+  oc delete project new-app-syntax
+  rm -rf ./test/testdata/testapp
   exit 0
 ) &>/dev/null
 
@@ -15,9 +20,10 @@ os::util::environment::setup_time_vars
 
 os::test::junit::declare_suite_start "cmd/newapp"
 
-#
+default_project=$(oc project -q)
+os::cmd::expect_success 'git clone https://github.com/openshift/ruby-hello-world.git ./test/testdata/testapp'
+
 # imagestream/tag creation and reuse
-#
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json -n openshift'
 os::cmd::expect_success 'oc delete istag php:latest -n openshift'
 os::cmd::expect_success 'oc new-project test-imagestreams'
@@ -55,13 +61,10 @@ os::cmd::try_until_success 'oc get istag node:10'
 
 # cleanup and reset to default namespace
 os::cmd::expect_success 'oc delete is --all -n openshift'
-os::cmd::expect_success 'oc project cmd-newapp'
 os::cmd::expect_success 'oc delete project test-imagestreams'
 
-# end imagestream/tag creation and reuse
-
-
 # This test validates the new-app command
+os::cmd::expect_success 'oc project ${default_project}'
 os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
 os::cmd::expect_success_and_text 'oc new-app library/php mysql --dry-run' "Image \"library/php\" runs as the 'root' user which may not be permitted by your cluster administrator"
 os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
@@ -89,8 +92,7 @@ os::cmd::expect_success 'oc delete all -l app=expose-output'
 os::cmd::expect_success_and_text 'oc new-app mysql --as-test' 'Application is not exposed'
 os::cmd::expect_success 'oc delete all -l app=mysql'
 
-# ensure that oc new-app does not emit a BuildConfigInstantiateFailed event when creating
-# a new application
+# ensure that oc new-app does not emit a BuildConfigInstantiateFailed event when creating a new application
 os::cmd::expect_success 'oc new-app https://github.com/sclorg/ruby-ex'
 os::cmd::expect_success_and_not_text 'oc describe bc/ruby-ex' 'BuildConfigInstantiateFailed'
 os::cmd::expect_success 'oc delete all -l app=ruby-ex'
@@ -165,10 +167,9 @@ os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template-with-name
 # ensure --build-env environment variables get added to the buildconfig
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json --build-env FOO=bar -o yaml' 'FOO'
 # ensure the objects can actually get created with a namespace specified
-project=$(oc project -q)
 os::cmd::expect_success 'oc new-project template-substitute'
 os::cmd::expect_success 'oc new-project prefix-template-substitute'
-os::cmd::expect_success 'oc project ${project}'
+os::cmd::expect_success 'oc project ${default_project}'
 os::cmd::expect_success 'oc new-app -f test/testdata/template-with-namespaces.json -p SUBSTITUTED=template-substitute'
 os::cmd::expect_success 'oc delete all -l app=ruby-helloworld-sample'
 
@@ -526,10 +527,9 @@ os::cmd::expect_success 'oc new-app openshift/bogusimage https://github.com/open
 
 os::cmd::expect_success 'oc create -f test/testdata/installable-stream.yaml'
 
-project=$(oc project -q)
 os::cmd::expect_success 'oc policy add-role-to-user edit test-user'
 os::cmd::expect_success 'oc login -u test-user -p anything'
-os::cmd::try_until_success 'oc project ${project}'
+os::cmd::try_until_success 'oc project ${default_project}'
 
 os::cmd::try_until_success 'oc get imagestreamtags installable:file'
 os::cmd::try_until_success 'oc get imagestreamtags installable:token'
@@ -576,8 +576,6 @@ os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
 os::cmd::expect_success 'oc new-project new-app-syntax'
 os::cmd::expect_success 'oc import-image openshift/ruby-20-centos7:latest --confirm'
 os::cmd::expect_success 'oc import-image openshift/php-55-centos7:latest --confirm'
-rm -rf ./test/testdata/testapp
-git clone https://github.com/openshift/ruby-hello-world.git ./test/testdata/testapp
 os::cmd::expect_success 'oc new-app ruby-20-centos7:latest~https://github.com/openshift/ruby-hello-world.git --dry-run'
 os::cmd::expect_success 'oc new-app ruby-20-centos7:latest~./test/testdata/testapp --dry-run'
 os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest https://github.com/openshift/ruby-hello-world.git --dry-run'
@@ -611,6 +609,24 @@ os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.do
 os::cmd::expect_success 'oc new-app php-55-centos7:latest https://github.com/openshift/ruby-hello-world.git --name test8'
 os::cmd::expect_success_and_text 'oc get bc test8 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
 os::cmd::expect_success 'oc delete project new-app-syntax'
+
+# new-app docker build strategy with binary input
+os::cmd::expect_success 'oc project ${default_project}'
+os::cmd::expect_success 'oc delete all,templates --all'
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:latest' # need to wait until tags are available!?
+os::cmd::expect_failure_and_text 'oc new-app --strategy=docker --name my-docker-app' 'none of the arguments provided could be classified as a source code location'
+os::cmd::expect_success_and_text 'oc new-app --strategy=docker --binary --name my-docker-app' 'A binary build was created'
+os::cmd::expect_success_and_text 'oc get bc my-docker-app -o yaml' 'type: Binary'
+os::cmd::expect_success 'oc delete all -l app=my-docker-app'
+
+# new-app source build strategy with binary input
+os::cmd::expect_success_and_text 'oc new-app  ruby --binary --name my-imagestream-app' 'A binary build was created'
+os::cmd::expect_success_and_text 'oc get bc my-imagestream-app -o yaml' 'type: Binary'
+os::cmd::expect_success 'oc delete all -l app=my-imagestream-app'
+
+# new-app with source repository and binary input
+os::cmd::expect_failure_and_text 'oc new-app ./test/testdata/testapp --binary' 'error: specifying binary builds and source repositories at the same time is not allowed'
 
 echo "new-app: ok"
 os::test::junit::declare_suite_end
