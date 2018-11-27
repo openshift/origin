@@ -154,7 +154,9 @@ func (opt *Options) Run(args []string) error {
 		timeout = suite.TestTimeout
 	}
 	if timeout == 0 {
-		timeout = 10 * time.Minute
+		// TODO: temporarily increased because some normally fast build tests have become much slower
+		//   reduce back to 10m at some point in the future
+		timeout = 15 * time.Minute
 	}
 
 	ctx, cancelFn := context.WithCancel(context.Background())
