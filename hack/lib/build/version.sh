@@ -26,9 +26,6 @@ function os::build::version::git_vars() {
 		return 0
  	fi
 
-	os::build::version::kubernetes_vars
-	os::build::version::etcd_vars
-
 	local git=(git --work-tree "${OS_ROOT}")
 
 	if [[ -n ${OS_GIT_COMMIT-} ]] || OS_GIT_COMMIT=$("${git[@]}" rev-parse --short "HEAD^{commit}" 2>/dev/null); then
@@ -68,6 +65,9 @@ function os::build::version::git_vars() {
 			fi
 		fi
 	fi
+
+	os::build::version::etcd_vars
+	os::build::version::kubernetes_vars
 }
 readonly -f os::build::version::git_vars
 
@@ -89,7 +89,7 @@ function os::build::version::kubernetes_vars() {
 	#
 	# TODO: We continue calling this "git version" because so many
 	# downstream consumers are expecting it there.
-	KUBE_GIT_VERSION=$(echo "${KUBE_GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{7,40\}\)$/\+\2/")
+	KUBE_GIT_VERSION=$(echo "${KUBE_GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{7,40\}\)$/\+${OS_GIT_COMMIT:-\2}/")
 
 	# Try to match the "git describe" output to a regex to try to extract
 	# the "major" and "minor" versions and whether this is the exact tagged
