@@ -948,17 +948,11 @@ spec:
   successfulBuildsHistoryLimit: 2
   runPolicy: Parallel
   source:
-    type: Git
-    git:
-      uri: 'https://github.com/sclorg/cakephp-ex.git'
+    dockerfile: |
+      FROM busybox
+      RUN touch /php-file
   strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.0'
-`)
+    dockerStrategy: {}`)
 
 func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, nil
