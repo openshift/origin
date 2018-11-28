@@ -273,7 +273,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string) (*ReleaseInfo, error) {
 				return true, nil
 			}
 			release.References = is
-		case "cincinnati":
+		case "release-metadata":
 			data, err := ioutil.ReadAll(r)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("unable to read release metadata: %v", err))

@@ -268,6 +268,10 @@ func (o *NewOptions) Run() error {
 	}
 
 	var cm *CincinnatiMetadata
+	// TODO: remove this once all code creates semantic versions
+	if _, err := semver.Parse(name); err == nil {
+		o.ForceManifest = true
+	}
 	if len(o.PreviousVersions) > 0 || len(o.ReleaseMetadata) > 0 || o.ForceManifest {
 		cm = &CincinnatiMetadata{Kind: "cincinnati-metadata-v0"}
 		semverName, err := semver.Parse(name)
@@ -896,13 +900,13 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 		return nil, err
 	}
 
-	// write cincinnati metadata to release-manifests/cincinnati
+	// write cincinnati metadata to release-manifests/release-metadata
 	if cm != nil {
 		data, err := json.MarshalIndent(cm, "", "  ")
 		if err != nil {
 			return nil, err
 		}
-		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "cincinnati")...), Size: int64(len(data))}); err != nil {
+		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "release-metadata")...), Size: int64(len(data))}); err != nil {
 			return nil, err
 		}
 		if _, err := tw.Write(data); err != nil {
@@ -1029,13 +1033,13 @@ func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinci
 	}
 
 	// write cincinnati if passed to us
-	takeFileByName(&contents, "cincinnati")
+	takeFileByName(&contents, "release-metadata")
 	if cm != nil {
 		data, err := json.MarshalIndent(cm, "", "  ")
 		if err != nil {
 			return err
 		}
-		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "cincinnati")...), Size: int64(len(data))}); err != nil {
+		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "release-metadata")...), Size: int64(len(data))}); err != nil {
 			return err
 		}
 		if _, err := tw.Write(data); err != nil {
