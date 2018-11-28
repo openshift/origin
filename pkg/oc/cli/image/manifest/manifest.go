@@ -36,16 +36,12 @@ type FilterOptions struct {
 
 // Bind adds the options to the flag set.
 func (o *FilterOptions) Bind(flags *pflag.FlagSet) {
-	flags.StringVar(&o.FilterByOS, "filter-by-os", o.FilterByOS, "A regular expression to control which images are mirrored. Images will be passed as '<platform>/<architecture>[/<variant>]'.")
+	flags.StringVar(&o.FilterByOS, "filter-by-os", o.FilterByOS, "A regular expression to control which images are considered when multiple variants are available. Images will be passed as '<platform>/<architecture>[/<variant>]'.")
 }
 
-// Complete checks whether the flags are ready for use.
-func (o *FilterOptions) Complete(flags *pflag.FlagSet) error {
+// Validate checks whether the flags are ready for use.
+func (o *FilterOptions) Validate() error {
 	pattern := o.FilterByOS
-	if len(pattern) == 0 && !flags.Changed("filter-by-os") {
-		o.DefaultOSFilter = true
-		pattern = regexp.QuoteMeta(fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
-	}
 	if len(pattern) > 0 {
 		re, err := regexp.Compile(pattern)
 		if err != nil {
@@ -54,6 +50,16 @@ func (o *FilterOptions) Complete(flags *pflag.FlagSet) error {
 		o.OSFilter = re
 	}
 	return nil
+}
+
+// Complete performs defaulting by OS.
+func (o *FilterOptions) Complete(flags *pflag.FlagSet) error {
+	pattern := o.FilterByOS
+	if len(pattern) == 0 && !flags.Changed("filter-by-os") {
+		o.DefaultOSFilter = true
+		o.FilterByOS = regexp.QuoteMeta(fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
+	}
+	return o.Validate()
 }
 
 // Include returns true if the provided manifest should be included, or the first image if the user didn't alter the
@@ -65,10 +71,15 @@ func (o *FilterOptions) Include(d *manifestlist.ManifestDescriptor, hasMultiple 
 	if o.DefaultOSFilter && !hasMultiple {
 		return true
 	}
-	if len(d.Platform.Variant) > 0 {
-		return o.OSFilter.MatchString(fmt.Sprintf("%s/%s/%s", d.Platform.OS, d.Platform.Architecture, d.Platform.Variant))
+	s := PlatformSpecString(d.Platform)
+	return o.OSFilter.MatchString(s)
+}
+
+func PlatformSpecString(platform manifestlist.PlatformSpec) string {
+	if len(platform.Variant) > 0 {
+		return fmt.Sprintf("%s/%s/%s", platform.OS, platform.Architecture, platform.Variant)
 	}
-	return o.OSFilter.MatchString(fmt.Sprintf("%s/%s", d.Platform.OS, d.Platform.Architecture))
+	return fmt.Sprintf("%s/%s", platform.OS, platform.Architecture)
 }
 
 // IncludeAll returns true if the provided manifest matches the filter, or all if there was no filter.
@@ -76,10 +87,8 @@ func (o *FilterOptions) IncludeAll(d *manifestlist.ManifestDescriptor, hasMultip
 	if o.OSFilter == nil {
 		return true
 	}
-	if len(d.Platform.Variant) > 0 {
-		return o.OSFilter.MatchString(fmt.Sprintf("%s/%s/%s", d.Platform.OS, d.Platform.Architecture, d.Platform.Variant))
-	}
-	return o.OSFilter.MatchString(fmt.Sprintf("%s/%s", d.Platform.OS, d.Platform.Architecture))
+	s := PlatformSpecString(d.Platform)
+	return o.OSFilter.MatchString(s)
 }
 
 type FilterFunc func(*manifestlist.ManifestDescriptor, bool) bool
