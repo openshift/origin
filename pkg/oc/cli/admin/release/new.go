@@ -264,7 +264,7 @@ func (o *NewOptions) Run() error {
 	now := time.Now().UTC()
 	name := o.Name
 	if len(name) == 0 {
-		name = "0.0.1-" + now.Format("2006-01-02T150405Z")
+		name = "0.0.1-" + now.Format("2006-01-02-150405")
 	}
 
 	var cm *CincinnatiMetadata
