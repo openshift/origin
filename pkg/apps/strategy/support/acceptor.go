@@ -44,27 +44,33 @@ func (c *acceptAvailablePods) Accept(rc *corev1.ReplicationController) error {
 		return nil
 	}
 
-	watcher, err := c.kclient.ReplicationControllers(rc.Namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: rc.Name, ResourceVersion: rc.ResourceVersion}))
-	if err != nil {
-		return fmt.Errorf("acceptAvailablePods failed to watch ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
-	}
+	for {
+		watcher, err := c.kclient.ReplicationControllers(rc.Namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: rc.Name, ResourceVersion: rc.ResourceVersion}))
+		if err != nil {
+			return fmt.Errorf("acceptAvailablePods failed to watch ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
+		}
 
-	_, err = watch.Until(c.timeout, watcher, func(event watch.Event) (bool, error) {
-		if t := event.Type; t != watch.Modified {
-			return false, fmt.Errorf("acceptAvailablePods failed watching for ReplicationController %s/%s: received event %v", rc.Namespace, rc.Name, t)
-		}
-		newRc, ok := event.Object.(*corev1.ReplicationController)
-		if !ok {
-			return false, fmt.Errorf("unknown event object %#v", event.Object)
-		}
-		return allReplicasAvailable(newRc), nil
-	})
-	// Handle acceptance failure.
-	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		_, err = watch.Until(c.timeout, watcher, func(event watch.Event) (bool, error) {
+			if t := event.Type; t != watch.Modified {
+				return false, fmt.Errorf("acceptAvailablePods failed watching for ReplicationController %s/%s: received event %v", rc.Namespace, rc.Name, t)
+			}
+			newRc, ok := event.Object.(*corev1.ReplicationController)
+			if !ok {
+				return false, fmt.Errorf("unknown event object %#v", event.Object)
+			}
+			return allReplicasAvailable(newRc), nil
+		})
+		// Handle acceptance failure.
+		switch err {
+		case nil:
+			return nil
+		case watch.ErrWatchClosed:
+			fmt.Fprint(c.out, "Warning: acceptAvailablePods encountered %T, retrying", watch.ErrWatchClosed)
+			continue
+		case wait.ErrWaitTimeout:
 			return fmt.Errorf("pods for rc '%s/%s' took longer than %.f seconds to become available", rc.Namespace, rc.Name, c.timeout.Seconds())
+		default:
+			return fmt.Errorf("acceptAvailablePods encountered unknown error for ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
 		}
-		return err
 	}
-	return nil
 }
