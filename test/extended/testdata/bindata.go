@@ -186,9 +186,13 @@
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
+// test/extended/testdata/router-common.yaml
 // test/extended/testdata/router-config-manager.yaml
 // test/extended/testdata/router-http-echo-server.yaml
 // test/extended/testdata/router-metrics.yaml
+// test/extended/testdata/router-override-domains.yaml
+// test/extended/testdata/router-override.yaml
+// test/extended/testdata/router-scoped.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
@@ -198,7 +202,6 @@
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/assemble
 // test/extended/testdata/sample-image-stream.json
 // test/extended/testdata/samplepipeline-withenvs.yaml
-// test/extended/testdata/scoped-router.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
@@ -10324,6 +10327,131 @@ func testExtendedTestdataRolesPolicyRolesYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterCommonYaml = []byte(`apiVersion: v1
+kind: Template
+parameters:
+objects:
+
+# ensure the router can access routes and endpoints
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: system-router
+  subjects:
+  - kind: ServiceAccount
+    name: default
+  roleRef:
+    name: system:router
+
+# two routes that differ only by their labels and names
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-1
+    labels:
+      test: router
+      select: first
+  spec:
+    host: first.example.com
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-2
+    labels:
+      test: router
+      select: second
+  spec:
+    host: second.example.com
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: http
+
+# routes that contain overridden domains
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-override-domain-1
+    labels:
+      test: router
+      select: override-domains
+  spec:
+    host: y.a.null.ptr
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-override-domain-2
+    labels:
+      test: router
+      select: override-domains
+  spec:
+    host: main.void.str
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: endpoints
+    labels:
+      test: router
+  spec:
+    selector:
+      test: router
+      endpoints: router
+    ports:
+    - port: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-1
+    labels:
+      test: router
+      endpoints: router
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      # image: openshift/deployment-example:v1
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataRouterCommonYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterCommonYaml, nil
+}
+
+func testExtendedTestdataRouterCommonYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterCommonYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router-common.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRouterConfigManagerYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
@@ -10810,6 +10938,164 @@ func testExtendedTestdataRouterMetricsYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterOverrideDomainsYaml = []byte(`apiVersion: v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-haproxy-router:latest
+- name: SCOPE
+  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
+objects:
+
+# a router that overrides domains
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-override-domains
+    labels:
+      test: router-override-domains
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--name=test-override-domains", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-domains=null.ptr,void.str", "--hostname-template=${name}-${namespace}.apps.veto.test"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+`)
+
+func testExtendedTestdataRouterOverrideDomainsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterOverrideDomainsYaml, nil
+}
+
+func testExtendedTestdataRouterOverrideDomainsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterOverrideDomainsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router-override-domains.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterOverrideYaml = []byte(`apiVersion: v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-haproxy-router:latest
+- name: SCOPE
+  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
+objects:
+
+# a router that overrides host
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-override
+    labels:
+      test: router-override
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--name=test-override", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template=${name}-${namespace}.myapps.mycompany.com"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+`)
+
+func testExtendedTestdataRouterOverrideYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterOverrideYaml, nil
+}
+
+func testExtendedTestdataRouterOverrideYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterOverrideYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router-override.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterScopedYaml = []byte(`apiVersion: v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-haproxy-router:latest
+- name: SCOPE
+  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
+objects:
+# a scoped router
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-scoped
+    labels:
+      test: router-scoped
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: "${{SCOPE}}"
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+`)
+
+func testExtendedTestdataRouterScopedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterScopedYaml, nil
+}
+
+func testExtendedTestdataRouterScopedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterScopedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router-scoped.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
   kind: "List"
   apiVersion: "v1"
@@ -11179,219 +11465,6 @@ func testExtendedTestdataSamplepipelineWithenvsYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/samplepipeline-withenvs.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataScopedRouterYaml = []byte(`apiVersion: v1
-kind: Template
-parameters:
-- name: IMAGE
-  value: openshift/origin-haproxy-router:latest
-- name: SCOPE
-  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
-objects:
-# a scoped router
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: router-scoped
-    labels:
-      test: router-scoped
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: router
-      image: ${IMAGE}
-      imagePullPolicy: IfNotPresent
-      env:
-      - name: POD_NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
-      args: "${{SCOPE}}"
-      hostNetwork: false
-      ports:
-      - containerPort: 80
-      - containerPort: 443
-      - containerPort: 1936
-        name: stats
-        protocol: TCP
-    serviceAccountName: default
-
-# a router that overrides host
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: router-override
-    labels:
-      test: router-override
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: router
-      image: ${IMAGE}
-      imagePullPolicy: IfNotPresent
-      env:
-      - name: POD_NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
-      args: ["--name=test-override", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template=${name}-${namespace}.myapps.mycompany.com"]
-      hostNetwork: false
-      ports:
-      - containerPort: 80
-      - containerPort: 443
-      - containerPort: 1936
-        name: stats
-        protocol: TCP
-    serviceAccountName: default
-
-# a router that overrides domains
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: router-override-domains
-    labels:
-      test: router-override-domains
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: router
-      image: ${IMAGE}
-      imagePullPolicy: IfNotPresent
-      env:
-      - name: POD_NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
-      args: ["--name=test-override-domains", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-domains=null.ptr,void.str", "--hostname-template=${name}-${namespace}.apps.veto.test"]
-      hostNetwork: false
-      ports:
-      - containerPort: 80
-      - containerPort: 443
-      - containerPort: 1936
-        name: stats
-        protocol: TCP
-    serviceAccountName: default
-
-
-# ensure the router can access routes and endpoints
-- apiVersion: v1
-  kind: RoleBinding
-  metadata:
-    name: system-router
-  subjects:
-  - kind: ServiceAccount
-    name: default
-  roleRef:
-    name: system:router
-
-# two routes that differ only by their labels and names
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: route-1
-    labels:
-      test: router
-      select: first
-  spec:
-    host: first.example.com
-    path: /Letter
-    to:
-      name: endpoints
-    ports:
-    - targetPort: 8080
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: route-2
-    labels:
-      test: router
-      select: second
-  spec:
-    host: second.example.com
-    path: /Letter
-    to:
-      name: endpoints
-    ports:
-    - targetPort: http
-
-# routes that contain overridden domains
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: route-override-domain-1
-    labels:
-      test: router
-      select: override-domains
-  spec:
-    host: y.a.null.ptr
-    path: /Letter
-    to:
-      name: endpoints
-    ports:
-    - targetPort: 8080
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: route-override-domain-2
-    labels:
-      test: router
-      select: override-domains
-  spec:
-    host: main.void.str
-    path: /Letter
-    to:
-      name: endpoints
-    ports:
-    - targetPort: 8080
-
-# a service to be routed to
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: endpoints
-    labels:
-      test: router
-  spec:
-    selector:
-      test: router
-      endpoints: router
-    ports:
-    - port: 8080
-# a pod that serves a response
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: endpoint-1
-    labels:
-      test: router
-      endpoints: router
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      # image: openshift/deployment-example:v1
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-`)
-
-func testExtendedTestdataScopedRouterYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataScopedRouterYaml, nil
-}
-
-func testExtendedTestdataScopedRouterYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataScopedRouterYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/scoped-router.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32667,9 +32740,13 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
+	"test/extended/testdata/router-common.yaml": testExtendedTestdataRouterCommonYaml,
 	"test/extended/testdata/router-config-manager.yaml": testExtendedTestdataRouterConfigManagerYaml,
 	"test/extended/testdata/router-http-echo-server.yaml": testExtendedTestdataRouterHttpEchoServerYaml,
 	"test/extended/testdata/router-metrics.yaml": testExtendedTestdataRouterMetricsYaml,
+	"test/extended/testdata/router-override-domains.yaml": testExtendedTestdataRouterOverrideDomainsYaml,
+	"test/extended/testdata/router-override.yaml": testExtendedTestdataRouterOverrideYaml,
+	"test/extended/testdata/router-scoped.yaml": testExtendedTestdataRouterScopedYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml": testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
@@ -32679,7 +32756,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/assemble": testExtendedTestdataS2iDropcapsRootableRubyAssemble,
 	"test/extended/testdata/sample-image-stream.json": testExtendedTestdataSampleImageStreamJson,
 	"test/extended/testdata/samplepipeline-withenvs.yaml": testExtendedTestdataSamplepipelineWithenvsYaml,
-	"test/extended/testdata/scoped-router.yaml": testExtendedTestdataScopedRouterYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
@@ -33160,9 +33236,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
 					"policy-roles.yaml": &bintree{testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
+				"router-common.yaml": &bintree{testExtendedTestdataRouterCommonYaml, map[string]*bintree{}},
 				"router-config-manager.yaml": &bintree{testExtendedTestdataRouterConfigManagerYaml, map[string]*bintree{}},
 				"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterHttpEchoServerYaml, map[string]*bintree{}},
 				"router-metrics.yaml": &bintree{testExtendedTestdataRouterMetricsYaml, map[string]*bintree{}},
+				"router-override-domains.yaml": &bintree{testExtendedTestdataRouterOverrideDomainsYaml, map[string]*bintree{}},
+				"router-override.yaml": &bintree{testExtendedTestdataRouterOverrideYaml, map[string]*bintree{}},
+				"router-scoped.yaml": &bintree{testExtendedTestdataRouterScopedYaml, map[string]*bintree{}},
 				"run_policy": &bintree{nil, map[string]*bintree{
 					"parallel-bc.yaml": &bintree{testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
 					"serial-bc.yaml": &bintree{testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
@@ -33178,7 +33258,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"sample-image-stream.json": &bintree{testExtendedTestdataSampleImageStreamJson, map[string]*bintree{}},
 				"samplepipeline-withenvs.yaml": &bintree{testExtendedTestdataSamplepipelineWithenvsYaml, map[string]*bintree{}},
-				"scoped-router.yaml": &bintree{testExtendedTestdataScopedRouterYaml, map[string]*bintree{}},
 				"service-serving-cert": &bintree{nil, map[string]*bintree{
 					"nginx-serving-cert.conf": &bintree{testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
 				}},

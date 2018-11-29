@@ -28,9 +28,9 @@ const changeTimeoutSeconds = 3 * 60
 var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		configPath = exutil.FixturePath("testdata", "scoped-router.yaml")
-		oc         *exutil.CLI
-		ns         string
+		oc          *exutil.CLI
+		ns          string
+		routerImage string
 	)
 
 	// this hook must be registered before the framework namespace teardown
@@ -50,24 +50,28 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		routerImage, _ := exutil.FindImageFormatString(oc)
+		routerImage, _ = exutil.FindImageFormatString(oc)
 		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+		configPath := exutil.FixturePath("testdata", "router-common.yaml")
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
 
+			configPath := exutil.FixturePath("testdata", "router-scoped.yaml")
+			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
+			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
-
 			var routerIP string
-			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
+			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("router-scoped", metav1.GetOptions{})
 				if err != nil {
 					return false, err
@@ -101,14 +105,17 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 		g.It("should override the route host with a custom value", func() {
 
+			configPath := exutil.FixturePath("testdata", "router-override.yaml")
+			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
+			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
-
 			var routerIP string
-			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
+			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get("router-override", metav1.GetOptions{})
 				if err != nil {
 					return false, err
@@ -164,6 +171,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 		g.It("should override the route host for overridden domains with a custom value", func() {
 
+			configPath := exutil.FixturePath("testdata", "router-override-domains.yaml")
+			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
+			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
@@ -171,7 +183,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			g.By(fmt.Sprintf("creating a scoped router with overridden domains from a config file %q", configPath))
 
 			var routerIP string
-			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
+			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get("router-override-domains", metav1.GetOptions{})
 				if err != nil {
 					return false, err
