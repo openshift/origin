@@ -1,6 +1,7 @@
 package oauthserver
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"net/http"
@@ -21,8 +22,6 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 
-	"bytes"
-
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
@@ -33,8 +32,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/configconversion"
 	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
+	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 )
 
 var (
@@ -64,17 +65,6 @@ func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userCli
 	genericConfig := genericapiserver.NewRecommendedConfig(codecs)
 	genericConfig.LoopbackClientConfig = userClientConfig
 
-	var sessionAuth *session.Authenticator
-	if oauthConfig.SessionConfig != nil {
-		// TODO we really need to enforce HTTPS always
-		secure := isHTTPS(oauthConfig.MasterPublicURL)
-		auth, err := buildSessionAuth(secure, oauthConfig.SessionConfig)
-		if err != nil {
-			return nil, err
-		}
-		sessionAuth = auth
-	}
-
 	userClient, err := userclient.NewForConfig(userClientConfig)
 	if err != nil {
 		return nil, err
@@ -87,20 +77,58 @@ func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userCli
 	if err != nil {
 		return nil, err
 	}
+	routeClient, err := routeclient.NewForConfig(userClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	kubeClient, err := kclientset.NewForConfig(userClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	var sessionAuth *session.Authenticator
+	if oauthConfig.SessionConfig != nil {
+		// TODO we really need to enforce HTTPS always
+		secure := isHTTPS(oauthConfig.MasterPublicURL)
+		auth, err := buildSessionAuth(secure, oauthConfig.SessionConfig, kubeClient.CoreV1())
+		if err != nil {
+			return nil, err
+		}
+		sessionAuth = auth
+
+		// session capability is the only thing required to enable the bootstrap IDP
+		// we dynamically enable or disable its UI based on the backing secret
+		// this must be the first IDP to make sure that it can handle basic auth challenges first
+		// this mostly avoids weird cases with the allow all IDP
+		oauthConfig.IdentityProviders = append(
+			[]configapi.IdentityProvider{
+				{
+					Name:            bootstrap.BootstrapUser, // will never conflict with other IDPs due to the :
+					UseAsChallenger: true,
+					UseAsLogin:      true,
+					MappingMethod:   string(identitymapper.MappingMethodClaim), // irrelevant, but needs to be valid
+					Provider:        &configapi.BootstrapIdentityProvider{},
+				},
+			},
+			oauthConfig.IdentityProviders...,
+		)
+	}
 
 	ret := &OAuthServerConfig{
 		GenericConfig: genericConfig,
 		ExtraOAuthConfig: ExtraOAuthConfig{
 			Options:                        oauthConfig,
-			SessionAuth:                    sessionAuth,
+			KubeClient:                     kubeClient,
 			EventsClient:                   eventsClient.Events(""),
-			IdentityClient:                 userClient.Identities(),
+			RouteClient:                    routeClient,
 			UserClient:                     userClient.Users(),
+			IdentityClient:                 userClient.Identities(),
 			UserIdentityMappingClient:      userClient.UserIdentityMappings(),
 			OAuthAccessTokenClient:         oauthClient.OAuthAccessTokens(),
 			OAuthAuthorizeTokenClient:      oauthClient.OAuthAuthorizeTokens(),
 			OAuthClientClient:              oauthClient.OAuthClients(),
 			OAuthClientAuthorizationClient: oauthClient.OAuthClientAuthorizations(),
+			SessionAuth:                    sessionAuth,
 		},
 	}
 	genericConfig.BuildHandlerChainFunc = ret.buildHandlerChainForOAuth
@@ -108,13 +136,13 @@ func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userCli
 	return ret, nil
 }
 
-func buildSessionAuth(secure bool, config *configapi.SessionConfig) (*session.Authenticator, error) {
+func buildSessionAuth(secure bool, config *configapi.SessionConfig, secretsGetter corev1.SecretsGetter) (*session.Authenticator, error) {
 	secrets, err := getSessionSecrets(config.SessionSecretsFile)
 	if err != nil {
 		return nil, err
 	}
 	sessionStore := session.NewStore(config.SessionName, secure, secrets...)
-	return session.NewAuthenticator(sessionStore, time.Duration(config.SessionMaxAgeSeconds)*time.Second), nil
+	return session.NewAuthenticator(sessionStore, time.Duration(config.SessionMaxAgeSeconds)*time.Second, secretsGetter), nil
 }
 
 func getSessionSecrets(filename string) ([][]byte, error) {

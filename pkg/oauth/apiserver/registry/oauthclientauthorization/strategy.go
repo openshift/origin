@@ -36,6 +36,7 @@ func (strategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.Garbage
 
 func (strategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	auth := obj.(*oauthapi.OAuthClientAuthorization)
+	// this is not as easy to break apart in the face of the bootstrap user
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
 
@@ -50,6 +51,7 @@ func (strategy) GenerateName(base string) string {
 
 func (strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	auth := obj.(*oauthapi.OAuthClientAuthorization)
+	// this is not as easy to break apart in the face of the bootstrap user
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
 

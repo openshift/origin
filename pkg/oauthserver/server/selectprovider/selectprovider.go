@@ -7,21 +7,23 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/openshift/origin/pkg/oauthserver/api"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	"github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 )
 
 type SelectProviderRenderer interface {
 	Render(redirectors []api.ProviderInfo, w http.ResponseWriter, req *http.Request)
 }
 
-type SelectProvider struct {
+type selectProvider struct {
 	render            SelectProviderRenderer
 	forceInterstitial bool
 }
 
-func NewSelectProvider(render SelectProviderRenderer, forceInterstitial bool) *SelectProvider {
-	return &SelectProvider{
+func NewSelectProvider(render SelectProviderRenderer, forceInterstitial bool) handlers.AuthenticationSelectionHandler {
+	return &selectProvider{
 		render:            render,
 		forceInterstitial: forceInterstitial,
 	}
@@ -48,7 +50,7 @@ func NewSelectProviderRenderer(customSelectProviderTemplateFile string) (*select
 	return r, nil
 }
 
-func (s *SelectProvider) SelectAuthentication(providers []api.ProviderInfo, w http.ResponseWriter, req *http.Request) (*api.ProviderInfo, bool, error) {
+func (s *selectProvider) SelectAuthentication(providers []api.ProviderInfo, w http.ResponseWriter, req *http.Request) (*api.ProviderInfo, bool, error) {
 	if len(providers) == 0 {
 		return nil, false, nil
 	}

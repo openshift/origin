@@ -18,6 +18,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	webhooktoken "k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
@@ -79,10 +80,22 @@ func NewAuthenticator(
 		userClient.User().Users(),
 		apiClientCAs,
 		usercache.NewGroupCache(groupInformer),
+		kubeExternalClient.CoreV1(),
 	)
 }
 
-func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper oauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+func newAuthenticator(
+	serviceAccountPublicKeyFiles []string,
+	oauthConfig *osinv1.OAuthConfig,
+	authConfig kubecontrolplanev1.MasterAuthConfig,
+	accessTokenGetter oauthclient.OAuthAccessTokenInterface,
+	oauthClientLister oauthclientlister.OAuthClientLister,
+	tokenGetter serviceaccount.ServiceAccountTokenGetter,
+	userGetter usertypedclient.UserInterface,
+	apiClientCAs *x509.CertPool,
+	groupMapper oauth.UserToGroupMapper,
+	secretsGetter v1.SecretsGetter,
+) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
@@ -121,6 +134,12 @@ func newAuthenticator(serviceAccountPublicKeyFiles []string, oauthConfig *osinv1
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have an OAuth bearer token, you're a human (usually)
 			group.NewTokenGroupAdder(oauthTokenAuthenticator, []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+
+		if oauthConfig.SessionConfig != nil {
+			tokenAuthenticators = append(tokenAuthenticators,
+				// bootstrap oauth user that can do anything, backed by a secret
+				oauth.NewBootstrapAuthenticator(accessTokenGetter, secretsGetter, validators...))
+		}
 	}
 
 	for _, wta := range authConfig.WebhookTokenAuthenticators {

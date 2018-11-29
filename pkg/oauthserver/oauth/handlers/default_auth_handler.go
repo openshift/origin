@@ -33,7 +33,7 @@ func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationCh
 		redirectors = new(AuthenticationRedirectors)
 	}
 
-	return &unionAuthenticationHandler{challengers, redirectors, errorHandler, selectionHandler}
+	return &unionAuthenticationHandler{challengers: challengers, redirectors: redirectors, errorHandler: errorHandler, selectionHandler: selectionHandler}
 }
 
 const (
