@@ -43,6 +43,7 @@ func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
 		IOStreams:      streams,
 		MaxPerRegistry: 4,
 		AlwaysInclude:  []string{"cluster-version-operator", "cli"},
+		ToImageBaseTag: "cluster-version-operator",
 	}
 }
 
@@ -115,6 +116,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.StringVar(&o.ToFile, "to-file", o.ToFile, "Output the release to a tar file instead of creating an image.")
 	flags.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
 	flags.StringVar(&o.ToImageBase, "to-image-base", o.ToImageBase, "If specified, the image to add the release layer on top of.")
+	flags.StringVar(&o.ToImageBaseTag, "to-image-base-tag", o.ToImageBaseTag, "If specified, the image tag in the input to add the release layer on top of. Defaults to cluster-version-operator.")
 
 	// misc
 	flags.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
@@ -147,10 +149,11 @@ type NewOptions struct {
 
 	DryRun bool
 
-	ToFile      string
-	ToDir       string
-	ToImage     string
-	ToImageBase string
+	ToFile         string
+	ToDir          string
+	ToImage        string
+	ToImageBase    string
+	ToImageBaseTag string
 
 	Mirror string
 
@@ -796,9 +799,21 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		if len(toRef.Tag) == 0 {
 			toRef.Tag = o.Name
 		}
+		toImageBase := o.ToImageBase
+		if len(toImageBase) == 0 && len(o.ToImageBaseTag) > 0 {
+			for _, tag := range is.Spec.Tags {
+				if tag.From != nil && tag.From.Kind == "DockerImage" && tag.Name == o.ToImageBaseTag {
+					toImageBase = tag.From.Name
+				}
+			}
+			if len(toImageBase) == 0 {
+				return fmt.Errorf("--to-image-base-tag did not point to a tag in the input")
+			}
+		}
+
 		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 		options.DryRun = o.DryRun
-		options.From = o.ToImageBase
+		options.From = toImageBase
 		options.ConfigurationCallback = func(dgst digest.Digest, config *docker10.DockerImageConfig) error {
 			// reset any base image info
 			if len(config.OS) == 0 {
