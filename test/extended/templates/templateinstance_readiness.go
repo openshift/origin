@@ -140,7 +140,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build and dc to settle")
-			err = wait.Poll(time.Second, 20*time.Minute, waitSettle)
+			err = wait.Poll(time.Second, 10*time.Minute, waitSettle)
 			if err != nil {
 				err := dumpObjectReadiness(cli, templateinstance)
 				if err != nil {
@@ -202,7 +202,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build and dc to settle")
-			err = wait.Poll(time.Second, 20*time.Minute, waitSettle)
+			err = wait.Poll(time.Second, 10*time.Minute, waitSettle)
 			if err != nil {
 				err := dumpObjectReadiness(cli, templateinstance)
 				if err != nil {
