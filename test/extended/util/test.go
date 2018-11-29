@@ -383,6 +383,8 @@ var (
 			`Job should run a job to completion when tasks sometimes fail and are not locally restarted`, // seems flaky, also may require too many resources
 			`openshift mongodb replication creating from a template`,                                     // flaking on deployment
 			`should use be able to process many pods and reuse local volumes`,                            // https://bugzilla.redhat.com/show_bug.cgi?id=1635893
+
+			`in the buildconfig  should prune`, // periodically taking up to 1h to complete
 		},
 		// tests that must be run without competition
 		"[Serial]": {
