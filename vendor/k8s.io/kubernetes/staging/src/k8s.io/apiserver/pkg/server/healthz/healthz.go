@@ -158,6 +158,7 @@ func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 		}
 		// always be verbose on failure
 		if failed {
+			glog.Warningf("%vhealthz check failed", verboseOut.String())
 			http.Error(w, fmt.Sprintf("%vhealthz check failed", verboseOut.String()), http.StatusInternalServerError)
 			return
 		}
