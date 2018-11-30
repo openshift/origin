@@ -114,13 +114,12 @@ const (
 	// performing a custom build, if needed.
 	CustomBuildStrategyBaseImageKey = "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE"
 
-	// AdditionalTrustedCAKey is the ConfigMap key for the certificate bundle containing additional
-	// trusted CAs used by builds.
-	AdditionalTrustedCAKey = "additional-ca.crt"
-
 	// RegistryConfKey is the ConfigMap key for the build pod's registry configuration file.
 	RegistryConfKey = "registry.conf"
 
 	// SignaturePolicyKey is the ConfigMap key for the build pod's image signature policy file.
 	SignaturePolicyKey = "policy.json"
+
+	// ServiceCAKey is the ConfigMap key for the service signing certificate authority mounted into build pods.
+	ServiceCAKey = "service-ca.crt"
 )

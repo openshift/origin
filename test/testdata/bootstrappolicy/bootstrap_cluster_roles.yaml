@@ -2277,6 +2277,13 @@ items:
     verbs:
     - create
   - apiGroups:
+    - config.openshift.io
+    resources:
+    - builds
+    verbs:
+    - get
+    - list
+  - apiGroups:
     - ""
     resources:
     - events

@@ -37,6 +37,9 @@ function find_tests() {
 }
 tests=( $(find_tests ${1:-.*}) )
 
+# indicate we are running an integration test
+export OS_INTEGRATION_TEST='true'
+
 # deconflict ports so we can run in parallel with other test suites
 export API_PORT=${API_PORT:-28443}
 export ETCD_PORT=${ETCD_PORT:-24001}

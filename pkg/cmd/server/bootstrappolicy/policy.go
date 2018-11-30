@@ -23,6 +23,7 @@ import (
 	oapps "github.com/openshift/api/apps"
 	"github.com/openshift/api/authorization"
 	"github.com/openshift/api/build"
+	"github.com/openshift/api/config"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/network"
 	"github.com/openshift/api/oauth"
@@ -65,6 +66,7 @@ var (
 	deployGroup         = oapps.GroupName
 	authzGroup          = authorization.GroupName
 	buildGroup          = build.GroupName
+	configGroup         = config.GroupName
 	imageGroup          = image.GroupName
 	networkGroup        = network.GroupName
 	oauthGroup          = oauth.GroupName

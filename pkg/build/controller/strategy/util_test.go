@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -8,7 +9,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/build/util"
+)
+
+const (
+	dummyCA = `
+	---- BEGIN CERTIFICATE ----
+	VEhJUyBJUyBBIEJBRCBDRVJUSUZJQ0FURQo=
+	---- END CERTIFICATE ----
+	`
+	testInternalRegistryHost = "registry.svc.localhost:5000"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
@@ -172,7 +182,6 @@ func checkAliasing(t *testing.T, pod *corev1.Pod) {
 	}
 }
 
-// TODO: Add tests for mounting secrets and configMaps
 func TestMountConfigsAndSecrets(t *testing.T) {
 	pod := emptyPod()
 	configs := []buildv1.ConfigMapBuildSource{
@@ -241,70 +250,103 @@ func TestMountConfigsAndSecrets(t *testing.T) {
 }
 
 func TestSetupBuildCAs(t *testing.T) {
-	build := mockDockerBuild()
-	podSpec := &corev1.Pod{
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:  "first",
-					Image: "busybox",
-				},
-				{
-					Name:  "second",
-					Image: "busybox",
-				},
+	tests := []struct {
+		name  string
+		certs map[string]string
+	}{
+		{
+			name: "no certs",
+		},
+		{
+			name: "additional certs",
+			certs: map[string]string{
+				"first":                       dummyCA,
+				"second":                      dummyCA,
+				"internal.svc.localhost:5000": dummyCA,
 			},
 		},
 	}
-	bundles := []string{buildutil.AdditionalTrustedCAKey}
-	setupBuildCAs(build, podSpec, true)
-	if len(podSpec.Spec.Volumes) != 1 {
-		t.Fatalf("expected pod to have 1 volume, got %d", len(podSpec.Spec.Volumes))
-	}
-	volume := podSpec.Spec.Volumes[0]
-	if volume.Name != "build-ca-bundles" {
-		t.Errorf("build volume should have name %s, got %s", "build-ca-bundles", volume.Name)
-	}
-	if volume.ConfigMap == nil {
-		t.Fatal("expected volume to use a ConfigMap volume source")
-	}
-	if len(volume.ConfigMap.Items) != len(bundles) {
-		t.Errorf("expected volume to have %d items, got %d", len(bundles), len(volume.ConfigMap.Items))
-	}
-	for _, expected := range bundles {
-		var foundItem *corev1.KeyToPath
-		for _, item := range volume.ConfigMap.Items {
-			if item.Key == expected {
-				foundItem = &item
-				break
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			build := mockDockerBuild()
+			podSpec := &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "first",
+							Image: "busybox",
+						},
+						{
+							Name:  "second",
+							Image: "busybox",
+						},
+					},
+				},
 			}
-		}
-		if foundItem == nil {
-			t.Errorf("could not find %s as a referenced key in volume source", expected)
-		}
-		if len(foundItem.Path) == 0 {
-			t.Errorf("%s did not have a mount path specified", expected)
-		}
-
-	}
-
-	for _, c := range podSpec.Spec.Containers {
-		foundCA := false
-		for _, v := range c.VolumeMounts {
-			if v.Name == "build-ca-bundles" {
-				foundCA = true
-				if v.MountPath != ConfigMapCertsMountPath {
-					t.Errorf("ca bundle %s was not mounted to %s", v.Name, ConfigMapCertsMountPath)
-				}
-				if v.ReadOnly {
-					t.Errorf("ca bundle volume %s should be writeable, but was mounted read-only.", v.Name)
-				}
-				break
+			setupBuildCAs(build, podSpec, tc.certs, testInternalRegistryHost)
+			if len(podSpec.Spec.Volumes) != 1 {
+				t.Fatalf("expected pod to have 1 volume, got %d", len(podSpec.Spec.Volumes))
 			}
-		}
-		if !foundCA {
-			t.Errorf("build CA bundle was not mounted into container %s", c.Name)
-		}
+			volume := podSpec.Spec.Volumes[0]
+			if volume.Name != "build-ca-bundles" {
+				t.Errorf("build volume should have name %s, got %s", "build-ca-bundles", volume.Name)
+			}
+			if volume.ConfigMap == nil {
+				t.Fatal("expected volume to use a ConfigMap volume source")
+			}
+			// The service-ca.crt is always mounted
+			expectedItems := len(tc.certs) + 1
+			if len(volume.ConfigMap.Items) != expectedItems {
+				t.Errorf("expected volume to have %d items, got %d", expectedItems, len(volume.ConfigMap.Items))
+
+			}
+
+			resultItems := make(map[string]corev1.KeyToPath)
+			for _, result := range volume.ConfigMap.Items {
+				resultItems[result.Key] = result
+			}
+
+			for expected := range tc.certs {
+				foundItem, ok := resultItems[expected]
+				if !ok {
+					t.Errorf("could not find %s as a referenced key in volume source", expected)
+					continue
+				}
+
+				expectedPath := fmt.Sprintf("certs.d/%s/ca.crt", expected)
+				if foundItem.Path != expectedPath {
+					t.Errorf("expected mount path to be %s; got %s", expectedPath, foundItem.Path)
+				}
+			}
+
+			foundItem, ok := resultItems[util.ServiceCAKey]
+			if !ok {
+				t.Errorf("could not find %s as a referenced key in volume source", util.ServiceCAKey)
+			}
+			expectedPath := fmt.Sprintf("certs.d/%s/ca.crt", testInternalRegistryHost)
+			if foundItem.Path != expectedPath {
+				t.Errorf("expected %s to be mounted at %s, got %s", util.ServiceCAKey, expectedPath, foundItem.Path)
+			}
+
+			for _, c := range podSpec.Spec.Containers {
+				foundCA := false
+				for _, v := range c.VolumeMounts {
+					if v.Name == "build-ca-bundles" {
+						foundCA = true
+						if v.MountPath != ConfigMapCertsMountPath {
+							t.Errorf("ca bundle %s was not mounted to %s", v.Name, ConfigMapCertsMountPath)
+						}
+						if v.ReadOnly {
+							t.Errorf("ca bundle volume %s should be writeable, but was mounted read-only.", v.Name)
+						}
+						break
+					}
+				}
+				if !foundCA {
+					t.Errorf("build CA bundle was not mounted into container %s", c.Name)
+				}
+			}
+		})
 	}
 }
 

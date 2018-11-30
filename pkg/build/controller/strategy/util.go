@@ -472,7 +472,7 @@ func setupContainersNodeStorage(pod *corev1.Pod, container *corev1.Container) {
 }
 
 // setupBuildCAs mounts certificate authorities for the build from a predetermined ConfigMap.
-func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, includeAdditionalCA bool) {
+func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, additionalCAs map[string]string, internalRegistryHost string) {
 	casExist := false
 	for _, v := range pod.Spec.Volumes {
 		if v.Name == "build-ca-bundles" {
@@ -482,15 +482,31 @@ func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, includeAdditionalCA bo
 	}
 
 	if !casExist {
+		// Mount the service signing CA key for the internal registry.
+		// This will be injected into the referenced ConfigMap via the openshift/service-ca-operator, and block
+		// creation of the build pod until it exists.
+		//
+		// See https://github.com/openshift/service-serving-cert-signer
 		cmSource := &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: buildapihelpers.GetBuildCAConfigMapName(build),
 			},
+			Items: []corev1.KeyToPath{
+				{
+					Key:  buildutil.ServiceCAKey,
+					Path: fmt.Sprintf("certs.d/%s/ca.crt", internalRegistryHost),
+				},
+			},
 		}
-		if includeAdditionalCA {
+
+		// Mount any additional trusted certificates via their keys.
+		// Each key should be the hostname that the CA certificate applies to
+		// This will be mounted to certs.d/<domain>/ca.crt so that it can be copied
+		// to /etc/docker/certs.d
+		for key := range additionalCAs {
 			cmSource.Items = append(cmSource.Items, corev1.KeyToPath{
-				Key:  buildutil.AdditionalTrustedCAKey,
-				Path: buildutil.AdditionalTrustedCAKey,
+				Key:  key,
+				Path: fmt.Sprintf("certs.d/%s/ca.crt", key),
 			})
 		}
 		pod.Spec.Volumes = append(pod.Spec.Volumes,

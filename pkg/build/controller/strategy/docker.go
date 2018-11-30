@@ -33,7 +33,7 @@ type DockerBuildStrategy struct {
 
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
-func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAdditionalCA bool) (*v1.Pod, error) {
+func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCAs map[string]string, internalRegistryHost string) (*v1.Pod, error) {
 	data, err := runtime.Encode(buildJSONCodec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
@@ -194,7 +194,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAddit
 	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	setupInputConfigMaps(pod, &pod.Spec.Containers[0], build.Spec.Source.ConfigMaps)
 	setupContainersConfigs(build, pod)
-	setupBuildCAs(build, pod, includeAdditionalCA)
+	setupBuildCAs(build, pod, additionalCAs, internalRegistryHost)
 	setupContainersStorage(pod, &pod.Spec.Containers[0]) // for unprivileged builds
 	// setupContainersNodeStorage(pod, &pod.Spec.Containers[0]) // for privileged builds
 	return pod, nil

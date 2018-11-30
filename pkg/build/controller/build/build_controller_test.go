@@ -2,9 +2,6 @@ package build
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -15,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,15 +21,20 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	v1lister "k8s.io/client-go/listers/core/v1"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/fake"
 	buildv1informer "github.com/openshift/client-go/build/informers/externalversions"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
+	configv1informer "github.com/openshift/client-go/config/informers/externalversions"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
@@ -382,7 +385,7 @@ func TestHandleBuild(t *testing.T) {
 					}
 					return false, nil, nil
 				})
-			bc := newFakeBuildController(buildClient, nil, kubeClient, nil)
+			bc := newFakeBuildController(buildClient, nil, kubeClient, nil, nil)
 			defer bc.stop()
 
 			runPolicy := tc.runPolicy
@@ -450,7 +453,7 @@ func TestWorkWithNewBuild(t *testing.T) {
 	buildClient := fakeBuildClient(build)
 	buildClient.(*fakebuildv1client.Clientset).PrependReactor("patch", "builds", applyBuildPatchReaction(t, build, &patchedBuild))
 
-	bc := newFakeBuildController(buildClient, nil, nil, nil)
+	bc := newFakeBuildController(buildClient, nil, nil, nil, nil)
 	defer bc.stop()
 	bc.enqueueBuild(build)
 
@@ -470,7 +473,7 @@ func TestWorkWithNewBuild(t *testing.T) {
 
 func TestCreateBuildPod(t *testing.T) {
 	kubeClient := fakeKubeExternalClientSet()
-	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc := newFakeBuildController(nil, nil, kubeClient, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 
@@ -536,7 +539,7 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 	imageStream.Status.DockerImageRepository = "namespace/image-name"
 	imageClient := fakeImageClient(imageStream)
 	imageStreamRef := &corev1.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
-	bc := newFakeBuildController(nil, imageClient, nil, nil)
+	bc := newFakeBuildController(nil, imageClient, nil, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{To: imageStreamRef, PushSecret: &corev1.LocalObjectReference{}}))
 	podName := buildapihelpers.GetBuildPodName(build)
@@ -559,7 +562,7 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 
 func TestCreateBuildPodWithOutputImageStreamMissing(t *testing.T) {
 	imageStreamRef := &corev1.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
-	bc := newFakeBuildController(nil, nil, nil, nil)
+	bc := newFakeBuildController(nil, nil, nil, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{To: imageStreamRef, PushSecret: &corev1.LocalObjectReference{}}))
 
@@ -579,7 +582,7 @@ func TestCreateBuildPodWithOutputImageStreamMissing(t *testing.T) {
 
 func TestCreateBuildPodWithImageStreamMissing(t *testing.T) {
 	imageStreamRef := &corev1.ObjectReference{Name: "isname:latest", Kind: "DockerImage"}
-	bc := newFakeBuildController(nil, nil, nil, nil)
+	bc := newFakeBuildController(nil, nil, nil, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{To: imageStreamRef, PushSecret: &corev1.LocalObjectReference{}}))
 	build.Spec.Strategy.DockerStrategy.From = &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "isname:latest"}
@@ -604,7 +607,7 @@ func TestCreateBuildPodWithImageStreamUnresolved(t *testing.T) {
 	imageStream.Status.DockerImageRepository = ""
 	imageClient := fakeImageClient(imageStream)
 	imageStreamRef := &corev1.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
-	bc := newFakeBuildController(nil, imageClient, nil, nil)
+	bc := newFakeBuildController(nil, imageClient, nil, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{To: imageStreamRef, PushSecret: &corev1.LocalObjectReference{}}))
 
@@ -624,12 +627,12 @@ func TestCreateBuildPodWithImageStreamUnresolved(t *testing.T) {
 
 type errorStrategy struct{}
 
-func (*errorStrategy) CreateBuildPod(build *buildv1.Build, includeCA bool) (*corev1.Pod, error) {
+func (*errorStrategy) CreateBuildPod(build *buildv1.Build, additionalCAs map[string]string, internalRegistryHost string) (*corev1.Pod, error) {
 	return nil, fmt.Errorf("error")
 }
 
 func TestCreateBuildPodWithPodSpecCreationError(t *testing.T) {
-	bc := newFakeBuildController(nil, nil, nil, nil)
+	bc := newFakeBuildController(nil, nil, nil, nil, nil)
 	defer bc.stop()
 	bc.createStrategy = &errorStrategy{}
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
@@ -670,7 +673,7 @@ func TestCreateBuildPodWithExistingRelatedPod(t *testing.T) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
 	kubeClient.(*fake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc := newFakeBuildController(nil, nil, kubeClient, nil, nil)
 	bc.start()
 	defer bc.stop()
 
@@ -718,7 +721,7 @@ func TestCreateBuildPodWithExistingRelatedPodMissingCA(t *testing.T) {
 	kubeClient.(*fake.Clientset).PrependReactor("create", "pods", errorReaction)
 	kubeClient.(*fake.Clientset).PrependReactor("get", "configmaps", notFoundReaction)
 
-	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc := newFakeBuildController(nil, nil, kubeClient, nil, nil)
 	bc.start()
 	defer bc.stop()
 
@@ -780,7 +783,7 @@ func TestCreateBuildPodWithExistingRelatedPodBadCA(t *testing.T) {
 	kubeClient.(*fake.Clientset).PrependReactor("create", "pods", errorReaction)
 	kubeClient.(*fake.Clientset).PrependReactor("get", "configmaps", getCAReaction)
 
-	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc := newFakeBuildController(nil, nil, kubeClient, nil, nil)
 	bc.start()
 	defer bc.stop()
 
@@ -809,7 +812,7 @@ func TestCreateBuildPodWithExistingUnrelatedPod(t *testing.T) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
 	kubeClient.(*fake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc := newFakeBuildController(nil, nil, kubeClient, nil, nil)
 	defer bc.stop()
 
 	update, err := bc.createBuildPod(build)
@@ -831,7 +834,7 @@ func TestCreateBuildPodWithPodCreationError(t *testing.T) {
 		return true, nil, fmt.Errorf("error")
 	}
 	kubeClient.(*fake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc := newFakeBuildController(nil, nil, kubeClient, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 
@@ -853,7 +856,7 @@ func TestCreateBuildPodWithCACreationError(t *testing.T) {
 		return true, nil, fmt.Errorf("error")
 	}
 	kubeClient.(*fake.Clientset).PrependReactor("create", "configmaps", errorReaction)
-	bc := newFakeBuildController(nil, nil, kubeClient, nil)
+	bc := newFakeBuildController(nil, nil, kubeClient, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 
@@ -1168,61 +1171,243 @@ func TestSetBuildCompletionTimestampAndDuration(t *testing.T) {
 }
 
 func TestCreateBuildCAConfigMap(t *testing.T) {
-	bc := newFakeBuildController(nil, nil, nil, nil)
-	bc.additionalTrustedCAData = []byte(dummyCA)
-	defer bc.stop()
-	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
-	pod := mockBuildPod(build)
-	caMap := bc.createBuildCAConfigMapSpec(build, pod)
-	if caMap == nil {
-		t.Error("certificate authority configMap was not created")
+	tests := []struct {
+		name       string
+		addlCAData map[string]string
+	}{
+		{
+			name: "no CAs",
+		},
+		{
+			name: "addl CA data",
+			addlCAData: map[string]string{
+				"mydomain":    dummyCA,
+				"otherdomain": dummyCA,
+				"third":       dummyCA,
+			},
+		},
+		{
+			name: "everything",
+			addlCAData: map[string]string{
+				"mydomain":    dummyCA,
+				"otherdomain": dummyCA,
+				"third":       dummyCA,
+			},
+		},
 	}
-	if !hasBuildPodOwnerRef(pod, caMap) {
-		t.Error("build CA configMap is missing owner ref to the build pod")
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			bc := newFakeBuildController(nil, nil, nil, nil, nil)
+			bc.additionalTrustedCAData = tc.addlCAData
+			defer bc.stop()
+			build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
+			pod := mockBuildPod(build)
+			caMap := bc.createBuildCAConfigMapSpec(build, pod)
+			if caMap == nil {
+				t.Error("certificate authority configMap was not created")
+			}
+			if !hasBuildPodOwnerRef(pod, caMap) {
+				t.Error("build CA configMap is missing owner ref to the build pod")
+			}
+
+			injectAnnotation := "service.alpha.openshift.io/inject-cabundle"
+			val, exists := caMap.Annotations[injectAnnotation]
+			if !exists {
+				t.Errorf("expected CA configMap to have annotation %s", injectAnnotation)
+			}
+			if val != "true" {
+				t.Errorf("expected annotation %s to be %s; got %s", injectAnnotation, "true", val)
+			}
+
+			expectedData := make(map[string]string)
+			for k, v := range tc.addlCAData {
+				expectedData[k] = v
+			}
+
+			if len(expectedData) == 0 {
+				if len(caMap.Data) != 0 {
+					t.Errorf("expected empty CA configMap, got %v", caMap.Data)
+				}
+				return
+			}
+
+			if !reflect.DeepEqual(expectedData, caMap.Data) {
+				t.Errorf("expected CA configMap %v\ngot:\n%v", expectedData, caMap.Data)
+			}
+		})
 	}
-	injectAnnotation := "service.alpha.openshift.io/inject-cabundle"
-	val, exists := caMap.Annotations[injectAnnotation]
-	if !exists {
-		t.Errorf("expected CA configMap to have annotation %s", injectAnnotation)
+}
+
+func TestHandleControllerConfig(t *testing.T) {
+	tests := []struct {
+		name string
+		// Conditions
+		build         *configv1.Build
+		casMap        *corev1.ConfigMap
+		errorGetBuild bool
+		errorGetCA    bool
+		// Results
+		expectError bool
+	}{
+		{
+			name: "no cas",
+		},
+		{
+			name: "ca exists",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					AdditionalTrustedCA: configv1.ConfigMapNameReference{
+						Name: "cluster-cas",
+					},
+				},
+			},
+			casMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster-cas",
+					Namespace: "openshift-config",
+				},
+				Data: map[string]string{
+					"mydomain": dummyCA,
+				},
+			},
+		},
+		{
+			name: "ca configMap removed",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					AdditionalTrustedCA: configv1.ConfigMapNameReference{
+						Name: "cluster-cas",
+					},
+				},
+			},
+		},
+		{
+			name: "get build CRD error",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					AdditionalTrustedCA: configv1.ConfigMapNameReference{
+						Name: "cluster-cas",
+					},
+				},
+			},
+			errorGetBuild: true,
+			expectError:   true,
+		},
+		{
+			name: "get configMap error",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					AdditionalTrustedCA: configv1.ConfigMapNameReference{
+						Name: "cluster-cas",
+					},
+				},
+			},
+			casMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster-cas",
+					Namespace: "openshift-config",
+				},
+				Data: map[string]string{
+					"mydomain": dummyCA,
+				},
+			},
+			errorGetCA:  true,
+			expectError: true,
+		},
 	}
-	if val != "true" {
-		t.Errorf("expected annotation %s to be %s; got %s", injectAnnotation, "true", val)
-	}
-	if _, hasCA := caMap.Data[buildutil.AdditionalTrustedCAKey]; !hasCA {
-		t.Errorf("expected CA configMap to have key %s", buildutil.AdditionalTrustedCAKey)
-	}
-	if caMap.Data[buildutil.AdditionalTrustedCAKey] != dummyCA {
-		t.Errorf("expected CA configMap.%s to contain\n%s\ngot:\n%s", buildutil.AdditionalTrustedCAKey, dummyCA, caMap.Data[buildutil.AdditionalTrustedCAKey])
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var configClient configv1client.Interface
+			if tc.build != nil {
+				configClient = fakeConfigClient(tc.build)
+			} else {
+				configClient = fakeConfigClient()
+			}
+			var kubeClient kubernetes.Interface
+			if tc.casMap != nil {
+				kubeClient = fakeKubeExternalClientSet(tc.casMap)
+			} else {
+				kubeClient = fakeKubeExternalClientSet()
+			}
+			if tc.errorGetCA {
+				kubeClient.(*fake.Clientset).PrependReactor("get", "configmaps", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+					return true, nil, fmt.Errorf("error")
+				})
+			}
+
+			bc := newFakeBuildController(nil, nil, kubeClient, nil, configClient)
+			defer bc.stop()
+
+			if tc.errorGetBuild {
+				bc.configLister = &errorConfigLister{}
+			}
+			if tc.errorGetCA {
+				bc.openShiftConfigConfigMapStore = &errorConfigMapLister{}
+			}
+
+			err := bc.handleControllerConfig()
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("expected error, but got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("error handling controller config change: %v", err)
+			}
+
+			if tc.build == nil || tc.casMap == nil {
+				if len(bc.additionalTrustedCAData) > 0 {
+					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
+				}
+				return
+			}
+			if !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
+				t.Errorf("expected ca data %v\n\ngot:\n\n%v", tc.casMap.Data, bc.additionalTrustedCAData)
+			}
+		})
 	}
 
 }
 
-func TestReadBuildCAData(t *testing.T) {
-	bc := newFakeBuildController(nil, nil, nil, nil)
-	defer bc.stop()
-	tmpDir, err := ioutil.TempDir("", "build-ctrl-test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-	testFile := filepath.Join(tmpDir, "test-ca.crt")
-	err = ioutil.WriteFile(testFile, []byte(dummyCA), 0600)
-	if err != nil {
-		t.Fatalf("failed to create test CA bundle: %v", err)
-	}
-	bc.additionalTrustedCAPath = testFile
-	caData, err := bc.readBuildCAData()
-	if err != nil {
-		t.Fatalf("error reading CA data: %v", err)
-	}
-	if dummyCA != string(caData) {
-		t.Errorf("expected additional trusted CA bundle to contain:\n%s\ngot:\n%s", dummyCA, string(caData))
-	}
+type errorConfigLister struct{}
 
+func (e *errorConfigLister) List(selector labels.Selector) ([]*configv1.Build, error) {
+	return nil, fmt.Errorf("error")
+}
+
+func (e *errorConfigLister) Get(name string) (*configv1.Build, error) {
+	return nil, fmt.Errorf("error")
+}
+
+type errorConfigMapLister struct{}
+
+func (e *errorConfigMapLister) List(selector labels.Selector) ([]*corev1.ConfigMap, error) {
+	return nil, fmt.Errorf("error")
+}
+
+func (e *errorConfigMapLister) Get(name string) (*corev1.ConfigMap, error) {
+	return nil, fmt.Errorf("error")
+}
+
+func (e *errorConfigMapLister) ConfigMaps(namespace string) v1lister.ConfigMapNamespaceLister {
+	return e
 }
 
 func TestCreateBuildRegistryConfConfigMap(t *testing.T) {
-	bc := newFakeBuildController(nil, nil, nil, nil)
+	bc := newFakeBuildController(nil, nil, nil, nil, nil)
 	bc.registryConfData = dummyRegistryConf
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
@@ -1298,6 +1483,10 @@ func fakeBuildClient(objects ...runtime.Object) buildv1client.Interface {
 	return fakebuildv1client.NewSimpleClientset(objects...)
 }
 
+func fakeConfigClient(objects ...runtime.Object) configv1client.Interface {
+	return fakeconfigv1client.NewSimpleClientset(objects...)
+}
+
 func fakeKubeExternalClientSet(objects ...runtime.Object) kubernetes.Interface {
 	builderSA := &corev1.ServiceAccount{}
 	builderSA.Name = "builder"
@@ -1331,6 +1520,7 @@ type fakeBuildController struct {
 	kubeExternalInformers informers.SharedInformerFactory
 	buildInformers        buildv1informer.SharedInformerFactory
 	imageInformers        imagev1informer.SharedInformerFactory
+	configInformers       configv1informer.SharedInformerFactory
 	stopChan              chan struct{}
 }
 
@@ -1338,7 +1528,15 @@ func (c *fakeBuildController) start() {
 	c.kubeExternalInformers.Start(c.stopChan)
 	c.imageInformers.Start(c.stopChan)
 	c.buildInformers.Start(c.stopChan)
-	if !cache.WaitForCacheSync(wait.NeverStop, c.buildStoreSynced, c.podStoreSynced, c.secretStoreSynced, c.imageStreamStoreSynced) {
+	c.configInformers.Start(c.stopChan)
+
+	if !cache.WaitForCacheSync(wait.NeverStop,
+		c.buildStoreSynced,
+		c.podStoreSynced,
+		c.secretStoreSynced,
+		c.imageStreamStoreSynced,
+		c.controllerConfigStoreSynced,
+		c.configMapStoreSynced) {
 		panic("cannot sync cache")
 	}
 }
@@ -1347,7 +1545,7 @@ func (c *fakeBuildController) stop() {
 	close(c.stopChan)
 }
 
-func newFakeBuildController(buildClient buildv1client.Interface, imageClient imagev1client.Interface, kubeExternalClient kubernetes.Interface, kubeInternalClient kubernetes.Interface) *fakeBuildController {
+func newFakeBuildController(buildClient buildv1client.Interface, imageClient imagev1client.Interface, kubeExternalClient kubernetes.Interface, kubeInternalClient kubernetes.Interface, configClient configv1client.Interface) *fakeBuildController {
 	if buildClient == nil {
 		buildClient = fakeBuildClient()
 	}
@@ -1358,19 +1556,28 @@ func newFakeBuildController(buildClient buildv1client.Interface, imageClient ima
 		kubeExternalClient = fakeKubeExternalClientSet()
 	}
 
+	if configClient == nil {
+		configClient = fakeConfigClient()
+	}
+
 	kubeExternalInformers := fakeKubeExternalInformers(kubeExternalClient)
 	buildInformers := buildv1informer.NewSharedInformerFactory(buildClient, 0)
 	imageInformers := imagev1informer.NewSharedInformerFactory(imageClient, 0)
+	configInformers := configv1informer.NewSharedInformerFactory(configClient, 0)
 	stopChan := make(chan struct{})
 
+	// For tests, use the kubeExternalInformers for pods, secrets, and configMaps.
+	// The actual build controller uses a separate informer for configMaps that is namespaced to `openshif-config`
 	params := &BuildControllerParams{
-		BuildInformer:       buildInformers.Build().V1().Builds(),
-		BuildConfigInformer: buildInformers.Build().V1().BuildConfigs(),
-		ImageStreamInformer: imageInformers.Image().V1().ImageStreams(),
-		PodInformer:         kubeExternalInformers.Core().V1().Pods(),
-		SecretInformer:      kubeExternalInformers.Core().V1().Secrets(),
-		KubeClient:          kubeExternalClient,
-		BuildClient:         buildClient,
+		BuildInformer:                    buildInformers.Build().V1().Builds(),
+		BuildConfigInformer:              buildInformers.Build().V1().BuildConfigs(),
+		ImageStreamInformer:              imageInformers.Image().V1().ImageStreams(),
+		PodInformer:                      kubeExternalInformers.Core().V1().Pods(),
+		SecretInformer:                   kubeExternalInformers.Core().V1().Secrets(),
+		OpenshiftConfigConfigMapInformer: kubeExternalInformers.Core().V1().ConfigMaps(),
+		ControllerConfigInformer:         configInformers.Config().V1().Builds(),
+		KubeClient:                       kubeExternalClient,
+		BuildClient:                      buildClient,
 		DockerBuildStrategy: &strategy.DockerBuildStrategy{
 			Image: "test/image:latest",
 		},
@@ -1387,6 +1594,7 @@ func newFakeBuildController(buildClient buildv1client.Interface, imageClient ima
 		kubeExternalInformers: kubeExternalInformers,
 		buildInformers:        buildInformers,
 		imageInformers:        imageInformers,
+		configInformers:       configInformers,
 	}
 	bc.BuildController.recorder = &record.FakeRecorder{}
 	bc.start()
