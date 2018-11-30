@@ -10,11 +10,16 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor"
 )
 
 type testStatus struct {
 	out     io.Writer
 	timeout time.Duration
+	monitor monitor.Interface
+
+	includeSuccessfulOutput bool
 
 	lock     sync.Mutex
 	failures int
@@ -22,11 +27,14 @@ type testStatus struct {
 	total    int
 }
 
-func newTestStatus(out io.Writer, total int, timeout time.Duration) *testStatus {
+func newTestStatus(out io.Writer, includeSuccessfulOutput bool, total int, timeout time.Duration, m monitor.Interface) *testStatus {
 	return &testStatus{
 		out:     out,
 		total:   total,
 		timeout: timeout,
+		monitor: m,
+
+		includeSuccessfulOutput: includeSuccessfulOutput,
 	}
 }
 
@@ -49,11 +57,36 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 	defer func() {
 		switch {
 		case test.success:
-			fmt.Fprint(s.out, string(test.out)+fmt.Sprintf("\npassed: (%s) %q\n\n", test.duration, test.name))
+			if s.includeSuccessfulOutput {
+				s.out.Write(test.out)
+				fmt.Fprintln(s.out)
+			}
+			fmt.Fprintf(s.out, "passed: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
 		case test.skipped:
-			fmt.Fprint(s.out, string(test.out)+fmt.Sprintf("\nskipped: (%s) %q\n\n", test.duration, test.name))
+			if s.includeSuccessfulOutput {
+				s.out.Write(test.out)
+				fmt.Fprintln(s.out)
+			} else {
+				message := lastLinesUntil(string(test.out), 100, "skip [")
+				if len(message) > 0 {
+					fmt.Fprintln(s.out, message)
+					fmt.Fprintln(s.out)
+				}
+			}
+			fmt.Fprintf(s.out, "skipped: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
 		case test.failed:
-			fmt.Fprint(s.out, string(test.out)+fmt.Sprintf("\nfailed: (%s) %q\n\n", test.duration, test.name))
+			s.out.Write(test.out)
+			fmt.Fprintln(s.out)
+			if s.monitor != nil {
+				events := s.monitor.Events(test.start, test.end)
+				if len(events) > 0 {
+					for _, event := range events {
+						fmt.Fprintln(s.out, event.String())
+					}
+					fmt.Fprintln(s.out)
+				}
+			}
+			fmt.Fprintf(s.out, "failed: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
 			s.Failure()
 		}
 	}()

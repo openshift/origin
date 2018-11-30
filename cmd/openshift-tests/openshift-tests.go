@@ -21,6 +21,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/monitor"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -100,6 +101,7 @@ func main() {
 	cmd.Flags().StringVarP(&suiteOpt.TestFile, "file", "f", suiteOpt.TestFile, "Create a suite from the newline-delimited test names in this file.")
 	cmd.Flags().StringVarP(&suiteOpt.OutFile, "output-file", "o", suiteOpt.OutFile, "Write all test output to this file.")
 	cmd.Flags().DurationVar(&suiteOpt.Timeout, "timeout", suiteOpt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
+	cmd.Flags().BoolVar(&suiteOpt.IncludeSuccessOutput, "include-success", suiteOpt.IncludeSuccessOutput, "Print output from successful tests.")
 	root.AddCommand(cmd)
 
 	testOpt := &testginkgo.TestOptions{
@@ -125,6 +127,25 @@ func main() {
 		},
 	}
 	cmd.Flags().BoolVar(&testOpt.DryRun, "dry-run", testOpt.DryRun, "Print the test to run without executing them.")
+	root.AddCommand(cmd)
+
+	monitorOpt := &monitor.Options{
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
+	cmd = &cobra.Command{
+		Use:   "run-monitor",
+		Short: "Continuously verify the cluster is functional",
+		Long: templates.LongDesc(`
+		Run a continuous verification process
+
+		`),
+
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return monitorOpt.Run()
+		},
+	}
 	root.AddCommand(cmd)
 
 	pflag.CommandLine = pflag.NewFlagSet("empty", pflag.ExitOnError)

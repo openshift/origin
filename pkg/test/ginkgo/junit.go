@@ -115,7 +115,7 @@ const (
 	TestResultFail TestResult = "fail"
 )
 
-func writeJUnitReport(name string, tests []*testCase, dir string, duration time.Duration, errOut io.Writer) error {
+func writeJUnitReport(name string, tests []*testCase, dir string, duration time.Duration, errOut io.Writer, additionalResults ...*JUnitTestCase) error {
 	s := &JUnitTestSuite{
 		Name:     name,
 		Duration: duration.Seconds(),
@@ -151,6 +151,16 @@ func writeJUnitReport(name string, tests []*testCase, dir string, duration time.
 				Duration: test.duration.Seconds(),
 			})
 		}
+	}
+	for _, result := range additionalResults {
+		switch {
+		case result.SkipMessage != nil:
+			s.NumSkipped++
+		case result.FailureOutput != nil:
+			s.NumFailed++
+		}
+		s.NumTests++
+		s.TestCases = append(s.TestCases, result)
 	}
 	out, err := xml.Marshal(s)
 	if err != nil {
