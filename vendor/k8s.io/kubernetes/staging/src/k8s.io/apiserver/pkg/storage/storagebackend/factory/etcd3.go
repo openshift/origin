@@ -24,6 +24,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage"
@@ -51,9 +52,11 @@ func newETCD3HealthCheck(c storagebackend.Config) (func() error, error) {
 	clientErrMsg.Store("etcd client connection not yet established")
 
 	go wait.PollUntil(time.Second, func() (bool, error) {
+		glog.Warningf("Creating new etcd client")
 		client, err := newETCD3Client(c)
 		if err != nil {
 			clientErrMsg.Store(err.Error())
+			glog.Warningf("Got etcd client error: %v", err)
 			return false, nil
 		}
 		clientValue.Store(client)
@@ -62,12 +65,15 @@ func newETCD3HealthCheck(c storagebackend.Config) (func() error, error) {
 	}, wait.NeverStop)
 
 	return func() error {
+		glog.Warningf("etcd3 health check 1")
 		if errMsg := clientErrMsg.Load().(string); len(errMsg) > 0 {
 			return fmt.Errorf(errMsg)
 		}
 		client := clientValue.Load().(*clientv3.Client)
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
+		glog.Warningf("etcd3 health check 2")
+		defer glog.Warningf("etcd3 health check 3")
 		if _, err := client.Cluster.MemberList(ctx); err != nil {
 			return fmt.Errorf("error listing etcd members: %v", err)
 		}

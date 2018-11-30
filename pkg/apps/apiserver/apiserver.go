@@ -3,6 +3,7 @@ package apiserver
 import (
 	"sync"
 
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -53,16 +54,21 @@ type CompletedConfig struct {
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
 func (c *AppsServerConfig) Complete() completedConfig {
+	glog.Warning("Complete start")
 	cfg := completedConfig{
 		c.GenericConfig.Complete(),
 		&c.ExtraConfig,
 	}
+	glog.Warning("Complete end")
 
 	return cfg
 }
 
 // New returns a new instance of AppsServer from the given config.
 func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*AppsServer, error) {
+	glog.Warningf("completedConfig.New start")
+	defer glog.Warningf("completedConfig.New end")
+
 	genericServer, err := c.GenericConfig.New("apps.openshift.io-apiserver", delegationTarget)
 	if err != nil {
 		return nil, err
@@ -72,18 +78,24 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		GenericAPIServer: genericServer,
 	}
 
+	glog.Warningf("completedConfig.New storage start")
 	v1Storage, err := c.V1RESTStorage()
 	if err != nil {
 		return nil, err
 	}
+	glog.Warningf("completedConfig.New storage end")
 
+	glog.Warningf("completedConfig.New NewDefaultAPIGroupInfo start")
 	parameterCodec := runtime.NewParameterCodec(c.ExtraConfig.Scheme)
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(appsapiv1.GroupName, c.ExtraConfig.Scheme, parameterCodec, c.ExtraConfig.Codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[appsapiv1.SchemeGroupVersion.Version] = v1Storage
+	glog.Warningf("completedConfig.New NewDefaultAPIGroupInfo end")
 
+	glog.Warningf("completedConfig.New InstallAPIGroup start")
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
 	}
+	glog.Warningf("completedConfig.New InstallAPIGroup end")
 
 	return s, nil
 }

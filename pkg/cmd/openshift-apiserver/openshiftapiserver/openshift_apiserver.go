@@ -512,6 +512,9 @@ func (c *completedConfig) withUserAPIServer(delegateAPIServer genericapiserver.D
 type apiServerAppenderFunc func(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error)
 
 func addAPIServerOrDie(delegateAPIServer genericapiserver.DelegationTarget, legacyStorageModifiers legacyStorageMutators, apiServerAppenderFn apiServerAppenderFunc) (genericapiserver.DelegationTarget, legacyStorageMutators) {
+	glog.Warningf("addAPIServerOrDie start")
+	defer glog.Warningf("addAPIServerOrDie end")
+
 	delegateAPIServer, currLegacyStorageMutator, err := apiServerAppenderFn(delegateAPIServer)
 	if err != nil {
 		glog.Fatal(err)
@@ -525,6 +528,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 	delegateAPIServer := delegationTarget
 	legacyStorageModifier := legacyStorageMutators{}
 
+	glog.Warningf("openshift-apiserver.New start")
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withAppsAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withAuthorizationAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withBuildAPIServer)
@@ -539,6 +543,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withSecurityAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withTemplateAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withUserAPIServer)
+	glog.Warningf("openshift-apiserver.New end")
 
 	genericServer, err := c.GenericConfig.New("openshift-apiserver", delegateAPIServer)
 	if err != nil {

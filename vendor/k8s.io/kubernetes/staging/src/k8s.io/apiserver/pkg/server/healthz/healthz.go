@@ -107,11 +107,11 @@ func InstallHandler(mux mux, checks ...HealthzChecker) {
 // result in a panic.
 func InstallPathHandler(mux mux, path string, checks ...HealthzChecker) {
 	if len(checks) == 0 {
-		glog.V(5).Info("No default health checks specified. Installing the ping handler.")
+		glog.Info("No default health checks specified. Installing the ping handler.")
 		checks = []HealthzChecker{PingHealthz}
 	}
 
-	glog.V(5).Info("Installing healthz checkers:", strings.Join(checkerNames(checks...), ", "))
+	glog.Info("Installing healthz checkers:", strings.Join(checkerNames(checks...), ", "))
 
 	mux.Handle(path, handleRootHealthz(checks...))
 	for _, check := range checks {
@@ -158,6 +158,7 @@ func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 		}
 		// always be verbose on failure
 		if failed {
+			glog.Warningf("%vhealthz check failed", verboseOut.String())
 			http.Error(w, fmt.Sprintf("%vhealthz check failed", verboseOut.String()), http.StatusInternalServerError)
 			return
 		}

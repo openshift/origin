@@ -248,16 +248,25 @@ type preparedGenericAPIServer struct {
 
 // PrepareRun does post API installation setup steps.
 func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
+	glog.Warningf("PrepareRun start")
+	defer glog.Warningf("PrepareRun end")
+
 	if s.swaggerConfig != nil {
+		glog.Warningf("PrepareRun swaggerConfig start")
 		routes.Swagger{Config: s.swaggerConfig}.Install(s.SwaggerAPIContainers(), s.Handler.GoRestfulContainer)
+		glog.Warningf("PrepareRun swaggerConfig end")
 	}
 	if s.openAPIConfig != nil {
+		glog.Warningf("PrepareRun openapi start")
 		routes.OpenAPI{
 			Config: s.openAPIConfig,
 		}.Install(s.Handler.GoRestfulContainer, s.Handler.NonGoRestfulMux)
+		glog.Warningf("PrepareRun openapi end")
 	}
 
+	glog.Warningf("PrepareRun healthz start")
 	s.installHealthz()
+	glog.Warningf("PrepareRun healthz end")
 
 	// Register audit backend preShutdownHook.
 	if s.AuditBackend != nil {
