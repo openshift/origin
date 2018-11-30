@@ -1,6 +1,8 @@
 package openshift_apiserver
 
 import (
+	"time"
+
 	"github.com/golang/glog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -44,5 +46,14 @@ func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPISer
 
 	glog.Infof("Starting master on %s (%s)", serverConfig.ServingInfo.BindAddress, version.Get().String())
 
-	return preparedOpenshiftAPIServer.Run(stopCh)
+	// delay stopCh to give endpoints pointing to us enough time to be removed and this change being propagated through the cluster.
+	// TODO: make this configurable and probably move into generic apiserver
+	delayedStopCh := make(chan struct{})
+	go func() {
+		defer close(delayedStopCh)
+		<-stopCh
+		time.Sleep(5 * time.Second)
+	}()
+
+	return preparedOpenshiftAPIServer.Run(delayedStopCh)
 }
