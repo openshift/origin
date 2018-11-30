@@ -1147,6 +1147,12 @@ func TestMakeDeployerPod(t *testing.T) {
 				p.Spec.Containers[0].Resources = container.Resources
 				p.Spec.Containers[0].ImagePullPolicy = corev1.PullIfNotPresent
 
+				p.Spec.DNSPolicy = "None"
+				p.Spec.DNSConfig = &corev1.PodDNSConfig{
+					Nameservers: []string{"8.8.8.8"},
+					Searches:    []string{"svc.cluster.local", "cluster.local"},
+				}
+
 				// These are hardcoded for deployer pod spec
 				p.Spec.RestartPolicy = corev1.RestartPolicyNever
 				p.Spec.TerminationGracePeriodSeconds = &defaultGracePeriod
@@ -1172,7 +1178,6 @@ func TestMakeDeployerPod(t *testing.T) {
 				p.Spec.Priority = nil
 				p.Spec.PriorityClassName = ""
 				p.Spec.SecurityContext = nil
-				p.Spec.DNSConfig = nil
 				p.Spec.ReadinessGates = nil
 			},
 		)
