@@ -314,12 +314,6 @@ func (opt *Options) Run(args []string) error {
 		fmt.Fprintf(opt.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
 	}
 
-	// if we detect a transition that is considered an error state (invariant violation) during
-	// the test run, exit with a failure
-	if len(syntheticTestResults) > 0 {
-		return fmt.Errorf("failing due to error event detection, %d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
-	}
-
 	fmt.Fprintf(opt.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return nil
 }
