@@ -74,14 +74,10 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			g.By("starting four test builds")
 
 			done := make(chan struct{})
-			buildResults := [4]*exutil.BuildResult{}
 			for i := 0; i < 4; i++ {
 				go func() {
-					count := i
-					var err error
-					buildResults[count], err = exutil.StartBuildAndWait(oc, "myphp")
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(buildResults[count]).NotTo(o.BeNil())
+					br, _ := exutil.StartBuildAndWait(oc, "myphp")
+					br.AssertSuccess()
 					done <- struct{}{}
 				}()
 				// avoid conflicts that may occur when launching multiple builds in parallel.
@@ -89,9 +85,6 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			}
 			for i := 0; i < 4; i++ {
 				<-done
-			}
-			for i := 0; i < 4; i++ {
-				buildResults[i].AssertSuccess()
 			}
 
 			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
@@ -135,14 +128,10 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 			g.By("starting four test builds")
 			done := make(chan struct{})
-			buildResults := [4]*exutil.BuildResult{}
 			for i := 0; i < 4; i++ {
 				go func() {
-					count := i
-					var err error
-					buildResults[count], err = exutil.StartBuildAndWait(oc, "myphp")
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(buildResults[count]).NotTo(o.BeNil())
+					br, _ := exutil.StartBuildAndWait(oc, "myphp")
+					br.AssertFailure()
 					done <- struct{}{}
 				}()
 				// avoid conflicts that may occur when launching multiple builds in parallel.
@@ -150,9 +139,6 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			}
 			for i := 0; i < 4; i++ {
 				<-done
-			}
-			for i := 0; i < 4; i++ {
-				buildResults[i].AssertFailure()
 			}
 
 			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
@@ -241,14 +227,10 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 			g.By("starting four test builds")
 			done := make(chan struct{})
-			buildResults := [4]*exutil.BuildResult{}
 			for i := 0; i < 4; i++ {
 				go func() {
-					count := i
-					var err error
-					buildResults[count], err = exutil.StartBuildAndWait(oc, "myphp")
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(buildResults[count]).NotTo(o.BeNil())
+					br, _ := exutil.StartBuildAndWait(oc, "myphp")
+					br.AssertFailure()
 					done <- struct{}{}
 				}()
 				// avoid conflicts that may occur when launching multiple builds in parallel.
@@ -256,9 +238,6 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			}
 			for i := 0; i < 4; i++ {
 				<-done
-			}
-			for i := 0; i < 4; i++ {
-				buildResults[i].AssertFailure()
 			}
 
 			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
