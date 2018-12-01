@@ -453,6 +453,10 @@ var (
 			// appear to be flaking
 			`should run a successful deployment with multiple triggers`,
 			`should run a successful deployment with a trigger used by different containers`,
+
+			// flaking left and right
+			// Dec  1 01:23:01.913: INFO: resource secrets, expected 6, actual 7
+			`should create a ResourceQuota and capture the life of a secret`,
 		},
 	}
 
