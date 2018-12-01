@@ -34,190 +34,184 @@ const (
 	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
 )
 
-var (
-	jenkinsEphemeralTemplatePath           = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
-	jenkinsPersistentTemplatePath          = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
-	nodejsDeclarativePipelinePath          = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "nodejs-sample-pipeline.yaml")
-	mavenSlavePipelinePath                 = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
-	mavenSlaveGradlePipelinePath           = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
-	blueGreenPipelinePath                  = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
-	clientPluginPipelinePath               = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
-	envVarsPipelinePath                    = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
-	origPipelinePath                       = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
-	configMapPodTemplatePath               = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
-	imagestreamPodTemplatePath             = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
-	imagestreamtagPodTemplatePath          = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
-	podTemplateSlavePipelinePath           = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
-	multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
-	secretPath                             = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
-	successfulPipeline                     = exutil.FixturePath("testdata", "builds", "build-pruning", "successful-pipeline.yaml")
-	failedPipeline                         = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
-	pollingInterval                        = time.Second
-	timeout                                = time.Minute
-	oc                                     = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
-	ticker                                 *time.Ticker
-	j                                      *jenkins.JenkinsRef
-	pvs                                    = []*corev1.PersistentVolume{}
-	nfspod                                 = &corev1.Pod{}
-
-	cleanup = func(jenkinsTemplatePath string) {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-			exutil.DumpPersistentVolumeInfo(oc)
-		}
-		if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
-			ticker.Stop()
-		}
-
-		client := oc.AsAdmin().KubeFramework().ClientSet
-		g.By("removing jenkins")
-		exutil.RemoveDeploymentConfigs(oc, "jenkins")
-
-		// per k8s e2e volume_util.go:VolumeTestCleanup, nuke any client pods
-		// before nfs server to assist with umount issues; as such, need to clean
-		// up prior to the AfterEach processing, to guaranteed deletion order
-		if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
-			g.By("deleting PVCs")
-			exutil.DeletePVCsForDeployment(client, oc, "jenkins")
-			g.By("removing nfs pvs")
-			for _, pv := range pvs {
-				e2e.DeletePersistentVolume(client, pv.Name)
-			}
-			g.By("removing nfs pod")
-			e2e.DeletePodWithWait(oc.AsAdmin().KubeFramework(), client, nfspod)
-		}
-	}
-	setupJenkins = func(jenkinsTemplatePath string) {
-		exutil.DumpDockerInfo()
-		// Deploy Jenkins
-		// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
-		// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
-		// our jenkins image is built, where the proposed plugin change is injected, overwritting the current released version of the plugin.
-		// Our test/PR jobs on ci.openshift create those images, as well as set env vars this test suite looks for.  When both the env var
-		// and test image is present, a new image stream is created using the test image, and our jenkins template is instantiated with
-		// an override to use that images stream and test image
-		var licensePrefix, pluginName string
-		useSnapshotImage := false
-
-		err := oc.Run("create").Args("-n", oc.Namespace(), "-f", jenkinsTemplatePath).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		jenkinsTemplateName := "jenkins-ephemeral"
-
-		// create persistent volumes if running persistent jenkins
-		if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
-			g.By("PV/PVC dump before setup")
-			exutil.DumpPersistentVolumeInfo(oc)
-
-			jenkinsTemplateName = "jenkins-persistent"
-
-			nfspod, pvs, err = exutil.SetupK8SNFSServerAndVolume(oc, 3)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-		}
-
-		// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
-		newAppArgs := []string{"--template", fmt.Sprintf("%s/%s", oc.Namespace(), jenkinsTemplateName), "-p", "MEMORY_LIMIT=2Gi", "-p", "DISABLE_ADMINISTRATIVE_MONITORS=true"}
-		newAppArgs = jenkins.OverridePodTemplateImages(newAppArgs)
-		clientPluginNewAppArgs, useClientPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
-		syncPluginNewAppArgs, useSyncPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
-
-		switch {
-		case useClientPluginSnapshotImage && useSyncPluginSnapshotImage:
-			fmt.Fprintf(g.GinkgoWriter,
-				"\nBOTH %s and %s for PR TESTING ARE SET.  WILL NOT CHOOSE BETWEEN THE TWO SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n",
-				jenkins.UseLocalClientPluginSnapshotEnvVarName, jenkins.UseLocalSyncPluginSnapshotEnvVarName)
-		case useClientPluginSnapshotImage:
-			fmt.Fprintf(g.GinkgoWriter, "\nTHE UPCOMING TESTS WILL LEVERAGE AN IMAGE THAT EXTENDS THE LATEST OPENSHIFT JENKINS IMAGE AND OVERRIDES THE OPENSHIFT CLIENT PLUGIN WITH A NEW VERSION BUILT FROM PROPOSED CHANGES TO THAT PLUGIN.\n")
-			licensePrefix = clientLicenseText
-			pluginName = clientPluginName
-			useSnapshotImage = true
-			newAppArgs = clientPluginNewAppArgs
-		case useSyncPluginSnapshotImage:
-			fmt.Fprintf(g.GinkgoWriter, "\nTHE UPCOMING TESTS WILL LEVERAGE AN IMAGE THAT EXTENDS THE LATEST OPENSHIFT JENKINS IMAGE AND OVERRIDES THE OPENSHIFT SYNC PLUGIN WITH A NEW VERSION BUILT FROM PROPOSED CHANGES TO THAT PLUGIN.\n")
-			licensePrefix = syncLicenseText
-			pluginName = syncPluginName
-			useSnapshotImage = true
-			newAppArgs = syncPluginNewAppArgs
-		default:
-			fmt.Fprintf(g.GinkgoWriter, "\nNO PR TEST ENV VARS SET SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n")
-		}
-
-		g.By(fmt.Sprintf("calling oc new-app useSnapshotImage %v with license text %s and newAppArgs %#v", useSnapshotImage, licensePrefix, newAppArgs))
-		err = oc.Run("new-app").Args(newAppArgs...).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
-			g.By("PV/PVC dump after setup")
-			exutil.DumpPersistentVolumeInfo(oc)
-		}
-
-		g.By("waiting for jenkins deployment")
-		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "jenkins", 1, false, oc)
-		if err != nil {
-			exutil.DumpApplicationPodLogs("jenkins", oc)
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		j = jenkins.NewRef(oc)
-
-		g.By("wait for jenkins to come up")
-		_, err = j.WaitForContent("", 200, 10*time.Minute, "")
-
-		if err != nil {
-			exutil.DumpApplicationPodLogs("jenkins", oc)
-		}
-
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		if useSnapshotImage {
-			g.By("verifying the test image is being used")
-			// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
-			_, err = j.WaitForContent(licensePrefix+` ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/"+pluginName+"/thirdPartyLicenses")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}
-
-		// Start capturing logs from this deployment config.
-		// This command will terminate if the Jenkins instance crashes. This
-		// ensures that even if the Jenkins DC restarts, we should capture
-		// logs from the crash.
-		_, _, _, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
-			ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
-		}
-
-		g.By("waiting for default service account")
-		err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		g.By("waiting for builder service account")
-		err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-)
-
-func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
-	if !br.BuildSuccess {
-		br.LogDumper = jenkins.DumpLogs
-		fmt.Fprintf(g.GinkgoWriter, "\n\n START debugAnyJenkinsFailure\n\n")
-		j := jenkins.NewRef(oc)
-		jobLog, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "")
-		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "\n %s job log:\n%s", name, jobLog)
-		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n error getting %s job log: %#v", name, err)
-		}
-		if dumpMaster {
-			exutil.DumpApplicationPodLogs("jenkins", oc)
-		}
-		fmt.Fprintf(g.GinkgoWriter, "\n\n END debugAnyJenkinsFailure\n\n")
-	}
-}
-
 var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
+
+	var (
+		jenkinsEphemeralTemplatePath  = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		jenkinsPersistentTemplatePath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
+		envVarsPipelinePath           = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
+		origPipelinePath              = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
+		configMapPodTemplatePath      = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
+		imagestreamPodTemplatePath    = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
+		imagestreamtagPodTemplatePath = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
+		podTemplateSlavePipelinePath  = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
+		secretPath                    = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
+		successfulPipeline            = exutil.FixturePath("testdata", "builds", "build-pruning", "successful-pipeline.yaml")
+		failedPipeline                = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
+		pollingInterval               = time.Second
+		timeout                       = time.Minute
+		oc                            = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
+		ticker                        *time.Ticker
+		j                             *jenkins.JenkinsRef
+		pvs                           = []*corev1.PersistentVolume{}
+		nfspod                        = &corev1.Pod{}
+
+		cleanup = func(jenkinsTemplatePath string) {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker.Stop()
+			}
+
+			client := oc.AsAdmin().KubeFramework().ClientSet
+			g.By("removing jenkins")
+			exutil.RemoveDeploymentConfigs(oc, "jenkins")
+
+			// per k8s e2e volume_util.go:VolumeTestCleanup, nuke any client pods
+			// before nfs server to assist with umount issues; as such, need to clean
+			// up prior to the AfterEach processing, to guaranteed deletion order
+			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
+				g.By("deleting PVCs")
+				exutil.DeletePVCsForDeployment(client, oc, "jenkins")
+				g.By("removing nfs pvs")
+				for _, pv := range pvs {
+					e2e.DeletePersistentVolume(client, pv.Name)
+				}
+				g.By("removing nfs pod")
+				e2e.DeletePodWithWait(oc.AsAdmin().KubeFramework(), client, nfspod)
+			}
+		}
+		setupJenkins = func(jenkinsTemplatePath string) {
+			exutil.DumpDockerInfo()
+			// Deploy Jenkins
+			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
+			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
+			// our jenkins image is built, where the proposed plugin change is injected, overwritting the current released version of the plugin.
+			// Our test/PR jobs on ci.openshift create those images, as well as set env vars this test suite looks for.  When both the env var
+			// and test image is present, a new image stream is created using the test image, and our jenkins template is instantiated with
+			// an override to use that images stream and test image
+			var licensePrefix, pluginName string
+			useSnapshotImage := false
+
+			err := oc.Run("create").Args("-n", oc.Namespace(), "-f", jenkinsTemplatePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			jenkinsTemplateName := "jenkins-ephemeral"
+
+			// create persistent volumes if running persistent jenkins
+			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
+				g.By("PV/PVC dump before setup")
+				exutil.DumpPersistentVolumeInfo(oc)
+
+				jenkinsTemplateName = "jenkins-persistent"
+
+				nfspod, pvs, err = exutil.SetupK8SNFSServerAndVolume(oc, 3)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+			}
+
+			// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
+			newAppArgs := []string{"--template", fmt.Sprintf("%s/%s", oc.Namespace(), jenkinsTemplateName), "-p", "MEMORY_LIMIT=2Gi", "-p", "DISABLE_ADMINISTRATIVE_MONITORS=true"}
+			newAppArgs = jenkins.OverridePodTemplateImages(newAppArgs)
+			clientPluginNewAppArgs, useClientPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
+			syncPluginNewAppArgs, useSyncPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
+
+			switch {
+			case useClientPluginSnapshotImage && useSyncPluginSnapshotImage:
+				fmt.Fprintf(g.GinkgoWriter,
+					"\nBOTH %s and %s for PR TESTING ARE SET.  WILL NOT CHOOSE BETWEEN THE TWO SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n",
+					jenkins.UseLocalClientPluginSnapshotEnvVarName, jenkins.UseLocalSyncPluginSnapshotEnvVarName)
+			case useClientPluginSnapshotImage:
+				fmt.Fprintf(g.GinkgoWriter, "\nTHE UPCOMING TESTS WILL LEVERAGE AN IMAGE THAT EXTENDS THE LATEST OPENSHIFT JENKINS IMAGE AND OVERRIDES THE OPENSHIFT CLIENT PLUGIN WITH A NEW VERSION BUILT FROM PROPOSED CHANGES TO THAT PLUGIN.\n")
+				licensePrefix = clientLicenseText
+				pluginName = clientPluginName
+				useSnapshotImage = true
+				newAppArgs = clientPluginNewAppArgs
+			case useSyncPluginSnapshotImage:
+				fmt.Fprintf(g.GinkgoWriter, "\nTHE UPCOMING TESTS WILL LEVERAGE AN IMAGE THAT EXTENDS THE LATEST OPENSHIFT JENKINS IMAGE AND OVERRIDES THE OPENSHIFT SYNC PLUGIN WITH A NEW VERSION BUILT FROM PROPOSED CHANGES TO THAT PLUGIN.\n")
+				licensePrefix = syncLicenseText
+				pluginName = syncPluginName
+				useSnapshotImage = true
+				newAppArgs = syncPluginNewAppArgs
+			default:
+				fmt.Fprintf(g.GinkgoWriter, "\nNO PR TEST ENV VARS SET SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n")
+			}
+
+			g.By(fmt.Sprintf("calling oc new-app useSnapshotImage %v with license text %s and newAppArgs %#v", useSnapshotImage, licensePrefix, newAppArgs))
+			err = oc.Run("new-app").Args(newAppArgs...).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
+				g.By("PV/PVC dump after setup")
+				exutil.DumpPersistentVolumeInfo(oc)
+			}
+
+			g.By("waiting for jenkins deployment")
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "jenkins", 1, false, oc)
+			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			j = jenkins.NewRef(oc)
+
+			g.By("wait for jenkins to come up")
+			_, err = j.WaitForContent("", 200, 10*time.Minute, "")
+
+			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
+			}
+
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if useSnapshotImage {
+				g.By("verifying the test image is being used")
+				// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
+				_, err = j.WaitForContent(licensePrefix+` ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/"+pluginName+"/thirdPartyLicenses")
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
+			// Start capturing logs from this deployment config.
+			// This command will terminate if the Jenkins instance crashes. This
+			// ensures that even if the Jenkins DC restarts, we should capture
+			// logs from the crash.
+			_, _, _, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for default service account")
+			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("waiting for builder service account")
+			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		debugAnyJenkinsFailure = func(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
+			if !br.BuildSuccess {
+				br.LogDumper = jenkins.DumpLogs
+				fmt.Fprintf(g.GinkgoWriter, "\n\n START debugAnyJenkinsFailure\n\n")
+				j := jenkins.NewRef(oc)
+				jobLog, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "")
+				if err == nil {
+					fmt.Fprintf(g.GinkgoWriter, "\n %s job log:\n%s", name, jobLog)
+				} else {
+					fmt.Fprintf(g.GinkgoWriter, "\n error getting %s job log: %#v", name, err)
+				}
+				if dumpMaster {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
+				fmt.Fprintf(g.GinkgoWriter, "\n\n END debugAnyJenkinsFailure\n\n")
+			}
+		}
+	)
 
 	g.Context("Sync plugin tests", func() {
 
