@@ -814,7 +814,6 @@ metadata:
   name: myphp
 spec:
   failedBuildsHistoryLimit: 2
-  runPolicy: Parallel
   source:
     type: Git
     git:
@@ -859,7 +858,6 @@ metadata:
     openshift.io/generated-by: OpenShiftWebConsole
 spec:
   failedBuildsHistoryLimit: 2
-  runPolicy: Parallel
   source:
     type: Git
     git:
@@ -949,7 +947,6 @@ metadata:
     openshift.io/generated-by: OpenShiftWebConsole
 spec:
   successfulBuildsHistoryLimit: 2
-  runPolicy: Parallel
   source:
     dockerfile: |
       FROM busybox

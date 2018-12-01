@@ -8,7 +8,6 @@ metadata:
     openshift.io/generated-by: OpenShiftWebConsole
 spec:
   successfulBuildsHistoryLimit: 2
-  runPolicy: Parallel
   source:
     dockerfile: |
       FROM busybox
