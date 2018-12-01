@@ -25,7 +25,8 @@ type bootstrapSelectProvider struct {
 
 func (b *bootstrapSelectProvider) SelectAuthentication(providers []api.ProviderInfo, w http.ResponseWriter, req *http.Request) (*api.ProviderInfo, bool, error) {
 	// this should never happen but let us not panic the server in case we screwed up
-	if len(providers) == 0 || providers[0].Name != bootstrap.BootstrapUser {
+	// also avoids checking the secret when there is only one provider
+	if len(providers) <= 1 || providers[0].Name != bootstrap.BootstrapUser {
 		return b.delegate.SelectAuthentication(providers, w, req)
 	}
 

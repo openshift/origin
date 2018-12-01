@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"crypto/sha512"
 	"encoding/base64"
+	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -19,7 +20,13 @@ const (
 	BootstrapUser = "kube:admin"
 	// support basic auth which does not allow : in username
 	bootstrapUserBasicAuth = "kubeadmin"
+	// force the use of a secure password length
+	// expected format is 5char-5char-5char-5char
+	minPasswordLen = 23
 )
+
+// make it obvious that we refuse to honor short passwords
+var errPasswordTooShort = fmt.Errorf("%s password must be at least %d characters long", bootstrapUserBasicAuth, minPasswordLen)
 
 func New(secrets v1.SecretsGetter) authenticator.Password {
 	return &bootstrapPassword{
@@ -41,6 +48,12 @@ func (b *bootstrapPassword) AuthenticatePassword(username, password string) (use
 	hashedPassword, uid, ok, err := HashAndUID(b.secrets)
 	if err != nil || !ok {
 		return nil, ok, err
+	}
+
+	// check length after we know that the secret is functional since
+	// we do not want to complain when the bootstrap user is disabled
+	if len(password) < minPasswordLen {
+		return nil, false, errPasswordTooShort
 	}
 
 	if err := bcrypt.CompareHashAndPassword(hashedPassword, []byte(password)); err != nil {
