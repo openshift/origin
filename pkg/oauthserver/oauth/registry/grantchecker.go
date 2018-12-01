@@ -34,6 +34,7 @@ func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user kuser.Info, g
 		return false, errEmptyUID
 	}
 
+	// this is not as easy to break apart in the face of the bootstrap user
 	id := user.GetName() + ":" + grant.Client.GetId()
 	var authorization *oauth.OAuthClientAuthorization
 

@@ -13,6 +13,7 @@ import (
 
 	authorizerscopes "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
@@ -312,7 +313,13 @@ func ValidateClientNameField(value string, fldPath *field.Path) field.ErrorList 
 func ValidateUserNameField(value string, fldPath *field.Path) field.ErrorList {
 	if len(value) == 0 {
 		return field.ErrorList{field.Required(fldPath, "")}
-	} else if reasons := uservalidation.ValidateUserName(value, false); len(reasons) != 0 {
+	}
+	// we explicitly allow the bootstrap user in the username field
+	// note that we still do not allow the user API objects to have such a name
+	if value == bootstrap.BootstrapUser {
+		return field.ErrorList{}
+	}
+	if reasons := uservalidation.ValidateUserName(value, false); len(reasons) != 0 {
 		return field.ErrorList{field.Invalid(fldPath, value, strings.Join(reasons, ", "))}
 	}
 	return field.ErrorList{}

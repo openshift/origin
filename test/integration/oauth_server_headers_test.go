@@ -45,16 +45,27 @@ func TestOAuthServerHeaders(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Hit the login URL
-	loginURL := *baseURL
-	loginURL.Path = "/login"
-	checkNewReqHeaders(t, transport, loginURL.String())
+	for _, path := range []string{
+		// hit the login URL for when there is only one IDP
+		// this is disabled since the OAuth server only handles this endpoint when
+		// there is a single IDP but that is not true for the integration tests
+		// "/login",
 
-	// Hit the grant URL
-	grantURL := *baseURL
-	grantURL.Path = "/oauth/authorize/approve"
-	checkNewReqHeaders(t, transport, grantURL.String())
+		// hit the login URL for the bootstrap IDP
+		"/login/kube:admin",
 
+		// hit the login URL for the allow all IDP
+		"/login/anypassword",
+
+		// hit the grant URL
+		"/oauth/authorize/approve",
+	} {
+		t.Run(path, func(t *testing.T) {
+			urlCopy := *baseURL
+			urlCopy.Path = path
+			checkNewReqHeaders(t, transport, urlCopy.String())
+		})
+	}
 }
 
 func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, checkUrl string) {

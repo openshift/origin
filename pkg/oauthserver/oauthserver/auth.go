@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/placeholderchallenger"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/allowanypassword"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/basicauthpassword"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/denypassword"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/htpasswd"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/keystonepassword"
@@ -290,7 +291,13 @@ func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHan
 	if c.ExtraOAuthConfig.SessionAuth != nil {
 		// The session needs to know the authorize flow is done so it can invalidate the session
 		return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
-			if err := c.ExtraOAuthConfig.SessionAuth.InvalidateAuthentication(w, ar.HttpRequest); err != nil {
+			user, ok := ar.UserData.(kuser.Info)
+			if !ok {
+				glog.Errorf("the provided user data is not a user.Info object: %#v", user)
+				user = &kuser.DefaultInfo{} // set non-nil so we always try to invalidate
+			}
+
+			if err := c.ExtraOAuthConfig.SessionAuth.InvalidateAuthentication(w, user); err != nil {
 				glog.V(5).Infof("error invaliding cookie session: %v", err)
 			}
 			// do not fail the OAuth flow if we cannot invalidate the cookie
@@ -446,6 +453,11 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux oauthserver.Mux, errorH
 
 	selectProvider := selectprovider.NewSelectProvider(selectProviderRenderer, c.ExtraOAuthConfig.Options.AlwaysShowProviderSelection)
 
+	// the bootstrap user IDP is always set as the first one when sessions are enabled
+	if c.ExtraOAuthConfig.Options.SessionConfig != nil {
+		selectProvider = selectprovider.NewBootstrapSelectProvider(selectProvider, c.ExtraOAuthConfig.KubeClient.CoreV1())
+	}
+
 	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler, selectProvider)
 	return authHandler, nil
 }
@@ -594,6 +606,9 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 		}
 
 		return keystonepassword.New(identityProvider.Name, connectionInfo.URL, transport, provider.DomainName, identityMapper, provider.UseKeystoneIdentity), nil
+
+	case *configapi.BootstrapIdentityProvider:
+		return bootstrap.New(c.ExtraOAuthConfig.KubeClient.CoreV1()), nil
 
 	default:
 		return nil, fmt.Errorf("No password auth found that matches %v.  The OAuth server cannot start!", identityProvider)
