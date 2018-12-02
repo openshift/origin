@@ -86,7 +86,7 @@ func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userCli
 		return nil, err
 	}
 
-	var sessionAuth *session.Authenticator
+	var sessionAuth session.SessionAuthenticator
 	if oauthConfig.SessionConfig != nil {
 		// TODO we really need to enforce HTTPS always
 		secure := isHTTPS(oauthConfig.MasterPublicURL)
@@ -136,13 +136,14 @@ func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userCli
 	return ret, nil
 }
 
-func buildSessionAuth(secure bool, config *configapi.SessionConfig, secretsGetter corev1.SecretsGetter) (*session.Authenticator, error) {
+func buildSessionAuth(secure bool, config *configapi.SessionConfig, secretsGetter corev1.SecretsGetter) (session.SessionAuthenticator, error) {
 	secrets, err := getSessionSecrets(config.SessionSecretsFile)
 	if err != nil {
 		return nil, err
 	}
 	sessionStore := session.NewStore(config.SessionName, secure, secrets...)
-	return session.NewAuthenticator(sessionStore, time.Duration(config.SessionMaxAgeSeconds)*time.Second, secretsGetter), nil
+	sessionAuthenticator := session.NewAuthenticator(sessionStore, time.Duration(config.SessionMaxAgeSeconds)*time.Second)
+	return session.NewBootstrapAuthenticator(sessionAuthenticator, secretsGetter, sessionStore), nil
 }
 
 func getSessionSecrets(filename string) ([][]byte, error) {
@@ -207,7 +208,7 @@ type ExtraOAuthConfig struct {
 	OAuthClientClient              oauthclient.OAuthClientInterface
 	OAuthClientAuthorizationClient oauthclient.OAuthClientAuthorizationInterface
 
-	SessionAuth *session.Authenticator
+	SessionAuth session.SessionAuthenticator
 }
 
 type OAuthServerConfig struct {
