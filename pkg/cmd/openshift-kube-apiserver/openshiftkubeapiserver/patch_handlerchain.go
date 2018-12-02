@@ -16,6 +16,7 @@ import (
 const (
 	openShiftOAuthAPIPrefix      = "/oauth"
 	openShiftLoginPrefix         = "/login"
+	openShiftLogoutPrefix        = "/logout"
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
@@ -61,7 +62,7 @@ func withOAuthRedirection(oauthConfig *osinv1.OAuthConfig, handler, oauthServerH
 	}
 
 	glog.Infof("Starting OAuth2 API at %s", urls.OpenShiftOAuthAPIPrefix)
-	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftOAuthCallbackPrefix)
+	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftLogoutPrefix, openShiftOAuthCallbackPrefix)
 }
 
 func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler, prefixes ...string) http.Handler {

@@ -57,6 +57,7 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
 	"github.com/openshift/origin/pkg/oauthserver/server/grant"
 	"github.com/openshift/origin/pkg/oauthserver/server/login"
+	"github.com/openshift/origin/pkg/oauthserver/server/logout"
 	"github.com/openshift/origin/pkg/oauthserver/server/selectprovider"
 	"github.com/openshift/origin/pkg/oauthserver/server/tokenrequest"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
@@ -65,6 +66,7 @@ import (
 
 const (
 	openShiftLoginPrefix         = "/login"
+	openShiftLogoutPrefix        = "/logout"
 	openShiftApproveSubpath      = "approve"
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
 	openShiftWebConsoleClientID  = "openshift-web-console"
@@ -141,8 +143,13 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	)
 	server.Install(mux, urls.OpenShiftOAuthAPIPrefix)
 
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.ExtraOAuthConfig.Options.MasterPublicURL, c.getOsinOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.ExtraOAuthConfig.Options.MasterPublicURL, openShiftLogoutPrefix, c.getOsinOAuthClient, c.ExtraOAuthConfig.OAuthAccessTokenClient)
 	tokenRequestEndpoints.Install(mux, urls.OpenShiftOAuthAPIPrefix)
+
+	if session := c.ExtraOAuthConfig.SessionAuth; session != nil {
+		logoutHandler := logout.NewLogout(session)
+		logoutHandler.Install(mux, openShiftLogoutPrefix)
+	}
 
 	return mux, nil
 }

@@ -10,10 +10,13 @@ import (
 
 	"github.com/RangelReale/osincli"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	"github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 )
 
 type endpointDetails struct {
@@ -29,37 +32,45 @@ type endpointDetails struct {
 	ready chan struct{}
 	// initLock guards reads and writes to osinOAuthClient when it could still be nil.
 	initLock sync.Mutex
+
+	// to check if we need the logout link for the bootstrap user
+	tokens                v1.OAuthAccessTokenInterface
+	openShiftLogoutPrefix string
 }
 
+// TODO this interface needs to be moved
 type Endpoints interface {
 	Install(mux oauthserver.Mux, paths ...string)
 }
 
-func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli.Client, error)) Endpoints {
+func NewEndpoints(publicMasterURL, openShiftLogoutPrefix string, osinOAuthClientGetter func() (*osincli.Client, error), tokens v1.OAuthAccessTokenInterface) Endpoints {
 	return &endpointDetails{
 		publicMasterURL:       publicMasterURL,
 		osinOAuthClientGetter: osinOAuthClientGetter,
-		ready: make(chan struct{}),
+		ready:                 make(chan struct{}),
+		tokens:                tokens,
+		openShiftLogoutPrefix: openShiftLogoutPrefix,
 	}
 }
 
 // Install registers the request token endpoints into a mux. It is expected that the
 // provided prefix will serve all operations
-func (endpoints *endpointDetails) Install(mux oauthserver.Mux, paths ...string) {
+func (e *endpointDetails) Install(mux oauthserver.Mux, paths ...string) {
 	for _, prefix := range paths {
-		mux.HandleFunc(path.Join(prefix, urls.RequestTokenEndpoint), endpoints.readyHandler(endpoints.requestToken))
-		mux.HandleFunc(path.Join(prefix, urls.DisplayTokenEndpoint), endpoints.readyHandler(endpoints.displayToken))
-		mux.HandleFunc(path.Join(prefix, urls.ImplicitTokenEndpoint), endpoints.implicitToken)
+		mux.HandleFunc(path.Join(prefix, urls.RequestTokenEndpoint), e.readyHandler(e.requestToken))
+		mux.HandleFunc(path.Join(prefix, urls.DisplayTokenEndpoint), e.readyHandler(e.displayToken))
+		mux.HandleFunc(path.Join(prefix, urls.ImplicitTokenEndpoint), e.implicitToken)
 	}
 }
 
-func (endpoints *endpointDetails) readyHandler(delegate func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+// TODO we may want to start doing live lookups for this endpoint
+func (e *endpointDetails) readyHandler(delegate func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, h *http.Request) {
 		select {
-		case <-endpoints.ready:
+		case <-e.ready:
 		default:
-			if err := endpoints.safeInitOsinOAuthClientOnce(); err != nil {
-				utilruntime.HandleError(fmt.Errorf("Failed to get Osin OAuth client for token endpoint: %v", err))
+			if err := e.safeInitOsinOAuthClientOnce(); err != nil {
+				utilruntime.HandleError(fmt.Errorf("failed to get Osin OAuth client for token endpoint: %v", err))
 				http.Error(w, "OAuth token endpoint is not ready", http.StatusInternalServerError)
 				return
 			}
@@ -70,35 +81,36 @@ func (endpoints *endpointDetails) readyHandler(delegate func(http.ResponseWriter
 
 // safeInitOsinOAuthClientOnce initializes osinOAuthClient exactly once using osinOAuthClientGetter.
 // It is goroutine safe, reentrant and can be safely called multiple times.
-func (endpoints *endpointDetails) safeInitOsinOAuthClientOnce() error {
+func (e *endpointDetails) safeInitOsinOAuthClientOnce() error {
 	// Use a lock and nil check to make sure we never close endpoints.ready more than once
 	// and that we only try to fetch osinOAuthClient until the first time we are successful
-	endpoints.initLock.Lock()
-	defer endpoints.initLock.Unlock()
-	if endpoints.osinOAuthClient == nil {
-		osinOAuthClient, err := endpoints.osinOAuthClientGetter()
+	e.initLock.Lock()
+	defer e.initLock.Unlock()
+	if e.osinOAuthClient == nil {
+		osinOAuthClient, err := e.osinOAuthClientGetter()
 		if err != nil {
 			return err
 		}
-		endpoints.osinOAuthClient = osinOAuthClient
-		close(endpoints.ready)
+		e.osinOAuthClient = osinOAuthClient
+		close(e.ready)
 	}
 	return nil
 }
 
 // requestToken works for getting a token in your browser and seeing what your token is
-func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.Request) {
-	authReq := endpoints.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
+func (e *endpointDetails) requestToken(w http.ResponseWriter, req *http.Request) {
+	authReq := e.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	oauthURL := authReq.GetAuthorizeUrl()
 
 	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
 }
 
-func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
+func (e *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	data := tokenData{RequestURL: "request", PublicMasterURL: endpoints.publicMasterURL}
+	requestURL := urls.OpenShiftOAuthTokenRequestURL("") // relative url to token request endpoint
+	data := tokenData{RequestURL: requestURL, PublicMasterURL: e.publicMasterURL}
 
-	authorizeReq := endpoints.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
+	authorizeReq := e.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	authorizeData, err := authorizeReq.HandleRequest(req)
 	if err != nil {
 		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
@@ -107,13 +119,26 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 		return
 	}
 
-	accessReq := endpoints.osinOAuthClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, authorizeData)
+	accessReq := e.osinOAuthClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, authorizeData)
 	accessData, err := accessReq.GetToken()
 	if err != nil {
 		data.Error = fmt.Sprintf("Error getting token: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		renderToken(w, data)
 		return
+	}
+
+	token, err := e.tokens.Get(accessData.AccessToken, metav1.GetOptions{})
+	if err != nil {
+		data.Error = "Error checking token" // do not leak error to user, do not log error
+		w.WriteHeader(http.StatusInternalServerError)
+		renderToken(w, data)
+		return
+	}
+
+	if token.UserName == bootstrap.BootstrapUser {
+		// only the bootstrap user has a session we maintain for one more than OAuth flow
+		data.LogoutURL = e.openShiftLogoutPrefix
 	}
 
 	data.AccessToken = accessData.AccessToken
@@ -131,6 +156,7 @@ type tokenData struct {
 	AccessToken     string
 	RequestURL      string
 	PublicMasterURL string
+	LogoutURL       string
 }
 
 // TODO: allow template to be read from an external file
@@ -144,6 +170,8 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 	pre      { padding-left: 1em; border-radius: 5px; color: #003d6e; background-color: #EAEDF0; padding: 1.5em 0 1.5em 4.5em; white-space: normal; text-indent: -2em; }
 	a        { color: #00f; text-decoration: none; }
 	a:hover  { text-decoration: underline; }
+	button   { background: none; border: none; color: #00f; text-decoration: none; font: inherit; padding: 0; }
+	button:hover { text-decoration: underline; cursor: pointer; }
 	@media (min-width: 768px) {
 		.nowrap { white-space: nowrap; }
 	}
@@ -164,11 +192,21 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 
 <br><br>
 <a href="{{.RequestURL}}">Request another token</a>
+
+{{ if .LogoutURL }}
+  <br><br>
+  <form method="post" action="{{.LogoutURL}}">
+    <input type="hidden" name="then" value="{{.RequestURL}}">
+    <button type="submit">
+      Logout
+    </button>
+  </form>
+{{ end }}
 `))
 
-func (endpoints *endpointDetails) implicitToken(w http.ResponseWriter, req *http.Request) {
+func (e *endpointDetails) implicitToken(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(`
+	_, _ = w.Write([]byte(`
 You have reached this page by following a redirect Location header from an OAuth authorize request.
 
 If a response_type=token parameter was passed to the /authorize endpoint, that requested an
