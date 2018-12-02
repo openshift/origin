@@ -722,9 +722,14 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) er
 	if err := payload.Rewrite(false, targetFn); err != nil {
 		return fmt.Errorf("failed to update contents after mirroring: %v", err)
 	}
-	is, err = payload.References()
+	updated, err := payload.References()
 	if err != nil {
 		return fmt.Errorf("unable to recalculate image references: %v", err)
+	}
+	*is = *updated
+	if glog.V(4) {
+		data, _ := json.MarshalIndent(is, "", "  ")
+		glog.Infof("Image references updated to:\n%s", string(data))
 	}
 	return nil
 }
