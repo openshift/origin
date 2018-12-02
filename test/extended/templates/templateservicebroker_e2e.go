@@ -22,7 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/test/e2e/framework"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	authorization "github.com/openshift/api/authorization"
 	templatev1 "github.com/openshift/api/template/v1"
@@ -56,16 +56,18 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	)
 
 	g.BeforeEach(func() {
-		framework.SkipIfProviderIs("gce")
+		var err error
+		brokercli, err = TSBClient(cli)
+		if kerrors.IsNotFound(err) {
+			e2e.Skipf("The template service broker is not installed: %v", err)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for default service account")
-		err := exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "default")
+		err = exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "default")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.By("waiting for builder service account")
 		err = exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "builder")
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		brokercli, err = TSBClient(cli)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
