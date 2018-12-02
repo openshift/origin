@@ -26,6 +26,15 @@
 | ---- |
 | This command was released with the 1.3+ version of oc client tools, so you must be using version 1.3+ or newer for this command to work. |
 
+To run an OpenShift cluster locally, you must have a compatible version of Docker installed in your environment.
+OpenShift officially supports the following versions of Docker:
+
+| OpenShift Version | Docker Version |
+| ----------------- | -------------- |
+| 3.9 | 1.13 |
+| 3.6-3.7 | 1.12 |
+| 1.4-1.5 | 1.12 |
+| 1.3 | 1.10 |
 
 ## Overview
 
