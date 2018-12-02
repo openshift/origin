@@ -2,15 +2,15 @@ package f5
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/golang/glog"
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 // F5Plugin holds state for the f5 plugin.
@@ -538,9 +538,35 @@ func (p *F5Plugin) deleteRoute(routename string) error {
 func getNodeIP(node *kapi.Node) (string, error) {
 	if len(node.Status.Addresses) > 0 && node.Status.Addresses[0].Address != "" {
 		return node.Status.Addresses[0].Address, nil
-	} else {
-		return netutils.GetNodeIP(node.Name)
 	}
+	return getNodeIPByName(node.Name)
+}
+
+func getNodeIPByName(nodeName string) (string, error) {
+	ip := net.ParseIP(nodeName)
+	if ip == nil {
+		addrs, err := net.LookupIP(nodeName)
+		if err != nil {
+			return "", fmt.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
+		}
+		for _, addr := range addrs {
+			// Skip loopback and non IPv4 addrs
+			if addr.IsLoopback() || addr.To4() == nil {
+				glog.V(5).Infof("Skipping loopback/non-IPv4 addr: %q for node %s", addr.String(), nodeName)
+				continue
+			}
+			ip = addr
+			break
+		}
+	} else if ip.IsLoopback() || ip.To4() == nil {
+		glog.V(5).Infof("Skipping loopback/non-IPv4 addr: %q for node %s", ip.String(), nodeName)
+		ip = nil
+	}
+
+	if ip == nil || len(ip.String()) == 0 {
+		return "", fmt.Errorf("Failed to obtain IP address from node name: %s", nodeName)
+	}
+	return ip.String(), nil
 }
 
 func (p *F5Plugin) HandleNamespaces(namespaces sets.String) error {

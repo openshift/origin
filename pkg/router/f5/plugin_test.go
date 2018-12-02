@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"os/exec"
 	"path"
 	"reflect"
@@ -14,10 +15,9 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/openshift/origin/pkg/cmd/util"
+	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	routev1 "github.com/openshift/api/route/v1"
 	f5testing "github.com/openshift/origin/pkg/router/f5/testing"
@@ -125,7 +125,7 @@ func newF5Routes(mockF5State f5testing.MockF5State) *mux.Router {
 // and mock server.  Note that these pointers will be nil if an error is
 // returned.
 func newTestRouterWithState(state f5testing.MockF5State, partitionPath string) (*F5Plugin, *mockF5, error) {
-	routerLogLevel := util.Env("TEST_ROUTER_LOGLEVEL", "")
+	routerLogLevel := os.Getenv("TEST_ROUTER_LOGLEVEL")
 	if routerLogLevel != "" {
 		flag.Set("v", routerLogLevel)
 	}

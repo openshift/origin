@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
+	"github.com/openshift/origin/pkg/router/routeapihelpers"
 )
 
 // Changed allows a route activation function to record which routes moved from inactive

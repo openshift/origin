@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
+	"github.com/openshift/origin/pkg/router/routeapihelpers"
 )
 
 // Interface allows access to routes in the index and makes it easy

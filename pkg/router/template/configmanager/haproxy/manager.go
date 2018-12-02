@@ -15,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
+	"github.com/openshift/origin/pkg/router/routeapihelpers"
 	templaterouter "github.com/openshift/origin/pkg/router/template"
 	templateutil "github.com/openshift/origin/pkg/router/template/util"
 )

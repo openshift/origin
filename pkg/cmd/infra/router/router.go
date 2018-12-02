@@ -2,23 +2,26 @@ package router
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/apimachinery/pkg/version"
+	kclientset "k8s.io/client-go/kubernetes"
 
 	routev1 "github.com/openshift/api/route/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 )
@@ -67,26 +70,26 @@ type RouterSelection struct {
 
 // Bind sets the appropriate labels
 func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
-	flag.StringVar(&o.RouterName, "name", cmdutil.Env("ROUTER_SERVICE_NAME", "public"), "The name the router will identify itself with in the route status")
-	flag.StringVar(&o.RouterCanonicalHostname, "router-canonical-hostname", cmdutil.Env("ROUTER_CANONICAL_HOSTNAME", ""), "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
-	flag.BoolVar(&o.UpdateStatus, "update-status", isTrue(cmdutil.Env("ROUTER_UPDATE_STATUS", "true")), "If true, the router will update admitted route status.")
+	flag.StringVar(&o.RouterName, "name", env("ROUTER_SERVICE_NAME", "public"), "The name the router will identify itself with in the route status")
+	flag.StringVar(&o.RouterCanonicalHostname, "router-canonical-hostname", env("ROUTER_CANONICAL_HOSTNAME", ""), "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
+	flag.BoolVar(&o.UpdateStatus, "update-status", isTrue(env("ROUTER_UPDATE_STATUS", "true")), "If true, the router will update admitted route status.")
 	flag.DurationVar(&o.ResyncInterval, "resync-interval", controllerfactory.DefaultResyncInterval, "The interval at which the route list should be fully refreshed")
-	flag.StringVar(&o.HostnameTemplate, "hostname-template", cmdutil.Env("ROUTER_SUBDOMAIN", ""), "If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}-${namespace}.myapps.mycompany.com')")
-	flag.BoolVar(&o.OverrideHostname, "override-hostname", isTrue(cmdutil.Env("ROUTER_OVERRIDE_HOSTNAME", "")), "Override the spec.host value for a route with --hostname-template")
+	flag.StringVar(&o.HostnameTemplate, "hostname-template", env("ROUTER_SUBDOMAIN", ""), "If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}-${namespace}.myapps.mycompany.com')")
+	flag.BoolVar(&o.OverrideHostname, "override-hostname", isTrue(env("ROUTER_OVERRIDE_HOSTNAME", "")), "Override the spec.host value for a route with --hostname-template")
 	flag.StringSliceVar(&o.OverrideDomains, "override-domains", envVarAsStrings("ROUTER_OVERRIDE_DOMAINS", "", ","), "List of comma separated domains to override if present in any routes. This overrides the spec.host value in any matching routes with --hostname-template")
-	flag.StringVar(&o.LabelSelector, "labels", cmdutil.Env("ROUTE_LABELS", ""), "A label selector to apply to the routes to watch")
-	flag.StringVar(&o.FieldSelector, "fields", cmdutil.Env("ROUTE_FIELDS", ""), "A field selector to apply to routes to watch")
-	flag.StringVar(&o.ProjectLabelSelector, "project-labels", cmdutil.Env("PROJECT_LABELS", ""), "A label selector to apply to projects to watch; if '*' watches all projects the client can access")
-	flag.StringVar(&o.NamespaceLabelSelector, "namespace-labels", cmdutil.Env("NAMESPACE_LABELS", ""), "A label selector to apply to namespaces to watch")
+	flag.StringVar(&o.LabelSelector, "labels", env("ROUTE_LABELS", ""), "A label selector to apply to the routes to watch")
+	flag.StringVar(&o.FieldSelector, "fields", env("ROUTE_FIELDS", ""), "A field selector to apply to routes to watch")
+	flag.StringVar(&o.ProjectLabelSelector, "project-labels", env("PROJECT_LABELS", ""), "A label selector to apply to projects to watch; if '*' watches all projects the client can access")
+	flag.StringVar(&o.NamespaceLabelSelector, "namespace-labels", env("NAMESPACE_LABELS", ""), "A label selector to apply to namespaces to watch")
 	flag.BoolVar(&o.IncludeUDP, "include-udp-endpoints", false, "If true, UDP endpoints will be considered as candidates for routing")
 	flag.StringSliceVar(&o.DeniedDomains, "denied-domains", envVarAsStrings("ROUTER_DENIED_DOMAINS", "", ","), "List of comma separated domains to deny in routes")
 	flag.StringSliceVar(&o.AllowedDomains, "allowed-domains", envVarAsStrings("ROUTER_ALLOWED_DOMAINS", "", ","), "List of comma separated domains to allow in routes. If specified, only the domains in this list will be allowed routes. Note that domains in the denied list take precedence over the ones in the allowed list")
-	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", isTrue(cmdutil.Env("ROUTER_ALLOW_WILDCARD_ROUTES", "")), "Allow wildcard host names for routes")
-	flag.BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", isTrue(cmdutil.Env("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "")), "Disables the namespace ownership checks for a route host with different paths or for overlapping host names in the case of wildcard routes. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
-	flag.BoolVar(&o.ExtendedValidation, "extended-validation", isTrue(cmdutil.Env("EXTENDED_VALIDATION", "true")), "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
+	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", isTrue(env("ROUTER_ALLOW_WILDCARD_ROUTES", "")), "Allow wildcard host names for routes")
+	flag.BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", isTrue(env("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "")), "Disables the namespace ownership checks for a route host with different paths or for overlapping host names in the case of wildcard routes. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
+	flag.BoolVar(&o.ExtendedValidation, "extended-validation", isTrue(env("EXTENDED_VALIDATION", "true")), "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 	flag.Bool("enable-ingress", false, "Enable configuration via ingress resources.")
 	flag.MarkDeprecated("enable-ingress", "Ingress resources are now synchronized to routes automatically.")
-	flag.StringVar(&o.ListenAddr, "listen-addr", cmdutil.Env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen. Overrides stats port.")
+	flag.StringVar(&o.ListenAddr, "listen-addr", env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen. Overrides stats port.")
 }
 
 // RouteUpdate updates the route before it is seen by the cache.
@@ -97,7 +100,7 @@ func (o *RouterSelection) RouteUpdate(route *routev1.Route) {
 	if !o.OverrideHostname && len(route.Spec.Host) > 0 && !hostInDomainList(route.Spec.Host, o.RedactedDomains) {
 		return
 	}
-	s, err := variable.ExpandStrict(o.HostnameTemplate, func(key string) (string, bool) {
+	s, err := expandStrict(o.HostnameTemplate, func(key string) (string, bool) {
 		switch key {
 		case "name":
 			return route.Name, true
@@ -256,7 +259,7 @@ func (o *RouterSelection) NewFactory(routeclient routeclientset.Interface, proje
 
 func envVarAsStrings(name, defaultValue, separator string) []string {
 	strlist := []string{}
-	if env := cmdutil.Env(name, defaultValue); env != "" {
+	if env := env(name, defaultValue); env != "" {
 		values := strings.Split(env, separator)
 		for i := range values {
 			if val := strings.TrimSpace(values[i]); val != "" {
@@ -277,4 +280,65 @@ func hostInDomainList(host string, domains sets.String) bool {
 	}
 
 	return false
+}
+
+// newCmdVersion provides a shim around version for
+// non-client packages that require version information
+func newCmdVersion(fullName string, versionInfo version.Info, out io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Display version",
+		Long:  "Display version",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Fprintf(out, "%s %v\n", fullName, versionInfo)
+		},
+	}
+
+	return cmd
+}
+
+// env returns an environment variable or a default value if not specified.
+func env(key string, defaultValue string) string {
+	val := os.Getenv(key)
+	if len(val) == 0 {
+		return defaultValue
+	}
+	return val
+}
+
+func envInt(key string, defaultValue int32, minValue int32) int32 {
+	value, err := strconv.ParseInt(env(key, fmt.Sprintf("%d", defaultValue)), 10, 32)
+	if err != nil || int32(value) < minValue {
+		return defaultValue
+	}
+	return int32(value)
+}
+
+// KeyFunc returns the value associated with the provided key or false if no
+// such key exists.
+type KeyFunc func(key string) (string, bool)
+
+// expandStrict expands a string using a series of common format functions
+func expandStrict(s string, fns ...KeyFunc) (string, error) {
+	unmatched := []string{}
+	result := os.Expand(s, func(key string) string {
+		for _, fn := range fns {
+			val, ok := fn(key)
+			if !ok {
+				continue
+			}
+			return val
+		}
+		unmatched = append(unmatched, key)
+		return ""
+	})
+
+	switch len(unmatched) {
+	case 0:
+		return result, nil
+	case 1:
+		return "", fmt.Errorf("the key %q in %q is not recognized", unmatched[0], s)
+	default:
+		return "", fmt.Errorf("multiple keys in %q were not recognized: %s", s, strings.Join(unmatched, ", "))
+	}
 }

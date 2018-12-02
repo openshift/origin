@@ -12,10 +12,10 @@ import (
 
 	"github.com/golang/glog"
 
-	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"k8s.io/apiserver/pkg/server/healthz"
-	"k8s.io/kubernetes/pkg/probe"
-	probehttp "k8s.io/kubernetes/pkg/probe/http"
+
+	"github.com/openshift/origin/pkg/router/metrics/probehttp"
+	templateplugin "github.com/openshift/origin/pkg/router/template"
 )
 
 var errBackend = fmt.Errorf("backend reported failure")
@@ -29,7 +29,7 @@ func HTTPBackendAvailable(u *url.URL) healthz.HealthzChecker {
 		if err != nil {
 			return err
 		}
-		if result != probe.Success {
+		if result != probehttp.Success {
 			return errBackend
 		}
 		return nil

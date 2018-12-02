@@ -5,12 +5,12 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	kapi "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/origin/pkg/router"

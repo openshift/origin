@@ -1,8 +1,10 @@
 package templaterouter
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -21,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	routev1 "github.com/openshift/api/route/v1"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/router/template/limiter"
 )
 
@@ -260,7 +261,7 @@ func secretToPem(secPath, outName string) error {
 	if err != nil {
 		return err
 	}
-	keys, err := cmdutil.PrivateKeysFromPEM(pemBlock)
+	keys, err := privateKeysFromPEM(pemBlock)
 	if err != nil {
 		return err
 	}
@@ -1216,4 +1217,28 @@ func configsAreEqual(config1, config2 *ServiceAliasConfig) bool {
 		config1.VerifyServiceHostname == config2.VerifyServiceHostname &&
 		reflect.DeepEqual(config1.Annotations, config2.Annotations) &&
 		reflect.DeepEqual(config1.ServiceUnits, config2.ServiceUnits)
+}
+
+// privateKeysFromPEM extracts all blocks recognized as private keys into an output PEM encoded byte array,
+// or returns an error. If there are no private keys it will return an empty byte buffer.
+func privateKeysFromPEM(pemCerts []byte) ([]byte, error) {
+	buf := &bytes.Buffer{}
+	for len(pemCerts) > 0 {
+		var block *pem.Block
+		block, pemCerts = pem.Decode(pemCerts)
+		if block == nil {
+			break
+		}
+		if len(block.Headers) != 0 {
+			continue
+		}
+		switch block.Type {
+		// defined in OpenSSL pem.h
+		case "RSA PRIVATE KEY", "PRIVATE KEY", "ANY PRIVATE KEY", "DSA PRIVATE KEY", "ENCRYPTED PRIVATE KEY", "EC PRIVATE KEY":
+			if err := pem.Encode(buf, block); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return buf.Bytes(), nil
 }
