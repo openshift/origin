@@ -4171,8 +4171,14 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
-        }
+          "name":"docker.io/busybox"
+        },
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "6"
+          }
+        ]
       }
     }
   }
