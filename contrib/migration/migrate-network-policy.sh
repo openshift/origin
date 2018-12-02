@@ -25,8 +25,17 @@ if [[ "${plugin}" != "redhat/openshift-ovs-multitenant" ]]; then
    exit 1
 fi 
 
+function create_networkpolicy() {
+    out=$(oc create --namespace "$1" -f - 2>&1)
+    ret=$?
+    if [[ ${ret} != 0 && ! "${out}" =~ "(AlreadyExists)" ]]; then
+	echo "${out}" 1>&2
+	return ${ret}
+    fi
+}
+
 function default-deny() {
-    oc create --namespace "$1" -f - <<EOF
+    create_networkpolicy "$1" <<EOF
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
@@ -37,7 +46,7 @@ EOF
 }
 
 function allow-from-self() {
-    oc create --namespace "$1" -f - <<EOF
+    create_networkpolicy "$1" <<EOF
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
@@ -51,7 +60,7 @@ EOF
 }
 
 function allow-from-other() {
-    oc create --namespace "$1" -f - <<EOF
+    create_networkpolicy "$1" <<EOF
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
@@ -65,6 +74,16 @@ spec:
           pod.network.openshift.io/legacy-netid: "$3"
 EOF
 }
+
+# Delete orphan NetNamespaces
+for name in $(oc get netnamespaces --output=custom-columns='NAME:.metadata.name' --no-headers); do
+    if ! oc get namespace "${name}" >& /dev/null; then
+	echo "Deleting orphan NetNamespace '${name}':"
+	oc get netnamespace "${name}" -o yaml | sed -e 's/^/    /'
+	oc delete netnamespace "${name}"
+	echo ""
+    fi
+done
 
 # Find multiply-used NetIDs
 last_id=""
