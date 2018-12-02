@@ -557,6 +557,24 @@ func (t *BuildResult) Logs() (string, error) {
 	return buildOuput, nil
 }
 
+// LogsNoTimestamp returns the logs associated with this build.
+func (t *BuildResult) LogsNoTimestamp() (string, error) {
+	if t == nil || t.BuildPath == "" {
+		return "", fmt.Errorf("Not enough information to retrieve logs for %#v", *t)
+	}
+
+	if t.LogDumper != nil {
+		return t.LogDumper(t.Oc, t)
+	}
+
+	buildOuput, err := t.Oc.Run("logs").Args("-f", t.BuildPath).Output()
+	if err != nil {
+		return "", fmt.Errorf("Error retrieving logs for %#v: %v", *t, err)
+	}
+
+	return buildOuput, nil
+}
+
 // Dumps logs and triggers a Ginkgo assertion if the build did NOT succeed.
 func (t *BuildResult) AssertSuccess() *BuildResult {
 	if !t.BuildSuccess {

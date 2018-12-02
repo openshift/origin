@@ -61,7 +61,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 				o.Expect(br.Build.Status.Duration).To(o.Equal(duration), "Build duration should be computed correctly")
 
 				g.By("expecting the build logs to contain the correct cgroups values")
-				buildLog, err := br.Logs()
+				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).To(o.ContainSubstring("MEMORY=209715200"))
 				o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=209715200"))
