@@ -82,31 +82,36 @@ var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
 	oc = exutil.NewCLI("image-append", exutil.KubeConfigPath())
 
 	g.It("should create images by appending them", func() {
+		is, err := oc.ImageClient().Image().ImageStreams("openshift").Get("php", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty(), "registry not yet configured?")
+		registry := strings.Split(is.Status.DockerImageRepository, "/")[0]
+
 		ns = oc.Namespace()
 		cli := oc.KubeFramework().PodClient()
 		pod := cli.Create(cliPodWithPullSecret(oc, heredoc.Docf(`
 			set -x
 
 			# create a scratch image with fixed date
-			oc image append --insecure --to docker-registry.default.svc:5000/%[1]s/test:scratch1 --image='{"Cmd":["/bin/sleep"]}' --created-at=0
+			oc image append --insecure --to %[2]s/%[1]s/test:scratch1 --image='{"Cmd":["/bin/sleep"]}' --created-at=0
 
 			# create a second scratch image with fixed date
-			oc image append --insecure --to docker-registry.default.svc:5000/%[1]s/test:scratch2 --image='{"Cmd":["/bin/sleep"]}' --created-at=0
+			oc image append --insecure --to %[2]s/%[1]s/test:scratch2 --image='{"Cmd":["/bin/sleep"]}' --created-at=0
 
 			# modify a busybox image
-			oc image append --insecure --from docker.io/library/busybox:latest --to docker-registry.default.svc:5000/%[1]s/test:busybox1 --image '{"Cmd":["/bin/sleep"]}'
+			oc image append --insecure --from docker.io/library/busybox:latest --to %[2]s/%[1]s/test:busybox1 --image '{"Cmd":["/bin/sleep"]}'
 
 			# verify mounting works
 			oc create is test2
-			oc image append --insecure --from docker-registry.default.svc:5000/%[1]s/test:scratch2 --to docker-registry.default.svc:5000/%[1]s/test2:scratch2 --force
+			oc image append --insecure --from %[2]s/%[1]s/test:scratch2 --to %[2]s/%[1]s/test2:scratch2 --force
 
 			# add a simple layer to the image
 			mkdir -p /tmp/test/dir
 			touch /tmp/test/1
 			touch /tmp/test/dir/2
 			tar cvzf /tmp/layer.tar.gz -C /tmp/test/ .
-			oc image append --insecure --from=docker-registry.default.svc:5000/%[1]s/test:busybox1 --to docker-registry.default.svc:5000/%[1]s/test:busybox2 /tmp/layer.tar.gz
-		`, ns)))
+			oc image append --insecure --from=%[2]s/%[1]s/test:busybox1 --to %[2]s/%[1]s/test:busybox2 /tmp/layer.tar.gz
+		`, ns, registry)))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)
 
 		istag, err := oc.ImageClient().Image().ImageStreamTags(ns).Get("test:scratch1", metav1.GetOptions{})

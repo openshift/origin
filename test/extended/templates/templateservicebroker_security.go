@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/test/e2e/framework"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -43,16 +43,18 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 	)
 
 	g.BeforeEach(func() {
-		framework.SkipIfProviderIs("gce")
+		var err error
+		brokercli, err = TSBClient(cli)
+		if kerrors.IsNotFound(err) {
+			e2e.Skipf("The template service broker is not installed: %v", err)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for default service account")
-		err := exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "default")
+		err = exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "default")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.By("waiting for builder service account")
 		err = exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "builder")
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		brokercli, err = TSBClient(cli)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		template, err = cli.InternalTemplateClient().Template().Templates("openshift").Get("mysql-ephemeral", metav1.GetOptions{})

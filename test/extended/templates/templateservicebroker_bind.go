@@ -9,11 +9,12 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/test/e2e/framework"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -38,11 +39,11 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			framework.SkipIfProviderIs("gce")
-
 			var err error
-
 			brokercli, err = TSBClient(cli)
+			if kerrors.IsNotFound(err) {
+				e2e.Skipf("The template service broker is not installed: %v", err)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
