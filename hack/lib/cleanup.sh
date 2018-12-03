@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This library holds functions that are used to clean up local
 # system state after other scripts have run.

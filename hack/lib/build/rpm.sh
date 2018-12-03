@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This library holds utilities for building RPMs from Origin.
 

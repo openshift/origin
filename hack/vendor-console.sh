@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 #  This script vendors the Web Console source files into bindata.go files that can be built into the openshift binary.
 #

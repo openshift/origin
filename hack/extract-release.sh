@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script extracts a valid release tar into _output/releases. It requires hack/build-release.sh
 # to have been executed

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This utility file contains functions that wrap commands to be tested. All wrapper functions run commands
 # in a sub-shell and redirect all output. Tests in test-cmd *must* use these functions for testing.
 

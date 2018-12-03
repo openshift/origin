@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script runs all of the test written for our Bash libraries.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script contains helper functions for finding components
 # in the Origin repository or on the host machine running scripts.

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This library holds all of the system logging functions for OpenShift bash scripts.
 

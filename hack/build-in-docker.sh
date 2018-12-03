@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script build the sources in openshift/origin-release image using
 # the Fedora environment and Go compiler.

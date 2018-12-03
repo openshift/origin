@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This command runs any exposed integration tests for the developer tools
 STARTTIME=$(date +%s)

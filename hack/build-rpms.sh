@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script generates release zips and RPMs into _output/releases.
 # tito and other build dependencies are required on the host. We will

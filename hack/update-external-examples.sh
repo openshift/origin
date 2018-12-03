@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script pulls down example files (eg templates) from external repositories
 # so they can be included directly in our repository.

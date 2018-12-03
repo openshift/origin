@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script generates release zips into _output/releases. It requires the openshift/origin-release
 # image to be built prior to executing this command via hack/build-base-images.sh.

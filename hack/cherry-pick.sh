@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # See HACKING.md for usage
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"

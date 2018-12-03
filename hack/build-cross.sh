@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Build all cross compile targets and the base binaries
 STARTTIME=$(date +%s)

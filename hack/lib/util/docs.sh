@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This library holds utility functions related to the generation
 # of manpages and docs.

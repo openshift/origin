@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script is meant to be the entrypoint for OpenShift Bash scripts to import all of the support
 # libraries at once in order to make Bash script preambles as minimal as possible. This script recur-

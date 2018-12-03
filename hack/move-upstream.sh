@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # See HACKING.md for usage
 # To apply all the kube UPSTREAM patches to a kubernetes git directory, you can

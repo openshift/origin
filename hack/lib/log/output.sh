@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file contains functions used for writing log messages
 # to stdout and stderr from scripts while they run.

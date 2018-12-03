@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script builds the base and release images for use by the release build and image builds.
 

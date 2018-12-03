@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script builds and pushes a release to DockerHub.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"

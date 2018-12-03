@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script builds the dind images so they can be baked into the ami
 # to reduce minimize the potential for dnf flakes in ci.

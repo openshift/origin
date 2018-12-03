@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This library contains an implementation of a stack trace for Bash scripts.
 

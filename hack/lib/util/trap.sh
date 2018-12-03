@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This library defines the trap handlers for the ERR and EXIT signals. Any new handler for these signals
 # must be added to these handlers and activated by the environment variable mechanism that the rest use.

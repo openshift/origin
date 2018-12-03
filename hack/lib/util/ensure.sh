@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script contains helper functions for ensuring that dependencies
 # exist on a host system that are required to run Origin scripts.
