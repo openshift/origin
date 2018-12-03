@@ -32,8 +32,11 @@ func NewExtract(f kcmdutil.Factory, parentName string, streams genericclioptions
 		Use:   "extract",
 		Short: "Extract the contents of an update payload to disk",
 		Long: templates.LongDesc(`
-			Extracts the contents of an OpenShift update payload to disk for inspection or
-			debugging.
+			Extract the contents of a release image to disk
+
+			Extracts the contents of an OpenShift update image to disk for inspection or
+			debugging. Update images contain manifests and metadata about the operators that
+			must be installed on the cluster for a given version.
 
 			Experimental: This command is under active development and may change without notice.
 		`),
@@ -90,7 +93,6 @@ func (o *ExtractOptions) Run() error {
 			opts.ImageMetadataCallback = o.ImageMetadataCallback
 		}
 		opts.OnlyFiles = true
-		opts.RemovePermissions = true
 		opts.Mappings = []extract.Mapping{
 			{
 				ImageRef: ref,
@@ -120,7 +122,6 @@ func (o *ExtractOptions) Run() error {
 
 	default:
 		opts.OnlyFiles = true
-		opts.RemovePermissions = true
 		opts.Mappings = []extract.Mapping{
 			{
 				ImageRef: ref,
