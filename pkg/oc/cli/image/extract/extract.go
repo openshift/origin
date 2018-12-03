@@ -304,7 +304,7 @@ func (o *Options) Run() error {
 			q.Try(func() error {
 				repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.Insecure)
 				if err != nil {
-					return err
+					return fmt.Errorf("unable to connect to image repository %s: %v", from.Exact(), err)
 				}
 
 				srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, from, repo, o.FilterOptions.Include)
@@ -426,12 +426,16 @@ func (o *Options) Run() error {
 						}
 
 						if byEntry != nil {
-							return layerByEntry(r, options, info, byEntry, o.AllLayers, alreadySeen)
+							cont, err := layerByEntry(r, options, info, byEntry, o.AllLayers, alreadySeen)
+							if err != nil {
+								err = fmt.Errorf("unable to iterate over layer %s from %s: %v", layer.Digest, from.Exact(), err)
+							}
+							return cont, err
 						}
 
 						glog.V(4).Infof("Extracting layer %s with options %#v", layer.Digest, options)
 						if _, err := archive.ApplyLayer(mapping.To, r, options); err != nil {
-							return false, err
+							return false, fmt.Errorf("unable to extract layer %s from %s: %v", layer.Digest, from.Exact(), err)
 						}
 						return true, nil
 					}()

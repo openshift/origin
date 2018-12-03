@@ -36,6 +36,9 @@ func New(workers int, stopCh <-chan struct{}) Interface {
 }
 
 func (q *workQueue) run(workers int, stopCh <-chan struct{}) {
+	if workers <= 0 {
+		workers = 1
+	}
 	for i := 0; i < workers; i++ {
 		go func(i int) {
 			defer glog.V(4).Infof("worker %d stopping", i)
@@ -54,6 +57,7 @@ func (q *workQueue) run(workers int, stopCh <-chan struct{}) {
 		}(i)
 	}
 	<-stopCh
+	glog.V(4).Infof("work queue exiting")
 }
 
 func (q *workQueue) Batch(fn func(Work)) {
@@ -69,9 +73,13 @@ func (q *workQueue) Try(fn func(Try)) error {
 	w := &worker{
 		wg:  &sync.WaitGroup{},
 		ch:  q.ch,
-		err: make(chan error),
+		err: make(chan error, 1),
 	}
-	fn(w)
+	w.wg.Add(1)
+	go func() {
+		fn(w)
+		w.wg.Done()
+	}()
 	return w.FirstError()
 }
 
@@ -132,6 +140,7 @@ func (w *worker) Try(fn func() error) {
 				glog.Errorf("Worker error: %v", err)
 				return
 			}
+			glog.V(4).Infof("about to send work queue error: %v", err)
 			w.err <- err
 		},
 	}
