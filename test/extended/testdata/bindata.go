@@ -10976,6 +10976,11 @@ objects:
       - containerPort: 1936
         name: stats
         protocol: TCP
+      readinessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: /healthz/ready
+          port: 1936
     serviceAccountName: default
 `)
 
@@ -11029,6 +11034,11 @@ objects:
       - containerPort: 1936
         name: stats
         protocol: TCP
+      readinessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: /healthz/ready
+          port: 1936
     serviceAccountName: default
 `)
 
@@ -11081,6 +11091,11 @@ objects:
       - containerPort: 1936
         name: stats
         protocol: TCP
+      readinessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: /healthz/ready
+          port: 1936
     serviceAccountName: default
 `)
 
