@@ -10,15 +10,14 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	kapi "k8s.io/api/core/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	routev1 "github.com/openshift/api/route/v1"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
+	unidlingapi "github.com/openshift/origin/pkg/router/unidling"
 )
 
 const (
@@ -263,7 +262,7 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 			return []Endpoint{}
 		}
 
-		if !kapihelper.IsServiceIPSet(service) {
+		if !isServiceIPSet(service) {
 			utilruntime.HandleError(fmt.Errorf("headless service %s/%s was marked as idled, but cannot setup unidling without a cluster IP", endpoints.Namespace, endpoints.Name))
 			return []Endpoint{}
 		}
@@ -331,4 +330,8 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 	}
 
 	return out
+}
+
+func isServiceIPSet(service *kapi.Service) bool {
+	return service.Spec.ClusterIP != kapi.ClusterIPNone && service.Spec.ClusterIP != ""
 }

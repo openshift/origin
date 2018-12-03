@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
+	"github.com/openshift/origin/pkg/router/routeapihelpers"
 )
 
 func oldest(changes Changed, active []*routev1.Route, routes ...*routev1.Route) (updated, displaced []*routev1.Route) {

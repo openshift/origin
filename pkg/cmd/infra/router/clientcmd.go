@@ -6,14 +6,13 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/client-go/kubernetes"
 )
 
 // Config contains all the necessary bits for client configuration
@@ -66,8 +65,8 @@ func (cfg *Config) KubeConfig() (*restclient.Config, string, error) {
 
 func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 	loadingRules := kclientcmd.NewDefaultClientConfigLoadingRules()
-	flags.StringVar(&loadingRules.ExplicitPath, genericclioptions.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
-	cobra.MarkFlagFilename(flags, genericclioptions.OpenShiftKubeConfigFlagName)
+	flags.StringVar(&loadingRules.ExplicitPath, "config", "", "Path to the config file to use for CLI requests.")
+	cobra.MarkFlagFilename(flags, "config")
 
 	// set our explicit defaults
 	defaultOverrides := &kclientcmd.ConfigOverrides{ClusterDefaults: kclientcmdapi.Cluster{Server: os.Getenv("KUBERNETES_MASTER")}}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,17 +16,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	kclientset "k8s.io/client-go/kubernetes"
 	kcache "k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	routev1 "github.com/openshift/api/route/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/openshift/origin/pkg/route/controller/routeapihelpers"
 	"github.com/openshift/origin/pkg/router"
 	routercontroller "github.com/openshift/origin/pkg/router/controller"
-	informerfactory "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"github.com/openshift/origin/pkg/router/routeapihelpers"
+	informerfactory "k8s.io/client-go/informers"
 )
 
 const (
@@ -256,7 +256,7 @@ func (f *RouterControllerFactory) CreateRoutesSharedInformer() kcache.SharedInde
 func (f *RouterControllerFactory) createNodesSharedInformer() {
 	// Use stock node informer as we don't need namespace/labels/fields filtering on nodes
 	ifactory := informerfactory.NewSharedInformerFactory(f.KClient, f.ResyncInterval)
-	informer := ifactory.Core().InternalVersion().Nodes().Informer()
+	informer := ifactory.Core().V1().Nodes().Informer()
 	objType := reflect.TypeOf(&kapi.Node{})
 	f.informers[objType] = informer
 }

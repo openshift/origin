@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	routev1 "github.com/openshift/api/route/v1"
 	projectclientset "github.com/openshift/client-go/project/clientset/versioned"
@@ -26,8 +26,8 @@ import (
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
+	"github.com/openshift/origin/pkg/router/writerlease"
 	"github.com/openshift/origin/pkg/util/ratelimiter"
-	"github.com/openshift/origin/pkg/util/writerlease"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -295,7 +295,7 @@ func launchApi(t *testing.T) (routeclientset.Interface, projectclientset.Interfa
 		return nil, nil, nil, nil, err
 	}
 
-	kc, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	kc, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

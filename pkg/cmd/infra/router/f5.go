@@ -6,29 +6,25 @@ import (
 	"os"
 	"time"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/client-go/pkg/version"
 
 	routev1 "github.com/openshift/api/route/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	routelisters "github.com/openshift/client-go/route/listers/route/v1"
-	"github.com/openshift/origin/pkg/cmd/util"
-	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	f5plugin "github.com/openshift/origin/pkg/router/f5"
-	"github.com/openshift/origin/pkg/util/writerlease"
-	"github.com/openshift/origin/pkg/version"
+	"github.com/openshift/origin/pkg/router/writerlease"
 )
 
-var (
-	f5Long = templates.LongDesc(`
+var f5Long = heredoc.Doc(`
 		Start an F5 route synchronizer
 
 		This command launches a process that will synchronize an F5 to the route configuration of your master.
@@ -37,7 +33,6 @@ var (
 		access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
 		namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
 		that you must have a cluster-wide administrative role to view all namespaces.`)
-)
 
 // F5RouterOptions represent the complete structure needed to start an F5 router
 // sync process.
@@ -97,16 +92,16 @@ type F5Router struct {
 
 // Bind binds F5Router arguments to flags
 func (o *F5Router) Bind(flag *pflag.FlagSet) {
-	flag.StringVar(&o.Host, "f5-host", util.Env("ROUTER_EXTERNAL_HOST_HOSTNAME", ""), "The host of F5 BIG-IP's management interface")
-	flag.StringVar(&o.Username, "f5-username", util.Env("ROUTER_EXTERNAL_HOST_USERNAME", ""), "The username for F5 BIG-IP's management utility")
-	flag.StringVar(&o.Password, "f5-password", util.Env("ROUTER_EXTERNAL_HOST_PASSWORD", ""), "The password for F5 BIG-IP's management utility")
-	flag.StringVar(&o.HttpVserver, "f5-http-vserver", util.Env("ROUTER_EXTERNAL_HOST_HTTP_VSERVER", "ose-vserver"), "The F5 BIG-IP virtual server for HTTP connections")
-	flag.StringVar(&o.HttpsVserver, "f5-https-vserver", util.Env("ROUTER_EXTERNAL_HOST_HTTPS_VSERVER", "https-ose-vserver"), "The F5 BIG-IP virtual server for HTTPS connections")
-	flag.StringVar(&o.PrivateKey, "f5-private-key", util.Env("ROUTER_EXTERNAL_HOST_PRIVKEY", ""), "The path to the F5 BIG-IP SSH private key file")
-	flag.BoolVar(&o.Insecure, "f5-insecure", isTrue(util.Env("ROUTER_EXTERNAL_HOST_INSECURE", "")), "Skip strict certificate verification")
-	flag.StringVar(&o.PartitionPath, "f5-partition-path", util.Env("ROUTER_EXTERNAL_HOST_PARTITION_PATH", f5plugin.F5DefaultPartitionPath), "The F5 BIG-IP partition path to use")
-	flag.StringVar(&o.InternalAddress, "f5-internal-address", util.Env("ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS", ""), "The F5 BIG-IP internal interface's IP address")
-	flag.StringVar(&o.VxlanGateway, "f5-vxlan-gateway-cidr", util.Env("ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR", ""), "The F5 BIG-IP gateway-ip-address/cidr-mask for setting up the VxLAN")
+	flag.StringVar(&o.Host, "f5-host", env("ROUTER_EXTERNAL_HOST_HOSTNAME", ""), "The host of F5 BIG-IP's management interface")
+	flag.StringVar(&o.Username, "f5-username", env("ROUTER_EXTERNAL_HOST_USERNAME", ""), "The username for F5 BIG-IP's management utility")
+	flag.StringVar(&o.Password, "f5-password", env("ROUTER_EXTERNAL_HOST_PASSWORD", ""), "The password for F5 BIG-IP's management utility")
+	flag.StringVar(&o.HttpVserver, "f5-http-vserver", env("ROUTER_EXTERNAL_HOST_HTTP_VSERVER", "ose-vserver"), "The F5 BIG-IP virtual server for HTTP connections")
+	flag.StringVar(&o.HttpsVserver, "f5-https-vserver", env("ROUTER_EXTERNAL_HOST_HTTPS_VSERVER", "https-ose-vserver"), "The F5 BIG-IP virtual server for HTTPS connections")
+	flag.StringVar(&o.PrivateKey, "f5-private-key", env("ROUTER_EXTERNAL_HOST_PRIVKEY", ""), "The path to the F5 BIG-IP SSH private key file")
+	flag.BoolVar(&o.Insecure, "f5-insecure", isTrue(env("ROUTER_EXTERNAL_HOST_INSECURE", "")), "Skip strict certificate verification")
+	flag.StringVar(&o.PartitionPath, "f5-partition-path", env("ROUTER_EXTERNAL_HOST_PARTITION_PATH", f5plugin.F5DefaultPartitionPath), "The F5 BIG-IP partition path to use")
+	flag.StringVar(&o.InternalAddress, "f5-internal-address", env("ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS", ""), "The F5 BIG-IP internal interface's IP address")
+	flag.StringVar(&o.VxlanGateway, "f5-vxlan-gateway-cidr", env("ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR", ""), "The F5 BIG-IP gateway-ip-address/cidr-mask for setting up the VxLAN")
 }
 
 // Validate verifies the required F5 flags are present
@@ -145,15 +140,19 @@ func NewCommandF5Router(name string) *cobra.Command {
 		Use:   name,
 		Short: "Start an F5 route synchronizer",
 		Long:  f5Long,
-		Run: func(c *cobra.Command, args []string) {
-			options.RouterSelection.Namespace = cmdutil.GetFlagString(c, "namespace")
-			cmdutil.CheckErr(options.Complete())
-			cmdutil.CheckErr(options.Validate())
-			cmdutil.CheckErr(options.Run())
+		RunE: func(c *cobra.Command, args []string) error {
+			options.RouterSelection.Namespace = c.Flags().Lookup("namespace").Value.String()
+			if err := options.Complete(); err != nil {
+				return err
+			}
+			if err := options.Validate(); err != nil {
+				return err
+			}
+			return options.Run()
 		},
 	}
 
-	cmd.AddCommand(cmdversion.NewCmdVersion(name, version.Get(), os.Stdout))
+	cmd.AddCommand(newCmdVersion(name, version.Get(), os.Stdout))
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)
