@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -44,7 +43,7 @@ type OpenShiftAPIServer struct {
 var longDescription = templates.LongDesc(`
 	Start an apiserver that contains the OpenShift resources`)
 
-func NewOpenShiftAPIServerCommand(name, basename string, out, errout io.Writer) *cobra.Command {
+func NewOpenShiftAPIServerCommand(name, basename string, out, errout io.Writer, stopCh <-chan struct{}) *cobra.Command {
 	options := &OpenShiftAPIServer{Output: out}
 
 	cmd := &cobra.Command{
@@ -58,7 +57,7 @@ func NewOpenShiftAPIServerCommand(name, basename string, out, errout io.Writer) 
 
 			serviceability.StartProfiler()
 
-			if err := options.StartAPIServer(); err != nil {
+			if err := options.WithoutNetworkingAPI().RunAPIServer(stopCh); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
@@ -90,19 +89,13 @@ func (o *OpenShiftAPIServer) Validate() error {
 	return nil
 }
 
-// StartAPIServer calls RunAPIServer and then waits forever
-func (o *OpenShiftAPIServer) StartAPIServer() error {
+func (o *OpenShiftAPIServer) WithoutNetworkingAPI() *OpenShiftAPIServer {
 	featureKeepRemovedNetworkingAPI = false
-	if err := o.RunAPIServer(); err != nil {
-		return err
-	}
-
-	go daemon.SdNotify(false, "READY=1")
-	select {}
+	return o
 }
 
-// RunAPIServer takes the options and starts the etcd server
-func (o *OpenShiftAPIServer) RunAPIServer() error {
+// RunAPIServer takes the options, starts the API server and waits until stopCh is closed or initial listening fails.
+func (o *OpenShiftAPIServer) RunAPIServer(stopCh <-chan struct{}) error {
 	// try to decode into our new types first.  right now there is no validation, no file path resolution.  this unsticks the operator to start.
 	// TODO add those things
 	configContent, err := ioutil.ReadFile(o.ConfigFile)
@@ -127,12 +120,13 @@ func (o *OpenShiftAPIServer) RunAPIServer() error {
 		}
 		configdefault.SetRecommendedOpenShiftAPIServerConfigDefaults(config)
 
-		return RunOpenShiftAPIServer(config)
+		return RunOpenShiftAPIServer(config, stopCh)
 	}
 
 	// TODO this code disappears once the kube-core operator switches to external types
 	// TODO we will simply run some defaulting code and convert
 	// reading internal gives us defaulting that we need for now
+
 	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.ConfigFile)
 	if err != nil {
 		return err
@@ -156,5 +150,5 @@ func (o *OpenShiftAPIServer) RunAPIServer() error {
 		return err
 	}
 
-	return RunOpenShiftAPIServer(openshiftAPIServerConfig)
+	return RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh)
 }

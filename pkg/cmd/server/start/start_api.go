@@ -30,7 +30,7 @@ var apiLong = templates.LongDesc(`
 	will run in the foreground until you terminate the process.`)
 
 // NewCommandStartMasterAPI starts only the APIserver
-func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
+func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer, stopCh <-chan struct{}) (*cobra.Command, *MasterOptions) {
 	opts := &MasterOptions{Output: out}
 	opts.DefaultsFromName(basename)
 
@@ -56,7 +56,7 @@ func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*co
 
 			serviceability.StartProfiler()
 
-			if err := opts.StartMaster(); err != nil {
+			if err := opts.StartMaster(stopCh); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)

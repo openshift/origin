@@ -3,7 +3,6 @@ package openshift_apiserver
 import (
 	"github.com/golang/glog"
 
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/pkg/version"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -20,7 +19,7 @@ import (
 // default this to true so that the integration tests don't instantly break
 var featureKeepRemovedNetworkingAPI = true
 
-func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPIServerConfig) error {
+func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPIServerConfig, stopCh <-chan struct{}) error {
 	util.InitLogrus()
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{
@@ -45,9 +44,5 @@ func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPISer
 
 	glog.Infof("Starting master on %s (%s)", serverConfig.ServingInfo.BindAddress, version.Get().String())
 
-	if err := preparedOpenshiftAPIServer.Run(utilwait.NeverStop); err != nil {
-		return err
-	}
-
-	return nil
+	return preparedOpenshiftAPIServer.Run(stopCh)
 }

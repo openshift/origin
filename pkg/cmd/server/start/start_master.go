@@ -16,10 +16,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	"github.com/spf13/cobra"
-
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
@@ -79,7 +77,7 @@ var masterLong = templates.LongDesc(`
 	You may also pass --etcd=<address> to connect to an external etcd server.`)
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
-func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
+func NewCommandStartMaster(basename string, out, errout io.Writer, stopCh <-chan struct{}) (*cobra.Command, *MasterOptions) {
 	opts := &MasterOptions{
 		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
 		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
@@ -110,7 +108,7 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 
 			serviceability.StartProfiler()
 
-			if err := opts.StartMaster(); err != nil {
+			if err := opts.StartMaster(stopCh); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
@@ -157,8 +155,8 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 	cmd.MarkFlagFilename("write-config")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
 
-	startControllers, _ := NewCommandStartMasterControllers("controllers", basename, out, errout)
-	startAPI, _ := NewCommandStartMasterAPI("api", basename, out, errout)
+	startControllers, _ := NewCommandStartMasterControllers("controllers", basename, out, errout, stopCh)
+	startAPI, _ := NewCommandStartMasterAPI("api", basename, out, errout, stopCh)
 	cmd.AddCommand(startAPI)
 	cmd.AddCommand(startControllers)
 
@@ -206,8 +204,10 @@ func (o *MasterOptions) Complete() error {
 }
 
 // StartMaster calls RunMaster and then waits forever
-func (o MasterOptions) StartMaster() error {
-	if err := o.RunMaster(); err != nil {
+// The returned channel can be waited on to gracefully shutdown the API server.
+func (o MasterOptions) StartMaster(stopCh <-chan struct{}) error {
+	shutdownCh, err := o.RunMaster(stopCh)
+	if err != nil {
 		return err
 	}
 
@@ -218,7 +218,8 @@ func (o MasterOptions) StartMaster() error {
 	// TODO: this should be encapsulated by RunMaster, but StartAllInOne has no
 	// way to communicate whether RunMaster should block.
 	go daemon.SdNotify(false, "READY=1")
-	select {}
+	<-shutdownCh
+	return nil
 }
 
 // RunMaster takes the options and:
@@ -226,13 +227,14 @@ func (o MasterOptions) StartMaster() error {
 // 2.  Reads fully specified master config OR builds a fully specified master config from the args
 // 3.  Writes the fully specified master config and exits if needed
 // 4.  Starts the master based on the fully specified config
-func (o MasterOptions) RunMaster() error {
+// The returned channel can be waited on to gracefully shutdown the API server.
+func (o MasterOptions) RunMaster(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	startUsingConfigFile := !o.IsWriteConfigOnly() && o.IsRunFromConfig()
 
 	if !startUsingConfigFile && o.CreateCertificates {
 		glog.V(2).Infof("Generating master configuration")
 		if err := o.CreateCerts(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -244,49 +246,49 @@ func (o MasterOptions) RunMaster() error {
 		masterConfig, err = o.MasterArgs.BuildSerializeableMasterConfig()
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if o.IsWriteConfigOnly() {
 		// Resolve relative to CWD
 		cwd, err := os.Getwd()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if err := configapi.ResolveMasterConfigPaths(masterConfig, cwd); err != nil {
-			return err
+			return nil, err
 		}
 
 		// Relativize to config file dir
 		base, err := cmdutil.MakeAbs(filepath.Dir(o.MasterArgs.GetConfigFileToWrite()), cwd)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if err := configapi.RelativizeMasterConfigPaths(masterConfig, base); err != nil {
-			return err
+			return nil, err
 		}
 
 		content, err := configapilatest.WriteYAML(masterConfig)
 		if err != nil {
 
-			return err
+			return nil, err
 		}
 
 		if err := os.MkdirAll(path.Dir(o.MasterArgs.GetConfigFileToWrite()), os.FileMode(0755)); err != nil {
-			return err
+			return nil, err
 		}
 		if err := ioutil.WriteFile(o.MasterArgs.GetConfigFileToWrite(), content, 0644); err != nil {
-			return err
+			return nil, err
 		}
 
 		fmt.Fprintf(o.Output, "Wrote master config to: %s\n", o.MasterArgs.GetConfigFileToWrite())
 
-		return nil
+		return nil, nil
 	}
 
 	if o.MasterArgs.OverrideConfig != nil {
 		if err := o.MasterArgs.OverrideConfig(masterConfig); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -297,7 +299,7 @@ func (o MasterOptions) RunMaster() error {
 		}
 	}
 	if len(validationResults.Errors) != 0 {
-		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), o.ConfigFile, validationResults.Errors)
+		return nil, kerrors.NewInvalid(configapi.Kind("MasterConfig"), o.ConfigFile, validationResults.Errors)
 	}
 
 	m := &Master{
@@ -305,7 +307,7 @@ func (o MasterOptions) RunMaster() error {
 		api:         o.MasterArgs.StartAPI,
 		controllers: o.MasterArgs.StartControllers,
 	}
-	return m.Start()
+	return m.Start(stopCh)
 }
 
 func (o MasterOptions) CreateCerts() error {
@@ -362,7 +364,8 @@ func NewMaster(config *configapi.MasterConfig, controllers, api bool) *Master {
 
 // Start launches a master. It will error if possible, but some background processes may still
 // be running and the process should exit after it finishes.
-func (m *Master) Start() error {
+// The returned channel can be waited on to gracefully shutdown the API server.
+func (m *Master) Start(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Initialize(capabilities.Capabilities{
@@ -383,7 +386,7 @@ func (m *Master) Start() error {
 	if controllersEnabled {
 		privilegedLoopbackConfig, err := configapi.GetClientConfig(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		go runEmbeddedScheduler(
@@ -441,18 +444,18 @@ func (m *Master) Start() error {
 		// round trip to external
 		uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(m.config, legacyconfigv1.LegacySchemeGroupVersion)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
 		externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		externalMasterConfig := &legacyconfigv1.MasterConfig{}
 		gvk := legacyconfigv1.LegacySchemeGroupVersion.WithKind("MasterConfig")
 		_, _, err = legacyConfigCodec.Decode(externalBytes, &gvk, externalMasterConfig)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig)
 		// if we're starting the API, then this one isn't supposed to serve
@@ -461,9 +464,8 @@ func (m *Master) Start() error {
 		}
 
 		if err := openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
-			return err
+			return nil, err
 		}
-
 	}
 
 	if m.api {
@@ -476,35 +478,35 @@ func (m *Master) Start() error {
 		admission.PluginEnabledFn = legacyadmission.IsAdmissionPluginActivated
 
 		if err := legacyconfigprocessing.ConvertNetworkConfigToAdmissionConfig(m.config); err != nil {
-			return err
+			return nil, err
 		}
 
 		// ensure connectivity to etcd before calling BuildMasterConfig,
 		// which constructs storage whose etcd clients require connectivity to etcd at construction time
 		if err := testEtcdConnectivity(m.config.EtcdClientInfo); err != nil {
-			return err
+			return nil, err
 		}
 
 		// informers are shared amongst all the various api components we build
 		// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
 		clientConfig, err := configapi.GetClientConfig(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		informers, err := origin.NewInformers(clientConfig)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if err := informers.GetOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
 			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
 		}); err != nil {
-			return err
+			return nil, err
 		}
 
 		openshiftConfig, err := origin.BuildMasterConfig(*m.config, informers)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
@@ -514,29 +516,25 @@ func (m *Master) Start() error {
 		imageTemplate.Latest = m.config.ImageConfig.Latest
 		glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-		if err := StartAPI(openshiftConfig); err != nil {
-			return err
-		}
+		return StartAPI(openshiftConfig, stopCh)
 	}
 
-	return nil
+	// no API server started. Return stopCh as shutdownCh as there is no graceful shutdown for controller managers alone.
+	return stopCh, nil
 }
 
 // StartAPI starts the components of the master that are considered part of the API - the Kubernetes
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
 // the asset server (for the UI), the OAuth server endpoints, and the DNS server.
+// The returned channel can be waited on to gracefully shutdown the API server.
 // TODO: allow to be more granularly targeted
-func StartAPI(oc *origin.MasterConfig) error {
+func StartAPI(oc *origin.MasterConfig, stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// start DNS before the informers are started because it adds a ClusterIP index.
 	if oc.Options.DNSConfig != nil {
 		oc.RunDNSServer()
 	}
 
-	if err := oc.Run(utilwait.NeverStop); err != nil {
-		return err
-	}
-
-	return nil
+	return oc.Run(stopCh)
 }
 
 func testEtcdConnectivity(etcdClientInfo configapi.EtcdConnectionInfo) error {
