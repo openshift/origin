@@ -49,6 +49,7 @@ import (
 const (
 	openshiftCNIFile = "80-openshift-network.conf"
 	hostLocalDataDir = "/var/lib/cni/networks"
+	minOVSVersion = "2.6.0"
 )
 
 type osdnPolicy interface {
@@ -126,7 +127,6 @@ type OsdnNode struct {
 func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var pluginId int
-	var minOvsVersion string
 	var useConnTrack bool
 	switch strings.ToLower(c.PluginName) {
 	case network.SingleTenantPluginName:
@@ -138,7 +138,6 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 	case network.NetworkPolicyPluginName:
 		policy = NewNetworkPolicyPlugin()
 		pluginId = 2
-		minOvsVersion = "2.6.0"
 		useConnTrack = true
 	default:
 		// Not an OpenShift plugin
@@ -158,7 +157,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		return nil, err
 	}
 
-	ovsif, err := ovs.New(kexec.New(), Br0, minOvsVersion)
+	ovsif, err := ovs.New(kexec.New(), Br0, minOVSVersion)
 	if err != nil {
 		return nil, err
 	}
