@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/release"
 	"github.com/openshift/origin/pkg/oc/cli/admin/router"
 	"github.com/openshift/origin/pkg/oc/cli/admin/top"
+	"github.com/openshift/origin/pkg/oc/cli/admin/upgrade"
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
 	"github.com/openshift/origin/pkg/oc/cli/kubectlwrappers"
 	"github.com/openshift/origin/pkg/oc/cli/options"
@@ -59,11 +60,9 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 
 	groups := ktemplates.CommandGroups{
 		{
-			Message: "Component Installation:",
+			Message: "Cluster Management:",
 			Commands: []*cobra.Command{
-				router.NewCmdRouter(f, fullName, "router", streams),
-				ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
-				registry.NewCmdRegistry(f, fullName, "registry", streams),
+				upgrade.New(f, fullName, streams),
 				release.NewCmd(f, fullName, streams),
 			},
 		},
@@ -80,8 +79,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		{
 			Message: "Node Management:",
 			Commands: []*cobra.Command{
-				admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, streams),
-				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
 				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdCordon(f, streams))),
 				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdUncordon(f, streams))),
 				cmdutil.ReplaceCommandName("kubectl", fullName, kubecmd.NewCmdDrain(f, streams)),
@@ -132,6 +129,13 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams),
 		admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, streams),
 		admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, streams),
+
+		// these will be removed soon
+		admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, streams),
+		node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
+		router.NewCmdRouter(f, fullName, "router", streams),
+		ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
+		registry.NewCmdRegistry(f, fullName, "registry", streams),
 	}
 	for _, cmd := range deprecatedCommands {
 		// Unsetting Short description will not show this command in help
