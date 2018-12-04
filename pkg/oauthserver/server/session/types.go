@@ -2,6 +2,11 @@ package session
 
 import (
 	"net/http"
+
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/user"
+
+	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 )
 
 // Store abstracts HTTP session storage of Values
@@ -22,4 +27,14 @@ func (v Values) GetString(key string) (string, bool) {
 func (v Values) GetInt64(key string) (int64, bool) {
 	i, _ := v[key].(int64)
 	return i, i != 0
+}
+
+type SessionInvalidator interface {
+	InvalidateAuthentication(w http.ResponseWriter, user user.Info) error
+}
+
+type SessionAuthenticator interface {
+	authenticator.Request
+	handlers.AuthenticationSuccessHandler
+	SessionInvalidator
 }

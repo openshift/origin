@@ -101,9 +101,9 @@ func (l *Login) Install(mux oauthserver.Mux, paths ...string) {
 func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	headers.SetStandardHeaders(w)
 	switch req.Method {
-	case "GET":
+	case http.MethodGet:
 		l.handleLoginForm(w, req)
-	case "POST":
+	case http.MethodPost:
 		l.handleLogin(w, req)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
