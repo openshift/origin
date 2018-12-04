@@ -335,14 +335,14 @@ var (
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
-			`\[Feature:Networking-IPv6\]`, // openshift-sdn doesn't support yet
-			`Monitoring`,                  // Not installed, should be
-			`Cluster level logging`,       // Not installed yet
-			`Kibana`,                      // Not installed
-			`Ubernetes`,                   // Can't set zone labels today
-			`kube-ui`,                     // Not installed by default
-			`Kubernetes Dashboard`,        // Not installed by default (also probably slow image pull)
-			`Ingress`,                     // Not enabled yet
+			`\[Feature:Networking-IPv6\]`,     // openshift-sdn doesn't support yet
+			`Monitoring`,                      // Not installed, should be
+			`Cluster level logging`,           // Not installed yet
+			`Kibana`,                          // Not installed
+			`Ubernetes`,                       // Can't set zone labels today
+			`kube-ui`,                         // Not installed by default
+			`Kubernetes Dashboard`,            // Not installed by default (also probably slow image pull)
+			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
 
