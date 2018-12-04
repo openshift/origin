@@ -7,7 +7,6 @@ import (
 	"io"
 	"math"
 	"os"
-	"os/user"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -56,12 +55,10 @@ var (
 
 		  [<index>] - select the layer at the provided index (zero-indexed)
 		  [<from_index>,<to_index>] - select layers by index, exclusive
-		  [~<prefix>] - select the layer with the matching prefix or return an error
+		  [~<prefix>] - select the layer with the matching digest prefix or return an error
 
 		Negative indices are counted from the end of the list, e.g. [-1] selects the last
-		layer.
-
-		Experimental: This command is under active development and may change without notice.`)
+		layer.`)
 
 	example = templates.Examples(`
 # Extract the busybox image into the current directory
@@ -101,8 +98,8 @@ type Options struct {
 
 	Paths []string
 
-	OnlyFiles         bool
-	RemovePermissions bool
+	OnlyFiles           bool
+	PreservePermissions bool
 
 	FilterOptions imagemanifest.FilterOptions
 
@@ -158,6 +155,7 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow pull operations to registries to be made over HTTP")
 
 	flag.StringSliceVar(&o.Paths, "path", o.Paths, "Extract only part of an image. Must be SRC:DST where SRC is the path within the image and DST a local directory. If not specified the default is to extract everything to the current directory.")
+	flag.BoolVarP(&o.PreservePermissions, "preserve-ownership", "p", o.PreservePermissions, "Preserve the permissions of extracted files.")
 	flag.BoolVar(&o.OnlyFiles, "only-files", o.OnlyFiles, "Only extract regular files and directories from the image.")
 	flag.BoolVar(&o.AllLayers, "all-layers", o.AllLayers, "For dry-run mode, process from lowest to highest layer and don't omit duplicate files.")
 
@@ -271,17 +269,6 @@ func (o *Options) Complete(cmd *cobra.Command, args []string) error {
 }
 
 func (o *Options) Run() error {
-	preserveOwnership := false
-	u, err := user.Current()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: Could not load current user information: %v\n", err)
-	}
-	if u != nil {
-		if uid, err := strconv.Atoi(u.Uid); err == nil && uid == 0 {
-			preserveOwnership = true
-		}
-	}
-
 	rt, err := rest.TransportFor(&rest.Config{})
 	if err != nil {
 		return err
@@ -361,10 +348,8 @@ func (o *Options) Run() error {
 						return fmt.Errorf("unable to filter layers for %s: %v", from, err)
 					}
 				}
-				if o.RemovePermissions {
+				if !o.PreservePermissions {
 					alter = append(alter, removePermissions{})
-				} else if !preserveOwnership {
-					alter = append(alter, writableDirectories{})
 				}
 
 				var byEntry TarEntryFunc = o.TarEntryCallback
@@ -422,7 +407,7 @@ func (o *Options) Run() error {
 
 						options := &archive.TarOptions{
 							AlterHeaders: alter,
-							Chown:        preserveOwnership,
+							Chown:        o.PreservePermissions,
 						}
 
 						if byEntry != nil {

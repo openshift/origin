@@ -43,6 +43,8 @@ func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.
 		Use:   "mirror",
 		Short: "Mirror a release to a different image registry location",
 		Long: templates.LongDesc(`
+			Mirror an OpenShift release image to another registry
+
 			Copies the images and update payload for a given release from one registry to another.
 			By default this command will not alter the payload and will print out the configuration
 			that must be applied to a cluster to use the mirror, but you may opt to rewrite the

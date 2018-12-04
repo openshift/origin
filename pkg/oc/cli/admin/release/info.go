@@ -248,7 +248,6 @@ func (o *InfoOptions) LoadReleaseInfo(image string) (*ReleaseInfo, error) {
 		release.Config = config
 	}
 	opts.OnlyFiles = true
-	opts.RemovePermissions = true
 	opts.Mappings = []extract.Mapping{
 		{
 			ImageRef: ref,

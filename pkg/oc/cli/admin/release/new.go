@@ -53,6 +53,8 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 		Use:   "new [SRC=DST ...]",
 		Short: "Create a new OpenShift release",
 		Long: templates.LongDesc(`
+			Build a new OpenShift release image that will update a cluster
+
 			OpenShift uses long-running active management processes called "operators" to
 			keep the cluster running and manage component lifecycle. This command
 			composes a set of images and operator definitions into a single update payload
