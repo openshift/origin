@@ -118,7 +118,7 @@ func (az *Cloud) getVirtualMachine(nodeName types.NodeName) (vm compute.VirtualM
 
 			request.vm = &vm
 		}
-		return vm, exists, err
+		return *request.vm, true, err
 	}
 
 	glog.V(6).Infof("getVirtualMachine hits cache for(%s)", vmName)
