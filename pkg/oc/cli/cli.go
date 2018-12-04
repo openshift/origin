@@ -137,6 +137,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				project.NewCmdProject(fullName, f, ioStreams),
 				projects.NewCmdProjects(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdExplain(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdClusterInfo(fullName, f, ioStreams),
 			},
 		},
 		{

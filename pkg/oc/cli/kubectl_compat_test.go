@@ -15,7 +15,6 @@ import (
 var MissingCommands = sets.NewString(
 	"namespace",
 	"rolling-update",
-	"cluster-info",
 
 	// are on admin commands
 	"cordon",

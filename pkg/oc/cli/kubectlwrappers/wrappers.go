@@ -102,6 +102,23 @@ func NewCmdReplace(fullName string, f kcmdutil.Factory, streams genericclioption
 }
 
 var (
+	clusterInfoLong = templates.LongDesc(`
+		Display addresses of the master and services with label kubernetes.io/cluster-service=true
+  		To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.`)
+
+	clusterinfoExample = templates.Examples(i18n.T(`
+		# Print the address of the master and cluster services
+		%[1]s cluster-info`))
+)
+
+func NewCmdClusterInfo(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	cmd := kcmd.NewCmdClusterInfo(f, streams)
+	cmd.Long = clusterInfoLong
+	cmd.Example = fmt.Sprintf(clusterinfoExample, fullName)
+	return cmd
+}
+
+var (
 	patchLong = templates.LongDesc(`
 		Update field(s) of a resource using strategic merge patch
 
