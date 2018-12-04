@@ -71,13 +71,15 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	// build-system-config
 	// certificate authorities
 	// container storage
-	if len(container.VolumeMounts) != 8 {
-		t.Fatalf("Expected 8 volumes in container, got %d", len(container.VolumeMounts))
+	// blobs cache
+	if len(container.VolumeMounts) != 9 {
+		t.Fatalf("Expected 9 volumes in container, got %d", len(container.VolumeMounts))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
 	expectedMounts := []string{buildutil.BuildWorkDirMount,
+		buildutil.BuildBlobsMetaCache,
 		DockerPushSecretMountPath,
 		DockerPullSecretMountPath,
 		filepath.Join(SecretBuildSourceBaseMountPath, "super-secret"),
@@ -92,8 +94,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		}
 	}
 	// build pod has an extra volume: the git clone source secret
-	if len(actual.Spec.Volumes) != 9 {
-		t.Fatalf("Expected 9 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 10 {
+		t.Fatalf("Expected 10 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapihelper.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)

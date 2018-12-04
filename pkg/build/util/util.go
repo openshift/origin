@@ -32,6 +32,10 @@ const (
 
 	// buildPodSuffix is the suffix used to append to a build pod name given a build name
 	buildPodSuffix = "build"
+
+	// BuildBlobsMetaCache is the directory used to store a cache for the blobs to be
+	// reused across builds.
+	BuildBlobsMetaCache = "/var/lib/containers/cache"
 )
 
 // GeneratorFatalError represents a fatal error while generating a build.
