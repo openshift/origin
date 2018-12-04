@@ -438,6 +438,7 @@ var (
 			regexp.QuoteMeta("[Area:Networking] NetworkPolicy"),
 			regexp.QuoteMeta("[Area:Networking] network isolation"),
 			regexp.QuoteMeta("[Area:Networking] services when using a plugin"),
+			regexp.QuoteMeta("[Feature:Builds][Smoke] result image should have proper labels set"),
 		},
 	}
 
