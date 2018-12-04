@@ -85,6 +85,17 @@ var staticSuites = []*ginkgo.TestSuite{
 		TestTimeout: 20 * time.Minute,
 	},
 	{
+		Name: "openshift/jenkins-e2e",
+		Description: templates.LongDesc(`
+		Tests that exercise the OpensShift / Jenkins integrations provided by the OpenShift Jenkins image/plugins and the Pipeline Build Strategy.
+		`),
+		Matches: func(name string) bool {
+			return strings.Contains(name, "openshift pipeline")
+		},
+		Parallelism: 3,
+		TestTimeout: 20 * time.Minute,
+	},
+	{
 		Name: "openshift/smoke-4",
 		Description: templates.LongDesc(`
 		Tests that verify a 4.X cluster (using the new operator based core) is ready. This
