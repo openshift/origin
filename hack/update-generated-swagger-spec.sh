@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script to create latest swagger spec.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This library holds utility functions for building
 # and placing Golang binaries for multiple arches.

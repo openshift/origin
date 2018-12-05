@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..

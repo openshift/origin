@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script installs std -race on Travis (see https://code.google.com/p/go/issues/detail?id=6479)
 

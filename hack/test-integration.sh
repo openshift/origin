@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 # build the test executable and make sure it's on the path

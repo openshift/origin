@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file contains helpful aliases for manipulating the output text to the terminal as
 # well as functions for one-command augmented printing.

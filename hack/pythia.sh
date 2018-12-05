@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script sets up a go workspace locally and invokes pythia to introspect code
 # see: https://github.com/fzipp/pythia

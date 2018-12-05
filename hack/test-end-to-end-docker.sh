@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app

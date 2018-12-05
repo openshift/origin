@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This file ensures that the helper functions in util.sh behave as expected
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT

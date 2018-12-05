@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This utility file contains functions that format test output to be parsed into jUnit XML
 
 # os::test::junit::declare_suite_start prints a message declaring the start of a test suite

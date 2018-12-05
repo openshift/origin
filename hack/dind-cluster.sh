@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # WARNING: The script modifies the host that docker is running on.  It
 # attempts to load the overlay and openvswitch modules. If this modification

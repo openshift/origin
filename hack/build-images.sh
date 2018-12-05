@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script builds all images locally except the base and release images,
 # which are handled by hack/build-base-images.sh.

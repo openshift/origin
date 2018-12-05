@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CERT=${1:-}
 KEY=${2:-}

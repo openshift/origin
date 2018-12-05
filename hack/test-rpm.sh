@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script ensures RPM's build properly and can
 # be installed as expected

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This script runs Go language unit tests for the repository. Arguments to this script
 # are parsed as a list of packages to test until the first argument starting with '-' or '--' is

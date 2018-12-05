@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This library holds miscellaneous utility functions. If there begin to be groups of functions in this
 # file that share intent or are thematically similar, they should be split into their own files.

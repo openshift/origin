@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This command checks that the built commands can function together for
 # simple scenarios.  It does not require Docker so it can run in travis.

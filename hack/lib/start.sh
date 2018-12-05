@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This library holds functions for configuring and starting an OpenShift server
 
