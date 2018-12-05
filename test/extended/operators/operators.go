@@ -148,7 +148,7 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 				e2e.Logf("Some cluster operators never became available %s", strings.Join(unavailable, ", "))
 			}
 		}
-		if _, ok := available["openshift-cluster-dns-operator/openshift-dns"]; !ok {
+		if _, ok := available["openshift-cluster-dns-operator"]; !ok {
 			e2e.Failf("A required operator was not available")
 		}
 	})
