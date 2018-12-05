@@ -537,12 +537,12 @@ func TestValidateMasterAuthConfig(t *testing.T) {
 		{
 			testName:          "No OAuth Metadata file",
 			OAuthMetadataFile: "NoFile",
-			expectedErrors:    []string{`oauthMetadataFile: Invalid value: "NoFile": Metadata validation failed: Unable to read External OAuth Metadata file: open NoFile: no such file or directory`},
+			expectedErrors:    []string{`oauthMetadataFile: Invalid value: "NoFile": Metadata validation failed: unable to read External OAuth Metadata file: open NoFile: no such file or directory`},
 		},
 		{
 			testName:          "Bad Metadata file",
 			OAuthMetadataFile: badMetadataFile.Name(),
-			expectedErrors:    []string{fmt.Sprintf(`oauthMetadataFile: Invalid value: %q: Metadata validation failed: Unable to decode External OAuth Metadata file: invalid character 'b' looking for beginning of value`, badMetadataFile.Name())},
+			expectedErrors:    []string{fmt.Sprintf(`oauthMetadataFile: Invalid value: %q: Metadata validation failed: unable to decode External OAuth Metadata file: invalid character 'b' looking for beginning of value`, badMetadataFile.Name())},
 		},
 	}
 	for _, test := range testCases {
