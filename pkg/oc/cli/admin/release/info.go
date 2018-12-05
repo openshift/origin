@@ -20,12 +20,15 @@ import (
 	"github.com/spf13/cobra"
 
 	digest "github.com/opencontainers/go-digest"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	imageapi "github.com/openshift/api/image/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
@@ -48,7 +51,7 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 			Experimental: This command is under active development and may change without notice.
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(cmd, args))
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -71,7 +74,32 @@ type InfoOptions struct {
 	Verify       bool
 }
 
-func (o *InfoOptions) Complete(cmd *cobra.Command, args []string) error {
+func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		cfg, err := f.ToRESTConfig()
+		if err != nil {
+			return fmt.Errorf("info expects one argument, or a connection to a 4.0 OpenShift server: %v", err)
+		}
+		client, err := configv1client.NewForConfig(cfg)
+		if err != nil {
+			return fmt.Errorf("info expects one argument, or a connection to a 4.0 OpenShift server: %v", err)
+		}
+		cv, err := client.Config().ClusterVersions().Get("version", metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return fmt.Errorf("you must be connected to a v4.0 OpenShift server to fetch the current version")
+			}
+			return fmt.Errorf("info expects one argument, or a connection to a 4.0 OpenShift server: %v", err)
+		}
+		image := cv.Status.Current.Payload
+		if len(image) == 0 && cv.Spec.DesiredUpdate != nil {
+			image = cv.Spec.DesiredUpdate.Payload
+		}
+		if len(image) == 0 {
+			return fmt.Errorf("the server is not reporting a release image at this time, please specify an image to view")
+		}
+		args = []string{image}
+	}
 	if len(args) < 1 {
 		return fmt.Errorf("info expects at least one argument, a release image pull spec")
 	}
@@ -84,7 +112,7 @@ func (o *InfoOptions) Run() error {
 		return fmt.Errorf("must specify a release image as an argument")
 	}
 	if len(o.From) > 0 && len(o.Images) != 1 {
-		return fmt.Errorf("must specify a release image as argument when comparing to another release image")
+		return fmt.Errorf("must specify a single release image as argument when comparing to another release image")
 	}
 
 	if len(o.From) > 0 {
