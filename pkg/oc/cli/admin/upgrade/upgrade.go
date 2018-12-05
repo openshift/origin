@@ -69,6 +69,7 @@ func New(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStre
 	flags := cmd.Flags()
 	flags.StringVar(&o.To, "to", o.To, "Specify the version to upgrade to. The version must be on the list of previous or available updates.")
 	flags.StringVar(&o.ToImage, "to-image", o.ToImage, "Provide a release image to upgrade to. WARNING: This option does not check for upgrade compatibility and may break your cluster.")
+	flags.BoolVar(&o.ToLatestAvailable, "to-latest", o.ToLatestAvailable, "Use the next available version")
 	flags.BoolVar(&o.Force, "force", o.Force, "Upgrade even if an upgrade is in process or other error is blocking update.")
 	return cmd
 }
@@ -76,8 +77,9 @@ func New(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStre
 type Options struct {
 	genericclioptions.IOStreams
 
-	To      string
-	ToImage string
+	To                string
+	ToImage           string
+	ToLatestAvailable bool
 
 	Force bool
 
@@ -130,9 +132,42 @@ func (o *Options) Run() error {
 	}
 
 	switch {
+	case o.ToLatestAvailable:
+		if len(cv.Status.AvailableUpdates) == 0 {
+			fmt.Fprintf(o.Out, "info: Cluster is already at the latest available version %s\n", cv.Status.Current.Version)
+			return nil
+		}
+
+		if !o.Force {
+			if err := checkForUpgrade(cv); err != nil {
+				return err
+			}
+		}
+
+		sortSemanticVersions(cv.Status.AvailableUpdates)
+		update := cv.Status.AvailableUpdates[len(cv.Status.AvailableUpdates)-1]
+		cv.Spec.DesiredUpdate = &update
+
+		_, err := o.Client.Config().ClusterVersions().Update(cv)
+		if err != nil {
+			return fmt.Errorf("Unable to upgrade to latest version %s: %v", update.Version, err)
+		}
+
+		if len(update.Version) > 0 {
+			fmt.Fprintf(o.Out, "Updating to latest version %s\n", update.Version)
+		} else {
+			fmt.Fprintf(o.Out, "Updating to latest release image %s\n", update.Payload)
+		}
+
+		return nil
+
 	case len(o.To) > 0, len(o.ToImage) > 0:
 		var update *configv1.Update
 		if len(o.To) > 0 {
+			if o.To == cv.Status.Current.Version {
+				fmt.Fprintf(o.Out, "info: Cluster is already at version %s\n", o.To)
+				return nil
+			}
 			for _, available := range cv.Status.AvailableUpdates {
 				if available.Version == o.To {
 					update = &available
@@ -150,6 +185,10 @@ func (o *Options) Run() error {
 			}
 		}
 		if len(o.ToImage) > 0 {
+			if o.ToImage == cv.Status.Current.Payload {
+				fmt.Fprintf(o.Out, "info: Cluster is already using releaes image %s\n", o.ToImage)
+				return nil
+			}
 			update = &configv1.Update{
 				Version: "",
 				Payload: o.ToImage,
@@ -295,13 +334,13 @@ func findCondition(conditions []configv1.ClusterOperatorStatusCondition, name co
 
 func checkForUpgrade(cv *configv1.ClusterVersion) error {
 	if c := findCondition(cv.Status.Conditions, "Invalid"); c != nil && c.Status == configv1.ConditionTrue {
-		return fmt.Errorf("The cluster version object is invalid, you must correct the invalid state first. %v", c.Message)
+		return fmt.Errorf("The cluster version object is invalid, you must correct the invalid state first.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorFailing); c != nil && c.Status == configv1.ConditionTrue {
-		return fmt.Errorf("The cluster is experiencing an error preventing upgrade, use --force to upgrade anyway. %v", c.Message)
+		return fmt.Errorf("The cluster is experiencing an upgrade-blocking error, use --force to upgrade anyway.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c != nil && c.Status == configv1.ConditionTrue {
-		return fmt.Errorf("Already upgrading, pass --force to override. %v", c.Message)
+		return fmt.Errorf("Already upgrading, pass --force to override.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
 	}
 	return nil
 }
