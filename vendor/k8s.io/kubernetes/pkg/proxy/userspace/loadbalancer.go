@@ -31,4 +31,5 @@ type LoadBalancer interface {
 	DeleteService(service proxy.ServicePortName)
 	CleanupStaleStickySessions(service proxy.ServicePortName)
 	ServiceHasEndpoints(service proxy.ServicePortName) bool
+	EndpointsSyncedChan() chan bool
 }

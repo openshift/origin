@@ -56,6 +56,7 @@ go_library(
         "//pkg/apis/core/helper:go_default_library",
         "//pkg/proxy:go_default_library",
         "//pkg/proxy/util:go_default_library",
+        "//pkg/util/async:go_default_library",
         "//pkg/util/conntrack:go_default_library",
         "//pkg/util/iptables:go_default_library",
         "//pkg/util/slice:go_default_library",

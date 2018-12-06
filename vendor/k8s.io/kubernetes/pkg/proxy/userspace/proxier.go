@@ -29,6 +29,7 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/wait"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/proxy"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilproxy "k8s.io/kubernetes/pkg/proxy/util"
+	"k8s.io/kubernetes/pkg/util/async"
 	"k8s.io/kubernetes/pkg/util/conntrack"
 	"k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
@@ -93,6 +95,18 @@ func logTimeout(err error) bool {
 // ProxySocketFunc is a function which constructs a ProxySocket from a protocol, ip, and port
 type ProxySocketFunc func(protocol api.Protocol, ip net.IP, port int) (ProxySocket, error)
 
+const (
+	serviceEventAdd    int = 1
+	serviceEventUpdate int = 2
+	serviceEventDelete int = 3
+)
+
+type serviceEvent struct {
+	event      int
+	service    *api.Service
+	oldService *api.Service
+}
+
 // Proxier is a simple proxy for TCP connections between a localhost:lport
 // and services that provide the actual implementations.
 type Proxier struct {
@@ -100,7 +114,7 @@ type Proxier struct {
 	mu              sync.Mutex // protects serviceMap
 	serviceMap      map[proxy.ServicePortName]*ServiceInfo
 	syncPeriod      time.Duration
-	minSyncPeriod   time.Duration // unused atm, but plumbed through
+	minSyncPeriod   time.Duration
 	udpIdleTimeout  time.Duration
 	portMapMutex    sync.Mutex
 	portMap         map[portMapKey]*portMapValue
@@ -111,6 +125,13 @@ type Proxier struct {
 	proxyPorts      PortAllocator
 	makeProxySocket ProxySocketFunc
 	exec            utilexec.Interface
+	// endpointsSynced and servicesSynced are set to true when corresponding
+	// objects are synced after startup. This is used to avoid updating iptables
+	// with some partial data after kube-proxy restart.
+	endpointsSynced bool
+	servicesSynced  bool
+	serviceEvents   []serviceEvent                // list of events since last sync
+	syncRunner      *async.BoundedFrequencyRunner // governs calls to syncProxyRules
 }
 
 // assert Proxier is a ProxyProvider
@@ -204,12 +225,12 @@ func createProxier(loadBalancer LoadBalancer, listenIP net.IP, iptables iptables
 	if err := iptablesFlush(iptables); err != nil {
 		return nil, fmt.Errorf("failed to flush iptables: %v", err)
 	}
-	return &Proxier{
-		loadBalancer: loadBalancer,
-		serviceMap:   make(map[proxy.ServicePortName]*ServiceInfo),
-		portMap:      make(map[portMapKey]*portMapValue),
-		syncPeriod:   syncPeriod,
-		// plumbed through if needed, not used atm.
+	proxier := &Proxier{
+		loadBalancer:    loadBalancer,
+		serviceMap:      make(map[proxy.ServicePortName]*ServiceInfo),
+		serviceEvents:   []serviceEvent{},
+		portMap:         make(map[portMapKey]*portMapValue),
+		syncPeriod:      syncPeriod,
 		minSyncPeriod:   minSyncPeriod,
 		udpIdleTimeout:  udpIdleTimeout,
 		listenIP:        listenIP,
@@ -218,7 +239,21 @@ func createProxier(loadBalancer LoadBalancer, listenIP net.IP, iptables iptables
 		proxyPorts:      proxyPorts,
 		makeProxySocket: makeProxySocket,
 		exec:            exec,
-	}, nil
+	}
+	burstSyncs := 2
+	glog.V(3).Infof("minSyncPeriod: %v, syncPeriod: %v, burstSyncs: %d", minSyncPeriod, syncPeriod, burstSyncs)
+	proxier.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, syncPeriod, burstSyncs)
+
+	go func() {
+		<-loadBalancer.EndpointsSyncedChan()
+		proxier.mu.Lock()
+		proxier.endpointsSynced = true
+		proxier.mu.Unlock()
+
+		// Sync unconditionally - this is called once per lifetime.
+		proxier.syncProxyRules()
+	}()
+	return proxier, nil
 }
 
 // CleanupLeftovers removes all iptables rules and chains created by the Proxier
@@ -291,6 +326,44 @@ func CleanupLeftovers(ipt iptables.Interface) (encounteredError bool) {
 
 // Sync is called to immediately synchronize the proxier state to iptables
 func (proxier *Proxier) Sync() {
+	proxier.syncRunner.Run()
+}
+
+func (proxier *Proxier) isInitialized() bool {
+	proxier.mu.Lock()
+	defer proxier.mu.Unlock()
+	return proxier.servicesSynced && proxier.endpointsSynced
+}
+
+func (proxier *Proxier) syncProxyRules() {
+	start := time.Now()
+	defer func() {
+		glog.V(4).Infof("syncProxyRules took %v", time.Since(start))
+	}()
+	// don't sync rules till we've received services and endpoints
+	if !proxier.isInitialized() {
+		glog.V(2).Info("Not syncing iptables until Services and Endpoints have been received from master")
+		return
+	}
+
+	proxier.mu.Lock()
+	items := proxier.serviceEvents
+	proxier.serviceEvents = []serviceEvent{}
+	proxier.mu.Unlock()
+
+	glog.V(2).Infof("processing %d service events", len(items))
+	for _, e := range items {
+		switch e.event {
+		case serviceEventAdd:
+			_ = proxier.mergeService(e.service)
+		case serviceEventUpdate:
+			existingPorts := proxier.mergeService(e.service)
+			proxier.unmergeService(e.oldService, existingPorts)
+		case serviceEventDelete:
+			proxier.unmergeService(e.oldService, sets.NewString())
+		}
+	}
+
 	if err := iptablesInit(proxier.iptables); err != nil {
 		glog.Errorf("Failed to ensure iptables: %v", err)
 	}
@@ -300,13 +373,7 @@ func (proxier *Proxier) Sync() {
 
 // SyncLoop runs periodic work.  This is expected to run as a goroutine or as the main loop of the app.  It does not return.
 func (proxier *Proxier) SyncLoop() {
-	t := time.NewTicker(proxier.syncPeriod)
-	defer t.Stop()
-	for {
-		<-t.C
-		glog.V(6).Infof("Periodic sync")
-		proxier.Sync()
-	}
+	proxier.syncRunner.Loop(wait.NeverStop)
 }
 
 // Ensure that portals exist for all services.
@@ -512,20 +579,41 @@ func (proxier *Proxier) unmergeService(service *api.Service, existingPorts sets.
 	}
 }
 
+func (proxier *Proxier) processServiceEvent(event int, oldService, service *api.Service) {
+	e := serviceEvent{
+		event:      event,
+		service:    service.DeepCopy(),
+		oldService: oldService.DeepCopy(),
+	}
+
+	proxier.mu.Lock()
+	proxier.serviceEvents = append(proxier.serviceEvents, e)
+	proxier.mu.Unlock()
+
+	if proxier.isInitialized() {
+		proxier.syncRunner.Run()
+	}
+}
+
 func (proxier *Proxier) OnServiceAdd(service *api.Service) {
-	_ = proxier.mergeService(service)
+	proxier.processServiceEvent(serviceEventAdd, nil, service)
 }
 
 func (proxier *Proxier) OnServiceUpdate(oldService, service *api.Service) {
-	existingPorts := proxier.mergeService(service)
-	proxier.unmergeService(oldService, existingPorts)
+	proxier.processServiceEvent(serviceEventUpdate, oldService, service)
 }
 
 func (proxier *Proxier) OnServiceDelete(service *api.Service) {
-	proxier.unmergeService(service, sets.NewString())
+	proxier.processServiceEvent(serviceEventDelete, service, nil)
 }
 
 func (proxier *Proxier) OnServiceSynced() {
+	proxier.mu.Lock()
+	proxier.servicesSynced = true
+	proxier.mu.Unlock()
+
+	// Sync unconditionally - this is called once per lifetime.
+	proxier.syncProxyRules()
 }
 
 func sameConfig(info *ServiceInfo, service *api.Service, port *api.ServicePort) bool {

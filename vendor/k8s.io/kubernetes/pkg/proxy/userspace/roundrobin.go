@@ -53,8 +53,9 @@ type affinityPolicy struct {
 
 // LoadBalancerRR is a round-robin load balancer.
 type LoadBalancerRR struct {
-	lock     sync.RWMutex
-	services map[proxy.ServicePortName]*balancerState
+	lock            sync.RWMutex
+	services        map[proxy.ServicePortName]*balancerState
+	endpointsSynced chan bool
 }
 
 // Ensure this implements LoadBalancer.
@@ -77,7 +78,8 @@ func newAffinityPolicy(affinityType api.ServiceAffinity, ttlSeconds int) *affini
 // NewLoadBalancerRR returns a new LoadBalancerRR.
 func NewLoadBalancerRR() *LoadBalancerRR {
 	return &LoadBalancerRR{
-		services: map[proxy.ServicePortName]*balancerState{},
+		services:        map[proxy.ServicePortName]*balancerState{},
+		endpointsSynced: make(chan bool),
 	}
 }
 
@@ -356,6 +358,11 @@ func (lb *LoadBalancerRR) OnEndpointsDelete(endpoints *api.Endpoints) {
 }
 
 func (lb *LoadBalancerRR) OnEndpointsSynced() {
+	close(lb.endpointsSynced)
+}
+
+func (lb *LoadBalancerRR) EndpointsSyncedChan() chan bool {
+	return lb.endpointsSynced
 }
 
 // Tests whether two slices are equivalent.  This sorts both slices in-place.
