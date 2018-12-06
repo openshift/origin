@@ -152,8 +152,9 @@ func (c *AvailableConditionController) sync(key string) error {
 	apiService := originalAPIService.DeepCopy()
 
 	availableCondition := apiregistration.APIServiceCondition{
-		Type:   apiregistration.Available,
-		Status: apiregistration.ConditionTrue,
+		Type:               apiregistration.Available,
+		Status:             apiregistration.ConditionTrue,
+		LastTransitionTime: metav1.Now(),
 	}
 
 	// local API services are always considered available
