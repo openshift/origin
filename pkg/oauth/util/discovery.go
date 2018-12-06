@@ -80,31 +80,31 @@ func validateURL(urlString string) error {
 func LoadOAuthMetadataFile(metadataFile string) ([]byte, *OauthAuthorizationServerMetadata, error) {
 	data, err := ioutil.ReadFile(metadataFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to read External OAuth Metadata file: %v", err)
+		return nil, nil, fmt.Errorf("unable to read External OAuth Metadata file: %v", err)
 	}
 
 	oauthMetadata := &OauthAuthorizationServerMetadata{}
 	if err := json.Unmarshal(data, oauthMetadata); err != nil {
-		return nil, nil, fmt.Errorf("Unable to decode External OAuth Metadata file: %v", err)
+		return nil, nil, fmt.Errorf("unable to decode External OAuth Metadata file: %v", err)
 	}
 
 	if err := validateURL(oauthMetadata.Issuer); err != nil {
-		return nil, nil, fmt.Errorf("Error validating External OAuth Metadata Issuer field: %v", err)
+		return nil, nil, fmt.Errorf("error validating External OAuth Metadata Issuer field: %v", err)
 	}
 
 	if err := validateURL(oauthMetadata.AuthorizationEndpoint); err != nil {
-		return nil, nil, fmt.Errorf("Error validating External OAuth Metadata AuthorizationEndpoint field: %v", err)
+		return nil, nil, fmt.Errorf("error validating External OAuth Metadata AuthorizationEndpoint field: %v", err)
 	}
 
 	if err := validateURL(oauthMetadata.TokenEndpoint); err != nil {
-		return nil, nil, fmt.Errorf("Error validating External OAuth Metadata TokenEndpoint field: %v", err)
+		return nil, nil, fmt.Errorf("error validating External OAuth Metadata TokenEndpoint field: %v", err)
 	}
 
 	return data, oauthMetadata, nil
 }
 
 func PrepOauthMetadata(oauthConfig *osinv1.OAuthConfig, oauthMetadataFile string) ([]byte, *OauthAuthorizationServerMetadata, error) {
-	if oauthConfig != nil {
+	if oauthConfig != nil && len(oauthConfig.MasterPublicURL) != 0 {
 		metadataStruct := getOauthMetadata(oauthConfig.MasterPublicURL)
 		metadata, err := json.MarshalIndent(metadataStruct, "", "  ")
 		if err != nil {
