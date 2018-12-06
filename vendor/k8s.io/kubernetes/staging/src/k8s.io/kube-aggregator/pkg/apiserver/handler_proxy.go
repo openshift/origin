@@ -30,6 +30,7 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
+	endpointmetrics "k8s.io/apiserver/pkg/endpoints/metrics"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericfeatures "k8s.io/apiserver/pkg/features"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -60,6 +61,8 @@ type proxyHandlingInfo struct {
 	// local indicates that this APIService is locally satisfied
 	local bool
 
+	// name is the name of the APIService
+	name string
 	// restConfig holds the information for building a roundtripper
 	restConfig *restclient.Config
 	// transportBuildingError is an error produced while building the transport.  If this
@@ -73,6 +76,19 @@ type proxyHandlingInfo struct {
 	serviceNamespace string
 	// serviceAvailable indicates this APIService is available or not
 	serviceAvailable bool
+}
+
+func proxyError(w http.ResponseWriter, req *http.Request, error string, code int) {
+	http.Error(w, error, code)
+
+	ctx := req.Context()
+	info, ok := genericapirequest.RequestInfoFrom(ctx)
+	if !ok {
+		glog.Warning("no RequestInfo found in the context")
+		return
+	}
+	// TODO: record long-running request differently? The long-running check func does not necessarily match the one of the aggregated apiserver
+	endpointmetrics.Record(req, info, "", code, 0, 0)
 }
 
 func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -92,18 +108,18 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if !handlingInfo.serviceAvailable {
-		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 
 	if handlingInfo.transportBuildingError != nil {
-		http.Error(w, handlingInfo.transportBuildingError.Error(), http.StatusInternalServerError)
+		proxyError(w, req, handlingInfo.transportBuildingError.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	user, ok := genericapirequest.UserFrom(req.Context())
 	if !ok {
-		http.Error(w, "missing user", http.StatusInternalServerError)
+		proxyError(w, req, "missing user", http.StatusInternalServerError)
 		return
 	}
 
@@ -113,7 +129,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	rloc, err := r.serviceResolver.ResolveEndpoint(handlingInfo.serviceNamespace, handlingInfo.serviceName)
 	if err != nil {
 		glog.Errorf("error resolving %s/%s: %v", handlingInfo.serviceNamespace, handlingInfo.serviceName, err)
-		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	location.Host = rloc.Host
@@ -126,14 +142,14 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	newReq.URL = location
 
 	if handlingInfo.proxyRoundTripper == nil {
-		http.Error(w, "", http.StatusNotFound)
+		proxyError(w, req, "", http.StatusNotFound)
 		return
 	}
 
 	// we need to wrap the roundtripper in another roundtripper which will apply the front proxy headers
 	proxyRoundTripper, upgrade, err := maybeWrapForConnectionUpgrades(handlingInfo.restConfig, handlingInfo.proxyRoundTripper, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		proxyError(w, req, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	proxyRoundTripper = transport.NewAuthProxyRoundTripper(user.GetName(), user.GetGroups(), user.GetExtra(), proxyRoundTripper)
@@ -195,6 +211,7 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationapi.APIServic
 	}
 
 	newInfo := proxyHandlingInfo{
+		name: apiService.Name,
 		restConfig: &restclient.Config{
 			TLSClientConfig: restclient.TLSClientConfig{
 				Insecure:   apiService.Spec.InsecureSkipTLSVerify,
