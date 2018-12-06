@@ -23,11 +23,10 @@ import (
 	"net/url"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/equality"
-
 	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -153,9 +152,8 @@ func (c *AvailableConditionController) sync(key string) error {
 	apiService := originalAPIService.DeepCopy()
 
 	availableCondition := apiregistration.APIServiceCondition{
-		Type:               apiregistration.Available,
-		Status:             apiregistration.ConditionTrue,
-		LastTransitionTime: metav1.Now(),
+		Type:   apiregistration.Available,
+		Status: apiregistration.ConditionTrue,
 	}
 
 	// local API services are always considered available
@@ -307,7 +305,29 @@ func updateAPIServiceStatus(client apiregistrationclient.APIServicesGetter, orig
 	if equality.Semantic.DeepEqual(originalAPIService.Status, newAPIService.Status) {
 		return newAPIService, nil
 	}
-	return client.APIServices().UpdateStatus(newAPIService)
+	newAPIService, err := client.APIServices().UpdateStatus(newAPIService)
+	if err != nil {
+		return nil, err
+	}
+
+	// update metrics
+	wasAvailable := apiregistration.IsAPIServiceConditionTrue(originalAPIService, apiregistration.Available)
+	isAvailable := apiregistration.IsAPIServiceConditionTrue(newAPIService, apiregistration.Available)
+	if isAvailable != wasAvailable {
+		if isAvailable {
+			unavailableGauge.WithLabelValues(newAPIService.Name).Set(0.0)
+		} else {
+			unavailableGauge.WithLabelValues(newAPIService.Name).Set(1.0)
+
+			reason := "UnknownReason"
+			if newCondition := apiregistration.GetAPIServiceConditionByType(newAPIService, apiregistration.Available); newCondition != nil {
+				reason = newCondition.Reason
+			}
+			unavailableCounter.WithLabelValues(newAPIService.Name, reason).Inc()
+		}
+	}
+
+	return newAPIService, nil
 }
 
 func (c *AvailableConditionController) Run(threadiness int, stopCh <-chan struct{}) {

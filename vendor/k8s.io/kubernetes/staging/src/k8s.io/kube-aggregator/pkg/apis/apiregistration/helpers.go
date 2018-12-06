@@ -98,16 +98,20 @@ func NewLocalAvailableAPIServiceCondition() APIServiceCondition {
 	}
 }
 
+// GetAPIServiceConditionByType gets an *APIServiceCondition by APIServiceConditionType if present
+func GetAPIServiceConditionByType(apiService *APIService, conditionType APIServiceConditionType) *APIServiceCondition {
+	for i := range apiService.Status.Conditions {
+		if apiService.Status.Conditions[i].Type == conditionType {
+			return &apiService.Status.Conditions[i]
+		}
+	}
+	return nil
+}
+
 // SetAPIServiceCondition sets the status condition.  It either overwrites the existing one or
 // creates a new one
 func SetAPIServiceCondition(apiService *APIService, newCondition APIServiceCondition) {
-	var existingCondition *APIServiceCondition
-	for i := range apiService.Status.Conditions {
-		if apiService.Status.Conditions[i].Type == newCondition.Type {
-			existingCondition = &apiService.Status.Conditions[i]
-			break
-		}
-	}
+	existingCondition := GetAPIServiceConditionByType(apiService, newCondition.Type)
 	if existingCondition == nil {
 		apiService.Status.Conditions = append(apiService.Status.Conditions, newCondition)
 		return
