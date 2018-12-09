@@ -42,7 +42,10 @@ func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
 	return &NewOptions{
 		IOStreams:      streams,
 		MaxPerRegistry: 4,
-		AlwaysInclude:  []string{"cluster-version-operator", "cli"},
+		// TODO: only cluster-version-operator and maybe CLI should be in this list,
+		//   the others should always be referenced by the cluster-bootstrap or
+		//   another operator.
+		AlwaysInclude:  []string{"cluster-version-operator", "cli", "installer"},
 		ToImageBaseTag: "cluster-version-operator",
 	}
 }
