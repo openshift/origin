@@ -579,7 +579,7 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 
 	sort.Strings(hookPods)
 	sort.Strings(deletedPodNames)
-	if !reflect.DeepEqual(deletedPodNames, deletedPodNames) {
+	if !reflect.DeepEqual(hookPods, deletedPodNames) {
 		t.Fatalf("pod deletions - expected: %v, actual: %v", hookPods, deletedPodNames)
 	}
 
@@ -626,7 +626,7 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 
 	sort.Strings(hookPods)
 	sort.Strings(deletedPodNames)
-	if !reflect.DeepEqual(deletedPodNames, deletedPodNames) {
+	if !reflect.DeepEqual(hookPods, deletedPodNames) {
 		t.Fatalf("pod deletions - expected: %v, actual: %v", hookPods, deletedPodNames)
 	}
 	if updatedDeployment == nil {
