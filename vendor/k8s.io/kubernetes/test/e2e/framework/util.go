@@ -1275,6 +1275,10 @@ func hasRemainingContent(c clientset.Interface, dynamicClient dynamic.Interface,
 			Logf("namespace: %s, resource: %s, ignored listing per whitelist", namespace, apiResource.Name)
 			continue
 		}
+		// TODO: temporary hack for https://github.com/openshift/cluster-monitoring-operator/pull/182
+		if gvr.Group == "metrics.k8s.io" {
+			continue
+		}
 		unstructuredList, err := dynamicClient.List(metav1.ListOptions{})
 		if err != nil {
 			// not all resources support list, so we ignore those
