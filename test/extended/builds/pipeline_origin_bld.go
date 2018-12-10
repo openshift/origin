@@ -38,24 +38,26 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		jenkinsEphemeralTemplatePath  = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
-		jenkinsPersistentTemplatePath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
-		envVarsPipelinePath           = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
-		origPipelinePath              = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
-		configMapPodTemplatePath      = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
-		imagestreamPodTemplatePath    = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
-		imagestreamtagPodTemplatePath = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
-		podTemplateSlavePipelinePath  = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
-		secretPath                    = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
-		successfulPipeline            = exutil.FixturePath("testdata", "builds", "build-pruning", "successful-pipeline.yaml")
-		failedPipeline                = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
-		pollingInterval               = time.Second
-		timeout                       = time.Minute
-		oc                            = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
-		ticker                        *time.Ticker
-		j                             *jenkins.JenkinsRef
-		pvs                           = []*corev1.PersistentVolume{}
-		nfspod                        = &corev1.Pod{}
+		jenkinsEphemeralTemplatePath           = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		jenkinsPersistentTemplatePath          = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
+		envVarsPipelinePath                    = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
+		origPipelinePath                       = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
+		configMapPodTemplatePath               = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
+		imagestreamPodTemplatePath             = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
+		imagestreamtagPodTemplatePath          = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
+		podTemplateSlavePipelinePath           = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
+		secretPath                             = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
+		successfulPipeline                     = exutil.FixturePath("testdata", "builds", "build-pruning", "successful-pipeline.yaml")
+		failedPipeline                         = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
+		clientPluginPipelinePath               = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
+		multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
+		pollingInterval                        = time.Second
+		timeout                                = time.Minute
+		oc                                     = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
+		ticker                                 *time.Ticker
+		j                                      *jenkins.JenkinsRef
+		pvs                                    = []*corev1.PersistentVolume{}
+		nfspod                                 = &corev1.Pod{}
 
 		cleanup = func(jenkinsTemplatePath string) {
 			if g.CurrentGinkgoTestDescription().Failed {
@@ -212,6 +214,120 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 		}
 	)
+
+	g.Context("jenkins-client-plugin tests", func() {
+
+		g.It("using the ephemeral template", func() {
+			defer cleanup(jenkinsEphemeralTemplatePath)
+			setupJenkins(jenkinsEphemeralTemplatePath)
+
+			g.By("Pipeline using jenkins-client-plugin")
+
+			g.By("should build and complete successfully", func() {
+				// instantiate the bc
+				g.By("create the jenkins pipeline strategy build config that leverages openshift client plugin")
+				err := oc.Run("create").Args("-f", clientPluginPipelinePath).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// start the build - we run it twice because our sample pipeline exercises different paths of the client
+				// plugin based on whether certain resources already exist or not
+				for i := 0; i < 2; i++ {
+					g.By(fmt.Sprintf("starting the pipeline build and waiting for it to complete, pass: %d", i))
+					br, err := exutil.StartBuildAndWait(oc, "sample-pipeline-openshift-client-plugin")
+					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
+					if err != nil || !br.BuildSuccess {
+						exutil.DumpBuilds(oc)
+						exutil.DumpBuildLogs("ruby", oc)
+						exutil.DumpDeploymentLogs("mongodb", 1, oc)
+						exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
+						exutil.DumpDeploymentLogs("jenkins-second-deployment", 2, oc)
+					}
+					br.AssertSuccess()
+
+					g.By("get build console logs and see if succeeded")
+					_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
+				g.By("clean up openshift resources for next potential run")
+				err = oc.Run("delete").Args("bc", "sample-pipeline-openshift-client-plugin").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("dc", "jenkins-second-deployment").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("bc", "ruby").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("is", "ruby").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("is", "ruby-22-centos7").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("secret", "mongodb").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+
+			g.By("should handle multi-namespace templates", func() {
+				g.By("create additional projects")
+				namespace := oc.Namespace()
+				namespace2 := oc.Namespace() + "-2"
+				namespace3 := oc.Namespace() + "-3"
+
+				err := oc.Run("new-project").Args(namespace2).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("new-project").Args(namespace3).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				// no calls to delete these two projects here; leads to timing
+				// issues with the framework deleting all namespaces
+
+				g.By("set up policy for jenkins jobs in " + namespace2)
+				err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+namespace+":jenkins", "-n", namespace2).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("set up policy for jenkins jobs in " + namespace3)
+				err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+namespace+":jenkins", "-n", namespace3).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// instantiate the bc
+				g.By("instantiate the jenkins pipeline strategy build config that leverages openshift client plugin with multiple namespaces")
+				err = oc.Run("new-app").Args("-f", multiNamespaceClientPluginPipelinePath, "-p", "NAMESPACE="+namespace, "-p", "NAMESPACE2="+namespace2, "-p", "NAMESPACE3="+namespace3).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// run the build
+				g.By("starting the pipeline build and waiting for it to complete")
+				br, err := exutil.StartBuildAndWait(oc, "multi-namespace-pipeline")
+				debugAnyJenkinsFailure(br, oc.Namespace()+"-multi-namespace-pipeline", oc, true)
+				if err != nil || !br.BuildSuccess {
+					exutil.DumpBuilds(oc)
+				}
+				br.AssertSuccess()
+
+				g.By("get build console logs and see if succeeded")
+				_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("confirm there are objects in second and third namespaces")
+				defer oc.SetNamespace(namespace)
+				oc.SetNamespace(namespace2)
+				output, err := oc.Run("get").Args("all").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/mongodb"))
+				oc.SetNamespace(namespace3)
+				output, err = oc.Run("get").Args("all").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).To(o.ContainSubstring("service/mongodb"))
+
+				g.By("clean up openshift resources for next potential run")
+				oc.SetNamespace(namespace)
+				err = oc.Run("delete").Args("bc", "multi-namespace-pipeline").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+		})
+	})
 
 	g.Context("Sync plugin tests", func() {
 
