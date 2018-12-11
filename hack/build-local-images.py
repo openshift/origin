@@ -26,7 +26,7 @@ and ADDing static files from the original context directories under the
 origin/images/ directories.
 
 Usage:
-  [OS_DEBUG=true] [OS_IMAGE_PREFIX=prefix] build-local-images.py [IMAGE...]
+  [OS_DEBUG=true] [OS_IMAGE_PREFIX=prefix] [OS_USE_BUILDAH=true] build-local-images.py [IMAGE...]
 
   Specific images can be specified to be built with either the full name
   of the image (e.g. openshift3/ose-haproxy-router) or the name sans prefix
@@ -35,6 +35,7 @@ Usage:
   The following environment variables are honored by this script:
    - $OS_IMAGE_PREFIX: one of [openshift/origin, docker.io/openshift/origin, openshift3/ose]
    - $OS_DEBUG: if set, debugging information will be printed
+   - $OS_USE_BUILDAH: if set, use buildah to build the images instead of Docker
 
 Examples:
   # build all images
@@ -56,6 +57,7 @@ Options:
 
 os_image_prefix = getenv("OS_IMAGE_PREFIX", "openshift/origin")
 os_image_tag = getenv("OS_IMAGE_TAG", "latest")
+os_use_buildah = getenv("OS_USE_BUILDAH")
 image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 
 # "enable_default: True" can be added to skip the image build
@@ -251,12 +253,19 @@ for image in image_config:
             destination=join("src", image, file),
             container_destination=config["files"][file]
         )
-
-    debug("Initiating Docker build with Dockerfile:\n{}".format(open(join(context_dir, "Dockerfile")).read()))
-    # re-pull the original image before building it so we're not accumulating layers each time we
-    # rebuild the image.
-    call(["docker", "pull", full_name(image) + ":" + image_config[image]["tag"]])
-    call(["docker", "build", "-t", full_name(image) + ":" + os_image_tag, "."], cwd=context_dir)
+    
+    if os_use_buildah:
+        debug("Initiating buildah build with Dockerfile:\n{}".format(open(join(context_dir, "Dockerfile")).read()))
+        # re-pull the original image before building it so we're not accumulating layers each time we
+        # rebuild the image.
+        call(["buildah", "pull", full_name(image) + ":" + image_config[image]["tag"]])
+        call(["buildah", "bud", "-t", full_name(image) + ":" + os_image_tag, "."], cwd=context_dir)
+    else:
+        debug("Initiating Docker build with Dockerfile:\n{}".format(open(join(context_dir, "Dockerfile")).read()))
+        # re-pull the original image before building it so we're not accumulating layers each time we
+        # rebuild the image.
+        call(["docker", "pull", full_name(image) + ":" + image_config[image]["tag"]])
+        call(["docker", "build", "-t", full_name(image) + ":" + os_image_tag, "."], cwd=context_dir)
 
     remove(join(context_dir, "Dockerfile"))
     rmtree(join(context_dir, "src", image))
