@@ -182,6 +182,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAddit
 	setupInputConfigMaps(pod, &pod.Spec.Containers[0], build.Spec.Source.ConfigMaps)
 	setupContainersConfigs(pod, &pod.Spec.Containers[0])
 	setupBuildCAs(build, pod, includeAdditionalCA)
+	setupRegistries(build, pod)
 	setupContainersStorage(pod, &pod.Spec.Containers[0]) // for unprivileged builds
 	// setupContainersNodeStorage(pod, &pod.Spec.Containers[0]) // for privileged builds
 	return pod, nil

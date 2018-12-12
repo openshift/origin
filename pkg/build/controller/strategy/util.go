@@ -31,6 +31,7 @@ const (
 	ConfigMapBuildSourceBaseMountPath    = "/var/run/configs/openshift.io/build"
 	ConfigMapBuildSystemConfigsMountPath = "/var/run/configs/openshift.io/build-system"
 	ConfigMapCertsMountPath              = "/var/run/configs/openshift.io/certs"
+	ConfigMapRegistryConfMountPath       = "/var/run/configs/openshift.io/registry"
 	SecretBuildSourceBaseMountPath       = "/var/run/secrets/openshift.io/build"
 	SourceImagePullSecretMountPath       = "/var/run/secrets/openshift.io/source-image"
 
@@ -483,6 +484,43 @@ func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, includeAdditionalCA bo
 				corev1.VolumeMount{
 					Name:      "build-ca-bundles",
 					MountPath: ConfigMapCertsMountPath,
+				},
+			)
+			containers[i] = c
+		}
+		pod.Spec.Containers = containers
+	}
+}
+
+func setupRegistries(build *buildv1.Build, pod *corev1.Pod) {
+	registryConfExists := false
+	for _, v := range pod.Spec.Volumes {
+		if v.Name == "build-registry-conf" {
+			registryConfExists = true
+			break
+		}
+	}
+
+	if !registryConfExists {
+		cmSource := &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: buildapihelpers.GetBuildRegistryConfigMapName(build),
+			},
+		}
+		pod.Spec.Volumes = append(pod.Spec.Volumes,
+			corev1.Volume{
+				Name: "build-registry-conf",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: cmSource,
+				},
+			},
+		)
+		containers := make([]corev1.Container, len(pod.Spec.Containers))
+		for i, c := range pod.Spec.Containers {
+			c.VolumeMounts = append(c.VolumeMounts,
+				corev1.VolumeMount{
+					Name:      "build-registry-conf",
+					MountPath: ConfigMapRegistryConfMountPath,
 				},
 			)
 			containers[i] = c

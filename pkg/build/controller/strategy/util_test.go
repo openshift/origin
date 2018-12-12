@@ -306,5 +306,52 @@ func TestSetupBuildCAs(t *testing.T) {
 			t.Errorf("build CA bundle was not mounted into container %s", c.Name)
 		}
 	}
+}
 
+func TestSetupRegistries(t *testing.T) {
+	const registryMount = "build-registry-conf"
+	build := mockDockerBuild()
+	podSpec := &corev1.Pod{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "first",
+					Image: "busybox",
+				},
+				{
+					Name:  "second",
+					Image: "busybox",
+				},
+			},
+		},
+	}
+	setupRegistries(build, podSpec)
+	if len(podSpec.Spec.Volumes) != 1 {
+		t.Fatalf("expected pod to have 1 volume, got %d", len(podSpec.Spec.Volumes))
+	}
+	volume := podSpec.Spec.Volumes[0]
+	if volume.Name != registryMount {
+		t.Errorf("build volume should have name %s, got %s", registryMount, volume.Name)
+	}
+	if volume.ConfigMap == nil {
+		t.Fatal("expected volume to use a ConfigMap volume source")
+	}
+	for _, c := range podSpec.Spec.Containers {
+		foundMount := false
+		for _, v := range c.VolumeMounts {
+			if v.Name == registryMount {
+				foundMount = true
+				if v.MountPath != ConfigMapRegistryConfMountPath {
+					t.Errorf("registry config %s was not mounted to %s", v.Name, ConfigMapRegistryConfMountPath)
+				}
+				if v.ReadOnly {
+					t.Errorf("registry config volume %s should be writeable, but was mounted read-only.", v.Name)
+				}
+				break
+			}
+		}
+		if !foundMount {
+			t.Errorf("registry config was not mounted into container %s", c.Name)
+		}
+	}
 }

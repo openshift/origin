@@ -110,9 +110,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	// inputconfigmap
 	// build-system-configmap
 	// certificate authorities
+	// registry conf
 	// container storage
-	if len(container.VolumeMounts) != 8 {
-		t.Fatalf("Expected 8 volumes in container, got %d %v", len(container.VolumeMounts), container.VolumeMounts)
+	if len(container.VolumeMounts) != 9 {
+		t.Fatalf("Expected 9 volumes in container, got %d %v", len(container.VolumeMounts), container.VolumeMounts)
 	}
 	expectedMounts := []string{buildutil.BuildWorkDirMount,
 		DockerPushSecretMountPath,
@@ -121,6 +122,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		filepath.Join(ConfigMapBuildSourceBaseMountPath, "configmap"),
 		ConfigMapBuildSystemConfigsMountPath,
 		ConfigMapCertsMountPath,
+		ConfigMapRegistryConfMountPath,
 		"/var/lib/containers/storage",
 	}
 	for i, expected := range expectedMounts {
@@ -129,8 +131,8 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		}
 	}
 	// build pod has an extra volume: the git clone source secret
-	if len(actual.Spec.Volumes) != 9 {
-		t.Fatalf("Expected 9 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 10 {
+		t.Fatalf("Expected 10 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
