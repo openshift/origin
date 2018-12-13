@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	"github.com/openshift/origin/pkg/cmd/server/start/network"
+	"github.com/openshift/origin/pkg/cmd/openshift-sdn"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	cmd, _ := network.NewCommandStartNetwork("openshift-sdn", os.Stdout, os.Stderr)
+	cmd := openshift_sdn.NewOpenShiftSDNCommand("openshift-sdn", os.Stderr)
 	flagtypes.GLog(cmd.PersistentFlags())
 
 	if err := cmd.Execute(); err != nil {
