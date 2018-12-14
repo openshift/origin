@@ -46,10 +46,19 @@ import (
 )
 
 const (
-	dummyCA = `
-	---- BEGIN CERTIFICATE ----
+	dummyCA = `---- BEGIN CERTIFICATE ----
 	VEhJUyBJUyBBIEJBRCBDRVJUSUZJQ0FURQo=
 	---- END CERTIFICATE ----
+	`
+
+	dummyRegistryConf = `registries:
+	- registry.redhat.io
+	- quay.io
+	- docker.io
+	insecure_registries:
+	- my.registry.corp.com
+	block_registries:
+	- all
 	`
 )
 
@@ -359,12 +368,19 @@ func TestHandleBuild(t *testing.T) {
 					newPod.UID = types.UID(uuid.New().String())
 					return true, newPod, nil
 				})
-			configMapCreated := false
+			caConfigMapCreated := false
+			registryConfigMapCreated := false
 			kubeClient.(*fake.Clientset).PrependReactor("create", "configmaps",
 				func(action clientgotesting.Action) (bool, runtime.Object, error) {
-					configMapCreated = true
-					newConfigMap := mockBuildCAConfigMap(tc.build, newPod)
-					return true, newConfigMap, nil
+					if !caConfigMapCreated {
+						caConfigMapCreated = true
+						return true, mockBuildCAConfigMap(tc.build, newPod), nil
+					}
+					if !registryConfigMapCreated {
+						registryConfigMapCreated = true
+						return true, mockBuilRegistryConfigMap(tc.build, newPod), nil
+					}
+					return false, nil, nil
 				})
 			bc := newFakeBuildController(buildClient, nil, kubeClient, nil)
 			defer bc.stop()
@@ -390,8 +406,11 @@ func TestHandleBuild(t *testing.T) {
 			if tc.expectPodCreated != podCreated {
 				t.Errorf("%s: pod created. expected: %v, actual: %v", tc.name, tc.expectPodCreated, podCreated)
 			}
-			if tc.expectConfigMapCreated != configMapCreated {
-				t.Errorf("%s: configMap created. expected: %v, actual:%v", tc.name, tc.expectConfigMapCreated, configMapCreated)
+			if tc.expectConfigMapCreated != caConfigMapCreated {
+				t.Errorf("%s: ca configMap created. expected: %v, actual: %v", tc.name, tc.expectConfigMapCreated, caConfigMapCreated)
+			}
+			if tc.expectConfigMapCreated != registryConfigMapCreated {
+				t.Errorf("%s: registry configMap created. expected: %v, actual: %v", tc.name, tc.expectConfigMapCreated, registryConfigMapCreated)
 			}
 			if tc.expectUpdate != nil {
 				if patchedBuild == nil {
@@ -1158,7 +1177,7 @@ func TestCreateBuildCAConfigMap(t *testing.T) {
 	if caMap == nil {
 		t.Error("certificate authority configMap was not created")
 	}
-	if !hasBuildCAOwnerRef(pod, caMap) {
+	if !hasBuildPodOwnerRef(pod, caMap) {
 		t.Error("build CA configMap is missing owner ref to the build pod")
 	}
 	injectAnnotation := "service.alpha.openshift.io/inject-cabundle"
@@ -1200,6 +1219,27 @@ func TestReadBuildCAData(t *testing.T) {
 		t.Errorf("expected additional trusted CA bundle to contain:\n%s\ngot:\n%s", dummyCA, string(caData))
 	}
 
+}
+
+func TestCreateBuildRegistryConfConfigMap(t *testing.T) {
+	bc := newFakeBuildController(nil, nil, nil, nil)
+	bc.registryConfData = dummyRegistryConf
+	defer bc.stop()
+	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
+	pod := mockBuildPod(build)
+	caMap := bc.createBuildRegistryConfigMapSpec(build, pod)
+	if caMap == nil {
+		t.Error("registry config configMap was not created")
+	}
+	if !hasBuildPodOwnerRef(pod, caMap) {
+		t.Error("registry conf configMap is missing owner ref to the build pod")
+	}
+	if _, hasConf := caMap.Data[buildutil.RegistryConfKey]; !hasConf {
+		t.Errorf("expected registry conf configMap to have key %s", buildutil.RegistryConfKey)
+	}
+	if caMap.Data[buildutil.RegistryConfKey] != dummyRegistryConf {
+		t.Errorf("expected registry conf configMap.%s to contain\n%s\ngot:\n%s", buildutil.RegistryConfKey, dummyCA, caMap.Data[buildutil.RegistryConfKey])
+	}
 }
 
 func mockBuild(phase buildv1.BuildPhase, output buildv1.BuildOutput) *buildv1.Build {
@@ -1569,6 +1609,23 @@ func mockBuildPod(build *buildv1.Build) *corev1.Pod {
 func mockBuildCAConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{}
 	cm.Name = buildapihelpers.GetBuildCAConfigMapName(build)
+	cm.Namespace = build.Namespace
+	if pod != nil {
+		pod.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: "v1",
+				Kind:       "Pod",
+				Name:       pod.Name,
+				UID:        pod.UID,
+			},
+		}
+	}
+	return cm
+}
+
+func mockBuilRegistryConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{}
+	cm.Name = buildapihelpers.GetBuildRegistryConfigMapName(build)
 	cm.Namespace = build.Namespace
 	if pod != nil {
 		pod.OwnerReferences = []metav1.OwnerReference{

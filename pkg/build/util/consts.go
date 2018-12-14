@@ -86,22 +86,23 @@ const (
 )
 
 const (
-	StatusMessageCannotCreateBuildPodSpec        = "Failed to create pod spec."
-	StatusMessageCannotCreateBuildPod            = "Failed creating build pod."
-	StatusMessageCannotCreateCAConfigMap         = "Failed creating build certificate authority configMap."
-	StatusMessageInvalidOutputRef                = "Output image could not be resolved."
-	StatusMessageInvalidImageRef                 = "Referenced image could not be resolved."
-	StatusMessageBuildPodDeleted                 = "The pod for this build was deleted before the build completed."
-	StatusMessageMissingPushSecret               = "Missing push secret."
-	StatusMessageCancelledBuild                  = "The build was cancelled by the user."
-	StatusMessageBuildPodExists                  = "The pod for this build already exists and is older than the build."
-	StatusMessageNoBuildContainerStatus          = "The pod for this build has no container statuses indicating success or failure."
-	StatusMessageFailedContainer                 = "The pod for this build has at least one container with a non-zero exit status."
-	StatusMessageGenericBuildFailed              = "Generic Build failure - check logs for details."
-	StatusMessageOutOfMemoryKilled               = "The build pod was killed due to an out of memory condition."
-	StatusMessageUnresolvableEnvironmentVariable = "Unable to resolve build environment variable reference."
-	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account secrets for this build."
-	StatusMessagePostCommitHookFailed            = "Build failed because of post commit hook."
+	StatusMessageCannotCreateBuildPodSpec          = "Failed to create pod spec."
+	StatusMessageCannotCreateBuildPod              = "Failed creating build pod."
+	StatusMessageCannotCreateCAConfigMap           = "Failed creating build certificate authority configMap."
+	StatusMessageCannotCreateRegistryConfConfigMap = "Failed creating build registry config configMap."
+	StatusMessageInvalidOutputRef                  = "Output image could not be resolved."
+	StatusMessageInvalidImageRef                   = "Referenced image could not be resolved."
+	StatusMessageBuildPodDeleted                   = "The pod for this build was deleted before the build completed."
+	StatusMessageMissingPushSecret                 = "Missing push secret."
+	StatusMessageCancelledBuild                    = "The build was cancelled by the user."
+	StatusMessageBuildPodExists                    = "The pod for this build already exists and is older than the build."
+	StatusMessageNoBuildContainerStatus            = "The pod for this build has no container statuses indicating success or failure."
+	StatusMessageFailedContainer                   = "The pod for this build has at least one container with a non-zero exit status."
+	StatusMessageGenericBuildFailed                = "Generic Build failure - check logs for details."
+	StatusMessageOutOfMemoryKilled                 = "The build pod was killed due to an out of memory condition."
+	StatusMessageUnresolvableEnvironmentVariable   = "Unable to resolve build environment variable reference."
+	StatusMessageCannotRetrieveServiceAccount      = "Unable to look up the service account secrets for this build."
+	StatusMessagePostCommitHookFailed              = "Build failed because of post commit hook."
 )
 
 const (
@@ -116,4 +117,7 @@ const (
 	// AdditionalTrustedCAKey is the ConfigMap key for the certificate bundle containing additional
 	// trusted CAs used by builds.
 	AdditionalTrustedCAKey = "additional-ca.crt"
+
+	// RegistryConfKey is the ConfigMap key for the build pod's registry configuration file.
+	RegistryConfKey = "registry.conf"
 )

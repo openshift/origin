@@ -155,6 +155,7 @@ type BuildController struct {
 	recorder                record.EventRecorder
 	additionalTrustedCAPath string
 	additionalTrustedCAData []byte
+	registryConfData        string
 }
 
 // BuildControllerParams is the set of parameters needed to
@@ -957,13 +958,24 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		}
 		glog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
 		// Check if the existing pod has the CA ConfigMap properly attached
-		hasCAMap, err := bc.findBuildCAConfigMap(build, existingPod)
+		hasCAMap, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildCAConfigMapName(build))
 		if err != nil {
 			return update, fmt.Errorf("could not find certificate authority for build: %v", err)
 		}
 		if !hasCAMap {
 			// Create the CA ConfigMap to mount certificate authorities to the existing build pod
 			update, err = bc.createBuildCAConfigMap(build, existingPod, update)
+			if err != nil {
+				return update, err
+			}
+		}
+		hasRegistryConf, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildRegistryConfigMapName(build))
+		if err != nil {
+			return update, fmt.Errorf("could not find registry config for build: %v", err)
+		}
+		if !hasRegistryConf {
+			// Create the registry config ConfigMap to mount the regsitry config to the existing build pod
+			update, err = bc.createBuildRegistryConfConfigMap(build, existingPod, update)
 			if err != nil {
 				return update, err
 			}
@@ -975,6 +987,11 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		update, err = bc.createBuildCAConfigMap(build, pod, update)
 		if err != nil {
 			return update, err
+		}
+		// Create the registry config ConfigMap to mount the registry configuration into the build pod
+		update, err = bc.createBuildRegistryConfConfigMap(build, pod, update)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -1442,7 +1459,7 @@ func (bc *BuildController) createBuildCAConfigMapSpec(build *buildv1.Build, buil
 				"service.alpha.openshift.io/inject-cabundle": "true",
 			},
 			OwnerReferences: []metav1.OwnerReference{
-				makeBuildCAOwnerRef(buildPod),
+				makeBuildPodOwnerRef(buildPod),
 			},
 		},
 	}
@@ -1467,20 +1484,48 @@ func (bc *BuildController) readBuildCAData() ([]byte, error) {
 	return pemData, nil
 }
 
-// findBuildCAConfigMap finds the ConfigMap containing the certificate authorities for the build.
-// The ConfigMap must exist and contain an owner reference to the build pod to be valid.
-func (bc *BuildController) findBuildCAConfigMap(build *buildv1.Build, buildPod *corev1.Pod) (bool, error) {
-	name := buildapihelpers.GetBuildCAConfigMapName(build)
-	cm, err := bc.configMapClient.ConfigMaps(build.Namespace).Get(name, metav1.GetOptions{})
+// findOwnedConfigMap finds the ConfigMap with the given name and namespace, and owned by the provided pod.
+func (bc *BuildController) findOwnedConfigMap(owner *corev1.Pod, namespace string, name string) (bool, error) {
+	cm, err := bc.configMapClient.ConfigMaps(namespace).Get(name, metav1.GetOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return false, nil
 	} else if err != nil {
 		return false, err
 	}
-	if hasRef := hasBuildCAOwnerRef(buildPod, cm); !hasRef {
-		return true, fmt.Errorf("build CA configMap %s is not owned by build pod %s", cm.Name, buildPod.Name)
+	if hasRef := hasBuildPodOwnerRef(owner, cm); !hasRef {
+		return true, fmt.Errorf("configMap %s/%s is not owned by build pod %s/%s", cm.Namespace, cm.Name, owner.Namespace, owner.Name)
 	}
 	return true, nil
+}
+
+func (bc *BuildController) createBuildRegistryConfConfigMap(build *buildv1.Build, buildPod *corev1.Pod, update *buildUpdate) (*buildUpdate, error) {
+	configMapSpec := bc.createBuildRegistryConfigMapSpec(build, buildPod)
+	configMap, err := bc.configMapClient.ConfigMaps(build.Namespace).Create(configMapSpec)
+	if err != nil {
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build registry config configMap: %v", err)
+		update.setReason("CannotCreateRegistryConfConfigMap")
+		update.setMessage(buildutil.StatusMessageCannotCreateRegistryConfConfigMap)
+		return update, fmt.Errorf("failed to create build registry config configMap: %v", err)
+	}
+	glog.V(4).Infof("Created registry config configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
+	return update, nil
+}
+
+func (bc *BuildController) createBuildRegistryConfigMapSpec(build *buildv1.Build, buildPod *corev1.Pod) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: buildapihelpers.GetBuildRegistryConfigMapName(build),
+			OwnerReferences: []metav1.OwnerReference{
+				makeBuildPodOwnerRef(buildPod),
+			},
+		},
+	}
+	if len(bc.registryConfData) > 0 {
+		cm.Data = map[string]string{
+			buildutil.RegistryConfKey: bc.registryConfData,
+		}
+	}
+	return cm
 }
 
 // isBuildPod returns true if the given pod is a build pod
@@ -1604,7 +1649,7 @@ func getBuildName(pod metav1.Object) string {
 	return pod.GetAnnotations()[buildutil.BuildAnnotation]
 }
 
-func makeBuildCAOwnerRef(buildPod *corev1.Pod) metav1.OwnerReference {
+func makeBuildPodOwnerRef(buildPod *corev1.Pod) metav1.OwnerReference {
 	return metav1.OwnerReference{
 		APIVersion: "v1",
 		Kind:       "Pod",
@@ -1613,8 +1658,8 @@ func makeBuildCAOwnerRef(buildPod *corev1.Pod) metav1.OwnerReference {
 	}
 }
 
-func hasBuildCAOwnerRef(buildPod *corev1.Pod, caMap *corev1.ConfigMap) bool {
-	ref := makeBuildCAOwnerRef(buildPod)
+func hasBuildPodOwnerRef(buildPod *corev1.Pod, caMap *corev1.ConfigMap) bool {
+	ref := makeBuildPodOwnerRef(buildPod)
 	for _, owner := range caMap.OwnerReferences {
 		if reflect.DeepEqual(ref, owner) {
 			return true

@@ -9,8 +9,9 @@ import (
 
 const (
 	// buildPodSuffix is the suffix used to append to a build pod name given a build name
-	buildPodSuffix    = "build"
-	caConfigMapSuffix = "ca"
+	buildPodSuffix              = "build"
+	caConfigMapSuffix           = "ca"
+	registryConfConfigMapSuffix = "registry-conf"
 )
 
 // GetBuildPodName returns name of the build pod.
@@ -22,6 +23,12 @@ func GetBuildPodName(build *buildv1.Build) string {
 // certificate authority bundles.
 func GetBuildCAConfigMapName(build *buildv1.Build) string {
 	return apihelpers.GetConfigMapName(build.Name, caConfigMapSuffix)
+}
+
+// GetBuildRegistryConfigMapName returns the name of the ConfigMap containing the build's
+// registry configuration.
+func GetBuildRegistryConfigMapName(build *buildv1.Build) string {
+	return apihelpers.GetConfigMapName(build.Name, registryConfConfigMapSuffix)
 }
 
 func StrategyType(strategy buildv1.BuildStrategy) string {
