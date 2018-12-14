@@ -67,7 +67,10 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
 			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				fmt.Println("[[ DEBUG ]] Clock's ticking, better go look!")
+				time.Sleep(24 * time.Hour)
+			}
 
 			host := "weighted.example.com"
 			times := 100
