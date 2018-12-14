@@ -969,13 +969,13 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 				return update, err
 			}
 		}
-		hasRegistryConf, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildRegistryConfigMapName(build))
+		hasRegistryConf, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildSystemConfigMapName(build))
 		if err != nil {
 			return update, fmt.Errorf("could not find registry config for build: %v", err)
 		}
 		if !hasRegistryConf {
 			// Create the registry config ConfigMap to mount the regsitry config to the existing build pod
-			update, err = bc.createBuildRegistryConfConfigMap(build, existingPod, update)
+			update, err = bc.createBuildSystemConfConfigMap(build, existingPod, update)
 			if err != nil {
 				return update, err
 			}
@@ -989,7 +989,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 			return update, err
 		}
 		// Create the registry config ConfigMap to mount the registry configuration into the build pod
-		update, err = bc.createBuildRegistryConfConfigMap(build, pod, update)
+		update, err = bc.createBuildSystemConfConfigMap(build, pod, update)
 		if err != nil {
 			return nil, err
 		}
@@ -1498,23 +1498,23 @@ func (bc *BuildController) findOwnedConfigMap(owner *corev1.Pod, namespace strin
 	return true, nil
 }
 
-func (bc *BuildController) createBuildRegistryConfConfigMap(build *buildv1.Build, buildPod *corev1.Pod, update *buildUpdate) (*buildUpdate, error) {
-	configMapSpec := bc.createBuildRegistryConfigMapSpec(build, buildPod)
+func (bc *BuildController) createBuildSystemConfConfigMap(build *buildv1.Build, buildPod *corev1.Pod, update *buildUpdate) (*buildUpdate, error) {
+	configMapSpec := bc.createBuildSystemConfigMapSpec(build, buildPod)
 	configMap, err := bc.configMapClient.ConfigMaps(build.Namespace).Create(configMapSpec)
 	if err != nil {
-		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build registry config configMap: %v", err)
-		update.setReason("CannotCreateRegistryConfConfigMap")
-		update.setMessage(buildutil.StatusMessageCannotCreateRegistryConfConfigMap)
-		return update, fmt.Errorf("failed to create build registry config configMap: %v", err)
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build system config configMap: %v", err)
+		update.setReason("CannotCreateBuildSysConfigMap")
+		update.setMessage(buildutil.StatusMessageCannotCreateBuildSysConfigMap)
+		return update, fmt.Errorf("failed to create build system config configMap: %v", err)
 	}
-	glog.V(4).Infof("Created registry config configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
+	glog.V(4).Infof("Created build system config configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
 	return update, nil
 }
 
-func (bc *BuildController) createBuildRegistryConfigMapSpec(build *buildv1.Build, buildPod *corev1.Pod) *corev1.ConfigMap {
+func (bc *BuildController) createBuildSystemConfigMapSpec(build *buildv1.Build, buildPod *corev1.Pod) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: buildapihelpers.GetBuildRegistryConfigMapName(build),
+			Name: buildapihelpers.GetBuildSystemConfigMapName(build),
 			OwnerReferences: []metav1.OwnerReference{
 				makeBuildPodOwnerRef(buildPod),
 			},

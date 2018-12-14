@@ -146,7 +146,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAddit
 			Resources:       build.Spec.Resources,
 		}
 		setupDockerSecrets(pod, &extractImageContentContainer, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
-		setupContainersConfigs(pod, &extractImageContentContainer)
 		setupContainersStorage(pod, &extractImageContentContainer)
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
 	}
@@ -180,9 +179,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAddit
 	// TODO: consider moving this into the git-clone container and doing the secret copying there instead.
 	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	setupInputConfigMaps(pod, &pod.Spec.Containers[0], build.Spec.Source.ConfigMaps)
-	setupContainersConfigs(pod, &pod.Spec.Containers[0])
+	setupContainersConfigs(build, pod)
 	setupBuildCAs(build, pod, includeAdditionalCA)
-	setupRegistries(build, pod)
 	setupContainersStorage(pod, &pod.Spec.Containers[0]) // for unprivileged builds
 	// setupContainersNodeStorage(pod, &pod.Spec.Containers[0]) // for privileged builds
 	return pod, nil

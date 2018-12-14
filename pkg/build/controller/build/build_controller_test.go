@@ -378,7 +378,7 @@ func TestHandleBuild(t *testing.T) {
 					}
 					if !registryConfigMapCreated {
 						registryConfigMapCreated = true
-						return true, mockBuilRegistryConfigMap(tc.build, newPod), nil
+						return true, mockBuildSystemConfigMap(tc.build, newPod), nil
 					}
 					return false, nil, nil
 				})
@@ -1227,18 +1227,21 @@ func TestCreateBuildRegistryConfConfigMap(t *testing.T) {
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 	pod := mockBuildPod(build)
-	caMap := bc.createBuildRegistryConfigMapSpec(build, pod)
+	caMap := bc.createBuildSystemConfigMapSpec(build, pod)
 	if caMap == nil {
-		t.Error("registry config configMap was not created")
+		t.Error("build system config configMap was not created")
 	}
 	if !hasBuildPodOwnerRef(pod, caMap) {
-		t.Error("registry conf configMap is missing owner ref to the build pod")
+		t.Error("build system config configMap is missing owner ref to the build pod")
 	}
 	if _, hasConf := caMap.Data[buildutil.RegistryConfKey]; !hasConf {
-		t.Errorf("expected registry conf configMap to have key %s", buildutil.RegistryConfKey)
+		t.Errorf("expected build system config configMap to have key %s", buildutil.RegistryConfKey)
 	}
 	if caMap.Data[buildutil.RegistryConfKey] != dummyRegistryConf {
-		t.Errorf("expected registry conf configMap.%s to contain\n%s\ngot:\n%s", buildutil.RegistryConfKey, dummyCA, caMap.Data[buildutil.RegistryConfKey])
+		t.Errorf("expected build system config configMap.%s to contain\n%s\ngot:\n%s",
+			buildutil.RegistryConfKey,
+			dummyCA,
+			caMap.Data[buildutil.RegistryConfKey])
 	}
 }
 
@@ -1623,9 +1626,9 @@ func mockBuildCAConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigM
 	return cm
 }
 
-func mockBuilRegistryConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigMap {
+func mockBuildSystemConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{}
-	cm.Name = buildapihelpers.GetBuildRegistryConfigMapName(build)
+	cm.Name = buildapihelpers.GetBuildSystemConfigMapName(build)
 	cm.Namespace = build.Namespace
 	if pod != nil {
 		pod.OwnerReferences = []metav1.OwnerReference{
