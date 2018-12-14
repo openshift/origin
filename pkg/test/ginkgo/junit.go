@@ -166,7 +166,7 @@ func writeJUnitReport(name string, tests []*testCase, dir string, duration time.
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(dir, fmt.Sprintf("junit_%s.xml", time.Now().UTC().Format("2006-01-02T150405")))
+	path := filepath.Join(dir, fmt.Sprintf("junit_e2e_%s.xml", time.Now().UTC().Format("20060102-150405")))
 	fmt.Fprintf(errOut, "Writing JUnit report to %s\n\n", path)
 	return ioutil.WriteFile(path, out, 0640)
 }
