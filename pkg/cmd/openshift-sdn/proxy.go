@@ -64,10 +64,7 @@ func ProxyConfigFromNodeConfig(options configapi.NodeConfig) (*kubeproxyconfig.K
 		return nil, fmt.Errorf("The provided value to bind to must be an ip:port: %q", addr)
 	}
 	proxyconfig.BindAddress = ip.String()
-	// MetricsBindAddress - enable as a separate port in the 11xxx range for now, but only
-	// on localhost. Metrics contains no tenant information.
-	// TODO: move this to a secured port that we can query from prometheus.
-	proxyconfig.MetricsBindAddress = "localhost:11256"
+	proxyconfig.MetricsBindAddress = "0.0.0.0:10253"
 	if arg := options.ProxyArguments["metrics-bind-address"]; len(arg) > 0 {
 		proxyconfig.MetricsBindAddress = arg[0]
 	}
