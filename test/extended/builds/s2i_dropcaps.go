@@ -19,7 +19,7 @@ var _ = g.Describe("[Feature:Builds][Slow] Capabilities should be dropped for s2
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

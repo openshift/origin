@@ -18,7 +18,7 @@ var _ = g.Describe("[Feature:Builds][Slow] using pull secrets in a build", func(
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {
@@ -37,6 +37,9 @@ var _ = g.Describe("[Feature:Builds][Slow] using pull secrets in a build", func(
 
 			g.Describe("binary builds", func() {
 				g.It("should be able to run a build that is implicitly pulling from the internal registry", func() {
+					if !exutil.IsClusterOperated(oc) {
+						g.Skip("Skipping on non-installer cluster because this test expects image-registry, not docker-registry")
+					}
 					g.By("creating a build")
 					err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=docker").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())

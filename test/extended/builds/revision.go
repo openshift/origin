@@ -20,7 +20,7 @@ var _ = g.Describe("[Feature:Builds] build have source revision metadata", func(
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

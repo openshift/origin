@@ -40,7 +40,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

@@ -29,7 +29,7 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

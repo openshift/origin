@@ -70,7 +70,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 			}
 		}
 		setupJenkins = func(jenkinsTemplatePath string) {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 			// Deploy Jenkins
 			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
 			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends

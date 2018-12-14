@@ -18,7 +18,7 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

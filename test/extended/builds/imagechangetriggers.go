@@ -23,7 +23,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] imagechangetriggers", func() {
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

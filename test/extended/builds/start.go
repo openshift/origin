@@ -36,7 +36,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {
@@ -391,7 +391,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					out, err := oc.WithoutNamespace().Run("status").Args().Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("got status value of: %s", out)
-					matcher := regexp.MustCompile("https?://.*?8443")
+					matcher := regexp.MustCompile("https?://.*?443")
 					apiServer := matcher.FindString(out)
 					o.Expect(apiServer).NotTo(o.BeEmpty())
 

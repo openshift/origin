@@ -65,7 +65,7 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 
 			g.By("waiting for default service account")
 			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")

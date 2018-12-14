@@ -20,7 +20,7 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 			g.By("waiting for default service account")
 			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
 			o.Expect(err).NotTo(o.HaveOccurred())

@@ -32,7 +32,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.AfterEach(func() {

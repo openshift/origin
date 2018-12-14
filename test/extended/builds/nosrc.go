@@ -22,7 +22,7 @@ var _ = g.Describe("[Feature:Builds] build with empty source", func() {
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

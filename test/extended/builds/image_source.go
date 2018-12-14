@@ -32,7 +32,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

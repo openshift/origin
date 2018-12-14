@@ -41,7 +41,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.AfterEach(func() {

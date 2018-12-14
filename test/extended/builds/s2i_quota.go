@@ -25,7 +25,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {
@@ -64,7 +64,8 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).To(o.ContainSubstring("MEMORY=209715200"))
-				o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=209715200"))
+				// TODO: re-enable this check when https://github.com/containers/buildah/issues/1213 is resolved.
+				//o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=209715200"))
 
 				events, err := oc.KubeClient().Core().Events(oc.Namespace()).Search(legacyscheme.Scheme, br.Build)
 				o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")

@@ -17,7 +17,7 @@ var _ = g.Describe("[Feature:Builds] buildconfig secret injector", func() {
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

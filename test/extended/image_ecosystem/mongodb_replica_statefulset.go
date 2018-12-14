@@ -56,7 +56,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 
 			g.By("PV/PVC dump before setup")
 			exutil.DumpPersistentVolumeInfo(oc)

@@ -20,7 +20,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] remove all builds when build c
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {
