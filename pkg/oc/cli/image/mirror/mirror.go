@@ -596,13 +596,13 @@ func copyBlob(ctx context.Context, plan *workPlan, c *repositoryBlobCopy, blob d
 			fmt.Fprintf(errOut, "warning: Layer size mismatch for %s: had %d, wrote %d\n", blob.Digest, blob.Size, n)
 		}
 		if _, err := w.Commit(ctx, blob); err != nil {
-			return err
+			return fmt.Errorf("failed to commit blob %s from %s to %s: %v", blob.Digest, c.location, c.toRef, err)
 		}
 		plan.BytesCopied(n)
 		return nil
 	}()
 	if err != nil {
-		return fmt.Errorf("failed to commit blob %s from %s to %s: %v", blob.Digest, c.location, c.toRef, err)
+		return err
 	}
 	return nil
 }
