@@ -33,10 +33,10 @@ func (p *Payload) Path() string {
 // If a new ID appears in the returned reference, it will be used instead of the existing digest.
 // All references in manifest files will be updated and then the image stream will be written to
 // the correct location with any updated metadata.
-func (p *Payload) Rewrite(allowTags bool, fn func(component string) imagereference.DockerImageReference) error {
+func (p *Payload) Rewrite(allowTags bool, fn func(component string) imagereference.DockerImageReference) (map[string]string, error) {
 	is, err := p.References()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	replacements := make(map[string]string)
@@ -48,11 +48,11 @@ func (p *Payload) Rewrite(allowTags bool, fn func(component string) imagereferen
 		oldImage := tag.From.Name
 		oldRef, err := imagereference.Parse(oldImage)
 		if err != nil {
-			return fmt.Errorf("unable to parse image reference for tag %q from payload: %v", tag.Name, err)
+			return nil, fmt.Errorf("unable to parse image reference for tag %q from payload: %v", tag.Name, err)
 		}
 		if len(oldRef.Tag) > 0 || len(oldRef.ID) == 0 {
 			if !allowTags {
-				return fmt.Errorf("image reference tag %q in payload does not point to an image digest - unable to rewrite payload", tag.Name)
+				return nil, fmt.Errorf("image reference tag %q in payload does not point to an image digest - unable to rewrite payload", tag.Name)
 			}
 		}
 		ref := fn(tag.Name)
@@ -74,12 +74,12 @@ func (p *Payload) Rewrite(allowTags bool, fn func(component string) imagereferen
 	}
 	mapper, err := NewExactMapper(replacements)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	files, err := ioutil.ReadDir(p.path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, file := range files {
 		if file.IsDir() {
@@ -91,22 +91,22 @@ func (p *Payload) Rewrite(allowTags bool, fn func(component string) imagereferen
 		path := filepath.Join(p.path, file.Name())
 		data, err := ioutil.ReadFile(path)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		out, err := mapper(data)
 		if err != nil {
-			return fmt.Errorf("unable to rewrite the contents of %s: %v", path, err)
+			return nil, fmt.Errorf("unable to rewrite the contents of %s: %v", path, err)
 		}
 		if bytes.Equal(data, out) {
 			continue
 		}
 		glog.V(6).Infof("Rewrote\n%s\n\nto\n\n%s\n", string(data), string(out))
 		if err := ioutil.WriteFile(path, out, file.Mode()); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return replacements, nil
 }
 
 func (p *Payload) References() (*imageapi.ImageStream, error) {

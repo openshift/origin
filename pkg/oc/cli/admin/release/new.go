@@ -546,7 +546,7 @@ func (o *NewOptions) Run() error {
 		if err != nil {
 			return err
 		}
-		if err := payload.Rewrite(true, targetFn); err != nil {
+		if _, err := payload.Rewrite(true, targetFn); err != nil {
 			return fmt.Errorf("failed to update contents for input mappings: %v", err)
 		}
 	}
@@ -728,14 +728,19 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) er
 	if err != nil {
 		return err
 	}
-	if err := payload.Rewrite(false, targetFn); err != nil {
+	replacements, err := payload.Rewrite(false, targetFn)
+	if err != nil {
 		return fmt.Errorf("failed to update contents after mirroring: %v", err)
 	}
-	updated, err := payload.References()
-	if err != nil {
-		return fmt.Errorf("unable to recalculate image references: %v", err)
+	for i := range is.Spec.Tags {
+		tag := &is.Spec.Tags[i]
+		if tag.From == nil || tag.From.Kind != "DockerImage" {
+			continue
+		}
+		if value, ok := replacements[tag.From.Name]; ok {
+			tag.From.Name = value
+		}
 	}
-	*is = *updated
 	if glog.V(4) {
 		data, _ := json.MarshalIndent(is, "", "  ")
 		glog.Infof("Image references updated to:\n%s", string(data))
