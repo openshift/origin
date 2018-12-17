@@ -250,6 +250,10 @@
                                     {
                                         "name": "RAILS_ENV",
                                         "value": "${RAILS_ENV}"
+                                    },
+                                    {
+                                        "name": "RAILS_LOG_TO_STDOUT",
+                                        "value": "1"
                                     }
                                 ],
                                 "image": " ",
