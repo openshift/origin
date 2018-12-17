@@ -162,7 +162,9 @@
                         "pre": {
                             "execNewPod": {
                                 "command": [
-                                    "./migrate-database.sh"
+                                    "bash",
+                                    "-c",
+                                    "bundle exec rails db:migrate"
                                 ],
                                 "containerName": "${NAME}"
                             },
