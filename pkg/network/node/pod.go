@@ -82,13 +82,10 @@ type podManager struct {
 	// and thus can be set from Start()
 	ipamConfig     []byte
 	hostportSyncer kubehostport.HostportSyncer
-
-	// IP address that pods will use to access cluster DNS
-	dnsIP string
 }
 
 // Creates a new live podManager; used by node code0
-func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, cniBinPath string, ovs *ovsController, enableHostports bool, dnsIP string) *podManager {
+func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, cniBinPath string, ovs *ovsController, enableHostports bool) *podManager {
 	pm := newDefaultPodManager()
 	pm.kClient = kClient
 	pm.policy = policy
@@ -97,7 +94,6 @@ func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, 
 	pm.podHandler = pm
 	pm.ovs = ovs
 	pm.enableHostports = enableHostports
-	pm.dnsIP = dnsIP
 	return pm
 }
 
@@ -184,7 +180,7 @@ func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetwork
 
 	go m.processCNIRequests()
 
-	m.cniServer = cniserver.NewCNIServer(rundir, &cniserver.Config{MTU: m.mtu, ServiceNetworkCIDR: serviceNetworkCIDR, DNSIP: m.dnsIP})
+	m.cniServer = cniserver.NewCNIServer(rundir, &cniserver.Config{MTU: m.mtu, ServiceNetworkCIDR: serviceNetworkCIDR})
 	return m.cniServer.Start(m.handleCNIRequest)
 }
 

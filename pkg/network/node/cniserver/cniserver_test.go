@@ -62,7 +62,7 @@ func TestCNIServer(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 	socketPath := filepath.Join(tmpDir, CNIServerSocketName)
 
-	s := NewCNIServer(tmpDir, &Config{MTU: 1500, ServiceNetworkCIDR: "172.30.0.0/16", DNSIP: "172.30.0.1"})
+	s := NewCNIServer(tmpDir, &Config{MTU: 1500, ServiceNetworkCIDR: "172.30.0.0/16"})
 	if err := s.Start(serverHandleCNI); err != nil {
 		t.Fatalf("error starting CNI server: %v", err)
 	}

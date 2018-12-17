@@ -59,7 +59,6 @@ const CNIServerConfigFilePath string = CNIServerRunDir + "/" + CNIServerConfigFi
 type Config struct {
 	MTU                uint32 `json:"mtu"`
 	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
-	DNSIP              string `json:"dnsIP"`
 }
 
 // Explicit type for CNI commands the server handles

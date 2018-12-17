@@ -45,7 +45,6 @@ func (sdn *OpenShiftSDN) initSDN() error {
 		PluginName:         sdn.NodeConfig.NetworkConfig.NetworkPluginName,
 		Hostname:           sdn.NodeConfig.NodeName,
 		SelfIP:             sdn.NodeConfig.NodeIP,
-		DNSIP:              sdn.NodeConfig.DNSIP,
 		RuntimeEndpoint:    runtimeEndpoint,
 		CNIBinDir:          cniBinDir,
 		CNIConfDir:         cniConfDir,
