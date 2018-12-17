@@ -104,6 +104,9 @@ func LoadOAuthMetadataFile(metadataFile string) ([]byte, *OauthAuthorizationServ
 }
 
 func PrepOauthMetadata(oauthConfig *osinv1.OAuthConfig, oauthMetadataFile string) ([]byte, *OauthAuthorizationServerMetadata, error) {
+	if len(oauthMetadataFile) > 0 {
+		return LoadOAuthMetadataFile(oauthMetadataFile)
+	}
 	if oauthConfig != nil && len(oauthConfig.MasterPublicURL) != 0 {
 		metadataStruct := getOauthMetadata(oauthConfig.MasterPublicURL)
 		metadata, err := json.MarshalIndent(metadataStruct, "", "  ")
@@ -112,9 +115,6 @@ func PrepOauthMetadata(oauthConfig *osinv1.OAuthConfig, oauthMetadataFile string
 			return nil, nil, err
 		}
 		return metadata, &metadataStruct, nil
-	}
-	if len(oauthMetadataFile) > 0 {
-		return LoadOAuthMetadataFile(oauthMetadataFile)
 	}
 	return nil, nil, nil
 }
