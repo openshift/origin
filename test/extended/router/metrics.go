@@ -58,7 +58,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			}
 		}
 
-		host, err = waitForFirstRouterEndpointIP(oc)
+		host, err = waitForRouterMetricsIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		ns = oc.KubeFramework().Namespace.Name

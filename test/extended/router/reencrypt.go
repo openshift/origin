@@ -80,23 +80,3 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		})
 	})
 })
-
-func waitForRouterServiceIP(oc *exutil.CLI) (string, error) {
-	_, ns, err := exutil.GetRouterPodTemplate(oc)
-	if err != nil {
-		return "", err
-	}
-
-	// wait for the service to show up
-	var host string
-	err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
-		svc, err := oc.AdminKubeClient().CoreV1().Services(ns).Get("router", metav1.GetOptions{})
-		if kapierrs.IsNotFound(err) {
-			return false, nil
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
-		host = svc.Spec.ClusterIP
-		return true, nil
-	})
-	return host, err
-}

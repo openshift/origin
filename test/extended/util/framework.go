@@ -1477,6 +1477,13 @@ func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
 		if !errors.IsNotFound(err) {
 			return nil, "", err
 		}
+		deploy, err = k8sappsclient.Deployments(ns).Get("router-default", metav1.GetOptions{})
+		if err == nil {
+			return &deploy.Spec.Template, ns, nil
+		}
+		if !errors.IsNotFound(err) {
+			return nil, "", err
+		}
 	}
 	return nil, "", errors.NewNotFound(schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"}, "router")
 }
