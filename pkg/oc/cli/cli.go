@@ -17,7 +17,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
-	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/term"
@@ -336,10 +335,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = kubecmd.NewKubectlCommand(in, out, errout)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
-	case "openshift-router":
-		cmd = irouter.NewCommandTemplateRouter(basename)
-	case "openshift-f5-router":
-		cmd = irouter.NewCommandF5Router(basename)
 	case "openshift-recycle":
 		cmd = recycle.NewCommandRecycle(basename, out)
 	default:

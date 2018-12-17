@@ -113,24 +113,6 @@ image_config = {
         },
         "files": {}
     },
-    "f5-router": {
-        "tag": "latest",
-        "directory": "router/f5",
-        "binaries": {
-            "oc": "/usr/bin/oc"
-        },
-        "files": {}
-    },
-    "haproxy-router": {
-        "tag": "latest",
-        "directory": "router/haproxy",
-        "binaries": {
-            "openshift": "/usr/bin/openshift"
-        },
-        "files": {
-            ".": "/var/lib/haproxy"
-        }
-    },
     "keepalived-ipfailover": {
         "tag": "latest",
         "directory": "ipfailover/keepalived",

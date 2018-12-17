@@ -60,7 +60,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
 )
 readonly OC_BINARY_SYMLINKS=(
   openshift-deploy
-  openshift-router
   openshift-recycle
 )
 readonly OC_BINARY_COPY=(
@@ -311,8 +310,6 @@ readonly OS_ALL_IMAGES=(
   origin-deployer
   origin-docker-builder
   origin-keepalived-ipfailover
-  origin-haproxy-router
-  origin-f5-router
   origin-egress-router
   origin-egress-http-proxy
   origin-egress-dns-proxy
@@ -396,9 +393,7 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-tests"          images/tests ) &
   ( os::build::image "${tag_prefix}-control-plane"  images/origin ) &
   ( os::build::image "${tag_prefix}-deployer"       images/deployer ) &
-  ( os::build::image "${tag_prefix}-haproxy-router" images/router/haproxy ) &
   ( os::build::image "${tag_prefix}-recycler"       images/recycler ) &
-  ( os::build::image "${tag_prefix}-f5-router"      images/router/f5 ) &
 
   for i in `jobs -p`; do wait $i; done
 

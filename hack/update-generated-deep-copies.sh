@@ -24,7 +24,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration/v1
     github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission
     github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission/v1
-    github.com/openshift/origin/pkg/router/f5/testing
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1
     github.com/openshift/origin/pkg/service/admission/apis/externalipranger
