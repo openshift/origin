@@ -11,18 +11,20 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 )
 
-func NewBootstrapAuthenticator(delegate SessionAuthenticator, secrets v1.SecretsGetter, store Store) SessionAuthenticator {
+func NewBootstrapAuthenticator(delegate SessionAuthenticator, secrets v1.SecretsGetter, namespaces v1.NamespacesGetter, store Store) SessionAuthenticator {
 	return &bootstrapAuthenticator{
-		delegate: delegate,
-		secrets:  secrets.Secrets(metav1.NamespaceSystem),
-		store:    store,
+		delegate:   delegate,
+		secrets:    secrets.Secrets(metav1.NamespaceSystem),
+		namespaces: namespaces.Namespaces(),
+		store:      store,
 	}
 }
 
 type bootstrapAuthenticator struct {
-	delegate SessionAuthenticator
-	secrets  v1.SecretInterface
-	store    Store
+	delegate   SessionAuthenticator
+	secrets    v1.SecretInterface
+	namespaces v1.NamespaceInterface
+	store      Store
 }
 
 func (b *bootstrapAuthenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -34,7 +36,7 @@ func (b *bootstrapAuthenticator) AuthenticateRequest(req *http.Request) (user.In
 	// make sure that the password has not changed since this cookie was issued
 	// note that this is not really for security - it is so that we do not annoy the user
 	// by letting them log in successfully only to have a token that does not work
-	_, uid, ok, err := bootstrap.HashAndUID(b.secrets)
+	_, uid, ok, err := bootstrap.HashAndUID(b.secrets, b.namespaces)
 	if err != nil || !ok {
 		return nil, ok, err
 	}

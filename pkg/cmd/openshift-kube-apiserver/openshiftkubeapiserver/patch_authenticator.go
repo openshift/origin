@@ -81,6 +81,7 @@ func NewAuthenticator(
 		apiClientCAs,
 		usercache.NewGroupCache(groupInformer),
 		kubeExternalClient.CoreV1(),
+		kubeExternalClient.CoreV1(),
 	)
 }
 
@@ -95,6 +96,7 @@ func newAuthenticator(
 	apiClientCAs *x509.CertPool,
 	groupMapper oauth.UserToGroupMapper,
 	secretsGetter v1.SecretsGetter,
+	namespacesGetter v1.NamespacesGetter,
 ) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
@@ -138,7 +140,7 @@ func newAuthenticator(
 		if oauthConfig.SessionConfig != nil {
 			tokenAuthenticators = append(tokenAuthenticators,
 				// bootstrap oauth user that can do anything, backed by a secret
-				oauth.NewBootstrapAuthenticator(accessTokenGetter, secretsGetter, validators...))
+				oauth.NewBootstrapAuthenticator(accessTokenGetter, secretsGetter, namespacesGetter, validators...))
 		}
 	}
 
