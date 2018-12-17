@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
 	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
@@ -36,11 +37,14 @@ func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.Kub
 	bootstrappolicy.ClusterRoles = bootstrappolicy.OpenshiftClusterRoles
 	bootstrappolicy.ClusterRoleBindings = bootstrappolicy.OpenshiftClusterRoleBindings
 
-	options.AllOrderedPlugins = originadmission.KubeAdmissionPlugins
+	options.AllOrderedPlugins = append([]string{}, originadmission.KubeAdmissionPlugins...)
+	options.AllOrderedPlugins = append(options.AllOrderedPlugins, customresourcevalidationregistration.AllCustomResourceValidators...)
+
 	kubeRegisterAdmission := options.RegisterAllAdmissionPlugins
 	options.RegisterAllAdmissionPlugins = func(plugins *admission.Plugins) {
 		kubeRegisterAdmission(plugins)
 		originadmission.RegisterOpenshiftKubeAdmissionPlugins(plugins)
+		customresourcevalidationregistration.RegisterCustomResourceValidation(plugins)
 	}
 	kubeDefaultOffAdmission := options.DefaultOffAdmissionPlugins
 	options.DefaultOffAdmissionPlugins = func() sets.String {
