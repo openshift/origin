@@ -11,16 +11,18 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 )
 
-func NewBootstrapSelectProvider(delegate handlers.AuthenticationSelectionHandler, secretsGetter v1.SecretsGetter) handlers.AuthenticationSelectionHandler {
+func NewBootstrapSelectProvider(delegate handlers.AuthenticationSelectionHandler, secretsGetter v1.SecretsGetter, namespacesGetter v1.NamespacesGetter) handlers.AuthenticationSelectionHandler {
 	return &bootstrapSelectProvider{
-		delegate: delegate,
-		secrets:  secretsGetter.Secrets(metav1.NamespaceSystem),
+		delegate:   delegate,
+		secrets:    secretsGetter.Secrets(metav1.NamespaceSystem),
+		namespaces: namespacesGetter.Namespaces(),
 	}
 }
 
 type bootstrapSelectProvider struct {
-	delegate handlers.AuthenticationSelectionHandler
-	secrets  v1.SecretInterface
+	delegate   handlers.AuthenticationSelectionHandler
+	secrets    v1.SecretInterface
+	namespaces v1.NamespaceInterface
 }
 
 func (b *bootstrapSelectProvider) SelectAuthentication(providers []api.ProviderInfo, w http.ResponseWriter, req *http.Request) (*api.ProviderInfo, bool, error) {
@@ -30,7 +32,7 @@ func (b *bootstrapSelectProvider) SelectAuthentication(providers []api.ProviderI
 		return b.delegate.SelectAuthentication(providers, w, req)
 	}
 
-	_, _, ok, err := bootstrap.HashAndUID(b.secrets)
+	_, _, ok, err := bootstrap.HashAndUID(b.secrets, b.namespaces)
 	// filter out the bootstrap IDP if the secret is not functional
 	if err != nil || !ok {
 		return b.delegate.SelectAuthentication(providers[1:], w, req)

@@ -4,7 +4,9 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
+	"time"
 
+	"github.com/golang/glog"
 	"golang.org/x/crypto/bcrypt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -25,19 +27,29 @@ const (
 	minPasswordLen = 23
 )
 
-// make it obvious that we refuse to honor short passwords
-var errPasswordTooShort = fmt.Errorf("%s password must be at least %d characters long", bootstrapUserBasicAuth, minPasswordLen)
+var (
+	// make it obvious that we refuse to honor short passwords
+	errPasswordTooShort = fmt.Errorf("%s password must be at least %d characters long", bootstrapUserBasicAuth, minPasswordLen)
 
-func New(secrets v1.SecretsGetter) authenticator.Password {
+	// we refuse to honor a secret that is too new when compared to kube-system
+	// since kube-system always exists and cannot be deleted
+	// and creation timestamp is controlled by the api, we can use this to
+	// detect if the secret was recreated after the initial bootstrapping
+	errSecretRecreated = fmt.Errorf("%s secret cannot be recreated", bootstrapUserBasicAuth)
+)
+
+func New(secrets v1.SecretsGetter, namespaces v1.NamespacesGetter) authenticator.Password {
 	return &bootstrapPassword{
-		secrets: secrets.Secrets(metav1.NamespaceSystem),
-		names:   sets.NewString(BootstrapUser, bootstrapUserBasicAuth),
+		secrets:    secrets.Secrets(metav1.NamespaceSystem),
+		namespaces: namespaces.Namespaces(),
+		names:      sets.NewString(BootstrapUser, bootstrapUserBasicAuth),
 	}
 }
 
 type bootstrapPassword struct {
-	secrets v1.SecretInterface
-	names   sets.String
+	secrets    v1.SecretInterface
+	namespaces v1.NamespaceInterface
+	names      sets.String
 }
 
 func (b *bootstrapPassword) AuthenticatePassword(username, password string) (user.Info, bool, error) {
@@ -45,7 +57,7 @@ func (b *bootstrapPassword) AuthenticatePassword(username, password string) (use
 		return nil, false, nil
 	}
 
-	hashedPassword, uid, ok, err := HashAndUID(b.secrets)
+	hashedPassword, uid, ok, err := HashAndUID(b.secrets, b.namespaces)
 	if err != nil || !ok {
 		return nil, ok, err
 	}
@@ -58,6 +70,7 @@ func (b *bootstrapPassword) AuthenticatePassword(username, password string) (use
 
 	if err := bcrypt.CompareHashAndPassword(hashedPassword, []byte(password)); err != nil {
 		if err == bcrypt.ErrMismatchedHashAndPassword {
+			glog.V(4).Infof("%s password mismatch", bootstrapUserBasicAuth)
 			return nil, false, nil
 		}
 		return nil, false, err
@@ -70,13 +83,25 @@ func (b *bootstrapPassword) AuthenticatePassword(username, password string) (use
 	}, true, nil
 }
 
-func HashAndUID(secrets v1.SecretInterface) ([]byte, string, bool, error) {
+func HashAndUID(secrets v1.SecretInterface, namespaces v1.NamespaceInterface) ([]byte, string, bool, error) {
 	secret, err := secrets.Get(bootstrapUserBasicAuth, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
+		glog.V(4).Infof("%s secret does not exist", bootstrapUserBasicAuth)
 		return nil, "", false, nil
 	}
 	if err != nil {
 		return nil, "", false, err
+	}
+	if secret.DeletionTimestamp != nil {
+		glog.V(4).Infof("%s secret is being deleted", bootstrapUserBasicAuth)
+		return nil, "", false, nil
+	}
+	namespace, err := namespaces.Get(metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		return nil, "", false, err
+	}
+	if secret.CreationTimestamp.After(namespace.CreationTimestamp.Add(time.Hour)) {
+		return nil, "", false, errSecretRecreated
 	}
 
 	hashedPassword := secret.Data[bootstrapUserBasicAuth]

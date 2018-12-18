@@ -13,16 +13,18 @@ import (
 )
 
 type bootstrapAuthenticator struct {
-	tokens    oauthclient.OAuthAccessTokenInterface
-	secrets   v1.SecretInterface
-	validator OAuthTokenValidator
+	tokens     oauthclient.OAuthAccessTokenInterface
+	secrets    v1.SecretInterface
+	namespaces v1.NamespaceInterface
+	validator  OAuthTokenValidator
 }
 
-func NewBootstrapAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, secrets v1.SecretsGetter, validators ...OAuthTokenValidator) kauthenticator.Token {
+func NewBootstrapAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, secrets v1.SecretsGetter, namespaces v1.NamespacesGetter, validators ...OAuthTokenValidator) kauthenticator.Token {
 	return &bootstrapAuthenticator{
-		tokens:    tokens,
-		secrets:   secrets.Secrets(metav1.NamespaceSystem),
-		validator: OAuthTokenValidators(validators),
+		tokens:     tokens,
+		secrets:    secrets.Secrets(metav1.NamespaceSystem),
+		namespaces: namespaces.Namespaces(),
+		validator:  OAuthTokenValidators(validators),
 	}
 }
 
@@ -36,7 +38,7 @@ func (a *bootstrapAuthenticator) AuthenticateToken(name string) (kuser.Info, boo
 		return nil, false, nil
 	}
 
-	_, uid, ok, err := bootstrap.HashAndUID(a.secrets)
+	_, uid, ok, err := bootstrap.HashAndUID(a.secrets, a.namespaces)
 	if err != nil || !ok {
 		return nil, ok, err
 	}

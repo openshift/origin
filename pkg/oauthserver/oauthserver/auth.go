@@ -462,7 +462,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux oauthserver.Mux, errorH
 
 	// the bootstrap user IDP is always set as the first one when sessions are enabled
 	if c.ExtraOAuthConfig.Options.SessionConfig != nil {
-		selectProvider = selectprovider.NewBootstrapSelectProvider(selectProvider, c.ExtraOAuthConfig.KubeClient.CoreV1())
+		selectProvider = selectprovider.NewBootstrapSelectProvider(selectProvider, c.ExtraOAuthConfig.KubeClient.CoreV1(), c.ExtraOAuthConfig.KubeClient.CoreV1())
 	}
 
 	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler, selectProvider)
@@ -615,7 +615,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 		return keystonepassword.New(identityProvider.Name, connectionInfo.URL, transport, provider.DomainName, identityMapper, provider.UseKeystoneIdentity), nil
 
 	case *configapi.BootstrapIdentityProvider:
-		return bootstrap.New(c.ExtraOAuthConfig.KubeClient.CoreV1()), nil
+		return bootstrap.New(c.ExtraOAuthConfig.KubeClient.CoreV1(), c.ExtraOAuthConfig.KubeClient.CoreV1()), nil
 
 	default:
 		return nil, fmt.Errorf("No password auth found that matches %v.  The OAuth server cannot start!", identityProvider)
