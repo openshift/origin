@@ -41,10 +41,12 @@ func NewHardwareComponentGroupsClientWithBaseURI(baseURI string, subscriptionID 
 }
 
 // ChangeControllerPowerState changes the power state of the controller.
-//
-// deviceName is the device name hardwareComponentGroupName is the hardware component group name. parameters is the
-// controller power state change request. resourceGroupName is the resource group name managerName is the manager
-// name
+// Parameters:
+// deviceName - the device name
+// hardwareComponentGroupName - the hardware component group name.
+// parameters - the controller power state change request.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client HardwareComponentGroupsClient) ChangeControllerPowerState(ctx context.Context, deviceName string, hardwareComponentGroupName string, parameters ControllerPowerStateChangeRequest, resourceGroupName string, managerName string) (result HardwareComponentGroupsChangeControllerPowerStateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -86,7 +88,7 @@ func (client HardwareComponentGroupsClient) ChangeControllerPowerStatePreparer(c
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.StorSimple/managers/{managerName}/devices/{deviceName}/hardwareComponentGroups/{hardwareComponentGroupName}/changeControllerPowerState", pathParameters),
@@ -98,15 +100,17 @@ func (client HardwareComponentGroupsClient) ChangeControllerPowerStatePreparer(c
 // ChangeControllerPowerStateSender sends the ChangeControllerPowerState request. The method will close the
 // http.Response Body if it receives an error.
 func (client HardwareComponentGroupsClient) ChangeControllerPowerStateSender(req *http.Request) (future HardwareComponentGroupsChangeControllerPowerStateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -123,8 +127,10 @@ func (client HardwareComponentGroupsClient) ChangeControllerPowerStateResponder(
 }
 
 // ListByDevice lists the hardware component groups at device-level.
-//
-// deviceName is the device name resourceGroupName is the resource group name managerName is the manager name
+// Parameters:
+// deviceName - the device name
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client HardwareComponentGroupsClient) ListByDevice(ctx context.Context, deviceName string, resourceGroupName string, managerName string) (result HardwareComponentGroupList, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,

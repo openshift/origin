@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -67,7 +68,7 @@ type log struct {
 	lastVerified atomic.Value
 }
 
-func (*log) Name() string {
+func (l *log) Name() string {
 	return "log"
 }
 
@@ -158,7 +159,6 @@ func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 		}
 		// always be verbose on failure
 		if failed {
-			glog.Warningf("%vhealthz check failed", verboseOut.String())
 			http.Error(w, fmt.Sprintf("%vhealthz check failed", verboseOut.String()), http.StatusInternalServerError)
 			return
 		}

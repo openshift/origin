@@ -1,27 +1,21 @@
-package image
+package image // import "github.com/docker/docker/api/server/router/image"
 
 import (
+	"context"
 	"io"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
-	"golang.org/x/net/context"
 )
 
 // Backend is all the methods that need to be implemented
 // to provide image specific functionality.
 type Backend interface {
-	containerBackend
 	imageBackend
 	importExportBackend
 	registryBackend
-}
-
-type containerBackend interface {
-	Commit(name string, config *backend.ContainerCommitConfig) (imageID string, err error)
 }
 
 type imageBackend interface {
@@ -29,7 +23,7 @@ type imageBackend interface {
 	ImageHistory(imageName string) ([]*image.HistoryResponseItem, error)
 	Images(imageFilters filters.Args, all bool, withExtraAttrs bool) ([]*types.ImageSummary, error)
 	LookupImage(name string) (*types.ImageInspect, error)
-	TagImage(imageName, repository, tag string) error
+	TagImage(imageName, repository, tag string) (string, error)
 	ImagesPrune(ctx context.Context, pruneFilters filters.Args) (*types.ImagesPruneReport, error)
 }
 

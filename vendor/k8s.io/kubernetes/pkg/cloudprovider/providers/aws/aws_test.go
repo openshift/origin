@@ -348,13 +348,14 @@ func TestNodeAddresses(t *testing.T) {
 	if err3 != nil {
 		t.Errorf("Should not error when instance found")
 	}
-	if len(addrs3) != 4 {
-		t.Errorf("Should return exactly 4 NodeAddresses")
+	if len(addrs3) != 5 {
+		t.Errorf("Should return exactly 5 NodeAddresses")
 	}
 	testHasNodeAddress(t, addrs3, v1.NodeInternalIP, "192.168.0.1")
 	testHasNodeAddress(t, addrs3, v1.NodeExternalIP, "1.2.3.4")
 	testHasNodeAddress(t, addrs3, v1.NodeExternalDNS, "instance-same.ec2.external")
 	testHasNodeAddress(t, addrs3, v1.NodeInternalDNS, "instance-same.ec2.internal")
+	testHasNodeAddress(t, addrs3, v1.NodeHostName, "instance-same.ec2.internal")
 }
 
 func TestNodeAddressesWithMetadata(t *testing.T) {
@@ -802,12 +803,12 @@ func TestFindInstanceByNodeNameExcludesTerminatedInstances(t *testing.T) {
 		state    string
 		expected bool
 	}{
-		{0, "pending", true},
-		{16, "running", true},
-		{32, "shutting-down", true},
-		{48, "terminated", false},
-		{64, "stopping", true},
-		{80, "stopped", true},
+		{0, ec2.InstanceStateNamePending, true},
+		{16, ec2.InstanceStateNameRunning, true},
+		{32, ec2.InstanceStateNameShuttingDown, true},
+		{48, ec2.InstanceStateNameTerminated, false},
+		{64, ec2.InstanceStateNameStopping, true},
+		{80, ec2.InstanceStateNameStopped, true},
 	}
 	awsServices := newMockedFakeAWSServices(TestClusterId)
 
@@ -879,6 +880,7 @@ func TestGetInstanceByNodeNameBatching(t *testing.T) {
 	}
 
 	instances, err := c.getInstancesByNodeNames(nodeNames)
+	assert.Nil(t, err, "Error getting instances by nodeNames %v: %v", nodeNames, err)
 	assert.NotEmpty(t, instances)
 	assert.Equal(t, 200, len(instances), "Expected 200 but got less")
 }

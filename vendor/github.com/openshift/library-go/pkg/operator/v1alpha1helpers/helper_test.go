@@ -278,8 +278,7 @@ func newUnstructured(apiVersion, kind, name, imagePullSpec string) *unstructured
 			"apiVersion": apiVersion,
 			"kind":       kind,
 			"metadata": map[string]interface{}{
-				"name":      name,
-				"namespace": "",
+				"name": name,
 			},
 			"spec": map[string]interface{}{
 				"imagePullSpec": imagePullSpec,

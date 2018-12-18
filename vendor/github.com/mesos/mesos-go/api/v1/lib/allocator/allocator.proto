@@ -1,0 +1,74 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package mesos.allocator;
+
+import "github.com/mesos/mesos-go/api/v1/lib/mesos.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option go_package = "allocator";
+option (gogoproto.benchgen_all) = true;
+option (gogoproto.enum_stringer_all) = true;
+option (gogoproto.equal_all) = true;
+option (gogoproto.goproto_enum_prefix_all) = false;
+option (gogoproto.goproto_enum_stringer_all) = false;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.goproto_unrecognized_all) = false;
+option (gogoproto.gostring_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.protosizer_all) = true;
+option (gogoproto.stringer_all) =  true;
+option (gogoproto.testgen_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.verbose_equal_all) = true;
+
+
+/**
+ * Describes the status of an inverse offer.
+ *
+ * This is a protobuf so as to be able to share the status to inverse offers
+ * through endpoints such as the maintenance status endpoint.
+ */
+message InverseOfferStatus {
+  enum Status {
+    // We have not received a response yet. This is the default state before
+    // receiving a response.
+    UNKNOWN = 1;
+    // The framework is ok with the inverse offer. This means it will not
+    // violate any SLAs and will attempt to evacuate any tasks running on the
+    // agent. If the tasks are not evacuated by the framework, the operator can
+    // manually shut down the slave knowing that the framework will not have
+    // violated its SLAs.
+    ACCEPT = 2;
+    // The framework wants to block the maintenance operation from happening. An
+    // example would be that it cannot meet its SLA by losing resources.
+    DECLINE = 3;
+
+    option (gogoproto.goproto_enum_prefix) = true;
+  }
+
+  required Status status = 1;
+  required FrameworkID framework_id = 2 [(gogoproto.nullable) = false, (gogoproto.customname) = "FrameworkID"];
+
+  // Time, since the epoch, when this status was last updated.
+  required TimeInfo timestamp = 3 [(gogoproto.nullable) = false];
+
+  // TODO(jmlvanre): Capture decline message.
+}

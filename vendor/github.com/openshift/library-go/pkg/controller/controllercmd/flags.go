@@ -2,13 +2,13 @@ package controllercmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/library-go/pkg/config/client"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -31,10 +31,7 @@ func NewControllerFlags() *ControllerFlags {
 
 // Validate makes sure the required flags are specified and no illegal combinations are found
 func (o *ControllerFlags) Validate() error {
-	if len(o.ConfigFile) == 0 {
-		return errors.New("--config is required for this command")
-	}
-
+	// everything is optional currently
 	return nil
 }
 
@@ -44,15 +41,37 @@ func (f *ControllerFlags) AddFlags(cmd *cobra.Command) {
 	// This command only supports reading from config
 	flags.StringVar(&f.ConfigFile, "config", f.ConfigFile, "Location of the master configuration file to run from.")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
-	cmd.MarkFlagRequired("config")
 	flags.StringVar(&f.KubeConfigFile, "kubeconfig", f.KubeConfigFile, "Location of the master configuration file to run from.")
 	cmd.MarkFlagFilename("kubeconfig", "kubeconfig")
 }
 
 // ToConfigObj given completed flags, returns a config object for the flag that was specified.
 // TODO versions goes away in 1.11
-func (f *ControllerFlags) ToConfigObj(configScheme *runtime.Scheme, versions ...schema.GroupVersion) (runtime.Object, error) {
-	return ReadYAMLFile(f.ConfigFile, configScheme, versions...)
+func (f *ControllerFlags) ToConfigObj() (*unstructured.Unstructured, error) {
+	// no file means empty, not err
+	if len(f.ConfigFile) == 0 {
+		return nil, nil
+	}
+
+	content, err := ioutil.ReadFile(f.ConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	// empty file means empty, not err
+	if len(content) == 0 {
+		return nil, nil
+	}
+
+	data, err := kyaml.ToJSON(content)
+	if err != nil {
+		return nil, err
+	}
+	uncastObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return uncastObj.(*unstructured.Unstructured), nil
 }
 
 // ToClientConfig given completed flags, returns a rest.Config.  overrides are optional

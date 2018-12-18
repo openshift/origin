@@ -21,22 +21,168 @@ import (
 	"github.com/Azure/go-autorest/autorest/date"
 )
 
+// JobState enumerates the values for job state.
+type JobState string
+
+const (
+	// Canceled The job was canceled. This is a final state for the job.
+	Canceled JobState = "Canceled"
+	// Canceling The job is in the process of being canceled. This is a transient state for the job.
+	Canceling JobState = "Canceling"
+	// Error The job has encountered an error. This is a final state for the job.
+	Error JobState = "Error"
+	// Finished The job is finished. This is a final state for the job.
+	Finished JobState = "Finished"
+	// Processing The job is processing. This is a transient state for the job.
+	Processing JobState = "Processing"
+	// Queued The job is in a queued state, waiting for resources to become available. This is a transient
+	// state.
+	Queued JobState = "Queued"
+	// Scheduled The job is being scheduled to run on an available resource. This is a transient state, between
+	// queued and processing states.
+	Scheduled JobState = "Scheduled"
+)
+
+// PossibleJobStateValues returns an array of possible values for the JobState const type.
+func PossibleJobStateValues() []JobState {
+	return []JobState{Canceled, Canceling, Error, Finished, Processing, Queued, Scheduled}
+}
+
+// ContainerRegistryEventActor the agent that initiated the event. For most situations, this could be from the
+// authorization context of the request.
+type ContainerRegistryEventActor struct {
+	// Name - The subject or username associated with the request context that generated the event.
+	Name *string `json:"name,omitempty"`
+}
+
+// ContainerRegistryEventData the content of the event request message.
+type ContainerRegistryEventData struct {
+	// ID - The event ID.
+	ID *string `json:"id,omitempty"`
+	// Timestamp - The time at which the event occurred.
+	Timestamp *date.Time `json:"timestamp,omitempty"`
+	// Action - The action that encompasses the provided event.
+	Action *string `json:"action,omitempty"`
+	// Target - The target of the event.
+	Target *ContainerRegistryEventTarget `json:"target,omitempty"`
+	// Request - The request that generated the event.
+	Request *ContainerRegistryEventRequest `json:"request,omitempty"`
+	// Actor - The agent that initiated the event. For most situations, this could be from the authorization context of the request.
+	Actor *ContainerRegistryEventActor `json:"actor,omitempty"`
+	// Source - The registry node that generated the event. Put differently, while the actor initiates the event, the source generates it.
+	Source *ContainerRegistryEventSource `json:"source,omitempty"`
+}
+
+// ContainerRegistryEventRequest the request that generated the event.
+type ContainerRegistryEventRequest struct {
+	// ID - The ID of the request that initiated the event.
+	ID *string `json:"id,omitempty"`
+	// Addr - The IP or hostname and possibly port of the client connection that initiated the event. This is the RemoteAddr from the standard http request.
+	Addr *string `json:"addr,omitempty"`
+	// Host - The externally accessible hostname of the registry instance, as specified by the http host header on incoming requests.
+	Host *string `json:"host,omitempty"`
+	// Method - The request method that generated the event.
+	Method *string `json:"method,omitempty"`
+	// Useragent - The user agent header of the request.
+	Useragent *string `json:"useragent,omitempty"`
+}
+
+// ContainerRegistryEventSource the registry node that generated the event. Put differently, while the actor
+// initiates the event, the source generates it.
+type ContainerRegistryEventSource struct {
+	// Addr - The IP or hostname and the port of the registry node that generated the event. Generally, this will be resolved by os.Hostname() along with the running port.
+	Addr *string `json:"addr,omitempty"`
+	// InstanceID - The running instance of an application. Changes after each restart.
+	InstanceID *string `json:"instanceID,omitempty"`
+}
+
+// ContainerRegistryEventTarget the target of the event.
+type ContainerRegistryEventTarget struct {
+	// MediaType - The MIME type of the referenced object.
+	MediaType *string `json:"mediaType,omitempty"`
+	// Size - The number of bytes of the content. Same as Length field.
+	Size *int64 `json:"size,omitempty"`
+	// Digest - The digest of the content, as defined by the Registry V2 HTTP API Specification.
+	Digest *string `json:"digest,omitempty"`
+	// Length - The number of bytes of the content. Same as Size field.
+	Length *int64 `json:"length,omitempty"`
+	// Repository - The repository name.
+	Repository *string `json:"repository,omitempty"`
+	// URL - The direct URL to the content.
+	URL *string `json:"url,omitempty"`
+	// Tag - The tag name.
+	Tag *string `json:"tag,omitempty"`
+}
+
+// ContainerRegistryImageDeletedEventData schema of the Data property of an EventGridEvent for a
+// Microsoft.ContainerRegistry.ImageDeleted event.
+type ContainerRegistryImageDeletedEventData struct {
+	// ID - The event ID.
+	ID *string `json:"id,omitempty"`
+	// Timestamp - The time at which the event occurred.
+	Timestamp *date.Time `json:"timestamp,omitempty"`
+	// Action - The action that encompasses the provided event.
+	Action *string `json:"action,omitempty"`
+	// Target - The target of the event.
+	Target *ContainerRegistryEventTarget `json:"target,omitempty"`
+	// Request - The request that generated the event.
+	Request *ContainerRegistryEventRequest `json:"request,omitempty"`
+	// Actor - The agent that initiated the event. For most situations, this could be from the authorization context of the request.
+	Actor *ContainerRegistryEventActor `json:"actor,omitempty"`
+	// Source - The registry node that generated the event. Put differently, while the actor initiates the event, the source generates it.
+	Source *ContainerRegistryEventSource `json:"source,omitempty"`
+}
+
+// ContainerRegistryImagePushedEventData schema of the Data property of an EventGridEvent for a
+// Microsoft.ContainerRegistry.ImagePushed event.
+type ContainerRegistryImagePushedEventData struct {
+	// ID - The event ID.
+	ID *string `json:"id,omitempty"`
+	// Timestamp - The time at which the event occurred.
+	Timestamp *date.Time `json:"timestamp,omitempty"`
+	// Action - The action that encompasses the provided event.
+	Action *string `json:"action,omitempty"`
+	// Target - The target of the event.
+	Target *ContainerRegistryEventTarget `json:"target,omitempty"`
+	// Request - The request that generated the event.
+	Request *ContainerRegistryEventRequest `json:"request,omitempty"`
+	// Actor - The agent that initiated the event. For most situations, this could be from the authorization context of the request.
+	Actor *ContainerRegistryEventActor `json:"actor,omitempty"`
+	// Source - The registry node that generated the event. Put differently, while the actor initiates the event, the source generates it.
+	Source *ContainerRegistryEventSource `json:"source,omitempty"`
+}
+
+// DeviceConnectionStateEventInfo information about the device connection state event.
+type DeviceConnectionStateEventInfo struct {
+	// SequenceNumber - Sequence number is string representation of a hexadecimal number. string compare can be used to identify the larger number because both in ASCII and HEX numbers come after alphabets. If you are converting the string to hex, then the number is a 256 bit number.
+	SequenceNumber *string `json:"sequenceNumber,omitempty"`
+}
+
+// DeviceConnectionStateEventProperties schema of the Data property of an EventGridEvent for a device connection
+// state event (DeviceConnected, DeviceDisconnected).
+type DeviceConnectionStateEventProperties struct {
+	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
+	DeviceID *string `json:"deviceId,omitempty"`
+	// ModuleID - The unique identifier of the module. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
+	ModuleID *string `json:"moduleId,omitempty"`
+	// HubName - Name of the IoT Hub where the device was created or deleted.
+	HubName *string `json:"hubName,omitempty"`
+	// DeviceConnectionStateEventInfo - Information about the device connection state event.
+	DeviceConnectionStateEventInfo *DeviceConnectionStateEventInfo `json:"deviceConnectionStateEventInfo,omitempty"`
+}
+
 // DeviceLifeCycleEventProperties schema of the Data property of an EventGridEvent for a device life cycle event
 // (DeviceCreated, DeviceDeleted).
 type DeviceLifeCycleEventProperties struct {
-	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ # * ? ! ( ) , = @ ; $ '.
+	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
 	DeviceID *string `json:"deviceId,omitempty"`
 	// HubName - Name of the IoT Hub where the device was created or deleted.
 	HubName *string `json:"hubName,omitempty"`
-	// OpType - The event type specified for this operation by the IoT Hub.
-	OpType *string `json:"opType,omitempty"`
-	// OperationTimestamp - The ISO8601 timestamp of the operation.
-	OperationTimestamp *string `json:"operationTimestamp,omitempty"`
-	// Twin - Information about the device twin, which is the cloud represenation of application device metadata.
+	// Twin - Information about the device twin, which is the cloud representation of application device metadata.
 	Twin *DeviceTwinInfo `json:"twin,omitempty"`
 }
 
-// DeviceTwinInfo information about the device twin, which is the cloud represenation of application device
+// DeviceTwinInfo information about the device twin, which is the cloud representation of application device
 // metadata.
 type DeviceTwinInfo struct {
 	// AuthenticationType - Authentication type used for this device: either SAS, SelfSigned, or CertificateAuthority.
@@ -139,32 +285,57 @@ type EventHubCaptureFileCreatedEventData struct {
 	LastEnqueueTime *date.Time `json:"lastEnqueueTime,omitempty"`
 }
 
+// IotHubDeviceConnectedEventData event data for Microsoft.Devices.DeviceConnected event.
+type IotHubDeviceConnectedEventData struct {
+	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
+	DeviceID *string `json:"deviceId,omitempty"`
+	// ModuleID - The unique identifier of the module. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
+	ModuleID *string `json:"moduleId,omitempty"`
+	// HubName - Name of the IoT Hub where the device was created or deleted.
+	HubName *string `json:"hubName,omitempty"`
+	// DeviceConnectionStateEventInfo - Information about the device connection state event.
+	DeviceConnectionStateEventInfo *DeviceConnectionStateEventInfo `json:"deviceConnectionStateEventInfo,omitempty"`
+}
+
 // IotHubDeviceCreatedEventData event data for Microsoft.Devices.DeviceCreated event.
 type IotHubDeviceCreatedEventData struct {
-	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ # * ? ! ( ) , = @ ; $ '.
+	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
 	DeviceID *string `json:"deviceId,omitempty"`
 	// HubName - Name of the IoT Hub where the device was created or deleted.
 	HubName *string `json:"hubName,omitempty"`
-	// OpType - The event type specified for this operation by the IoT Hub.
-	OpType *string `json:"opType,omitempty"`
-	// OperationTimestamp - The ISO8601 timestamp of the operation.
-	OperationTimestamp *string `json:"operationTimestamp,omitempty"`
-	// Twin - Information about the device twin, which is the cloud represenation of application device metadata.
+	// Twin - Information about the device twin, which is the cloud representation of application device metadata.
 	Twin *DeviceTwinInfo `json:"twin,omitempty"`
 }
 
 // IotHubDeviceDeletedEventData event data for Microsoft.Devices.DeviceDeleted event.
 type IotHubDeviceDeletedEventData struct {
-	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ # * ? ! ( ) , = @ ; $ '.
+	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
 	DeviceID *string `json:"deviceId,omitempty"`
 	// HubName - Name of the IoT Hub where the device was created or deleted.
 	HubName *string `json:"hubName,omitempty"`
-	// OpType - The event type specified for this operation by the IoT Hub.
-	OpType *string `json:"opType,omitempty"`
-	// OperationTimestamp - The ISO8601 timestamp of the operation.
-	OperationTimestamp *string `json:"operationTimestamp,omitempty"`
-	// Twin - Information about the device twin, which is the cloud represenation of application device metadata.
+	// Twin - Information about the device twin, which is the cloud representation of application device metadata.
 	Twin *DeviceTwinInfo `json:"twin,omitempty"`
+}
+
+// IotHubDeviceDisconnectedEventData event data for Microsoft.Devices.DeviceDisconnected event.
+type IotHubDeviceDisconnectedEventData struct {
+	// DeviceID - The unique identifier of the device. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
+	DeviceID *string `json:"deviceId,omitempty"`
+	// ModuleID - The unique identifier of the module. This case-sensitive string can be up to 128 characters long, and supports ASCII 7-bit alphanumeric characters plus the following special characters: - : . + % _ &#35; * ? ! ( ) , = @ ; $ '.
+	ModuleID *string `json:"moduleId,omitempty"`
+	// HubName - Name of the IoT Hub where the device was created or deleted.
+	HubName *string `json:"hubName,omitempty"`
+	// DeviceConnectionStateEventInfo - Information about the device connection state event.
+	DeviceConnectionStateEventInfo *DeviceConnectionStateEventInfo `json:"deviceConnectionStateEventInfo,omitempty"`
+}
+
+// MediaJobStateChangeEventData schema of the Data property of an EventGridEvent for a
+// Microsoft.Media.JobStateChange event.
+type MediaJobStateChangeEventData struct {
+	// PreviousState - The previous state of the Job. Possible values include: 'Canceled', 'Canceling', 'Error', 'Finished', 'Processing', 'Queued', 'Scheduled'
+	PreviousState JobState `json:"previousState,omitempty"`
+	// State - The new state of the Job. Possible values include: 'Canceled', 'Canceling', 'Error', 'Finished', 'Processing', 'Queued', 'Scheduled'
+	State JobState `json:"state,omitempty"`
 }
 
 // ResourceDeleteCancelData schema of the Data property of an EventGridEvent for an
@@ -331,6 +502,40 @@ type ResourceWriteSuccessData struct {
 	HTTPRequest *string `json:"httpRequest,omitempty"`
 }
 
+// ServiceBusActiveMessagesAvailableWithNoListenersEventData schema of the Data property of an EventGridEvent for a
+// Microsoft.ServiceBus.ActiveMessagesAvailableWithNoListeners event.
+type ServiceBusActiveMessagesAvailableWithNoListenersEventData struct {
+	// NamespaceName - The namespace name of the Microsoft.ServiceBus resource.
+	NamespaceName *string `json:"namespaceName,omitempty"`
+	// RequestURI - The endpoint of the Microsoft.ServiceBus resource.
+	RequestURI *string `json:"requestUri,omitempty"`
+	// EntityType - The entity type of the Microsoft.ServiceBus resource. Could be one of 'queue' or 'subscriber'.
+	EntityType *string `json:"entityType,omitempty"`
+	// QueueName - The name of the Microsoft.ServiceBus queue. If the entity type is of type 'subscriber', then this value will be null.
+	QueueName *string `json:"queueName,omitempty"`
+	// TopicName - The name of the Microsoft.ServiceBus topic. If the entity type is of type 'queue', then this value will be null.
+	TopicName *string `json:"topicName,omitempty"`
+	// SubscriptionName - The name of the Microsoft.ServiceBus topic's subscription. If the entity type is of type 'queue', then this value will be null.
+	SubscriptionName *string `json:"subscriptionName,omitempty"`
+}
+
+// ServiceBusDeadletterMessagesAvailableWithNoListenersEventData schema of the Data property of an EventGridEvent
+// for a Microsoft.ServiceBus.DeadletterMessagesAvailableWithNoListenersEvent event.
+type ServiceBusDeadletterMessagesAvailableWithNoListenersEventData struct {
+	// NamespaceName - The namespace name of the Microsoft.ServiceBus resource.
+	NamespaceName *string `json:"namespaceName,omitempty"`
+	// RequestURI - The endpoint of the Microsoft.ServiceBus resource.
+	RequestURI *string `json:"requestUri,omitempty"`
+	// EntityType - The entity type of the Microsoft.ServiceBus resource. Could be one of 'queue' or 'subscriber'.
+	EntityType *string `json:"entityType,omitempty"`
+	// QueueName - The name of the Microsoft.ServiceBus queue. If the entity type is of type 'subscriber', then this value will be null.
+	QueueName *string `json:"queueName,omitempty"`
+	// TopicName - The name of the Microsoft.ServiceBus topic. If the entity type is of type 'queue', then this value will be null.
+	TopicName *string `json:"topicName,omitempty"`
+	// SubscriptionName - The name of the Microsoft.ServiceBus topic's subscription. If the entity type is of type 'queue', then this value will be null.
+	SubscriptionName *string `json:"subscriptionName,omitempty"`
+}
+
 // StorageBlobCreatedEventData schema of the Data property of an EventGridEvent for an
 // Microsoft.Storage.BlobCreated event.
 type StorageBlobCreatedEventData struct {
@@ -375,4 +580,28 @@ type StorageBlobDeletedEventData struct {
 	Sequencer *string `json:"sequencer,omitempty"`
 	// StorageDiagnostics - For service use only. Diagnostic data occasionally included by the Azure Storage service. This property should be ignored by event consumers.
 	StorageDiagnostics interface{} `json:"storageDiagnostics,omitempty"`
+}
+
+// SubscriptionDeletedEventData schema of the Data property of an EventGridEvent for a
+// Microsoft.EventGrid.SubscriptionDeletedEvent.
+type SubscriptionDeletedEventData struct {
+	// EventSubscriptionID - The Azure resource ID of the deleted event subscription.
+	EventSubscriptionID *string `json:"eventSubscriptionId,omitempty"`
+}
+
+// SubscriptionValidationEventData schema of the Data property of an EventGridEvent for a
+// Microsoft.EventGrid.SubscriptionValidationEvent.
+type SubscriptionValidationEventData struct {
+	// ValidationCode - The validation code sent by Azure Event Grid to validate an event subscription. To complete the validation handshake, the subscriber must either respond with this validation code as part of the validation response, or perform a GET request on the validationUrl (available starting version 2018-05-01-preview).
+	ValidationCode *string `json:"validationCode,omitempty"`
+	// ValidationURL - The validation URL sent by Azure Event Grid (available starting version 2018-05-01-preview). To complete the validation handshake, the subscriber must either respond with the validationCode as part of the validation response, or perform a GET request on the validationUrl (available starting version 2018-05-01-preview).
+	ValidationURL *string `json:"validationUrl,omitempty"`
+}
+
+// SubscriptionValidationResponse to complete an event subscription validation handshake, a subscriber can use
+// either the validationCode or the validationUrl received in a SubscriptionValidationEvent. When the
+// validationCode is used, the SubscriptionValidationResponse can be used to build the response.
+type SubscriptionValidationResponse struct {
+	// ValidationResponse - The validation response sent by the subscriber to Azure Event Grid to complete the validation of an event subscription.
+	ValidationResponse *string `json:"validationResponse,omitempty"`
 }

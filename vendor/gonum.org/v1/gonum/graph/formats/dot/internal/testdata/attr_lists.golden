@@ -1,0 +1,3 @@
+digraph {
+	A [style=filled fillcolor=red]
+}

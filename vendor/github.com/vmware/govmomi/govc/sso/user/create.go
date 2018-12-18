@@ -44,21 +44,36 @@ func withClient(ctx context.Context, cmd *flags.ClientFlag, f func(*ssoadmin.Cli
 
 	// SSO admin server has its own session manager, so the govc persisted session cookies cannot
 	// be used to authenticate.  There is no SSO token persistence in govc yet, so just use an env
-	// var for now.
+	// var for now.  If no GOVC_LOGIN_TOKEN is set, issue a new token.
 	token := os.Getenv("GOVC_LOGIN_TOKEN")
-	if token != "" {
-		header := soap.Header{
-			Security: &sts.Signer{
-				Certificate: c.Certificate(),
-				Token:       token,
-			},
+	header := soap.Header{
+		Security: &sts.Signer{
+			Certificate: vc.Certificate(),
+			Token:       token,
+		},
+	}
+
+	if token == "" {
+		tokens, cerr := sts.NewClient(ctx, vc)
+		if cerr != nil {
+			return cerr
 		}
 
-		if err = c.Login(c.WithHeader(ctx, header)); err != nil {
-			return err
+		req := sts.TokenRequest{
+			Certificate: vc.Certificate(),
+			Userinfo:    cmd.Userinfo(),
 		}
-		defer c.Logout(ctx)
+
+		header.Security, cerr = tokens.Issue(ctx, req)
+		if cerr != nil {
+			return cerr
+		}
 	}
+
+	if err = c.Login(c.WithHeader(ctx, header)); err != nil {
+		return err
+	}
+	defer c.Logout(ctx)
 
 	return f(c)
 }

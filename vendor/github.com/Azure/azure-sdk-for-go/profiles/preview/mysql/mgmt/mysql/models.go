@@ -23,82 +23,24 @@ import original "github.com/Azure/azure-sdk-for-go/services/mysql/mgmt/2017-12-0
 
 type CheckNameAvailabilityClient = original.CheckNameAvailabilityClient
 
-func NewCheckNameAvailabilityClient(subscriptionID string) CheckNameAvailabilityClient {
-	return original.NewCheckNameAvailabilityClient(subscriptionID)
-}
-func NewCheckNameAvailabilityClientWithBaseURI(baseURI string, subscriptionID string) CheckNameAvailabilityClient {
-	return original.NewCheckNameAvailabilityClientWithBaseURI(baseURI, subscriptionID)
-}
-
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
 type BaseClient = original.BaseClient
-
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-
 type ConfigurationsClient = original.ConfigurationsClient
-
-func NewConfigurationsClient(subscriptionID string) ConfigurationsClient {
-	return original.NewConfigurationsClient(subscriptionID)
-}
-func NewConfigurationsClientWithBaseURI(baseURI string, subscriptionID string) ConfigurationsClient {
-	return original.NewConfigurationsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type DatabasesClient = original.DatabasesClient
-
-func NewDatabasesClient(subscriptionID string) DatabasesClient {
-	return original.NewDatabasesClient(subscriptionID)
-}
-func NewDatabasesClientWithBaseURI(baseURI string, subscriptionID string) DatabasesClient {
-	return original.NewDatabasesClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type FirewallRulesClient = original.FirewallRulesClient
-
-func NewFirewallRulesClient(subscriptionID string) FirewallRulesClient {
-	return original.NewFirewallRulesClient(subscriptionID)
-}
-func NewFirewallRulesClientWithBaseURI(baseURI string, subscriptionID string) FirewallRulesClient {
-	return original.NewFirewallRulesClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type LocationBasedPerformanceTierClient = original.LocationBasedPerformanceTierClient
-
-func NewLocationBasedPerformanceTierClient(subscriptionID string) LocationBasedPerformanceTierClient {
-	return original.NewLocationBasedPerformanceTierClient(subscriptionID)
-}
-func NewLocationBasedPerformanceTierClientWithBaseURI(baseURI string, subscriptionID string) LocationBasedPerformanceTierClient {
-	return original.NewLocationBasedPerformanceTierClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type LogFilesClient = original.LogFilesClient
-
-func NewLogFilesClient(subscriptionID string) LogFilesClient {
-	return original.NewLogFilesClient(subscriptionID)
-}
-func NewLogFilesClientWithBaseURI(baseURI string, subscriptionID string) LogFilesClient {
-	return original.NewLogFilesClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type CreateMode = original.CreateMode
 
 const (
 	CreateModeDefault                   CreateMode = original.CreateModeDefault
+	CreateModeGeoRestore                CreateMode = original.CreateModeGeoRestore
 	CreateModePointInTimeRestore        CreateMode = original.CreateModePointInTimeRestore
 	CreateModeServerPropertiesForCreate CreateMode = original.CreateModeServerPropertiesForCreate
 )
-
-func PossibleCreateModeValues() []CreateMode {
-	return original.PossibleCreateModeValues()
-}
 
 type GeoRedundantBackup = original.GeoRedundantBackup
 
@@ -106,10 +48,6 @@ const (
 	Disabled GeoRedundantBackup = original.Disabled
 	Enabled  GeoRedundantBackup = original.Enabled
 )
-
-func PossibleGeoRedundantBackupValues() []GeoRedundantBackup {
-	return original.PossibleGeoRedundantBackupValues()
-}
 
 type OperationOrigin = original.OperationOrigin
 
@@ -119,10 +57,6 @@ const (
 	User         OperationOrigin = original.User
 )
 
-func PossibleOperationOriginValues() []OperationOrigin {
-	return original.PossibleOperationOriginValues()
-}
-
 type ServerState = original.ServerState
 
 const (
@@ -131,20 +65,12 @@ const (
 	ServerStateReady    ServerState = original.ServerStateReady
 )
 
-func PossibleServerStateValues() []ServerState {
-	return original.PossibleServerStateValues()
-}
-
 type ServerVersion = original.ServerVersion
 
 const (
 	FiveFullStopSeven ServerVersion = original.FiveFullStopSeven
 	FiveFullStopSix   ServerVersion = original.FiveFullStopSix
 )
-
-func PossibleServerVersionValues() []ServerVersion {
-	return original.PossibleServerVersionValues()
-}
 
 type SkuTier = original.SkuTier
 
@@ -154,10 +80,6 @@ const (
 	MemoryOptimized SkuTier = original.MemoryOptimized
 )
 
-func PossibleSkuTierValues() []SkuTier {
-	return original.PossibleSkuTierValues()
-}
-
 type SslEnforcementEnum = original.SslEnforcementEnum
 
 const (
@@ -165,9 +87,15 @@ const (
 	SslEnforcementEnumEnabled  SslEnforcementEnum = original.SslEnforcementEnumEnabled
 )
 
-func PossibleSslEnforcementEnumValues() []SslEnforcementEnum {
-	return original.PossibleSslEnforcementEnumValues()
-}
+type VirtualNetworkRuleState = original.VirtualNetworkRuleState
+
+const (
+	Deleting     VirtualNetworkRuleState = original.Deleting
+	Initializing VirtualNetworkRuleState = original.Initializing
+	InProgress   VirtualNetworkRuleState = original.InProgress
+	Ready        VirtualNetworkRuleState = original.Ready
+	Unknown      VirtualNetworkRuleState = original.Unknown
+)
 
 type Configuration = original.Configuration
 type ConfigurationListResult = original.ConfigurationListResult
@@ -202,6 +130,7 @@ type ServerProperties = original.ServerProperties
 type BasicServerPropertiesForCreate = original.BasicServerPropertiesForCreate
 type ServerPropertiesForCreate = original.ServerPropertiesForCreate
 type ServerPropertiesForDefaultCreate = original.ServerPropertiesForDefaultCreate
+type ServerPropertiesForGeoRestore = original.ServerPropertiesForGeoRestore
 type ServerPropertiesForRestore = original.ServerPropertiesForRestore
 type ServersCreateFuture = original.ServersCreateFuture
 type ServersDeleteFuture = original.ServersDeleteFuture
@@ -211,17 +140,89 @@ type ServerUpdateParametersProperties = original.ServerUpdateParametersPropertie
 type Sku = original.Sku
 type StorageProfile = original.StorageProfile
 type TrackedResource = original.TrackedResource
+type VirtualNetworkRule = original.VirtualNetworkRule
+type VirtualNetworkRuleListResult = original.VirtualNetworkRuleListResult
+type VirtualNetworkRuleListResultIterator = original.VirtualNetworkRuleListResultIterator
+type VirtualNetworkRuleListResultPage = original.VirtualNetworkRuleListResultPage
+type VirtualNetworkRuleProperties = original.VirtualNetworkRuleProperties
+type VirtualNetworkRulesCreateOrUpdateFuture = original.VirtualNetworkRulesCreateOrUpdateFuture
+type VirtualNetworkRulesDeleteFuture = original.VirtualNetworkRulesDeleteFuture
 type OperationsClient = original.OperationsClient
+type ServersClient = original.ServersClient
+type VirtualNetworkRulesClient = original.VirtualNetworkRulesClient
 
+func NewCheckNameAvailabilityClient(subscriptionID string) CheckNameAvailabilityClient {
+	return original.NewCheckNameAvailabilityClient(subscriptionID)
+}
+func NewCheckNameAvailabilityClientWithBaseURI(baseURI string, subscriptionID string) CheckNameAvailabilityClient {
+	return original.NewCheckNameAvailabilityClientWithBaseURI(baseURI, subscriptionID)
+}
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func NewConfigurationsClient(subscriptionID string) ConfigurationsClient {
+	return original.NewConfigurationsClient(subscriptionID)
+}
+func NewConfigurationsClientWithBaseURI(baseURI string, subscriptionID string) ConfigurationsClient {
+	return original.NewConfigurationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDatabasesClient(subscriptionID string) DatabasesClient {
+	return original.NewDatabasesClient(subscriptionID)
+}
+func NewDatabasesClientWithBaseURI(baseURI string, subscriptionID string) DatabasesClient {
+	return original.NewDatabasesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewFirewallRulesClient(subscriptionID string) FirewallRulesClient {
+	return original.NewFirewallRulesClient(subscriptionID)
+}
+func NewFirewallRulesClientWithBaseURI(baseURI string, subscriptionID string) FirewallRulesClient {
+	return original.NewFirewallRulesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewLocationBasedPerformanceTierClient(subscriptionID string) LocationBasedPerformanceTierClient {
+	return original.NewLocationBasedPerformanceTierClient(subscriptionID)
+}
+func NewLocationBasedPerformanceTierClientWithBaseURI(baseURI string, subscriptionID string) LocationBasedPerformanceTierClient {
+	return original.NewLocationBasedPerformanceTierClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewLogFilesClient(subscriptionID string) LogFilesClient {
+	return original.NewLogFilesClient(subscriptionID)
+}
+func NewLogFilesClientWithBaseURI(baseURI string, subscriptionID string) LogFilesClient {
+	return original.NewLogFilesClientWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleCreateModeValues() []CreateMode {
+	return original.PossibleCreateModeValues()
+}
+func PossibleGeoRedundantBackupValues() []GeoRedundantBackup {
+	return original.PossibleGeoRedundantBackupValues()
+}
+func PossibleOperationOriginValues() []OperationOrigin {
+	return original.PossibleOperationOriginValues()
+}
+func PossibleServerStateValues() []ServerState {
+	return original.PossibleServerStateValues()
+}
+func PossibleServerVersionValues() []ServerVersion {
+	return original.PossibleServerVersionValues()
+}
+func PossibleSkuTierValues() []SkuTier {
+	return original.PossibleSkuTierValues()
+}
+func PossibleSslEnforcementEnumValues() []SslEnforcementEnum {
+	return original.PossibleSslEnforcementEnumValues()
+}
+func PossibleVirtualNetworkRuleStateValues() []VirtualNetworkRuleState {
+	return original.PossibleVirtualNetworkRuleStateValues()
+}
 func NewOperationsClient(subscriptionID string) OperationsClient {
 	return original.NewOperationsClient(subscriptionID)
 }
 func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
 	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type ServersClient = original.ServersClient
-
 func NewServersClient(subscriptionID string) ServersClient {
 	return original.NewServersClient(subscriptionID)
 }
@@ -233,4 +234,10 @@ func UserAgent() string {
 }
 func Version() string {
 	return original.Version()
+}
+func NewVirtualNetworkRulesClient(subscriptionID string) VirtualNetworkRulesClient {
+	return original.NewVirtualNetworkRulesClient(subscriptionID)
+}
+func NewVirtualNetworkRulesClientWithBaseURI(baseURI string, subscriptionID string) VirtualNetworkRulesClient {
+	return original.NewVirtualNetworkRulesClientWithBaseURI(baseURI, subscriptionID)
 }

@@ -1,9 +1,9 @@
-package logger
+package logger // import "github.com/docker/docker/daemon/logger"
 
 import (
 	"io"
 	"os"
-	"strings"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -19,7 +19,6 @@ type pluginAdapter struct {
 	driverName   string
 	id           string
 	plugin       logPlugin
-	basePath     string
 	fifoPath     string
 	capabilities Capability
 	logInfo      Info
@@ -38,7 +37,7 @@ func (a *pluginAdapter) Log(msg *Message) error {
 
 	a.buf.Line = msg.Line
 	a.buf.TimeNano = msg.Timestamp.UnixNano()
-	a.buf.Partial = msg.Partial
+	a.buf.Partial = msg.PLogMetaData != nil
 	a.buf.Source = msg.Source
 
 	err := a.enc.Encode(&a.buf)
@@ -58,7 +57,7 @@ func (a *pluginAdapter) Close() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if err := a.plugin.StopLogging(strings.TrimPrefix(a.fifoPath, a.basePath)); err != nil {
+	if err := a.plugin.StopLogging(filepath.Join("/", "run", "docker", "logging", a.id)); err != nil {
 		return err
 	}
 
@@ -121,6 +120,9 @@ func (a *pluginAdapterWithRead) ReadLogs(config ReadConfig) *LogWatcher {
 			// plugin should handle this, but check just in case
 			if !config.Since.IsZero() && msg.Timestamp.Before(config.Since) {
 				continue
+			}
+			if !config.Until.IsZero() && msg.Timestamp.After(config.Until) {
+				return
 			}
 
 			select {

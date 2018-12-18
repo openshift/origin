@@ -35,6 +35,8 @@ type info struct {
 	c bool
 	d bool
 	p bool
+
+	uuid bool
 }
 
 func init() {
@@ -48,6 +50,7 @@ func (cmd *info) Register(ctx context.Context, f *flag.FlagSet) {
 	f.BoolVar(&cmd.c, "c", false, "Chain format")
 	f.BoolVar(&cmd.d, "d", false, "Include datastore in output")
 	f.BoolVar(&cmd.p, "p", true, "Include parents")
+	f.BoolVar(&cmd.uuid, "uuid", false, "Include disk UUID")
 }
 
 func (cmd *info) Process(ctx context.Context) error {
@@ -84,6 +87,8 @@ func dsPath(s string) string {
 
 var infoPath = dsPath
 
+var queryUUID func(string) string
+
 type infoResult []object.VirtualDiskInfo
 
 func (r infoResult) Write(w io.Writer) error {
@@ -91,6 +96,9 @@ func (r infoResult) Write(w io.Writer) error {
 
 	for _, info := range r {
 		fmt.Fprintf(tw, "Name:\t%s\n", infoPath(info.Name))
+		if queryUUID != nil {
+			fmt.Fprintf(tw, "  UUID:\t%s\n", queryUUID(info.Name))
+		}
 		fmt.Fprintf(tw, "  Type:\t%s\n", info.DiskType)
 		fmt.Fprintf(tw, "  Parent:\t%s\n", infoPath(info.Parent))
 	}
@@ -125,6 +133,13 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	}
 
 	m := object.NewVirtualDiskManager(ds.Client())
+
+	if cmd.uuid {
+		queryUUID = func(name string) string {
+			id, _ := m.QueryVirtualDiskUuid(ctx, name, dc)
+			return id
+		}
+	}
 
 	info, err := m.QueryVirtualDiskInfo(ctx, ds.Path(f.Arg(0)), dc, cmd.p)
 	if err != nil {

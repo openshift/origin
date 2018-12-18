@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,9 +12,8 @@ import (
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
-	"github.com/docker/docker/integration-cli/request"
+	"github.com/docker/docker/internal/test/request"
 	"github.com/go-check/check"
-	"golang.org/x/net/context"
 )
 
 func (s *DockerSuite) TestAPIImagesFilter(c *check.C) {
@@ -80,7 +80,7 @@ func (s *DockerSuite) TestAPIImagesDelete(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
-	if testEnv.DaemonPlatform() != "windows" {
+	if testEnv.OSType != "windows" {
 		testRequires(c, Network)
 	}
 	name := "test-api-images-delete"
@@ -104,7 +104,7 @@ func (s *DockerSuite) TestAPIImagesHistory(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
-	if testEnv.DaemonPlatform() != "windows" {
+	if testEnv.OSType != "windows" {
 		testRequires(c, Network)
 	}
 	name := "test-api-images-history"
@@ -115,11 +115,18 @@ func (s *DockerSuite) TestAPIImagesHistory(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	c.Assert(historydata, checker.Not(checker.HasLen), 0)
-	c.Assert(historydata[0].Tags[0], checker.Equals, "test-api-images-history:latest")
+	var found bool
+	for _, tag := range historydata[0].Tags {
+		if tag == "test-api-images-history:latest" {
+			found = true
+			break
+		}
+	}
+	c.Assert(found, checker.True)
 }
 
 func (s *DockerSuite) TestAPIImagesImportBadSrc(c *check.C) {
-	testRequires(c, Network)
+	testRequires(c, Network, SameHostDaemon)
 
 	server := httptest.NewServer(http.NewServeMux())
 	defer server.Close()
@@ -157,34 +164,21 @@ func (s *DockerSuite) TestAPIImagesSearchJSONContentType(c *check.C) {
 // Test case for 30027: image size reported as -1 in v1.12 client against v1.13 daemon.
 // This test checks to make sure both v1.12 and v1.13 client against v1.13 daemon get correct `Size` after the fix.
 func (s *DockerSuite) TestAPIImagesSizeCompatibility(c *check.C) {
-	cli, err := client.NewEnvClient()
-	c.Assert(err, checker.IsNil)
-	defer cli.Close()
+	apiclient := testEnv.APIClient()
+	defer apiclient.Close()
 
-	images, err := cli.ImageList(context.Background(), types.ImageListOptions{})
+	images, err := apiclient.ImageList(context.Background(), types.ImageListOptions{})
 	c.Assert(err, checker.IsNil)
 	c.Assert(len(images), checker.Not(checker.Equals), 0)
 	for _, image := range images {
 		c.Assert(image.Size, checker.Not(checker.Equals), int64(-1))
 	}
 
-	type v124Image struct {
-		ID          string `json:"Id"`
-		ParentID    string `json:"ParentId"`
-		RepoTags    []string
-		RepoDigests []string
-		Created     int64
-		Size        int64
-		VirtualSize int64
-		Labels      map[string]string
-	}
-
-	var httpClient *http.Client
-	cli, err = client.NewClient(daemonHost(), "v1.24", httpClient, nil)
+	apiclient, err = client.NewClientWithOpts(client.FromEnv, client.WithVersion("v1.24"))
 	c.Assert(err, checker.IsNil)
-	defer cli.Close()
+	defer apiclient.Close()
 
-	v124Images, err := cli.ImageList(context.Background(), types.ImageListOptions{})
+	v124Images, err := apiclient.ImageList(context.Background(), types.ImageListOptions{})
 	c.Assert(err, checker.IsNil)
 	c.Assert(len(v124Images), checker.Not(checker.Equals), 0)
 	for _, image := range v124Images {

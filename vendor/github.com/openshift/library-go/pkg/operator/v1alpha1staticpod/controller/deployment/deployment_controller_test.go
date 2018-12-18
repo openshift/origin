@@ -13,6 +13,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1staticpod/controller/common"
 )
 
@@ -153,6 +154,7 @@ func TestDeploymentController(t *testing.T) {
 				informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace(tc.targetNamespace)),
 				tc.staticPodOperatorClient,
 				kubeClient,
+				events.NewInMemoryRecorder("test"),
 			)
 			syncErr := c.sync()
 			if tc.validateStatus != nil {

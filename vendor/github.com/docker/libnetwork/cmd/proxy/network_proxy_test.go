@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,9 +9,11 @@ import (
 	"strings"
 	"testing"
 	"time"
-)
 
-var _ = flag.Bool("incontainer", false, "Indicates if the test is running in a container")
+	"github.com/ishidawataru/sctp"
+	// this takes care of the incontainer flag
+	_ "github.com/docker/libnetwork/testutils"
+)
 
 var testBuf = []byte("Buffalo buffalo Buffalo buffalo buffalo buffalo Buffalo buffalo")
 var testBufSize = len(testBuf)
@@ -27,7 +28,7 @@ type EchoServerOptions struct {
 	TCPHalfClose bool
 }
 
-type TCPEchoServer struct {
+type StreamEchoServer struct {
 	listener net.Listener
 	testCtx  *testing.T
 	opts     EchoServerOptions
@@ -40,26 +41,40 @@ type UDPEchoServer struct {
 
 func NewEchoServer(t *testing.T, proto, address string, opts EchoServerOptions) EchoServer {
 	var server EchoServer
-	if strings.HasPrefix(proto, "tcp") {
+	if !strings.HasPrefix(proto, "tcp") && opts.TCPHalfClose {
+		t.Fatalf("TCPHalfClose is not supported for %s", proto)
+	}
+
+	switch {
+	case strings.HasPrefix(proto, "tcp"):
 		listener, err := net.Listen(proto, address)
 		if err != nil {
 			t.Fatal(err)
 		}
-		server = &TCPEchoServer{listener: listener, testCtx: t, opts: opts}
-	} else {
-		if opts.TCPHalfClose {
-			t.Fatalf("TCPHalfClose is not supported for %s", proto)
-		}
+		server = &StreamEchoServer{listener: listener, testCtx: t, opts: opts}
+	case strings.HasPrefix(proto, "udp"):
 		socket, err := net.ListenPacket(proto, address)
 		if err != nil {
 			t.Fatal(err)
 		}
 		server = &UDPEchoServer{conn: socket, testCtx: t}
+	case strings.HasPrefix(proto, "sctp"):
+		addr, err := sctp.ResolveSCTPAddr(proto, address)
+		if err != nil {
+			t.Fatal(err)
+		}
+		listener, err := sctp.ListenSCTP(proto, addr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		server = &StreamEchoServer{listener: listener, testCtx: t}
+	default:
+		t.Fatalf("unknown protocol: %s", proto)
 	}
 	return server
 }
 
-func (server *TCPEchoServer) Run() {
+func (server *StreamEchoServer) Run() {
 	go func() {
 		for {
 			client, err := server.listener.Accept()
@@ -87,8 +102,8 @@ func (server *TCPEchoServer) Run() {
 	}()
 }
 
-func (server *TCPEchoServer) LocalAddr() net.Addr { return server.listener.Addr() }
-func (server *TCPEchoServer) Close()              { server.listener.Close() }
+func (server *StreamEchoServer) LocalAddr() net.Addr { return server.listener.Addr() }
+func (server *StreamEchoServer) Close()              { server.listener.Close() }
 
 func (server *UDPEchoServer) Run() {
 	go func() {
@@ -115,7 +130,19 @@ func (server *UDPEchoServer) Close()              { server.conn.Close() }
 func testProxyAt(t *testing.T, proto string, proxy Proxy, addr string, halfClose bool) {
 	defer proxy.Close()
 	go proxy.Run()
-	client, err := net.Dial(proto, addr)
+	var client net.Conn
+	var err error
+	if strings.HasPrefix(proto, "sctp") {
+		var a *sctp.SCTPAddr
+		a, err = sctp.ResolveSCTPAddr(proto, addr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		client, err = sctp.DialSCTP(proto, nil, a)
+	} else {
+		client, err = net.Dial(proto, addr)
+	}
+
 	if err != nil {
 		t.Fatalf("Can't connect to the proxy: %v", err)
 	}
@@ -252,4 +279,29 @@ func TestUDPWriteError(t *testing.T) {
 	if !bytes.Equal(testBuf, recvBuf) {
 		t.Fatal(fmt.Errorf("Expected [%v] but got [%v]", testBuf, recvBuf))
 	}
+}
+
+func TestSCTP4Proxy(t *testing.T) {
+	backend := NewEchoServer(t, "sctp", "127.0.0.1:0", EchoServerOptions{})
+	defer backend.Close()
+	backend.Run()
+	frontendAddr := &sctp.SCTPAddr{IP: []net.IP{net.IPv4(127, 0, 0, 1)}, Port: 0}
+	proxy, err := NewProxy(frontendAddr, backend.LocalAddr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	testProxy(t, "sctp", proxy, false)
+}
+
+func TestSCTP6Proxy(t *testing.T) {
+	t.Skip("Need to start CI docker with --ipv6")
+	backend := NewEchoServer(t, "sctp", "[::1]:0", EchoServerOptions{})
+	defer backend.Close()
+	backend.Run()
+	frontendAddr := &sctp.SCTPAddr{IP: []net.IP{net.IPv6loopback}, Port: 0}
+	proxy, err := NewProxy(frontendAddr, backend.LocalAddr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	testProxy(t, "sctp", proxy, false)
 }

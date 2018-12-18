@@ -76,7 +76,7 @@ func newInfo(hnd *netlink.Handle, t *testing.T) (Sandbox, error) {
 	intf1.address = addr
 	intf1.address.IP = ip4
 
-	ip6, addrv6, err := net.ParseCIDR("2001:DB8::ABCD/48")
+	ip6, addrv6, err := net.ParseCIDR("fe80::2/64")
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,6 @@ func newInfo(hnd *netlink.Handle, t *testing.T) (Sandbox, error) {
 	info := &networkNamespace{iFaces: []*nwIface{intf1, intf2, intf3}}
 
 	info.gw = net.ParseIP("192.168.1.1")
-	// sinfo.GatewayIPv6 = net.ParseIP("2001:DB8::1")
 	info.gwv6 = net.ParseIP("fe80::1")
 
 	return info, nil
@@ -120,7 +119,7 @@ func newInfo(hnd *netlink.Handle, t *testing.T) (Sandbox, error) {
 func verifySandbox(t *testing.T, s Sandbox, ifaceSuffixes []string) {
 	_, ok := s.(*networkNamespace)
 	if !ok {
-		t.Fatalf("The sandox interface returned is not of type networkNamespace")
+		t.Fatalf("The sandbox interface returned is not of type networkNamespace")
 	}
 
 	sbNs, err := netns.GetFromPath(s.Key())
@@ -314,5 +313,97 @@ func TestSetInterfaceIP(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "conflicts with existing route") {
 		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func TestLiveRestore(t *testing.T) {
+
+	defer testutils.SetupTestOSContext(t)()
+
+	key, err := newKey(t)
+	if err != nil {
+		t.Fatalf("Failed to obtain a key: %v", err)
+	}
+
+	s, err := NewSandbox(key, true, false)
+	if err != nil {
+		t.Fatalf("Failed to create a new sandbox: %v", err)
+	}
+	runtime.LockOSThread()
+	defer s.Destroy()
+
+	n, ok := s.(*networkNamespace)
+	if !ok {
+		t.Fatal(ok)
+	}
+	nlh := n.nlHandle
+
+	ipv4, _ := types.ParseCIDR("172.30.0.33/24")
+	ipv6, _ := types.ParseCIDR("2001:db8::44/64")
+	iface := &nwIface{address: ipv4, addressIPv6: ipv6, ns: n, dstName: "sideA"}
+
+	if err := nlh.LinkAdd(&netlink.Veth{
+		LinkAttrs: netlink.LinkAttrs{Name: "sideA"},
+		PeerName:  "sideB",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	linkA, err := nlh.LinkByName("sideA")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	linkB, err := nlh.LinkByName("sideB")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := nlh.LinkSetUp(linkA); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := nlh.LinkSetUp(linkB); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := setInterfaceIP(nlh, linkA, iface); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := setInterfaceIPv6(nlh, linkA, iface); err != nil {
+		t.Fatal(err)
+	}
+
+	err = setInterfaceIP(nlh, linkB, iface)
+	if err == nil {
+		t.Fatalf("Expected route conflict error, but succeeded")
+	}
+	if !strings.Contains(err.Error(), "conflicts with existing route") {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	err = setInterfaceIPv6(nlh, linkB, iface)
+	if err == nil {
+		t.Fatalf("Expected route conflict error, but succeeded")
+	}
+	if !strings.Contains(err.Error(), "conflicts with existing route") {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Create newsandbox with Restore - TRUE
+	s, err = NewSandbox(key, true, true)
+	if err != nil {
+		t.Fatalf("Failed to create a new sandbox: %v", err)
+	}
+
+	// Check if the IPV4 & IPV6 entry present
+	// If present , we should get error in below call
+	// It shows us , we don't delete any config in live-restore case
+	if err := setInterfaceIPv6(nlh, linkA, iface); err == nil {
+		t.Fatalf("Expected route conflict error, but succeeded for IPV6 ")
+	}
+	if err := setInterfaceIP(nlh, linkA, iface); err == nil {
+		t.Fatalf("Expected route conflict error, but succeeded for IPV4 ")
 	}
 }

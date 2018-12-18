@@ -13,6 +13,8 @@ for file in *.req.xml; do
     header Request "$file" "${base}.req.headers"
     xmlformat < "$file"
     file="${base}.res.xml"
-    header Response "$file" "${base}.res.headers"
-    xmlformat < "$file"
+    if [ -e "$file" ] ; then
+      header Response "$file" "${base}.res.headers"
+      xmlformat < "$file"
+    fi
 done

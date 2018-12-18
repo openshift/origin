@@ -43,14 +43,17 @@ func NewComputeNodeClientWithBaseURI(baseURI string) ComputeNodeClient {
 }
 
 // AddUser you can add a user account to a node only when it is in the idle or running state.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the machine on which you want
-// to create a user account. userParameter is the user account to be created. timeout is the maximum time that the
-// server can spend processing the request, in seconds. The default is 30 seconds. clientRequestID is the
-// caller-generated request identity, in the form of a GUID with no decoration such as curly braces, e.g.
-// 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID is whether the server should return the
-// client-request-id in the response. ocpDate is the time the request was issued. Client libraries typically set
-// this to the current system clock time; set it explicitly if you are calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the machine on which you want to create a user account.
+// userParameter - the user account to be created.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) AddUser(ctx context.Context, poolID string, nodeID string, userParameter ComputeNodeUser, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: userParameter,
@@ -141,14 +144,17 @@ func (client ComputeNodeClient) AddUserResponder(resp *http.Response) (result au
 }
 
 // DeleteUser you can delete a user account to a node only when it is in the idle or running state.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the machine on which you want
-// to delete a user account. userName is the name of the user account to delete. timeout is the maximum time that
-// the server can spend processing the request, in seconds. The default is 30 seconds. clientRequestID is the
-// caller-generated request identity, in the form of a GUID with no decoration such as curly braces, e.g.
-// 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID is whether the server should return the
-// client-request-id in the response. ocpDate is the time the request was issued. Client libraries typically set
-// this to the current system clock time; set it explicitly if you are calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the machine on which you want to delete a user account.
+// userName - the name of the user account to delete.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) DeleteUser(ctx context.Context, poolID string, nodeID string, userName string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
 	req, err := client.DeleteUserPreparer(ctx, poolID, nodeID, userName, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -232,14 +238,17 @@ func (client ComputeNodeClient) DeleteUserResponder(resp *http.Response) (result
 }
 
 // DisableScheduling you can disable task scheduling on a node only if its current scheduling state is enabled.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the compute node on which you
-// want to disable task scheduling. nodeDisableSchedulingParameter is the parameters for the request. timeout is
-// the maximum time that the server can spend processing the request, in seconds. The default is 30 seconds.
-// clientRequestID is the caller-generated request identity, in the form of a GUID with no decoration such as curly
-// braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID is whether the server should return the
-// client-request-id in the response. ocpDate is the time the request was issued. Client libraries typically set
-// this to the current system clock time; set it explicitly if you are calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the compute node on which you want to disable task scheduling.
+// nodeDisableSchedulingParameter - the parameters for the request.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) DisableScheduling(ctx context.Context, poolID string, nodeID string, nodeDisableSchedulingParameter *NodeDisableSchedulingParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
 	req, err := client.DisableSchedulingPreparer(ctx, poolID, nodeID, nodeDisableSchedulingParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -327,14 +336,16 @@ func (client ComputeNodeClient) DisableSchedulingResponder(resp *http.Response) 
 }
 
 // EnableScheduling you can enable task scheduling on a node only if its current scheduling state is disabled
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the compute node on which you
-// want to enable task scheduling. timeout is the maximum time that the server can spend processing the request, in
-// seconds. The default is 30 seconds. clientRequestID is the caller-generated request identity, in the form of a
-// GUID with no decoration such as curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID
-// is whether the server should return the client-request-id in the response. ocpDate is the time the request was
-// issued. Client libraries typically set this to the current system clock time; set it explicitly if you are
-// calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the compute node on which you want to enable task scheduling.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) EnableScheduling(ctx context.Context, poolID string, nodeID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
 	req, err := client.EnableSchedulingPreparer(ctx, poolID, nodeID, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -417,14 +428,17 @@ func (client ComputeNodeClient) EnableSchedulingResponder(resp *http.Response) (
 }
 
 // Get sends the get request.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the compute node that you want
-// to get information about. selectParameter is an OData $select clause. timeout is the maximum time that the
-// server can spend processing the request, in seconds. The default is 30 seconds. clientRequestID is the
-// caller-generated request identity, in the form of a GUID with no decoration such as curly braces, e.g.
-// 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID is whether the server should return the
-// client-request-id in the response. ocpDate is the time the request was issued. Client libraries typically set
-// this to the current system clock time; set it explicitly if you are calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the compute node that you want to get information about.
+// selectParameter - an OData $select clause.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) Get(ctx context.Context, poolID string, nodeID string, selectParameter string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ComputeNode, err error) {
 	req, err := client.GetPreparer(ctx, poolID, nodeID, selectParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -513,14 +527,16 @@ func (client ComputeNodeClient) GetResponder(resp *http.Response) (result Comput
 // GetRemoteDesktop before you can access a node by using the RDP file, you must create a user account on the node.
 // This API can only be invoked on pools created with a cloud service configuration. For pools created with a virtual
 // machine configuration, see the GetRemoteLoginSettings API.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the compute node for which you
-// want to get the Remote Desktop Protocol file. timeout is the maximum time that the server can spend processing
-// the request, in seconds. The default is 30 seconds. clientRequestID is the caller-generated request identity, in
-// the form of a GUID with no decoration such as curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
-// returnClientRequestID is whether the server should return the client-request-id in the response. ocpDate is the
-// time the request was issued. Client libraries typically set this to the current system clock time; set it
-// explicitly if you are calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the compute node for which you want to get the Remote Desktop Protocol file.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) GetRemoteDesktop(ctx context.Context, poolID string, nodeID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ReadCloser, err error) {
 	req, err := client.GetRemoteDesktopPreparer(ctx, poolID, nodeID, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -605,14 +621,16 @@ func (client ComputeNodeClient) GetRemoteDesktopResponder(resp *http.Response) (
 // GetRemoteLoginSettings before you can remotely login to a node using the remote login settings, you must create a
 // user account on the node. This API can be invoked only on pools created with the virtual machine configuration
 // property. For pools created with a cloud service configuration, see the GetRemoteDesktop API.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the compute node for which to
-// obtain the remote login settings. timeout is the maximum time that the server can spend processing the request,
-// in seconds. The default is 30 seconds. clientRequestID is the caller-generated request identity, in the form of
-// a GUID with no decoration such as curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID
-// is whether the server should return the client-request-id in the response. ocpDate is the time the request was
-// issued. Client libraries typically set this to the current system clock time; set it explicitly if you are
-// calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the compute node for which to obtain the remote login settings.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) GetRemoteLoginSettings(ctx context.Context, poolID string, nodeID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ComputeNodeGetRemoteLoginSettingsResult, err error) {
 	req, err := client.GetRemoteLoginSettingsPreparer(ctx, poolID, nodeID, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -696,22 +714,24 @@ func (client ComputeNodeClient) GetRemoteLoginSettingsResponder(resp *http.Respo
 }
 
 // List sends the list request.
-//
-// poolID is the ID of the pool from which you want to list nodes. filter is an OData $filter clause. For more
-// information on constructing this filter, see
+// Parameters:
+// poolID - the ID of the pool from which you want to list nodes.
+// filter - an OData $filter clause. For more information on constructing this filter, see
 // https://docs.microsoft.com/en-us/rest/api/batchservice/odata-filters-in-batch#list-nodes-in-a-pool.
-// selectParameter is an OData $select clause. maxResults is the maximum number of items to return in the response.
-// A maximum of 1000 nodes can be returned. timeout is the maximum time that the server can spend processing the
-// request, in seconds. The default is 30 seconds. clientRequestID is the caller-generated request identity, in the
-// form of a GUID with no decoration such as curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
-// returnClientRequestID is whether the server should return the client-request-id in the response. ocpDate is the
-// time the request was issued. Client libraries typically set this to the current system clock time; set it
-// explicitly if you are calling the REST API directly.
+// selectParameter - an OData $select clause.
+// maxResults - the maximum number of items to return in the response. A maximum of 1000 nodes can be returned.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) List(ctx context.Context, poolID string, filter string, selectParameter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ComputeNodeListResultPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: 1000, Chain: nil},
+				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: int64(1000), Chain: nil},
 					{Target: "maxResults", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewError("batch.ComputeNodeClient", "List", err.Error())
@@ -837,14 +857,17 @@ func (client ComputeNodeClient) ListComplete(ctx context.Context, poolID string,
 }
 
 // Reboot you can restart a node only if it is in an idle or running state.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the compute node that you want
-// to restart. nodeRebootParameter is the parameters for the request. timeout is the maximum time that the server
-// can spend processing the request, in seconds. The default is 30 seconds. clientRequestID is the caller-generated
-// request identity, in the form of a GUID with no decoration such as curly braces, e.g.
-// 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID is whether the server should return the
-// client-request-id in the response. ocpDate is the time the request was issued. Client libraries typically set
-// this to the current system clock time; set it explicitly if you are calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the compute node that you want to restart.
+// nodeRebootParameter - the parameters for the request.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) Reboot(ctx context.Context, poolID string, nodeID string, nodeRebootParameter *NodeRebootParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
 	req, err := client.RebootPreparer(ctx, poolID, nodeID, nodeRebootParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -933,14 +956,17 @@ func (client ComputeNodeClient) RebootResponder(resp *http.Response) (result aut
 
 // Reimage you can reinstall the operating system on a node only if it is in an idle or running state. This API can be
 // invoked only on pools created with the cloud service configuration property.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the compute node that you want
-// to restart. nodeReimageParameter is the parameters for the request. timeout is the maximum time that the server
-// can spend processing the request, in seconds. The default is 30 seconds. clientRequestID is the caller-generated
-// request identity, in the form of a GUID with no decoration such as curly braces, e.g.
-// 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID is whether the server should return the
-// client-request-id in the response. ocpDate is the time the request was issued. Client libraries typically set
-// this to the current system clock time; set it explicitly if you are calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the compute node that you want to restart.
+// nodeReimageParameter - the parameters for the request.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) Reimage(ctx context.Context, poolID string, nodeID string, nodeReimageParameter *NodeReimageParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
 	req, err := client.ReimagePreparer(ctx, poolID, nodeID, nodeReimageParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -1030,15 +1056,18 @@ func (client ComputeNodeClient) ReimageResponder(resp *http.Response) (result au
 // UpdateUser this operation replaces of all the updateable properties of the account. For example, if the expiryTime
 // element is not specified, the current value is replaced with the default value, not left unmodified. You can update
 // a user account on a node only when it is in the idle or running state.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the machine on which you want
-// to update a user account. userName is the name of the user account to update. nodeUpdateUserParameter is the
-// parameters for the request. timeout is the maximum time that the server can spend processing the request, in
-// seconds. The default is 30 seconds. clientRequestID is the caller-generated request identity, in the form of a
-// GUID with no decoration such as curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID
-// is whether the server should return the client-request-id in the response. ocpDate is the time the request was
-// issued. Client libraries typically set this to the current system clock time; set it explicitly if you are
-// calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the machine on which you want to update a user account.
+// userName - the name of the user account to update.
+// nodeUpdateUserParameter - the parameters for the request.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) UpdateUser(ctx context.Context, poolID string, nodeID string, userName string, nodeUpdateUserParameter NodeUpdateUserParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
 	req, err := client.UpdateUserPreparer(ctx, poolID, nodeID, userName, nodeUpdateUserParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
@@ -1126,15 +1155,17 @@ func (client ComputeNodeClient) UpdateUserResponder(resp *http.Response) (result
 // UploadBatchServiceLogs this is for gathering Azure Batch service log files in an automated fashion from nodes if you
 // are experiencing an error and wish to escalate to Azure support. The Azure Batch service log files should be shared
 // with Azure support to aid in debugging issues with the Batch service.
-//
-// poolID is the ID of the pool that contains the compute node. nodeID is the ID of the compute node from which you
-// want to upload the Azure Batch service log files. uploadBatchServiceLogsConfiguration is the Azure Batch service
-// log files upload configuration. timeout is the maximum time that the server can spend processing the request, in
-// seconds. The default is 30 seconds. clientRequestID is the caller-generated request identity, in the form of a
-// GUID with no decoration such as curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID
-// is whether the server should return the client-request-id in the response. ocpDate is the time the request was
-// issued. Client libraries typically set this to the current system clock time; set it explicitly if you are
-// calling the REST API directly.
+// Parameters:
+// poolID - the ID of the pool that contains the compute node.
+// nodeID - the ID of the compute node from which you want to upload the Azure Batch service log files.
+// uploadBatchServiceLogsConfiguration - the Azure Batch service log files upload configuration.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) UploadBatchServiceLogs(ctx context.Context, poolID string, nodeID string, uploadBatchServiceLogsConfiguration UploadBatchServiceLogsConfiguration, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result UploadBatchServiceLogsResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: uploadBatchServiceLogsConfiguration,

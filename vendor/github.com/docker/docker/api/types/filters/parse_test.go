@@ -1,8 +1,11 @@
-package filters
+package filters // import "github.com/docker/docker/api/types/filters"
 
 import (
 	"errors"
 	"testing"
+
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -16,23 +19,18 @@ func TestParseArgs(t *testing.T) {
 		args = NewArgs()
 		err  error
 	)
+
 	for i := range flagArgs {
 		args, err = ParseFlag(flagArgs[i], args)
-		if err != nil {
-			t.Errorf("failed to parse %s: %s", flagArgs[i], err)
-		}
+		assert.NilError(t, err)
 	}
-	if len(args.Get("created")) != 1 {
-		t.Error("failed to set this arg")
-	}
-	if len(args.Get("image.name")) != 2 {
-		t.Error("the args should have collapsed")
-	}
+	assert.Check(t, is.Len(args.Get("created"), 1))
+	assert.Check(t, is.Len(args.Get("image.name"), 2))
 }
 
 func TestParseArgsEdgeCase(t *testing.T) {
-	var filters Args
-	args, err := ParseFlag("", filters)
+	var args Args
+	args, err := ParseFlag("", args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,14 +42,14 @@ func TestParseArgsEdgeCase(t *testing.T) {
 	}
 }
 
-func TestToParam(t *testing.T) {
+func TestToJSON(t *testing.T) {
 	fields := map[string]map[string]bool{
 		"created":    {"today": true},
 		"image.name": {"ubuntu*": true, "*untu": true},
 	}
 	a := Args{fields: fields}
 
-	_, err := ToParam(a)
+	_, err := ToJSON(a)
 	if err != nil {
 		t.Errorf("failed to marshal the filters: %s", err)
 	}
@@ -82,7 +80,7 @@ func TestToParamWithVersion(t *testing.T) {
 	}
 }
 
-func TestFromParam(t *testing.T) {
+func TestFromJSON(t *testing.T) {
 	invalids := []string{
 		"anything",
 		"['a','list']",
@@ -105,14 +103,14 @@ func TestFromParam(t *testing.T) {
 	}
 
 	for _, invalid := range invalids {
-		if _, err := FromParam(invalid); err == nil {
+		if _, err := FromJSON(invalid); err == nil {
 			t.Fatalf("Expected an error with %v, got nothing", invalid)
 		}
 	}
 
 	for expectedArgs, matchers := range valid {
 		for _, json := range matchers {
-			args, err := FromParam(json)
+			args, err := FromJSON(json)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -138,11 +136,11 @@ func TestFromParam(t *testing.T) {
 
 func TestEmpty(t *testing.T) {
 	a := Args{}
-	v, err := ToParam(a)
+	v, err := ToJSON(a)
 	if err != nil {
 		t.Errorf("failed to marshal the filters: %s", err)
 	}
-	v1, err := FromParam(v)
+	v1, err := FromJSON(v)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -184,7 +182,7 @@ func TestArgsMatchKVList(t *testing.T) {
 	}
 
 	for args, field := range matches {
-		if args.MatchKVList(field, sources) != true {
+		if !args.MatchKVList(field, sources) {
 			t.Fatalf("Expected true for %v on %v, got false", sources, args)
 		}
 	}
@@ -204,7 +202,7 @@ func TestArgsMatchKVList(t *testing.T) {
 	}
 
 	for args, field := range differs {
-		if args.MatchKVList(field, sources) != false {
+		if args.MatchKVList(field, sources) {
 			t.Fatalf("Expected false for %v on %v, got true", sources, args)
 		}
 	}
@@ -233,9 +231,8 @@ func TestArgsMatch(t *testing.T) {
 	}
 
 	for args, field := range matches {
-		if args.Match(field, source) != true {
-			t.Fatalf("Expected true for %v on %v, got false", source, args)
-		}
+		assert.Check(t, args.Match(field, source),
+			"Expected field %s to match %s", field, source)
 	}
 
 	differs := map[*Args]string{
@@ -258,9 +255,7 @@ func TestArgsMatch(t *testing.T) {
 	}
 
 	for args, field := range differs {
-		if args.Match(field, source) != false {
-			t.Fatalf("Expected false for %v on %v, got true", source, args)
-		}
+		assert.Check(t, !args.Match(field, source), "Expected field %s to not match %s", field, source)
 	}
 }
 
@@ -338,6 +333,17 @@ func TestOnlyOneExactMatch(t *testing.T) {
 	f.Add("status", "pause")
 	if f.UniqueExactMatch("status", "running") {
 		t.Fatal("Expected to not match only `running` with two filters, got true")
+	}
+}
+
+func TestContains(t *testing.T) {
+	f := NewArgs()
+	if f.Contains("status") {
+		t.Fatal("Expected to not contain a status key, got true")
+	}
+	f.Add("status", "running")
+	if !f.Contains("status") {
+		t.Fatal("Expected to contain a status key, got false")
 	}
 }
 

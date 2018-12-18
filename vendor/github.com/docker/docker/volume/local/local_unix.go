@@ -1,9 +1,9 @@
-// +build linux freebsd solaris
+// +build linux freebsd
 
 // Package local provides the default implementation for volumes. It
 // is used to mount data volume containers and directories local to
 // the host server.
-package local
+package local // import "github.com/docker/docker/volume/local"
 
 import (
 	"fmt"

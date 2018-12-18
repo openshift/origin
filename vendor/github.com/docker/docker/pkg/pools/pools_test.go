@@ -1,4 +1,4 @@
-package pools
+package pools // import "github.com/docker/docker/pkg/pools"
 
 import (
 	"bufio"
@@ -6,6 +6,9 @@ import (
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
 )
 
 func TestBufioReaderPoolGetWithNoReaderShouldCreateOne(t *testing.T) {
@@ -92,22 +95,16 @@ func TestBufioWriterPoolPutAndGet(t *testing.T) {
 	buf := new(bytes.Buffer)
 	bw := bufio.NewWriter(buf)
 	writer := BufioWriter32KPool.Get(bw)
-	if writer == nil {
-		t.Fatalf("BufioReaderPool should not return a nil writer.")
-	}
+	assert.Assert(t, writer != nil)
+
 	written, err := writer.Write([]byte("foobar"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if written != 6 {
-		t.Fatalf("Should have written 6 bytes, but wrote %v bytes", written)
-	}
+	assert.NilError(t, err)
+	assert.Check(t, is.Equal(6, written))
+
 	// Make sure we Flush all the way ?
 	writer.Flush()
 	bw.Flush()
-	if len(buf.Bytes()) != 6 {
-		t.Fatalf("The buffer should contain 6 bytes ('foobar') but contains %v ('%v')", buf.Bytes(), string(buf.Bytes()))
-	}
+	assert.Check(t, is.Len(buf.Bytes(), 6))
 	// Reset the buffer
 	buf.Reset()
 	BufioWriter32KPool.Put(writer)

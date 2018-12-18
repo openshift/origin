@@ -15,6 +15,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
@@ -156,11 +157,11 @@ func TestBackingResourceController(t *testing.T) {
 			),
 			expectSyncError: `test error`,
 			validateStatus: func(t *testing.T, status *operatorv1.StaticPodOperatorStatus) {
-				if status.Conditions[0].Type != operatorv1.OperatorStatusTypeFailing {
+				if status.Conditions[0].Type != operatorStatusBackingResourceControllerFailing {
 					t.Errorf("expected status condition to be failing, got %v", status.Conditions[0].Type)
 				}
-				if status.Conditions[0].Reason != "CreateBackingResourcesError" {
-					t.Errorf("expected status condition reason to be 'CreateBackingResourcesError', got %v", status.Conditions[0].Reason)
+				if status.Conditions[0].Reason != "Error" {
+					t.Errorf("expected status condition reason to be 'Error', got %v", status.Conditions[0].Reason)
 				}
 				if !strings.Contains(status.Conditions[0].Message, "test error") {
 					t.Errorf("expected status condition message to contain 'test error', got: %s", status.Conditions[0].Message)
@@ -175,11 +176,13 @@ func TestBackingResourceController(t *testing.T) {
 			for _, r := range tc.prependReactors {
 				kubeClient.PrependReactor(r.verb, r.resource, r.reaction)
 			}
+			eventRecorder := events.NewInMemoryRecorder("")
 			c := NewBackingResourceController(
 				tc.targetNamespace,
 				tc.staticPodOperatorClient,
 				informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace(tc.targetNamespace)),
 				kubeClient,
+				eventRecorder,
 			)
 			syncErr := c.sync()
 			if tc.validateStatus != nil {

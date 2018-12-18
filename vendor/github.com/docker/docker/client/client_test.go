@@ -1,4 +1,4 @@
-package client
+package client // import "github.com/docker/docker/client"
 
 import (
 	"bytes"
@@ -6,40 +6,46 @@ import (
 	"net/url"
 	"os"
 	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/types"
-	"github.com/stretchr/testify/assert"
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"github.com/gotestyourself/gotestyourself/env"
+	"github.com/gotestyourself/gotestyourself/skip"
 )
 
 func TestNewEnvClient(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping unix only test for windows")
-	}
-	cases := []struct {
+	skip.If(t, runtime.GOOS == "windows")
+
+	testcases := []struct {
+		doc             string
 		envs            map[string]string
 		expectedError   string
 		expectedVersion string
 	}{
 		{
+			doc:             "default api version",
 			envs:            map[string]string{},
 			expectedVersion: api.DefaultVersion,
 		},
 		{
+			doc: "invalid cert path",
 			envs: map[string]string{
 				"DOCKER_CERT_PATH": "invalid/path",
 			},
 			expectedError: "Could not load X509 key pair: open invalid/path/cert.pem: no such file or directory",
 		},
 		{
+			doc: "default api version with cert path",
 			envs: map[string]string{
 				"DOCKER_CERT_PATH": "testdata/",
 			},
 			expectedVersion: api.DefaultVersion,
 		},
 		{
+			doc: "default api version with cert path and tls verify",
 			envs: map[string]string{
 				"DOCKER_CERT_PATH":  "testdata/",
 				"DOCKER_TLS_VERIFY": "1",
@@ -47,6 +53,7 @@ func TestNewEnvClient(t *testing.T) {
 			expectedVersion: api.DefaultVersion,
 		},
 		{
+			doc: "default api version with cert path and host",
 			envs: map[string]string{
 				"DOCKER_CERT_PATH": "testdata/",
 				"DOCKER_HOST":      "https://notaunixsocket",
@@ -54,24 +61,21 @@ func TestNewEnvClient(t *testing.T) {
 			expectedVersion: api.DefaultVersion,
 		},
 		{
+			doc: "invalid docker host",
 			envs: map[string]string{
 				"DOCKER_HOST": "host",
 			},
 			expectedError: "unable to parse docker host `host`",
 		},
 		{
+			doc: "invalid docker host, with good format",
 			envs: map[string]string{
 				"DOCKER_HOST": "invalid://url",
 			},
 			expectedVersion: api.DefaultVersion,
 		},
 		{
-			envs: map[string]string{
-				"DOCKER_API_VERSION": "anything",
-			},
-			expectedVersion: "anything",
-		},
-		{
+			doc: "override api version",
 			envs: map[string]string{
 				"DOCKER_API_VERSION": "1.22",
 			},
@@ -79,36 +83,33 @@ func TestNewEnvClient(t *testing.T) {
 		},
 	}
 
-	env := envToMap()
-	defer mapToEnv(env)
-	for _, c := range cases {
-		mapToEnv(env)
-		mapToEnv(c.envs)
+	defer env.PatchAll(t, nil)()
+	for _, c := range testcases {
+		env.PatchAll(t, c.envs)
 		apiclient, err := NewEnvClient()
 		if c.expectedError != "" {
-			assert.Error(t, err)
-			assert.Equal(t, c.expectedError, err.Error())
+			assert.Check(t, is.Error(err, c.expectedError), c.doc)
 		} else {
-			assert.NoError(t, err)
+			assert.Check(t, err, c.doc)
 			version := apiclient.ClientVersion()
-			assert.Equal(t, c.expectedVersion, version)
+			assert.Check(t, is.Equal(c.expectedVersion, version), c.doc)
 		}
 
 		if c.envs["DOCKER_TLS_VERIFY"] != "" {
 			// pedantic checking that this is handled correctly
 			tr := apiclient.client.Transport.(*http.Transport)
-			assert.NotNil(t, tr.TLSClientConfig)
-			assert.Equal(t, tr.TLSClientConfig.InsecureSkipVerify, false)
+			assert.Assert(t, tr.TLSClientConfig != nil, c.doc)
+			assert.Check(t, is.Equal(tr.TLSClientConfig.InsecureSkipVerify, false), c.doc)
 		}
 	}
 }
 
 func TestGetAPIPath(t *testing.T) {
-	cases := []struct {
-		v string
-		p string
-		q url.Values
-		e string
+	testcases := []struct {
+		version  string
+		path     string
+		query    url.Values
+		expected string
 	}{
 		{"", "/containers/json", nil, "/containers/json"},
 		{"", "/containers/json", url.Values{}, "/containers/json"},
@@ -122,63 +123,63 @@ func TestGetAPIPath(t *testing.T) {
 		{"v1.22", "/networks/kiwl$%^", nil, "/v1.22/networks/kiwl$%25%5E"},
 	}
 
-	for _, cs := range cases {
-		c, err := NewClient("unix:///var/run/docker.sock", cs.v, nil, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		g := c.getAPIPath(cs.p, cs.q)
-		assert.Equal(t, g, cs.e)
-
-		err = c.Close()
-		assert.NoError(t, err)
+	for _, testcase := range testcases {
+		c := Client{version: testcase.version, basePath: "/"}
+		actual := c.getAPIPath(testcase.path, testcase.query)
+		assert.Check(t, is.Equal(actual, testcase.expected))
 	}
 }
 
-func TestParseHost(t *testing.T) {
-	cases := []struct {
-		host  string
-		proto string
-		addr  string
-		base  string
-		err   bool
+func TestParseHostURL(t *testing.T) {
+	testcases := []struct {
+		host        string
+		expected    *url.URL
+		expectedErr string
 	}{
-		{"", "", "", "", true},
-		{"foobar", "", "", "", true},
-		{"foo://bar", "foo", "bar", "", false},
-		{"tcp://localhost:2476", "tcp", "localhost:2476", "", false},
-		{"tcp://localhost:2476/path", "tcp", "localhost:2476", "/path", false},
+		{
+			host:        "",
+			expectedErr: "unable to parse docker host",
+		},
+		{
+			host:        "foobar",
+			expectedErr: "unable to parse docker host",
+		},
+		{
+			host:     "foo://bar",
+			expected: &url.URL{Scheme: "foo", Host: "bar"},
+		},
+		{
+			host:     "tcp://localhost:2476",
+			expected: &url.URL{Scheme: "tcp", Host: "localhost:2476"},
+		},
+		{
+			host:     "tcp://localhost:2476/path",
+			expected: &url.URL{Scheme: "tcp", Host: "localhost:2476", Path: "/path"},
+		},
 	}
 
-	for _, cs := range cases {
-		p, a, b, e := ParseHost(cs.host)
-		// if we expected an error to be returned...
-		if cs.err {
-			assert.Error(t, e)
+	for _, testcase := range testcases {
+		actual, err := ParseHostURL(testcase.host)
+		if testcase.expectedErr != "" {
+			assert.Check(t, is.ErrorContains(err, testcase.expectedErr))
 		}
-		assert.Equal(t, cs.proto, p)
-		assert.Equal(t, cs.addr, a)
-		assert.Equal(t, cs.base, b)
+		assert.Check(t, is.DeepEqual(testcase.expected, actual))
 	}
 }
 
 func TestNewEnvClientSetsDefaultVersion(t *testing.T) {
-	env := envToMap()
-	defer mapToEnv(env)
-
-	envMap := map[string]string{
+	defer env.PatchAll(t, map[string]string{
 		"DOCKER_HOST":        "",
 		"DOCKER_API_VERSION": "",
 		"DOCKER_TLS_VERIFY":  "",
 		"DOCKER_CERT_PATH":   "",
-	}
-	mapToEnv(envMap)
+	})()
 
 	client, err := NewEnvClient()
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, client.version, api.DefaultVersion)
+	assert.Check(t, is.Equal(client.version, api.DefaultVersion))
 
 	expected := "1.22"
 	os.Setenv("DOCKER_API_VERSION", expected)
@@ -186,24 +187,16 @@ func TestNewEnvClientSetsDefaultVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, expected, client.version)
+	assert.Check(t, is.Equal(expected, client.version))
 }
 
 // TestNegotiateAPIVersionEmpty asserts that client.Client can
 // negotiate a compatible APIVersion when omitted
 func TestNegotiateAPIVersionEmpty(t *testing.T) {
-	env := envToMap()
-	defer mapToEnv(env)
-
-	envMap := map[string]string{
-		"DOCKER_API_VERSION": "",
-	}
-	mapToEnv(envMap)
+	defer env.PatchAll(t, map[string]string{"DOCKER_API_VERSION": ""})()
 
 	client, err := NewEnvClient()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, err)
 
 	ping := types.Ping{
 		APIVersion:   "",
@@ -220,19 +213,16 @@ func TestNegotiateAPIVersionEmpty(t *testing.T) {
 
 	// test downgrade
 	client.NegotiateAPIVersionPing(ping)
-	assert.Equal(t, expected, client.version)
+	assert.Check(t, is.Equal(expected, client.version))
 }
 
 // TestNegotiateAPIVersion asserts that client.Client can
 // negotiate a compatible APIVersion with the server
 func TestNegotiateAPIVersion(t *testing.T) {
 	client, err := NewEnvClient()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, err)
 
 	expected := "1.21"
-
 	ping := types.Ping{
 		APIVersion:   expected,
 		OSType:       "linux",
@@ -244,24 +234,25 @@ func TestNegotiateAPIVersion(t *testing.T) {
 
 	// test downgrade
 	client.NegotiateAPIVersionPing(ping)
-	assert.Equal(t, expected, client.version)
+	assert.Check(t, is.Equal(expected, client.version))
+
+	// set the client version to something older, and verify that we keep the
+	// original setting.
+	expected = "1.20"
+	client.version = expected
+	client.NegotiateAPIVersionPing(ping)
+	assert.Check(t, is.Equal(expected, client.version))
+
 }
 
 // TestNegotiateAPIVersionOverride asserts that we honor
-// the environment variable DOCKER_API_VERSION when negotianing versions
+// the environment variable DOCKER_API_VERSION when negotiating versions
 func TestNegotiateAPVersionOverride(t *testing.T) {
-	env := envToMap()
-	defer mapToEnv(env)
-
-	envMap := map[string]string{
-		"DOCKER_API_VERSION": "9.99",
-	}
-	mapToEnv(envMap)
+	expected := "9.99"
+	defer env.PatchAll(t, map[string]string{"DOCKER_API_VERSION": expected})()
 
 	client, err := NewEnvClient()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, err)
 
 	ping := types.Ping{
 		APIVersion:   "1.24",
@@ -269,29 +260,9 @@ func TestNegotiateAPVersionOverride(t *testing.T) {
 		Experimental: false,
 	}
 
-	expected := envMap["DOCKER_API_VERSION"]
-
 	// test that we honored the env var
 	client.NegotiateAPIVersionPing(ping)
-	assert.Equal(t, expected, client.version)
-}
-
-// mapToEnv takes a map of environment variables and sets them
-func mapToEnv(env map[string]string) {
-	for k, v := range env {
-		os.Setenv(k, v)
-	}
-}
-
-// envToMap returns a map of environment variables
-func envToMap() map[string]string {
-	env := make(map[string]string)
-	for _, e := range os.Environ() {
-		kv := strings.SplitAfterN(e, "=", 2)
-		env[kv[0]] = kv[1]
-	}
-
-	return env
+	assert.Check(t, is.Equal(expected, client.version))
 }
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -325,7 +296,7 @@ func TestClientRedirect(t *testing.T) {
 
 	cases := []struct {
 		httpMethod  string
-		expectedErr error
+		expectedErr *url.Error
 		statusCode  int
 	}{
 		{http.MethodGet, nil, 301},
@@ -336,9 +307,15 @@ func TestClientRedirect(t *testing.T) {
 
 	for _, tc := range cases {
 		req, err := http.NewRequest(tc.httpMethod, "/redirectme", nil)
-		assert.NoError(t, err)
+		assert.Check(t, err)
 		resp, err := client.Do(req)
-		assert.Equal(t, tc.expectedErr, err)
-		assert.Equal(t, tc.statusCode, resp.StatusCode)
+		assert.Check(t, is.Equal(tc.statusCode, resp.StatusCode))
+		if tc.expectedErr == nil {
+			assert.Check(t, is.Nil(err))
+		} else {
+			urlError, ok := err.(*url.Error)
+			assert.Assert(t, ok, "%T is not *url.Error", err)
+			assert.Check(t, is.Equal(*tc.expectedErr, *urlError))
+		}
 	}
 }

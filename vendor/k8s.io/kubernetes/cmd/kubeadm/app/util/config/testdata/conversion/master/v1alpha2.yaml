@@ -59,7 +59,7 @@ kubeProxy:
       scheduler: ""
       syncPeriod: 30s
     metricsBindAddress: 127.0.0.1:10249
-    mode: ""
+    mode: iptables
     nodePortAddresses: null
     oomScoreAdj: -999
     portRange: ""
@@ -67,7 +67,7 @@ kubeProxy:
     udpIdleTimeout: 250ms
 kubeletConfiguration:
   baseConfig:
-    address: 0.0.0.0
+    address: 1.2.3.4
     authentication:
       anonymous:
         enabled: false
@@ -86,10 +86,12 @@ kubeletConfiguration:
     clusterDNS:
     - 10.96.0.10
     clusterDomain: cluster.local
+    configMapAndSecretChangeDetectionStrategy: Watch
     containerLogMaxFiles: 5
     containerLogMaxSize: 10Mi
     contentType: application/vnd.kubernetes.protobuf
     cpuCFSQuota: true
+    cpuCFSQuotaPeriod: 0s
     cpuManagerPolicy: none
     cpuManagerReconcilePeriod: 10s
     enableControllerAttachDetach: true
@@ -134,7 +136,7 @@ kubeletConfiguration:
     streamingConnectionIdleTimeout: 4h0m0s
     syncFrequency: 1m0s
     volumeStatsAggPeriod: 1m0s
-kubernetesVersion: v1.10.2
+kubernetesVersion: v1.11.2
 networking:
   dnsDomain: cluster.local
   podSubnet: ""

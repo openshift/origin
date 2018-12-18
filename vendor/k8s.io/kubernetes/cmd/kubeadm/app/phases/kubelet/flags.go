@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/glog"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
+	kubeadmapiv1alpha3 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
@@ -46,6 +46,10 @@ type kubeletFlagsOpts struct {
 // WriteKubeletDynamicEnvFile writes a environment file with dynamic flags to the kubelet.
 // Used at "kubeadm init" and "kubeadm join" time.
 func WriteKubeletDynamicEnvFile(nodeRegOpts *kubeadmapi.NodeRegistrationOptions, featureGates map[string]bool, registerTaintsUsingFlags bool, kubeletDir string) error {
+	hostName, err := nodeutil.GetHostname("")
+	if err != nil {
+		return err
+	}
 
 	flagOpts := kubeletFlagsOpts{
 		nodeRegOpts:              nodeRegOpts,
@@ -53,7 +57,7 @@ func WriteKubeletDynamicEnvFile(nodeRegOpts *kubeadmapi.NodeRegistrationOptions,
 		registerTaintsUsingFlags: registerTaintsUsingFlags,
 		execer:          utilsexec.New(),
 		pidOfFunc:       procfs.PidOf,
-		defaultHostname: nodeutil.GetHostname(""),
+		defaultHostname: hostName,
 	}
 	stringMap := buildKubeletArgMap(flagOpts)
 	argList := kubeadmutil.BuildArgumentListFromMap(stringMap, nodeRegOpts.KubeletExtraArgs)
@@ -62,16 +66,14 @@ func WriteKubeletDynamicEnvFile(nodeRegOpts *kubeadmapi.NodeRegistrationOptions,
 	return writeKubeletFlagBytesToDisk([]byte(envFileContent), kubeletDir)
 }
 
-// buildKubeletArgMap takes a MasterConfiguration object and builds based on that a string-string map with flags
+// buildKubeletArgMap takes a InitConfiguration object and builds based on that a string-string map with flags
 // that should be given to the local kubelet daemon.
 func buildKubeletArgMap(opts kubeletFlagsOpts) map[string]string {
 	kubeletFlags := map[string]string{}
 
-	if opts.nodeRegOpts.CRISocket == kubeadmapiv1alpha2.DefaultCRISocket {
+	if opts.nodeRegOpts.CRISocket == kubeadmapiv1alpha3.DefaultCRISocket {
 		// These flags should only be set when running docker
 		kubeletFlags["network-plugin"] = "cni"
-		kubeletFlags["cni-conf-dir"] = "/etc/cni/net.d"
-		kubeletFlags["cni-bin-dir"] = "/opt/cni/bin"
 		driver, err := kubeadmutil.GetCgroupDriverDocker(opts.execer)
 		if err != nil {
 			glog.Warningf("cannot automatically assign a '--cgroup-driver' value when starting the Kubelet: %v\n", err)
@@ -99,7 +101,7 @@ func buildKubeletArgMap(opts kubeletFlagsOpts) map[string]string {
 
 	// Make sure the node name we're passed will work with Kubelet
 	if opts.nodeRegOpts.Name != "" && opts.nodeRegOpts.Name != opts.defaultHostname {
-		glog.V(1).Info("setting kubelet hostname-override to %q", opts.nodeRegOpts.Name)
+		glog.V(1).Infof("setting kubelet hostname-override to %q", opts.nodeRegOpts.Name)
 		kubeletFlags["hostname-override"] = opts.nodeRegOpts.Name
 	}
 

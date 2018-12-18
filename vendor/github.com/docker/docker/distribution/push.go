@@ -1,8 +1,9 @@
-package distribution
+package distribution // import "github.com/docker/docker/distribution"
 
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/registry"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 // Pusher is an interface that abstracts pushing for different API versions.
@@ -69,7 +69,7 @@ func Push(ctx context.Context, ref reference.Named, imagePushConfig *ImagePushCo
 		return err
 	}
 
-	progress.Messagef(imagePushConfig.ProgressOutput, "", "The push refers to a repository [%s]", repoInfo.Name.Name())
+	progress.Messagef(imagePushConfig.ProgressOutput, "", "The push refers to repository [%s]", repoInfo.Name.Name())
 
 	associations := imagePushConfig.ReferenceStore.ReferencesByName(repoInfo.Name)
 	if len(associations) == 0 {

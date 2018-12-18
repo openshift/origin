@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/docker/docker/api/types/versions"
 	"github.com/docker/docker/integration-cli/checker"
-	"github.com/docker/docker/integration-cli/request"
+	"github.com/docker/docker/internal/test/request"
 	"github.com/go-check/check"
 )
 
@@ -24,19 +25,22 @@ func (s *DockerSuite) TestDeprecatedContainerAPIStartHostConfig(c *check.C) {
 	}
 	res, body, err := request.Post("/containers/"+name+"/start", request.JSONBody(config))
 	c.Assert(err, checker.IsNil)
-
-	buf, err := request.ReadBody(body)
-	c.Assert(err, checker.IsNil)
-
 	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
-	c.Assert(string(buf), checker.Contains, "was deprecated since API v1.22")
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		// assertions below won't work before 1.32
+		buf, err := request.ReadBody(body)
+		c.Assert(err, checker.IsNil)
+
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+		c.Assert(string(buf), checker.Contains, "was deprecated since API v1.22")
+	}
 }
 
 func (s *DockerSuite) TestDeprecatedContainerAPIStartVolumeBinds(c *check.C) {
 	// TODO Windows CI: Investigate further why this fails on Windows to Windows CI.
 	testRequires(c, DaemonIsLinux)
 	path := "/foo"
-	if testEnv.DaemonPlatform() == "windows" {
+	if testEnv.OSType == "windows" {
 		path = `c:\foo`
 	}
 	name := "testing"
@@ -49,7 +53,7 @@ func (s *DockerSuite) TestDeprecatedContainerAPIStartVolumeBinds(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	c.Assert(res.StatusCode, checker.Equals, http.StatusCreated)
 
-	bindPath := RandomTmpDirPath("test", testEnv.DaemonPlatform())
+	bindPath := RandomTmpDirPath("test", testEnv.OSType)
 	config = map[string]interface{}{
 		"Binds": []string{bindPath + ":" + path},
 	}
@@ -76,8 +80,8 @@ func (s *DockerSuite) TestDeprecatedContainerAPIStartDupVolumeBinds(c *check.C) 
 	c.Assert(err, checker.IsNil)
 	c.Assert(res.StatusCode, checker.Equals, http.StatusCreated)
 
-	bindPath1 := RandomTmpDirPath("test1", testEnv.DaemonPlatform())
-	bindPath2 := RandomTmpDirPath("test2", testEnv.DaemonPlatform())
+	bindPath1 := RandomTmpDirPath("test1", testEnv.OSType)
+	bindPath2 := RandomTmpDirPath("test2", testEnv.OSType)
 
 	config = map[string]interface{}{
 		"Binds": []string{bindPath1 + ":/tmp", bindPath2 + ":/tmp"},
@@ -88,7 +92,11 @@ func (s *DockerSuite) TestDeprecatedContainerAPIStartDupVolumeBinds(c *check.C) 
 	buf, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)
 
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.LessThan(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusInternalServerError)
+	} else {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	}
 	c.Assert(string(buf), checker.Contains, "Duplicate mount point", check.Commentf("Expected failure due to duplicate bind mounts to same path, instead got: %q with error: %v", string(buf), err))
 }
 
@@ -161,7 +169,11 @@ func (s *DockerSuite) TestDeprecatedStartWithTooLowMemoryLimit(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	b, err2 := request.ReadBody(body)
 	c.Assert(err2, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.LessThan(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusInternalServerError)
+	} else {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	}
 	c.Assert(string(b), checker.Contains, "Minimum memory limit allowed is 4MB")
 }
 
@@ -206,8 +218,10 @@ func (s *DockerSuite) TestDeprecatedPostContainersStartWithLinksInHostConfigIdLi
 	testRequires(c, DaemonIsLinux)
 	name := "test-host-config-links"
 	out, _ := dockerCmd(c, "run", "--name", "link0", "-d", "busybox", "top")
+	defer dockerCmd(c, "stop", "link0")
 	id := strings.TrimSpace(out)
 	dockerCmd(c, "create", "--name", name, "--link", id, "busybox", "top")
+	defer dockerCmd(c, "stop", name)
 
 	hc := inspectFieldJSON(c, name, "HostConfig")
 	config := `{"HostConfig":` + hc + `}`

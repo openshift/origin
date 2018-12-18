@@ -16,7 +16,11 @@ limitations under the License.
 
 package soap
 
-import "testing"
+import (
+	"net/url"
+	"os"
+	"testing"
+)
 
 func TestSplitHostPort(t *testing.T) {
 	tests := []struct {
@@ -40,4 +44,56 @@ func TestSplitHostPort(t *testing.T) {
 			t.Errorf("(%s) %s != %s", test.url, port, test.port)
 		}
 	}
+}
+
+func TestMultipleCAPaths(t *testing.T) {
+	err := setCAsOnClient("fixtures/invalid-cert.pem:fixtures/valid-cert.pem")
+
+	certErr, ok := err.(errInvalidCACertificate)
+	if !ok {
+		t.Fatalf("Expected errInvalidCertificate to occur")
+	}
+	if certErr.File != "fixtures/invalid-cert.pem" {
+		t.Fatalf("Expected Err to show invalid file")
+	}
+}
+
+func TestInvalidRootCAPath(t *testing.T) {
+	err := setCAsOnClient("fixtures/there-is-no-such-file")
+
+	if _, ok := err.(*os.PathError); !ok {
+		t.Fatalf("os.PathError should have occured: %#v", err)
+	}
+}
+
+func TestValidRootCAs(t *testing.T) {
+	err := setCAsOnClient("fixtures/valid-cert.pem")
+
+	if err != nil {
+		t.Fatalf("Err should not have occured: %#v", err)
+	}
+}
+
+func TestInvalidRootCAs(t *testing.T) {
+	err := setCAsOnClient("fixtures/invalid-cert.pem")
+
+	certErr, ok := err.(errInvalidCACertificate)
+	if !ok {
+		t.Fatalf("Expected errInvalidCertificate to occur")
+	}
+	if certErr.File != "fixtures/invalid-cert.pem" {
+		t.Fatalf("Expected Err to show invalid file")
+	}
+}
+
+func setCAsOnClient(cas string) error {
+	url := &url.URL{
+		Scheme: "https",
+		Host:   "some.host.tld:8080",
+	}
+	insecure := false
+
+	client := NewClient(url, insecure)
+
+	return client.SetRootCAs(cas)
 }

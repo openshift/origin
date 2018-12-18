@@ -62,6 +62,11 @@ const (
 	ServiceConnectDeviceConnect AccessRights = "ServiceConnect, DeviceConnect"
 )
 
+// PossibleAccessRightsValues returns an array of possible values for the AccessRights const type.
+func PossibleAccessRightsValues() []AccessRights {
+	return []AccessRights{DeviceConnect, RegistryRead, RegistryReadDeviceConnect, RegistryReadRegistryWrite, RegistryReadRegistryWriteDeviceConnect, RegistryReadRegistryWriteServiceConnect, RegistryReadRegistryWriteServiceConnectDeviceConnect, RegistryReadServiceConnect, RegistryReadServiceConnectDeviceConnect, RegistryWrite, RegistryWriteDeviceConnect, RegistryWriteServiceConnect, RegistryWriteServiceConnectDeviceConnect, ServiceConnect, ServiceConnectDeviceConnect}
+}
+
 // Capabilities enumerates the values for capabilities.
 type Capabilities string
 
@@ -72,6 +77,11 @@ const (
 	None Capabilities = "None"
 )
 
+// PossibleCapabilitiesValues returns an array of possible values for the Capabilities const type.
+func PossibleCapabilitiesValues() []Capabilities {
+	return []Capabilities{DeviceManagement, None}
+}
+
 // IotHubNameUnavailabilityReason enumerates the values for iot hub name unavailability reason.
 type IotHubNameUnavailabilityReason string
 
@@ -81,6 +91,11 @@ const (
 	// Invalid ...
 	Invalid IotHubNameUnavailabilityReason = "Invalid"
 )
+
+// PossibleIotHubNameUnavailabilityReasonValues returns an array of possible values for the IotHubNameUnavailabilityReason const type.
+func PossibleIotHubNameUnavailabilityReasonValues() []IotHubNameUnavailabilityReason {
+	return []IotHubNameUnavailabilityReason{AlreadyExists, Invalid}
+}
 
 // IotHubScaleType enumerates the values for iot hub scale type.
 type IotHubScaleType string
@@ -93,6 +108,11 @@ const (
 	// IotHubScaleTypeNone ...
 	IotHubScaleTypeNone IotHubScaleType = "None"
 )
+
+// PossibleIotHubScaleTypeValues returns an array of possible values for the IotHubScaleType const type.
+func PossibleIotHubScaleTypeValues() []IotHubScaleType {
+	return []IotHubScaleType{IotHubScaleTypeAutomatic, IotHubScaleTypeManual, IotHubScaleTypeNone}
+}
 
 // IotHubSku enumerates the values for iot hub sku.
 type IotHubSku string
@@ -108,6 +128,11 @@ const (
 	S3 IotHubSku = "S3"
 )
 
+// PossibleIotHubSkuValues returns an array of possible values for the IotHubSku const type.
+func PossibleIotHubSkuValues() []IotHubSku {
+	return []IotHubSku{F1, S1, S2, S3}
+}
+
 // IotHubSkuTier enumerates the values for iot hub sku tier.
 type IotHubSkuTier string
 
@@ -118,6 +143,11 @@ const (
 	Standard IotHubSkuTier = "Standard"
 )
 
+// PossibleIotHubSkuTierValues returns an array of possible values for the IotHubSkuTier const type.
+func PossibleIotHubSkuTierValues() []IotHubSkuTier {
+	return []IotHubSkuTier{Free, Standard}
+}
+
 // IPFilterActionType enumerates the values for ip filter action type.
 type IPFilterActionType string
 
@@ -127,6 +157,11 @@ const (
 	// Reject ...
 	Reject IPFilterActionType = "Reject"
 )
+
+// PossibleIPFilterActionTypeValues returns an array of possible values for the IPFilterActionType const type.
+func PossibleIPFilterActionTypeValues() []IPFilterActionType {
+	return []IPFilterActionType{Accept, Reject}
+}
 
 // JobStatus enumerates the values for job status.
 type JobStatus string
@@ -145,6 +180,11 @@ const (
 	// Unknown ...
 	Unknown JobStatus = "unknown"
 )
+
+// PossibleJobStatusValues returns an array of possible values for the JobStatus const type.
+func PossibleJobStatusValues() []JobStatus {
+	return []JobStatus{Cancelled, Completed, Enqueued, Failed, Running, Unknown}
+}
 
 // JobType enumerates the values for job type.
 type JobType string
@@ -172,6 +212,11 @@ const (
 	JobTypeWriteDeviceProperties JobType = "writeDeviceProperties"
 )
 
+// PossibleJobTypeValues returns an array of possible values for the JobType const type.
+func PossibleJobTypeValues() []JobType {
+	return []JobType{JobTypeBackup, JobTypeExport, JobTypeFactoryResetDevice, JobTypeFirmwareUpdate, JobTypeImport, JobTypeReadDeviceProperties, JobTypeRebootDevice, JobTypeUnknown, JobTypeUpdateDeviceConfiguration, JobTypeWriteDeviceProperties}
+}
+
 // OperationMonitoringLevel enumerates the values for operation monitoring level.
 type OperationMonitoringLevel string
 
@@ -185,6 +230,11 @@ const (
 	// OperationMonitoringLevelNone ...
 	OperationMonitoringLevelNone OperationMonitoringLevel = "None"
 )
+
+// PossibleOperationMonitoringLevelValues returns an array of possible values for the OperationMonitoringLevel const type.
+func PossibleOperationMonitoringLevelValues() []OperationMonitoringLevel {
+	return []OperationMonitoringLevel{OperationMonitoringLevelError, OperationMonitoringLevelErrorInformation, OperationMonitoringLevelInformation, OperationMonitoringLevelNone}
+}
 
 // CloudToDeviceProperties the IoT hub cloud-to-device messaging properties.
 type CloudToDeviceProperties struct {
@@ -622,7 +672,9 @@ func (ihp IotHubProperties) MarshalJSON() ([]byte, error) {
 	if ihp.OperationsMonitoringProperties != nil {
 		objectMap["operationsMonitoringProperties"] = ihp.OperationsMonitoringProperties
 	}
-	objectMap["features"] = ihp.Features
+	if ihp.Features != "" {
+		objectMap["features"] = ihp.Features
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -742,12 +794,11 @@ func (page IotHubQuotaMetricInfoListResultPage) Values() []IotHubQuotaMetricInfo
 // operation.
 type IotHubResourceCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future IotHubResourceCreateOrUpdateFuture) Result(client IotHubResourceClient) (ihd IotHubDescription, err error) {
+func (future *IotHubResourceCreateOrUpdateFuture) Result(client IotHubResourceClient) (ihd IotHubDescription, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -755,34 +806,15 @@ func (future IotHubResourceCreateOrUpdateFuture) Result(client IotHubResourceCli
 		return
 	}
 	if !done {
-		return ihd, azure.NewAsyncOpIncompleteError("devices.IotHubResourceCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ihd, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "devices.IotHubResourceCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("devices.IotHubResourceCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if ihd.Response.Response, err = future.GetResult(sender); err == nil && ihd.Response.Response.StatusCode != http.StatusNoContent {
+		ihd, err = client.CreateOrUpdateResponder(ihd.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "devices.IotHubResourceCreateOrUpdateFuture", "Result", ihd.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "devices.IotHubResourceCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ihd, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "devices.IotHubResourceCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -790,12 +822,11 @@ func (future IotHubResourceCreateOrUpdateFuture) Result(client IotHubResourceCli
 // IotHubResourceDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type IotHubResourceDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future IotHubResourceDeleteFuture) Result(client IotHubResourceClient) (so SetObject, err error) {
+func (future *IotHubResourceDeleteFuture) Result(client IotHubResourceClient) (so SetObject, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -803,34 +834,15 @@ func (future IotHubResourceDeleteFuture) Result(client IotHubResourceClient) (so
 		return
 	}
 	if !done {
-		return so, azure.NewAsyncOpIncompleteError("devices.IotHubResourceDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		so, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "devices.IotHubResourceDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("devices.IotHubResourceDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if so.Response.Response, err = future.GetResult(sender); err == nil && so.Response.Response.StatusCode != http.StatusNoContent {
+		so, err = client.DeleteResponder(so.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "devices.IotHubResourceDeleteFuture", "Result", so.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "devices.IotHubResourceDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	so, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "devices.IotHubResourceDeleteFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }

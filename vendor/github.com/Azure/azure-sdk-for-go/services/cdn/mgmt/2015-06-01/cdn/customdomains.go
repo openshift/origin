@@ -43,11 +43,12 @@ func NewCustomDomainsClientWithBaseURI(baseURI string, subscriptionID string) Cu
 }
 
 // Create sends the create request.
-//
-// customDomainName is name of the custom domain within an endpoint. customDomainProperties is custom domain
-// properties required for creation. endpointName is name of the endpoint within the CDN profile. profileName is
-// name of the CDN profile within the resource group. resourceGroupName is name of the resource group within the
-// Azure subscription.
+// Parameters:
+// customDomainName - name of the custom domain within an endpoint.
+// customDomainProperties - custom domain properties required for creation.
+// endpointName - name of the endpoint within the CDN profile.
+// profileName - name of the CDN profile within the resource group.
+// resourceGroupName - name of the resource group within the Azure subscription.
 func (client CustomDomainsClient) Create(ctx context.Context, customDomainName string, customDomainProperties CustomDomainParameters, endpointName string, profileName string, resourceGroupName string) (result CustomDomainsCreateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: customDomainProperties,
@@ -87,7 +88,7 @@ func (client CustomDomainsClient) CreatePreparer(ctx context.Context, customDoma
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Cdn/profiles/{profileName}/endpoints/{endpointName}/customDomains/{customDomainName}", pathParameters),
@@ -99,15 +100,17 @@ func (client CustomDomainsClient) CreatePreparer(ctx context.Context, customDoma
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client CustomDomainsClient) CreateSender(req *http.Request) (future CustomDomainsCreateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -125,10 +128,11 @@ func (client CustomDomainsClient) CreateResponder(resp *http.Response) (result C
 }
 
 // DeleteIfExists sends the delete if exists request.
-//
-// customDomainName is name of the custom domain within an endpoint. endpointName is name of the endpoint within
-// the CDN profile. profileName is name of the CDN profile within the resource group. resourceGroupName is name of
-// the resource group within the Azure subscription.
+// Parameters:
+// customDomainName - name of the custom domain within an endpoint.
+// endpointName - name of the endpoint within the CDN profile.
+// profileName - name of the CDN profile within the resource group.
+// resourceGroupName - name of the resource group within the Azure subscription.
 func (client CustomDomainsClient) DeleteIfExists(ctx context.Context, customDomainName string, endpointName string, profileName string, resourceGroupName string) (result CustomDomainsDeleteIfExistsFuture, err error) {
 	req, err := client.DeleteIfExistsPreparer(ctx, customDomainName, endpointName, profileName, resourceGroupName)
 	if err != nil {
@@ -171,15 +175,17 @@ func (client CustomDomainsClient) DeleteIfExistsPreparer(ctx context.Context, cu
 // DeleteIfExistsSender sends the DeleteIfExists request. The method will close the
 // http.Response Body if it receives an error.
 func (client CustomDomainsClient) DeleteIfExistsSender(req *http.Request) (future CustomDomainsDeleteIfExistsFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -197,10 +203,11 @@ func (client CustomDomainsClient) DeleteIfExistsResponder(resp *http.Response) (
 }
 
 // Get sends the get request.
-//
-// customDomainName is name of the custom domain within an endpoint. endpointName is name of the endpoint within
-// the CDN profile. profileName is name of the CDN profile within the resource group. resourceGroupName is name of
-// the resource group within the Azure subscription.
+// Parameters:
+// customDomainName - name of the custom domain within an endpoint.
+// endpointName - name of the endpoint within the CDN profile.
+// profileName - name of the CDN profile within the resource group.
+// resourceGroupName - name of the resource group within the Azure subscription.
 func (client CustomDomainsClient) Get(ctx context.Context, customDomainName string, endpointName string, profileName string, resourceGroupName string) (result CustomDomain, err error) {
 	req, err := client.GetPreparer(ctx, customDomainName, endpointName, profileName, resourceGroupName)
 	if err != nil {
@@ -267,9 +274,10 @@ func (client CustomDomainsClient) GetResponder(resp *http.Response) (result Cust
 }
 
 // ListByEndpoint sends the list by endpoint request.
-//
-// endpointName is name of the endpoint within the CDN profile. profileName is name of the CDN profile within the
-// resource group. resourceGroupName is name of the resource group within the Azure subscription.
+// Parameters:
+// endpointName - name of the endpoint within the CDN profile.
+// profileName - name of the CDN profile within the resource group.
+// resourceGroupName - name of the resource group within the Azure subscription.
 func (client CustomDomainsClient) ListByEndpoint(ctx context.Context, endpointName string, profileName string, resourceGroupName string) (result CustomDomainListResult, err error) {
 	req, err := client.ListByEndpointPreparer(ctx, endpointName, profileName, resourceGroupName)
 	if err != nil {
@@ -335,11 +343,12 @@ func (client CustomDomainsClient) ListByEndpointResponder(resp *http.Response) (
 }
 
 // Update sends the update request.
-//
-// customDomainName is name of the custom domain within an endpoint. customDomainProperties is custom domain
-// properties to update. endpointName is name of the endpoint within the CDN profile. profileName is name of the
-// CDN profile within the resource group. resourceGroupName is name of the resource group within the Azure
-// subscription.
+// Parameters:
+// customDomainName - name of the custom domain within an endpoint.
+// customDomainProperties - custom domain properties to update.
+// endpointName - name of the endpoint within the CDN profile.
+// profileName - name of the CDN profile within the resource group.
+// resourceGroupName - name of the resource group within the Azure subscription.
 func (client CustomDomainsClient) Update(ctx context.Context, customDomainName string, customDomainProperties CustomDomainParameters, endpointName string, profileName string, resourceGroupName string) (result ErrorResponse, err error) {
 	req, err := client.UpdatePreparer(ctx, customDomainName, customDomainProperties, endpointName, profileName, resourceGroupName)
 	if err != nil {
@@ -378,7 +387,7 @@ func (client CustomDomainsClient) UpdatePreparer(ctx context.Context, customDoma
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Cdn/profiles/{profileName}/endpoints/{endpointName}/customDomains/{customDomainName}", pathParameters),

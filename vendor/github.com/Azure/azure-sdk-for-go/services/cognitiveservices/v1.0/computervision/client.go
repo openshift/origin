@@ -56,21 +56,23 @@ func NewWithoutDefaults(azureRegion AzureRegions) BaseClient {
 // supported -- (1) Uploading an image or (2) specifying an image URL.  Within your request, there is an optional
 // parameter to allow you to choose which features to return.  By default, image categories are returned in the
 // response.
-//
-// imageURL is a JSON document with a URL pointing to the image that is to be analyzed. visualFeatures is a string
-// indicating what visual feature types to return. Multiple values should be comma-separated. Valid visual feature
-// types include:Categories - categorizes image content according to a taxonomy defined in documentation. Tags -
-// tags the image with a detailed list of words related to the image content. Description - describes the image
-// content with a complete English sentence. Faces - detects if faces are present. If present, generate
-// coordinates, gender and age. ImageType - detects if image is clipart or a line drawing. Color - determines the
-// accent color, dominant color, and whether an image is black&white.Adult - detects if the image is pornographic
-// in nature (depicts nudity or a sex act).  Sexually suggestive content is also detected. details is a string
-// indicating which domain-specific details to return. Multiple values should be comma-separated. Valid visual
-// feature types include:Celebrities - identifies celebrities if detected in the image. language is a string
-// indicating which language to return. The service will return recognition results in specified language. If this
-// parameter is not specified, the default value is &quot;en&quot;.Supported languages:en - English, Default.zh -
-// Simplified Chinese.
-func (client BaseClient) AnalyzeImage(ctx context.Context, imageURL ImageURL, visualFeatures []VisualFeatureTypes, details []Details, language Language1) (result ImageAnalysis, err error) {
+// Parameters:
+// imageURL - a JSON document with a URL pointing to the image that is to be analyzed.
+// visualFeatures - a string indicating what visual feature types to return. Multiple values should be
+// comma-separated. Valid visual feature types include:Categories - categorizes image content according to a
+// taxonomy defined in documentation. Tags - tags the image with a detailed list of words related to the image
+// content. Description - describes the image content with a complete English sentence. Faces - detects if
+// faces are present. If present, generate coordinates, gender and age. ImageType - detects if image is clipart
+// or a line drawing. Color - determines the accent color, dominant color, and whether an image is
+// black&white.Adult - detects if the image is pornographic in nature (depicts nudity or a sex act).  Sexually
+// suggestive content is also detected.
+// details - a string indicating which domain-specific details to return. Multiple values should be
+// comma-separated. Valid visual feature types include:Celebrities - identifies celebrities if detected in the
+// image.
+// language - the desired language for output generation. If this parameter is not specified, the default value
+// is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
+// zh - Simplified Chinese.
+func (client BaseClient) AnalyzeImage(ctx context.Context, imageURL ImageURL, visualFeatures []VisualFeatureTypes, details []Details, language string) (result ImageAnalysis, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageURL,
 			Constraints: []validation.Constraint{{Target: "imageURL.URL", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -99,7 +101,7 @@ func (client BaseClient) AnalyzeImage(ctx context.Context, imageURL ImageURL, vi
 }
 
 // AnalyzeImagePreparer prepares the AnalyzeImage request.
-func (client BaseClient) AnalyzeImagePreparer(ctx context.Context, imageURL ImageURL, visualFeatures []VisualFeatureTypes, details []Details, language Language1) (*http.Request, error) {
+func (client BaseClient) AnalyzeImagePreparer(ctx context.Context, imageURL ImageURL, visualFeatures []VisualFeatureTypes, details []Details, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"AzureRegion": client.AzureRegion,
 	}
@@ -118,7 +120,7 @@ func (client BaseClient) AnalyzeImagePreparer(ctx context.Context, imageURL Imag
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/analyze"),
@@ -152,17 +154,20 @@ func (client BaseClient) AnalyzeImageResponder(resp *http.Response) (result Imag
 // request.  Currently, the API only provides a single domain-specific model: celebrities. Two input methods are
 // supported -- (1) Uploading an image or (2) specifying an image URL. A successful response will be returned in JSON.
 // If the request failed, the response will contain an error code and a message to help understand what went wrong.
-//
-// model is the domain-specific content to recognize. imageURL is a JSON document with a URL pointing to the image
-// that is to be analyzed.
-func (client BaseClient) AnalyzeImageByDomain(ctx context.Context, model DomainModels, imageURL ImageURL) (result DomainModelResults, err error) {
+// Parameters:
+// model - the domain-specific content to recognize.
+// imageURL - a JSON document with a URL pointing to the image that is to be analyzed.
+// language - the desired language for output generation. If this parameter is not specified, the default value
+// is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
+// zh - Simplified Chinese.
+func (client BaseClient) AnalyzeImageByDomain(ctx context.Context, model string, imageURL ImageURL, language string) (result DomainModelResults, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageURL,
 			Constraints: []validation.Constraint{{Target: "imageURL.URL", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("computervision.BaseClient", "AnalyzeImageByDomain", err.Error())
 	}
 
-	req, err := client.AnalyzeImageByDomainPreparer(ctx, model, imageURL)
+	req, err := client.AnalyzeImageByDomainPreparer(ctx, model, imageURL, language)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "computervision.BaseClient", "AnalyzeImageByDomain", nil, "Failure preparing request")
 		return
@@ -184,7 +189,7 @@ func (client BaseClient) AnalyzeImageByDomain(ctx context.Context, model DomainM
 }
 
 // AnalyzeImageByDomainPreparer prepares the AnalyzeImageByDomain request.
-func (client BaseClient) AnalyzeImageByDomainPreparer(ctx context.Context, model DomainModels, imageURL ImageURL) (*http.Request, error) {
+func (client BaseClient) AnalyzeImageByDomainPreparer(ctx context.Context, model string, imageURL ImageURL, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"AzureRegion": client.AzureRegion,
 	}
@@ -193,12 +198,20 @@ func (client BaseClient) AnalyzeImageByDomainPreparer(ctx context.Context, model
 		"model": autorest.Encode("path", model),
 	}
 
+	queryParameters := map[string]interface{}{}
+	if len(string(language)) > 0 {
+		queryParameters["language"] = autorest.Encode("query", language)
+	} else {
+		queryParameters["language"] = autorest.Encode("query", "en")
+	}
+
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPathParameters("/models/{model}/analyze", pathParameters),
-		autorest.WithJSON(imageURL))
+		autorest.WithJSON(imageURL),
+		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
@@ -227,11 +240,14 @@ func (client BaseClient) AnalyzeImageByDomainResponder(resp *http.Response) (res
 // GET request.  Currently, the API only provides a single domain-specific model: celebrities. Two input methods are
 // supported -- (1) Uploading an image or (2) specifying an image URL. A successful response will be returned in JSON.
 // If the request failed, the response will contain an error code and a message to help understand what went wrong.
-//
-// model is the domain-specific content to recognize. imageParameter is an image stream. imageParameter will be
-// closed upon successful return. Callers should ensure closure when receiving an error.
-func (client BaseClient) AnalyzeImageByDomainInStream(ctx context.Context, model string, imageParameter io.ReadCloser) (result DomainModelResults, err error) {
-	req, err := client.AnalyzeImageByDomainInStreamPreparer(ctx, model, imageParameter)
+// Parameters:
+// model - the domain-specific content to recognize.
+// imageParameter - an image stream.
+// language - the desired language for output generation. If this parameter is not specified, the default value
+// is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
+// zh - Simplified Chinese.
+func (client BaseClient) AnalyzeImageByDomainInStream(ctx context.Context, model string, imageParameter io.ReadCloser, language string) (result DomainModelResults, err error) {
+	req, err := client.AnalyzeImageByDomainInStreamPreparer(ctx, model, imageParameter, language)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "computervision.BaseClient", "AnalyzeImageByDomainInStream", nil, "Failure preparing request")
 		return
@@ -253,7 +269,7 @@ func (client BaseClient) AnalyzeImageByDomainInStream(ctx context.Context, model
 }
 
 // AnalyzeImageByDomainInStreamPreparer prepares the AnalyzeImageByDomainInStream request.
-func (client BaseClient) AnalyzeImageByDomainInStreamPreparer(ctx context.Context, model string, imageParameter io.ReadCloser) (*http.Request, error) {
+func (client BaseClient) AnalyzeImageByDomainInStreamPreparer(ctx context.Context, model string, imageParameter io.ReadCloser, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"AzureRegion": client.AzureRegion,
 	}
@@ -262,12 +278,20 @@ func (client BaseClient) AnalyzeImageByDomainInStreamPreparer(ctx context.Contex
 		"model": autorest.Encode("path", model),
 	}
 
+	queryParameters := map[string]interface{}{}
+	if len(string(language)) > 0 {
+		queryParameters["language"] = autorest.Encode("query", language)
+	} else {
+		queryParameters["language"] = autorest.Encode("query", "en")
+	}
+
 	preparer := autorest.CreatePreparer(
-		autorest.AsOctetStream(),
+		autorest.AsContentType("application/octet-stream"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPathParameters("/models/{model}/analyze", pathParameters),
-		autorest.WithFile(imageParameter))
+		autorest.WithFile(imageParameter),
+		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
@@ -292,20 +316,22 @@ func (client BaseClient) AnalyzeImageByDomainInStreamResponder(resp *http.Respon
 }
 
 // AnalyzeImageInStream this operation extracts a rich set of visual features based on the image content.
-//
-// imageParameter is an image stream. imageParameter will be closed upon successful return. Callers should ensure
-// closure when receiving an error.visualFeatures is a string indicating what visual feature types to return.
-// Multiple values should be comma-separated. Valid visual feature types include:Categories - categorizes image
-// content according to a taxonomy defined in documentation. Tags - tags the image with a detailed list of words
-// related to the image content. Description - describes the image content with a complete English sentence. Faces
-// - detects if faces are present. If present, generate coordinates, gender and age. ImageType - detects if image
-// is clipart or a line drawing. Color - determines the accent color, dominant color, and whether an image is
+// Parameters:
+// imageParameter - an image stream.
+// visualFeatures - a string indicating what visual feature types to return. Multiple values should be
+// comma-separated. Valid visual feature types include:Categories - categorizes image content according to a
+// taxonomy defined in documentation. Tags - tags the image with a detailed list of words related to the image
+// content. Description - describes the image content with a complete English sentence. Faces - detects if
+// faces are present. If present, generate coordinates, gender and age. ImageType - detects if image is clipart
+// or a line drawing. Color - determines the accent color, dominant color, and whether an image is
 // black&white.Adult - detects if the image is pornographic in nature (depicts nudity or a sex act).  Sexually
-// suggestive content is also detected. details is a string indicating which domain-specific details to return.
-// Multiple values should be comma-separated. Valid visual feature types include:Celebrities - identifies
-// celebrities if detected in the image. language is a string indicating which language to return. The service will
-// return recognition results in specified language. If this parameter is not specified, the default value is
-// &quot;en&quot;.Supported languages:en - English, Default.zh - Simplified Chinese.
+// suggestive content is also detected.
+// details - a string indicating which domain-specific details to return. Multiple values should be
+// comma-separated. Valid visual feature types include:Celebrities - identifies celebrities if detected in the
+// image.
+// language - the desired language for output generation. If this parameter is not specified, the default value
+// is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
+// zh - Simplified Chinese.
 func (client BaseClient) AnalyzeImageInStream(ctx context.Context, imageParameter io.ReadCloser, visualFeatures []VisualFeatureTypes, details string, language string) (result ImageAnalysis, err error) {
 	req, err := client.AnalyzeImageInStreamPreparer(ctx, imageParameter, visualFeatures, details, language)
 	if err != nil {
@@ -348,7 +374,7 @@ func (client BaseClient) AnalyzeImageInStreamPreparer(ctx context.Context, image
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsOctetStream(),
+		autorest.AsContentType("application/octet-stream"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/analyze"),
@@ -383,17 +409,20 @@ func (client BaseClient) AnalyzeImageInStreamResponder(resp *http.Response) (res
 // are in English. Two input methods are supported -- (1) Uploading an image or (2) specifying an image URL.A
 // successful response will be returned in JSON.  If the request failed, the response will contain an error code and a
 // message to help understand what went wrong.
-//
-// imageURL is a JSON document with a URL pointing to the image that is to be analyzed. maxCandidates is maximum
-// number of candidate descriptions to be returned.  The default is 1.
-func (client BaseClient) DescribeImage(ctx context.Context, imageURL ImageURL, maxCandidates string) (result ImageDescription, err error) {
+// Parameters:
+// imageURL - a JSON document with a URL pointing to the image that is to be analyzed.
+// maxCandidates - maximum number of candidate descriptions to be returned.  The default is 1.
+// language - the desired language for output generation. If this parameter is not specified, the default value
+// is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
+// zh - Simplified Chinese.
+func (client BaseClient) DescribeImage(ctx context.Context, imageURL ImageURL, maxCandidates string, language string) (result ImageDescription, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageURL,
 			Constraints: []validation.Constraint{{Target: "imageURL.URL", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("computervision.BaseClient", "DescribeImage", err.Error())
 	}
 
-	req, err := client.DescribeImagePreparer(ctx, imageURL, maxCandidates)
+	req, err := client.DescribeImagePreparer(ctx, imageURL, maxCandidates, language)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "computervision.BaseClient", "DescribeImage", nil, "Failure preparing request")
 		return
@@ -415,7 +444,7 @@ func (client BaseClient) DescribeImage(ctx context.Context, imageURL ImageURL, m
 }
 
 // DescribeImagePreparer prepares the DescribeImage request.
-func (client BaseClient) DescribeImagePreparer(ctx context.Context, imageURL ImageURL, maxCandidates string) (*http.Request, error) {
+func (client BaseClient) DescribeImagePreparer(ctx context.Context, imageURL ImageURL, maxCandidates string, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"AzureRegion": client.AzureRegion,
 	}
@@ -426,9 +455,14 @@ func (client BaseClient) DescribeImagePreparer(ctx context.Context, imageURL Ima
 	} else {
 		queryParameters["maxCandidates"] = autorest.Encode("query", "1")
 	}
+	if len(string(language)) > 0 {
+		queryParameters["language"] = autorest.Encode("query", language)
+	} else {
+		queryParameters["language"] = autorest.Encode("query", "en")
+	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/describe"),
@@ -463,12 +497,14 @@ func (client BaseClient) DescribeImageResponder(resp *http.Response) (result Ima
 // descriptions are in English. Two input methods are supported -- (1) Uploading an image or (2) specifying an image
 // URL.A successful response will be returned in JSON.  If the request failed, the response will contain an error code
 // and a message to help understand what went wrong.
-//
-// imageParameter is an image stream. imageParameter will be closed upon successful return. Callers should ensure
-// closure when receiving an error.maxCandidates is maximum number of candidate descriptions to be returned.  The
-// default is 1.
-func (client BaseClient) DescribeImageInStream(ctx context.Context, imageParameter io.ReadCloser, maxCandidates string) (result ImageDescription, err error) {
-	req, err := client.DescribeImageInStreamPreparer(ctx, imageParameter, maxCandidates)
+// Parameters:
+// imageParameter - an image stream.
+// maxCandidates - maximum number of candidate descriptions to be returned.  The default is 1.
+// language - the desired language for output generation. If this parameter is not specified, the default value
+// is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
+// zh - Simplified Chinese.
+func (client BaseClient) DescribeImageInStream(ctx context.Context, imageParameter io.ReadCloser, maxCandidates string, language string) (result ImageDescription, err error) {
+	req, err := client.DescribeImageInStreamPreparer(ctx, imageParameter, maxCandidates, language)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "computervision.BaseClient", "DescribeImageInStream", nil, "Failure preparing request")
 		return
@@ -490,7 +526,7 @@ func (client BaseClient) DescribeImageInStream(ctx context.Context, imageParamet
 }
 
 // DescribeImageInStreamPreparer prepares the DescribeImageInStream request.
-func (client BaseClient) DescribeImageInStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, maxCandidates string) (*http.Request, error) {
+func (client BaseClient) DescribeImageInStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, maxCandidates string, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"AzureRegion": client.AzureRegion,
 	}
@@ -501,9 +537,14 @@ func (client BaseClient) DescribeImageInStreamPreparer(ctx context.Context, imag
 	} else {
 		queryParameters["maxCandidates"] = autorest.Encode("query", "1")
 	}
+	if len(string(language)) > 0 {
+		queryParameters["language"] = autorest.Encode("query", language)
+	} else {
+		queryParameters["language"] = autorest.Encode("query", "en")
+	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsOctetStream(),
+		autorest.AsContentType("application/octet-stream"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/describe"),
@@ -537,10 +578,11 @@ func (client BaseClient) DescribeImageInStreamResponder(resp *http.Response) (re
 // based on the ROI. Smart cropping helps when you specify an aspect ratio that differs from that of the input image. A
 // successful response contains the thumbnail image binary. If the request failed, the response contains an error code
 // and a message to help determine what went wrong.
-//
-// width is width of the thumbnail. It must be between 1 and 1024. Recommended minimum of 50. height is height of
-// the thumbnail. It must be between 1 and 1024. Recommended minimum of 50. imageURL is a JSON document with a URL
-// pointing to the image that is to be analyzed. smartCropping is boolean flag for enabling smart cropping.
+// Parameters:
+// width - width of the thumbnail. It must be between 1 and 1024. Recommended minimum of 50.
+// height - height of the thumbnail. It must be between 1 and 1024. Recommended minimum of 50.
+// imageURL - a JSON document with a URL pointing to the image that is to be analyzed.
+// smartCropping - boolean flag for enabling smart cropping.
 func (client BaseClient) GenerateThumbnail(ctx context.Context, width int32, height int32, imageURL ImageURL, smartCropping *bool) (result ReadCloser, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: width,
@@ -592,7 +634,7 @@ func (client BaseClient) GenerateThumbnailPreparer(ctx context.Context, width in
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/generateThumbnail"),
@@ -625,11 +667,11 @@ func (client BaseClient) GenerateThumbnailResponder(resp *http.Response) (result
 // coordinates based on the ROI. Smart cropping helps when you specify an aspect ratio that differs from that of the
 // input image. A successful response contains the thumbnail image binary. If the request failed, the response contains
 // an error code and a message to help determine what went wrong.
-//
-// width is width of the thumbnail. It must be between 1 and 1024. Recommended minimum of 50. height is height of
-// the thumbnail. It must be between 1 and 1024. Recommended minimum of 50. imageParameter is an image stream.
-// imageParameter will be closed upon successful return. Callers should ensure closure when receiving an
-// error.smartCropping is boolean flag for enabling smart cropping.
+// Parameters:
+// width - width of the thumbnail. It must be between 1 and 1024. Recommended minimum of 50.
+// height - height of the thumbnail. It must be between 1 and 1024. Recommended minimum of 50.
+// imageParameter - an image stream.
+// smartCropping - boolean flag for enabling smart cropping.
 func (client BaseClient) GenerateThumbnailInStream(ctx context.Context, width int32, height int32, imageParameter io.ReadCloser, smartCropping *bool) (result ReadCloser, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: width,
@@ -679,7 +721,7 @@ func (client BaseClient) GenerateThumbnailInStreamPreparer(ctx context.Context, 
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsOctetStream(),
+		autorest.AsContentType("application/octet-stream"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/generateThumbnail"),
@@ -709,8 +751,8 @@ func (client BaseClient) GenerateThumbnailInStreamResponder(resp *http.Response)
 
 // GetTextOperationResult this interface is used for getting text operation result. The URL to this interface should be
 // retrieved from 'Operation-Location' field returned from Recognize Text interface.
-//
-// operationID is id of the text operation returned in the response of the 'Recognize Handwritten Text'
+// Parameters:
+// operationID - id of the text operation returned in the response of the 'Recognize Handwritten Text'
 func (client BaseClient) GetTextOperationResult(ctx context.Context, operationID string) (result TextOperationResult, err error) {
 	req, err := client.GetTextOperationResultPreparer(ctx, operationID)
 	if err != nil {
@@ -834,11 +876,12 @@ func (client BaseClient) ListModelsResponder(resp *http.Response) (result ListMo
 // failure, the error code together with an error message will be returned. The error code can be one of
 // InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage,  NotSupportedLanguage, or
 // InternalServerError.
-//
-// detectOrientation is whether detect the text orientation in the image. With detectOrientation=true the OCR
+// Parameters:
+// detectOrientation - whether detect the text orientation in the image. With detectOrientation=true the OCR
 // service tries to detect the image orientation and correct it before further processing (e.g. if it's
-// upside-down). imageURL is a JSON document with a URL pointing to the image that is to be analyzed. language is
-// the BCP-47 language code of the text to be detected in the image. The default value is 'unk'
+// upside-down).
+// imageURL - a JSON document with a URL pointing to the image that is to be analyzed.
+// language - the BCP-47 language code of the text to be detected in the image. The default value is 'unk'
 func (client BaseClient) RecognizePrintedText(ctx context.Context, detectOrientation bool, imageURL ImageURL, language OcrLanguages) (result OcrResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageURL,
@@ -883,7 +926,7 @@ func (client BaseClient) RecognizePrintedTextPreparer(ctx context.Context, detec
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/ocr"),
@@ -917,12 +960,12 @@ func (client BaseClient) RecognizePrintedTextResponder(resp *http.Response) (res
 // failure, the error code together with an error message will be returned. The error code can be one of
 // InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage,  NotSupportedLanguage, or
 // InternalServerError.
-//
-// detectOrientation is whether detect the text orientation in the image. With detectOrientation=true the OCR
+// Parameters:
+// detectOrientation - whether detect the text orientation in the image. With detectOrientation=true the OCR
 // service tries to detect the image orientation and correct it before further processing (e.g. if it's
-// upside-down). imageParameter is an image stream. imageParameter will be closed upon successful return. Callers
-// should ensure closure when receiving an error.language is the BCP-47 language code of the text to be detected in
-// the image. The default value is 'unk'
+// upside-down).
+// imageParameter - an image stream.
+// language - the BCP-47 language code of the text to be detected in the image. The default value is 'unk'
 func (client BaseClient) RecognizePrintedTextInStream(ctx context.Context, detectOrientation bool, imageParameter io.ReadCloser, language OcrLanguages) (result OcrResult, err error) {
 	req, err := client.RecognizePrintedTextInStreamPreparer(ctx, detectOrientation, imageParameter, language)
 	if err != nil {
@@ -961,7 +1004,7 @@ func (client BaseClient) RecognizePrintedTextInStreamPreparer(ctx context.Contex
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsOctetStream(),
+		autorest.AsContentType("application/octet-stream"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/ocr"),
@@ -991,12 +1034,12 @@ func (client BaseClient) RecognizePrintedTextInStreamResponder(resp *http.Respon
 }
 
 // RecognizeText recognize Text operation. When you use the Recognize Text interface, the response contains a field
-// called “Operation-Location”. The “Operation-Location” field contains the URL that you must use for your Get
+// called 'Operation-Location'. The 'Operation-Location' field contains the URL that you must use for your Get
 // Handwritten Text Operation Result operation.
-//
-// imageURL is a JSON document with a URL pointing to the image that is to be analyzed. detectHandwriting is if
-// “true” is specified, handwriting recognition is performed. If this parameter is set to “false” or is not
-// specified, printed text recognition is performed.
+// Parameters:
+// imageURL - a JSON document with a URL pointing to the image that is to be analyzed.
+// detectHandwriting - if 'true' is specified, handwriting recognition is performed. If this parameter is set
+// to 'false' or is not specified, printed text recognition is performed.
 func (client BaseClient) RecognizeText(ctx context.Context, imageURL ImageURL, detectHandwriting *bool) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageURL,
@@ -1039,7 +1082,7 @@ func (client BaseClient) RecognizeTextPreparer(ctx context.Context, imageURL Ima
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/recognizeText"),
@@ -1068,12 +1111,12 @@ func (client BaseClient) RecognizeTextResponder(resp *http.Response) (result aut
 }
 
 // RecognizeTextInStream recognize Text operation. When you use the Recognize Text interface, the response contains a
-// field called “Operation-Location”. The “Operation-Location” field contains the URL that you must use for your Get
+// field called 'Operation-Location'. The 'Operation-Location' field contains the URL that you must use for your Get
 // Handwritten Text Operation Result operation.
-//
-// imageParameter is an image stream. imageParameter will be closed upon successful return. Callers should ensure
-// closure when receiving an error.detectHandwriting is if “true” is specified, handwriting recognition is
-// performed. If this parameter is set to “false” or is not specified, printed text recognition is performed.
+// Parameters:
+// imageParameter - an image stream.
+// detectHandwriting - if 'true' is specified, handwriting recognition is performed. If this parameter is set
+// to 'false' or is not specified, printed text recognition is performed.
 func (client BaseClient) RecognizeTextInStream(ctx context.Context, imageParameter io.ReadCloser, detectHandwriting *bool) (result autorest.Response, err error) {
 	req, err := client.RecognizeTextInStreamPreparer(ctx, imageParameter, detectHandwriting)
 	if err != nil {
@@ -1110,7 +1153,7 @@ func (client BaseClient) RecognizeTextInStreamPreparer(ctx context.Context, imag
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsOctetStream(),
+		autorest.AsContentType("application/octet-stream"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/recognizeText"),
@@ -1141,18 +1184,21 @@ func (client BaseClient) RecognizeTextInStreamResponder(resp *http.Response) (re
 // TagImage this operation generates a list of words, or tags, that are relevant to the content of the supplied image.
 // The Computer Vision API can return tags based on objects, living beings, scenery or actions found in images. Unlike
 // categories, tags are not organized according to a hierarchical classification system, but correspond to image
-// content. Tags may contain hints to avoid ambiguity or provide context, for example the tag “cello” may be
-// accompanied by the hint “musical instrument”. All tags are in English.
-//
-// imageURL is a JSON document with a URL pointing to the image that is to be analyzed.
-func (client BaseClient) TagImage(ctx context.Context, imageURL ImageURL) (result TagResult, err error) {
+// content. Tags may contain hints to avoid ambiguity or provide context, for example the tag 'cello' may be
+// accompanied by the hint 'musical instrument'. All tags are in English.
+// Parameters:
+// imageURL - a JSON document with a URL pointing to the image that is to be analyzed.
+// language - the desired language for output generation. If this parameter is not specified, the default value
+// is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
+// zh - Simplified Chinese.
+func (client BaseClient) TagImage(ctx context.Context, imageURL ImageURL, language string) (result TagResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageURL,
 			Constraints: []validation.Constraint{{Target: "imageURL.URL", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("computervision.BaseClient", "TagImage", err.Error())
 	}
 
-	req, err := client.TagImagePreparer(ctx, imageURL)
+	req, err := client.TagImagePreparer(ctx, imageURL, language)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "computervision.BaseClient", "TagImage", nil, "Failure preparing request")
 		return
@@ -1174,17 +1220,25 @@ func (client BaseClient) TagImage(ctx context.Context, imageURL ImageURL) (resul
 }
 
 // TagImagePreparer prepares the TagImage request.
-func (client BaseClient) TagImagePreparer(ctx context.Context, imageURL ImageURL) (*http.Request, error) {
+func (client BaseClient) TagImagePreparer(ctx context.Context, imageURL ImageURL, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"AzureRegion": client.AzureRegion,
 	}
 
+	queryParameters := map[string]interface{}{}
+	if len(string(language)) > 0 {
+		queryParameters["language"] = autorest.Encode("query", language)
+	} else {
+		queryParameters["language"] = autorest.Encode("query", "en")
+	}
+
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/tag"),
-		autorest.WithJSON(imageURL))
+		autorest.WithJSON(imageURL),
+		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
@@ -1211,13 +1265,15 @@ func (client BaseClient) TagImageResponder(resp *http.Response) (result TagResul
 // TagImageInStream this operation generates a list of words, or tags, that are relevant to the content of the supplied
 // image. The Computer Vision API can return tags based on objects, living beings, scenery or actions found in images.
 // Unlike categories, tags are not organized according to a hierarchical classification system, but correspond to image
-// content. Tags may contain hints to avoid ambiguity or provide context, for example the tag “cello” may be
-// accompanied by the hint “musical instrument”. All tags are in English.
-//
-// imageParameter is an image stream. imageParameter will be closed upon successful return. Callers should ensure
-// closure when receiving an error.
-func (client BaseClient) TagImageInStream(ctx context.Context, imageParameter io.ReadCloser) (result TagResult, err error) {
-	req, err := client.TagImageInStreamPreparer(ctx, imageParameter)
+// content. Tags may contain hints to avoid ambiguity or provide context, for example the tag 'cello' may be
+// accompanied by the hint 'musical instrument'. All tags are in English.
+// Parameters:
+// imageParameter - an image stream.
+// language - the desired language for output generation. If this parameter is not specified, the default value
+// is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
+// zh - Simplified Chinese.
+func (client BaseClient) TagImageInStream(ctx context.Context, imageParameter io.ReadCloser, language string) (result TagResult, err error) {
+	req, err := client.TagImageInStreamPreparer(ctx, imageParameter, language)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "computervision.BaseClient", "TagImageInStream", nil, "Failure preparing request")
 		return
@@ -1239,17 +1295,25 @@ func (client BaseClient) TagImageInStream(ctx context.Context, imageParameter io
 }
 
 // TagImageInStreamPreparer prepares the TagImageInStream request.
-func (client BaseClient) TagImageInStreamPreparer(ctx context.Context, imageParameter io.ReadCloser) (*http.Request, error) {
+func (client BaseClient) TagImageInStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"AzureRegion": client.AzureRegion,
 	}
 
+	queryParameters := map[string]interface{}{}
+	if len(string(language)) > 0 {
+		queryParameters["language"] = autorest.Encode("query", language)
+	} else {
+		queryParameters["language"] = autorest.Encode("query", "en")
+	}
+
 	preparer := autorest.CreatePreparer(
-		autorest.AsOctetStream(),
+		autorest.AsContentType("application/octet-stream"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("https://{AzureRegion}.api.cognitive.microsoft.com/vision/v1.0", urlParameters),
 		autorest.WithPath("/tag"),
-		autorest.WithFile(imageParameter))
+		autorest.WithFile(imageParameter),
+		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 

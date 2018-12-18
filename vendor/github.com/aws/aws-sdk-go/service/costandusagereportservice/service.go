@@ -29,8 +29,9 @@ var initRequest func(*request.Request)
 
 // Service information constants
 const (
-	ServiceName = "cur"       // Service endpoint prefix API calls made to.
-	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+	ServiceName = "cur"                           // Name of service.
+	EndpointsID = ServiceName                     // ID to lookup a service endpoint with.
+	ServiceID   = "Cost and Usage Report Service" // ServiceID is a unique identifer of a specific service.
 )
 
 // New creates a new instance of the CostandUsageReportService client with a session.
@@ -45,19 +46,20 @@ const (
 //     svc := costandusagereportservice.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *CostandUsageReportService {
 	c := p.ClientConfig(EndpointsID, cfgs...)
+	if c.SigningNameDerived || len(c.SigningName) == 0 {
+		c.SigningName = "cur"
+	}
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
 func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *CostandUsageReportService {
-	if len(signingName) == 0 {
-		signingName = "cur"
-	}
 	svc := &CostandUsageReportService{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				ServiceID:     ServiceID,
 				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,

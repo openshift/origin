@@ -3,6 +3,7 @@ package resourceapply
 import (
 	"testing"
 
+	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/davecgh/go-spew/spew"
@@ -34,8 +35,8 @@ metadata:
     openshift.io/run-level: "1"
 `), nil
 	}
-
-	ret := ApplyDirectly(fakeClient, content, "pod")
+	recorder := events.NewInMemoryRecorder("")
+	ret := ApplyDirectly(fakeClient, recorder, content, "pod")
 	if ret[0].Error == nil {
 		t.Fatal("missing expected error")
 	} else if ret[0].Error.Error() != "unhandled type *v1.Pod" {

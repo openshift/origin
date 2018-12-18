@@ -55,10 +55,11 @@ type Options struct {
 
 	Annotation string `json:",omitempty"`
 
-	PowerOn      bool
-	InjectOvfEnv bool
-	WaitForIP    bool
-	Name         *string
+	MarkAsTemplate bool
+	PowerOn        bool
+	InjectOvfEnv   bool
+	WaitForIP      bool
+	Name           *string
 }
 
 type OptionsFlag struct {

@@ -1,5 +1,3 @@
-// +build !solaris
-
 package netutils
 
 import (
@@ -14,7 +12,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func TestNonOverlapingNameservers(t *testing.T) {
+func TestNonOverlappingNameservers(t *testing.T) {
 	network := &net.IPNet{
 		IP:   []byte{192, 168, 0, 1},
 		Mask: []byte{255, 255, 255, 0},
@@ -28,7 +26,7 @@ func TestNonOverlapingNameservers(t *testing.T) {
 	}
 }
 
-func TestOverlapingNameservers(t *testing.T) {
+func TestOverlappingNameservers(t *testing.T) {
 	network := &net.IPNet{
 		IP:   []byte{192, 168, 0, 1},
 		Mask: []byte{255, 255, 255, 0},
@@ -214,15 +212,14 @@ func TestUtilGenerateRandomMAC(t *testing.T) {
 
 func TestNetworkRequest(t *testing.T) {
 	defer testutils.SetupTestOSContext(t)()
-	ipamutils.InitNetworks()
 
-	nw, err := FindAvailableNetwork(ipamutils.PredefinedBroadNetworks)
+	nw, err := FindAvailableNetwork(ipamutils.PredefinedLocalScopeDefaultNetworks)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var found bool
-	for _, exp := range ipamutils.PredefinedBroadNetworks {
+	for _, exp := range ipamutils.PredefinedLocalScopeDefaultNetworks {
 		if types.CompareIPNet(exp, nw) {
 			found = true
 			break
@@ -233,13 +230,13 @@ func TestNetworkRequest(t *testing.T) {
 		t.Fatalf("Found unexpected broad network %s", nw)
 	}
 
-	nw, err = FindAvailableNetwork(ipamutils.PredefinedGranularNetworks)
+	nw, err = FindAvailableNetwork(ipamutils.PredefinedGlobalScopeDefaultNetworks)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	found = false
-	for _, exp := range ipamutils.PredefinedGranularNetworks {
+	for _, exp := range ipamutils.PredefinedGlobalScopeDefaultNetworks {
 		if types.CompareIPNet(exp, nw) {
 			found = true
 			break
@@ -257,18 +254,17 @@ func TestNetworkRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nw, err = FindAvailableNetwork(ipamutils.PredefinedBroadNetworks)
+	nw, err = FindAvailableNetwork(ipamutils.PredefinedLocalScopeDefaultNetworks)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !types.CompareIPNet(exp, nw) {
-		t.Fatalf("exected %s. got %s", exp, nw)
+		t.Fatalf("expected %s. got %s", exp, nw)
 	}
 }
 
 func TestElectInterfaceAddressMultipleAddresses(t *testing.T) {
 	defer testutils.SetupTestOSContext(t)()
-	ipamutils.InitNetworks()
 
 	nws := []string{"172.101.202.254/16", "172.102.202.254/16"}
 	createInterface(t, "test", nws...)
@@ -305,7 +301,6 @@ func TestElectInterfaceAddressMultipleAddresses(t *testing.T) {
 
 func TestElectInterfaceAddress(t *testing.T) {
 	defer testutils.SetupTestOSContext(t)()
-	ipamutils.InitNetworks()
 
 	nws := "172.101.202.254/16"
 	createInterface(t, "test", nws)

@@ -1,4 +1,4 @@
-package archive
+package archive // import "github.com/docker/docker/pkg/archive"
 
 import (
 	"archive/tar"
@@ -247,10 +247,12 @@ func applyLayerHandler(dest string, layer io.Reader, options *TarOptions, decomp
 	defer system.Umask(oldmask) // ignore err, ErrNotSupportedPlatform
 
 	if decompress {
-		layer, err = DecompressStream(layer)
+		decompLayer, err := DecompressStream(layer)
 		if err != nil {
 			return 0, err
 		}
+		defer decompLayer.Close()
+		layer = decompLayer
 	}
 	return UnpackLayer(dest, layer, options)
 }

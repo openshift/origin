@@ -1,6 +1,7 @@
 package staticpod
 
 import (
+	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 
@@ -28,7 +29,7 @@ type staticPodOperatorControllers struct {
 // 3. NodeController - watches nodes for master nodes and keeps the operator status up to date
 func NewControllers(targetNamespaceName, staticPodName string, command, revisionConfigMaps, revisionSecrets []string,
 	staticPodOperatorClient common.OperatorClient, kubeClient kubernetes.Interface, kubeInformersNamespaceScoped,
-	kubeInformersClusterScoped informers.SharedInformerFactory) *staticPodOperatorControllers {
+	kubeInformersClusterScoped informers.SharedInformerFactory, eventRecorder events.Recorder) *staticPodOperatorControllers {
 	controller := &staticPodOperatorControllers{}
 
 	controller.revisionController = revision.NewRevisionController(
@@ -38,6 +39,7 @@ func NewControllers(targetNamespaceName, staticPodName string, command, revision
 		kubeInformersNamespaceScoped,
 		staticPodOperatorClient,
 		kubeClient,
+		eventRecorder,
 	)
 
 	controller.installerController = installer.NewInstallerController(
@@ -49,11 +51,13 @@ func NewControllers(targetNamespaceName, staticPodName string, command, revision
 		kubeInformersNamespaceScoped,
 		staticPodOperatorClient,
 		kubeClient,
+		eventRecorder,
 	)
 
 	controller.nodeController = node.NewNodeController(
 		staticPodOperatorClient,
 		kubeInformersClusterScoped,
+		eventRecorder,
 	)
 
 	controller.serviceAccountController = backingresource.NewBackingResourceController(
@@ -61,6 +65,7 @@ func NewControllers(targetNamespaceName, staticPodName string, command, revision
 		staticPodOperatorClient,
 		kubeInformersNamespaceScoped,
 		kubeClient,
+		eventRecorder,
 	)
 
 	return controller

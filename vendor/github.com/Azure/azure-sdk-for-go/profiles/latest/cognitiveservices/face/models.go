@@ -22,26 +22,8 @@ package face
 import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v1.0/face"
 
 type BaseClient = original.BaseClient
-
-func New(azureRegion AzureRegions) BaseClient {
-	return original.New(azureRegion)
-}
-func NewWithoutDefaults(azureRegion AzureRegions) BaseClient {
-	return original.NewWithoutDefaults(azureRegion)
-}
-
 type Client = original.Client
-
-func NewClient(azureRegion AzureRegions) Client {
-	return original.NewClient(azureRegion)
-}
-
 type ListClient = original.ListClient
-
-func NewListClient(azureRegion AzureRegions) ListClient {
-	return original.NewListClient(azureRegion)
-}
-
 type AccessoryType = original.AccessoryType
 
 const (
@@ -74,12 +56,16 @@ type AzureRegions = original.AzureRegions
 const (
 	Australiaeast  AzureRegions = original.Australiaeast
 	Brazilsouth    AzureRegions = original.Brazilsouth
+	Canadacentral  AzureRegions = original.Canadacentral
+	Centralindia   AzureRegions = original.Centralindia
 	Eastasia       AzureRegions = original.Eastasia
 	Eastus         AzureRegions = original.Eastus
 	Eastus2        AzureRegions = original.Eastus2
+	Japaneast      AzureRegions = original.Japaneast
 	Northeurope    AzureRegions = original.Northeurope
 	Southcentralus AzureRegions = original.Southcentralus
 	Southeastasia  AzureRegions = original.Southeastasia
+	Uksouth        AzureRegions = original.Uksouth
 	Westcentralus  AzureRegions = original.Westcentralus
 	Westeurope     AzureRegions = original.Westeurope
 	Westus         AzureRegions = original.Westus
@@ -199,13 +185,56 @@ type VerifyFaceToFaceRequest = original.VerifyFaceToFaceRequest
 type VerifyFaceToPersonRequest = original.VerifyFaceToPersonRequest
 type VerifyResult = original.VerifyResult
 type PersonGroupClient = original.PersonGroupClient
+type PersonGroupPersonClient = original.PersonGroupPersonClient
 
+func New(azureRegion AzureRegions) BaseClient {
+	return original.New(azureRegion)
+}
+func NewWithoutDefaults(azureRegion AzureRegions) BaseClient {
+	return original.NewWithoutDefaults(azureRegion)
+}
+func NewClient(azureRegion AzureRegions) Client {
+	return original.NewClient(azureRegion)
+}
+func NewListClient(azureRegion AzureRegions) ListClient {
+	return original.NewListClient(azureRegion)
+}
+func PossibleAccessoryTypeValues() []AccessoryType {
+	return original.PossibleAccessoryTypeValues()
+}
+func PossibleAttributeTypeValues() []AttributeType {
+	return original.PossibleAttributeTypeValues()
+}
+func PossibleAzureRegionsValues() []AzureRegions {
+	return original.PossibleAzureRegionsValues()
+}
+func PossibleBlurLevelValues() []BlurLevel {
+	return original.PossibleBlurLevelValues()
+}
+func PossibleExposureLevelValues() []ExposureLevel {
+	return original.PossibleExposureLevelValues()
+}
+func PossibleFindSimilarMatchModeValues() []FindSimilarMatchMode {
+	return original.PossibleFindSimilarMatchModeValues()
+}
+func PossibleGenderValues() []Gender {
+	return original.PossibleGenderValues()
+}
+func PossibleGlassesTypeValues() []GlassesType {
+	return original.PossibleGlassesTypeValues()
+}
+func PossibleHairColorTypeValues() []HairColorType {
+	return original.PossibleHairColorTypeValues()
+}
+func PossibleNoiseLevelValues() []NoiseLevel {
+	return original.PossibleNoiseLevelValues()
+}
+func PossibleTrainingStatusTypeValues() []TrainingStatusType {
+	return original.PossibleTrainingStatusTypeValues()
+}
 func NewPersonGroupClient(azureRegion AzureRegions) PersonGroupClient {
 	return original.NewPersonGroupClient(azureRegion)
 }
-
-type PersonGroupPersonClient = original.PersonGroupPersonClient
-
 func NewPersonGroupPersonClient(azureRegion AzureRegions) PersonGroupPersonClient {
 	return original.NewPersonGroupPersonClient(azureRegion)
 }

@@ -26,6 +26,9 @@ func (o *pollingObserver) AddReactor(reaction reactorFn, files ...string) Observ
 	o.reactorsMutex.Lock()
 	defer o.reactorsMutex.Unlock()
 	for _, f := range files {
+		if len(f) == 0 {
+			panic(fmt.Sprintf("observed file name must not be empty (%#v)", files))
+		}
 		// Do not rehash existing files
 		if _, exists := o.files[f]; exists {
 			continue

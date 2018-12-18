@@ -59,15 +59,13 @@ DEFAULT_BUNDLES=(
 	binary-daemon
 	dynbinary
 
-	test-unit
 	test-integration
 	test-docker-py
 
 	cross
-	tgz
 )
 
-VERSION=$(< ./VERSION)
+VERSION=${VERSION:-dev}
 ! BUILDTIME=$(date -u -d "@${SOURCE_DATE_EPOCH:-$(date +%s)}" --rfc-3339 ns 2> /dev/null | sed -e 's/ /T/')
 if [ "$DOCKER_GITCOMMIT" ]; then
 	GITCOMMIT="$DOCKER_GITCOMMIT"
@@ -97,13 +95,6 @@ if [ "$AUTO_GOPATH" ]; then
 	mkdir -p .gopath/src/"$(dirname "${DOCKER_PKG}")"
 	ln -sf ../../../.. .gopath/src/"${DOCKER_PKG}"
 	export GOPATH="${PWD}/.gopath"
-
-	if [ "$(go env GOOS)" = 'solaris' ]; then
-		# sys/unix is installed outside the standard library on solaris
-		# TODO need to allow for version change, need to get version from go
-		export GO_VERSION=${GO_VERSION:-"1.8.1"}
-		export GOPATH="${GOPATH}:/usr/lib/gocode/${GO_VERSION}"
-	fi
 fi
 
 if [ ! "$GOPATH" ]; then
@@ -111,6 +102,12 @@ if [ ! "$GOPATH" ]; then
 	echo >&2 '  alternatively, set AUTO_GOPATH=1'
 	exit 1
 fi
+
+# Adds $1_$2 to DOCKER_BUILDTAGS unless it already
+# contains a word starting from $1_
+add_buildtag() {
+	[[ " $DOCKER_BUILDTAGS" == *" $1_"* ]] || DOCKER_BUILDTAGS+=" $1_$2"
+}
 
 if ${PKG_CONFIG} 'libsystemd >= 209' 2> /dev/null ; then
 	DOCKER_BUILDTAGS+=" journald"
@@ -127,12 +124,14 @@ if \
 fi
 
 # test whether "libdevmapper.h" is new enough to support deferred remove
-# functionality.
+# functionality. We favour libdm_dlsym_deferred_remove over
+# libdm_no_deferred_remove in dynamic cases because the binary could be shipped
+# with a newer libdevmapper than the one it was built wih.
 if \
 	command -v gcc &> /dev/null \
 	&& ! ( echo -e  '#include <libdevmapper.h>\nint main() { dm_task_deferred_remove(NULL); }'| gcc -xc - -o /dev/null $(pkg-config --libs devmapper) &> /dev/null ) \
 ; then
-	DOCKER_BUILDTAGS+=' libdm_no_deferred_remove'
+	add_buildtag libdm dlsym_deferred_remove
 fi
 
 # Use these flags when compiling the tests and final binary
@@ -160,7 +159,7 @@ ORIG_BUILDFLAGS+=( $REBUILD_FLAG )
 BUILDFLAGS=( $BUILDFLAGS "${ORIG_BUILDFLAGS[@]}" )
 
 # Test timeout.
-if [ "${DOCKER_ENGINE_GOARCH}" == "arm" ]; then
+if [ "${DOCKER_ENGINE_GOARCH}" == "arm64" ] || [ "${DOCKER_ENGINE_GOARCH}" == "arm" ]; then
 	: ${TIMEOUT:=10m}
 elif [ "${DOCKER_ENGINE_GOARCH}" == "windows" ]; then
 	: ${TIMEOUT:=8m}
@@ -190,20 +189,18 @@ bundle() {
 }
 
 main() {
-	# We want this to fail if the bundles already exist and cannot be removed.
-	# This is to avoid mixing bundles from different versions of the code.
-	mkdir -p bundles
-	if [ -e "bundles/$VERSION" ] && [ -z "$KEEPBUNDLE" ]; then
-		echo "bundles/$VERSION already exists. Removing."
-		rm -fr "bundles/$VERSION" && mkdir "bundles/$VERSION" || exit 1
+	if [ -z "${KEEPBUNDLE-}" ]; then
+		echo "Removing bundles/"
+		rm -rf "bundles/*"
 		echo
 	fi
+	mkdir -p bundles
 
+	# Windows and symlinks don't get along well
 	if [ "$(go env GOHOSTOS)" != 'windows' ]; then
-		# Windows and symlinks don't get along well
-
 		rm -f bundles/latest
-		ln -s "$VERSION" bundles/latest
+		# preserve latest symlink for backward compatibility
+		ln -sf . bundles/latest
 	fi
 
 	if [ $# -lt 1 ]; then
@@ -212,7 +209,7 @@ main() {
 		bundles=($@)
 	fi
 	for bundle in ${bundles[@]}; do
-		export DEST="bundles/$VERSION/$(basename "$bundle")"
+		export DEST="bundles/$(basename "$bundle")"
 		# Cygdrive paths don't play well with go build -o.
 		if [[ "$(uname -s)" == CYGWIN* ]]; then
 			export DEST="$(cygpath -mw "$DEST")"

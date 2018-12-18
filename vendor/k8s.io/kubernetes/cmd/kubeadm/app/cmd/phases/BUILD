@@ -22,9 +22,10 @@ go_library(
     deps = [
         "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
         "//cmd/kubeadm/app/apis/kubeadm/scheme:go_default_library",
-        "//cmd/kubeadm/app/apis/kubeadm/v1alpha2:go_default_library",
+        "//cmd/kubeadm/app/apis/kubeadm/v1alpha3:go_default_library",
         "//cmd/kubeadm/app/apis/kubeadm/validation:go_default_library",
         "//cmd/kubeadm/app/cmd/options:go_default_library",
+        "//cmd/kubeadm/app/cmd/phases/certs:go_default_library",
         "//cmd/kubeadm/app/cmd/util:go_default_library",
         "//cmd/kubeadm/app/constants:go_default_library",
         "//cmd/kubeadm/app/features:go_default_library",
@@ -38,7 +39,9 @@ go_library(
         "//cmd/kubeadm/app/phases/kubeconfig:go_default_library",
         "//cmd/kubeadm/app/phases/kubelet:go_default_library",
         "//cmd/kubeadm/app/phases/markmaster:go_default_library",
+        "//cmd/kubeadm/app/phases/patchnode:go_default_library",
         "//cmd/kubeadm/app/phases/selfhosting:go_default_library",
+        "//cmd/kubeadm/app/phases/upgrade:go_default_library",
         "//cmd/kubeadm/app/phases/uploadconfig:go_default_library",
         "//cmd/kubeadm/app/preflight:go_default_library",
         "//cmd/kubeadm/app/util:go_default_library",
@@ -47,14 +50,13 @@ go_library(
         "//cmd/kubeadm/app/util/kubeconfig:go_default_library",
         "//pkg/util/normalizer:go_default_library",
         "//pkg/util/version:go_default_library",
+        "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//staging/src/k8s.io/apiserver/pkg/util/flag:go_default_library",
+        "//staging/src/k8s.io/client-go/kubernetes:go_default_library",
+        "//staging/src/k8s.io/client-go/tools/bootstrap/token/api:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
-        "//vendor/k8s.io/apiserver/pkg/util/flag:go_default_library",
-        "//vendor/k8s.io/client-go/kubernetes:go_default_library",
-        "//vendor/k8s.io/client-go/tools/bootstrap/token/api:go_default_library",
         "//vendor/k8s.io/utils/exec:go_default_library",
     ],
 )
@@ -78,8 +80,8 @@ go_test(
         "//cmd/kubeadm/test/cmd:go_default_library",
         "//cmd/kubeadm/test/kubeconfig:go_default_library",
         "//pkg/util/node:go_default_library",
+        "//staging/src/k8s.io/client-go/tools/clientcmd:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
-        "//vendor/k8s.io/client-go/tools/clientcmd:go_default_library",
     ],
 )
 
@@ -92,7 +94,10 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [":package-srcs"],
+    srcs = [
+        ":package-srcs",
+        "//cmd/kubeadm/app/cmd/phases/certs:all-srcs",
+    ],
     tags = ["automanaged"],
     visibility = ["//visibility:public"],
 )

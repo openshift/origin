@@ -36,6 +36,11 @@ const (
 	Deleting CustomDomainResourceState = "Deleting"
 )
 
+// PossibleCustomDomainResourceStateValues returns an array of possible values for the CustomDomainResourceState const type.
+func PossibleCustomDomainResourceStateValues() []CustomDomainResourceState {
+	return []CustomDomainResourceState{Active, Creating, Deleting}
+}
+
 // EndpointResourceState enumerates the values for endpoint resource state.
 type EndpointResourceState string
 
@@ -54,6 +59,11 @@ const (
 	EndpointResourceStateStopping EndpointResourceState = "Stopping"
 )
 
+// PossibleEndpointResourceStateValues returns an array of possible values for the EndpointResourceState const type.
+func PossibleEndpointResourceStateValues() []EndpointResourceState {
+	return []EndpointResourceState{EndpointResourceStateCreating, EndpointResourceStateDeleting, EndpointResourceStateRunning, EndpointResourceStateStarting, EndpointResourceStateStopped, EndpointResourceStateStopping}
+}
+
 // OriginResourceState enumerates the values for origin resource state.
 type OriginResourceState string
 
@@ -65,6 +75,11 @@ const (
 	// OriginResourceStateDeleting ...
 	OriginResourceStateDeleting OriginResourceState = "Deleting"
 )
+
+// PossibleOriginResourceStateValues returns an array of possible values for the OriginResourceState const type.
+func PossibleOriginResourceStateValues() []OriginResourceState {
+	return []OriginResourceState{OriginResourceStateActive, OriginResourceStateCreating, OriginResourceStateDeleting}
+}
 
 // ProfileResourceState enumerates the values for profile resource state.
 type ProfileResourceState string
@@ -80,6 +95,11 @@ const (
 	ProfileResourceStateDisabled ProfileResourceState = "Disabled"
 )
 
+// PossibleProfileResourceStateValues returns an array of possible values for the ProfileResourceState const type.
+func PossibleProfileResourceStateValues() []ProfileResourceState {
+	return []ProfileResourceState{ProfileResourceStateActive, ProfileResourceStateCreating, ProfileResourceStateDeleting, ProfileResourceStateDisabled}
+}
+
 // ProvisioningState enumerates the values for provisioning state.
 type ProvisioningState string
 
@@ -91,6 +111,11 @@ const (
 	// ProvisioningStateSucceeded ...
 	ProvisioningStateSucceeded ProvisioningState = "Succeeded"
 )
+
+// PossibleProvisioningStateValues returns an array of possible values for the ProvisioningState const type.
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return []ProvisioningState{ProvisioningStateCreating, ProvisioningStateFailed, ProvisioningStateSucceeded}
+}
 
 // QueryStringCachingBehavior enumerates the values for query string caching behavior.
 type QueryStringCachingBehavior string
@@ -106,6 +131,11 @@ const (
 	UseQueryString QueryStringCachingBehavior = "UseQueryString"
 )
 
+// PossibleQueryStringCachingBehaviorValues returns an array of possible values for the QueryStringCachingBehavior const type.
+func PossibleQueryStringCachingBehaviorValues() []QueryStringCachingBehavior {
+	return []QueryStringCachingBehavior{BypassCaching, IgnoreQueryString, NotSet, UseQueryString}
+}
+
 // ResourceType enumerates the values for resource type.
 type ResourceType string
 
@@ -113,6 +143,11 @@ const (
 	// MicrosoftCdnProfilesEndpoints ...
 	MicrosoftCdnProfilesEndpoints ResourceType = "Microsoft.Cdn/Profiles/Endpoints"
 )
+
+// PossibleResourceTypeValues returns an array of possible values for the ResourceType const type.
+func PossibleResourceTypeValues() []ResourceType {
+	return []ResourceType{MicrosoftCdnProfilesEndpoints}
+}
 
 // SkuName enumerates the values for sku name.
 type SkuName string
@@ -123,6 +158,11 @@ const (
 	// Standard ...
 	Standard SkuName = "Standard"
 )
+
+// PossibleSkuNameValues returns an array of possible values for the SkuName const type.
+func PossibleSkuNameValues() []SkuName {
+	return []SkuName{Premium, Standard}
+}
 
 // CheckNameAvailabilityInput input of CheckNameAvailability API.
 type CheckNameAvailabilityInput struct {
@@ -154,6 +194,24 @@ type CustomDomain struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for CustomDomain.
+func (cd CustomDomain) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if cd.CustomDomainProperties != nil {
+		objectMap["properties"] = cd.CustomDomainProperties
+	}
+	if cd.ID != nil {
+		objectMap["id"] = cd.ID
+	}
+	if cd.Name != nil {
+		objectMap["name"] = cd.Name
+	}
+	if cd.Type != nil {
+		objectMap["type"] = cd.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for CustomDomain struct.
@@ -219,6 +277,15 @@ type CustomDomainParameters struct {
 	*CustomDomainPropertiesParameters `json:"properties,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for CustomDomainParameters.
+func (cdp CustomDomainParameters) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if cdp.CustomDomainPropertiesParameters != nil {
+		objectMap["properties"] = cdp.CustomDomainPropertiesParameters
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for CustomDomainParameters struct.
 func (cdp *CustomDomainParameters) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -262,12 +329,11 @@ type CustomDomainPropertiesParameters struct {
 // CustomDomainsCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CustomDomainsCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CustomDomainsCreateFuture) Result(client CustomDomainsClient) (cd CustomDomain, err error) {
+func (future *CustomDomainsCreateFuture) Result(client CustomDomainsClient) (cd CustomDomain, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -275,34 +341,15 @@ func (future CustomDomainsCreateFuture) Result(client CustomDomainsClient) (cd C
 		return
 	}
 	if !done {
-		return cd, azure.NewAsyncOpIncompleteError("cdn.CustomDomainsCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		cd, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.CustomDomainsCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if cd.Response.Response, err = future.GetResult(sender); err == nil && cd.Response.Response.StatusCode != http.StatusNoContent {
+		cd, err = client.CreateResponder(cd.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsCreateFuture", "Result", cd.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	cd, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -311,12 +358,11 @@ func (future CustomDomainsCreateFuture) Result(client CustomDomainsClient) (cd C
 // operation.
 type CustomDomainsDeleteIfExistsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CustomDomainsDeleteIfExistsFuture) Result(client CustomDomainsClient) (cd CustomDomain, err error) {
+func (future *CustomDomainsDeleteIfExistsFuture) Result(client CustomDomainsClient) (cd CustomDomain, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -324,34 +370,15 @@ func (future CustomDomainsDeleteIfExistsFuture) Result(client CustomDomainsClien
 		return
 	}
 	if !done {
-		return cd, azure.NewAsyncOpIncompleteError("cdn.CustomDomainsDeleteIfExistsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		cd, err = client.DeleteIfExistsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsDeleteIfExistsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.CustomDomainsDeleteIfExistsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if cd.Response.Response, err = future.GetResult(sender); err == nil && cd.Response.Response.StatusCode != http.StatusNoContent {
+		cd, err = client.DeleteIfExistsResponder(cd.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsDeleteIfExistsFuture", "Result", cd.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsDeleteIfExistsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	cd, err = client.DeleteIfExistsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsDeleteIfExistsFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -361,6 +388,18 @@ type DeepCreatedOrigin struct {
 	// Name - Origin name
 	Name                         *string `json:"name,omitempty"`
 	*DeepCreatedOriginProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DeepCreatedOrigin.
+func (dco DeepCreatedOrigin) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if dco.Name != nil {
+		objectMap["name"] = dco.Name
+	}
+	if dco.DeepCreatedOriginProperties != nil {
+		objectMap["properties"] = dco.DeepCreatedOriginProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for DeepCreatedOrigin struct.
@@ -657,12 +696,11 @@ type EndpointPropertiesUpdateParameters struct {
 // EndpointsCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type EndpointsCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future EndpointsCreateFuture) Result(client EndpointsClient) (e Endpoint, err error) {
+func (future *EndpointsCreateFuture) Result(client EndpointsClient) (e Endpoint, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -670,34 +708,15 @@ func (future EndpointsCreateFuture) Result(client EndpointsClient) (e Endpoint, 
 		return
 	}
 	if !done {
-		return e, azure.NewAsyncOpIncompleteError("cdn.EndpointsCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		e, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.EndpointsCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.EndpointsCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if e.Response.Response, err = future.GetResult(sender); err == nil && e.Response.Response.StatusCode != http.StatusNoContent {
+		e, err = client.CreateResponder(e.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsCreateFuture", "Result", e.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	e, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -706,12 +725,11 @@ func (future EndpointsCreateFuture) Result(client EndpointsClient) (e Endpoint, 
 // operation.
 type EndpointsDeleteIfExistsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future EndpointsDeleteIfExistsFuture) Result(client EndpointsClient) (ar autorest.Response, err error) {
+func (future *EndpointsDeleteIfExistsFuture) Result(client EndpointsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -719,47 +737,21 @@ func (future EndpointsDeleteIfExistsFuture) Result(client EndpointsClient) (ar a
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("cdn.EndpointsDeleteIfExistsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteIfExistsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.EndpointsDeleteIfExistsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.EndpointsDeleteIfExistsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsDeleteIfExistsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteIfExistsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsDeleteIfExistsFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // EndpointsLoadContentFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type EndpointsLoadContentFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future EndpointsLoadContentFuture) Result(client EndpointsClient) (ar autorest.Response, err error) {
+func (future *EndpointsLoadContentFuture) Result(client EndpointsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -767,35 +759,10 @@ func (future EndpointsLoadContentFuture) Result(client EndpointsClient) (ar auto
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("cdn.EndpointsLoadContentFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.LoadContentResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.EndpointsLoadContentFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.EndpointsLoadContentFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsLoadContentFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.LoadContentResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsLoadContentFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -803,12 +770,11 @@ func (future EndpointsLoadContentFuture) Result(client EndpointsClient) (ar auto
 // operation.
 type EndpointsPurgeContentFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future EndpointsPurgeContentFuture) Result(client EndpointsClient) (ar autorest.Response, err error) {
+func (future *EndpointsPurgeContentFuture) Result(client EndpointsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -816,47 +782,21 @@ func (future EndpointsPurgeContentFuture) Result(client EndpointsClient) (ar aut
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("cdn.EndpointsPurgeContentFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.PurgeContentResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.EndpointsPurgeContentFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.EndpointsPurgeContentFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsPurgeContentFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.PurgeContentResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsPurgeContentFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // EndpointsStartFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type EndpointsStartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future EndpointsStartFuture) Result(client EndpointsClient) (e Endpoint, err error) {
+func (future *EndpointsStartFuture) Result(client EndpointsClient) (e Endpoint, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -864,34 +804,15 @@ func (future EndpointsStartFuture) Result(client EndpointsClient) (e Endpoint, e
 		return
 	}
 	if !done {
-		return e, azure.NewAsyncOpIncompleteError("cdn.EndpointsStartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		e, err = client.StartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.EndpointsStartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.EndpointsStartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if e.Response.Response, err = future.GetResult(sender); err == nil && e.Response.Response.StatusCode != http.StatusNoContent {
+		e, err = client.StartResponder(e.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsStartFuture", "Result", e.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsStartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	e, err = client.StartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsStartFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -899,12 +820,11 @@ func (future EndpointsStartFuture) Result(client EndpointsClient) (e Endpoint, e
 // EndpointsStopFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type EndpointsStopFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future EndpointsStopFuture) Result(client EndpointsClient) (e Endpoint, err error) {
+func (future *EndpointsStopFuture) Result(client EndpointsClient) (e Endpoint, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -912,34 +832,15 @@ func (future EndpointsStopFuture) Result(client EndpointsClient) (e Endpoint, er
 		return
 	}
 	if !done {
-		return e, azure.NewAsyncOpIncompleteError("cdn.EndpointsStopFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		e, err = client.StopResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.EndpointsStopFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.EndpointsStopFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if e.Response.Response, err = future.GetResult(sender); err == nil && e.Response.Response.StatusCode != http.StatusNoContent {
+		e, err = client.StopResponder(e.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsStopFuture", "Result", e.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsStopFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	e, err = client.StopResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsStopFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -947,12 +848,11 @@ func (future EndpointsStopFuture) Result(client EndpointsClient) (e Endpoint, er
 // EndpointsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type EndpointsUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future EndpointsUpdateFuture) Result(client EndpointsClient) (e Endpoint, err error) {
+func (future *EndpointsUpdateFuture) Result(client EndpointsClient) (e Endpoint, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -960,34 +860,15 @@ func (future EndpointsUpdateFuture) Result(client EndpointsClient) (e Endpoint, 
 		return
 	}
 	if !done {
-		return e, azure.NewAsyncOpIncompleteError("cdn.EndpointsUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		e, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.EndpointsUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.EndpointsUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if e.Response.Response, err = future.GetResult(sender); err == nil && e.Response.Response.StatusCode != http.StatusNoContent {
+		e, err = client.UpdateResponder(e.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsUpdateFuture", "Result", e.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	e, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1097,6 +978,24 @@ type Origin struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for Origin.
+func (o Origin) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if o.OriginProperties != nil {
+		objectMap["properties"] = o.OriginProperties
+	}
+	if o.ID != nil {
+		objectMap["id"] = o.ID
+	}
+	if o.Name != nil {
+		objectMap["name"] = o.Name
+	}
+	if o.Type != nil {
+		objectMap["type"] = o.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for Origin struct.
 func (o *Origin) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -1160,6 +1059,15 @@ type OriginParameters struct {
 	*OriginPropertiesParameters `json:"properties,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for OriginParameters.
+func (op OriginParameters) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if op.OriginPropertiesParameters != nil {
+		objectMap["properties"] = op.OriginPropertiesParameters
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for OriginParameters struct.
 func (op *OriginParameters) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -1211,12 +1119,11 @@ type OriginPropertiesParameters struct {
 // OriginsCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type OriginsCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future OriginsCreateFuture) Result(client OriginsClient) (o Origin, err error) {
+func (future *OriginsCreateFuture) Result(client OriginsClient) (o Origin, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1224,34 +1131,15 @@ func (future OriginsCreateFuture) Result(client OriginsClient) (o Origin, err er
 		return
 	}
 	if !done {
-		return o, azure.NewAsyncOpIncompleteError("cdn.OriginsCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		o, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.OriginsCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.OriginsCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if o.Response.Response, err = future.GetResult(sender); err == nil && o.Response.Response.StatusCode != http.StatusNoContent {
+		o, err = client.CreateResponder(o.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.OriginsCreateFuture", "Result", o.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.OriginsCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	o, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.OriginsCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1260,12 +1148,11 @@ func (future OriginsCreateFuture) Result(client OriginsClient) (o Origin, err er
 // operation.
 type OriginsDeleteIfExistsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future OriginsDeleteIfExistsFuture) Result(client OriginsClient) (o Origin, err error) {
+func (future *OriginsDeleteIfExistsFuture) Result(client OriginsClient) (o Origin, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1273,34 +1160,15 @@ func (future OriginsDeleteIfExistsFuture) Result(client OriginsClient) (o Origin
 		return
 	}
 	if !done {
-		return o, azure.NewAsyncOpIncompleteError("cdn.OriginsDeleteIfExistsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		o, err = client.DeleteIfExistsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.OriginsDeleteIfExistsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.OriginsDeleteIfExistsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if o.Response.Response, err = future.GetResult(sender); err == nil && o.Response.Response.StatusCode != http.StatusNoContent {
+		o, err = client.DeleteIfExistsResponder(o.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.OriginsDeleteIfExistsFuture", "Result", o.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.OriginsDeleteIfExistsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	o, err = client.DeleteIfExistsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.OriginsDeleteIfExistsFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1308,12 +1176,11 @@ func (future OriginsDeleteIfExistsFuture) Result(client OriginsClient) (o Origin
 // OriginsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type OriginsUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future OriginsUpdateFuture) Result(client OriginsClient) (o Origin, err error) {
+func (future *OriginsUpdateFuture) Result(client OriginsClient) (o Origin, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1321,34 +1188,15 @@ func (future OriginsUpdateFuture) Result(client OriginsClient) (o Origin, err er
 		return
 	}
 	if !done {
-		return o, azure.NewAsyncOpIncompleteError("cdn.OriginsUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		o, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.OriginsUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.OriginsUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if o.Response.Response, err = future.GetResult(sender); err == nil && o.Response.Response.StatusCode != http.StatusNoContent {
+		o, err = client.UpdateResponder(o.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.OriginsUpdateFuture", "Result", o.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.OriginsUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	o, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.OriginsUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1556,12 +1404,11 @@ type ProfilePropertiesCreateParameters struct {
 // ProfilesCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ProfilesCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ProfilesCreateFuture) Result(client ProfilesClient) (p Profile, err error) {
+func (future *ProfilesCreateFuture) Result(client ProfilesClient) (p Profile, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1569,34 +1416,15 @@ func (future ProfilesCreateFuture) Result(client ProfilesClient) (p Profile, err
 		return
 	}
 	if !done {
-		return p, azure.NewAsyncOpIncompleteError("cdn.ProfilesCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		p, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.ProfilesCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.ProfilesCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if p.Response.Response, err = future.GetResult(sender); err == nil && p.Response.Response.StatusCode != http.StatusNoContent {
+		p, err = client.CreateResponder(p.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.ProfilesCreateFuture", "Result", p.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.ProfilesCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	p, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.ProfilesCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1605,12 +1433,11 @@ func (future ProfilesCreateFuture) Result(client ProfilesClient) (p Profile, err
 // operation.
 type ProfilesDeleteIfExistsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ProfilesDeleteIfExistsFuture) Result(client ProfilesClient) (ar autorest.Response, err error) {
+func (future *ProfilesDeleteIfExistsFuture) Result(client ProfilesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1618,47 +1445,21 @@ func (future ProfilesDeleteIfExistsFuture) Result(client ProfilesClient) (ar aut
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("cdn.ProfilesDeleteIfExistsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteIfExistsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.ProfilesDeleteIfExistsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.ProfilesDeleteIfExistsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.ProfilesDeleteIfExistsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteIfExistsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.ProfilesDeleteIfExistsFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // ProfilesUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ProfilesUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ProfilesUpdateFuture) Result(client ProfilesClient) (p Profile, err error) {
+func (future *ProfilesUpdateFuture) Result(client ProfilesClient) (p Profile, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1666,34 +1467,15 @@ func (future ProfilesUpdateFuture) Result(client ProfilesClient) (p Profile, err
 		return
 	}
 	if !done {
-		return p, azure.NewAsyncOpIncompleteError("cdn.ProfilesUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		p, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "cdn.ProfilesUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("cdn.ProfilesUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if p.Response.Response, err = future.GetResult(sender); err == nil && p.Response.Response.StatusCode != http.StatusNoContent {
+		p, err = client.UpdateResponder(p.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "cdn.ProfilesUpdateFuture", "Result", p.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.ProfilesUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	p, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.ProfilesUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }

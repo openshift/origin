@@ -7,14 +7,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 )
 
 // ApplyDeployment merges objectmeta and requires matching generation. It returns the final Object, whether any change as made, and an error
-func ApplyDeployment(client appsclientv1.DeploymentsGetter, required *appsv1.Deployment, expectedGeneration int64, forceRollout bool) (*appsv1.Deployment, bool, error) {
+func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Recorder, required *appsv1.Deployment, expectedGeneration int64,
+	forceRollout bool) (*appsv1.Deployment, bool, error) {
 	existing, err := client.Deployments(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		actual, err := client.Deployments(required.Namespace).Create(required)
+		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -45,14 +48,16 @@ func ApplyDeployment(client appsclientv1.DeploymentsGetter, required *appsv1.Dep
 	}
 
 	actual, err := client.Deployments(required.Namespace).Update(toWrite)
+	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
 
 // ApplyDaemonSet merges objectmeta and requires matching generation. It returns the final Object, whether any change as made, and an error
-func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, required *appsv1.DaemonSet, expectedGeneration int64, forceRollout bool) (*appsv1.DaemonSet, bool, error) {
+func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Recorder, required *appsv1.DaemonSet, expectedGeneration int64, forceRollout bool) (*appsv1.DaemonSet, bool, error) {
 	existing, err := client.DaemonSets(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		actual, err := client.DaemonSets(required.Namespace).Create(required)
+		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -83,5 +88,6 @@ func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, required *appsv1.Daemo
 	}
 
 	actual, err := client.DaemonSets(required.Namespace).Update(toWrite)
+	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }

@@ -17,12 +17,13 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/docker/distribution/reference"
-	"github.com/spf13/cobra"
-
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,17 +32,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/openshiftpatch"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
@@ -66,7 +67,7 @@ var (
 		kubectl run hazelcast --image=hazelcast --env="DNS_DOMAIN=cluster" --env="POD_NAMESPACE=default"
 
 		# Start a single instance of hazelcast and set labels "app=hazelcast" and "env=prod" in the container.
-		kubectl run hazelcast --image=nginx --labels="app=hazelcast,env=prod"
+		kubectl run hazelcast --image=hazelcast --labels="app=hazelcast,env=prod"
 
 		# Start a replicated instance of nginx.
 		kubectl run nginx --image=nginx --replicas=5
@@ -281,7 +282,7 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 	if err != nil {
 		return err
 	}
-	if restartPolicy != api.RestartPolicyAlways && replicas != 1 {
+	if restartPolicy != corev1.RestartPolicyAlways && replicas != 1 {
 		return cmdutil.UsageErrorf(cmd, "--restart=%s requires that --replicas=1, found %d", restartPolicy, replicas)
 	}
 
@@ -298,7 +299,7 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 		return err
 	}
 
-	clientset, err := f.ClientSet()
+	clientset, err := f.KubernetesClientSet()
 	if err != nil {
 		return err
 	}
@@ -310,7 +311,7 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 
 	if len(generatorName) == 0 {
 		switch {
-		case restartPolicy == api.RestartPolicyAlways:
+		case restartPolicy == corev1.RestartPolicyAlways:
 			generatorName = o.DefaultRestartAlwaysGenerator
 		default:
 			generatorName = o.DefaultGenerator
@@ -319,11 +320,11 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 
 	if len(generatorName) == 0 {
 		switch restartPolicy {
-		case api.RestartPolicyAlways:
+		case corev1.RestartPolicyAlways:
 			generatorName = cmdutil.DeploymentAppsV1Beta1GeneratorName
-		case api.RestartPolicyOnFailure:
+		case corev1.RestartPolicyOnFailure:
 			generatorName = cmdutil.JobV1GeneratorName
-		case api.RestartPolicyNever:
+		case corev1.RestartPolicyNever:
 			generatorName = cmdutil.RunPodV1GeneratorName
 		}
 
@@ -337,6 +338,13 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 		} else {
 			generatorName = generatorNameTemp
 		}
+	}
+
+	// start deprecating all generators except for 'run-pod/v1' which will be
+	// the only supported on a route to simple kubectl run which should mimic
+	// docker run
+	if generatorName != cmdutil.RunPodV1GeneratorName {
+		fmt.Fprintf(o.ErrOut, "kubectl run --generator=%s is DEPRECATED and will be removed in a future version. Use kubectl create instead.\n", generatorName)
 	}
 
 	generators := cmdutil.GeneratorFn("run")
@@ -414,7 +422,7 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 
 		var pod *corev1.Pod
 		leaveStdinOpen := o.LeaveStdinOpen
-		waitForExitCode := !leaveStdinOpen && restartPolicy == api.RestartPolicyNever
+		waitForExitCode := !leaveStdinOpen && restartPolicy == corev1.RestartPolicyNever
 		if waitForExitCode {
 			pod, err = waitForPod(clientset.CoreV1(), attachablePod.Namespace, attachablePod.Name, kubectl.PodCompleted)
 			if err != nil {
@@ -485,16 +493,19 @@ func (o *RunOptions) removeCreatedObjects(f cmdutil.Factory, createdObjects []*R
 }
 
 // waitForPod watches the given pod until the exitCondition is true
-func waitForPod(podClient coreclientv1.PodsGetter, ns, name string, exitCondition watch.ConditionFunc) (*corev1.Pod, error) {
+func waitForPod(podClient corev1client.PodsGetter, ns, name string, exitCondition watchtools.ConditionFunc) (*corev1.Pod, error) {
 	w, err := podClient.Pods(ns).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name}))
 	if err != nil {
 		return nil, err
 	}
 
-	intr := interrupt.New(nil, w.Stop)
+	// TODO: expose the timeout
+	ctx, cancel := watchtools.ContextWithOptionalTimeout(context.Background(), 0*time.Second)
+	defer cancel()
+	intr := interrupt.New(nil, cancel)
 	var result *corev1.Pod
 	err = intr.Run(func() error {
-		ev, err := watch.Until(0, w, func(ev watch.Event) (bool, error) {
+		ev, err := watchtools.UntilWithoutRetry(ctx, w, func(ev watch.Event) (bool, error) {
 			return exitCondition(ev)
 		})
 		if ev != nil {
@@ -505,13 +516,13 @@ func waitForPod(podClient coreclientv1.PodsGetter, ns, name string, exitConditio
 
 	// Fix generic not found error.
 	if err != nil && errors.IsNotFound(err) {
-		err = errors.NewNotFound(api.Resource("pods"), name)
+		err = errors.NewNotFound(corev1.Resource("pods"), name)
 	}
 
 	return result, err
 }
 
-func handleAttachPod(f cmdutil.Factory, podClient coreclientv1.PodsGetter, ns, name string, opts *AttachOptions) error {
+func handleAttachPod(f cmdutil.Factory, podClient corev1client.PodsGetter, ns, name string, opts *AttachOptions) error {
 	pod, err := waitForPod(podClient, ns, name, kubectl.PodRunningAndReady)
 	if err != nil && err != kubectl.ErrPodCompleted {
 		return err
@@ -548,7 +559,7 @@ func logOpts(restClientGetter genericclioptions.RESTClientGetter, pod *corev1.Po
 		return err
 	}
 	for _, request := range requests {
-		if err := DefaultConsumeRequestFn(request, opts.Out); err != nil {
+		if err := DefaultConsumeRequest(request, opts.Out); err != nil {
 			return err
 		}
 	}
@@ -556,30 +567,30 @@ func logOpts(restClientGetter genericclioptions.RESTClientGetter, pod *corev1.Po
 	return nil
 }
 
-func getRestartPolicy(cmd *cobra.Command, interactive bool) (api.RestartPolicy, error) {
+func getRestartPolicy(cmd *cobra.Command, interactive bool) (corev1.RestartPolicy, error) {
 	restart := cmdutil.GetFlagString(cmd, "restart")
 	if len(restart) == 0 {
 		if interactive {
-			return api.RestartPolicyOnFailure, nil
+			return corev1.RestartPolicyOnFailure, nil
 		} else {
-			return api.RestartPolicyAlways, nil
+			return corev1.RestartPolicyAlways, nil
 		}
 	}
-	switch api.RestartPolicy(restart) {
-	case api.RestartPolicyAlways:
-		return api.RestartPolicyAlways, nil
-	case api.RestartPolicyOnFailure:
-		return api.RestartPolicyOnFailure, nil
-	case api.RestartPolicyNever:
-		return api.RestartPolicyNever, nil
+	switch corev1.RestartPolicy(restart) {
+	case corev1.RestartPolicyAlways:
+		return corev1.RestartPolicyAlways, nil
+	case corev1.RestartPolicyOnFailure:
+		return corev1.RestartPolicyOnFailure, nil
+	case corev1.RestartPolicyNever:
+		return corev1.RestartPolicyNever, nil
 	}
 	return "", cmdutil.UsageErrorf(cmd, "invalid restart policy: %s", restart)
 }
 
 func verifyImagePullPolicy(cmd *cobra.Command) error {
 	pullPolicy := cmdutil.GetFlagString(cmd, "image-pull-policy")
-	switch api.PullPolicy(pullPolicy) {
-	case api.PullAlways, api.PullIfNotPresent, api.PullNever:
+	switch corev1.PullPolicy(pullPolicy) {
+	case corev1.PullAlways, corev1.PullIfNotPresent, corev1.PullNever:
 		return nil
 	case "":
 		return nil
@@ -681,7 +692,7 @@ func (o *RunOptions) createGeneratedObject(f cmdutil.Factory, cmd *cobra.Command
 		if err != nil {
 			return nil, err
 		}
-		actualObj, err = resource.NewHelper(client, mapping).Create(namespace, false, obj)
+		actualObj, err = resource.NewHelper(client, mapping).Create(namespace, false, obj, nil)
 		if err != nil {
 			return nil, err
 		}

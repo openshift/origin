@@ -66,7 +66,7 @@ func main() {
 	// Print summary per host (see also: govc/host/info.go)
 
 	tw := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
-	fmt.Fprintf(tw, "Name:\tUsed CPU:\tTotal CPU:\tFree CPU:\tUsed Memory:\tTotal Memory:\tFree Memory\t:\n")
+	fmt.Fprintf(tw, "Name:\tUsed CPU:\tTotal CPU:\tFree CPU:\tUsed Memory:\tTotal Memory:\tFree Memory:\t\n")
 
 	for _, hs := range hss {
 		totalCPU := int64(hs.Summary.Hardware.CpuMhz) * int64(hs.Summary.Hardware.NumCpuCores)
@@ -76,7 +76,7 @@ func main() {
 		fmt.Fprintf(tw, "%d\t", hs.Summary.QuickStats.OverallCpuUsage)
 		fmt.Fprintf(tw, "%d\t", totalCPU)
 		fmt.Fprintf(tw, "%d\t", freeCPU)
-		fmt.Fprintf(tw, "%s\t", units.ByteSize(hs.Summary.QuickStats.OverallMemoryUsage))
+		fmt.Fprintf(tw, "%s\t", (units.ByteSize(hs.Summary.QuickStats.OverallMemoryUsage))*1024*1024)
 		fmt.Fprintf(tw, "%s\t", units.ByteSize(hs.Summary.Hardware.MemorySize))
 		fmt.Fprintf(tw, "%d\t", freeMemory)
 		fmt.Fprintf(tw, "\n")

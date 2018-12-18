@@ -1,4 +1,4 @@
-// Package runtime implements the Azure ARM Runtime service API version v2.0.
+// Package runtime implements the Azure ARM Runtime service API version 2.0.
 //
 //
 package runtime
@@ -24,21 +24,26 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
+const (
+	// DefaultBaseURI is the default URI used for the service Runtime
+	DefaultBaseURI = "https://api.cognitive.microsoft.com/luis/v2.0"
+)
+
 // BaseClient is the base client for Runtime.
 type BaseClient struct {
 	autorest.Client
-	AzureRegion AzureRegions
+	BaseURI string
 }
 
 // New creates an instance of the BaseClient client.
-func New(azureRegion AzureRegions) BaseClient {
-	return NewWithoutDefaults(azureRegion)
+func New() BaseClient {
+	return NewWithBaseURI(DefaultBaseURI)
 }
 
-// NewWithoutDefaults creates an instance of the BaseClient client.
-func NewWithoutDefaults(azureRegion AzureRegions) BaseClient {
+// NewWithBaseURI creates an instance of the BaseClient client.
+func NewWithBaseURI(baseURI string) BaseClient {
 	return BaseClient{
-		Client:      autorest.NewClientWithUserAgent(UserAgent()),
-		AzureRegion: azureRegion,
+		Client:  autorest.NewClientWithUserAgent(UserAgent()),
+		BaseURI: baseURI,
 	}
 }

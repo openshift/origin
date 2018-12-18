@@ -389,20 +389,19 @@ type ApplicationPolicy struct {
 	//   "ENABLE_SYSTEM_APP" - Grants access for enabling system apps.
 	DelegatedScopes []string `json:"delegatedScopes,omitempty"`
 
-	// Disabled: Whether the app should be disabled, but app data is
-	// preserved.
+	// Disabled: Whether the app is disabled. When disabled, the app data is
+	// still preserved.
 	Disabled bool `json:"disabled,omitempty"`
 
 	// InstallType: The type of installation to perform.
 	//
 	// Possible values:
-	//   "INSTALL_TYPE_UNSPECIFIED" - No automatic installation is
-	// performed. Any other app policies will be applied if the user
-	// installs the app.
+	//   "INSTALL_TYPE_UNSPECIFIED" - Unspecified. Defaults to AVAILABLE.
 	//   "PREINSTALLED" - The app is automatically installed and can be
 	// removed by the user.
 	//   "FORCE_INSTALLED" - The app is automatically installed and can't be
 	// removed by the user.
+	//   "AVAILABLE" - The app is available to install.
 	InstallType string `json:"installType,omitempty"`
 
 	// LockTaskAllowed: Whether the app is allowed to lock itself in
@@ -784,7 +783,10 @@ type Device struct {
 	HardwareStatusSamples []*HardwareStatus `json:"hardwareStatusSamples,omitempty"`
 
 	// LastPolicyComplianceReportTime: The last time the device sent a
-	// policy compliance report.
+	// policy compliance report. Important: This field is deprecated. The
+	// timestamp will be on last_status_report_time field, and
+	// last_status_report_time will be used for both status report and
+	// compliance report.
 	LastPolicyComplianceReportTime string `json:"lastPolicyComplianceReportTime,omitempty"`
 
 	// LastPolicySyncTime: The last time the device fetched its policy.
@@ -1110,7 +1112,8 @@ type Enterprise struct {
 	//   "NOTIFICATION_TYPE_UNSPECIFIED" - This value is ignored.
 	//   "ENROLLMENT" - A notification sent when a device enrolls.
 	//   "COMPLIANCE_REPORT" - A notification sent when a device issues a
-	// policy compliance report.
+	// policy compliance report. Important: This enum value is deprecated.
+	// The notification will be sent as STATUS_REPORT.
 	//   "STATUS_REPORT" - A notification sent when a device issues a status
 	// report.
 	//   "COMMAND" - A notification sent when a device command has
@@ -2037,8 +2040,9 @@ func (s *PasswordRequirements) MarshalJSON() ([]byte, error) {
 // PermissionGrant: Configuration for an Android permission and its
 // grant state.
 type PermissionGrant struct {
-	// Permission: The android permission, e.g.
-	// android.permission.READ_CALENDAR.
+	// Permission: The android permission or group, e.g.
+	// android.permission.READ_CALENDAR or
+	// android.permission_group.CALENDAR.
 	Permission string `json:"permission,omitempty"`
 
 	// Policy: The policy for granting the permission.

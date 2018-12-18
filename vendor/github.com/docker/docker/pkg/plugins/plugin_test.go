@@ -1,9 +1,8 @@
-package plugins
+package plugins // import "github.com/docker/docker/pkg/plugins"
 
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +14,8 @@ import (
 
 	"github.com/docker/docker/pkg/plugins/transport"
 	"github.com/docker/go-connections/tlsconfig"
-	"github.com/stretchr/testify/assert"
+	"github.com/gotestyourself/gotestyourself/assert"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -54,7 +54,6 @@ func testActive(t *testing.T, p *Plugin) {
 		t.Fatalf("%s:%d: deadlock in waitActive", filepath.Base(f), l)
 	case <-done:
 	}
-
 }
 
 func TestGet(t *testing.T) {
@@ -78,12 +77,11 @@ func TestGet(t *testing.T) {
 
 	// check negative case where plugin fruit doesn't implement banana
 	_, err = Get("fruit", "banana")
-	assert.Equal(t, err, ErrNotImplements)
+	assert.Equal(t, errors.Cause(err), ErrNotImplements)
 
 	// check negative case where plugin vegetable doesn't exist
 	_, err = Get("vegetable", "potato")
-	assert.Equal(t, err, ErrNotFound)
-
+	assert.Equal(t, errors.Cause(err), ErrNotFound)
 }
 
 func TestPluginWithNoManifest(t *testing.T) {

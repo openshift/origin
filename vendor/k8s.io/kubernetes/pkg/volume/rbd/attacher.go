@@ -34,6 +34,11 @@ func (plugin *rbdPlugin) NewAttacher() (volume.Attacher, error) {
 	return plugin.newAttacherInternal(&RBDUtil{})
 }
 
+// NewDeviceMounter implements DeviceMountableVolumePlugin.NewDeviceMounter
+func (plugin *rbdPlugin) NewDeviceMounter() (volume.DeviceMounter, error) {
+	return plugin.NewAttacher()
+}
+
 func (plugin *rbdPlugin) newAttacherInternal(manager diskManager) (volume.Attacher, error) {
 	return &rbdAttacher{
 		plugin:  plugin,
@@ -47,6 +52,11 @@ func (plugin *rbdPlugin) NewDetacher() (volume.Detacher, error) {
 	return plugin.newDetacherInternal(&RBDUtil{})
 }
 
+// NewDeviceUnmounter implements DeviceMountableVolumePlugin.NewDeviceUnmounter
+func (plugin *rbdPlugin) NewDeviceUnmounter() (volume.DeviceUnmounter, error) {
+	return plugin.NewDetacher()
+}
+
 func (plugin *rbdPlugin) newDetacherInternal(manager diskManager) (volume.Detacher, error) {
 	return &rbdDetacher{
 		plugin:  plugin,
@@ -58,7 +68,7 @@ func (plugin *rbdPlugin) newDetacherInternal(manager diskManager) (volume.Detach
 // GetDeviceMountRefs implements AttachableVolumePlugin.GetDeviceMountRefs.
 func (plugin *rbdPlugin) GetDeviceMountRefs(deviceMountPath string) ([]string, error) {
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
-	return mount.GetMountRefs(mounter, deviceMountPath)
+	return mounter.GetMountRefs(deviceMountPath)
 }
 
 // rbdAttacher implements volume.Attacher interface.
@@ -69,6 +79,8 @@ type rbdAttacher struct {
 }
 
 var _ volume.Attacher = &rbdAttacher{}
+
+var _ volume.DeviceMounter = &rbdAttacher{}
 
 // Attach implements Attacher.Attach.
 // We do not lock image here, because it requires kube-controller-manager to
@@ -171,6 +183,8 @@ type rbdDetacher struct {
 }
 
 var _ volume.Detacher = &rbdDetacher{}
+
+var _ volume.DeviceUnmounter = &rbdDetacher{}
 
 // UnmountDevice implements Detacher.UnmountDevice. It unmounts the global
 // mount of the RBD image. This is called once all bind mounts have been

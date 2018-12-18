@@ -13,7 +13,6 @@ load("//build:workspace.bzl", "CRI_TOOLS_VERSION")
 release_filegroup(
     name = "debs",
     srcs = [
-        ":cloud-controller-manager.deb",
         ":cri-tools.deb",
         ":kubeadm.deb",
         ":kubectl.deb",
@@ -160,6 +159,7 @@ k8s_deb(
         "kubelet (>= 1.8.0)",
         "kubectl (>= 1.8.0)",
         "kubernetes-cni (>= 0.5.1)",
+        "cri-tools (>= 1.11.0)",
     ],
     description = """Kubernetes Cluster Bootstrapping Tool
 The Kubernetes command line tool for bootstrapping a Kubernetes cluster.

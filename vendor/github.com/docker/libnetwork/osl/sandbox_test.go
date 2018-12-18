@@ -1,5 +1,3 @@
-// +build !solaris
-
 package osl
 
 import (
@@ -31,7 +29,6 @@ func TestSandboxCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create a new sandbox: %v", err)
 	}
-	runtime.LockOSThread()
 
 	if s.Key() != key {
 		t.Fatalf("s.Key() returned %s. Expected %s", s.Key(), key)

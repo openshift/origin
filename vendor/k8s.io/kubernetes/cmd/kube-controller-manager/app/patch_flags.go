@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/spf13/pflag"
-
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 )
@@ -41,7 +40,7 @@ func applyOpenShiftConfigFlags(controllerManagerOptions *options.KubeControllerM
 	if err := applyOpenShiftConfigKubeDefaultProjectSelector(controllerManagerOptions, openshiftConfig); err != nil {
 		return err
 	}
-	return controllerManagerOptions.ApplyTo(controllerManager, "kube-controller-manager")
+	return controllerManagerOptions.ApplyTo(controllerManager)
 }
 
 func applyOpenShiftConfigDefaultProjectSelector(controllerManagerOptions *options.KubeControllerManagerOptions, openshiftConfig map[string]interface{}) error {
@@ -92,7 +91,7 @@ func applyOpenShiftConfigControllerArgs(controllerManagerOptions *options.KubeCo
 			args[key] = append(args[key], arrayValue.(string))
 		}
 	}
-	if err := resolveFlags(args, kubeControllerManagerAddFlags(controllerManagerOptions)); len(err) > 0 {
+	if err := applyFlags(args, controllerManagerOptions.Flags(KnownControllers(), ControllersDisabledByDefault.List())); len(err) > 0 {
 		return kerrors.NewAggregate(err)
 	}
 	return nil
@@ -100,32 +99,22 @@ func applyOpenShiftConfigControllerArgs(controllerManagerOptions *options.KubeCo
 
 // applyFlags stores the provided arguments onto a flag set, reporting any errors
 // encountered during the process.
-func applyFlags(args map[string][]string, flags *pflag.FlagSet) []error {
+func applyFlags(args map[string][]string, flags apiserverflag.NamedFlagSets) []error {
 	var errs []error
 	for key, value := range args {
-		flag := flags.Lookup(key)
-		if flag == nil {
-			errs = append(errs, field.Invalid(field.NewPath("flag"), key, "is not a valid flag"))
-			continue
-		}
-		for _, s := range value {
-			if err := flag.Value.Set(s); err != nil {
-				errs = append(errs, field.Invalid(field.NewPath(key), s, fmt.Sprintf("could not be set: %v", err)))
-				break
+		for _, fs := range flags.FlagSets {
+			flag := fs.Lookup(key)
+			if flag == nil {
+				errs = append(errs, field.Invalid(field.NewPath("flag"), key, "is not a valid flag"))
+				continue
+			}
+			for _, s := range value {
+				if err := flag.Value.Set(s); err != nil {
+					errs = append(errs, field.Invalid(field.NewPath(key), s, fmt.Sprintf("could not be set: %v", err)))
+					break
+				}
 			}
 		}
 	}
 	return errs
-}
-
-func resolveFlags(args map[string][]string, fn func(*pflag.FlagSet)) []error {
-	fs := pflag.NewFlagSet("extended", pflag.ContinueOnError)
-	fn(fs)
-	return applyFlags(args, fs)
-}
-
-func kubeControllerManagerAddFlags(options *options.KubeControllerManagerOptions) func(flags *pflag.FlagSet) {
-	return func(flags *pflag.FlagSet) {
-		options.AddFlags(flags, KnownControllers(), ControllersDisabledByDefault.List())
-	}
 }

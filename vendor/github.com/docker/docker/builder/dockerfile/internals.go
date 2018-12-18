@@ -1,4 +1,4 @@
-package dockerfile
+package dockerfile // import "github.com/docker/docker/builder/dockerfile"
 
 // internals for handling commands. Covers many areas and a lot of
 // non-contiguous functionality. Please read the comments.
@@ -7,20 +7,74 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"os"
+	"path"
 	"path/filepath"
-	"strconv"
+	"runtime"
 	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/builder"
 	"github.com/docker/docker/image"
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/chrootarchive"
+	"github.com/docker/docker/pkg/containerfs"
 	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/stringid"
-	"github.com/docker/docker/pkg/symlink"
-	lcUser "github.com/opencontainers/runc/libcontainer/user"
+	"github.com/docker/docker/pkg/system"
+	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
+
+// Archiver defines an interface for copying files from one destination to
+// another using Tar/Untar.
+type Archiver interface {
+	TarUntar(src, dst string) error
+	UntarPath(src, dst string) error
+	CopyWithTar(src, dst string) error
+	CopyFileWithTar(src, dst string) error
+	IDMappings() *idtools.IDMappings
+}
+
+// The builder will use the following interfaces if the container fs implements
+// these for optimized copies to and from the container.
+type extractor interface {
+	ExtractArchive(src io.Reader, dst string, opts *archive.TarOptions) error
+}
+
+type archiver interface {
+	ArchivePath(src string, opts *archive.TarOptions) (io.ReadCloser, error)
+}
+
+// helper functions to get tar/untar func
+func untarFunc(i interface{}) containerfs.UntarFunc {
+	if ea, ok := i.(extractor); ok {
+		return ea.ExtractArchive
+	}
+	return chrootarchive.Untar
+}
+
+func tarFunc(i interface{}) containerfs.TarFunc {
+	if ap, ok := i.(archiver); ok {
+		return ap.ArchivePath
+	}
+	return archive.TarWithOptions
+}
+
+func (b *Builder) getArchiver(src, dst containerfs.Driver) Archiver {
+	t, u := tarFunc(src), untarFunc(dst)
+	return &containerfs.Archiver{
+		SrcDriver:     src,
+		DstDriver:     dst,
+		Tar:           t,
+		Untar:         u,
+		IDMappingsVar: b.idMappings,
+	}
+}
 
 func (b *Builder) commit(dispatchState *dispatchState, comment string) error {
 	if b.disableCommit {
@@ -30,13 +84,9 @@ func (b *Builder) commit(dispatchState *dispatchState, comment string) error {
 		return errors.New("Please provide a source image with `from` prior to commit")
 	}
 
-	runConfigWithCommentCmd := copyRunConfig(dispatchState.runConfig, withCmdComment(comment, b.platform))
-	hit, err := b.probeCache(dispatchState, runConfigWithCommentCmd)
-	if err != nil || hit {
-		return err
-	}
-	id, err := b.create(runConfigWithCommentCmd)
-	if err != nil {
+	runConfigWithCommentCmd := copyRunConfig(dispatchState.runConfig, withCmdComment(comment, dispatchState.operatingSystem))
+	id, err := b.probeAndCreate(dispatchState, runConfigWithCommentCmd)
+	if err != nil || id == "" {
 		return err
 	}
 
@@ -48,29 +98,21 @@ func (b *Builder) commitContainer(dispatchState *dispatchState, id string, conta
 		return nil
 	}
 
-	commitCfg := &backend.ContainerCommitConfig{
-		ContainerCommitConfig: types.ContainerCommitConfig{
-			Author: dispatchState.maintainer,
-			Pause:  true,
-			// TODO: this should be done by Commit()
-			Config: copyRunConfig(dispatchState.runConfig),
-		},
+	commitCfg := backend.CommitConfig{
+		Author: dispatchState.maintainer,
+		// TODO: this copy should be done by Commit()
+		Config:          copyRunConfig(dispatchState.runConfig),
 		ContainerConfig: containerConfig,
+		ContainerID:     id,
 	}
 
-	// Commit the container
-	imageID, err := b.docker.Commit(id, commitCfg)
-	if err != nil {
-		return err
-	}
-
-	dispatchState.imageID = imageID
-	b.buildStages.update(imageID)
-	return nil
+	imageID, err := b.docker.CommitBuildStep(commitCfg)
+	dispatchState.imageID = string(imageID)
+	return err
 }
 
-func (b *Builder) exportImage(state *dispatchState, imageMount *imageMount, runConfig *container.Config) error {
-	newLayer, err := imageMount.Layer().Commit(b.platform)
+func (b *Builder) exportImage(state *dispatchState, layer builder.RWLayer, parent builder.Image, runConfig *container.Config) error {
+	newLayer, err := layer.Commit()
 	if err != nil {
 		return err
 	}
@@ -79,7 +121,7 @@ func (b *Builder) exportImage(state *dispatchState, imageMount *imageMount, runC
 	// if there is an error before we can add the full mount with image
 	b.imageSources.Add(newImageMount(nil, newLayer))
 
-	parentImage, ok := imageMount.Image().(*image.Image)
+	parentImage, ok := parent.(*image.Image)
 	if !ok {
 		return errors.Errorf("unexpected image type")
 	}
@@ -98,14 +140,13 @@ func (b *Builder) exportImage(state *dispatchState, imageMount *imageMount, runC
 		return errors.Wrap(err, "failed to encode image config")
 	}
 
-	exportedImage, err := b.docker.CreateImage(config, state.imageID, parentImage.OS)
+	exportedImage, err := b.docker.CreateImage(config, state.imageID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to export image")
 	}
 
 	state.imageID = exportedImage.ImageID()
 	b.imageSources.Add(newImageMount(exportedImage, newLayer))
-	b.buildStages.update(state.imageID)
 	return nil
 }
 
@@ -121,141 +162,118 @@ func (b *Builder) performCopy(state *dispatchState, inst copyInstruction) error 
 	// TODO: should this have been using origPaths instead of srcHash in the comment?
 	runConfigWithCommentCmd := copyRunConfig(
 		state.runConfig,
-		withCmdCommentString(commentStr, b.platform))
+		withCmdCommentString(commentStr, state.operatingSystem))
 	hit, err := b.probeCache(state, runConfigWithCommentCmd)
 	if err != nil || hit {
 		return err
 	}
 
-	imageMount, err := b.imageSources.Get(state.imageID, true)
+	imageMount, err := b.imageSources.Get(state.imageID, true, state.operatingSystem)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get destination image %q", state.imageID)
 	}
-	destInfo, err := createDestInfo(state.runConfig.WorkingDir, inst, imageMount)
+
+	rwLayer, err := imageMount.NewRWLayer()
+	if err != nil {
+		return err
+	}
+	defer rwLayer.Release()
+
+	destInfo, err := createDestInfo(state.runConfig.WorkingDir, inst, rwLayer, state.operatingSystem)
 	if err != nil {
 		return err
 	}
 
-	chownPair := b.archiver.IDMappings.RootPair()
+	chownPair := b.idMappings.RootPair()
 	// if a chown was requested, perform the steps to get the uid, gid
 	// translated (if necessary because of user namespaces), and replace
 	// the root pair with the chown pair for copy operations
 	if inst.chownStr != "" {
-		chownPair, err = parseChownFlag(inst.chownStr, destInfo.root, b.archiver.IDMappings)
+		chownPair, err = parseChownFlag(inst.chownStr, destInfo.root.Path(), b.idMappings)
 		if err != nil {
 			return errors.Wrapf(err, "unable to convert uid/gid chown string to host mapping")
 		}
 	}
 
-	opts := copyFileOptions{
-		decompress: inst.allowLocalDecompression,
-		archiver:   b.archiver,
-		chownPair:  chownPair,
-	}
 	for _, info := range inst.infos {
+		opts := copyFileOptions{
+			decompress: inst.allowLocalDecompression,
+			archiver:   b.getArchiver(info.root, destInfo.root),
+			chownPair:  chownPair,
+		}
 		if err := performCopyForInfo(destInfo, info, opts); err != nil {
 			return errors.Wrapf(err, "failed to copy files")
 		}
 	}
-	return b.exportImage(state, imageMount, runConfigWithCommentCmd)
+	return b.exportImage(state, rwLayer, imageMount.Image(), runConfigWithCommentCmd)
 }
 
-func parseChownFlag(chown, ctrRootPath string, idMappings *idtools.IDMappings) (idtools.IDPair, error) {
-	var userStr, grpStr string
-	parts := strings.Split(chown, ":")
-	if len(parts) > 2 {
-		return idtools.IDPair{}, errors.New("invalid chown string format: " + chown)
-	}
-	if len(parts) == 1 {
-		// if no group specified, use the user spec as group as well
-		userStr, grpStr = parts[0], parts[0]
-	} else {
-		userStr, grpStr = parts[0], parts[1]
-	}
-
-	passwdPath, err := symlink.FollowSymlinkInScope(filepath.Join(ctrRootPath, "etc", "passwd"), ctrRootPath)
-	if err != nil {
-		return idtools.IDPair{}, errors.Wrapf(err, "can't resolve /etc/passwd path in container rootfs")
-	}
-	groupPath, err := symlink.FollowSymlinkInScope(filepath.Join(ctrRootPath, "etc", "group"), ctrRootPath)
-	if err != nil {
-		return idtools.IDPair{}, errors.Wrapf(err, "can't resolve /etc/group path in container rootfs")
-	}
-	uid, err := lookupUser(userStr, passwdPath)
-	if err != nil {
-		return idtools.IDPair{}, errors.Wrapf(err, "can't find uid for user "+userStr)
-	}
-	gid, err := lookupGroup(grpStr, groupPath)
-	if err != nil {
-		return idtools.IDPair{}, errors.Wrapf(err, "can't find gid for group "+grpStr)
-	}
-
-	// convert as necessary because of user namespaces
-	chownPair, err := idMappings.ToHost(idtools.IDPair{UID: uid, GID: gid})
-	if err != nil {
-		return idtools.IDPair{}, errors.Wrapf(err, "unable to convert uid/gid to host mapping")
-	}
-	return chownPair, nil
-}
-
-func lookupUser(userStr, filepath string) (int, error) {
-	// if the string is actually a uid integer, parse to int and return
-	// as we don't need to translate with the help of files
-	uid, err := strconv.Atoi(userStr)
-	if err == nil {
-		return uid, nil
-	}
-	users, err := lcUser.ParsePasswdFileFilter(filepath, func(u lcUser.User) bool {
-		if u.Name == userStr {
-			return true
-		}
-		return false
-	})
-	if err != nil {
-		return 0, err
-	}
-	if len(users) == 0 {
-		return 0, errors.New("no such user: " + userStr)
-	}
-	return users[0].Uid, nil
-}
-
-func lookupGroup(groupStr, filepath string) (int, error) {
-	// if the string is actually a gid integer, parse to int and return
-	// as we don't need to translate with the help of files
-	gid, err := strconv.Atoi(groupStr)
-	if err == nil {
-		return gid, nil
-	}
-	groups, err := lcUser.ParseGroupFileFilter(filepath, func(g lcUser.Group) bool {
-		if g.Name == groupStr {
-			return true
-		}
-		return false
-	})
-	if err != nil {
-		return 0, err
-	}
-	if len(groups) == 0 {
-		return 0, errors.New("no such group: " + groupStr)
-	}
-	return groups[0].Gid, nil
-}
-
-func createDestInfo(workingDir string, inst copyInstruction, imageMount *imageMount) (copyInfo, error) {
+func createDestInfo(workingDir string, inst copyInstruction, rwLayer builder.RWLayer, platform string) (copyInfo, error) {
 	// Twiddle the destination when it's a relative path - meaning, make it
 	// relative to the WORKINGDIR
-	dest, err := normalizeDest(workingDir, inst.dest)
+	dest, err := normalizeDest(workingDir, inst.dest, platform)
 	if err != nil {
 		return copyInfo{}, errors.Wrapf(err, "invalid %s", inst.cmdName)
 	}
 
-	destMount, err := imageMount.Source()
-	if err != nil {
-		return copyInfo{}, errors.Wrapf(err, "failed to mount copy source")
+	return copyInfo{root: rwLayer.Root(), path: dest}, nil
+}
+
+// normalizeDest normalises the destination of a COPY/ADD command in a
+// platform semantically consistent way.
+func normalizeDest(workingDir, requested string, platform string) (string, error) {
+	dest := fromSlash(requested, platform)
+	endsInSlash := strings.HasSuffix(dest, string(separator(platform)))
+
+	if platform != "windows" {
+		if !path.IsAbs(requested) {
+			dest = path.Join("/", filepath.ToSlash(workingDir), dest)
+			// Make sure we preserve any trailing slash
+			if endsInSlash {
+				dest += "/"
+			}
+		}
+		return dest, nil
 	}
 
-	return newCopyInfoFromSource(destMount, dest, ""), nil
+	// We are guaranteed that the working directory is already consistent,
+	// However, Windows also has, for now, the limitation that ADD/COPY can
+	// only be done to the system drive, not any drives that might be present
+	// as a result of a bind mount.
+	//
+	// So... if the path requested is Linux-style absolute (/foo or \\foo),
+	// we assume it is the system drive. If it is a Windows-style absolute
+	// (DRIVE:\\foo), error if DRIVE is not C. And finally, ensure we
+	// strip any configured working directories drive letter so that it
+	// can be subsequently legitimately converted to a Windows volume-style
+	// pathname.
+
+	// Not a typo - filepath.IsAbs, not system.IsAbs on this next check as
+	// we only want to validate where the DriveColon part has been supplied.
+	if filepath.IsAbs(dest) {
+		if strings.ToUpper(string(dest[0])) != "C" {
+			return "", fmt.Errorf("Windows does not support destinations not on the system drive (C:)")
+		}
+		dest = dest[2:] // Strip the drive letter
+	}
+
+	// Cannot handle relative where WorkingDir is not the system drive.
+	if len(workingDir) > 0 {
+		if ((len(workingDir) > 1) && !system.IsAbs(workingDir[2:])) || (len(workingDir) == 1) {
+			return "", fmt.Errorf("Current WorkingDir %s is not platform consistent", workingDir)
+		}
+		if !system.IsAbs(dest) {
+			if string(workingDir[0]) != "C" {
+				return "", fmt.Errorf("Windows does not support relative paths when WORKDIR is not the system drive")
+			}
+			dest = filepath.Join(string(os.PathSeparator), workingDir[2:], dest)
+			// Make sure we preserve any trailing slash
+			if endsInSlash {
+				dest += string(os.PathSeparator)
+			}
+		}
+	}
+	return dest, nil
 }
 
 // For backwards compat, if there's just one info then use it as the
@@ -278,14 +296,6 @@ func hashStringSlice(prefix string, slice []string) string {
 }
 
 type runConfigModifier func(*container.Config)
-
-func copyRunConfig(runConfig *container.Config, modifiers ...runConfigModifier) *container.Config {
-	copy := *runConfig
-	for _, modifier := range modifiers {
-		modifier(&copy)
-	}
-	return &copy
-}
 
 func withCmd(cmd []string) runConfigModifier {
 	return func(runConfig *container.Config) {
@@ -332,11 +342,53 @@ func withEntrypointOverride(cmd []string, entrypoint []string) runConfigModifier
 	}
 }
 
+func copyRunConfig(runConfig *container.Config, modifiers ...runConfigModifier) *container.Config {
+	copy := *runConfig
+	copy.Cmd = copyStringSlice(runConfig.Cmd)
+	copy.Env = copyStringSlice(runConfig.Env)
+	copy.Entrypoint = copyStringSlice(runConfig.Entrypoint)
+	copy.OnBuild = copyStringSlice(runConfig.OnBuild)
+	copy.Shell = copyStringSlice(runConfig.Shell)
+
+	if copy.Volumes != nil {
+		copy.Volumes = make(map[string]struct{}, len(runConfig.Volumes))
+		for k, v := range runConfig.Volumes {
+			copy.Volumes[k] = v
+		}
+	}
+
+	if copy.ExposedPorts != nil {
+		copy.ExposedPorts = make(nat.PortSet, len(runConfig.ExposedPorts))
+		for k, v := range runConfig.ExposedPorts {
+			copy.ExposedPorts[k] = v
+		}
+	}
+
+	if copy.Labels != nil {
+		copy.Labels = make(map[string]string, len(runConfig.Labels))
+		for k, v := range runConfig.Labels {
+			copy.Labels[k] = v
+		}
+	}
+
+	for _, modifier := range modifiers {
+		modifier(&copy)
+	}
+	return &copy
+}
+
+func copyStringSlice(orig []string) []string {
+	if orig == nil {
+		return nil
+	}
+	return append([]string{}, orig...)
+}
+
 // getShell is a helper function which gets the right shell for prefixing the
 // shell-form of RUN, ENTRYPOINT and CMD instructions
-func getShell(c *container.Config, platform string) []string {
+func getShell(c *container.Config, os string) []string {
 	if 0 == len(c.Shell) {
-		return append([]string{}, defaultShellForPlatform(platform)[:]...)
+		return append([]string{}, defaultShellForOS(os)[:]...)
 	}
 	return append([]string{}, c.Shell[:]...)
 }
@@ -348,8 +400,7 @@ func (b *Builder) probeCache(dispatchState *dispatchState, runConfig *container.
 	}
 	fmt.Fprint(b.Stdout, " ---> Using cache\n")
 
-	dispatchState.imageID = string(cachedID)
-	b.buildStages.update(dispatchState.imageID)
+	dispatchState.imageID = cachedID
 	return true, nil
 }
 
@@ -359,15 +410,13 @@ func (b *Builder) probeAndCreate(dispatchState *dispatchState, runConfig *contai
 	if hit, err := b.probeCache(dispatchState, runConfig); err != nil || hit {
 		return "", err
 	}
-	// Set a log config to override any default value set on the daemon
-	hostConfig := &container.HostConfig{LogConfig: defaultLogConfig}
-	container, err := b.containerManager.Create(runConfig, hostConfig, b.platform)
-	return container.ID, err
+	return b.create(runConfig)
 }
 
 func (b *Builder) create(runConfig *container.Config) (string, error) {
+	logrus.Debugf("[BUILDER] Command to be executed: %v", runConfig.Cmd)
 	hostConfig := hostConfigFromOptions(b.options)
-	container, err := b.containerManager.Create(runConfig, hostConfig, b.platform)
+	container, err := b.containerManager.Create(runConfig, hostConfig)
 	if err != nil {
 		return "", err
 	}
@@ -392,7 +441,7 @@ func hostConfigFromOptions(options *types.ImageBuildOptions) *container.HostConf
 		Ulimits:      options.Ulimits,
 	}
 
-	return &container.HostConfig{
+	hc := &container.HostConfig{
 		SecurityOpt: options.SecurityOpt,
 		Isolation:   options.Isolation,
 		ShmSize:     options.ShmSize,
@@ -402,4 +451,31 @@ func hostConfigFromOptions(options *types.ImageBuildOptions) *container.HostConf
 		LogConfig:  defaultLogConfig,
 		ExtraHosts: options.ExtraHosts,
 	}
+
+	// For WCOW, the default of 20GB hard-coded in the platform
+	// is too small for builder scenarios where many users are
+	// using RUN statements to install large amounts of data.
+	// Use 127GB as that's the default size of a VHD in Hyper-V.
+	if runtime.GOOS == "windows" && options.Platform == "windows" {
+		hc.StorageOpt = make(map[string]string)
+		hc.StorageOpt["size"] = "127GB"
+	}
+
+	return hc
+}
+
+// fromSlash works like filepath.FromSlash but with a given OS platform field
+func fromSlash(path, platform string) string {
+	if platform == "windows" {
+		return strings.Replace(path, "/", "\\", -1)
+	}
+	return path
+}
+
+// separator returns a OS path separator for the given OS platform
+func separator(platform string) byte {
+	if platform == "windows" {
+		return '\\'
+	}
+	return '/'
 }

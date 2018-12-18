@@ -1,11 +1,9 @@
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
-	"errors"
+	"context"
 	"strconv"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/backend"
@@ -13,6 +11,8 @@ import (
 	timetypes "github.com/docker/docker/api/types/time"
 	"github.com/docker/docker/container"
 	"github.com/docker/docker/daemon/logger"
+	"github.com/docker/docker/errdefs"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,7 +22,7 @@ import (
 //
 // if it returns nil, the config channel will be active and return log
 // messages until it runs out or the context is canceled.
-func (daemon *Daemon) ContainerLogs(ctx context.Context, containerName string, config *types.ContainerLogsOptions) (<-chan *backend.LogMessage, bool, error) {
+func (daemon *Daemon) ContainerLogs(ctx context.Context, containerName string, config *types.ContainerLogsOptions) (messages <-chan *backend.LogMessage, isTTY bool, retErr error) {
 	lg := logrus.WithFields(logrus.Fields{
 		"module":    "daemon",
 		"method":    "(*Daemon).ContainerLogs",
@@ -30,7 +30,7 @@ func (daemon *Daemon) ContainerLogs(ctx context.Context, containerName string, c
 	})
 
 	if !(config.ShowStdout || config.ShowStderr) {
-		return nil, false, validationError{errors.New("You must choose at least one stream")}
+		return nil, false, errdefs.InvalidParameter(errors.New("You must choose at least one stream"))
 	}
 	container, err := daemon.GetContainer(containerName)
 	if err != nil {
@@ -38,7 +38,7 @@ func (daemon *Daemon) ContainerLogs(ctx context.Context, containerName string, c
 	}
 
 	if container.RemovalInProgress || container.Dead {
-		return nil, false, stateConflictError{errors.New("can not get logs from container which is dead or marked for removal")}
+		return nil, false, errdefs.Conflict(errors.New("can not get logs from container which is dead or marked for removal"))
 	}
 
 	if container.HostConfig.LogConfig.Type == "none" {
@@ -51,8 +51,10 @@ func (daemon *Daemon) ContainerLogs(ctx context.Context, containerName string, c
 	}
 	if cLogCreated {
 		defer func() {
-			if err = cLog.Close(); err != nil {
-				logrus.Errorf("Error closing logger: %v", err)
+			if retErr != nil {
+				if err = cLog.Close(); err != nil {
+					logrus.Errorf("Error closing logger: %v", err)
+				}
 			}
 		}()
 	}
@@ -77,8 +79,18 @@ func (daemon *Daemon) ContainerLogs(ctx context.Context, containerName string, c
 		since = time.Unix(s, n)
 	}
 
+	var until time.Time
+	if config.Until != "" && config.Until != "0" {
+		s, n, err := timetypes.ParseTimestamps(config.Until, 0)
+		if err != nil {
+			return nil, false, err
+		}
+		until = time.Unix(s, n)
+	}
+
 	readConfig := logger.ReadConfig{
 		Since:  since,
+		Until:  until,
 		Tail:   tailLines,
 		Follow: follow,
 	}
@@ -91,6 +103,13 @@ func (daemon *Daemon) ContainerLogs(ctx context.Context, containerName string, c
 	// this goroutine functions as a shim between the logger and the caller.
 	messageChan := make(chan *backend.LogMessage, 1)
 	go func() {
+		if cLogCreated {
+			defer func() {
+				if err = cLog.Close(); err != nil {
+					logrus.Errorf("Error closing logger: %v", err)
+				}
+			}()
+		}
 		// set up some defers
 		defer logs.Close()
 
@@ -113,7 +132,7 @@ func (daemon *Daemon) ContainerLogs(ctx context.Context, containerName string, c
 				}
 				return
 			case <-ctx.Done():
-				lg.Debug("logs: end stream, ctx is done: %v", ctx.Err())
+				lg.Debugf("logs: end stream, ctx is done: %v", ctx.Err())
 				return
 			case msg, ok := <-logs.Msg:
 				// there is some kind of pool or ring buffer in the logger that
@@ -172,4 +191,19 @@ func (daemon *Daemon) mergeAndVerifyLogConfig(cfg *containertypes.LogConfig) err
 	}
 
 	return logger.ValidateLogOpts(cfg.Type, cfg.Config)
+}
+
+func (daemon *Daemon) setupDefaultLogConfig() error {
+	config := daemon.configStore
+	if len(config.LogConfig.Config) > 0 {
+		if err := logger.ValidateLogOpts(config.LogConfig.Type, config.LogConfig.Config); err != nil {
+			return errors.Wrap(err, "failed to set log opts")
+		}
+	}
+	daemon.defaultLogConfig = containertypes.LogConfig{
+		Type:   config.LogConfig.Type,
+		Config: config.LogConfig.Config,
+	}
+	logrus.Debugf("Using default logging driver %s", daemon.defaultLogConfig.Type)
+	return nil
 }

@@ -22,61 +22,32 @@ package logic
 import original "github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic"
 
 type AgreementsClient = original.AgreementsClient
-
-func NewAgreementsClient(subscriptionID string) AgreementsClient {
-	return original.NewAgreementsClient(subscriptionID)
-}
-func NewAgreementsClientWithBaseURI(baseURI string, subscriptionID string) AgreementsClient {
-	return original.NewAgreementsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type CertificatesClient = original.CertificatesClient
-
-func NewCertificatesClient(subscriptionID string) CertificatesClient {
-	return original.NewCertificatesClient(subscriptionID)
-}
-func NewCertificatesClientWithBaseURI(baseURI string, subscriptionID string) CertificatesClient {
-	return original.NewCertificatesClientWithBaseURI(baseURI, subscriptionID)
-}
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
 type BaseClient = original.BaseClient
-
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-
+type IntegrationAccountAssembliesClient = original.IntegrationAccountAssembliesClient
+type IntegrationAccountBatchConfigurationsClient = original.IntegrationAccountBatchConfigurationsClient
 type IntegrationAccountsClient = original.IntegrationAccountsClient
-
-func NewIntegrationAccountsClient(subscriptionID string) IntegrationAccountsClient {
-	return original.NewIntegrationAccountsClient(subscriptionID)
-}
-func NewIntegrationAccountsClientWithBaseURI(baseURI string, subscriptionID string) IntegrationAccountsClient {
-	return original.NewIntegrationAccountsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type MapsClient = original.MapsClient
+type AccessKeyType = original.AccessKeyType
 
-func NewMapsClient(subscriptionID string) MapsClient {
-	return original.NewMapsClient(subscriptionID)
-}
-func NewMapsClientWithBaseURI(baseURI string, subscriptionID string) MapsClient {
-	return original.NewMapsClientWithBaseURI(baseURI, subscriptionID)
-}
+const (
+	NotSpecified AccessKeyType = original.NotSpecified
+	Primary      AccessKeyType = original.Primary
+	Secondary    AccessKeyType = original.Secondary
+)
 
 type AgreementType = original.AgreementType
 
 const (
-	AS2          AgreementType = original.AS2
-	Edifact      AgreementType = original.Edifact
-	NotSpecified AgreementType = original.NotSpecified
-	X12          AgreementType = original.X12
+	AgreementTypeAS2          AgreementType = original.AgreementTypeAS2
+	AgreementTypeEdifact      AgreementType = original.AgreementTypeEdifact
+	AgreementTypeNotSpecified AgreementType = original.AgreementTypeNotSpecified
+	AgreementTypeX12          AgreementType = original.AgreementTypeX12
 )
 
 type DayOfWeek = original.DayOfWeek
@@ -141,6 +112,17 @@ const (
 	EncryptionAlgorithmNone         EncryptionAlgorithm = original.EncryptionAlgorithmNone
 	EncryptionAlgorithmNotSpecified EncryptionAlgorithm = original.EncryptionAlgorithmNotSpecified
 	EncryptionAlgorithmRC2          EncryptionAlgorithm = original.EncryptionAlgorithmRC2
+)
+
+type EventLevel = original.EventLevel
+
+const (
+	Critical      EventLevel = original.Critical
+	Error         EventLevel = original.Error
+	Informational EventLevel = original.Informational
+	LogAlways     EventLevel = original.LogAlways
+	Verbose       EventLevel = original.Verbose
+	Warning       EventLevel = original.Warning
 )
 
 type HashingAlgorithm = original.HashingAlgorithm
@@ -257,6 +239,34 @@ const (
 	SkuNamePremium      SkuName = original.SkuNamePremium
 	SkuNameShared       SkuName = original.SkuNameShared
 	SkuNameStandard     SkuName = original.SkuNameStandard
+)
+
+type TrackEventsOperationOptions = original.TrackEventsOperationOptions
+
+const (
+	DisableSourceInfoEnrich TrackEventsOperationOptions = original.DisableSourceInfoEnrich
+	None                    TrackEventsOperationOptions = original.None
+)
+
+type TrackingRecordType = original.TrackingRecordType
+
+const (
+	TrackingRecordTypeAS2MDN                               TrackingRecordType = original.TrackingRecordTypeAS2MDN
+	TrackingRecordTypeAS2Message                           TrackingRecordType = original.TrackingRecordTypeAS2Message
+	TrackingRecordTypeCustom                               TrackingRecordType = original.TrackingRecordTypeCustom
+	TrackingRecordTypeEdifactFunctionalGroup               TrackingRecordType = original.TrackingRecordTypeEdifactFunctionalGroup
+	TrackingRecordTypeEdifactFunctionalGroupAcknowledgment TrackingRecordType = original.TrackingRecordTypeEdifactFunctionalGroupAcknowledgment
+	TrackingRecordTypeEdifactInterchange                   TrackingRecordType = original.TrackingRecordTypeEdifactInterchange
+	TrackingRecordTypeEdifactInterchangeAcknowledgment     TrackingRecordType = original.TrackingRecordTypeEdifactInterchangeAcknowledgment
+	TrackingRecordTypeEdifactTransactionSet                TrackingRecordType = original.TrackingRecordTypeEdifactTransactionSet
+	TrackingRecordTypeEdifactTransactionSetAcknowledgment  TrackingRecordType = original.TrackingRecordTypeEdifactTransactionSetAcknowledgment
+	TrackingRecordTypeNotSpecified                         TrackingRecordType = original.TrackingRecordTypeNotSpecified
+	TrackingRecordTypeX12FunctionalGroup                   TrackingRecordType = original.TrackingRecordTypeX12FunctionalGroup
+	TrackingRecordTypeX12FunctionalGroupAcknowledgment     TrackingRecordType = original.TrackingRecordTypeX12FunctionalGroupAcknowledgment
+	TrackingRecordTypeX12Interchange                       TrackingRecordType = original.TrackingRecordTypeX12Interchange
+	TrackingRecordTypeX12InterchangeAcknowledgment         TrackingRecordType = original.TrackingRecordTypeX12InterchangeAcknowledgment
+	TrackingRecordTypeX12TransactionSet                    TrackingRecordType = original.TrackingRecordTypeX12TransactionSet
+	TrackingRecordTypeX12TransactionSetAcknowledgment      TrackingRecordType = original.TrackingRecordTypeX12TransactionSetAcknowledgment
 )
 
 type TrailingSeparatorPolicy = original.TrailingSeparatorPolicy
@@ -379,7 +389,10 @@ const (
 	X12TimeFormatNotSpecified X12TimeFormat = original.X12TimeFormatNotSpecified
 )
 
+type AccessKeyRegenerateActionDefinition = original.AccessKeyRegenerateActionDefinition
 type AgreementContent = original.AgreementContent
+type ArtifactContentPropertiesDefinition = original.ArtifactContentPropertiesDefinition
+type ArtifactProperties = original.ArtifactProperties
 type AS2AcknowledgementConnectionSettings = original.AS2AcknowledgementConnectionSettings
 type AS2AgreementContent = original.AS2AgreementContent
 type AS2EnvelopeSettings = original.AS2EnvelopeSettings
@@ -390,7 +403,15 @@ type AS2OneWayAgreement = original.AS2OneWayAgreement
 type AS2ProtocolSettings = original.AS2ProtocolSettings
 type AS2SecuritySettings = original.AS2SecuritySettings
 type AS2ValidationSettings = original.AS2ValidationSettings
+type AssemblyCollection = original.AssemblyCollection
+type AssemblyDefinition = original.AssemblyDefinition
+type AssemblyProperties = original.AssemblyProperties
+type AzureResourceErrorInfo = original.AzureResourceErrorInfo
 type B2BPartnerContent = original.B2BPartnerContent
+type BatchConfiguration = original.BatchConfiguration
+type BatchConfigurationCollection = original.BatchConfigurationCollection
+type BatchConfigurationProperties = original.BatchConfigurationProperties
+type BatchReleaseCriteria = original.BatchReleaseCriteria
 type BusinessIdentity = original.BusinessIdentity
 type CallbackURL = original.CallbackURL
 type ContentHash = original.ContentHash
@@ -410,8 +431,12 @@ type EdifactProtocolSettings = original.EdifactProtocolSettings
 type EdifactSchemaReference = original.EdifactSchemaReference
 type EdifactValidationOverride = original.EdifactValidationOverride
 type EdifactValidationSettings = original.EdifactValidationSettings
+type ErrorInfo = original.ErrorInfo
 type ErrorProperties = original.ErrorProperties
 type ErrorResponse = original.ErrorResponse
+type Expression = original.Expression
+type ExpressionRoot = original.ExpressionRoot
+type ExpressionTraces = original.ExpressionTraces
 type GenerateUpgradedDefinitionParameters = original.GenerateUpgradedDefinitionParameters
 type GetCallbackURLParameters = original.GetCallbackURLParameters
 type IntegrationAccount = original.IntegrationAccount
@@ -455,23 +480,38 @@ type IntegrationAccountSessionListResultIterator = original.IntegrationAccountSe
 type IntegrationAccountSessionListResultPage = original.IntegrationAccountSessionListResultPage
 type IntegrationAccountSessionProperties = original.IntegrationAccountSessionProperties
 type IntegrationAccountSku = original.IntegrationAccountSku
+type JSONSchema = original.JSONSchema
+type KeyVaultKey = original.KeyVaultKey
+type KeyVaultKeyAttributes = original.KeyVaultKeyAttributes
+type KeyVaultKeyCollection = original.KeyVaultKeyCollection
 type KeyVaultKeyReference = original.KeyVaultKeyReference
 type KeyVaultKeyReferenceKeyVault = original.KeyVaultKeyReferenceKeyVault
+type KeyVaultReference = original.KeyVaultReference
+type ListKeyVaultKeysDefinition = original.ListKeyVaultKeysDefinition
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
 type OperationListResult = original.OperationListResult
 type OperationListResultIterator = original.OperationListResultIterator
 type OperationListResultPage = original.OperationListResultPage
+type OperationResult = original.OperationResult
+type OperationResultProperties = original.OperationResultProperties
 type PartnerContent = original.PartnerContent
 type RecurrenceSchedule = original.RecurrenceSchedule
 type RecurrenceScheduleOccurrence = original.RecurrenceScheduleOccurrence
 type RegenerateActionParameter = original.RegenerateActionParameter
+type RepetitionIndex = original.RepetitionIndex
 type Resource = original.Resource
 type ResourceReference = original.ResourceReference
 type RetryHistory = original.RetryHistory
+type RunActionCorrelation = original.RunActionCorrelation
+type RunCorrelation = original.RunCorrelation
 type SetObject = original.SetObject
+type SetTriggerStateActionDefinition = original.SetTriggerStateActionDefinition
 type Sku = original.Sku
 type SubResource = original.SubResource
+type TrackingEvent = original.TrackingEvent
+type TrackingEventErrorInfo = original.TrackingEventErrorInfo
+type TrackingEventsDefinition = original.TrackingEventsDefinition
 type Workflow = original.Workflow
 type WorkflowFilter = original.WorkflowFilter
 type WorkflowListResult = original.WorkflowListResult
@@ -487,6 +527,9 @@ type WorkflowRunActionListResult = original.WorkflowRunActionListResult
 type WorkflowRunActionListResultIterator = original.WorkflowRunActionListResultIterator
 type WorkflowRunActionListResultPage = original.WorkflowRunActionListResultPage
 type WorkflowRunActionProperties = original.WorkflowRunActionProperties
+type WorkflowRunActionRepetitionDefinition = original.WorkflowRunActionRepetitionDefinition
+type WorkflowRunActionRepetitionDefinitionCollection = original.WorkflowRunActionRepetitionDefinitionCollection
+type WorkflowRunActionRepetitionProperties = original.WorkflowRunActionRepetitionProperties
 type WorkflowRunFilter = original.WorkflowRunFilter
 type WorkflowRunListResult = original.WorkflowRunListResult
 type WorkflowRunListResultIterator = original.WorkflowRunListResultIterator
@@ -529,25 +572,165 @@ type X12SecuritySettings = original.X12SecuritySettings
 type X12ValidationOverride = original.X12ValidationOverride
 type X12ValidationSettings = original.X12ValidationSettings
 type PartnersClient = original.PartnersClient
+type SchemasClient = original.SchemasClient
+type SessionsClient = original.SessionsClient
+type WorkflowRunActionRepetitionsClient = original.WorkflowRunActionRepetitionsClient
+type WorkflowRunActionsClient = original.WorkflowRunActionsClient
+type WorkflowRunActionScopedRepetitionsClient = original.WorkflowRunActionScopedRepetitionsClient
+type WorkflowRunOperationsClient = original.WorkflowRunOperationsClient
+type WorkflowRunsClient = original.WorkflowRunsClient
+type WorkflowsClient = original.WorkflowsClient
+type WorkflowTriggerHistoriesClient = original.WorkflowTriggerHistoriesClient
+type WorkflowTriggersClient = original.WorkflowTriggersClient
+type WorkflowVersionsClient = original.WorkflowVersionsClient
 
+func NewAgreementsClient(subscriptionID string) AgreementsClient {
+	return original.NewAgreementsClient(subscriptionID)
+}
+func NewAgreementsClientWithBaseURI(baseURI string, subscriptionID string) AgreementsClient {
+	return original.NewAgreementsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewCertificatesClient(subscriptionID string) CertificatesClient {
+	return original.NewCertificatesClient(subscriptionID)
+}
+func NewCertificatesClientWithBaseURI(baseURI string, subscriptionID string) CertificatesClient {
+	return original.NewCertificatesClientWithBaseURI(baseURI, subscriptionID)
+}
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func NewIntegrationAccountAssembliesClient(subscriptionID string) IntegrationAccountAssembliesClient {
+	return original.NewIntegrationAccountAssembliesClient(subscriptionID)
+}
+func NewIntegrationAccountAssembliesClientWithBaseURI(baseURI string, subscriptionID string) IntegrationAccountAssembliesClient {
+	return original.NewIntegrationAccountAssembliesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewIntegrationAccountBatchConfigurationsClient(subscriptionID string) IntegrationAccountBatchConfigurationsClient {
+	return original.NewIntegrationAccountBatchConfigurationsClient(subscriptionID)
+}
+func NewIntegrationAccountBatchConfigurationsClientWithBaseURI(baseURI string, subscriptionID string) IntegrationAccountBatchConfigurationsClient {
+	return original.NewIntegrationAccountBatchConfigurationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewIntegrationAccountsClient(subscriptionID string) IntegrationAccountsClient {
+	return original.NewIntegrationAccountsClient(subscriptionID)
+}
+func NewIntegrationAccountsClientWithBaseURI(baseURI string, subscriptionID string) IntegrationAccountsClient {
+	return original.NewIntegrationAccountsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewMapsClient(subscriptionID string) MapsClient {
+	return original.NewMapsClient(subscriptionID)
+}
+func NewMapsClientWithBaseURI(baseURI string, subscriptionID string) MapsClient {
+	return original.NewMapsClientWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleAccessKeyTypeValues() []AccessKeyType {
+	return original.PossibleAccessKeyTypeValues()
+}
+func PossibleAgreementTypeValues() []AgreementType {
+	return original.PossibleAgreementTypeValues()
+}
+func PossibleDayOfWeekValues() []DayOfWeek {
+	return original.PossibleDayOfWeekValues()
+}
+func PossibleDaysOfWeekValues() []DaysOfWeek {
+	return original.PossibleDaysOfWeekValues()
+}
+func PossibleEdifactCharacterSetValues() []EdifactCharacterSet {
+	return original.PossibleEdifactCharacterSetValues()
+}
+func PossibleEdifactDecimalIndicatorValues() []EdifactDecimalIndicator {
+	return original.PossibleEdifactDecimalIndicatorValues()
+}
+func PossibleEncryptionAlgorithmValues() []EncryptionAlgorithm {
+	return original.PossibleEncryptionAlgorithmValues()
+}
+func PossibleEventLevelValues() []EventLevel {
+	return original.PossibleEventLevelValues()
+}
+func PossibleHashingAlgorithmValues() []HashingAlgorithm {
+	return original.PossibleHashingAlgorithmValues()
+}
+func PossibleIntegrationAccountSkuNameValues() []IntegrationAccountSkuName {
+	return original.PossibleIntegrationAccountSkuNameValues()
+}
+func PossibleKeyTypeValues() []KeyType {
+	return original.PossibleKeyTypeValues()
+}
+func PossibleMapTypeValues() []MapType {
+	return original.PossibleMapTypeValues()
+}
+func PossibleMessageFilterTypeValues() []MessageFilterType {
+	return original.PossibleMessageFilterTypeValues()
+}
+func PossibleParameterTypeValues() []ParameterType {
+	return original.PossibleParameterTypeValues()
+}
+func PossiblePartnerTypeValues() []PartnerType {
+	return original.PossiblePartnerTypeValues()
+}
+func PossibleRecurrenceFrequencyValues() []RecurrenceFrequency {
+	return original.PossibleRecurrenceFrequencyValues()
+}
+func PossibleSchemaTypeValues() []SchemaType {
+	return original.PossibleSchemaTypeValues()
+}
+func PossibleSegmentTerminatorSuffixValues() []SegmentTerminatorSuffix {
+	return original.PossibleSegmentTerminatorSuffixValues()
+}
+func PossibleSigningAlgorithmValues() []SigningAlgorithm {
+	return original.PossibleSigningAlgorithmValues()
+}
+func PossibleSkuNameValues() []SkuName {
+	return original.PossibleSkuNameValues()
+}
+func PossibleTrackEventsOperationOptionsValues() []TrackEventsOperationOptions {
+	return original.PossibleTrackEventsOperationOptionsValues()
+}
+func PossibleTrackingRecordTypeValues() []TrackingRecordType {
+	return original.PossibleTrackingRecordTypeValues()
+}
+func PossibleTrailingSeparatorPolicyValues() []TrailingSeparatorPolicy {
+	return original.PossibleTrailingSeparatorPolicyValues()
+}
+func PossibleUsageIndicatorValues() []UsageIndicator {
+	return original.PossibleUsageIndicatorValues()
+}
+func PossibleWorkflowProvisioningStateValues() []WorkflowProvisioningState {
+	return original.PossibleWorkflowProvisioningStateValues()
+}
+func PossibleWorkflowStateValues() []WorkflowState {
+	return original.PossibleWorkflowStateValues()
+}
+func PossibleWorkflowStatusValues() []WorkflowStatus {
+	return original.PossibleWorkflowStatusValues()
+}
+func PossibleWorkflowTriggerProvisioningStateValues() []WorkflowTriggerProvisioningState {
+	return original.PossibleWorkflowTriggerProvisioningStateValues()
+}
+func PossibleX12CharacterSetValues() []X12CharacterSet {
+	return original.PossibleX12CharacterSetValues()
+}
+func PossibleX12DateFormatValues() []X12DateFormat {
+	return original.PossibleX12DateFormatValues()
+}
+func PossibleX12TimeFormatValues() []X12TimeFormat {
+	return original.PossibleX12TimeFormatValues()
+}
 func NewPartnersClient(subscriptionID string) PartnersClient {
 	return original.NewPartnersClient(subscriptionID)
 }
 func NewPartnersClientWithBaseURI(baseURI string, subscriptionID string) PartnersClient {
 	return original.NewPartnersClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type SchemasClient = original.SchemasClient
-
 func NewSchemasClient(subscriptionID string) SchemasClient {
 	return original.NewSchemasClient(subscriptionID)
 }
 func NewSchemasClientWithBaseURI(baseURI string, subscriptionID string) SchemasClient {
 	return original.NewSchemasClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type SessionsClient = original.SessionsClient
-
 func NewSessionsClient(subscriptionID string) SessionsClient {
 	return original.NewSessionsClient(subscriptionID)
 }
@@ -560,54 +743,54 @@ func UserAgent() string {
 func Version() string {
 	return original.Version()
 }
-
-type WorkflowRunActionsClient = original.WorkflowRunActionsClient
-
+func NewWorkflowRunActionRepetitionsClient(subscriptionID string) WorkflowRunActionRepetitionsClient {
+	return original.NewWorkflowRunActionRepetitionsClient(subscriptionID)
+}
+func NewWorkflowRunActionRepetitionsClientWithBaseURI(baseURI string, subscriptionID string) WorkflowRunActionRepetitionsClient {
+	return original.NewWorkflowRunActionRepetitionsClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewWorkflowRunActionsClient(subscriptionID string) WorkflowRunActionsClient {
 	return original.NewWorkflowRunActionsClient(subscriptionID)
 }
 func NewWorkflowRunActionsClientWithBaseURI(baseURI string, subscriptionID string) WorkflowRunActionsClient {
 	return original.NewWorkflowRunActionsClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type WorkflowRunsClient = original.WorkflowRunsClient
-
+func NewWorkflowRunActionScopedRepetitionsClient(subscriptionID string) WorkflowRunActionScopedRepetitionsClient {
+	return original.NewWorkflowRunActionScopedRepetitionsClient(subscriptionID)
+}
+func NewWorkflowRunActionScopedRepetitionsClientWithBaseURI(baseURI string, subscriptionID string) WorkflowRunActionScopedRepetitionsClient {
+	return original.NewWorkflowRunActionScopedRepetitionsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewWorkflowRunOperationsClient(subscriptionID string) WorkflowRunOperationsClient {
+	return original.NewWorkflowRunOperationsClient(subscriptionID)
+}
+func NewWorkflowRunOperationsClientWithBaseURI(baseURI string, subscriptionID string) WorkflowRunOperationsClient {
+	return original.NewWorkflowRunOperationsClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewWorkflowRunsClient(subscriptionID string) WorkflowRunsClient {
 	return original.NewWorkflowRunsClient(subscriptionID)
 }
 func NewWorkflowRunsClientWithBaseURI(baseURI string, subscriptionID string) WorkflowRunsClient {
 	return original.NewWorkflowRunsClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type WorkflowsClient = original.WorkflowsClient
-
 func NewWorkflowsClient(subscriptionID string) WorkflowsClient {
 	return original.NewWorkflowsClient(subscriptionID)
 }
 func NewWorkflowsClientWithBaseURI(baseURI string, subscriptionID string) WorkflowsClient {
 	return original.NewWorkflowsClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type WorkflowTriggerHistoriesClient = original.WorkflowTriggerHistoriesClient
-
 func NewWorkflowTriggerHistoriesClient(subscriptionID string) WorkflowTriggerHistoriesClient {
 	return original.NewWorkflowTriggerHistoriesClient(subscriptionID)
 }
 func NewWorkflowTriggerHistoriesClientWithBaseURI(baseURI string, subscriptionID string) WorkflowTriggerHistoriesClient {
 	return original.NewWorkflowTriggerHistoriesClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type WorkflowTriggersClient = original.WorkflowTriggersClient
-
 func NewWorkflowTriggersClient(subscriptionID string) WorkflowTriggersClient {
 	return original.NewWorkflowTriggersClient(subscriptionID)
 }
 func NewWorkflowTriggersClientWithBaseURI(baseURI string, subscriptionID string) WorkflowTriggersClient {
 	return original.NewWorkflowTriggersClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type WorkflowVersionsClient = original.WorkflowVersionsClient
-
 func NewWorkflowVersionsClient(subscriptionID string) WorkflowVersionsClient {
 	return original.NewWorkflowVersionsClient(subscriptionID)
 }

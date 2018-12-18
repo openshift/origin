@@ -1,6 +1,4 @@
-// +build linux
-
-package fsutils
+package fsutils // import "github.com/docker/docker/pkg/fsutils"
 
 import (
 	"fmt"

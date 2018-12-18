@@ -1,9 +1,8 @@
-package container
+package container // import "github.com/docker/docker/api/server/router/container"
 
 import (
+	"context"
 	"io"
-
-	"golang.org/x/net/context"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/backend"
@@ -18,7 +17,7 @@ type execBackend interface {
 	ContainerExecCreate(name string, config *types.ExecConfig) (string, error)
 	ContainerExecInspect(id string) (*backend.ExecInspect, error)
 	ContainerExecResize(name string, height, width int) error
-	ContainerExecStart(ctx context.Context, name string, stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error
+	ContainerExecStart(ctx context.Context, name string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error
 	ExecExists(name string) (bool, error)
 }
 
@@ -68,8 +67,13 @@ type systemBackend interface {
 	ContainersPrune(ctx context.Context, pruneFilters filters.Args) (*types.ContainersPruneReport, error)
 }
 
+type commitBackend interface {
+	CreateImageFromContainer(name string, config *backend.CreateImageConfig) (imageID string, err error)
+}
+
 // Backend is all the methods that need to be implemented to provide container specific functionality.
 type Backend interface {
+	commitBackend
 	execBackend
 	copyBackend
 	stateBackend

@@ -179,10 +179,8 @@ func FormatURL(scheme string, host string, port int, path string) *url.URL {
 }
 
 func GetHTTPClient(req *http.Request) string {
-	if userAgent, ok := req.Header["User-Agent"]; ok {
-		if len(userAgent) > 0 {
-			return userAgent[0]
-		}
+	if ua := req.UserAgent(); len(ua) != 0 {
+		return ua
 	}
 	return "unknown"
 }
@@ -323,9 +321,10 @@ type Dialer interface {
 
 // ConnectWithRedirects uses dialer to send req, following up to 10 redirects (relative to
 // originalLocation). It returns the opened net.Conn and the raw response bytes.
-func ConnectWithRedirects(originalMethod string, originalLocation *url.URL, header http.Header, originalBody io.Reader, dialer Dialer) (net.Conn, []byte, error) {
+// If requireSameHostRedirects is true, only redirects to the same host are permitted.
+func ConnectWithRedirects(originalMethod string, originalLocation *url.URL, header http.Header, originalBody io.Reader, dialer Dialer, requireSameHostRedirects bool) (net.Conn, []byte, error) {
 	const (
-		maxRedirects    = 10
+		maxRedirects    = 9     // Fail on the 10th redirect
 		maxResponseSize = 16384 // play it safe to allow the potential for lots of / large headers
 	)
 
@@ -389,10 +388,6 @@ redirectLoop:
 
 		resp.Body.Close() // not used
 
-		// Reset the connection.
-		intermediateConn.Close()
-		intermediateConn = nil
-
 		// Prepare to follow the redirect.
 		redirectStr := resp.Header.Get("Location")
 		if redirectStr == "" {
@@ -406,6 +401,15 @@ redirectLoop:
 		if err != nil {
 			return nil, nil, fmt.Errorf("malformed Location header: %v", err)
 		}
+
+		// Only follow redirects to the same host. Otherwise, propagate the redirect response back.
+		if requireSameHostRedirects && location.Hostname() != originalLocation.Hostname() {
+			break redirectLoop
+		}
+
+		// Reset the connection.
+		intermediateConn.Close()
+		intermediateConn = nil
 	}
 
 	connToReturn := intermediateConn

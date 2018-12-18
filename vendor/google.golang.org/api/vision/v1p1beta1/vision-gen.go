@@ -3323,7 +3323,9 @@ func (s *GoogleCloudVisionV1p1beta1Vertex) MarshalJSON() ([]byte, error) {
 // GoogleCloudVisionV1p1beta1WebDetection: Relevant information for the
 // image from the Internet.
 type GoogleCloudVisionV1p1beta1WebDetection struct {
-	// BestGuessLabels: Best guess text labels for the request image.
+	// BestGuessLabels: The service's best guess as to the topic of the
+	// request image.
+	// Inferred from similar images on the open web.
 	BestGuessLabels []*GoogleCloudVisionV1p1beta1WebDetectionWebLabel `json:"bestGuessLabels,omitempty"`
 
 	// FullMatchingImages: Fully matching images from the Internet.
@@ -5477,7 +5479,9 @@ func (s *GoogleCloudVisionV1p2beta1Vertex) MarshalJSON() ([]byte, error) {
 // GoogleCloudVisionV1p2beta1WebDetection: Relevant information for the
 // image from the Internet.
 type GoogleCloudVisionV1p2beta1WebDetection struct {
-	// BestGuessLabels: Best guess text labels for the request image.
+	// BestGuessLabels: The service's best guess as to the topic of the
+	// request image.
+	// Inferred from similar images on the open web.
 	BestGuessLabels []*GoogleCloudVisionV1p2beta1WebDetectionWebLabel `json:"bestGuessLabels,omitempty"`
 
 	// FullMatchingImages: Fully matching images from the Internet.
@@ -7175,7 +7179,9 @@ func (s *Vertex) MarshalJSON() ([]byte, error) {
 
 // WebDetection: Relevant information for the image from the Internet.
 type WebDetection struct {
-	// BestGuessLabels: Best guess text labels for the request image.
+	// BestGuessLabels: The service's best guess as to the topic of the
+	// request image.
+	// Inferred from similar images on the open web.
 	BestGuessLabels []*WebLabel `json:"bestGuessLabels,omitempty"`
 
 	// FullMatchingImages: Fully matching images from the Internet.

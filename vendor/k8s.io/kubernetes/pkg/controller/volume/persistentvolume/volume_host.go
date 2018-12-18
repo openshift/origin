@@ -25,8 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
+	csiclientset "k8s.io/csi-api/pkg/client/clientset/versioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
 	vol "k8s.io/kubernetes/pkg/volume"
 )
@@ -79,10 +79,6 @@ func (ctrl *PersistentVolumeController) GetMounter(pluginName string) mount.Inte
 	return nil
 }
 
-func (ctrl *PersistentVolumeController) GetWriter() io.Writer {
-	return nil
-}
-
 func (ctrl *PersistentVolumeController) GetHostName() string {
 	return ""
 }
@@ -127,4 +123,9 @@ func (ctrl *PersistentVolumeController) GetNodeName() types.NodeName {
 
 func (ctrl *PersistentVolumeController) GetEventRecorder() record.EventRecorder {
 	return ctrl.eventRecorder
+}
+
+func (ctrl *PersistentVolumeController) GetCSIClient() csiclientset.Interface {
+	// No volume plugin needs csi.storage.k8s.io client in PV controller.
+	return nil
 }

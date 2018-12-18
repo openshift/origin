@@ -1,4 +1,4 @@
-package graphdriver
+package graphdriver // import "github.com/docker/docker/daemon/graphdriver"
 
 import (
 	"syscall"
@@ -7,10 +7,8 @@ import (
 )
 
 var (
-	// Slice of drivers that should be used in an order
-	priority = []string{
-		"zfs",
-	}
+	// List of drivers that should be used in an order
+	priority = "zfs"
 )
 
 // Mounted checks if the given path is mounted as the fs type

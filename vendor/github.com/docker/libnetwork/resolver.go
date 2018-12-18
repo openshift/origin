@@ -35,7 +35,7 @@ type Resolver interface {
 }
 
 // DNSBackend represents a backend DNS resolver used for DNS name
-// resolution. All the queries to the resolver are forwared to the
+// resolution. All the queries to the resolver are forwarded to the
 // backend resolver.
 type DNSBackend interface {
 	// ResolveName resolves a service name to an IPv4 or IPv6 address by searching
@@ -224,6 +224,22 @@ func createRespMsg(query *dns.Msg) *dns.Msg {
 	return resp
 }
 
+func (r *resolver) handleMXQuery(name string, query *dns.Msg) (*dns.Msg, error) {
+	addrv4, _ := r.backend.ResolveName(name, types.IPv4)
+	addrv6, _ := r.backend.ResolveName(name, types.IPv6)
+
+	if addrv4 == nil && addrv6 == nil {
+		return nil, nil
+	}
+
+	// We were able to resolve the name. Respond with an empty list with
+	// RcodeSuccess/NOERROR so that email clients can treat it as "implicit MX"
+	// [RFC 5321 Section-5.1] and issue a Type A/AAAA query for the name.
+
+	resp := createRespMsg(query)
+	return resp, nil
+}
+
 func (r *resolver) handleIPQuery(name string, query *dns.Msg, ipType int) (*dns.Msg, error) {
 	var addr []net.IP
 	var ipv6Miss bool
@@ -264,7 +280,7 @@ func (r *resolver) handleIPQuery(name string, query *dns.Msg, ipType int) (*dns.
 }
 
 func (r *resolver) handlePTRQuery(ptr string, query *dns.Msg) (*dns.Msg, error) {
-	parts := []string{}
+	var parts []string
 
 	if strings.HasSuffix(ptr, ptrIPv4domain) {
 		parts = strings.Split(ptr, ptrIPv4domain)
@@ -357,6 +373,8 @@ func (r *resolver) ServeDNS(w dns.ResponseWriter, query *dns.Msg) {
 		resp, err = r.handleIPQuery(name, query, types.IPv4)
 	case dns.TypeAAAA:
 		resp, err = r.handleIPQuery(name, query, types.IPv6)
+	case dns.TypeMX:
+		resp, err = r.handleMXQuery(name, query)
 	case dns.TypePTR:
 		resp, err = r.handlePTRQuery(name, query)
 	case dns.TypeSRV:
@@ -434,7 +452,6 @@ func (r *resolver) ServeDNS(w dns.ResponseWriter, query *dns.Msg) {
 				logrus.Warnf("[resolver] connect failed: %s", err)
 				continue
 			}
-
 			queryType := dns.TypeToString[query.Question[0].Qtype]
 			logrus.Debugf("[resolver] query %s (%s) from %s, forwarding to %s:%s", name, queryType,
 				extConn.LocalAddr().String(), proto, extDNS.IPStr)
@@ -474,6 +491,11 @@ func (r *resolver) ServeDNS(w dns.ResponseWriter, query *dns.Msg) {
 			}
 			r.forwardQueryEnd()
 			if resp != nil {
+				if resp.Rcode == dns.RcodeServerFailure {
+					// for Server Failure response, continue to the next external DNS server
+					logrus.Debugf("[resolver] external DNS %s:%s responded with ServFail for %q", proto, extDNS.IPStr, name)
+					continue
+				}
 				answers := 0
 				for _, rr := range resp.Answer {
 					h := rr.Header()
@@ -493,10 +515,10 @@ func (r *resolver) ServeDNS(w dns.ResponseWriter, query *dns.Msg) {
 				if resp.Answer == nil || answers == 0 {
 					logrus.Debugf("[resolver] external DNS %s:%s did not return any %s records for %q", proto, extDNS.IPStr, queryType, name)
 				}
+				resp.Compress = true
 			} else {
 				logrus.Debugf("[resolver] external DNS %s:%s returned empty response for %q", proto, extDNS.IPStr, name)
 			}
-			resp.Compress = true
 			break
 		}
 		if resp == nil {

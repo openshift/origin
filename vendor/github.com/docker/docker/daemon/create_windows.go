@@ -1,19 +1,21 @@
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/container"
 	"github.com/docker/docker/pkg/stringid"
-	"github.com/docker/docker/volume"
+	volumemounts "github.com/docker/docker/volume/mounts"
+	volumeopts "github.com/docker/docker/volume/service/opts"
 )
 
-// createContainerPlatformSpecificSettings performs platform specific container create functionality
-func (daemon *Daemon) createContainerPlatformSpecificSettings(container *container.Container, config *containertypes.Config, hostConfig *containertypes.HostConfig) error {
+// createContainerOSSpecificSettings performs host-OS specific container create functionality
+func (daemon *Daemon) createContainerOSSpecificSettings(container *container.Container, config *containertypes.Config, hostConfig *containertypes.HostConfig) error {
 
-	if container.Platform == runtime.GOOS {
+	if container.OS == runtime.GOOS {
 		// Make sure the host config has the default daemon isolation if not specified by caller.
 		if containertypes.Isolation.IsDefault(containertypes.Isolation(hostConfig.Isolation)) {
 			hostConfig.Isolation = daemon.defaultIsolation
@@ -26,10 +28,10 @@ func (daemon *Daemon) createContainerPlatformSpecificSettings(container *contain
 		}
 		hostConfig.Isolation = "hyperv"
 	}
-
+	parser := volumemounts.NewParser(container.OS)
 	for spec := range config.Volumes {
 
-		mp, err := volume.ParseMountRaw(spec, hostConfig.VolumeDriver)
+		mp, err := parser.ParseMountRaw(spec, hostConfig.VolumeDriver)
 		if err != nil {
 			return fmt.Errorf("Unrecognised volume spec: %v", err)
 		}
@@ -49,7 +51,7 @@ func (daemon *Daemon) createContainerPlatformSpecificSettings(container *contain
 
 		// Create the volume in the volume driver. If it doesn't exist,
 		// a new one will be created.
-		v, err := daemon.volumes.CreateWithRef(mp.Name, volumeDriver, container.ID, nil, nil)
+		v, err := daemon.volumes.Create(context.TODO(), mp.Name, volumeDriver, volumeopts.WithCreateReference(container.ID))
 		if err != nil {
 			return err
 		}
@@ -85,7 +87,7 @@ func (daemon *Daemon) createContainerPlatformSpecificSettings(container *contain
 		//	}
 
 		// Add it to container.MountPoints
-		container.AddMountPointWithVolume(mp.Destination, v, mp.RW)
+		container.AddMountPointWithVolume(mp.Destination, &volumeWrapper{v: v, s: daemon.volumes}, mp.RW)
 	}
 	return nil
 }

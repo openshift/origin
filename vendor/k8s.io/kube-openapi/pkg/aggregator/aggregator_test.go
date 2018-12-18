@@ -133,9 +133,9 @@ definitions:
     format: "string"
 `), &spec1_filtered)
 
-	assert := assert.New(t)
+	ast := assert.New(t)
 	FilterSpecByPaths(spec1, []string{"/test"})
-	assert.Equal(DebugSpec{spec1_filtered}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{spec1_filtered}, DebugSpec{spec1})
 }
 
 func TestFilterSpecsWithUnusedDefinitions(t *testing.T) {
@@ -238,9 +238,9 @@ definitions:
     type: "object"
 `), &spec1Filtered)
 
-	assert := assert.New(t)
+	ast := assert.New(t)
 	FilterSpecByPaths(spec1, []string{"/test"})
-	assert.Equal(DebugSpec{spec1Filtered}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{spec1Filtered}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsSimple(t *testing.T) {
@@ -369,11 +369,11 @@ definitions:
     type: "string"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsEmptyDefinitions(t *testing.T) {
@@ -471,11 +471,11 @@ definitions:
     type: "string"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsEmptyPaths(t *testing.T) {
@@ -569,11 +569,11 @@ definitions:
     type: "string"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsReuseModel(t *testing.T) {
@@ -700,11 +700,11 @@ definitions:
     format: "string"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsRenameModel(t *testing.T) {
@@ -836,11 +836,11 @@ definitions:
     format: "string"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsRenameModelWithExistingV2InDestination(t *testing.T) {
@@ -915,11 +915,11 @@ definitions:
     type: "object"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsRenameModelWithExistingV2InSource(t *testing.T) {
@@ -994,11 +994,11 @@ definitions:
     type: "object"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 // This tests if there are three specs, where the first two use the same object definition,
@@ -1081,14 +1081,14 @@ definitions:
     type: "object"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	if !assert.NoError(MergeSpecs(spec1, spec3)) {
+	if !ast.NoError(MergeSpecs(spec1, spec3)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 // This tests if there are three specs, where the last two use the same object definition,
@@ -1169,14 +1169,14 @@ definitions:
     type: "object"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	if !assert.NoError(MergeSpecs(spec1, spec3)) {
+	if !ast.NoError(MergeSpecs(spec1, spec3)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestSafeMergeSpecsSimple(t *testing.T) {
@@ -1279,15 +1279,15 @@ definitions:
           format: "int64"
   `), &expected)
 
-	assert := assert.New(t)
+	ast := assert.New(t)
 	actual, err := CloneSpec(fooSpec)
-	if !assert.NoError(err) {
+	if !ast.NoError(err) {
 		return
 	}
-	if !assert.NoError(MergeSpecsFailOnDefinitionConflict(actual, barSpec)) {
+	if !ast.NoError(MergeSpecsFailOnDefinitionConflict(actual, barSpec)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
+	ast.Equal(DebugSpec{expected}, DebugSpec{actual})
 }
 
 func TestSafeMergeSpecsReuseModel(t *testing.T) {
@@ -1384,15 +1384,15 @@ definitions:
           format: "int64"
   `), &expected)
 
-	assert := assert.New(t)
+	ast := assert.New(t)
 	actual, err := CloneSpec(fooSpec)
-	if !assert.NoError(err) {
+	if !ast.NoError(err) {
 		return
 	}
-	if !assert.NoError(MergeSpecsFailOnDefinitionConflict(actual, barSpec)) {
+	if !ast.NoError(MergeSpecsFailOnDefinitionConflict(actual, barSpec)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
+	ast.Equal(DebugSpec{expected}, DebugSpec{actual})
 }
 
 func TestSafeMergeSpecsReuseModelFails(t *testing.T) {
@@ -1491,12 +1491,12 @@ definitions:
           format: "int64"
   `), &expected)
 
-	assert := assert.New(t)
+	ast := assert.New(t)
 	actual, err := CloneSpec(fooSpec)
-	if !assert.NoError(err) {
+	if !ast.NoError(err) {
 		return
 	}
-	assert.Error(MergeSpecsFailOnDefinitionConflict(actual, barSpec))
+	ast.Error(MergeSpecsFailOnDefinitionConflict(actual, barSpec))
 }
 
 func TestMergeSpecsIgnorePathConflicts(t *testing.T) {
@@ -1602,22 +1602,22 @@ definitions:
           format: "int64"
   `), &expected)
 
-	assert := assert.New(t)
+	ast := assert.New(t)
 	actual, err := CloneSpec(fooSpec)
-	if !assert.NoError(err) {
+	if !ast.NoError(err) {
 		return
 	}
-	if !assert.Error(MergeSpecs(actual, barSpec)) {
+	if !ast.Error(MergeSpecs(actual, barSpec)) {
 		return
 	}
 	actual, err = CloneSpec(fooSpec)
-	if !assert.NoError(err) {
+	if !ast.NoError(err) {
 		return
 	}
-	if !assert.NoError(MergeSpecsIgnorePathConflict(actual, barSpec)) {
+	if !ast.NoError(MergeSpecsIgnorePathConflict(actual, barSpec)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
+	ast.Equal(DebugSpec{expected}, DebugSpec{actual})
 }
 
 func TestMergeSpecsIgnorePathConflictsAllConflicting(t *testing.T) {
@@ -1648,16 +1648,16 @@ definitions:
         format: "int64"
 `), &fooSpec)
 
-	assert := assert.New(t)
+	ast := assert.New(t)
 	foo2Spec, err := CloneSpec(fooSpec)
 	actual, err := CloneSpec(fooSpec)
-	if !assert.NoError(err) {
+	if !ast.NoError(err) {
 		return
 	}
-	if !assert.NoError(MergeSpecsIgnorePathConflict(actual, foo2Spec)) {
+	if !ast.NoError(MergeSpecsIgnorePathConflict(actual, foo2Spec)) {
 		return
 	}
-	assert.Equal(DebugSpec{fooSpec}, DebugSpec{actual})
+	ast.Equal(DebugSpec{fooSpec}, DebugSpec{actual})
 }
 
 func TestMergeSpecReplacesAllPossibleRefs(t *testing.T) {
@@ -1850,9 +1850,9 @@ definitions:
     type: "object"
 `), &expected)
 
-	assert := assert.New(t)
-	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+	ast := assert.New(t)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }

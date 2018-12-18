@@ -42,9 +42,10 @@ func NewVirtualMachinesClientWithBaseURI(baseURI string, subscriptionID string) 
 
 // Capture captures the VM by copying virtual hard disks of the VM and outputs a template that can be used to create
 // similar VMs.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine. parameters is
-// parameters supplied to the Capture Virtual Machine operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
+// parameters - parameters supplied to the Capture Virtual Machine operation.
 func (client VirtualMachinesClient) Capture(ctx context.Context, resourceGroupName string, VMName string, parameters VirtualMachineCaptureParameters) (result VirtualMachinesCaptureFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -83,7 +84,7 @@ func (client VirtualMachinesClient) CapturePreparer(ctx context.Context, resourc
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}/capture", pathParameters),
@@ -95,15 +96,17 @@ func (client VirtualMachinesClient) CapturePreparer(ctx context.Context, resourc
 // CaptureSender sends the Capture request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) CaptureSender(req *http.Request) (future VirtualMachinesCaptureFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -121,9 +124,10 @@ func (client VirtualMachinesClient) CaptureResponder(resp *http.Response) (resul
 }
 
 // CreateOrUpdate the operation to create or update a virtual machine.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine. parameters is
-// parameters supplied to the Create Virtual Machine operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
+// parameters - parameters supplied to the Create Virtual Machine operation.
 func (client VirtualMachinesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, VMName string, parameters VirtualMachine) (result VirtualMachinesCreateOrUpdateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -177,7 +181,7 @@ func (client VirtualMachinesClient) CreateOrUpdatePreparer(ctx context.Context, 
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}", pathParameters),
@@ -189,15 +193,17 @@ func (client VirtualMachinesClient) CreateOrUpdatePreparer(ctx context.Context, 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) CreateOrUpdateSender(req *http.Request) (future VirtualMachinesCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -216,8 +222,9 @@ func (client VirtualMachinesClient) CreateOrUpdateResponder(resp *http.Response)
 
 // Deallocate shuts down the virtual machine and releases the compute resources. You are not billed for the compute
 // resources that this virtual machine uses.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
 func (client VirtualMachinesClient) Deallocate(ctx context.Context, resourceGroupName string, VMName string) (result VirtualMachinesDeallocateFuture, err error) {
 	req, err := client.DeallocatePreparer(ctx, resourceGroupName, VMName)
 	if err != nil {
@@ -258,15 +265,17 @@ func (client VirtualMachinesClient) DeallocatePreparer(ctx context.Context, reso
 // DeallocateSender sends the Deallocate request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) DeallocateSender(req *http.Request) (future VirtualMachinesDeallocateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -284,8 +293,9 @@ func (client VirtualMachinesClient) DeallocateResponder(resp *http.Response) (re
 }
 
 // Delete the operation to delete a virtual machine.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
 func (client VirtualMachinesClient) Delete(ctx context.Context, resourceGroupName string, VMName string) (result VirtualMachinesDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, VMName)
 	if err != nil {
@@ -326,15 +336,17 @@ func (client VirtualMachinesClient) DeletePreparer(ctx context.Context, resource
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) DeleteSender(req *http.Request) (future VirtualMachinesDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -352,8 +364,9 @@ func (client VirtualMachinesClient) DeleteResponder(resp *http.Response) (result
 }
 
 // Generalize sets the state of the virtual machine to generalized.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
 func (client VirtualMachinesClient) Generalize(ctx context.Context, resourceGroupName string, VMName string) (result OperationStatusResponse, err error) {
 	req, err := client.GeneralizePreparer(ctx, resourceGroupName, VMName)
 	if err != nil {
@@ -418,9 +431,10 @@ func (client VirtualMachinesClient) GeneralizeResponder(resp *http.Response) (re
 }
 
 // Get retrieves information about the model view or the instance view of a virtual machine.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine. expand is the
-// expand expression to apply on the operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
+// expand - the expand expression to apply on the operation.
 func (client VirtualMachinesClient) Get(ctx context.Context, resourceGroupName string, VMName string, expand InstanceViewTypes) (result VirtualMachine, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, VMName, expand)
 	if err != nil {
@@ -489,8 +503,8 @@ func (client VirtualMachinesClient) GetResponder(resp *http.Response) (result Vi
 
 // List lists all of the virtual machines in the specified resource group. Use the nextLink property in the response to
 // get the next page of virtual machines.
-//
-// resourceGroupName is the name of the resource group.
+// Parameters:
+// resourceGroupName - the name of the resource group.
 func (client VirtualMachinesClient) List(ctx context.Context, resourceGroupName string) (result VirtualMachineListResultPage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName)
@@ -673,8 +687,9 @@ func (client VirtualMachinesClient) ListAllComplete(ctx context.Context) (result
 }
 
 // ListAvailableSizes lists all available virtual machine sizes to which the specified virtual machine can be resized.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
 func (client VirtualMachinesClient) ListAvailableSizes(ctx context.Context, resourceGroupName string, VMName string) (result VirtualMachineSizeListResult, err error) {
 	req, err := client.ListAvailableSizesPreparer(ctx, resourceGroupName, VMName)
 	if err != nil {
@@ -740,8 +755,9 @@ func (client VirtualMachinesClient) ListAvailableSizesResponder(resp *http.Respo
 
 // PowerOff the operation to power off (stop) a virtual machine. The virtual machine can be restarted with the same
 // provisioned resources. You are still charged for this virtual machine.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
 func (client VirtualMachinesClient) PowerOff(ctx context.Context, resourceGroupName string, VMName string) (result VirtualMachinesPowerOffFuture, err error) {
 	req, err := client.PowerOffPreparer(ctx, resourceGroupName, VMName)
 	if err != nil {
@@ -782,15 +798,17 @@ func (client VirtualMachinesClient) PowerOffPreparer(ctx context.Context, resour
 // PowerOffSender sends the PowerOff request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) PowerOffSender(req *http.Request) (future VirtualMachinesPowerOffFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -808,8 +826,9 @@ func (client VirtualMachinesClient) PowerOffResponder(resp *http.Response) (resu
 }
 
 // Redeploy the operation to redeploy a virtual machine.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
 func (client VirtualMachinesClient) Redeploy(ctx context.Context, resourceGroupName string, VMName string) (result VirtualMachinesRedeployFuture, err error) {
 	req, err := client.RedeployPreparer(ctx, resourceGroupName, VMName)
 	if err != nil {
@@ -850,15 +869,17 @@ func (client VirtualMachinesClient) RedeployPreparer(ctx context.Context, resour
 // RedeploySender sends the Redeploy request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) RedeploySender(req *http.Request) (future VirtualMachinesRedeployFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -876,8 +897,9 @@ func (client VirtualMachinesClient) RedeployResponder(resp *http.Response) (resu
 }
 
 // Restart the operation to restart a virtual machine.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
 func (client VirtualMachinesClient) Restart(ctx context.Context, resourceGroupName string, VMName string) (result VirtualMachinesRestartFuture, err error) {
 	req, err := client.RestartPreparer(ctx, resourceGroupName, VMName)
 	if err != nil {
@@ -918,15 +940,17 @@ func (client VirtualMachinesClient) RestartPreparer(ctx context.Context, resourc
 // RestartSender sends the Restart request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) RestartSender(req *http.Request) (future VirtualMachinesRestartFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -944,8 +968,9 @@ func (client VirtualMachinesClient) RestartResponder(resp *http.Response) (resul
 }
 
 // Start the operation to start a virtual machine.
-//
-// resourceGroupName is the name of the resource group. VMName is the name of the virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// VMName - the name of the virtual machine.
 func (client VirtualMachinesClient) Start(ctx context.Context, resourceGroupName string, VMName string) (result VirtualMachinesStartFuture, err error) {
 	req, err := client.StartPreparer(ctx, resourceGroupName, VMName)
 	if err != nil {
@@ -986,15 +1011,17 @@ func (client VirtualMachinesClient) StartPreparer(ctx context.Context, resourceG
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) StartSender(req *http.Request) (future VirtualMachinesStartFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

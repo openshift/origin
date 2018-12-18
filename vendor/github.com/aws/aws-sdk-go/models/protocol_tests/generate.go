@@ -329,7 +329,7 @@ func walkMap(m map[string]interface{}) string {
 		str += fmt.Sprintf("%q:", k)
 		switch v.(type) {
 		case bool:
-			str += fmt.Sprintf("%b,\n", v.(bool))
+			str += fmt.Sprintf("%t,\n", v.(bool))
 		case string:
 			str += fmt.Sprintf("%q,\n", v.(string))
 		case int:
@@ -394,6 +394,7 @@ func generateTestSuite(filename string) string {
 		suite.API.NoConstServiceNames = true // don't generate service names
 		suite.API.Setup()
 		suite.API.Metadata.EndpointPrefix = suite.API.PackageName()
+		suite.API.Metadata.EndpointsID = suite.API.Metadata.EndpointPrefix
 
 		// Sort in order for deterministic test generation
 		names := make([]string, 0, len(suite.API.Shapes))
@@ -459,7 +460,7 @@ func GenerateAssertions(out interface{}, shape *api.Shape, prefix string) string
 				code += GenerateAssertions(v, s, prefix+"[\""+k+"\"]")
 			}
 		} else if shape.Type == "jsonvalue" {
-			code += fmt.Sprintf("reflect.DeepEqual(%s, map[string]interface{}%s)", prefix, walkMap(out.(map[string]interface{})))
+			code += fmt.Sprintf("reflect.DeepEqual(%s, map[string]interface{}%s)\n", prefix, walkMap(out.(map[string]interface{})))
 		} else {
 			for _, k := range keys {
 				v := t[k]
@@ -481,7 +482,7 @@ func GenerateAssertions(out interface{}, shape *api.Shape, prefix string) string
 		case "timestamp":
 			return fmtAssertEqual(
 				fmt.Sprintf("time.Unix(%#v, 0).UTC().String()", out),
-				fmt.Sprintf("%s.String()", prefix),
+				fmt.Sprintf("%s.UTC().String()", prefix),
 			)
 		case "blob":
 			return fmtAssertEqual(
@@ -517,6 +518,7 @@ func getType(t string) uint {
 }
 
 func main() {
+	fmt.Println("Generating test suite", os.Args[1:])
 	out := generateTestSuite(os.Args[1])
 	if len(os.Args) == 3 {
 		f, err := os.Create(os.Args[2])

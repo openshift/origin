@@ -24,8 +24,7 @@ import (
 	"net/http"
 )
 
-// FactoryClient is the subscription client provides an interface to create and manage Azure subscriptions
-// programmatically.
+// FactoryClient is the the subscription client
 type FactoryClient struct {
 	BaseClient
 }
@@ -41,9 +40,9 @@ func NewFactoryClientWithBaseURI(baseURI string) FactoryClient {
 }
 
 // CreateSubscriptionInEnrollmentAccount creates an Azure subscription
-//
-// enrollmentAccountName is the name of the enrollment account to which the subscription will be billed. body is
-// the subscription creation parameters.
+// Parameters:
+// enrollmentAccountName - the name of the enrollment account to which the subscription will be billed.
+// body - the subscription creation parameters.
 func (client FactoryClient) CreateSubscriptionInEnrollmentAccount(ctx context.Context, enrollmentAccountName string, body CreationParameters) (result FactoryCreateSubscriptionInEnrollmentAccountFuture, err error) {
 	req, err := client.CreateSubscriptionInEnrollmentAccountPreparer(ctx, enrollmentAccountName, body)
 	if err != nil {
@@ -84,15 +83,17 @@ func (client FactoryClient) CreateSubscriptionInEnrollmentAccountPreparer(ctx co
 // CreateSubscriptionInEnrollmentAccountSender sends the CreateSubscriptionInEnrollmentAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client FactoryClient) CreateSubscriptionInEnrollmentAccountSender(req *http.Request) (future FactoryCreateSubscriptionInEnrollmentAccountFuture, err error) {
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
