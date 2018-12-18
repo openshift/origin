@@ -3,6 +3,7 @@ package ovs
 import (
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -258,4 +259,70 @@ func TestOVSVersion(t *testing.T) {
 	if _, err := New(fexec, "br0", "2.5.0"); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+}
+
+func TestFind(t *testing.T) {
+	fexec := normalSetup()
+	ovsif, err := New(fexec, "br0", "")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --columns=name find interface type=vxlan", "name : \"vxlan0\"\n", nil)
+	values, err := ovsif.FindOne("interface", "name", "type=vxlan")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if len(values) != 1 || values[0] != "vxlan0" {
+		t.Fatalf("Unexpected response: %#v", values)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --columns=name find interface type=internal", "name : \"tun0\"\n\nname : \"br0\"\n", nil)
+	values, err = ovsif.FindOne("interface", "name", "type=internal")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if len(values) != 2 || values[0] != "tun0" || values[1] != "br0" {
+		t.Fatalf("Unexpected response: %#v", values)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --columns=name find interface type=bob", "", nil)
+	values, err = ovsif.FindOne("interface", "name", "type=bob")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if len(values) != 0 {
+		t.Fatalf("Unexpected response: %#v", values)
+	}
+	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --columns=name,external_ids,ofport find interface external_ids:sandbox!=\"\"", `name                : "veth143e4c68"
+external_ids        : {ip="10.129.0.3", sandbox="7eb618c7b95e2855f13b1508fa33655c83f6ed9e7bd6812037624dc3b8da590e"}
+ofport              : 4
+
+name                : "veth8a018953"
+external_ids        : {ip="10.129.0.2", sandbox="cfd0762622523c17f306aab20192e305c4b0811f0f64a317f3fe1288329a795e"}
+ofport              : 3
+`, nil)
+	valuesMap, err := ovsif.Find("interface", []string{"name", "external_ids", "ofport"}, "external_ids:sandbox!=\"\"")
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	if !reflect.DeepEqual(valuesMap, []map[string]string{
+		{
+			"name":         "veth143e4c68",
+			"external_ids": `{ip="10.129.0.3", sandbox="7eb618c7b95e2855f13b1508fa33655c83f6ed9e7bd6812037624dc3b8da590e"}`,
+			"ofport":       "4",
+		},
+		{
+			"name":         "veth8a018953",
+			"external_ids": `{ip="10.129.0.2", sandbox="cfd0762622523c17f306aab20192e305c4b0811f0f64a317f3fe1288329a795e"}`,
+			"ofport":       "3",
+		},
+	}) {
+		t.Fatalf("Unexpected response: %#v", valuesMap)
+	}
+	ensureTestResults(t, fexec)
 }

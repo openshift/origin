@@ -123,7 +123,7 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
-func TestFind(t *testing.T) {
+func TestFakeFind(t *testing.T) {
 	ovsif := NewFake("br0")
 	if err := ovsif.AddBridge(); err != nil {
 		t.Fatalf("unexpected error adding bridge: %v", err)
@@ -145,7 +145,7 @@ func TestFind(t *testing.T) {
 		t.Fatalf("port numbers are reused: %d, %d, %d", vethA, vethB, vethC)
 	}
 
-	ports, err := ovsif.Find("interface", "name", "external-ids:sandboxID=ALPHA")
+	ports, err := ovsif.FindOne("interface", "name", "external-ids:sandboxID=ALPHA")
 	if err != nil {
 		t.Fatalf("unexpected error finding port: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestFind(t *testing.T) {
 		t.Fatalf("unexpected result finding port ALPHA's name: %#v", ports)
 	}
 
-	ports, err = ovsif.Find("interface", "ofport", "external-ids:sandboxID=BETA")
+	ports, err = ovsif.FindOne("interface", "ofport", "external-ids:sandboxID=BETA")
 	if err != nil {
 		t.Fatalf("unexpected error finding port: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestFind(t *testing.T) {
 		t.Fatalf("unexpected result finding port BETA's ofport: %#v", ports)
 	}
 
-	ports, err = ovsif.Find("interface", "name", "external-ids:notSandbox=ALPHA")
+	ports, err = ovsif.FindOne("interface", "name", "external-ids:notSandbox=ALPHA")
 	if err != nil {
 		t.Fatalf("unexpected error finding port: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestFind(t *testing.T) {
 		t.Fatalf("unexpected result finding notSandbox=ALPHA ports: %#v", ports)
 	}
 
-	ports, err = ovsif.Find("interface", "name", "external-ids:sandboxID=DELTA")
+	ports, err = ovsif.FindOne("interface", "name", "external-ids:sandboxID=DELTA")
 	if err != nil {
 		t.Fatalf("unexpected error finding port: %v", err)
 	}

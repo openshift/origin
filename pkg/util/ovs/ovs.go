@@ -66,8 +66,11 @@ type Interface interface {
 	Clear(table, record string, columns ...string) error
 
 	// Find finds records in the OVS database that match the given condition.
-	// It returns the value of the given column of matching records.
-	Find(table, column, condition string) ([]string, error)
+	// It returns the value of the given columns of matching records.
+	Find(table string, column []string, condition string) ([]map[string]string, error)
+
+	// FindOne is like Find but returns only a single column
+	FindOne(table, column, condition string) ([]string, error)
 
 	// DumpFlows dumps the flow table for the bridge and returns it as an array of
 	// strings, one per flow. If flow is not "" then it describes the flows to dump.
@@ -276,22 +279,52 @@ func (ovsif *ovsExec) Set(table, record string, values ...string) error {
 	return err
 }
 
-// Returns the given column of records that match the condition
-func (ovsif *ovsExec) Find(table, column, condition string) ([]string, error) {
-	output, err := ovsif.exec(OVS_VSCTL, "--no-heading", "--columns="+column, "find", table, condition)
+func (ovsif *ovsExec) Find(table string, columns []string, condition string) ([]map[string]string, error) {
+	output, err := ovsif.exec(OVS_VSCTL, "--columns="+strings.Join(columns, ","), "find", table, condition)
 	if err != nil {
 		return nil, err
 	}
-	values := strings.Split(output, "\n\n")
-	// We want "bare" values for strings, but we can't pass --bare to ovs-vsctl because
-	// it breaks more complicated types. So try passing each value through Unquote();
-	// if it fails, that means the value wasn't a quoted string, so use it as-is.
-	for i, val := range values {
-		if unquoted, err := strconv.Unquote(val); err == nil {
-			values[i] = unquoted
-		}
+	output = strings.TrimSuffix(output, "\n")
+	if output == "" {
+		return nil, err
 	}
-	return values, nil
+
+	rows := strings.Split(output, "\n\n")
+	result := make([]map[string]string, len(rows))
+	for i, row := range rows {
+		cols := make(map[string]string)
+		for _, col := range strings.Split(row, "\n") {
+			data := strings.SplitN(col, ":", 2)
+			if len(data) != 2 {
+				return nil, fmt.Errorf("bad 'ovs-vsctl find' line %q", col)
+			}
+			name := strings.TrimSpace(data[0])
+			val := strings.TrimSpace(data[1])
+			// We want "bare" values for strings, but we can't pass --bare to
+			// ovs-vsctl because it breaks more complicated types. So try
+			// passing each value through Unquote(); if it fails, that means
+			// the value wasn't a quoted string, so use it as-is.
+			if unquoted, err := strconv.Unquote(val); err == nil {
+				val = unquoted
+			}
+			cols[name] = val
+		}
+		result[i] = cols
+	}
+
+	return result, nil
+}
+
+func (ovsif *ovsExec) FindOne(table, column, condition string) ([]string, error) {
+	fullResult, err := ovsif.Find(table, []string{column}, condition)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, 0, len(fullResult))
+	for _, row := range fullResult {
+		result = append(result, row[column])
+	}
+	return result, nil
 }
 
 func (ovsif *ovsExec) Clear(table, record string, columns ...string) error {
