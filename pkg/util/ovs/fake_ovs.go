@@ -141,8 +141,8 @@ func (fake *ovsFake) Set(table, record string, values ...string) error {
 	return nil
 }
 
-func (fake *ovsFake) Find(table, column, condition string) ([]string, error) {
-	results := make([]string, 0)
+func (fake *ovsFake) Find(table string, columns []string, condition string) ([]map[string]string, error) {
+	results := make([]map[string]string, 0)
 	if (table == "Interface" || table == "interface") && strings.HasPrefix(condition, "external-ids:") {
 		parsed := strings.Split(condition[13:], "=")
 		if len(parsed) != 2 {
@@ -150,17 +150,33 @@ func (fake *ovsFake) Find(table, column, condition string) ([]string, error) {
 		}
 		for portName, portInfo := range fake.ports {
 			if portInfo.externalIDs[parsed[0]] == parsed[1] {
-				if column == "name" {
-					results = append(results, portName)
-				} else if column == "ofport" {
-					results = append(results, fmt.Sprintf("%d", portInfo.ofport))
-				} else if column == "external-ids" {
-					results = append(results, UnparseExternalIDs(portInfo.externalIDs))
+				result := make(map[string]string)
+				for _, column := range columns {
+					if column == "name" {
+						result[column] = portName
+					} else if column == "ofport" {
+						result[column] = fmt.Sprintf("%d", portInfo.ofport)
+					} else if column == "external_ids" || column == "external-ids" {
+						result[column] = UnparseExternalIDs(portInfo.externalIDs)
+					}
 				}
+				results = append(results, result)
 			}
 		}
 	}
 	return results, nil
+}
+
+func (fake *ovsFake) FindOne(table, column, condition string) ([]string, error) {
+	fullResult, err := fake.Find(table, []string{column}, condition)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, 0, len(fullResult))
+	for _, row := range fullResult {
+		result = append(result, row[column])
+	}
+	return result, nil
 }
 
 func (fake *ovsFake) Clear(table, record string, columns ...string) error {
