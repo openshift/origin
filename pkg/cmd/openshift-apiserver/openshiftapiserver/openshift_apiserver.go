@@ -591,7 +591,6 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 		return nil
 	})
 	s.GenericAPIServer.AddPostStartHookOrDie("openshift.io-restmapperupdater", func(context genericapiserver.PostStartHookContext) error {
-		c.ExtraConfig.RESTMapper.Reset()
 		go func() {
 			wait.Until(func() {
 				c.ExtraConfig.RESTMapper.Reset()
