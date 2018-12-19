@@ -308,8 +308,8 @@ func TestSetupBuildCAs(t *testing.T) {
 	}
 }
 
-func TestSetupRegistries(t *testing.T) {
-	const registryMount = "build-registry-conf"
+func TestSetupBuildSystem(t *testing.T) {
+	const registryMount = "build-system-configs"
 	build := mockDockerBuild()
 	podSpec := &corev1.Pod{
 		Spec: corev1.PodSpec{
@@ -323,9 +323,15 @@ func TestSetupRegistries(t *testing.T) {
 					Image: "busybox",
 				},
 			},
+			InitContainers: []corev1.Container{
+				{
+					Name:  "init",
+					Image: "busybox",
+				},
+			},
 		},
 	}
-	setupRegistries(build, podSpec)
+	setupContainersConfigs(build, podSpec)
 	if len(podSpec.Spec.Volumes) != 1 {
 		t.Fatalf("expected pod to have 1 volume, got %d", len(podSpec.Spec.Volumes))
 	}
@@ -336,16 +342,18 @@ func TestSetupRegistries(t *testing.T) {
 	if volume.ConfigMap == nil {
 		t.Fatal("expected volume to use a ConfigMap volume source")
 	}
-	for _, c := range podSpec.Spec.Containers {
+	containers := podSpec.Spec.Containers
+	containers = append(containers, podSpec.Spec.InitContainers...)
+	for _, c := range containers {
 		foundMount := false
 		for _, v := range c.VolumeMounts {
 			if v.Name == registryMount {
 				foundMount = true
-				if v.MountPath != ConfigMapRegistryConfMountPath {
-					t.Errorf("registry config %s was not mounted to %s", v.Name, ConfigMapRegistryConfMountPath)
+				if v.MountPath != ConfigMapBuildSystemConfigsMountPath {
+					t.Errorf("registry config %s was not mounted to %s in container %s", v.Name, ConfigMapBuildSystemConfigsMountPath, c.Name)
 				}
-				if v.ReadOnly {
-					t.Errorf("registry config volume %s should be writeable, but was mounted read-only.", v.Name)
+				if !v.ReadOnly {
+					t.Errorf("registry config volume %s in container %s should be read-only, but was mounted writeable.", v.Name, c.Name)
 				}
 				break
 			}

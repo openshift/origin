@@ -31,7 +31,6 @@ const (
 	ConfigMapBuildSourceBaseMountPath    = "/var/run/configs/openshift.io/build"
 	ConfigMapBuildSystemConfigsMountPath = "/var/run/configs/openshift.io/build-system"
 	ConfigMapCertsMountPath              = "/var/run/configs/openshift.io/certs"
-	ConfigMapRegistryConfMountPath       = "/var/run/configs/openshift.io/registry"
 	SecretBuildSourceBaseMountPath       = "/var/run/secrets/openshift.io/build"
 	SourceImagePullSecretMountPath       = "/var/run/secrets/openshift.io/source-image"
 
@@ -338,10 +337,9 @@ func copyEnvVarSlice(in []corev1.EnvVar) []corev1.EnvVar {
 
 // setupContainersConfigs sets up volumes for mounting the node's configuration which governs which
 // registries it knows about, whether or not they should be accessed with TLS, and signature policies.
-func setupContainersConfigs(pod *corev1.Pod, container *corev1.Container) {
-	configDir := ConfigMapBuildSystemConfigsMountPath
-	optional := true
-	volumeName := apihelpers.GetName("build-system-configs", "build", kvalidation.DNS1123LabelMaxLength)
+func setupContainersConfigs(build *buildv1.Build, pod *corev1.Pod) {
+	const volumeName = "build-system-configs"
+	const configDir = ConfigMapBuildSystemConfigsMountPath
 	exists := false
 	for _, v := range pod.Spec.Volumes {
 		if v.Name == volumeName {
@@ -350,38 +348,61 @@ func setupContainersConfigs(pod *corev1.Pod, container *corev1.Container) {
 		}
 	}
 	if !exists {
+		cmSource := &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: buildapihelpers.GetBuildSystemConfigMapName(build),
+			},
+		}
 		pod.Spec.Volumes = append(pod.Spec.Volumes,
 			corev1.Volume{
 				Name: volumeName,
 				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "build-system-configs",
-						},
-						Optional: &optional,
-					},
+					ConfigMap: cmSource,
 				},
 			},
 		)
+		containers := make([]corev1.Container, len(pod.Spec.Containers))
+		for i, c := range pod.Spec.Containers {
+			containers[i] = updateConfigsForContainer(c, volumeName, configDir)
+		}
+		pod.Spec.Containers = containers
+		if len(pod.Spec.InitContainers) > 0 {
+			initContainers := make([]corev1.Container, len(pod.Spec.InitContainers))
+			for i, c := range pod.Spec.InitContainers {
+				initContainers[i] = updateConfigsForContainer(c, volumeName, configDir)
+			}
+			pod.Spec.InitContainers = initContainers
+		}
 	}
+}
 
-	container.VolumeMounts = append(container.VolumeMounts,
+func updateConfigsForContainer(c corev1.Container, volumeName string, configDir string) corev1.Container {
+	c.VolumeMounts = append(c.VolumeMounts,
 		corev1.VolumeMount{
 			Name:      volumeName,
 			MountPath: configDir,
 			ReadOnly:  true,
 		},
 	)
-
+	// registries.conf is the primary registry config file mounted in by OpenShift
 	registriesConfPath := filepath.Join(configDir, "registries.conf")
+	// registries.d is a directory used by buildah to support multiple registries.conf files
+	// currently not created/managed by OpenShift
 	registriesDirPath := filepath.Join(configDir, "registries.d")
+	// signature-policy.json sets image signing policies for buildah (allowed signatures, etc.)
+	// currently not created/managed by OpenShift
 	signaturePolicyPath := filepath.Join(configDir, "signature-policy.json")
+	// storage.conf configures storage policies for buildah
+	// currently not created/managed by OpenShift
 	storageConfPath := filepath.Join(configDir, "storage.conf")
 
-	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_REGISTRIES_CONF_PATH", Value: registriesConfPath})
-	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_REGISTRIES_DIR_PATH", Value: registriesDirPath})
-	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_SIGNATURE_POLICY_PATH", Value: signaturePolicyPath})
-	container.Env = append(container.Env, corev1.EnvVar{Name: "BUILD_STORAGE_CONF_PATH", Value: storageConfPath})
+	// Setup environment variables for buildah
+	// If these paths do not exist in the build container, buildah falls back to sane defaults.
+	c.Env = append(c.Env, corev1.EnvVar{Name: "BUILD_REGISTRIES_CONF_PATH", Value: registriesConfPath})
+	c.Env = append(c.Env, corev1.EnvVar{Name: "BUILD_REGISTRIES_DIR_PATH", Value: registriesDirPath})
+	c.Env = append(c.Env, corev1.EnvVar{Name: "BUILD_SIGNATURE_POLICY_PATH", Value: signaturePolicyPath})
+	c.Env = append(c.Env, corev1.EnvVar{Name: "BUILD_STORAGE_CONF_PATH", Value: storageConfPath})
+	return c
 }
 
 // setupContainersStorage creates a volume that we'll use for holding images and working
@@ -484,43 +505,6 @@ func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, includeAdditionalCA bo
 				corev1.VolumeMount{
 					Name:      "build-ca-bundles",
 					MountPath: ConfigMapCertsMountPath,
-				},
-			)
-			containers[i] = c
-		}
-		pod.Spec.Containers = containers
-	}
-}
-
-func setupRegistries(build *buildv1.Build, pod *corev1.Pod) {
-	registryConfExists := false
-	for _, v := range pod.Spec.Volumes {
-		if v.Name == "build-registry-conf" {
-			registryConfExists = true
-			break
-		}
-	}
-
-	if !registryConfExists {
-		cmSource := &corev1.ConfigMapVolumeSource{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: buildapihelpers.GetBuildRegistryConfigMapName(build),
-			},
-		}
-		pod.Spec.Volumes = append(pod.Spec.Volumes,
-			corev1.Volume{
-				Name: "build-registry-conf",
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: cmSource,
-				},
-			},
-		)
-		containers := make([]corev1.Container, len(pod.Spec.Containers))
-		for i, c := range pod.Spec.Containers {
-			c.VolumeMounts = append(c.VolumeMounts,
-				corev1.VolumeMount{
-					Name:      "build-registry-conf",
-					MountPath: ConfigMapRegistryConfMountPath,
 				},
 			)
 			containers[i] = c
