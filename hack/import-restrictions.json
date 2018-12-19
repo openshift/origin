@@ -554,7 +554,6 @@
       "github.com/openshift/origin/pkg/client/config",
       "github.com/openshift/origin/pkg/cmd/flagtypes",
       "github.com/openshift/origin/pkg/cmd/infra/deployer",
-      "github.com/openshift/origin/pkg/cmd/infra/router",
       "github.com/openshift/origin/pkg/cmd/recycle",
       "github.com/openshift/origin/pkg/cmd/server/admin",
       "github.com/openshift/origin/pkg/cmd/server/apis/config",

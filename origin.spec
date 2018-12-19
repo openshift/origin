@@ -286,9 +286,7 @@ for cmd in \
     openshift-git-clone \
     openshift-manage-dockerfile \
     openshift-extract-image-content \
-    openshift-f5-router \
     openshift-recycle \
-    openshift-router \
     kubectl
 do
     ln -s oc %{buildroot}%{_bindir}/$cmd
@@ -406,9 +404,7 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_bindir}/openshift-git-clone
 %{_bindir}/openshift-extract-image-content
 %{_bindir}/openshift-manage-dockerfile
-%{_bindir}/openshift-f5-router
 %{_bindir}/openshift-recycle
-%{_bindir}/openshift-router
 %{_sysconfdir}/bash_completion.d/oc
 %{_mandir}/man1/oc*
 

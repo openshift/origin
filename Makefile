@@ -47,7 +47,7 @@ all build:
 #
 # Example:
 #   make build-tests
-build-tests: build-extended-test build-integration-test build-router-e2e-test
+build-tests: build-extended-test build-integration-test
 .PHONY: build-tests
 
 build-network:
@@ -58,13 +58,9 @@ build-extended-test:
 	hack/build-go.sh cmd/openshift-tests
 .PHONY: build-extended-test
 
-build-integration-test: build-router-e2e-test
+build-integration-test:
 	hack/build-go.sh test/integration/integration.test
 .PHONY: build-integration-test
-
-build-router-e2e-test:
-	hack/build-go.sh test/end-to-end/end-to-end.test
-.PHONY: build-router-e2e-test
 
 build-docs:
 	hack/generate-docs.sh
