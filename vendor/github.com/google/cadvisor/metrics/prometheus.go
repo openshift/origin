@@ -24,7 +24,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
-	"runtime/debug"
 )
 
 // infoProvider will usually be manager.Manager, but can be swapped out for testing.
@@ -45,10 +44,6 @@ type metricValue struct {
 	labels []string
 }
 
-var printedStackUsed = false
-var printedStackGood = false
-var printedStackBad = false
-
 type metricValues []metricValue
 
 // asFloat64 converts a uint64 into a float64.
@@ -61,7 +56,6 @@ func asNanosecondsToSeconds(v uint64) float64 {
 
 // fsValues is a helper method for assembling per-filesystem stats.
 func fsValues(fsStats []info.FsStats, valueFn func(*info.FsStats) float64) metricValues {
-	glog.Infof("::::: fsValues %#+v", fsStats)
 	values := make(metricValues, 0, len(fsStats))
 	for _, stat := range fsStats {
 		values = append(values, metricValue{
@@ -81,9 +75,7 @@ func ioValues(ioStats []info.PerDiskStats, ioType string, ioValueFn func(uint64)
 			labels: []string{stat.Device},
 		})
 	}
-	glog.Infof("..... fsValues")
 	for _, stat := range fsStats {
-		glog.Infof("      stat %#+v", stat)
 		values = append(values, metricValue{
 			value:  valueFn(&stat),
 			labels: []string{stat.Device},
@@ -427,18 +419,6 @@ func NewPrometheusCollector(i infoProvider, f ContainerLabelsFunc, includedMetri
 				extraLabels: []string{"device"},
 				getValues: func(s *info.ContainerStats) metricValues {
 					return fsValues(s.Filesystem, func(fs *info.FsStats) float64 {
-						glog.Infof("YYYYYFree inodes: %v %v %#+v", fs.InodesFree, fs, i)
-						if fs.InodesFree > 0 {
-							if !printedStackGood {
-								glog.Infof("     Info:\n     %#+v\n     Stack: %s", s, string(debug.Stack()))
-								printedStackGood = true
-							}
-						} else {
-							if !printedStackBad {
-								glog.Infof("     Info:\n     %#+v\n     Stack: %s", s, string(debug.Stack()))
-								printedStackBad = true
-							}
-						}
 						return float64(fs.InodesFree)
 					})
 				},
@@ -449,11 +429,6 @@ func NewPrometheusCollector(i infoProvider, f ContainerLabelsFunc, includedMetri
 				extraLabels: []string{"device"},
 				getValues: func(s *info.ContainerStats) metricValues {
 					return fsValues(s.Filesystem, func(fs *info.FsStats) float64 {
-						glog.Infof("+++++Total inodes: %v %v", fs.Inodes, fs)
-						if !printedStackUsed {
-							glog.Infof("     Info:\n     %#+v\n     Stack: %s", s, string(debug.Stack()))
-							printedStackUsed = true
-						}
 						return float64(fs.Inodes)
 					})
 				},

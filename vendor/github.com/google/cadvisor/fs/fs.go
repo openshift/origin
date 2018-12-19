@@ -32,7 +32,6 @@ import (
 	"syscall"
 	"time"
 
-	"runtime/debug"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/devicemapper"
@@ -406,7 +405,7 @@ func (self *RealFsInfo) GetFsInfoForPath(mountSet map[string]struct{}) ([]Fs, er
 			switch partition.fsType {
 			case DeviceMapper.String():
 				fs.Capacity, fs.Free, fs.Available, err = getDMStats(device, partition.blockSize)
-				glog.Infof(">>>>>got devicemapper fs capacity stats: capacity: %v free: %v available: %v:", fs.Capacity, fs.Free, fs.Available)
+				glog.V(5).Infof("got devicemapper fs capacity stats: capacity: %v free: %v available: %v:", fs.Capacity, fs.Free, fs.Available)
 				fs.Type = DeviceMapper
 			case ZFS.String():
 				fs.Capacity, fs.Free, fs.Available, err = getZfstats(device)
@@ -418,9 +417,8 @@ func (self *RealFsInfo) GetFsInfoForPath(mountSet map[string]struct{}) ([]Fs, er
 					fs.Inodes = &inodes
 					fs.InodesFree = &inodesFree
 					fs.Type = VFS
-					glog.Infof(">>>>>Got stats for %s: cap %v free %v avail %v inodes %v inodesFree %v", partition.mountpoint, fs.Capacity, fs.Free, fs.Available, inodes, inodesFree)
 				} else {
-					glog.Infof(">>>>>unable to determine file system type, partition mountpoint does not exist: %v", partition.mountpoint)
+					glog.V(4).Infof("unable to determine file system type, partition mountpoint does not exist: %v", partition.mountpoint)
 				}
 			}
 			if err != nil {
@@ -520,7 +518,6 @@ func (self *RealFsInfo) GetDeviceInfoByFsUUID(uuid string) (*DeviceInfo, error) 
 }
 
 func (self *RealFsInfo) GetDirFsDevice(dir string) (*DeviceInfo, error) {
-	glog.Infof("===== GetDirFsDevice %s\n      Stack:\n%s", dir, string(debug.Stack()))
 	buf := new(syscall.Stat_t)
 	err := syscall.Stat(dir, buf)
 	if err != nil {
@@ -569,7 +566,6 @@ func (self *RealFsInfo) GetDirDiskUsage(dir string, timeout time.Duration) (uint
 }
 
 func GetDirDiskUsage(dir string, timeout time.Duration) (uint64, error) {
-	glog.Infof("===== GetDirDiskUsage %s\n      Stack:\n%s", dir, string(debug.Stack()))
 	if dir == "" {
 		return 0, fmt.Errorf("invalid directory")
 	}
@@ -615,7 +611,6 @@ func (self *RealFsInfo) GetDirInodeUsage(dir string, timeout time.Duration) (uin
 }
 
 func GetDirInodeUsage(dir string, timeout time.Duration) (uint64, error) {
-	glog.Infof("===== GetDirInodeUnsage %s\n      Stack:\n%s", dir, string(debug.Stack()))
 	if dir == "" {
 		return 0, fmt.Errorf("invalid directory")
 	}
@@ -639,7 +634,6 @@ func GetDirInodeUsage(dir string, timeout time.Duration) (uint64, error) {
 }
 
 func getVfsStats(path string) (total uint64, free uint64, avail uint64, inodes uint64, inodesFree uint64, err error) {
-	glog.Infof("===== GetVfsStats %s\n      Stack:\n%s", path, string(debug.Stack()))
 	var s syscall.Statfs_t
 	if err = syscall.Statfs(path, &s); err != nil {
 		return 0, 0, 0, 0, 0, err

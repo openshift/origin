@@ -33,7 +33,6 @@ import (
 	"github.com/google/cadvisor/fs"
 	info "github.com/google/cadvisor/info/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/golang/glog"
 )
 
 type containerdContainerHandler struct {
@@ -182,7 +181,6 @@ func (self *containerdContainerHandler) GetSpec() (info.ContainerSpec, error) {
 }
 
 func (self *containerdContainerHandler) getFsStats(stats *info.ContainerStats) error {
-	glog.Infof("~~~~~getFsStats %v", self)
 	mi, err := self.machineInfoFactory.GetMachineInfo()
 	if err != nil {
 		return err
@@ -195,7 +193,6 @@ func (self *containerdContainerHandler) getFsStats(stats *info.ContainerStats) e
 }
 
 func (self *containerdContainerHandler) GetStats() (*info.ContainerStats, error) {
-	glog.Infof("OOOOO GetStats %+v", self)
 	stats, err := self.libcontainerHandler.GetStats()
 	if err != nil {
 		return stats, err

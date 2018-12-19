@@ -160,9 +160,6 @@ func fsToFsStats(fs *fs.Fs) info.FsStats {
 	if hasInodes {
 		inodes = *fs.Inodes
 		inodesFree = *fs.InodesFree
-		glog.Infof("##### fsToFsStats inodes %v free %v: %+v", inodes, inodesFree, fs)
-	} else {
-		glog.Infof("##### fsToFsStats %+v NO INODES!!!", fs)
 	}
 	return info.FsStats{
 		Device:          fs.Device,
@@ -188,21 +185,17 @@ func fsToFsStats(fs *fs.Fs) info.FsStats {
 }
 
 func (self *rawContainerHandler) getFsStats(stats *info.ContainerStats) error {
-	glog.Infof("_____ getFsStats %+v", self)
 	var allFs []fs.Fs
 	// Get Filesystem information only for the root cgroup.
 	if isRootCgroup(self.name) {
 		filesystems, err := self.fsInfo.GetGlobalFsInfo()
 		if err != nil {
-			glog.Infof("VVVVVV_____error(1): %v", err)
 			return err
 		}
-		glog.Infof("VVVVVV_____about to enumerate(1)")
 		for i := range filesystems {
 			fs := filesystems[i]
 			stats.Filesystem = append(stats.Filesystem, fsToFsStats(&fs))
 		}
-		glog.Infof("VVVVVV_____filesystems (1): %+v", stats.Filesystem)
 		allFs = filesystems
 	} else if len(self.externalMounts) > 0 {
 		var mountSet map[string]struct{}
@@ -210,21 +203,15 @@ func (self *rawContainerHandler) getFsStats(stats *info.ContainerStats) error {
 		for _, mount := range self.externalMounts {
 			mountSet[mount.HostDir] = struct{}{}
 		}
-		glog.Infof("VVVVVV_____about to enumerate(2)")
 		filesystems, err := self.fsInfo.GetFsInfoForPath(mountSet)
 		if err != nil {
-			glog.Infof("VVVVVV_____error(2): %v %+v", err, mountSet)
 			return err
 		}
-		glog.Infof("VVVVVV_____about to enumerate(2a)")
 		for i := range filesystems {
 			fs := filesystems[i]
 			stats.Filesystem = append(stats.Filesystem, fsToFsStats(&fs))
 		}
-		glog.Infof("VVVVVV_____filesystems (2): %+v", stats.Filesystem)
 		allFs = filesystems
-	} else {
-		glog.Infof("VVVVVV_____No external mounts")
 	}
 
 	common.AssignDeviceNamesToDiskStats(&fsNamer{fs: allFs, factory: self.machineInfoFactory}, &stats.DiskIo)
@@ -232,21 +219,17 @@ func (self *rawContainerHandler) getFsStats(stats *info.ContainerStats) error {
 }
 
 func (self *rawContainerHandler) GetStats() (*info.ContainerStats, error) {
-	glog.Infof("WWWWW>>>>> GetStats %+v", self)
 	stats, err := self.libcontainerHandler.GetStats()
 	if err != nil {
-		glog.Infof("WWWWW_____ GetStats fails %v %v", stats, err)
 		return stats, err
 	}
 
 	// Get filesystem stats.
 	err = self.getFsStats(stats)
 	if err != nil {
-		glog.Infof("WWWWW_____ GetStats getFsStats fails %v %v", stats, err)
 		return stats, err
 	}
 
-	glog.Infof("WWWWW<<<<< GetStats %v %+v", self, stats)
 	return stats, nil
 }
 

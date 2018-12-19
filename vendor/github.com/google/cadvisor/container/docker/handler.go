@@ -413,6 +413,8 @@ func (self *dockerContainerHandler) getFsStats(stats *info.ContainerStats) error
 	fsStat.BaseUsage = usage.BaseUsageBytes
 	fsStat.Usage = usage.TotalUsageBytes
 	fsStat.Inodes = usage.InodeUsage
+	fsStat.Available = usage.FreeBytes
+	fsStat.InodesFree = usage.InodesFree
 
 	stats.Filesystem = append(stats.Filesystem, fsStat)
 
@@ -421,7 +423,6 @@ func (self *dockerContainerHandler) getFsStats(stats *info.ContainerStats) error
 
 // TODO(vmarmol): Get from libcontainer API instead of cgroup manager when we don't have to support older Dockers.
 func (self *dockerContainerHandler) GetStats() (*info.ContainerStats, error) {
-	glog.Infof("DDDDD GetStats %+v", self)
 	stats, err := self.libcontainerHandler.GetStats()
 	if err != nil {
 		return stats, err

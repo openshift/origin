@@ -215,6 +215,8 @@ func (handler *rktContainerHandler) getFsStats(stats *info.ContainerStats) error
 	fsStat.BaseUsage = usage.BaseUsageBytes
 	fsStat.Usage = usage.TotalUsageBytes
 	fsStat.Inodes = usage.InodeUsage
+	fsStat.Available = usage.FreeBytes
+	fsStat.InodesFree = usage.InodesFree
 
 	stats.Filesystem = append(stats.Filesystem, fsStat)
 
@@ -222,7 +224,6 @@ func (handler *rktContainerHandler) getFsStats(stats *info.ContainerStats) error
 }
 
 func (handler *rktContainerHandler) GetStats() (*info.ContainerStats, error) {
-	glog.Infof("RRRRR GetStats %+v", handler)
 	stats, err := handler.libcontainerHandler.GetStats()
 	if err != nil {
 		return stats, err

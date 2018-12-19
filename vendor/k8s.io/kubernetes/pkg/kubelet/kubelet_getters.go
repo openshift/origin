@@ -309,6 +309,5 @@ func (kl *Kubelet) GetVersionInfo() (*cadvisorapiv1.VersionInfo, error) {
 
 // GetCachedMachineInfo assumes that the machine info can't change without a reboot
 func (kl *Kubelet) GetCachedMachineInfo() (*cadvisorapiv1.MachineInfo, error) {
-	glog.Infof("!!!!!!!!!! GetCachedMachineInfo %#+v", kl.machineInfo)
 	return kl.machineInfo, nil
 }
