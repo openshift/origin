@@ -53,6 +53,7 @@ func machineFsStatsFromV1(fsStats []v1.FsStats) []MachineFsStats {
 		if stat.HasInodes {
 			machineFsStat.InodesFree = &stat.InodesFree
 		}
+		glog.Infof("^^^^^ machineFsStatsFromV1 %d\nfsStats %#+v\nmachineFsStat %#+v", i, fsStats[i], machineFsStat)
 		result = append(result, machineFsStat)
 	}
 	return result

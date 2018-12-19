@@ -17,6 +17,7 @@ limitations under the License.
 package volume
 
 import (
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/volume/util/fs"
@@ -41,6 +42,7 @@ func NewMetricsDu(path string) MetricsProvider {
 // and gathering filesystem info for the Volume path.
 // See MetricsProvider.GetMetrics
 func (md *metricsDu) GetMetrics() (*Metrics, error) {
+	glog.Infof("''''' GetMetrics %s", md.path)
 	metrics := &Metrics{Time: metav1.Now()}
 	if md.path == "" {
 		return metrics, NewNoPathDefinedError()
@@ -48,19 +50,23 @@ func (md *metricsDu) GetMetrics() (*Metrics, error) {
 
 	err := md.runDiskUsage(metrics)
 	if err != nil {
+		glog.Infof("   ''' Metrics failed disk usage %s %#+v %#+v", md.path, metrics, err)
 		return metrics, err
 	}
 
 	err = md.runFind(metrics)
 	if err != nil {
+		glog.Infof("   ''' Metrics failed find %s %#+v %#+v", md.path, metrics, err)
 		return metrics, err
 	}
 
 	err = md.getFsInfo(metrics)
 	if err != nil {
+		glog.Infof("   ''' Metrics failed fsinfo %s %#+v %#+v", md.path, metrics, err)
 		return metrics, err
 	}
 
+	glog.Infof("   ''' Metrics succeeded %s %#+v", md.path, metrics)
 	return metrics, nil
 }
 

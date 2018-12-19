@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/google/cadvisor/container"
 	"github.com/google/cadvisor/container/common"
 	containerlibcontainer "github.com/google/cadvisor/container/libcontainer"
@@ -217,8 +218,10 @@ func (self *crioContainerHandler) GetSpec() (info.ContainerSpec, error) {
 }
 
 func (self *crioContainerHandler) getFsStats(stats *info.ContainerStats) error {
+	glog.Infof("$$$$$ getFsStats %v", self)
 	mi, err := self.machineInfoFactory.GetMachineInfo()
 	if err != nil {
+		glog.Infof("    No machine info")
 		return err
 	}
 
@@ -249,6 +252,7 @@ func (self *crioContainerHandler) getFsStats(stats *info.ContainerStats) error {
 	// crio does not impose any filesystem limits for containers. So use capacity as limit.
 	for _, fs := range mi.Filesystems {
 		if fs.Device == device {
+			glog.Infof("           fs %#+v", fs)
 			limit = fs.Capacity
 			fsType = fs.Type
 			break
@@ -257,9 +261,13 @@ func (self *crioContainerHandler) getFsStats(stats *info.ContainerStats) error {
 
 	fsStat := info.FsStats{Device: device, Type: fsType, Limit: limit}
 	usage := self.fsHandler.Usage()
+	glog.Infof("     usage %+v\n     %+v", usage, fsStat)
 	fsStat.BaseUsage = usage.BaseUsageBytes
 	fsStat.Usage = usage.TotalUsageBytes
 	fsStat.Inodes = usage.InodeUsage
+	fsStat.Available = usage.FreeBytes
+	fsStat.Inodes = usage.Inodes
+	fsStat.InodesFree = usage.InodesFree
 
 	stats.Filesystem = append(stats.Filesystem, fsStat)
 
@@ -267,8 +275,10 @@ func (self *crioContainerHandler) getFsStats(stats *info.ContainerStats) error {
 }
 
 func (self *crioContainerHandler) GetStats() (*info.ContainerStats, error) {
+	glog.Infof("IIIII GetStats %+v", self)
 	stats, err := self.libcontainerHandler.GetStats()
 	if err != nil {
+		glog.Infof("      GetStats crio fails %+v", err)
 		return stats, err
 	}
 	// Clean up stats for containers that don't have their own network - this

@@ -223,7 +223,7 @@ type FsInfo struct {
 	Labels []string `json:"labels"`
 
 	// Number of Inodes.
-	Inodes *uint64 `json:"inodes,omitempty"`
+	Inodes *uint64 `json:"capacity"`
 
 	// Number of available Inodes (if known)
 	InodesFree *uint64 `json:"inodes_free,omitempty"`

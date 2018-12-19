@@ -78,6 +78,11 @@ type FsInfo interface {
 	// Returns number of inodes used by 'dir'.
 	GetDirInodeUsage(dir string, timeout time.Duration) (uint64, error)
 
+	// Returns the total number of bytes, number of free bytes, number of available
+	// bytes, number of inodes in use, and nmber of inodes free in the
+	// filesystem containing 'dir'.
+	GetVfsStats (dir string) (uint64, uint64, uint64, uint64, uint64, error)
+
 	// GetDeviceInfoByFsUUID returns the information of the device with the
 	// specified filesystem uuid. If no such device exists, this function will
 	// return the ErrNoSuchDevice error.

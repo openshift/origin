@@ -169,6 +169,9 @@ func Info(sysFs sysfs.SysFs, fsInfo fs.FsInfo, inHostNamespace bool) (*info.Mach
 		}
 		machineInfo.Filesystems = append(machineInfo.Filesystems, info.FsInfo{Device: fs.Device, DeviceMajor: uint64(fs.Major), DeviceMinor: uint64(fs.Minor), Type: fs.Type.String(), Capacity: fs.Capacity, Inodes: inodes, HasInodes: fs.Inodes != nil})
 	}
+	for i := range machineInfo.Filesystems {
+		glog.Infof("===== Filesystem %d: %#+v", i, machineInfo.Filesystems[i])
+	}
 
 	return machineInfo, nil
 }

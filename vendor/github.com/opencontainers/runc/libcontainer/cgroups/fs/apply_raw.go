@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/golang/glog"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	libcontainerUtils "github.com/opencontainers/runc/libcontainer/utils"
@@ -181,6 +182,7 @@ func (m *Manager) GetPaths() map[string]string {
 }
 
 func (m *Manager) GetStats() (*cgroups.Stats, error) {
+	glog.Infof("PPPPP ApplyRaw GetStats %+v", m)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	stats := cgroups.NewStats()

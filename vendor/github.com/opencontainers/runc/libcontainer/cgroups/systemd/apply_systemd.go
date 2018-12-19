@@ -14,6 +14,7 @@ import (
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	systemdUtil "github.com/coreos/go-systemd/util"
+	"github.com/golang/glog"
 	"github.com/godbus/dbus"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
@@ -525,6 +526,7 @@ func (m *Manager) GetAllPids() ([]int, error) {
 }
 
 func (m *Manager) GetStats() (*cgroups.Stats, error) {
+	glog.Infof("SSSSS systemd GetStats %m", m)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	stats := cgroups.NewStats()

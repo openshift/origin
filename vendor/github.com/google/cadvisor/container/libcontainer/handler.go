@@ -59,6 +59,7 @@ func NewHandler(cgroupManager cgroups.Manager, rootFs string, pid int, includedM
 
 // Get cgroup and networking stats of the specified container
 func (h *Handler) GetStats() (*info.ContainerStats, error) {
+	glog.Infof("LLLLL GetStats %+v", h)
 	cgroupStats, err := h.cgroupManager.GetStats()
 	if err != nil {
 		return nil, err
@@ -79,6 +80,7 @@ func (h *Handler) GetStats() (*info.ContainerStats, error) {
 				glog.V(4).Infof("Unable to get Process Scheduler Stats: %v", err)
 			}
 		}
+		glog.Infof("///// libcontainer GetStats %+v", stats)
 	}
 
 	// If we know the pid then get network stats from /proc/<pid>/net/dev

@@ -222,6 +222,7 @@ func (handler *rktContainerHandler) getFsStats(stats *info.ContainerStats) error
 }
 
 func (handler *rktContainerHandler) GetStats() (*info.ContainerStats, error) {
+	glog.Infof("RRRRR GetStats %+v", handler)
 	stats, err := handler.libcontainerHandler.GetStats()
 	if err != nil {
 		return stats, err

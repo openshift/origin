@@ -553,7 +553,10 @@ func (c *containerData) updateLoad(newLoad uint64) {
 }
 
 func (c *containerData) updateStats() error {
+	glog.Infof("ZZZZZ>>>> updateStats %+v", c)
 	stats, statsErr := c.handler.GetStats()
+	glog.Infof("ZZZZZ|||| after GetStats %+v %v", stats.Filesystem, statsErr)
+	defer glog.Infof("ZZZZZ<<<< updateStats %s %s", c.info.Namespace, c.info.Name)
 	if statsErr != nil {
 		// Ignore errors if the container is dead.
 		if !c.handler.Exists() {
