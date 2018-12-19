@@ -78,14 +78,14 @@ func NewFsHandler(period time.Duration, rootfs, extraDir string, fsInfo fs.FsInf
 func (fh *realFsHandler) update() error {
 	var (
 		baseUsage, extraDirUsage, inodeUsage    uint64
-		free, inodes, inodesFree  uint64
+		free, inodesFree  uint64
 		rootDiskErr, rootInodeErr, extraDiskErr, vfsStatsErr error
 	)
 	// TODO(vishh): Add support for external mounts.
 	if fh.rootfs != "" {
 		baseUsage, rootDiskErr = fh.fsInfo.GetDirDiskUsage(fh.rootfs, timeout)
 		inodeUsage, rootInodeErr = fh.fsInfo.GetDirInodeUsage(fh.rootfs, timeout)
-		_, free, _, inodes, inodesFree, vfsStatsErr = fh.fsInfo.GetVfsStats(fh.rootfs)
+		_, free, _, _, inodesFree, vfsStatsErr = fh.fsInfo.GetVfsStats(fh.rootfs)
 	}
 
 	if fh.extraDir != "" {
@@ -105,7 +105,6 @@ func (fh *realFsHandler) update() error {
 	}
 	if vfsStatsErr == nil && fh.rootfs != "" {
 		fh.usage.FreeBytes = free
-		fh.usage.Inodes = inodes
 		fh.usage.InodesFree = inodesFree
 	}
 	if extraDiskErr == nil && fh.extraDir != "" {

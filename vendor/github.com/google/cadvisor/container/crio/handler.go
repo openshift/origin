@@ -266,7 +266,6 @@ func (self *crioContainerHandler) getFsStats(stats *info.ContainerStats) error {
 	fsStat.Usage = usage.TotalUsageBytes
 	fsStat.Inodes = usage.InodeUsage
 	fsStat.Available = usage.FreeBytes
-	fsStat.Inodes = usage.Inodes
 	fsStat.InodesFree = usage.InodesFree
 
 	stats.Filesystem = append(stats.Filesystem, fsStat)
