@@ -18,6 +18,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -27,6 +29,23 @@ const (
 
 var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 	defer g.GinkgoRecover()
+
+	e2e.Logf("Gathering operator metrics. QPS threshold set to %v", maxQPSAllowed)
+
+	oc := exutil.NewCLI("test-e2e", exutil.KubeConfigPath())
+	g.AfterEach(func() {
+		e2e.Logf("About to gather operator metrics. Threshold: %v", maxQPSAllowed)
+		err := calculatePodMetrics(oc)
+		if err != nil {
+			e2e.Logf("Error gathering operator metrics: %v", err)
+		}
+
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.BeforeEach(func() {
+		e2e.Logf("Logging operator metrics after each run. Threshold: %v", maxQPSAllowed)
+	})
 
 	g.It("start all core operators", func() {
 		cfg, err := e2e.LoadConfig()
