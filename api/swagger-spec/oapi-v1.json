@@ -10,7 +10,7 @@
   "apis": [
    {
     "path": "/oapi/v1/namespaces/{namespace}/appliedclusterresourcequotas",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.AppliedClusterResourceQuotaList",
@@ -121,7 +121,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/appliedclusterresourcequotas/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.AppliedClusterResourceQuota",
@@ -174,7 +174,7 @@
    },
    {
     "path": "/oapi/v1/appliedclusterresourcequotas",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.AppliedClusterResourceQuotaList",
@@ -277,7 +277,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/buildconfigs",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.BuildConfigList",
@@ -548,7 +548,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/buildconfigs",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -659,7 +659,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.BuildConfig",
@@ -924,7 +924,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/buildconfigs/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -1043,7 +1043,7 @@
    },
    {
     "path": "/oapi/v1/buildconfigs",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.BuildConfigList",
@@ -1146,7 +1146,7 @@
    },
    {
     "path": "/oapi/v1/watch/buildconfigs",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -1249,7 +1249,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/instantiate",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Build",
@@ -1320,7 +1320,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/instantiatebinary",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Build",
@@ -1412,7 +1412,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/webhooks",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "string",
@@ -1456,7 +1456,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/webhooks/{path}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "string",
@@ -1508,7 +1508,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/builds",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.BuildList",
@@ -1779,7 +1779,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/builds",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -1890,7 +1890,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/builds/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Build",
@@ -2155,7 +2155,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/builds/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -2274,7 +2274,7 @@
    },
    {
     "path": "/oapi/v1/builds",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.BuildList",
@@ -2377,7 +2377,7 @@
    },
    {
     "path": "/oapi/v1/watch/builds",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -2480,7 +2480,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/builds/{name}/clone",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.BuildRequest",
@@ -2551,7 +2551,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/builds/{name}/details",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Build",
@@ -2617,7 +2617,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/builds/{name}/log",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.BuildLog",
@@ -2742,7 +2742,7 @@
    },
    {
     "path": "/oapi/v1/clusternetworks",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterNetworkList",
@@ -2989,7 +2989,7 @@
    },
    {
     "path": "/oapi/v1/watch/clusternetworks",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -3092,7 +3092,7 @@
    },
    {
     "path": "/oapi/v1/clusternetworks/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterNetwork",
@@ -3325,7 +3325,7 @@
    },
    {
     "path": "/oapi/v1/watch/clusternetworks/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -3436,7 +3436,7 @@
    },
    {
     "path": "/oapi/v1/clusterresourcequotas",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterResourceQuotaList",
@@ -3683,7 +3683,7 @@
    },
    {
     "path": "/oapi/v1/watch/clusterresourcequotas",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -3786,7 +3786,7 @@
    },
    {
     "path": "/oapi/v1/clusterresourcequotas/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterResourceQuota",
@@ -4019,7 +4019,7 @@
    },
    {
     "path": "/oapi/v1/watch/clusterresourcequotas/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -4130,7 +4130,7 @@
    },
    {
     "path": "/oapi/v1/clusterresourcequotas/{name}/status",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterResourceQuota",
@@ -4276,7 +4276,7 @@
    },
    {
     "path": "/oapi/v1/clusterrolebindings",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterRoleBindingList",
@@ -4428,7 +4428,7 @@
    },
    {
     "path": "/oapi/v1/clusterrolebindings/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterRoleBinding",
@@ -4645,7 +4645,7 @@
    },
    {
     "path": "/oapi/v1/clusterroles",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterRoleList",
@@ -4797,7 +4797,7 @@
    },
    {
     "path": "/oapi/v1/clusterroles/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ClusterRole",
@@ -5014,7 +5014,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.DeploymentConfigList",
@@ -5285,7 +5285,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/deploymentconfigs",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -5396,7 +5396,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.DeploymentConfig",
@@ -5661,7 +5661,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/deploymentconfigs/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -5780,7 +5780,7 @@
    },
    {
     "path": "/oapi/v1/deploymentconfigs",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.DeploymentConfigList",
@@ -5883,7 +5883,7 @@
    },
    {
     "path": "/oapi/v1/watch/deploymentconfigs",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -5986,7 +5986,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/instantiate",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.DeploymentRequest",
@@ -6057,7 +6057,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/log",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.DeploymentLog",
@@ -6182,7 +6182,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/rollback",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.DeploymentConfigRollback",
@@ -6253,7 +6253,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/scale",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1beta1.Scale",
@@ -6423,7 +6423,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/status",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.DeploymentConfig",
@@ -6593,7 +6593,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/egressnetworkpolicies",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.EgressNetworkPolicyList",
@@ -6864,7 +6864,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/egressnetworkpolicies",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -6975,7 +6975,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/egressnetworkpolicies/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.EgressNetworkPolicy",
@@ -7240,7 +7240,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/egressnetworkpolicies/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -7359,7 +7359,7 @@
    },
    {
     "path": "/oapi/v1/egressnetworkpolicies",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.EgressNetworkPolicyList",
@@ -7462,7 +7462,7 @@
    },
    {
     "path": "/oapi/v1/watch/egressnetworkpolicies",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -7565,7 +7565,7 @@
    },
    {
     "path": "/oapi/v1/groups",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.GroupList",
@@ -7812,7 +7812,7 @@
    },
    {
     "path": "/oapi/v1/watch/groups",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -7915,7 +7915,7 @@
    },
    {
     "path": "/oapi/v1/groups/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Group",
@@ -8148,7 +8148,7 @@
    },
    {
     "path": "/oapi/v1/watch/groups/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -8259,7 +8259,7 @@
    },
    {
     "path": "/oapi/v1/hostsubnets",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.HostSubnetList",
@@ -8506,7 +8506,7 @@
    },
    {
     "path": "/oapi/v1/watch/hostsubnets",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -8609,7 +8609,7 @@
    },
    {
     "path": "/oapi/v1/hostsubnets/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.HostSubnet",
@@ -8842,7 +8842,7 @@
    },
    {
     "path": "/oapi/v1/watch/hostsubnets/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -8953,7 +8953,7 @@
    },
    {
     "path": "/oapi/v1/identities",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.IdentityList",
@@ -9200,7 +9200,7 @@
    },
    {
     "path": "/oapi/v1/watch/identities",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -9303,7 +9303,7 @@
    },
    {
     "path": "/oapi/v1/identities/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Identity",
@@ -9536,7 +9536,7 @@
    },
    {
     "path": "/oapi/v1/watch/identities/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -9647,7 +9647,7 @@
    },
    {
     "path": "/oapi/v1/images",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageList",
@@ -9894,7 +9894,7 @@
    },
    {
     "path": "/oapi/v1/watch/images",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -9997,7 +9997,7 @@
    },
    {
     "path": "/oapi/v1/images/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Image",
@@ -10230,7 +10230,7 @@
    },
    {
     "path": "/oapi/v1/watch/images/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -10341,7 +10341,7 @@
    },
    {
     "path": "/oapi/v1/imagesignatures",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageSignature",
@@ -10396,7 +10396,7 @@
    },
    {
     "path": "/oapi/v1/imagesignatures/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Status",
@@ -10473,7 +10473,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreamimages/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStreamImage",
@@ -10526,7 +10526,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreamimports",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStreamImport",
@@ -10589,7 +10589,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreammappings",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStreamMapping",
@@ -10652,7 +10652,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreams",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStreamList",
@@ -10923,7 +10923,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/imagestreams",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -11034,7 +11034,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreams/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStream",
@@ -11299,7 +11299,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/imagestreams/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -11418,7 +11418,7 @@
    },
    {
     "path": "/oapi/v1/imagestreams",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStreamList",
@@ -11521,7 +11521,7 @@
    },
    {
     "path": "/oapi/v1/watch/imagestreams",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -11624,7 +11624,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreams/{name}/secrets",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.SecretList",
@@ -11741,7 +11741,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreams/{name}/status",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStream",
@@ -11911,7 +11911,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreamtags",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStreamTagList",
@@ -12079,7 +12079,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/imagestreamtags/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStreamTag",
@@ -12328,7 +12328,7 @@
    },
    {
     "path": "/oapi/v1/imagestreamtags",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ImageStreamTagList",
@@ -12431,7 +12431,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/localresourceaccessreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.LocalResourceAccessReview",
@@ -12494,7 +12494,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/localsubjectaccessreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.LocalSubjectAccessReview",
@@ -12557,7 +12557,7 @@
    },
    {
     "path": "/oapi/v1/netnamespaces",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.NetNamespaceList",
@@ -12804,7 +12804,7 @@
    },
    {
     "path": "/oapi/v1/watch/netnamespaces",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -12907,7 +12907,7 @@
    },
    {
     "path": "/oapi/v1/netnamespaces/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.NetNamespace",
@@ -13140,7 +13140,7 @@
    },
    {
     "path": "/oapi/v1/watch/netnamespaces/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -13251,7 +13251,7 @@
    },
    {
     "path": "/oapi/v1/oauthaccesstokens",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.OAuthAccessTokenList",
@@ -13498,7 +13498,7 @@
    },
    {
     "path": "/oapi/v1/watch/oauthaccesstokens",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -13601,7 +13601,7 @@
    },
    {
     "path": "/oapi/v1/oauthaccesstokens/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.OAuthAccessToken",
@@ -13834,7 +13834,7 @@
    },
    {
     "path": "/oapi/v1/watch/oauthaccesstokens/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -13945,7 +13945,7 @@
    },
    {
     "path": "/oapi/v1/oauthauthorizetokens",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.OAuthAuthorizeTokenList",
@@ -14192,7 +14192,7 @@
    },
    {
     "path": "/oapi/v1/watch/oauthauthorizetokens",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -14295,7 +14295,7 @@
    },
    {
     "path": "/oapi/v1/oauthauthorizetokens/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.OAuthAuthorizeToken",
@@ -14528,7 +14528,7 @@
    },
    {
     "path": "/oapi/v1/watch/oauthauthorizetokens/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -14639,7 +14639,7 @@
    },
    {
     "path": "/oapi/v1/oauthclientauthorizations",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.OAuthClientAuthorizationList",
@@ -14886,7 +14886,7 @@
    },
    {
     "path": "/oapi/v1/watch/oauthclientauthorizations",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -14989,7 +14989,7 @@
    },
    {
     "path": "/oapi/v1/oauthclientauthorizations/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.OAuthClientAuthorization",
@@ -15222,7 +15222,7 @@
    },
    {
     "path": "/oapi/v1/watch/oauthclientauthorizations/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -15333,7 +15333,7 @@
    },
    {
     "path": "/oapi/v1/oauthclients",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.OAuthClientList",
@@ -15580,7 +15580,7 @@
    },
    {
     "path": "/oapi/v1/watch/oauthclients",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -15683,7 +15683,7 @@
    },
    {
     "path": "/oapi/v1/oauthclients/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.OAuthClient",
@@ -15916,7 +15916,7 @@
    },
    {
     "path": "/oapi/v1/watch/oauthclients/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -16027,7 +16027,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/podsecuritypolicyreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.PodSecurityPolicyReview",
@@ -16090,7 +16090,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/podsecuritypolicyselfsubjectreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.PodSecurityPolicySelfSubjectReview",
@@ -16153,7 +16153,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/podsecuritypolicysubjectreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.PodSecurityPolicySubjectReview",
@@ -16216,7 +16216,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/processedtemplates",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Template",
@@ -16279,7 +16279,7 @@
    },
    {
     "path": "/oapi/v1/projectrequests",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Status",
@@ -16431,7 +16431,7 @@
    },
    {
     "path": "/oapi/v1/projects",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ProjectList",
@@ -16583,7 +16583,7 @@
    },
    {
     "path": "/oapi/v1/watch/projects",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -16686,7 +16686,7 @@
    },
    {
     "path": "/oapi/v1/projects/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Project",
@@ -16903,7 +16903,7 @@
    },
    {
     "path": "/oapi/v1/watch/projects/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -17014,7 +17014,7 @@
    },
    {
     "path": "/oapi/v1/resourceaccessreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.ResourceAccessReview",
@@ -17069,7 +17069,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/rolebindingrestrictions",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RoleBindingRestrictionList",
@@ -17340,7 +17340,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/rolebindingrestrictions",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -17451,7 +17451,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/rolebindingrestrictions/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RoleBindingRestriction",
@@ -17716,7 +17716,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/rolebindingrestrictions/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -17835,7 +17835,7 @@
    },
    {
     "path": "/oapi/v1/rolebindingrestrictions",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RoleBindingRestrictionList",
@@ -17938,7 +17938,7 @@
    },
    {
     "path": "/oapi/v1/watch/rolebindingrestrictions",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -18041,7 +18041,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/rolebindings",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RoleBindingList",
@@ -18209,7 +18209,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/rolebindings/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RoleBinding",
@@ -18458,7 +18458,7 @@
    },
    {
     "path": "/oapi/v1/rolebindings",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RoleBindingList",
@@ -18561,7 +18561,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/roles",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RoleList",
@@ -18729,7 +18729,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/roles/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Role",
@@ -18978,7 +18978,7 @@
    },
    {
     "path": "/oapi/v1/roles",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RoleList",
@@ -19081,7 +19081,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/routes",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RouteList",
@@ -19352,7 +19352,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/routes",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -19463,7 +19463,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/routes/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Route",
@@ -19728,7 +19728,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/routes/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -19847,7 +19847,7 @@
    },
    {
     "path": "/oapi/v1/routes",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.RouteList",
@@ -19950,7 +19950,7 @@
    },
    {
     "path": "/oapi/v1/watch/routes",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -20053,7 +20053,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/routes/{name}/status",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Route",
@@ -20223,7 +20223,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/selfsubjectrulesreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.SelfSubjectRulesReview",
@@ -20286,7 +20286,7 @@
    },
    {
     "path": "/oapi/v1/subjectaccessreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.SubjectAccessReview",
@@ -20341,7 +20341,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/subjectrulesreviews",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.SubjectRulesReview",
@@ -20404,7 +20404,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/templates",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.TemplateList",
@@ -20675,7 +20675,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/templates",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -20786,7 +20786,7 @@
    },
    {
     "path": "/oapi/v1/namespaces/{namespace}/templates/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.Template",
@@ -21051,7 +21051,7 @@
    },
    {
     "path": "/oapi/v1/watch/namespaces/{namespace}/templates/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -21170,7 +21170,7 @@
    },
    {
     "path": "/oapi/v1/templates",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.TemplateList",
@@ -21273,7 +21273,7 @@
    },
    {
     "path": "/oapi/v1/watch/templates",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -21376,7 +21376,7 @@
    },
    {
     "path": "/oapi/v1/useridentitymappings",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.UserIdentityMapping",
@@ -21431,7 +21431,7 @@
    },
    {
     "path": "/oapi/v1/useridentitymappings/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.UserIdentityMapping",
@@ -21648,7 +21648,7 @@
    },
    {
     "path": "/oapi/v1/users",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.UserList",
@@ -21895,7 +21895,7 @@
    },
    {
     "path": "/oapi/v1/watch/users",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -21998,7 +21998,7 @@
    },
    {
     "path": "/oapi/v1/users/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.User",
@@ -22231,7 +22231,7 @@
    },
    {
     "path": "/oapi/v1/watch/users/{name}",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.WatchEvent",
@@ -22342,7 +22342,7 @@
    },
    {
     "path": "/oapi/v1",
-    "description": "OpenShift REST API, version v1",
+    "description": "API at /oapi/v1",
     "operations": [
      {
       "type": "v1.APIResourceList",
