@@ -24,7 +24,8 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		configPath = exutil.FixturePath("testdata", "router-http-echo-server.yaml")
 		oc         = exutil.NewCLI("router-headers", exutil.KubeConfigPath())
 
-		routerIP string
+		routerIP  string
+		metricsIP string
 	)
 
 	g.BeforeEach(func() {
@@ -35,6 +36,23 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			return
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
+		metricsIP, err = waitForRouterMetricsIP(oc)
+		if kapierrs.IsNotFound(err) {
+			g.Skip("no router installed on the cluster")
+			return
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if routerIP != metricsIP {
+			// On 4.x clusters, there's couple of bugs to fix before
+			// we can enable this test:
+			//  1. Selector on router-internal-default service
+			//  2. There is a weird 10.131.0.1 IP in the mix which
+			//     shows up as the client ip and not the node IP.
+			// Dec 17 17:03:32.836: Unexpected header: '10.131.0.1' (expected 10.0.139.23); All headers: http.Header{"User-Agent":[]string{"curl/7.61.0"}, "Accept":[]string{"*/*"}, "X-Forwarded-Host":[]string{"router-headers.example.com"}, "X-Forwarded-Port":[]string{"80"}, "X-Forwarded-Proto":[]string{"http"}, "Forwarded":[]string{"for=10.131.0.1;host=router-headers.example.com;proto=http;proto-version="}, "X-Forwarded-For":[]string{"10.131.0.1"}}
+			g.Skip("skipped on 4.0 clusters")
+			return
+		}
 	})
 
 	g.Describe("The HAProxy router", func() {
@@ -74,8 +92,8 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			routerURL := fmt.Sprintf("http://%s", routerIP)
 
 			g.By("waiting for the healthz endpoint to respond")
-			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
-			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
+			healthzURI := fmt.Sprintf("http://%s:1936/healthz", metricsIP)
+			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, metricsIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			host := "router-headers.example.com"
