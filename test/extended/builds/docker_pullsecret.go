@@ -24,7 +24,7 @@ var _ = g.Describe("[Feature:Builds][pullsecret][Conformance] docker build using
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

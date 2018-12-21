@@ -29,7 +29,7 @@ USER 1001
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

@@ -3372,7 +3372,7 @@ func testExtendedTestdataBuildsTestContextBuildJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsTestDockerAppDockerfile = []byte(`FROM docker-registry.default.svc:5000/openshift/nodejs
+var _testExtendedTestdataBuildsTestDockerAppDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs
 RUN touch /tmp/foo`)
 
 func testExtendedTestdataBuildsTestDockerAppDockerfileBytes() ([]byte, error) {

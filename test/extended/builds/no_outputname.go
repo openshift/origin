@@ -20,7 +20,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] build without output image", f
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.AfterEach(func() {

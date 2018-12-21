@@ -88,7 +88,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 		}
 		setupJenkins = func(jenkinsTemplatePath string) {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 			// Deploy Jenkins
 			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
 			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
@@ -260,7 +260,16 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("is", "ruby-22-centos7").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
+
+				// doing this as admin to avoid errors like this:
+				// Dec 14 13:13:02.275: INFO: Error running &{/usr/bin/oc [oc delete --config=/tmp/configfile590595709 --namespace=e2e-test-jenkins-pipeline-2z82q all -l template=mongodb-ephemeral-template] []   replicationcontroller "mongodb-1" deleted
+				// service "mongodb" deleted
+				// deploymentconfig.apps.openshift.io "mongodb" deleted
+				// Error from server (Forbidden): clusterserviceversions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list clusterserviceversions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+				// Error from server (Forbidden): catalogsources.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list catalogsources.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+				// Error from server (Forbidden): installplans.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list installplans.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+				// Error from server (Forbidden): subscriptions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list subscriptions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+				err = oc.AsAdmin().Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -309,11 +318,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				g.By("confirm there are objects in second and third namespaces")
 				defer oc.SetNamespace(namespace)
 				oc.SetNamespace(namespace2)
-				output, err := oc.Run("get").Args("all").Output()
+				output, err := oc.AsAdmin().Run("get").Args("all").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(output).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/mongodb"))
 				oc.SetNamespace(namespace3)
-				output, err = oc.Run("get").Args("all").Output()
+				output, err = oc.AsAdmin().Run("get").Args("all").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(output).To(o.ContainSubstring("service/mongodb"))
 
@@ -321,7 +330,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				oc.SetNamespace(namespace)
 				err = oc.Run("delete").Args("bc", "multi-namespace-pipeline").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
+				err = oc.AsAdmin().Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -360,7 +369,15 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				o.Expect(err).To(o.HaveOccurred())
 
 				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("all", "-l", "app=jenkins-pipeline-example").Execute()
+				// doing this as admin to avoid errors like this:
+				// Dec 14 13:13:02.275: INFO: Error running &{/usr/bin/oc [oc delete --config=/tmp/configfile590595709 --namespace=e2e-test-jenkins-pipeline-2z82q all -l template=mongodb-ephemeral-template] []   replicationcontroller "mongodb-1" deleted
+				// service "mongodb" deleted
+				// deploymentconfig.apps.openshift.io "mongodb" deleted
+				// Error from server (Forbidden): clusterserviceversions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list clusterserviceversions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+				// Error from server (Forbidden): catalogsources.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list catalogsources.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+				// Error from server (Forbidden): installplans.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list installplans.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+				// Error from server (Forbidden): subscriptions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list subscriptions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+				err = oc.AsAdmin().Run("delete").Args("all", "-l", "app=jenkins-pipeline-example").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 

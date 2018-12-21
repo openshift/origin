@@ -26,7 +26,7 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

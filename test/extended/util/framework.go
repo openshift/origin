@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -320,6 +319,10 @@ func GetMasterThreadDump(oc *CLI) {
 	e2e.Logf("\n\n got error on oc get --raw /debug/pprof/goroutine?godebug=2: %v\n\n", err)
 }
 
+func PreTestDump() {
+	// dump any state we want to know prior to running tests
+}
+
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExamineDiskUsage() {
@@ -334,16 +337,6 @@ func ExamineDiskUsage() {
 				}
 		                DumpDockerInfo()
 	*/
-}
-
-// DumpDockerInfo runs `docker info` and logs it to the job output
-func DumpDockerInfo() {
-	out, err := exec.Command("/bin/docker", "info").Output()
-	if err == nil {
-		e2e.Logf("\n\n docker info output: \n%s\n\n", string(out))
-	} else {
-		e2e.Logf("\n\n got error on docker inspect %v\n\n", err)
-	}
 }
 
 // ExaminePodDiskUsage will dump df/du output on registry pod; leveraging this as part of diagnosing
@@ -526,9 +519,17 @@ func (t *BuildResult) dumpRegistryLogs() {
 	// Changing the namespace on the derived client still changes it on the original client
 	// because the kubeFramework field is only copied by reference. Saving the original namespace
 	// here so we can restore it when done with registry logs
+	// TODO remove the default/docker-registry log retrieval when we are fully migrated to 4.0 for our test env.
 	savedNamespace := t.Oc.Namespace()
 	oadm := t.Oc.AsAdmin().SetNamespace("default")
 	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since="+since.String()).Output()
+	if err != nil {
+		e2e.Logf("Error during log retrieval: %+v\n", err)
+	} else {
+		e2e.Logf("%s\n", out)
+	}
+	oadm = t.Oc.AsAdmin().SetNamespace("openshift-image-registry")
+	out, err = oadm.Run("logs").Args("deployment/image-registry", "--since="+since.String()).Output()
 	if err != nil {
 		e2e.Logf("Error during log retrieval: %+v\n", err)
 	} else {
@@ -1496,4 +1497,14 @@ func FindImageFormatString(oc *CLI) (string, bool) {
 		return strings.Replace(template.Spec.Containers[0].Image, "haproxy-router", "${component}", -1), true
 	}
 	return "openshift/origin-${component}:latest", false
+}
+
+func IsClusterOperated(oc *CLI) bool {
+	configclient := oc.AdminConfigClient().ConfigV1()
+	o, err := configclient.Images().Get("cluster", metav1.GetOptions{})
+	if o == nil || err != nil {
+		e2e.Logf("Could not find image config object, assuming non-4.0 installed cluster: %v", err)
+		return false
+	}
+	return true
 }

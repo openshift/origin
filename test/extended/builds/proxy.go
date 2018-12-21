@@ -21,7 +21,7 @@ var _ = g.Describe("[Feature:Builds][Slow] the s2i build should support proxies"
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {

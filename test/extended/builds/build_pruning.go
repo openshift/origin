@@ -36,7 +36,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
+			exutil.PreTestDump()
 		})
 
 		g.JustBeforeEach(func() {
