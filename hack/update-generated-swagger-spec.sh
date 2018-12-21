@@ -2,9 +2,11 @@
 
 # Script to create latest swagger spec.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
+source "${OS_ROOT}/hack/local-up-master/lib.sh"
 
 function cleanup() {
     return_code=$?
+    clusterup::cleanup
     os::test::junit::generate_report
     os::cleanup::all
     os::util::describe_return_code "${return_code}"
@@ -12,15 +14,8 @@ function cleanup() {
 }
 trap "cleanup" EXIT
 
-export ALL_IP_ADDRESSES=127.0.0.1
-export SERVER_HOSTNAME_LIST=127.0.0.1
-export API_BIND_HOST=127.0.0.1
-export API_PORT=38443
-export ETCD_PORT=34001
-export ETCD_PEER_PORT=37001
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
-os::start::configure_server
 
 SWAGGER_SPEC_REL_DIR="${1:-}"
 SWAGGER_SPEC_OUT_DIR="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/swagger-spec"
@@ -31,13 +26,13 @@ os::start::master
 
 os::log::info "Updating ${SWAGGER_SPEC_OUT_DIR}:"
 
-endpoint_types=("oapi" "api")
+endpoint_types=("api")
 for type in "${endpoint_types[@]}"; do
     endpoints=("v1")
     for endpoint in "${endpoints[@]}"; do
         generated_file="${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"
         os::log::info "Updating $( os::util::repository_relative_path "${generated_file}" ) from /swaggerapi/${type}/${endpoint}..."
-        oc get --raw "/swaggerapi/${type}/${endpoint}" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
+        oc get --raw "/swaggerapi/${type}/${endpoint}" --config="${ADMIN_KUBECONFIG}" > "${generated_file}"
 
         os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
         os::util::sed '$a\' "${generated_file}" # add eof newline if it is missing
@@ -46,7 +41,7 @@ done
 
 # Swagger 2.0 / OpenAPI docs
 generated_file="${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
-oc get --raw "/swagger.json" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
+oc get --raw "/swagger.json" --config="${ADMIN_KUBECONFIG}" > "${generated_file}"
 
 os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
 os::util::sed -E '0,/"version":/ s|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"

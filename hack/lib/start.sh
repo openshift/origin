@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 # This library holds functions for configuring and starting an OpenShift server
+source "${OS_ROOT}/hack/local-up-master/lib.sh"
 
 # os::start::configure_server will create and write OS master certificates, node configurations, and OpenShift configurations.
 # It is recommended to run the following environment setup functions before configuring the OpenShift server:
@@ -269,24 +270,21 @@ function os::start::master() {
 
 	os::log::debug "Starting OpenShift server"
 	local openshift_env=( "OPENSHIFT_ON_PANIC=crash" )
-	$(os::start::internal::openshift_executable) start master                                       \
-	                                             --loglevel=4                                       \
-	                                             --logspec='*importer=5'                            \
-	                                             --config="${MASTER_CONFIG_DIR}/master-config.yaml" \
-	                                             &>"${LOG_DIR}/openshift.log" &
+
+    export PATH="$( ./hack/install-etcd.sh --export-path )":$PATH
+    LOCALUP_ROOT=$(mktemp -d) localup::init_master
+
+    export ADMIN_KUBECONFIG="${LOCALUP_CONFIG}/admin.kubeconfig"
 	export OS_PID=$!
 
 	os::log::debug "OpenShift server start at: $( date )"
 
 	os::test::junit::declare_suite_start "setup/start-master"
 	os::cmd::try_until_text "oc get --raw /healthz --as system:unauthenticated --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
-	os::cmd::try_until_text "oc get --raw /healthz/ready --as system:unauthenticated --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
 	os::cmd::try_until_success "oc get service kubernetes --namespace default --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
 
 	# wait for lease acquisition that indicates the controllers and scheduler have successfully started
-	os::cmd::try_until_success "oc get configmap kube-controller-manager --namespace kube-system --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
 	os::cmd::try_until_success "oc get configmap openshift-master-controllers --namespace kube-system --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
-	os::cmd::try_until_success "oc get configmap kube-scheduler --namespace kube-system --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
 	os::test::junit::declare_suite_end
 
 	os::log::debug "OpenShift server health checks done at: $( date )"

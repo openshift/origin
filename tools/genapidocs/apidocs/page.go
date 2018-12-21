@@ -140,20 +140,27 @@ func (pages Pages) Write(root string) error {
 	}
 
 	for _, page := range pages {
-		path := filepath.Join(root, page.OutputPath())
+		err := func() error {
+			path := filepath.Join(root, page.OutputPath())
 
-		err = os.MkdirAll(filepath.Dir(path), 0777)
-		if err != nil {
-			return err
-		}
+			err = os.MkdirAll(filepath.Dir(path), 0777)
+			if err != nil {
+				return err
+			}
 
-		f, err := os.Create(path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
+			f, err := os.Create(path)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
 
-		err = t.Execute(f, page)
+			err = t.Execute(f, page)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}()
 		if err != nil {
 			return err
 		}
