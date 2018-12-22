@@ -56,7 +56,7 @@ oauthConfig:
     login: true
     mappingMethod: claim
     provider:
-      apiVersion: v1
+      apiVersion: osin.config.openshift.io/v1
       kind: AllowAllPasswordIdentityProvider
 serviceAccountPublicKeyFiles:
 - service-account

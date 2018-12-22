@@ -122,7 +122,18 @@ func newAuthenticator(
 	}
 
 	// OAuth token
-	if oauthConfig != nil {
+	// this looks weird because it no longer belongs here (needs to be a remote token auth backed by osin)
+	if oauthConfig != nil || len(authConfig.OAuthMetadataFile) > 0 {
+		// if we have no OAuthConfig but have an OAuthMetadataFile, we still need to honor OAuth tokens
+		// to keep the checks below simple, we build an empty OAuthConfig
+		// since we do not know anything about the remote OAuth server's config,
+		// we assume it supports the bootstrap oauth user by setting a non-nil session config
+		if oauthConfig == nil {
+			oauthConfig = &osinv1.OAuthConfig{
+				SessionConfig: &osinv1.SessionConfig{},
+			}
+		}
+
 		validators := []oauth.OAuthTokenValidator{oauth.NewExpirationValidator(), oauth.NewUIDValidator()}
 		if inactivityTimeout := oauthConfig.TokenConfig.AccessTokenInactivityTimeoutSeconds; inactivityTimeout != nil {
 			timeoutValidator := oauth.NewTimeoutValidator(accessTokenGetter, oauthClientLister, *inactivityTimeout, oauthvalidation.MinimumInactivityTimeoutSeconds)
