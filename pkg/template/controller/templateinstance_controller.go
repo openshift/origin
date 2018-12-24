@@ -501,7 +501,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 			}
 		}
 		if createErr != nil {
-			allErrors = append(allErrors, mappingErr)
+			allErrors = append(allErrors, createErr)
 			continue
 		}
 

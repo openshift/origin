@@ -1,0 +1,31 @@
+kind: List
+apiVersion: v1
+items:
+- kind: TemplateInstance
+  apiVersion: template.openshift.io/v1
+  metadata:
+    name: invalidtemplateinstance
+  spec:
+    template:
+      kind: Template
+      apiVersion: v1
+      metadata:
+        name: template
+      objects:
+      - kind: Deployment
+        apiVersion: apps/v1
+        metadata:
+          name: "invalidname!@#$%^&*"
+        spec:
+          replicas: 0
+          selector:
+            matchLabels:
+              key: value
+          template:
+            metadata:
+              labels:
+                key: value
+            spec:
+              containers:
+              - name: hello-openshift
+                image: openshift/hello-openshift
