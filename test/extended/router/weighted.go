@@ -26,7 +26,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	)
 
 	g.BeforeEach(func() {
-		routerImage, _ := exutil.FindImageFormatString(oc)
+		routerImage, _ := exutil.FindRouterImage(oc)
 		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
