@@ -1489,14 +1489,40 @@ func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
 	return nil, "", errors.NewNotFound(schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"}, "router")
 }
 
+// FindImageFormatString returns a format string for components on the cluster. It returns false
+// if no format string could be inferred from the cluster. OpenShift 4.0 clusters will not be able
+// to infer an image format string, so you must wrap this method in one that can locate your specific
+// image.
 func FindImageFormatString(oc *CLI) (string, bool) {
-	// the router is expected to be on all clusters
-	// TODO: switch this to read from the global config
+	// legacy support for 3.x clusters
 	template, _, err := GetRouterPodTemplate(oc)
 	if err == nil {
-		return strings.Replace(template.Spec.Containers[0].Image, "haproxy-router", "${component}", -1), true
+		if strings.Contains(template.Spec.Containers[0].Image, "haproxy-router") {
+			return strings.Replace(template.Spec.Containers[0].Image, "haproxy-router", "${component}", -1), true
+		}
 	}
+	// in openshift 4.0, no image format can be calculated on cluster
 	return "openshift/origin-${component}:latest", false
+}
+
+func FindCLIImage(oc *CLI) (string, bool) {
+	// look up image stream
+	is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Get("cli", metav1.GetOptions{})
+	if err == nil {
+		for _, tag := range is.Spec.Tags {
+			if tag.Name == "latest" && tag.From != nil && tag.From.Kind == "DockerImage" {
+				return tag.From.Name, true
+			}
+		}
+	}
+
+	format, ok := FindImageFormatString(oc)
+	return strings.Replace(format, "${component}", "cli", -1), ok
+}
+
+func FindRouterImage(oc *CLI) (string, bool) {
+	format, ok := FindImageFormatString(oc)
+	return strings.Replace(format, "${component}", "haproxy-router", -1), ok
 }
 
 func IsClusterOperated(oc *CLI) bool {

@@ -3319,12 +3319,85 @@ func SSH(cmd, host, provider string) (SSHResult, error) {
 		result.User = os.Getenv("USER")
 	}
 
+	if bastion := os.Getenv("KUBE_SSH_BASTION"); len(bastion) > 0 {
+		stdout, stderr, code, err := RunForwardedSSHCommand(cmd, result.User, bastion, host, signer)
+		result.Stdout = stdout
+		result.Stderr = stderr
+		result.Code = code
+		return result, err
+	}
+
 	stdout, stderr, code, err := sshutil.RunSSHCommand(cmd, result.User, host, signer)
 	result.Stdout = stdout
 	result.Stderr = stderr
 	result.Code = code
-
 	return result, err
+}
+
+// RunForwardedSSHCommand returns the stdout, stderr, and exit code from running cmd on
+// host as specific user, along with any SSH-level error.
+func RunForwardedSSHCommand(cmd, user, bastion, host string, signer ssh.Signer) (string, string, int, error) {
+	// Setup the config, dial the server, and open a session.
+	config := &ssh.ClientConfig{
+		User:            user,
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         150 * time.Second,
+	}
+	bastionClient, err := ssh.Dial("tcp", bastion, config)
+	if err != nil {
+		err = wait.Poll(5*time.Second, 20*time.Second, func() (bool, error) {
+			fmt.Printf("error dialing %s@%s: '%v', retrying\n", user, bastion, err)
+			if bastionClient, err = ssh.Dial("tcp", bastion, config); err != nil {
+				return false, err
+			}
+			return true, nil
+		})
+	}
+	if err != nil {
+		return "", "", 0, fmt.Errorf("error getting SSH client to %s@%s: %v", user, bastion, err)
+	}
+	defer bastionClient.Close()
+
+	conn, err := bastionClient.Dial("tcp", host)
+	if err != nil {
+		return "", "", 0, fmt.Errorf("error dialing %s from bastion: %v", host, err)
+	}
+	defer conn.Close()
+
+	ncc, chans, reqs, err := ssh.NewClientConn(conn, host, config)
+	if err != nil {
+		return "", "", 0, fmt.Errorf("error creating forwarding connection %s from bastion: %v", host, err)
+	}
+	client := ssh.NewClient(ncc, chans, reqs)
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		return "", "", 0, fmt.Errorf("error creating session to %s@%s from bastion: '%v'", user, host, err)
+	}
+	defer session.Close()
+
+	// Run the command.
+	code := 0
+	var bout, berr bytes.Buffer
+	session.Stdout, session.Stderr = &bout, &berr
+	if err = session.Run(cmd); err != nil {
+		// Check whether the command failed to run or didn't complete.
+		if exiterr, ok := err.(*ssh.ExitError); ok {
+			// If we got an ExitError and the exit code is nonzero, we'll
+			// consider the SSH itself successful (just that the command run
+			// errored on the host).
+			if code = exiterr.ExitStatus(); code != 0 {
+				err = nil
+			}
+		} else {
+			// Some other kind of error happened (e.g. an IOError); consider the
+			// SSH unsuccessful.
+			err = fmt.Errorf("failed running `%s` on %s@%s: '%v'", cmd, user, host, err)
+		}
+	}
+	return bout.String(), berr.String(), code, err
 }
 
 func LogSSHResult(result SSHResult) {
@@ -3529,38 +3602,40 @@ func GetSigner(provider string) (ssh.Signer, error) {
 	// Get the directory in which SSH keys are located.
 	keydir := filepath.Join(os.Getenv("HOME"), ".ssh")
 
-	// Select the key itself to use. When implementing more providers here,
-	// please also add them to any SSH tests that are disabled because of signer
-	// support.
-	keyfile := ""
-	key := ""
-	switch provider {
-	case "gce", "gke", "kubemark":
-		keyfile = "google_compute_engine"
-	case "aws":
-		// If there is an env. variable override, use that.
-		aws_keyfile := os.Getenv("AWS_SSH_KEY")
-		if len(aws_keyfile) != 0 {
-			return sshutil.MakePrivateKeySignerFromFile(aws_keyfile)
-		}
-		// Otherwise revert to home dir
-		keyfile = "kube_aws_rsa"
-	case "local", "vsphere":
-		keyfile = os.Getenv("LOCAL_SSH_KEY") // maybe?
-		if len(keyfile) == 0 {
-			keyfile = "id_rsa"
-		}
-	case "skeleton":
-		keyfile = os.Getenv("KUBE_SSH_KEY")
-		if len(keyfile) == 0 {
-			keyfile = "id_rsa"
-		}
-	default:
-		return nil, fmt.Errorf("GetSigner(...) not implemented for %s", provider)
-	}
+	key := os.Getenv("KUBE_SSH_KEY_FILE")
 
 	if len(key) == 0 {
-		key = filepath.Join(keydir, keyfile)
+		// Select the key itself to use. When implementing more providers here,
+		// please also add them to any SSH tests that are disabled because of signer
+		// support.
+		keyfile := ""
+		switch provider {
+		case "gce", "gke", "kubemark":
+			keyfile = "google_compute_engine"
+		case "aws":
+			// If there is an env. variable override, use that.
+			aws_keyfile := os.Getenv("AWS_SSH_KEY")
+			if len(aws_keyfile) != 0 {
+				return sshutil.MakePrivateKeySignerFromFile(aws_keyfile)
+			}
+			// Otherwise revert to home dir
+			keyfile = "kube_aws_rsa"
+		case "local", "vsphere":
+			keyfile = os.Getenv("LOCAL_SSH_KEY") // maybe?
+			if len(keyfile) == 0 {
+				keyfile = "id_rsa"
+			}
+		case "skeleton":
+			keyfile = os.Getenv("KUBE_SSH_KEY")
+			if len(keyfile) == 0 {
+				keyfile = "id_rsa"
+			}
+		default:
+			return nil, fmt.Errorf("GetSigner(...) not implemented for %s", provider)
+		}
+		if len(key) == 0 {
+			key = filepath.Join(keydir, keyfile)
+		}
 	}
 
 	return sshutil.MakePrivateKeySignerFromFile(key)

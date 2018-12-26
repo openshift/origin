@@ -22,8 +22,7 @@ func cliPodWithPullSecret(cli *exutil.CLI, shell string) *kapiv1.Pod {
 	o.Expect(sa.ImagePullSecrets).NotTo(o.BeEmpty())
 	pullSecretName := sa.ImagePullSecrets[0].Name
 
-	format, _ := exutil.FindImageFormatString(cli)
-	cliImage := strings.Replace(format, "${component}", "cli", -1)
+	cliImage, _ := exutil.FindCLIImage(cli)
 
 	return &kapiv1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
