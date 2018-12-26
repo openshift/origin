@@ -228,6 +228,48 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	return otx.Commit()
 }
 
+type podNetworkInfo struct {
+	vethName string
+	ip       string
+}
+
+// GetPodNetworkInfo returns network interface information about all currently-attached pods.
+func (oc *ovsController) GetPodNetworkInfo() (map[string]podNetworkInfo, error) {
+	rows, err := oc.ovs.Find("interface", []string{"name", "external_ids"}, "external-ids:sandbox!=\"\"")
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[string]podNetworkInfo)
+	for _, row := range rows {
+		if row["name"] == "" || row["external_ids"] == "" {
+			utilruntime.HandleError(fmt.Errorf("ovs-vsctl output missing one or more fields: %v", row))
+			continue
+		}
+
+		ids, err := ovs.ParseExternalIDs(row["external_ids"])
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Could not parse external-ids %q: %v", row["external_ids"], err))
+			continue
+		}
+		if ids["ip"] == "" || ids["sandbox"] == "" {
+			utilruntime.HandleError(fmt.Errorf("ovs-vsctl output missing one or more external-ids: %v", ids))
+			continue
+		}
+		if net.ParseIP(ids["ip"]) == nil {
+			utilruntime.HandleError(fmt.Errorf("Could not parse IP %q for sandbox %q", ids["ip"], ids["sandbox"]))
+			continue
+		}
+
+		results[ids["sandbox"]] = podNetworkInfo{
+			vethName: row["name"],
+			ip:       ids["ip"],
+		}
+	}
+
+	return results, nil
+}
+
 func (oc *ovsController) NewTransaction() ovs.Transaction {
 	return oc.ovs.NewTransaction()
 }
