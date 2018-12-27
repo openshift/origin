@@ -3,26 +3,21 @@ package selectprovider
 import (
 	"net/http"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/typed/core/v1"
-
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 )
 
-func NewBootstrapSelectProvider(delegate handlers.AuthenticationSelectionHandler, secretsGetter v1.SecretsGetter, namespacesGetter v1.NamespacesGetter) handlers.AuthenticationSelectionHandler {
+func NewBootstrapSelectProvider(delegate handlers.AuthenticationSelectionHandler, getter bootstrap.BootstrapUserDataGetter) handlers.AuthenticationSelectionHandler {
 	return &bootstrapSelectProvider{
-		delegate:   delegate,
-		secrets:    secretsGetter.Secrets(metav1.NamespaceSystem),
-		namespaces: namespacesGetter.Namespaces(),
+		delegate: delegate,
+		getter:   getter,
 	}
 }
 
 type bootstrapSelectProvider struct {
-	delegate   handlers.AuthenticationSelectionHandler
-	secrets    v1.SecretInterface
-	namespaces v1.NamespaceInterface
+	delegate handlers.AuthenticationSelectionHandler
+	getter   bootstrap.BootstrapUserDataGetter
 }
 
 func (b *bootstrapSelectProvider) SelectAuthentication(providers []api.ProviderInfo, w http.ResponseWriter, req *http.Request) (*api.ProviderInfo, bool, error) {
@@ -32,7 +27,7 @@ func (b *bootstrapSelectProvider) SelectAuthentication(providers []api.ProviderI
 		return b.delegate.SelectAuthentication(providers, w, req)
 	}
 
-	_, _, ok, err := bootstrap.HashAndUID(b.secrets, b.namespaces)
+	_, ok, err := b.getter.Get()
 	// filter out the bootstrap IDP if the secret is not functional
 	if err != nil || !ok {
 		return b.delegate.SelectAuthentication(providers[1:], w, req)

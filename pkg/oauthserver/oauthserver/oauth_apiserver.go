@@ -110,11 +110,13 @@ func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest
 		return nil, err
 	}
 
+	bootstrapUserDataGetter := bootstrap.NewBootstrapUserDataGetter(kubeClient.CoreV1(), kubeClient.CoreV1())
+
 	var sessionAuth session.SessionAuthenticator
 	if oauthConfig.SessionConfig != nil {
 		// TODO we really need to enforce HTTPS always
 		secure := isHTTPS(oauthConfig.MasterPublicURL)
-		auth, err := buildSessionAuth(secure, oauthConfig.SessionConfig, kubeClient.CoreV1(), kubeClient.CoreV1())
+		auth, err := buildSessionAuth(secure, oauthConfig.SessionConfig, bootstrapUserDataGetter)
 		if err != nil {
 			return nil, err
 		}
@@ -155,6 +157,7 @@ func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest
 			OAuthClientClient:              oauthClient.OAuthClients(),
 			OAuthClientAuthorizationClient: oauthClient.OAuthClientAuthorizations(),
 			SessionAuth:                    sessionAuth,
+			BootstrapUserDataGetter:        bootstrapUserDataGetter,
 		},
 	}
 	genericConfig.BuildHandlerChainFunc = ret.buildHandlerChainForOAuth
@@ -162,14 +165,14 @@ func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest
 	return ret, nil
 }
 
-func buildSessionAuth(secure bool, config *osinv1.SessionConfig, secretsGetter corev1.SecretsGetter, namespacesGetter corev1.NamespacesGetter) (session.SessionAuthenticator, error) {
+func buildSessionAuth(secure bool, config *osinv1.SessionConfig, getter bootstrap.BootstrapUserDataGetter) (session.SessionAuthenticator, error) {
 	secrets, err := getSessionSecrets(config.SessionSecretsFile)
 	if err != nil {
 		return nil, err
 	}
 	sessionStore := session.NewStore(config.SessionName, secure, secrets...)
 	sessionAuthenticator := session.NewAuthenticator(sessionStore, time.Duration(config.SessionMaxAgeSeconds)*time.Second)
-	return session.NewBootstrapAuthenticator(sessionAuthenticator, secretsGetter, namespacesGetter, sessionStore), nil
+	return session.NewBootstrapAuthenticator(sessionAuthenticator, getter, sessionStore), nil
 }
 
 func getSessionSecrets(filename string) ([][]byte, error) {
@@ -235,6 +238,8 @@ type ExtraOAuthConfig struct {
 	OAuthClientAuthorizationClient oauthclient.OAuthClientAuthorizationInterface
 
 	SessionAuth session.SessionAuthenticator
+
+	BootstrapUserDataGetter bootstrap.BootstrapUserDataGetter
 }
 
 type OAuthServerConfig struct {

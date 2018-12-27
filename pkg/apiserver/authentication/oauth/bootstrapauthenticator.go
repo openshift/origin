@@ -5,7 +5,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/client-go/kubernetes/typed/core/v1"
 
 	userapi "github.com/openshift/api/user/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
@@ -13,18 +12,16 @@ import (
 )
 
 type bootstrapAuthenticator struct {
-	tokens     oauthclient.OAuthAccessTokenInterface
-	secrets    v1.SecretInterface
-	namespaces v1.NamespaceInterface
-	validator  OAuthTokenValidator
+	tokens    oauthclient.OAuthAccessTokenInterface
+	getter    bootstrap.BootstrapUserDataGetter
+	validator OAuthTokenValidator
 }
 
-func NewBootstrapAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, secrets v1.SecretsGetter, namespaces v1.NamespacesGetter, validators ...OAuthTokenValidator) kauthenticator.Token {
+func NewBootstrapAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, getter bootstrap.BootstrapUserDataGetter, validators ...OAuthTokenValidator) kauthenticator.Token {
 	return &bootstrapAuthenticator{
-		tokens:     tokens,
-		secrets:    secrets.Secrets(metav1.NamespaceSystem),
-		namespaces: namespaces.Namespaces(),
-		validator:  OAuthTokenValidators(validators),
+		tokens:    tokens,
+		getter:    getter,
+		validator: OAuthTokenValidators(validators),
 	}
 }
 
@@ -38,7 +35,7 @@ func (a *bootstrapAuthenticator) AuthenticateToken(name string) (kuser.Info, boo
 		return nil, false, nil
 	}
 
-	_, uid, ok, err := bootstrap.HashAndUID(a.secrets, a.namespaces)
+	data, ok, err := a.getter.Get()
 	if err != nil || !ok {
 		return nil, ok, err
 	}
@@ -48,7 +45,7 @@ func (a *bootstrapAuthenticator) AuthenticateToken(name string) (kuser.Info, boo
 	// tokens issued for the bootstrap user before that change stop working
 	fakeUser := &userapi.User{
 		ObjectMeta: metav1.ObjectMeta{
-			UID: types.UID(uid),
+			UID: types.UID(data.UID),
 		},
 	}
 
