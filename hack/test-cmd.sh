@@ -97,8 +97,6 @@ os::cmd::try_until_success "oc login --server=${KUBERNETES_MASTER} --certificate
 os::test::junit::declare_suite_end
 os::log::debug "localup server health checks done at: $( date )"
 
-os::start::registry
-
 # NOTE: Do not add tests here, add them to test/cmd/*.
 # Tests should assume they run in an empty project, and should be reentrant if possible
 # to make it easy to run individual tests

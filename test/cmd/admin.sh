@@ -269,38 +269,6 @@ os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readines
 echo "router: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/admin/registry"
-# Test running a registry as a daemonset
-os::cmd::expect_success "oc delete clusterrolebinding/registry-registry-role"
-os::cmd::expect_failure_and_text 'oc adm registry --daemonset --dry-run' 'does not exist'
-os::cmd::expect_success_and_text "oc adm registry --daemonset -o yaml" 'DaemonSet'
-os::cmd::expect_success "oc adm registry --daemonset --images='${USE_IMAGES}'"
-os::cmd::expect_success_and_text 'oc adm registry --daemonset' 'service exists'
-os::cmd::try_until_text 'oc get ds/docker-registry --template="{{.status.desiredNumberScheduled}}"' '1'
-# clean up so we can test non-daemonset
-os::cmd::expect_success "oc adm registry --daemonset -o yaml | oc delete -f - -ncmd-admin --cascade=false"
-echo "registry daemonset: ok"
-
-# Test running a registry
-os::cmd::expect_failure_and_text 'oc adm registry --dry-run' 'does not exist'
-os::cmd::expect_success_and_text "oc adm registry -o yaml" 'image:.*\-docker\-registry'
-os::cmd::expect_success "oc adm registry --images='${USE_IMAGES}'"
-os::cmd::expect_success_and_text 'oc adm registry' 'service exists'
-os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
-os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
-os::cmd::expect_success_and_text 'oc set env --list dc/docker-registry' 'REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA=false'
-echo "registry: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/apply"
-workingdir=$(mktemp -d)
-os::cmd::expect_success "oc adm registry -o yaml > ${workingdir}/oadm_registry.yaml"
-os::util::sed "s/5000/6000/g" ${workingdir}/oadm_registry.yaml
-os::cmd::expect_success "oc apply -f ${workingdir}/oadm_registry.yaml"
-os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' '6000'
-echo "apply: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/admin/build-chain"
 # Test building a dependency tree
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'

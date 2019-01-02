@@ -32,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune"
-	"github.com/openshift/origin/pkg/oc/cli/admin/registry"
 	"github.com/openshift/origin/pkg/oc/cli/admin/release"
 	"github.com/openshift/origin/pkg/oc/cli/admin/router"
 	"github.com/openshift/origin/pkg/oc/cli/admin/top"
@@ -135,7 +134,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
 		router.NewCmdRouter(f, fullName, "router", streams),
 		ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
-		registry.NewCmdRegistry(f, fullName, "registry", streams),
 	}
 	for _, cmd := range deprecatedCommands {
 		// Unsetting Short description will not show this command in help
