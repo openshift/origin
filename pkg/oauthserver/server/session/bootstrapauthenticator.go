@@ -4,27 +4,23 @@ import (
 	"net/http"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 )
 
-func NewBootstrapAuthenticator(delegate SessionAuthenticator, secrets v1.SecretsGetter, namespaces v1.NamespacesGetter, store Store) SessionAuthenticator {
+func NewBootstrapAuthenticator(delegate SessionAuthenticator, getter bootstrap.BootstrapUserDataGetter, store Store) SessionAuthenticator {
 	return &bootstrapAuthenticator{
-		delegate:   delegate,
-		secrets:    secrets.Secrets(metav1.NamespaceSystem),
-		namespaces: namespaces.Namespaces(),
-		store:      store,
+		delegate: delegate,
+		getter:   getter,
+		store:    store,
 	}
 }
 
 type bootstrapAuthenticator struct {
-	delegate   SessionAuthenticator
-	secrets    v1.SecretInterface
-	namespaces v1.NamespaceInterface
-	store      Store
+	delegate SessionAuthenticator
+	getter   bootstrap.BootstrapUserDataGetter
+	store    Store
 }
 
 func (b *bootstrapAuthenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -36,11 +32,11 @@ func (b *bootstrapAuthenticator) AuthenticateRequest(req *http.Request) (user.In
 	// make sure that the password has not changed since this cookie was issued
 	// note that this is not really for security - it is so that we do not annoy the user
 	// by letting them log in successfully only to have a token that does not work
-	_, uid, ok, err := bootstrap.HashAndUID(b.secrets, b.namespaces)
+	data, ok, err := b.getter.Get()
 	if err != nil || !ok {
 		return nil, ok, err
 	}
-	if uid != u.GetUID() {
+	if data.UID != u.GetUID() {
 		return nil, false, nil
 	}
 

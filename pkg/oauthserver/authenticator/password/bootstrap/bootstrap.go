@@ -38,18 +38,16 @@ var (
 	errSecretRecreated = fmt.Errorf("%s secret cannot be recreated", bootstrapUserBasicAuth)
 )
 
-func New(secrets v1.SecretsGetter, namespaces v1.NamespacesGetter) authenticator.Password {
+func New(getter BootstrapUserDataGetter) authenticator.Password {
 	return &bootstrapPassword{
-		secrets:    secrets.Secrets(metav1.NamespaceSystem),
-		namespaces: namespaces.Namespaces(),
-		names:      sets.NewString(BootstrapUser, bootstrapUserBasicAuth),
+		getter: getter,
+		names:  sets.NewString(BootstrapUser, bootstrapUserBasicAuth),
 	}
 }
 
 type bootstrapPassword struct {
-	secrets    v1.SecretInterface
-	namespaces v1.NamespaceInterface
-	names      sets.String
+	getter BootstrapUserDataGetter
+	names  sets.String
 }
 
 func (b *bootstrapPassword) AuthenticatePassword(username, password string) (user.Info, bool, error) {
@@ -57,7 +55,7 @@ func (b *bootstrapPassword) AuthenticatePassword(username, password string) (use
 		return nil, false, nil
 	}
 
-	hashedPassword, uid, ok, err := HashAndUID(b.secrets, b.namespaces)
+	data, ok, err := b.getter.Get()
 	if err != nil || !ok {
 		return nil, ok, err
 	}
@@ -68,7 +66,7 @@ func (b *bootstrapPassword) AuthenticatePassword(username, password string) (use
 		return nil, false, errPasswordTooShort
 	}
 
-	if err := bcrypt.CompareHashAndPassword(hashedPassword, []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword(data.PasswordHash, []byte(password)); err != nil {
 		if err == bcrypt.ErrMismatchedHashAndPassword {
 			glog.V(4).Infof("%s password mismatch", bootstrapUserBasicAuth)
 			return nil, false, nil
@@ -79,36 +77,63 @@ func (b *bootstrapPassword) AuthenticatePassword(username, password string) (use
 	// do not set other fields, see identitymapper.userToInfo func
 	return &user.DefaultInfo{
 		Name: BootstrapUser,
-		UID:  uid, // uid ties this authentication to the current state of the secret
+		UID:  data.UID, // uid ties this authentication to the current state of the secret
 	}, true, nil
 }
 
-func HashAndUID(secrets v1.SecretInterface, namespaces v1.NamespaceInterface) ([]byte, string, bool, error) {
-	secret, err := secrets.Get(bootstrapUserBasicAuth, metav1.GetOptions{})
+type BootstrapUserData struct {
+	PasswordHash []byte
+	UID          string
+}
+
+type BootstrapUserDataGetter interface {
+	Get() (data *BootstrapUserData, ok bool, err error)
+	// TODO add a method like:
+	// IsPermanentlyDisabled() bool
+	// and use it to gate the wiring of components related to the bootstrap user.
+	// when the oauth server is running embedded in the kube api server, this method would always
+	// return false because the control plane would not be functional at the time of the check.
+	// when running as an external process, we can assume a functional control plane to perform the check.
+}
+
+func NewBootstrapUserDataGetter(secrets v1.SecretsGetter, namespaces v1.NamespacesGetter) BootstrapUserDataGetter {
+	return &bootstrapUserDataGetter{
+		secrets:    secrets.Secrets(metav1.NamespaceSystem),
+		namespaces: namespaces.Namespaces(),
+	}
+}
+
+type bootstrapUserDataGetter struct {
+	secrets    v1.SecretInterface
+	namespaces v1.NamespaceInterface
+}
+
+func (b *bootstrapUserDataGetter) Get() (*BootstrapUserData, bool, error) {
+	secret, err := b.secrets.Get(bootstrapUserBasicAuth, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		glog.V(4).Infof("%s secret does not exist", bootstrapUserBasicAuth)
-		return nil, "", false, nil
+		return nil, false, nil
 	}
 	if err != nil {
-		return nil, "", false, err
+		return nil, false, err
 	}
 	if secret.DeletionTimestamp != nil {
 		glog.V(4).Infof("%s secret is being deleted", bootstrapUserBasicAuth)
-		return nil, "", false, nil
+		return nil, false, nil
 	}
-	namespace, err := namespaces.Get(metav1.NamespaceSystem, metav1.GetOptions{})
+	namespace, err := b.namespaces.Get(metav1.NamespaceSystem, metav1.GetOptions{})
 	if err != nil {
-		return nil, "", false, err
+		return nil, false, err
 	}
 	if secret.CreationTimestamp.After(namespace.CreationTimestamp.Add(time.Hour)) {
-		return nil, "", false, errSecretRecreated
+		return nil, false, errSecretRecreated
 	}
 
 	hashedPassword := secret.Data[bootstrapUserBasicAuth]
 
 	// make sure the value is a valid bcrypt hash
 	if _, err := bcrypt.Cost(hashedPassword); err != nil {
-		return nil, "", false, err
+		return nil, false, err
 	}
 
 	exactSecret := string(secret.UID) + secret.ResourceVersion
@@ -118,5 +143,8 @@ func HashAndUID(secrets v1.SecretInterface, namespaces v1.NamespaceInterface) ([
 	// this makes it easy for us to tell if the secret changed
 	uidBytes := sha512.Sum512(both)
 
-	return hashedPassword, base64.RawURLEncoding.EncodeToString(uidBytes[:]), true, nil
+	return &BootstrapUserData{
+		PasswordHash: hashedPassword,
+		UID:          base64.RawURLEncoding.EncodeToString(uidBytes[:]),
+	}, true, nil
 }

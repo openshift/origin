@@ -18,7 +18,6 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	webhooktoken "k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
@@ -36,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/request/paramtoken"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
@@ -80,8 +80,7 @@ func NewAuthenticator(
 		userClient.User().Users(),
 		apiClientCAs,
 		usercache.NewGroupCache(groupInformer),
-		kubeExternalClient.CoreV1(),
-		kubeExternalClient.CoreV1(),
+		bootstrap.NewBootstrapUserDataGetter(kubeExternalClient.CoreV1(), kubeExternalClient.CoreV1()),
 	)
 }
 
@@ -95,8 +94,7 @@ func newAuthenticator(
 	userGetter usertypedclient.UserInterface,
 	apiClientCAs *x509.CertPool,
 	groupMapper oauth.UserToGroupMapper,
-	secretsGetter v1.SecretsGetter,
-	namespacesGetter v1.NamespacesGetter,
+	bootstrapUserDataGetter bootstrap.BootstrapUserDataGetter,
 ) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
@@ -151,7 +149,7 @@ func newAuthenticator(
 		if oauthConfig.SessionConfig != nil {
 			tokenAuthenticators = append(tokenAuthenticators,
 				// bootstrap oauth user that can do anything, backed by a secret
-				oauth.NewBootstrapAuthenticator(accessTokenGetter, secretsGetter, namespacesGetter, validators...))
+				oauth.NewBootstrapAuthenticator(accessTokenGetter, bootstrapUserDataGetter, validators...))
 		}
 	}
 
