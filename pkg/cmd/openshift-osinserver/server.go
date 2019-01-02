@@ -42,7 +42,7 @@ func newOAuthServerConfig(osinConfig *kubecontrolplanev1.KubeAPIServerConfig) (*
 	if err != nil {
 		return nil, err
 	}
-	if err := servingOptions.ApplyTo(&genericConfig.Config); err != nil {
+	if err := servingOptions.ApplyTo(&genericConfig.Config.SecureServing, &genericConfig.Config.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
 
