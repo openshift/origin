@@ -103,7 +103,21 @@ var staticSuites = []*ginkgo.TestSuite{
 		available.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/smoke-4]") && strings.Contains(name, "[Suite:openshift/conformance/")
+			if !strings.Contains(name, "[Suite:openshift/conformance/parallel") {
+				return false
+			}
+			_, skip := map[string]struct{}{
+				"[sig-cli] Kubectl client [k8s.io] Kubectl taint [Serial] should remove all the taints with the same key off a node [Suite:openshift/conformance/serial] [Suite:k8s]": {},
+				"[sig-cli] Kubectl client [k8s.io] Kubectl taint [Serial] should update the taint on a node [Suite:openshift/conformance/serial] [Suite:k8s]":                         {},
+				"[sig-network] Services should be able to create a functioning NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]":                                   {},
+				"[sig-network] Services should be able to switch session affinity for NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]":                            {},
+				"[sig-network] Services should have session affinity work for NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]":                                    {},
+				"[sig-scheduling] SchedulerPredicates [Serial] validates that taints-tolerations is respected if matching [Suite:openshift/conformance/serial] [Suite:k8s]":           {},
+				"[sig-scheduling] SchedulerPredicates [Serial] validates that taints-tolerations is respected if not matching [Suite:openshift/conformance/serial] [Suite:k8s]":       {},
+				"[sig-scheduling] SchedulerPriorities [Serial] Pod should perfer to scheduled to nodes pod can tolerate [Suite:openshift/conformance/serial] [Suite:k8s]":             {},
+				"[sig-storage] Dynamic Provisioning DynamicProvisioner deletion should be idempotent [Suite:openshift/conformance/parallel] [Suite:k8s]":                              {},
+			}[name]
+			return !skip
 		},
 		AllowPassWithFlakes: true,
 		Parallelism:         30,
