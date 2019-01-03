@@ -116,6 +116,8 @@ var staticSuites = []*ginkgo.TestSuite{
 				"[sig-scheduling] SchedulerPredicates [Serial] validates that taints-tolerations is respected if not matching [Suite:openshift/conformance/serial] [Suite:k8s]":       {},
 				"[sig-scheduling] SchedulerPriorities [Serial] Pod should perfer to scheduled to nodes pod can tolerate [Suite:openshift/conformance/serial] [Suite:k8s]":             {},
 				"[sig-storage] Dynamic Provisioning DynamicProvisioner deletion should be idempotent [Suite:openshift/conformance/parallel] [Suite:k8s]":                              {},
+				"[sig-storage] HostPath should support existing directory subPath [Suite:openshift/conformance/parallel] [Suite:k8s]":                                                 {},
+				"[sig-storage] HostPath should support existing single file subPath [Suite:openshift/conformance/parallel] [Suite:k8s]":                                               {},
 			}[name]
 			return !skip
 		},
