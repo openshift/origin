@@ -62,6 +62,14 @@ func InitTest() {
 	// interpret synthetic input in `--ginkgo.focus` and/or `--ginkgo.skip`
 	ginkgo.BeforeEach(checkSyntheticInput)
 
+	oc := NewCLI("operators-metrics-test-e2e", KubeConfigPath())
+	ginkgo.AfterEach(func() {
+		e2e.Logf("About to gather operator metrics. QPS Threshold: %v", maxQPSAllowed)
+		if err := calculatePodMetrics(oc.AdminKubeClient(), oc.AdminConfig()); err != nil {
+			FatalErr(fmt.Errorf("error gathering operator metrics: %v", err))
+		}
+	})
+
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
 	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
