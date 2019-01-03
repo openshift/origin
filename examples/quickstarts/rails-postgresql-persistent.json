@@ -5,13 +5,13 @@
         "app": "rails-pgsql-persistent",
         "template": "rails-pgsql-persistent"
     },
-    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.",
+    "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/rails-ex/blob/master/README.md.",
     "metadata": {
         "annotations": {
-            "description": "An example Rails application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.",
+            "description": "An example Rails application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/rails-ex/blob/master/README.md.",
             "iconClass": "icon-ruby",
             "openshift.io/display-name": "Rails + PostgreSQL",
-            "openshift.io/documentation-url": "https://github.com/openshift/rails-ex",
+            "openshift.io/documentation-url": "https://github.com/sclorg/rails-ex",
             "openshift.io/long-description": "This template defines resources needed to develop a Rails application, including a build configuration, application deployment configuration, and database deployment configuration.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -120,7 +120,7 @@
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "ruby:2.3",
+                            "name": "ruby:2.5",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -461,7 +461,7 @@
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "postgresql:9.5",
+                                "name": "postgresql:10",
                                 "namespace": "${NAMESPACE}"
                             }
                         },
@@ -515,7 +515,7 @@
             "displayName": "Git Repository URL",
             "name": "SOURCE_REPOSITORY_URL",
             "required": true,
-            "value": "https://github.com/openshift/rails-ex.git"
+            "value": "https://github.com/sclorg/rails-ex.git"
         },
         {
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",

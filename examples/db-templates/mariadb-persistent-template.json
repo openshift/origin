@@ -265,7 +265,7 @@
             "value": "sampledb"
         },
         {
-            "description": "Version of MariaDB image to be used (10.1, 10.2 or latest).",
+            "description": "Version of MariaDB image to be used (10.2 or latest).",
             "displayName": "Version of MariaDB Image",
             "name": "MARIADB_VERSION",
             "required": true,
