@@ -171,7 +171,7 @@ func NewImageMapperFromImageStreamFile(path string, input *imageapi.ImageStream,
 				glog.V(2).Infof("Image file %q referenced an image %q that is not part of the input images, skipping", path, tag.From.Name)
 				continue
 			}
-			return nil, fmt.Errorf("requested mapping for %q, but no input image could be located", tag.From.Name)
+			return nil, fmt.Errorf("image file %q referenced image %q that is not part of the input images", path, tag.Name)
 		}
 		references[tag.Name] = ref
 	}
