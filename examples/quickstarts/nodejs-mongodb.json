@@ -440,11 +440,11 @@
             "value": "8"
         },
         {
-            "description": "Version of MongoDB image to be used (3.2, 3.4, or latest).",
+            "description": "Version of MongoDB image to be used (3.6 or latest).",
             "displayName": "Version of MongoDB Image",
             "name": "MONGODB_VERSION",
             "required": true,
-            "value": "3.4"
+            "value": "3.6"
         },
         {
             "description": "Maximum amount of memory the Node.js container can use.",

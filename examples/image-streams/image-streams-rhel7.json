@@ -19,7 +19,7 @@
               "iconClass": "icon-apache",
               "openshift.io/display-name": "Apache HTTP Server (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/httpd-ex.git",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
               "tags": "builder,httpd"
             },
@@ -38,7 +38,7 @@
               "iconClass": "icon-apache",
               "openshift.io/display-name": "Apache HTTP Server 2.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/httpd-ex.git",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
               "tags": "builder,httpd",
               "version": "2.4"
@@ -323,7 +323,7 @@
         "tags": [
           {
             "annotations": {
-              "description": "Provides a MySQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MySQL available on OpenShift, including major versions updates.",
+              "description": "Provides a MySQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MySQL available on OpenShift, including major versions updates.",
               "iconClass": "icon-mysql-database",
               "openshift.io/display-name": "MySQL (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -340,7 +340,7 @@
           },
           {
             "annotations": {
-              "description": "Provides a MySQL 5.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.5/README.md.",
+              "description": "Provides a MySQL 5.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
               "iconClass": "icon-mysql-database",
               "openshift.io/display-name": "MySQL 5.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -358,7 +358,7 @@
           },
           {
             "annotations": {
-              "description": "Provides a MySQL 5.6 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.6/README.md.",
+              "description": "Provides a MySQL 5.6 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
               "iconClass": "icon-mysql-database",
               "openshift.io/display-name": "MySQL 5.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -376,7 +376,7 @@
           },
           {
             "annotations": {
-              "description": "Provides a MySQL 5.7 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.7/README.md.",
+              "description": "Provides a MySQL 5.7 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
               "iconClass": "icon-mysql-database",
               "openshift.io/display-name": "MySQL 5.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -501,11 +501,11 @@
         "tags": [
           {
             "annotations": {
-              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
+              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs",
               "tags": "builder,nodejs"
             },
@@ -524,7 +524,7 @@
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 0.10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:0.10,nodejs:0.1,nodejs",
               "tags": "hidden,nodejs",
               "version": "0.10"
@@ -544,7 +544,7 @@
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:4,nodejs",
               "tags": "hidden,builder,nodejs",
               "version": "4"
@@ -564,7 +564,7 @@
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "supports": "nodejs:6,nodejs",
               "tags": "builder,nodejs",
               "version": "6"
@@ -584,7 +584,7 @@
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "8"
             },
@@ -599,11 +599,11 @@
           },
           {
             "annotations": {
-              "description": "Build and run Node.js 8 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.",
+              "description": "Build and run Node.js 8 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "OpenShift Application Runtimes Node.js 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "8"
             },
@@ -618,11 +618,11 @@
           },
           {
             "annotations": {
-              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/bucharest-gold/centos7-s2i-nodejs.",
+              "description": "Build and run Node.js 10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "OpenShift Application Runtimes Node.js 10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
               "tags": "builder,nodejs",
               "version": "10"
             },
@@ -655,7 +655,7 @@
               "iconClass": "icon-perl",
               "openshift.io/display-name": "Perl (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/dancer-ex.git",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
               "supports": "perl",
               "tags": "builder,perl"
             },
@@ -674,7 +674,7 @@
               "iconClass": "icon-perl",
               "openshift.io/display-name": "Perl 5.16",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/dancer-ex.git",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
               "supports": "perl:5.16,perl",
               "tags": "hidden,builder,perl",
               "version": "5.16"
@@ -694,7 +694,7 @@
               "iconClass": "icon-perl",
               "openshift.io/display-name": "Perl 5.20",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/dancer-ex.git",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
               "supports": "perl:5.20,perl",
               "tags": "hidden,builder,perl",
               "version": "5.20"
@@ -714,7 +714,7 @@
               "iconClass": "icon-perl",
               "openshift.io/display-name": "Perl 5.24",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/dancer-ex.git",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
               "supports": "perl:5.24,perl",
               "tags": "builder,perl",
               "version": "5.24"
@@ -734,7 +734,7 @@
               "iconClass": "icon-perl",
               "openshift.io/display-name": "Perl 5.26",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/dancer-ex.git",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
               "supports": "perl:5.26,perl",
               "tags": "builder,perl",
               "version": "5.26"
@@ -768,7 +768,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php",
               "tags": "builder,php"
             },
@@ -787,7 +787,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:5.5,php",
               "tags": "hidden,builder,php",
               "version": "5.5"
@@ -807,7 +807,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:5.6,php",
               "tags": "hidden,builder,php",
               "version": "5.6"
@@ -827,7 +827,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 7.0",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:7.0,php",
               "tags": "builder,php",
               "version": "7.0"
@@ -847,7 +847,7 @@
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 7.1",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
               "supports": "php:7.1,php",
               "tags": "builder,php",
               "version": "7.1"
@@ -877,7 +877,7 @@
         "tags": [
           {
             "annotations": {
-              "description": "Provides a PostgreSQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/generated/10/root/usr/share/container-scripts/postgresql/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PostgreSQL available on OpenShift, including major versions updates.",
+              "description": "Provides a PostgreSQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PostgreSQL available on OpenShift, including major versions updates.",
               "iconClass": "icon-postgresql",
               "openshift.io/display-name": "PostgreSQL (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -894,7 +894,7 @@
           },
           {
             "annotations": {
-              "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2/README.md.",
+              "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
               "iconClass": "icon-postgresql",
               "openshift.io/display-name": "PostgreSQL 9.2",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -912,7 +912,7 @@
           },
           {
             "annotations": {
-              "description": "Provides a PostgreSQL 9.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4/README.md.",
+              "description": "Provides a PostgreSQL 9.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
               "iconClass": "icon-postgresql",
               "openshift.io/display-name": "PostgreSQL 9.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -930,7 +930,7 @@
           },
           {
             "annotations": {
-              "description": "Provides a PostgreSQL 9.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/generated/9.5/root/usr/share/container-scripts/postgresql/README.md.",
+              "description": "Provides a PostgreSQL 9.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
               "iconClass": "icon-postgresql",
               "openshift.io/display-name": "PostgreSQL 9.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -948,7 +948,7 @@
           },
           {
             "annotations": {
-              "description": "Provides a PostgreSQL 9.6 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/generated/9.6/root/usr/share/container-scripts/postgresql/README.md.",
+              "description": "Provides a PostgreSQL 9.6 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
               "iconClass": "icon-postgresql",
               "openshift.io/display-name": "PostgreSQL (Ephemeral) 9.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -966,7 +966,7 @@
           },
           {
             "annotations": {
-              "description": "Provides a PostgreSQL 10 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/generated/10/root/usr/share/container-scripts/postgresql/README.md.",
+              "description": "Provides a PostgreSQL 10 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
               "iconClass": "icon-postgresql",
               "openshift.io/display-name": "PostgreSQL (Ephemeral) 10",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -1002,7 +1002,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python",
               "tags": "builder,python"
             },
@@ -1021,7 +1021,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.3",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.3,python",
               "tags": "hidden,builder,python",
               "version": "3.3"
@@ -1041,7 +1041,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:2.7,python",
               "tags": "builder,python",
               "version": "2.7"
@@ -1061,7 +1061,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.4,python",
               "tags": "hidden,builder,python",
               "version": "3.4"
@@ -1081,7 +1081,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.5,python",
               "tags": "builder,python",
               "version": "3.5"
@@ -1101,7 +1101,7 @@
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python 3.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/django-ex.git",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
               "supports": "python:3.6,python",
               "tags": "builder,python",
               "version": "3.6"
@@ -1184,7 +1184,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby",
               "tags": "builder,ruby"
             },
@@ -1203,7 +1203,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.0",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.0,ruby",
               "tags": "hidden,builder,ruby",
               "version": "2.0"
@@ -1223,7 +1223,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.2",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.2,ruby",
               "tags": "hidden,builder,ruby",
               "version": "2.2"
@@ -1243,7 +1243,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.3",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.3,ruby",
               "tags": "builder,ruby",
               "version": "2.3"
@@ -1263,7 +1263,7 @@
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/ruby-ex.git",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.4,ruby",
               "tags": "builder,ruby",
               "version": "2.4"
