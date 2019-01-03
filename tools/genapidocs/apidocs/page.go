@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/go-openapi/spec"
@@ -139,31 +140,45 @@ func (pages Pages) Write(root string) error {
 		return err
 	}
 
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(pages))
+
 	for _, page := range pages {
-		err := func() error {
+		wg.Add(1)
+		go func() {
 			path := filepath.Join(root, page.OutputPath())
+			defer func() {
+				wg.Done()
+			}()
 
 			err = os.MkdirAll(filepath.Dir(path), 0777)
 			if err != nil {
-				return err
+				errChan <- err
+				return
 			}
 
 			f, err := os.Create(path)
 			if err != nil {
-				return err
-			}
-			defer f.Close()
-
-			err = t.Execute(f, page)
-			if err != nil {
-				return err
+				errChan <- err
+				return
 			}
 
-			return nil
+			if err := t.Execute(f, page); err != nil {
+				f.Close()
+				errChan <- err
+				return
+			}
+
+			f.Close()
 		}()
-		if err != nil {
-			return err
-		}
+	}
+
+	wg.Wait()
+
+	select {
+	case err := <-errChan:
+		return err
+	default:
 	}
 
 	return nil
