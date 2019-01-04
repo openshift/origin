@@ -19,23 +19,12 @@ import (
 
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/library-go/pkg/config/configdefaults"
-	"github.com/openshift/library-go/pkg/controller/fileobserver"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/serviceability"
 
 	// for metrics
 	_ "github.com/openshift/library-go/pkg/controller/metrics"
 )
-
-var (
-	configScheme = runtime.NewScheme()
-)
-
-func init() {
-	if err := operatorv1alpha1.AddToScheme(configScheme); err != nil {
-		panic(err)
-	}
-}
 
 // ControllerCommandConfig holds values required to construct a command to run.
 type ControllerCommandConfig struct {
@@ -98,13 +87,19 @@ func hasServiceServingCerts(certDir string) bool {
 
 // StartController runs the controller
 func (c *ControllerCommandConfig) StartController(stopCh <-chan struct{}) error {
-	uncastConfig, err := c.basicFlags.ToConfigObj(configScheme, operatorv1alpha1.SchemeGroupVersion)
+	unstructuredConfig, err := c.basicFlags.ToConfigObj()
 	if err != nil {
 		return err
 	}
-	config, ok := uncastConfig.(*operatorv1alpha1.GenericOperatorConfig)
-	if !ok {
-		return fmt.Errorf("unexpected config: %T", uncastConfig)
+	config := &operatorv1alpha1.GenericOperatorConfig{}
+	if unstructuredConfig != nil {
+		// make a copy we can mutate
+		configCopy := unstructuredConfig.DeepCopy()
+		// force the config to our version to read it
+		configCopy.SetGroupVersionKind(operatorv1alpha1.GroupVersion.WithKind("GenericOperatorConfig"))
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(configCopy.Object, config); err != nil {
+			return err
+		}
 	}
 
 	certDir := "/var/run/secrets/serving-cert"
@@ -158,11 +153,21 @@ func (c *ControllerCommandConfig) StartController(stopCh <-chan struct{}) error 
 		}
 	}
 
+	exitOnChangeReactorCh := make(chan struct{})
+	stopChannelCombined := make(chan struct{})
+	go func() {
+		select {
+		case <-exitOnChangeReactorCh:
+			close(stopChannelCombined)
+		case <-stopCh:
+			close(stopChannelCombined)
+		}
+	}()
+
 	return NewController(c.componentName, c.startFunc).
 		WithKubeConfigFile(c.basicFlags.KubeConfigFile, nil).
 		WithLeaderElection(config.LeaderElection, "", c.componentName+"-lock").
 		WithServer(config.ServingInfo, config.Authentication, config.Authorization).
-		WithFileObserver(fileobserver.ExitOnChangeReactor, observedFiles...).
-		Run(stopCh)
-
+		WithRestartOnChange(exitOnChangeReactorCh, observedFiles...).
+		Run(unstructuredConfig, stopChannelCombined)
 }

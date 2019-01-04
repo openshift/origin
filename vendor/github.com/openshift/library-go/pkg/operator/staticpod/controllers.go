@@ -1,6 +1,9 @@
 package staticpod
 
 import (
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/monitoring"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 
@@ -12,10 +15,11 @@ import (
 )
 
 type staticPodOperatorControllers struct {
-	revisionController       *revision.RevisionController
-	installerController      *installer.InstallerController
-	nodeController           *node.NodeController
-	serviceAccountController *backingresource.BackingResourceController
+	revisionController           *revision.RevisionController
+	installerController          *installer.InstallerController
+	nodeController               *node.NodeController
+	backingResourceController    *backingresource.BackingResourceController
+	monitoringResourceController *monitoring.MonitoringResourceController
 }
 
 // NewControllers provides all control loops needed to run a static pod based operator. That includes:
@@ -26,9 +30,12 @@ type staticPodOperatorControllers struct {
 //    appears that doesn't match the current latest for first kubeletStatus and the first kubeletStatus isn't already transitioning,
 //    it kicks off an installer pod.  If the next kubeletStatus doesn't match the immediate prior one, it kicks off that transition.
 // 3. NodeController - watches nodes for master nodes and keeps the operator status up to date
+// 4. BackingResourceController - this creates the backing resources needed for the operand, such as cluster rolebindings and installer service
+//    account.
+// 5. MonitoringResourceController - this creates the service monitor used by prometheus to scrape metrics.
 func NewControllers(targetNamespaceName, staticPodName string, command, revisionConfigMaps, revisionSecrets []string,
-	staticPodOperatorClient common.OperatorClient, kubeClient kubernetes.Interface, kubeInformersNamespaceScoped,
-	kubeInformersClusterScoped informers.SharedInformerFactory) *staticPodOperatorControllers {
+	staticPodOperatorClient common.OperatorClient, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, kubeInformersNamespaceScoped,
+	kubeInformersClusterScoped informers.SharedInformerFactory, eventRecorder events.Recorder) *staticPodOperatorControllers {
 	controller := &staticPodOperatorControllers{}
 
 	controller.revisionController = revision.NewRevisionController(
@@ -38,6 +45,7 @@ func NewControllers(targetNamespaceName, staticPodName string, command, revision
 		kubeInformersNamespaceScoped,
 		staticPodOperatorClient,
 		kubeClient,
+		eventRecorder,
 	)
 
 	controller.installerController = installer.NewInstallerController(
@@ -49,28 +57,42 @@ func NewControllers(targetNamespaceName, staticPodName string, command, revision
 		kubeInformersNamespaceScoped,
 		staticPodOperatorClient,
 		kubeClient,
+		eventRecorder,
 	)
 
 	controller.nodeController = node.NewNodeController(
 		staticPodOperatorClient,
 		kubeInformersClusterScoped,
+		eventRecorder,
 	)
 
-	controller.serviceAccountController = backingresource.NewBackingResourceController(
+	controller.backingResourceController = backingresource.NewBackingResourceController(
 		targetNamespaceName,
 		staticPodOperatorClient,
 		kubeInformersNamespaceScoped,
 		kubeClient,
+		eventRecorder,
+	)
+
+	controller.monitoringResourceController = monitoring.NewMonitoringResourceController(
+		targetNamespaceName,
+		targetNamespaceName,
+		staticPodOperatorClient,
+		kubeInformersNamespaceScoped,
+		kubeClient,
+		dynamicClient,
+		eventRecorder,
 	)
 
 	return controller
 }
 
 func (o *staticPodOperatorControllers) Run(stopCh <-chan struct{}) {
-	go o.serviceAccountController.Run(1, stopCh)
 	go o.revisionController.Run(1, stopCh)
 	go o.installerController.Run(1, stopCh)
 	go o.nodeController.Run(1, stopCh)
+	go o.backingResourceController.Run(1, stopCh)
+	go o.monitoringResourceController.Run(1, stopCh)
 
 	<-stopCh
 }

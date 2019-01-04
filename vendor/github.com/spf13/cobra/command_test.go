@@ -1164,12 +1164,13 @@ func TestPersistentHooks(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	// TODO: This test fails, but should not.
-	// Related to https://github.com/spf13/cobra/issues/252.
-	//
-	// if parentPersPreArgs != "one two" {
-	// 	t.Errorf("Expected parentPersPreArgs %q, got %q", "one two", parentPersPreArgs)
-	// }
+	// TODO: currently PersistenPreRun* defined in parent does not
+	// run if the matchin child subcommand has PersistenPreRun.
+	// If the behavior changes (https://github.com/spf13/cobra/issues/252)
+	// this test must be fixed.
+	if parentPersPreArgs != "" {
+		t.Errorf("Expected blank parentPersPreArgs, got %q", parentPersPreArgs)
+	}
 	if parentPreArgs != "" {
 		t.Errorf("Expected blank parentPreArgs, got %q", parentPreArgs)
 	}
@@ -1179,12 +1180,13 @@ func TestPersistentHooks(t *testing.T) {
 	if parentPostArgs != "" {
 		t.Errorf("Expected blank parentPostArgs, got %q", parentPostArgs)
 	}
-	// TODO: This test fails, but should not.
-	// Related to https://github.com/spf13/cobra/issues/252.
-	//
-	// if parentPersPostArgs != "one two" {
-	// 	t.Errorf("Expected parentPersPostArgs %q, got %q", "one two", parentPersPostArgs)
-	// }
+	// TODO: currently PersistenPostRun* defined in parent does not
+	// run if the matchin child subcommand has PersistenPostRun.
+	// If the behavior changes (https://github.com/spf13/cobra/issues/252)
+	// this test must be fixed.
+	if parentPersPostArgs != "" {
+		t.Errorf("Expected blank parentPersPostArgs, got %q", parentPersPostArgs)
+	}
 
 	if childPersPreArgs != "one two" {
 		t.Errorf("Expected childPersPreArgs %q, got %q", "one two", childPersPreArgs)
@@ -1625,4 +1627,109 @@ func TestCalledAs(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, tc.test)
 	}
+}
+
+func TestFParseErrWhitelistBackwardCompatibility(t *testing.T) {
+	c := &Command{Use: "c", Run: emptyRun}
+	c.Flags().BoolP("boola", "a", false, "a boolean flag")
+
+	output, err := executeCommand(c, "c", "-a", "--unknown", "flag")
+	if err == nil {
+		t.Error("expected unknown flag error")
+	}
+	checkStringContains(t, output, "unknown flag: --unknown")
+}
+
+func TestFParseErrWhitelistSameCommand(t *testing.T) {
+	c := &Command{
+		Use: "c",
+		Run: emptyRun,
+		FParseErrWhitelist: FParseErrWhitelist{
+			UnknownFlags: true,
+		},
+	}
+	c.Flags().BoolP("boola", "a", false, "a boolean flag")
+
+	_, err := executeCommand(c, "c", "-a", "--unknown", "flag")
+	if err != nil {
+		t.Error("unexpected error: ", err)
+	}
+}
+
+func TestFParseErrWhitelistParentCommand(t *testing.T) {
+	root := &Command{
+		Use: "root",
+		Run: emptyRun,
+		FParseErrWhitelist: FParseErrWhitelist{
+			UnknownFlags: true,
+		},
+	}
+
+	c := &Command{
+		Use: "child",
+		Run: emptyRun,
+	}
+	c.Flags().BoolP("boola", "a", false, "a boolean flag")
+
+	root.AddCommand(c)
+
+	output, err := executeCommand(root, "child", "-a", "--unknown", "flag")
+	if err == nil {
+		t.Error("expected unknown flag error")
+	}
+	checkStringContains(t, output, "unknown flag: --unknown")
+}
+
+func TestFParseErrWhitelistChildCommand(t *testing.T) {
+	root := &Command{
+		Use: "root",
+		Run: emptyRun,
+	}
+
+	c := &Command{
+		Use: "child",
+		Run: emptyRun,
+		FParseErrWhitelist: FParseErrWhitelist{
+			UnknownFlags: true,
+		},
+	}
+	c.Flags().BoolP("boola", "a", false, "a boolean flag")
+
+	root.AddCommand(c)
+
+	_, err := executeCommand(root, "child", "-a", "--unknown", "flag")
+	if err != nil {
+		t.Error("unexpected error: ", err.Error())
+	}
+}
+
+func TestFParseErrWhitelistSiblingCommand(t *testing.T) {
+	root := &Command{
+		Use: "root",
+		Run: emptyRun,
+	}
+
+	c := &Command{
+		Use: "child",
+		Run: emptyRun,
+		FParseErrWhitelist: FParseErrWhitelist{
+			UnknownFlags: true,
+		},
+	}
+	c.Flags().BoolP("boola", "a", false, "a boolean flag")
+
+	s := &Command{
+		Use: "sibling",
+		Run: emptyRun,
+	}
+	s.Flags().BoolP("boolb", "b", false, "a boolean flag")
+
+	root.AddCommand(c)
+	root.AddCommand(s)
+
+	output, err := executeCommand(root, "sibling", "-b", "--unknown", "flag")
+	if err == nil {
+		t.Error("expected unknown flag error")
+	}
+	checkStringContains(t, output, "unknown flag: --unknown")
 }

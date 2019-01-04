@@ -51,6 +51,7 @@ kind: ClusterRoleBinding
 metadata:
   name: system:openshift:operator:{{ .TargetNamespace }}-installer
 roleRef:
+  apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:

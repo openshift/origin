@@ -272,6 +272,11 @@ func (in *ImagePolicyConfig) DeepCopyInto(out *ImagePolicyConfig) {
 		*out = make(AllowedRegistries, len(*in))
 		copy(*out, *in)
 	}
+	if in.ExternalRegistryHostnames != nil {
+		in, out := &in.ExternalRegistryHostnames, &out.ExternalRegistryHostnames
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

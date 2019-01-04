@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/api"
+	"github.com/openshift/library-go/pkg/operator/events"
 )
 
 var (
@@ -33,7 +34,7 @@ type ApplyResult struct {
 	Error   error
 }
 
-func ApplyDirectly(client kubernetes.Interface, manifests AssetFunc, files ...string) []ApplyResult {
+func ApplyDirectly(client kubernetes.Interface, recorder events.Recorder, manifests AssetFunc, files ...string) []ApplyResult {
 	ret := []ApplyResult{}
 
 	for _, file := range files {
@@ -54,23 +55,25 @@ func ApplyDirectly(client kubernetes.Interface, manifests AssetFunc, files ...st
 
 		switch t := requiredObj.(type) {
 		case *corev1.Namespace:
-			result.Result, result.Changed, result.Error = ApplyNamespace(client.CoreV1(), t)
+			result.Result, result.Changed, result.Error = ApplyNamespace(client.CoreV1(), recorder, t)
 		case *corev1.Service:
-			result.Result, result.Changed, result.Error = ApplyService(client.CoreV1(), t)
+			result.Result, result.Changed, result.Error = ApplyService(client.CoreV1(), recorder, t)
+		case *corev1.Pod:
+			result.Result, result.Changed, result.Error = ApplyPod(client.CoreV1(), recorder, t)
 		case *corev1.ServiceAccount:
-			result.Result, result.Changed, result.Error = ApplyServiceAccount(client.CoreV1(), t)
+			result.Result, result.Changed, result.Error = ApplyServiceAccount(client.CoreV1(), recorder, t)
 		case *corev1.ConfigMap:
-			result.Result, result.Changed, result.Error = ApplyConfigMap(client.CoreV1(), t)
+			result.Result, result.Changed, result.Error = ApplyConfigMap(client.CoreV1(), recorder, t)
 		case *corev1.Secret:
-			result.Result, result.Changed, result.Error = ApplySecret(client.CoreV1(), t)
+			result.Result, result.Changed, result.Error = ApplySecret(client.CoreV1(), recorder, t)
 		case *rbacv1.ClusterRole:
-			result.Result, result.Changed, result.Error = ApplyClusterRole(client.RbacV1(), t)
+			result.Result, result.Changed, result.Error = ApplyClusterRole(client.RbacV1(), recorder, t)
 		case *rbacv1.ClusterRoleBinding:
-			result.Result, result.Changed, result.Error = ApplyClusterRoleBinding(client.RbacV1(), t)
+			result.Result, result.Changed, result.Error = ApplyClusterRoleBinding(client.RbacV1(), recorder, t)
 		case *rbacv1.Role:
-			result.Result, result.Changed, result.Error = ApplyRole(client.RbacV1(), t)
+			result.Result, result.Changed, result.Error = ApplyRole(client.RbacV1(), recorder, t)
 		case *rbacv1.RoleBinding:
-			result.Result, result.Changed, result.Error = ApplyRoleBinding(client.RbacV1(), t)
+			result.Result, result.Changed, result.Error = ApplyRoleBinding(client.RbacV1(), recorder, t)
 		default:
 			result.Error = fmt.Errorf("unhandled type %T", requiredObj)
 		}

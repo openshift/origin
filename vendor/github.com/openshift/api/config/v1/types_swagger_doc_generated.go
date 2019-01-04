@@ -61,7 +61,7 @@ func (ClientConnectionOverrides) SwaggerDoc() map[string]string {
 }
 
 var map_ConfigMapReference = map[string]string{
-	"":         "ConfigMapReference references the location of a configmap.",
+	"":         "ConfigMapReference references a configmap in the openshift-config namespace.",
 	"filename": "Key allows pointing to a specific key/value inside of the configmap.  This is useful for logical file references.",
 }
 
@@ -160,6 +160,16 @@ var map_LeaderElection = map[string]string{
 
 func (LeaderElection) SwaggerDoc() map[string]string {
 	return map_LeaderElection
+}
+
+var map_LocalSecretReference = map[string]string{
+	"":     "LocalSecretReference references a secret within the local namespace",
+	"name": "Name of the secret in the local namespace",
+	"key":  "Key selects a specific key within the local secret. Must be a valid secret key.",
+}
+
+func (LocalSecretReference) SwaggerDoc() map[string]string {
+	return map_LocalSecretReference
 }
 
 var map_NamedCertificate = map[string]string{

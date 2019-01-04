@@ -79,11 +79,11 @@ type ImagePolicyConfig struct {
 	// For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY
 	// environment variable but this setting overrides the environment variable.
 	InternalRegistryHostname string `json:"internalRegistryHostname"`
-	// externalRegistryHostname sets the hostname for the default external image
+	// externalRegistryHostnames provides the hostnames for the default external image
 	// registry. The external hostname should be set only when the image registry
-	// is exposed externally. The value is used in 'publicDockerImageRepository'
+	// is exposed externally. The first value is used in 'publicDockerImageRepository'
 	// field in ImageStreams. The value must be in "hostname[:port]" format.
-	ExternalRegistryHostname string `json:"externalRegistryHostname"`
+	ExternalRegistryHostnames []string `json:"externalRegistryHostnames"`
 
 	// additionalTrustedCA is a path to a pem bundle file containing additional CAs that
 	// should be trusted during imagestream import.

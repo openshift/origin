@@ -20,6 +20,7 @@ import (
 
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1staticpod/controller/common"
@@ -37,7 +38,8 @@ type DeploymentController struct {
 
 	operatorConfigClient common.OperatorClient
 
-	kubeClient kubernetes.Interface
+	kubeClient    kubernetes.Interface
+	eventRecorder events.Recorder
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
@@ -50,6 +52,7 @@ func NewDeploymentController(
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	operatorConfigClient common.OperatorClient,
 	kubeClient kubernetes.Interface,
+	eventRecorder events.Recorder,
 ) *DeploymentController {
 	c := &DeploymentController{
 		targetNamespace: targetNamespace,
@@ -58,6 +61,7 @@ func NewDeploymentController(
 
 		operatorConfigClient: operatorConfigClient,
 		kubeClient:           kubeClient,
+		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "DeploymentController"),
 	}
@@ -151,7 +155,8 @@ func (c DeploymentController) isLatestDeploymentCurrent(deploymentID int32) (boo
 
 func (c DeploymentController) createNewDeploymentController(deploymentID int32) error {
 	for _, name := range c.configMaps {
-		obj, _, err := resourceapply.SyncConfigMap(c.kubeClient.CoreV1(), c.targetNamespace, name, c.targetNamespace, nameFor(name, deploymentID))
+		obj, _, err := resourceapply.SyncConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name,
+			deploymentID))
 		if err != nil {
 			return err
 		}
@@ -160,7 +165,7 @@ func (c DeploymentController) createNewDeploymentController(deploymentID int32) 
 		}
 	}
 	for _, name := range c.secrets {
-		obj, _, err := resourceapply.SyncSecret(c.kubeClient.CoreV1(), c.targetNamespace, name, c.targetNamespace, nameFor(name, deploymentID))
+		obj, _, err := resourceapply.SyncSecret(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, deploymentID))
 		if err != nil {
 			return err
 		}

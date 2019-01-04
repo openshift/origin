@@ -12,11 +12,8 @@ package v1alpha1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_APIServiceCABundleInjectorConfig = map[string]string{
-	"":               "APIServiceCABundleInjectorConfig provides information to configure an APIService CA Bundle Injector controller",
-	"servingInfo":    "ServingInfo is the HTTP serving information for the controller's endpoints",
-	"authentication": "authentication allows configuration of authentication for the endpoints",
-	"authorization":  "authorization allows configuration of authentication for the endpoints",
-	"caBundleFile":   "caBundleFile holds the ca bundle to apply to APIServices",
+	"":             "APIServiceCABundleInjectorConfig provides information to configure an APIService CA Bundle Injector controller",
+	"caBundleFile": "caBundleFile holds the ca bundle to apply to APIServices.",
 }
 
 func (APIServiceCABundleInjectorConfig) SwaggerDoc() map[string]string {
@@ -24,33 +21,12 @@ func (APIServiceCABundleInjectorConfig) SwaggerDoc() map[string]string {
 }
 
 var map_ConfigMapCABundleInjectorConfig = map[string]string{
-	"":               "ConfigMapCABundleInjectorConfig provides information to configure a ConfigMap CA Bundle Injector controller",
-	"servingInfo":    "ServingInfo is the HTTP serving information for the controller's endpoints",
-	"authentication": "authentication allows configuration of authentication for the endpoints",
-	"authorization":  "authorization allows configuration of authentication for the endpoints",
-	"caBundleFile":   "caBundleFile holds the ca bundle to apply to ConfigMaps",
+	"":             "ConfigMapCABundleInjectorConfig provides information to configure a ConfigMap CA Bundle Injector controller",
+	"caBundleFile": "caBundleFile holds the ca bundle to apply to ConfigMaps.",
 }
 
 func (ConfigMapCABundleInjectorConfig) SwaggerDoc() map[string]string {
 	return map_ConfigMapCABundleInjectorConfig
-}
-
-var map_DelegatedAuthentication = map[string]string{
-	"":         "DelegatedAuthentication allows authentication to be disabled.",
-	"disabled": "disabled indicates that authentication should be disabled.  By default it will use delegated authentication.",
-}
-
-func (DelegatedAuthentication) SwaggerDoc() map[string]string {
-	return map_DelegatedAuthentication
-}
-
-var map_DelegatedAuthorization = map[string]string{
-	"":         "DelegatedAuthorization allows authorization to be disabled.",
-	"disabled": "disabled indicates that authorization should be disabled.  By default it will use delegated authorization.",
-}
-
-func (DelegatedAuthorization) SwaggerDoc() map[string]string {
-	return map_DelegatedAuthorization
 }
 
 var map_ServiceCertSignerOperatorConfig = map[string]string{
@@ -82,11 +58,8 @@ func (ServiceCertSignerOperatorConfigSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ServiceServingCertSignerConfig = map[string]string{
-	"":               "ServiceServingCertSignerConfig provides information to configure a serving serving cert signing controller",
-	"servingInfo":    "ServingInfo is the HTTP serving information for the controller's endpoints",
-	"authentication": "authentication allows configuration of authentication for the endpoints",
-	"authorization":  "authorization allows configuration of authentication for the endpoints",
-	"signer":         "Signer holds the signing information used to automatically sign serving certificates.",
+	"":       "ServiceServingCertSignerConfig provides information to configure a serving serving cert signing controller",
+	"signer": "signer holds the signing information used to automatically sign serving certificates.",
 }
 
 func (ServiceServingCertSignerConfig) SwaggerDoc() map[string]string {

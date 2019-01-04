@@ -1,6 +1,7 @@
 package fileobserver
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -25,6 +26,19 @@ const (
 	// FileDeleted means the file was deleted.
 	FileDeleted
 )
+
+// String returns human readable form of action taken on a file.
+func (t ActionType) String(filename string) string {
+	switch t {
+	case FileCreated:
+		return fmt.Sprintf("file %s was created", filename)
+	case FileDeleted:
+		return fmt.Sprintf("file %s was deleted", filename)
+	case FileModified:
+		return fmt.Sprintf("file %s was modified", filename)
+	}
+	return ""
+}
 
 // reactorFn define a reaction function called when an observed file is modified.
 type reactorFn func(file string, action ActionType) error

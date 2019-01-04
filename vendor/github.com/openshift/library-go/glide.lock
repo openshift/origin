@@ -1,5 +1,5 @@
-hash: a011273e6065c920c4d383319b0a69ec2de1d80dc10634fb1d78c33c04e756a2
-updated: 2018-11-16T10:32:14.335159616-05:00
+hash: be554cc57be62b801fadab65f1ebaec34046b7d913e559b61eccf809ca1c9092
+updated: 2018-12-06T15:57:15.466410788-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -185,7 +185,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 6ccc79544967d4508d87a35901e734990c547ffb
+  version: 83b2fe56301417028bd52e56edd75768e2ea051c
   subpackages:
   - apps
   - apps/v1
@@ -230,6 +230,14 @@ imports:
   - user/v1
   - webconsole
   - webconsole/v1
+- name: github.com/openshift/client-go
+  version: 960f72aa32a8e9b4dd769b90ff1cb5bd4c898eec
+  subpackages:
+  - config/clientset/versioned
+  - config/clientset/versioned/fake
+  - config/clientset/versioned/scheme
+  - config/clientset/versioned/typed/config/v1
+  - config/clientset/versioned/typed/config/v1/fake
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/peterbourgon/diskv
@@ -382,6 +390,8 @@ imports:
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1
+  - pkg/client/clientset/clientset/scheme
+  - pkg/client/clientset/clientset/typed/apiextensions/v1beta1
 - name: k8s.io/apimachinery
   version: 103fd098999dc9c0c88536f5c9ad2e5da39373ae
   subpackages:
@@ -704,4 +714,8 @@ imports:
   - pkg/handler
   - pkg/util
   - pkg/util/proto
-testImports: []
+testImports:
+- name: vbom.ml/util
+  version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
+  subpackages:
+  - sortorder

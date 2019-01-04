@@ -25,7 +25,13 @@ type InfrastructureSpec struct {
 }
 
 type InfrastructureStatus struct {
-	// type
+	// cloudProvider is the IaaS provider that is running the cluster.
+	//
+	// Valid values are:
+	// - aws
+	// - openstack
+	// +optional
+	CloudProvider string `json:"cloudProvider,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
