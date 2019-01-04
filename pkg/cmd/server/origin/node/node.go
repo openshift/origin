@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"os/exec"
 
 	"github.com/golang/glog"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -28,13 +29,21 @@ func shellEscapeArg(s string) string {
 
 // FinalizeNodeConfig controls the node configuration before it is used by the Kubelet
 func FinalizeNodeConfig(nodeConfig *configapi.NodeConfig) error {
+	// If NodeIP is configured, then DNSIP is NodeIP, or the interface IP of default gateway is configured.
+	// Otherwise, an IPv4 addresses in the hosts.
 	if nodeConfig.DNSIP == "0.0.0.0" {
 		glog.V(4).Infof("Defaulting to the DNSIP config to the node's IP")
 		nodeConfig.DNSIP = nodeConfig.NodeIP
 		// TODO: the Kubelet should do this defaulting (to the IP it recognizes)
 		if len(nodeConfig.DNSIP) == 0 {
-			if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
-				nodeConfig.DNSIP = ip.String()
+			cmdStr := "ip route get to $(ip route list match 0.0.0.0/0 | awk '{print $3 }') | awk -F 'src' '{print $2}'| head -n1 | awk '{print $1}'"
+			ipCmd := exec.Command("bash", "-c", cmdStr)
+			if gwIp, err := ipCmd.CombinedOutput(); err == nil {
+				nodeConfig.DNSIP = strings.TrimSuffix(string(gwIp), "\n")
+			} else {
+				if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
+					nodeConfig.DNSIP = ip.String()
+				}
 			}
 		}
 	}
