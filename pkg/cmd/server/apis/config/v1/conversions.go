@@ -9,6 +9,25 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+func Convert_v1_ImagePolicyConfig_To_config_ImagePolicyConfig(in *legacyconfigv1.ImagePolicyConfig, out *internal.ImagePolicyConfig, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if len(in.ExternalRegistryHostname) > 0 {
+		out.ExternalRegistryHostnames = []string{in.ExternalRegistryHostname}
+	}
+	return nil
+}
+func Convert_config_ImagePolicyConfig_To_v1_ImagePolicyConfig(in *internal.ImagePolicyConfig, out *legacyconfigv1.ImagePolicyConfig, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if len(in.ExternalRegistryHostnames) > 0 {
+		out.ExternalRegistryHostname = in.ExternalRegistryHostnames[0]
+	}
+	return nil
+}
+
 func Convert_v1_AuditConfig_To_config_AuditConfig(in *legacyconfigv1.AuditConfig, out *internal.AuditConfig, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err

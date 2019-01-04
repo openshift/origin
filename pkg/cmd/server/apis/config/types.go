@@ -527,7 +527,7 @@ type ImagePolicyConfig struct {
 	// registry. The external hostname should be set only when the image registry
 	// is exposed externally. The value is used in 'publicDockerImageRepository'
 	// field in ImageStreams. The value must be in "hostname[:port]" format.
-	ExternalRegistryHostname string
+	ExternalRegistryHostnames []string
 
 	// AdditionalTrustedCA is a path to a pem bundle file containing additional CAs that
 	// should be trusted during imagestream import.

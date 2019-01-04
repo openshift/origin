@@ -71,6 +71,7 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 
 	var err error
 
+	externalRegistryHostnames := []string{input.ImagePolicyConfig.ExternalRegistryHostname}
 	ret := &kubecontrolplanev1.KubeAPIServerConfig{
 		GenericAPIServerConfig: configv1.GenericAPIServerConfig{
 			CORSAllowedOrigins: input.CORSAllowedOrigins,
@@ -83,8 +84,8 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 		ServicesNodePortRange: input.KubernetesMasterConfig.ServicesNodePortRange,
 
 		ImagePolicyConfig: kubecontrolplanev1.KubeAPIServerImagePolicyConfig{
-			InternalRegistryHostname: input.ImagePolicyConfig.InternalRegistryHostname,
-			ExternalRegistryHostname: input.ImagePolicyConfig.ExternalRegistryHostname,
+			InternalRegistryHostname:  input.ImagePolicyConfig.InternalRegistryHostname,
+			ExternalRegistryHostnames: externalRegistryHostnames,
 		},
 
 		ProjectConfig: kubecontrolplanev1.KubeAPIServerProjectConfig{
@@ -146,6 +147,7 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 func ConvertMasterConfigToOpenShiftAPIServerConfig(input *legacyconfigv1.MasterConfig) (*openshiftcontrolplanev1.OpenShiftAPIServerConfig, error) {
 	var err error
 
+	externalRegistryHostnames := []string{input.ImagePolicyConfig.ExternalRegistryHostname}
 	ret := &openshiftcontrolplanev1.OpenShiftAPIServerConfig{
 		GenericAPIServerConfig: configv1.GenericAPIServerConfig{
 			CORSAllowedOrigins: input.CORSAllowedOrigins,
@@ -157,7 +159,7 @@ func ConvertMasterConfigToOpenShiftAPIServerConfig(input *legacyconfigv1.MasterC
 		ImagePolicyConfig: openshiftcontrolplanev1.ImagePolicyConfig{
 			MaxImagesBulkImportedPerRepository: input.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
 			InternalRegistryHostname:           input.ImagePolicyConfig.InternalRegistryHostname,
-			ExternalRegistryHostname:           input.ImagePolicyConfig.ExternalRegistryHostname,
+			ExternalRegistryHostnames:          externalRegistryHostnames,
 			AdditionalTrustedCA:                input.ImagePolicyConfig.AdditionalTrustedCA,
 		},
 		ProjectConfig: openshiftcontrolplanev1.ProjectConfig{
