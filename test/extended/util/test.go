@@ -354,6 +354,10 @@ var (
 
 			`validates that there is no conflict between pods with same hostPort but different hostIP and protocol`, // https://github.com/kubernetes/kubernetes/issues/61018
 
+			`Pod should perfer to scheduled to nodes pod can tolerate`, // broken due to multi-zone cluster in 1.11, enable in 1.12
+
+			`Services should be able to create a functioning NodePort service`, // https://github.com/openshift/origin/issues/21708
+
 			`SSH`,                // TRIAGE
 			`SELinux relabeling`, // https://github.com/openshift/origin/issues/7287 still broken
 			`Volumes CephFS`,     // permission denied, selinux?
